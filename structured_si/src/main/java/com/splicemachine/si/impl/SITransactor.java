@@ -8,6 +8,9 @@ import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -358,7 +361,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         } finally {
             final Iterator<Lock> locksIterator = locks.values().iterator();
             if (locksIterator.hasNext()) {
-                final Set<Long> conflictingChildren =  (putToRun == null)
+                final Set<Long> conflictingChildren = (putToRun == null)
                         ? Collections.<Long>emptySet()
                         : putToRun.conflictingChildren;
                 postProcessBatchPutDirect(table, put, locksIterator.next(), conflictingChildren);
@@ -368,7 +371,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
-                                                 Put put, Map<Hashable, Lock> locks) throws IOException {
+                                                       Put put, Map<Hashable, Lock> locks) throws IOException {
         if (isFlaggedForSITreatment(put)) {
             return preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
         } else {
@@ -614,30 +617,38 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public FilterState newFilterState(TransactionId transactionId) throws IOException {
+    public IFilterState newFilterState(TransactionId transactionId) throws IOException {
         return newFilterState(null, transactionId, false, false);
     }
 
     @Override
-    public FilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
-                                      boolean includeSIColumn, boolean includeUncommittedAsOfStart)
+    public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
+                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart)
             throws IOException {
         return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
                 includeUncommittedAsOfStart, transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
-    public Filter.ReturnCode filterKeyValue(FilterState filterState, KeyValue keyValue) throws IOException {
+    public IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
+                                             TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+        return new FilterStatePacked(dataLib, dataStore,
+                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
+                new HRowAccumulator(predicateFilter, new EntryDecoder()));
+    }
+
+    @Override
+    public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
         return filterState.filterKeyValue(keyValue);
     }
 
     @Override
-    public void filterNextRow(FilterState filterState) {
+    public void filterNextRow(IFilterState filterState) {
         filterState.nextRow();
     }
 
     @Override
-    public Result filterResult(FilterState filterState, Result result) throws IOException {
+    public Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException {
         final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib = dataStore.dataLib;
         final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
         final List<KeyValue> keyValues = dataLib.listResult(result);
@@ -658,6 +669,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 } else {
                     familyToSkip = null;
                     qualifierToSkip = null;
+                    boolean nextRow = false;
                     Filter.ReturnCode returnCode = filterKeyValue(filterState, keyValue);
                     switch (returnCode) {
                         case SKIP:
@@ -669,9 +681,19 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                             qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
                             familyToSkip = dataLib.getKeyValueFamily(keyValue);
                             break;
+                        case NEXT_ROW:
+                            nextRow = true;
+                            break;
+                    }
+                    if (nextRow) {
+                        break;
                     }
                 }
             }
+        }
+        final KeyValue finalKeyValue = filterState.produceAccumulatedKeyValue();
+        if (finalKeyValue != null) {
+            filteredCells.add(finalKeyValue);
         }
         if (filteredCells.isEmpty()) {
             return null;

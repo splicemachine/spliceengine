@@ -80,4 +80,27 @@ public class FloatEncodingTest {
 
         Assert.assertArrayEquals("incorrect sort ordering!",data,newData,(float)Math.pow(10,-6));
     }
+
+    @Test
+    public void testSortsBytesCorrectlyReversed() throws Exception {
+        byte[][] dataElements = new byte[data.length][];
+        for(int pos=0;pos<data.length;pos++){
+            dataElements[pos] = DecimalEncoding.toBytes(data[pos],true);
+        }
+
+        Arrays.sort(dataElements, Bytes.BYTES_COMPARATOR);
+
+        float[] newData = new float[dataElements.length];
+        for(int i=0;i<dataElements.length;i++){
+            newData[i] = DecimalEncoding.toFloat(dataElements[i],true);
+        }
+
+        Arrays.sort(data);
+        float[] reversed = new float[data.length];
+        for(int i=data.length-1,j=0;i>=0;i--,j++){
+            reversed[j] = data[i];
+        }
+
+        Assert.assertArrayEquals("incorrect sort ordering!",reversed,newData,(float)Math.pow(10,-6));
+    }
 }

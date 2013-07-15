@@ -35,7 +35,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup();
+        classStoreSetup = new HStoreSetup(false);
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);

@@ -3,7 +3,7 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HRowLock;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -32,7 +32,7 @@ public class SIFilter extends FilterBase {
     private boolean includeSIColumn;
     private boolean includeUncommittedAsOfStart;
 
-    private FilterState filterState = null;
+    private IFilterState filterState = null;
 
     public SIFilter() {
     }
@@ -49,8 +49,9 @@ public class SIFilter extends FilterBase {
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
+        }
         try {
             initFilterStateIfNeeded();
             return transactor.filterKeyValue(filterState, keyValue);

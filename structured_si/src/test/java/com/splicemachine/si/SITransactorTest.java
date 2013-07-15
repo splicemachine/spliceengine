@@ -2,23 +2,34 @@ package com.splicemachine.si;
 
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.light.IncrementingClock;
+import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.RollForwardAction;
 import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.SICompactionState;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -36,6 +47,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -46,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SITransactorTest extends SIConstants {
     boolean useSimple = true;
+    boolean usePacked = false;
 
     StoreSetup storeSetup;
     TransactorSetup transactorSetup;
@@ -56,13 +69,13 @@ public class SITransactorTest extends SIConstants {
         transactorSetup.rollForwardQueue = new RollForwardQueue(
                 new NoOpHasher(),
                 new RollForwardAction() {
-            @Override
-            public void rollForward(long transactionId, List rowList) throws IOException {
-                final STableReader reader = storeSetup.getReader();
-                Object testSTable = reader.open(storeSetup.getPersonTableName());
-                transactor.rollForward(testSTable, transactionId, rowList);
-            }
-        }, 10, 100, 1000, "test");
+                    @Override
+                    public void rollForward(long transactionId, List rowList) throws IOException {
+                        final STableReader reader = storeSetup.getReader();
+                        Object testSTable = reader.open(storeSetup.getPersonTableName());
+                        transactor.rollForward(testSTable, transactionId, rowList);
+                    }
+                }, 10, 100, 1000, "test");
     }
 
     @Before
@@ -78,19 +91,19 @@ public class SITransactorTest extends SIConstants {
     }
 
     private void insertAge(TransactionId transactionId, String name, Integer age) throws IOException {
-        insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
+        insertAgeDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     private void insertJob(TransactionId transactionId, String name, String job) throws IOException {
-        insertJobDirect(useSimple, transactorSetup, storeSetup, transactionId, name, job);
+        insertJobDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, job);
     }
 
     private void deleteRow(TransactionId transactionId, String name) throws IOException {
-        deleteRowDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+        deleteRowDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name);
     }
 
     private String read(TransactionId transactionId, String name) throws IOException {
-        return readAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name);
+        return readAgeDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name);
     }
 
     private String scan(TransactionId transactionId, String name) throws IOException {
@@ -102,11 +115,11 @@ public class SITransactorTest extends SIConstants {
     }
 
     private String scan(TransactionId transactionId, String name, boolean includeUncommittedAsOfStart, boolean decodeTimestamps) throws IOException {
-        return scanAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, includeUncommittedAsOfStart, decodeTimestamps);
+        return scanAgeDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, includeUncommittedAsOfStart, decodeTimestamps);
     }
 
     private String scanNoColumns(TransactionId transactionId, String name, boolean deleted) throws IOException {
-        return scanNoColumnsDirect(useSimple, transactorSetup, storeSetup, transactionId, name, deleted);
+        return scanNoColumnsDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, deleted);
     }
 
     private String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue,
@@ -116,21 +129,21 @@ public class SITransactorTest extends SIConstants {
 
     private String scanAll(TransactionId transactionId, String startKey, String stopKey, Integer filterValue,
                            boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
-        return scanAllDirect(useSimple, transactorSetup, storeSetup, transactionId, startKey, stopKey, filterValue,
+        return scanAllDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, startKey, stopKey, filterValue,
                 includeSIColumn, includeUncommittedAsOfStart);
     }
 
-    static void insertAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static void insertAgeDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, Integer age) throws IOException {
-        insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
+        insertField(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
     }
 
-    static void insertJobDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static void insertJobDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, String job) throws IOException {
-        insertField(useSimple, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobQualifier, job);
+        insertField(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobQualifier, job);
     }
 
-    private static void insertField(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    private static void insertField(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                     TransactionId transactionId, String name, Object qualifier, Object fieldValue)
             throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -139,30 +152,56 @@ public class SITransactorTest extends SIConstants {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
         if (fieldValue != null) {
-            dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+            if (usePacked && !useSimple) {
+                int columnIndex;
+                if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
+                    columnIndex = 0;
+                } else if (dataLib.valuesEqual(qualifier, transactorSetup.jobQualifier)) {
+                    columnIndex = 1;
+                } else {
+                    throw new RuntimeException("unknown qualifier");
+                }
+                final BitSet bitSet = new BitSet();
+                bitSet.set(columnIndex);
+                final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet);
+                if (columnIndex == 0) {
+                    entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
+                } else {
+                    entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+                }
+                final byte[] packedRow = entryEncoder.encode();
+                dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
+            } else {
+                    dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+            }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
 
-        processPutDirect(useSimple, transactorSetup, storeSetup, reader, put);
+        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, put);
     }
 
-    static void deleteRowDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static void deleteRowDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
         Object deletePut = transactorSetup.clientTransactor.createDeletePut(transactionId, key);
-        processPutDirect(useSimple, transactorSetup, storeSetup, reader, deletePut);
+        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, deletePut);
     }
 
-    private static void processPutDirect(boolean useSimple,
+    private static void processPutDirect(boolean useSimple, boolean usePacked,
                                          TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
                                          Object put) throws IOException {
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
-                Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
+                if (usePacked) {
+                    Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue,
+                            ((LTuple) put).pack("V", "p")));
+                } else {
+                    Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
+                }
             } else {
                 storeSetup.getWriter().write(testSTable, put);
             }
@@ -171,31 +210,31 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    static String readAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static String readAgeDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object get = dataLib.newGet(key, null, null, null);
+        Object get = makeGet(dataLib, key);
         transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object rawTuple = reader.get(testSTable, get);
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, true, true, false, false, true);
+            return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, true, true, false, false, true);
         } finally {
             reader.close(testSTable);
         }
     }
 
-    static String scanAgeDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static String scanAgeDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, boolean includeUncommittedAsOfStart,
                                 boolean decodeTimestamps) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object scan = dataLib.newScan(key, key, null, null, null);
+        Object scan = makeScan(dataLib, key, null, key);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, includeUncommittedAsOfStart);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -203,7 +242,7 @@ public class SITransactorTest extends SIConstants {
             if (results.hasNext()) {
                 Object rawTuple = results.next();
                 Assert.assertTrue(!results.hasNext());
-                return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true,
+                return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, true,
                         includeUncommittedAsOfStart, true, decodeTimestamps);
             } else {
                 return "";
@@ -213,13 +252,15 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    static String scanNoColumnsDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static String scanNoColumnsDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                       TransactionId transactionId, String name, boolean deleted) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
-        Object scan = dataLib.newScan(key, key, new ArrayList(), null, null);
+        final Object endKey = dataLib.newRowKey(new Object[]{name});
+        final ArrayList families = new ArrayList();
+        final Object startKey = endKey;
+        Object scan = makeScan(dataLib, endKey, families, startKey);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true, false);
         transactorSetup.transactor.preProcessScan(scan);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
@@ -231,13 +272,13 @@ public class SITransactorTest extends SIConstants {
             }
             Object rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
-            return readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, rawTuple, false, true, false, false, true);
+            return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, true, false, false, true);
         } finally {
             reader.close(testSTable);
         }
     }
 
-    static String scanAllDirect(boolean useSimple, TransactorSetup transactorSetup, StoreSetup storeSetup,
+    static String scanAllDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String startKey, String stopKey, Integer filterValue,
                                 boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -245,7 +286,7 @@ public class SITransactorTest extends SIConstants {
 
         Object key = dataLib.newRowKey(new Object[]{startKey});
         Object endKey = dataLib.newRowKey(new Object[]{stopKey});
-        Object get = dataLib.newScan(key, endKey, null, null, null);
+        Object get = makeScan(dataLib, endKey, null, key);
         if (!useSimple && filterValue != null) {
             final Scan scan = (Scan) get;
             SingleColumnValueFilter filter = new SingleColumnValueFilter((byte[]) transactorSetup.family,
@@ -265,7 +306,7 @@ public class SITransactorTest extends SIConstants {
             while (results.hasNext()) {
                 final Object value = results.next();
                 final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
-                final String s = readRawTuple(useSimple, transactorSetup, transactionId, name, dataLib, value, false,
+                final String s = readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, value, false,
                         includeSIColumn, includeUncommittedAsOfStart, true, true);
                 result.append(s);
                 if (s.length() > 0) {
@@ -278,29 +319,68 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private static String readRawTuple(boolean useSimple, TransactorSetup transactorSetup, TransactionId transactionId,
-                                       String name, SDataLib dataLib, Object rawTuple, boolean singleRowRead,
-                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart, boolean dumpKeyValues,
-                                       boolean decodeTimestamps)
+    private static String readRawTuple(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                       TransactionId transactionId, String name, SDataLib dataLib, Object rawTuple,
+                                       boolean singleRowRead, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
+                                       boolean dumpKeyValues, boolean decodeTimestamps)
             throws IOException {
         if (rawTuple != null) {
             Object result = rawTuple;
             if (useSimple) {
-                final FilterState filterState;
+                IFilterState filterState;
                 try {
                     filterState = transactorSetup.transactor.newFilterState(transactorSetup.rollForwardQueue,
                             transactionId, includeSIColumn, includeUncommittedAsOfStart);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+                if (usePacked) {
+                    filterState = new FilterStatePacked(storeSetup.getDataLib(), transactorSetup.dataStore, (FilterState) filterState, new LRowAccumulator());
+                }
                 result = transactorSetup.transactor.filterResult(filterState, rawTuple);
+                if (usePacked && result != null) {
+                    result = ((LTuple) result).unpack("V");
+                }
             } else {
                 if (((Result) result).size() == 0) {
                     return name + " absent";
                 }
+                if (usePacked && result != null) {
+                    final Object resultKey = dataLib.getResultKey(result);
+                    final List newKeyValues = new ArrayList();
+                    for (Object kv : dataLib.listResult(result)) {
+                        if (dataLib.valuesEqual(dataLib.getKeyValueFamily(kv), transactorSetup.family) &&
+                                dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
+                            final byte[] packedColumns = (byte[]) dataLib.getKeyValueValue(kv);
+                            final MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                            decoder.set(packedColumns);
+                            if (decoder.nextIsNull()) {
+                                decoder.skip();
+                            } else {
+                                final int age = decoder.decodeNextInt();
+                                final Object ageKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
+                                        transactorSetup.ageQualifier,
+                                        dataLib.getKeyValueTimestamp(kv),
+                                        dataLib.encode(age));
+                                newKeyValues.add(ageKeyValue);
+                            }
+                            if (!decoder.nextIsNull()) {
+                                final String job = decoder.decodeNextString();
+                                final Object jobKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
+                                        transactorSetup.jobQualifier,
+                                        dataLib.getKeyValueTimestamp(kv),
+                                        dataLib.encode(job));
+                                newKeyValues.add(jobKeyValue);
+                            }
+                        } else {
+                            newKeyValues.add(kv);
+                        }
+                    }
+                    result = dataLib.newResult(resultKey, newKeyValues);
+                }
             }
             if (result != null) {
-                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, name, dataLib, result, decodeTimestamps) + "]": "";
+                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, name, dataLib, result, decodeTimestamps) + "]" : "";
                 return resultToStringDirect(transactorSetup, name, dataLib, result) + suffix;
             }
         }
@@ -358,7 +438,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     private static String timestampToStableString(Map<Long, String> timestampDecoder, long timestamp) {
-        if(timestampDecoder.containsKey(timestamp)) {
+        if (timestampDecoder.containsKey(timestamp)) {
             return timestampDecoder.get(timestamp);
         } else {
             final String timestampString = "~" + (9 - timestampDecoder.size());
@@ -1239,7 +1319,16 @@ public class SITransactorTest extends SIConstants {
                 "139moe age=-1 job=null[ S.TX@~9 V.age@~9=-1 ]\n" +
                 "139toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
                 "139xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
-        Assert.assertEquals(expected, scanAll(t3, "139a", "139z", null, true));
+
+        final String actual = scanAll(t3, "139a", "139z", null, true);
+        if (usePacked) {
+            expected = "139boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                    "139joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                    "139moe age=null job=null[ S.TX@~9 ]\n" +
+                    "139toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                    "139xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        }
+        Assert.assertEquals(expected, actual);
     }
 
     @Test
@@ -1789,6 +1878,19 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void parentWritesDoNotConflictWithPriorChildDelete2() throws IOException {
+        TransactionId t0 = transactor.beginTransaction();
+        insertAge(t0, "joe141", 20);
+        transactor.commit(t0);
+        TransactionId t1 = transactor.beginTransaction();
+        TransactionId t2 = transactor.beginChildTransaction(t1, true);
+        deleteRow(t2, "joe141");
+        transactor.commit(t2);
+        insertAge(t1, "joe141", 21);
+        Assert.assertEquals("joe141 age=21 job=null", read(t1, "joe141"));
+    }
+
+    @Test
     public void parentDeleteDoesNotConflictWithPriorChildDelete() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         TransactionId t2 = transactor.beginChildTransaction(t1, true);
@@ -1999,7 +2101,7 @@ public class SITransactorTest extends SIConstants {
         try {
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
-            Object get1 = dataLib.newGet(testKey, null, null, null);
+            Object get1 = makeGet(dataLib, testKey);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
             Object result = reader.get(testSTable, get1);
             if (useSimple) {
@@ -2012,11 +2114,11 @@ public class SITransactorTest extends SIConstants {
         }
 
         TransactionId t2 = transactor.beginTransaction();
-        Object get = dataLib.newGet(testKey, null, null, null);
+        Object get = makeGet(dataLib, testKey);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             final Object resultTuple = reader.get(testSTable, get);
-            final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2, false, false);
+            final IFilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t2, false, false);
             if (useSimple) {
                 transactor.filterResult(filterState, resultTuple);
             }
@@ -2356,7 +2458,7 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
 
         Object key = dataLib.newRowKey(new Object[]{name});
-        Object get = dataLib.newGet(key, null, null, null);
+        Object get = makeGet(dataLib, key);
         if (allversions) {
             dataLib.setGetMaxVersions(get);
         }
@@ -2366,6 +2468,27 @@ public class SITransactorTest extends SIConstants {
         } finally {
             reader.close(testSTable);
         }
+    }
+
+    private static Object makeGet(SDataLib dataLib, Object key) throws IOException {
+        final Object get = dataLib.newGet(key, null, null, null);
+        addPredicateFilter(dataLib, get);
+        return get;
+    }
+
+    private static Object makeScan(SDataLib dataLib, Object endKey, ArrayList families, Object startKey) throws IOException {
+        final Object scan = dataLib.newScan(startKey, endKey, families, null, null);
+        addPredicateFilter(dataLib, scan);
+        return scan;
+    }
+
+    private static void addPredicateFilter(SDataLib dataLib, Object operation) throws IOException {
+        final BitSet bitSet = new BitSet(2);
+        bitSet.set(0);
+        bitSet.set(1);
+        final ByteDataOutput bdo = new ByteDataOutput();
+        bdo.writeObject(new EntryPredicateFilter(bitSet, new ArrayList()));
+        dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, bdo.toByteArray());
     }
 
     @Test
@@ -2915,7 +3038,7 @@ public class SITransactorTest extends SIConstants {
 
         TransactionId t3 = transactor.beginTransaction();
         Object result = readRaw("joe89", true);
-        final FilterState filterState = transactorSetup.transactor.newFilterState(t3);
+        final IFilterState filterState = transactorSetup.transactor.newFilterState(t3);
         result = transactor.filterResult(filterState, result);
         Assert.assertEquals("joe89 age=20 job=null", resultToString("joe89", result));
     }

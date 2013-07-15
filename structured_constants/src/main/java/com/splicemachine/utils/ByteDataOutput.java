@@ -1,4 +1,4 @@
-package com.splicemachine.derby.utils;
+package com.splicemachine.utils;
 
 import java.io.*;
 

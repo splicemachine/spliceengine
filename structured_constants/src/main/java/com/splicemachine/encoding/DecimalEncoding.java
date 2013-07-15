@@ -270,7 +270,7 @@ final class DecimalEncoding {
         l = (l^ ((l >> Long.SIZE-1) | Long.MIN_VALUE))+1;
 
         if(desc)
-            l ^= 0xff;
+            l ^= 0xffffffffffffffffl;
 
         return Bytes.toBytes(l);
     }
@@ -282,7 +282,7 @@ final class DecimalEncoding {
     public static double toDouble(ByteBuffer data,boolean desc){
         long l = data.asLongBuffer().get();
         if(desc)
-            l ^= 0xff;
+            l ^= 0xffffffffffffffffl;
 
         l--;
         l ^= (~l >> Long.SIZE-1) | Long.MIN_VALUE;
@@ -292,7 +292,7 @@ final class DecimalEncoding {
     public static double toDouble(byte[] data, int offset,boolean desc){
         long l = Bytes.toLong(data,offset);
         if(desc)
-            l ^= 0xff;
+            l ^= 0xffffffffffffffffl;
 
         l--;
         l ^= (~l >> Long.SIZE-1) | Long.MIN_VALUE;
@@ -305,7 +305,7 @@ final class DecimalEncoding {
         j = (j^((j>>Integer.SIZE-1) | Integer.MIN_VALUE))+1;
 
         if(desc)
-            j^=0xff;
+            j^=0xffffffff;
 
         return Bytes.toBytes(j);
     }
@@ -317,8 +317,9 @@ final class DecimalEncoding {
     public static float toFloat(ByteBuffer data, boolean desc){
         int j = data.asIntBuffer().get();
         if(desc)
-            j ^= 0xff;
+            j ^= 0xffffffff;
 
+        j--;
         j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
 
         return Float.intBitsToFloat(j);
@@ -327,8 +328,9 @@ final class DecimalEncoding {
     public static float toFloat(byte[] data, int offset,boolean desc){
         int j = Bytes.toInt(data,offset);
         if(desc)
-            j ^= 0xff;
+            j ^= 0xffffffff;
 
+        j--;
         j ^= (~j >> Integer.SIZE-1)|Integer.MIN_VALUE;
 
         return Float.intBitsToFloat(j);

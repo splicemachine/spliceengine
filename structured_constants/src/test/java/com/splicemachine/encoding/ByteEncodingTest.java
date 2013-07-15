@@ -20,8 +20,8 @@ import java.util.Random;
 @RunWith(Parameterized.class)
 public class ByteEncodingTest {
     private static final int numTests=10;
-    private static final int arraysPerTest =100;
-    private static final int bytesPerArray = 100;
+    private static final int arraysPerTest =10;
+    private static final int bytesPerArray = 11200;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -53,6 +53,30 @@ public class ByteEncodingTest {
 
             Assert.assertArrayEquals("incorrect encoding for element "+ Arrays.toString(datum),datum,decoded);
         }
+    }
+
+    @Test
+    public void testCanEncodeAndDecodeUnsortedCorrectly ()throws Exception {
+        for(byte[] datum:data){
+            byte[] encoded = ByteEncoding.encodeUnsorted(datum);
+            byte[] decoded = ByteEncoding.decodeUnsorted(encoded,0,encoded.length);
+
+            Assert.assertArrayEquals("Incorrect encoding/decoding",datum,decoded);
+        }
+    }
+
+    @Test
+    public void testNoZerosUnsorted() throws Exception {
+        /*
+         * Makes sure that there are no zeros in the encoded byte[]
+         */
+        for(byte[] datum:data){
+            byte[] encoded = ByteEncoding.encodeUnsorted(datum);
+            for(byte byt:encoded){
+                Assert.assertNotEquals("Zeros found in "+ datum,0x00,byt);
+            }
+        }
+
     }
 
     @Test

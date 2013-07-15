@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.ByteDataInput;
-import com.splicemachine.derby.utils.ByteDataOutput;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.utils.ByteDataInput;
+import com.splicemachine.utils.ByteDataOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.DataValueDescriptor;

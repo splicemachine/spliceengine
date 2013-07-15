@@ -4,6 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.coprocessors.SIObserverPacked;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -39,14 +40,15 @@ public class HStoreSetup implements StoreSetup {
 
     HBaseTestingUtility testCluster;
 
-    public HStoreSetup() {
-        setupHBaseHarness();
+    public HStoreSetup(boolean usePacked) {
+        setupHBaseHarness(usePacked);
     }
 
-    private TestHTableSource setupHTableSource(int basePort) {
+    private TestHTableSource setupHTableSource(int basePort, boolean usePacked) {
         try {
             testCluster = new HBaseTestingUtility();
-            testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY, SIObserver.class.getName());
+            testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,
+                    usePacked ? SIObserverPacked.class.getName() : SIObserver.class.getName());
             setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);
@@ -66,9 +68,9 @@ public class HStoreSetup implements StoreSetup {
         testCluster.getConfiguration().setInt("hbase.regionserver.info.port", basePort + 3);
     }
 
-    private void setupHBaseHarness() {
+    private void setupHBaseHarness(boolean usePacked) {
         dataLib = new HDataLib();
-        final STableReader<IHTable, Result, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort()));
+        final STableReader<IHTable, Result, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
         reader = new STableReader<IHTable, Result, Get, Scan>() {
             @Override
             public IHTable open(String tableName) {

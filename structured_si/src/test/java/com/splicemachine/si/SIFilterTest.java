@@ -5,6 +5,7 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
 import org.junit.After;
 import org.junit.Before;
@@ -32,7 +33,7 @@ public class SIFilterTest extends SIConstants {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
-        SITransactorTest.insertAgeDirect(useSimple, transactorSetup, storeSetup, transactionId, name, age);
+        SITransactorTest.insertAgeDirect(useSimple, false, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     Object readEntireTuple(String name) throws IOException {
@@ -54,8 +55,7 @@ public class SIFilterTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
         final TransactionId t1 = transactor.beginTransaction();
-        Object table = storeSetup.getReader().open(storeSetup.getPersonTableName());
-        final FilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false, false);
+        final IFilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false, false);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 

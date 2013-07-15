@@ -1,16 +1,10 @@
 package com.splicemachine.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.ByteDataInput;
-import com.splicemachine.derby.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Writable;
 import org.xerial.snappy.Snappy;
-import org.xerial.snappy.SnappyInputStream;
-import org.xerial.snappy.SnappyOutputStream;
 
 import java.io.*;
 import java.util.ArrayList;

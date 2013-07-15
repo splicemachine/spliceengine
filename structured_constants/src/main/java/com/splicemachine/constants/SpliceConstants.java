@@ -201,6 +201,8 @@ public class SpliceConstants {
     public static final byte[] VALUE_COLUMN = Encoding.encode(1);
 	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static final String SPLICE_DB = "spliceDB";
+
+    public static final String ENTRY_PREDICATE_LABEL= "p";
 	
     // Default Configuration Options
 	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";

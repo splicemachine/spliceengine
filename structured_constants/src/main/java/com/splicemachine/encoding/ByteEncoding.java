@@ -2,6 +2,7 @@ package com.splicemachine.encoding;
 
 import com.google.common.primitives.UnsignedBytes;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * Utility class for encoding byte arrays to a combinable format.
@@ -130,5 +131,136 @@ final class ByteEncoding {
         }
         return result;
     }
+
+    private static final int[][] MASK_SHIFT_TABLE = new int[][]{
+            new int[]{0xfe,1,0x01,6},
+            new int[]{0xfc,2,0x03,5},
+            new int[]{0xf8,3,0x07,4},
+            new int[]{0xf0,4,0x0f,3},
+            new int[]{0xe0,5,0x1f,2},
+            new int[]{0xc0,6,0x3f,1},
+            new int[]{0x80,7,0x7f,0}
+    };
+
+    private static final int[][] INVERSE_MASK_SHIFT_TABLE= new int[][]{
+            new int[]{0x7f,1,0x40,6},
+            new int[]{0x3f,2,0x60,5},
+            new int[]{0x1f,3,0x70,4},
+            new int[]{0x0f,4,0x78,3},
+            new int[]{0x07,5,0x7c,2},
+            new int[]{0x03,6,0x7e,1},
+            new int[]{0x01,7,0x7f,0}
+    };
+
+    static byte[] encodeUnsorted(byte[] value){
+        /*
+         * Encodes using 7-bit bytes. The first bit of every byte is always set to one (to
+         * disambiguate from 0x00, which is reserved), and then the remaining bits are set
+         * as in the data array itself.
+         *
+         * This means that the first byte will actually occupy 2 bytes (7 bits in the first
+         * location, then 1 bit in the next byte), the second will take 6 bits in the second,
+         * then 2 bits in the third, and so on. This can be compactly represented as two masks and
+         * two shifts-- the byte-1 mask, the byte-2 mask, the byte-1 shift and the byte-2 shift. This
+         * combination will change with every data byte, but will repeat every 7th byte. The combinations
+         * look like
+         *
+         * byte 0 (b1mask, b1shift, b2mask, b2shift): (0xfe, 1,0x01,6)
+         * byte 1 : (0xfc,2,0x03,5)
+         * byte 2 : (0xf8,3,0x07,4)
+         * byte 3 : (0xf0,4, 0xf0,3)
+         * byte 4 : (0xe0,5, 0x1f,2)
+         * byte 5 : (0xc0,6, 0x3f,1)
+         * byte 6 : (0x80,7, 0x7f,0)
+         * byte 8 : (byte 0)
+         *
+         * In other words, for byte i in the data stream, it's "byte" number is i%7, which determines
+         * its masks and shifts. At that point, apply the byte-1 mask and the byte-1 shift on the existing
+         * byte, then move to another byte, and compute the byte-2 mask and the byte-2 shift.
+         *
+         * The total size is 1 extra byte every 7 data bytes, which gives us a size to copy bytes
+         * into (value.length +value.length/7 + value.length%7 (remainder bits)
+         */
+        int numBits = 8*value.length;
+        int length = numBits/7+1;
+        if(numBits%8!=0)
+            length++;
+
+        byte[] output = new byte[length];
+
+        byte byt = output[0];
+        byt |= 0x80; //set the continuation bit
+        int outputPos =0;
+        for(int i=0;i<value.length;i++){
+            int[] maskAndShift = MASK_SHIFT_TABLE[i%7];
+
+            //apply the byte-1 mask and shift
+            byte byteToStore = value[i];
+            byte val = (byte)((byteToStore & maskAndShift[0])>>> maskAndShift[1]);
+            byt |= val;
+            output[outputPos] = byt;
+            outputPos++;
+
+            byt = (byte)(output[outputPos] | 0x80);
+
+            //apply the byte-2 mask and shift
+            val = (byte)((byteToStore & maskAndShift[2])<<maskAndShift[3]);
+            byt |= val;
+            if((i+1)%7==0){
+                output[outputPos] = byt;
+                outputPos++; //we've completed this byte
+                byt = (byte)(output[outputPos] | 0x80);
+            }
+        }
+        output[outputPos] = byt;
+        return output;
+    }
+
+    static byte[] decodeUnsorted(byte[] data,int offset,int length){
+        int numBits = length*7;
+        int l = numBits/8;
+        if(numBits%7!=0)
+            l++;
+
+        byte[] output = new byte[l];
+
+        int inputPos=0;
+        int outputPos=0;
+        byte input = data[offset];
+        while(inputPos<length-1){
+            byte outputByte = output[outputPos];
+            int[] maskShift = INVERSE_MASK_SHIFT_TABLE[outputPos%7];
+
+            //deal with byte-1
+            byte val = (byte)((input & maskShift[0])<<maskShift[1]);
+            outputByte |= val;
+
+            inputPos++; //go to byte-2
+            input = data[offset+inputPos];
+            val = (byte)((input & maskShift[2])>>>maskShift[3]);
+            outputByte |= val;
+
+            //output byte is finished, store it and move to the next output byte
+            output[outputPos] = outputByte;
+            outputPos++;
+
+            if(outputPos%7==0){
+                //we've filled 7 data bytes, so there is no more information in the input byte
+                inputPos++;
+                input = data[offset+inputPos];
+            }
+        }
+        return output;
+    }
+
+    public static void main(String... args) throws Exception{
+        byte[] data = new byte[]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32};
+        System.out.println(Arrays.toString(data));
+        byte[] encoded = encodeUnsorted(data);
+        System.out.println(Arrays.toString(encoded));
+        byte[] decoded = decodeUnsorted(encoded,0,encoded.length);
+        System.out.println(Arrays.toString(decoded));
+    }
+
 
 }

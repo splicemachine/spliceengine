@@ -80,4 +80,27 @@ public class DoubleEncodingTest {
 
         Assert.assertArrayEquals("Incorrect sort ordering",data,deserialized,Math.pow(10,-12));
     }
+
+    @Test
+    public void testCanSortByBytesReversed() throws Exception {
+        byte[][] dataBytes = new byte[data.length][];
+        for(int pos=0;pos<data.length;pos++){
+            dataBytes[pos] = DecimalEncoding.toBytes(data[pos],true);
+        }
+
+        Arrays.sort(dataBytes, Bytes.BYTES_COMPARATOR);
+
+        double[] deserialized = new double[dataBytes.length];
+        for(int pos=0;pos<deserialized.length;pos++){
+            deserialized[pos] = DecimalEncoding.toDouble(dataBytes[pos],true);
+        }
+
+        Arrays.sort(data);
+
+        double[] reversed = new double[data.length];
+        for(int i=data.length-1,j=0;i>=0;i--,j++){
+            reversed[j] = data[i];
+        }
+        Assert.assertArrayEquals("Incorrect sort ordering",reversed,deserialized,Math.pow(10,-12));
+    }
 }
