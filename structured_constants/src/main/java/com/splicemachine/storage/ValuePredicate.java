@@ -12,7 +12,7 @@ import java.io.ObjectOutput;
  * Created on: 7/8/13
  */
 public class ValuePredicate implements Predicate {
-    private static final long serialVersionUID=1l;
+    private static final long serialVersionUID=2l;
     private CompareFilter.CompareOp compareOp;
     private int column;
     private byte[] compareValue;
@@ -72,6 +72,7 @@ public class ValuePredicate implements Predicate {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(column);
+        out.writeBoolean(removeNullEntries);
         out.writeInt(compareOp.ordinal());
         out.writeInt(compareValue.length);
         out.write(compareValue);
@@ -80,6 +81,7 @@ public class ValuePredicate implements Predicate {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         column = in.readInt();
+        removeNullEntries = in.readBoolean();
         int compareOrdinal = in.readInt();
         for(CompareFilter.CompareOp op: CompareFilter.CompareOp.values()){
             if(op.ordinal()==compareOrdinal){

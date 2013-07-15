@@ -142,6 +142,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
                 size++;
             ByteBuffer buffer = fields[i];
             if(buffer!=null){
+                buffer.reset();
                 size+=buffer.remaining();
             }
         }
