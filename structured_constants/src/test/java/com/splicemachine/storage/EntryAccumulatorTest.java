@@ -40,6 +40,7 @@ public class EntryAccumulatorTest {
         byte[] bytes = accumulator.finish();
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
         Assert.assertEquals(2,decoder.decodeNextInt());
+        Assert.assertEquals(0,decoder.decodeNextInt());
         Assert.assertEquals(1,decoder.decodeNextInt());
     }
 }
