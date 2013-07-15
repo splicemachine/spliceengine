@@ -1,6 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.data.api.SRowLock;
+import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
@@ -8,7 +9,9 @@ import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,10 +29,7 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, Result, KeyValue, D
      * Execute the put operation (with SI treatment) on the table. Send roll-forward notifications to the rollForwardQueue.
      */
     boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException;
-    PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put,
-                                          Map<Hashable, Lock> locks) throws IOException;
-    void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException;
-    void cleanupLock(Table table, Lock lock);
+    OperationStatus[] processBatch(Table table, List<Mutation> mutations) throws IOException;
 
     /**
      * Look at the operation and report back whether it has been flagged for SI treatment.

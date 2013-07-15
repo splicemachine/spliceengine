@@ -2,10 +2,13 @@ package com.splicemachine.si.data.hbase;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -54,6 +57,11 @@ public class HbRegion implements IHTable {
     @Override
     public void put(List<Put> puts) throws IOException {
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException {
+        return region.batchMutate(puts);
     }
 
     @Override

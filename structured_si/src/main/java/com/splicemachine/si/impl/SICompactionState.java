@@ -13,9 +13,10 @@ import java.util.Map;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
+public class SICompactionState<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation,
+        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, IHTable, Lock> dataStore;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, IHTable, Lock> dataStore;
     private final TransactionStore transactionStore;
     private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock> keyValue;
 

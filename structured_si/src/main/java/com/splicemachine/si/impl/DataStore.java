@@ -3,6 +3,8 @@ package com.splicemachine.si.impl;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,10 +19,11 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
+public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put extends OperationWithAttributes,
+        Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock> {
     final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
     private final STableReader<IHTable, Result, Get, Scan> reader;
-    private final STableWriter<IHTable, Put, Delete, Data, Lock> writer;
+    private final STableWriter<IHTable, Mutation, Put, Delete, Data, Lock> writer;
 
     private final String siNeededAttribute;
     private final Data siNeededValue;
@@ -259,5 +262,9 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         if (!keyValues.iterator().hasNext()) {
             dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, 0L, siNull);
         }
+    }
+
+    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
+        return writer.writeBatch(table, mutationsAndLocks);
     }
 }

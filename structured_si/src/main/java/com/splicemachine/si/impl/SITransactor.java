@@ -9,11 +9,14 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
+import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -45,8 +48,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     private final TimestampSource timestampSource;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock> dataLib;
-    private final STableWriter<Table, Put, Delete, Data, Lock> dataWriter;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Table, Lock> dataStore;
+    private final STableWriter<Table, Mutation, Put, Delete, Data, Lock> dataWriter;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -370,6 +373,46 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
+    public OperationStatus[] processBatch(Table table, List<Mutation> mutations) throws IOException {
+        Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>();
+        try {
+            final Pair<Mutation, Integer>[] mutationsAndLocks = new Pair[mutations.size()];
+            final Set<Long>[] conflictingChildren = new Set[mutations.size()];
+            int i = 0;
+            for (Mutation m : mutations) {
+                preProcessBatchPut(table, null, (Put) m, locks);
+                final PutToRun<Mutation, Lock> putToRun = preProcessBatchPut(table, null, (Put) m, locks);
+                mutationsAndLocks[i] = putToRun.putAndLock;
+                conflictingChildren[i] = putToRun.conflictingChildren;
+                i++;
+            }
+            final OperationStatus[] status = dataStore.writeBatch(table, mutationsAndLocks);
+
+            i = 0;
+            for (Mutation m : mutations) {
+                try {
+                    postProcessBatchPut(table, (Put) mutations.get(i),
+                            locks.get(hasher.toHashable(dataLib.getPutKey((Put) m))), conflictingChildren[i]);
+                } catch (Throwable t) {
+                    status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE);
+                }
+                i++;
+            }
+            return status;
+        } finally {
+            for (Lock lock : locks.values()) {
+                if (lock != null) {
+                    try {
+                        cleanupLock(table, lock);
+                    } catch (Throwable t) {
+                        LOG.error("Exception while cleaning up locks", t);
+                        // ignore
+                    }
+                }
+            }
+        }
+    }
+
     public PutToRun<Mutation, Lock> preProcessBatchPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue,
                                                        Put put, Map<Hashable, Lock> locks) throws IOException {
         if (isFlaggedForSITreatment(put)) {
@@ -408,7 +451,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return lock;
     }
 
-    @Override
     public void postProcessBatchPut(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (isFlaggedForSITreatment(put)) {
             postProcessBatchPutDirect(table, put, lock, conflictingChildren);
@@ -761,7 +803,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    @Override
     public void cleanupLock(Table table, Lock lock) {
         try {
             dataWriter.unLockRow(table, lock);

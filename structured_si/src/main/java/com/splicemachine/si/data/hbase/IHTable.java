@@ -2,9 +2,12 @@ package com.splicemachine.si.data.hbase;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -22,6 +25,7 @@ public interface IHTable {
     void put(Put put, HRowLock rowLock) throws IOException;
     void put(Put put, boolean durable) throws IOException;
     void put(List<Put> puts) throws IOException;
+    OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException;
 
     boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
 

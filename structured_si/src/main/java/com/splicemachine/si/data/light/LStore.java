@@ -5,6 +5,9 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
-        STableWriter<LTable, LTuple, LTuple, Object, LRowLock> {
+        STableWriter<LTable, LTuple, LTuple, LTuple, Object, LRowLock> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
@@ -150,6 +153,18 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
             }
             relations.put(relationIdentifier, newTuples);
         }
+    }
+
+    @Override
+    public OperationStatus[] writeBatch(LTable table, Pair<LTuple, Integer>[] puts) throws IOException {
+        for (Pair<LTuple, Integer> p : puts) {
+            write(table, p.getFirst());
+        }
+        OperationStatus[] result = new OperationStatus[puts.length];
+        for (int i=0; i<result.length; i++) {
+            result[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
+        }
+        return result;
     }
 
     @Override
