@@ -31,7 +31,7 @@ public class NullPredicate implements Predicate{
     public boolean match(int column,byte[] data, int offset, int length) {
         if(this.column!=column) return true; //not the right column, don't worry about it
         if(isNullNumericalComparision){
-            return data!=null && length>0;
+            return false; //a numerical comparison with null will never match any columns
         }
         if(filterIfMissing){
             //make sure data is NOT null---data cannot be null, and length >0

@@ -215,8 +215,8 @@ public class RowEncoder {
             //TODO -sf- more elegant way of doing this reset is needed
             BitSet setFields = DerbyBytesUtil.getNonNullFields(row.getRowArray());
             BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
-            BitSet floatFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
-            BitSet doubleFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+            BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
+            BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
             entryEncoder.reset(setFields,scalarFields,floatFields,doubleFields);
             rowEncoder = entryEncoder.getEntryEncoder();
             rowType.fill(row.getRowArray(), rowColumns, rowEncoder);

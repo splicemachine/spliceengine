@@ -107,7 +107,10 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
             if(resultData!=null){
                 final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
                 return keyValue;
-            }else return null;
+            }else {
+                excludeRow=true;
+                return null;
+            }
         } else {
             return null;
         }
