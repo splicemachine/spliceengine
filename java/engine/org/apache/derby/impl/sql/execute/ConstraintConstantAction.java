@@ -71,7 +71,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 	 *  RESOLVE - the next parameter should go away once we use UUIDs
 	 *			  (Generated constraint names will be based off of uuids)
 	 */
-	ConstraintConstantAction(
+	public ConstraintConstantAction(
 		               String	constraintName,
 					   int		constraintType,
 		               String	tableName,
@@ -134,7 +134,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 	 *
 	 * @exception StandardException on error
 	 */
-	static void validateFKConstraint
+	public static void validateFKConstraint
 	(
 		TransactionController				tc,
 		DataDictionary						dd,
@@ -260,7 +260,7 @@ public abstract class ConstraintConstantAction extends DDLSingleTableConstantAct
 	 *
 	 * @exception StandardException if check constraint fails
 	 */
-	 static boolean validateConstraint
+	 public static boolean validateConstraint
 	(
 		String							constraintName,
 		String							constraintText,
