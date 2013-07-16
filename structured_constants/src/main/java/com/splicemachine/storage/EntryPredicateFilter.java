@@ -22,6 +22,7 @@ public class EntryPredicateFilter implements Externalizable{
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
     private boolean returnIndex;
+    private long visitedRowCount;
 
     /**
      * Used for Serialization, DO NOT USE
@@ -112,6 +113,10 @@ public class EntryPredicateFilter implements Externalizable{
         return true;
     }
 
+    public void rowReturned(){
+        visitedRowCount++;
+    }
+
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(fieldsToReturn);
@@ -148,5 +153,13 @@ public class EntryPredicateFilter implements Externalizable{
         }catch(IOException ioe){
             throw new RuntimeException(ioe);
         }
+    }
+
+    public List<Predicate> getPredicateList() {
+        return valuePredicates;
+    }
+
+    public long getVisitedRowCount() {
+        return visitedRowCount;
     }
 }

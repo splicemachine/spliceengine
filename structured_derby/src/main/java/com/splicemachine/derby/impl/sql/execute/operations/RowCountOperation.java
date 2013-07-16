@@ -16,10 +16,15 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.BetterHTablePool;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.si.coprocessors.SIFilterPacked;
+import com.splicemachine.storage.AndPredicate;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -79,6 +84,8 @@ public class RowCountOperation extends SpliceBaseOperation{
     private Scan regionScan;
     private SpliceOperationRegionScanner spliceScanner;
 
+    private long rowsSkipped;
+
     public RowCountOperation() {
     }
 
@@ -101,6 +108,8 @@ public class RowCountOperation extends SpliceBaseOperation{
         rowsFetched =0;
         runTimeStatsOn = activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
         init(SpliceOperationContext.newContext(activation));
+
+        offset = getTotalOffset();
     }
 
     @Override
@@ -121,6 +130,7 @@ public class RowCountOperation extends SpliceBaseOperation{
         fetchFirstMethodName = readNullableString(in);
         runTimeStatsOn = in.readBoolean();
         hasJDBClimitClause = in.readBoolean();
+        rowsSkipped = in.readLong();
     }
 
     @Override
@@ -131,6 +141,7 @@ public class RowCountOperation extends SpliceBaseOperation{
         writeNullableString(fetchFirstMethodName,out);
         out.writeBoolean(runTimeStatsOn);
         out.writeBoolean(hasJDBClimitClause);
+        out.writeLong(rowsSkipped);
     }
 
     @Override
@@ -155,7 +166,6 @@ public class RowCountOperation extends SpliceBaseOperation{
         //determine our offset
         this.regionScan = context.getScan();
         this.spliceScanner = context.getSpliceRegionScanner();
-
     }
 
     @Override
@@ -170,36 +180,32 @@ public class RowCountOperation extends SpliceBaseOperation{
         if(fetchFirstMethod!=null && rowsFetched >=fetchFirst){
             row =null;
         }else{
-            row = source.getNextRowCore();
-            if(row!=null){
-                rowsFetched++;
-                rowsSeen++;
-            }else{
-                //we are out--find out how many we filtered
-                Filter regionFilter = regionScan.getFilter();
-                if(regionFilter instanceof FilterList){
-                    FilterList filters = (FilterList)regionFilter;
-                    for(Filter filter:filters.getFilters()){
-                        if(filter instanceof OffsetFilter){
-                            long rowsSkipped = ((OffsetFilter)filter).numSkipped;
-                            spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
-                            break;
+            do{
+                row = source.getNextRowCore();
+                if(row!=null){
+                    if(rowsSkipped<offset){
+                        rowsSkipped++;
+                        continue;
+                    }
+                    rowsFetched++;
+                    rowsSeen++;
+                    if(runTimeStatsOn){
+                        if(!isTopResultSet){
+                            StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+                            if(sc!=null)
+                                subqueryTrackingArray = sc.getSubqueryTrackingArray();
                         }
                     }
+
+                    setCurrentRow(row);
+                    return row;
+                }else{
+                    spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL,Bytes.toBytes(rowsSkipped));
                 }
-            }
+            }while(row!=null);
         }
-
-        if(runTimeStatsOn){
-            if(!isTopResultSet){
-                StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-                if(sc!=null)
-                   subqueryTrackingArray = sc.getSubqueryTrackingArray();
-            }
-        }
-
-        setCurrentRow(row);
-        return row;
+        setCurrentRow(null);
+        return null;
     }
 
     private long getTotalOffset() throws StandardException {
@@ -257,6 +263,7 @@ public class RowCountOperation extends SpliceBaseOperation{
             if(provider instanceof AbstractScanProvider){
                 AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
                 provider = OffsetScanRowProvider.create(scanProvider.getRowTemplate(),
+                        top,
                         scanProvider.toScan(),
                         offset,
                         baseColumnMap,
@@ -310,6 +317,10 @@ public class RowCountOperation extends SpliceBaseOperation{
         return source;
     }
 
+    public void setRowsSkipped(long rowsSkipped) {
+        this.rowsSkipped = rowsSkipped;
+    }
+
     public static class OffsetFilter extends FilterBase {
         private long offset;
         private long numSkipped =0;
@@ -347,8 +358,11 @@ public class RowCountOperation extends SpliceBaseOperation{
         private long rowsSkipped;
         private byte[] tableName;
         private HTableInterface table;
+        private SpliceOperation operation;
 
-        private OffsetScanRowProvider(String type,RowDecoder rowDecoder,
+        private OffsetScanRowProvider(String type,
+                                      SpliceOperation operation,
+                                      RowDecoder rowDecoder,
                                       Scan fullScan,
                                       long totalOffset,
                                       byte[] tableName) {
@@ -356,9 +370,11 @@ public class RowCountOperation extends SpliceBaseOperation{
             this.fullScan = fullScan;
             this.totalOffset = totalOffset;
             this.tableName = tableName;
+            this.operation = operation;
         }
 
         public static OffsetScanRowProvider create(ExecRow rowTemplate,
+                                                   SpliceOperation operation,
                                             Scan fullScan,
                                             long totalOffset,
                                             int[] baseColumnMap,
@@ -366,24 +382,29 @@ public class RowCountOperation extends SpliceBaseOperation{
             RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
                     null,null,null, RowMarshaller.packedCompressed(),baseColumnMap,false);
 
-            return new OffsetScanRowProvider("offsetScan",rowDecoder,fullScan,totalOffset,tableName);
+            return new OffsetScanRowProvider("offsetScan",operation,rowDecoder,fullScan,totalOffset,tableName);
         }
 
         @Override
         protected Result getResult() throws StandardException {
-            if(currentScan==null){
+            if (currentScan == null) {
                 Scan next = offsetScans.poll();
-                if(next==null) return null; //we've finished
 
-                //set the offset that this scan needs to roll from
-                Filter filter = next.getFilter();
-                if(filter instanceof FilterList){
-                    FilterList filterList = (FilterList)filter;
-                    FilterList newFilters = new FilterList(FilterList.Operator.MUST_PASS_ALL);
-                    newFilters.addFilter(filterList);
-                    newFilters.addFilter(new OffsetFilter(totalOffset-rowsSkipped));
-                    next.setFilter(newFilters);
+                if (next == null) return null; //we've finished
+
+                //attach the rows to skip
+                if(operation instanceof RowCountOperation)
+                    ((RowCountOperation) operation).setRowsSkipped(rowsSkipped);
+                else{
+                    for (SpliceOperation op : operation.getSubOperations()) {
+                        if (op instanceof RowCountOperation) {
+                            ((RowCountOperation) op).setRowsSkipped(rowsSkipped);
+                            break;
+                        }
+                    }
                 }
+                SpliceUtils.setInstructions(next,operation.getActivation(),operation);
+                //set the offset that this scan needs to roll from
                 try {
                     currentScan = table.getScanner(next);
                 } catch (IOException e) {
@@ -394,18 +415,18 @@ public class RowCountOperation extends SpliceBaseOperation{
             try {
                 Result next = currentScan.next();
                 //should never happen, but it's good to be safe
-                if(next==null) return null;
+                if (next == null) return null;
 
                 byte[] value = next.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, OFFSET_RESULTS_COL);
-                if(value==null){
+                if (value == null) {
                     return next;
-                }else{
+                } else {
                     //we've exhausted a region without exhausting the offset, so we need
                     //to parse out how many we've skipped and adjust our offset accordingly
                     long skippedInRegion = Bytes.toLong(value);
-                    rowsSkipped+=skippedInRegion;
+                    rowsSkipped += skippedInRegion;
                     currentScan.close();
-                    currentScan=null;
+                    currentScan = null;
                     return getResult();
                 }
             } catch (IOException e) {
@@ -532,9 +553,9 @@ public class RowCountOperation extends SpliceBaseOperation{
                 Scan scan = new Scan();
                 scan.setStartRow(region.getFirst());
                 scan.setStopRow(region.getSecond());
-                scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,
-                        fullScan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS));
-                scan.setFilter(new FilterList(fullScan.getFilter()));
+//                scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,
+//                        fullScan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS));
+                scan.setFilter(fullScan.getFilter());
                 if(totalOffset<fullScan.getCaching()){
                     scan.setCaching((int)totalOffset);
                 }

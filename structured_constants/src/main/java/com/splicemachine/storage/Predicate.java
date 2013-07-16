@@ -17,4 +17,5 @@ public interface Predicate extends Externalizable {
     boolean checkAfter();
 
     void setCheckedColumns(BitSet checkedColumns);
+
 }

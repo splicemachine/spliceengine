@@ -91,6 +91,10 @@ public class SparseEntryAccumulator implements EntryAccumulator {
                 }
             }
         }
+
+        //count up the number of rows visited
+        if(predicateFilter!=null)predicateFilter.rowReturned();
+
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
             BitIndex index = BitIndexing.getBestIndex(allFields,scalarFields,floatFields,doubleFields);

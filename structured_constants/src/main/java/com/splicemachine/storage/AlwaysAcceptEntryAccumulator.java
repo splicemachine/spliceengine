@@ -131,6 +131,10 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
                 }
             }
         }
+
+        //count up the number of rows visited
+        if(predicateFilter!=null)predicateFilter.rowReturned();
+
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
             BitSet setFields = new BitSet(fields.length);
