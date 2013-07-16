@@ -147,8 +147,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
         int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getLong());
         int[] keyColumns = new int[fihArray.length];
+
         for(int i=0;i<fihArray.length;i++){
-            keyColumns[i] = rootAccessedCols[fihArray[i].getInt()-1];
+            keyColumns[i] = rootAccessedCols != null ? rootAccessedCols[fihArray[i].getInt()-1] : fihArray[i].getInt()-1;
         }
         return keyColumns;
 	}
