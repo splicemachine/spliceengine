@@ -54,6 +54,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private static final HashMerger merger = new DistinctMerger();
 
     private Scan reduceScan;
+    private MultiFieldDecoder rowDecoder;
 
     public DistinctScanOperation() {
     }
