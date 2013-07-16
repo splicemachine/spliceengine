@@ -747,7 +747,7 @@ public class DerbyBytesUtil {
             }
             @Override
             public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeBigDecimal(data));
+                dvd.setBigDecimal(Encoding.decodeBigDecimal(data));
             }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
@@ -755,7 +755,7 @@ public class DerbyBytesUtil {
             }
             @Override
             public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
-                dvd.setValue(decoder.decodeNextBigDecimal(desc));
+                dvd.setBigDecimal(decoder.decodeNextBigDecimal(desc));
             }
 
              @Override public boolean isScalarType() { return false; }
