@@ -122,7 +122,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
         if(predicateFilter!=null){
             BitSet checkColumns = predicateFilter.getCheckedColumns();
             for(int i=0;i<checkColumns.length();i++){
-                if(i>=fields.length||fields[i]==null){
+                if(fields==null||i>=fields.length||fields[i]==null){
                     if(!predicateFilter.checkPredicates(null,i)) return null;
                 }else{
                     ByteBuffer buffer = fields[i];
@@ -150,6 +150,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     }
 
     private byte[] getDataBytes() {
+        if(fields==null) return new byte[]{};
         int size=0;
         boolean isFirst=true;
         for(int i=0;i<fields.length;i++){

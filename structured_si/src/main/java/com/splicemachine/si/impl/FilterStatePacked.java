@@ -58,6 +58,11 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                 } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
                     return accumulateUserData(dataKeyValue);
                 } else {
+                    hasAccumulation=true;
+                    family = simpleFilter.keyValue.family();
+                    qualifier = simpleFilter.keyValue.qualifier();
+                    timestamp = simpleFilter.keyValue.timestamp();
+                    rowKey = simpleFilter.keyValue.row();
                     return Filter.ReturnCode.SKIP;
                 }
             default:

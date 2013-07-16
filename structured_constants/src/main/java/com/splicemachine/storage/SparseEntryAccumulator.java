@@ -92,7 +92,6 @@ public class SparseEntryAccumulator implements EntryAccumulator {
             }
         }
         byte[] dataBytes = getDataBytes();
-        if(dataBytes==null) return null; //failed our predicate filters
         if(returnIndex){
             BitIndex index = BitIndexing.getBestIndex(allFields,scalarFields,floatFields,doubleFields);
             byte[] indexBytes = index.encode();
