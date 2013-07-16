@@ -38,6 +38,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
         growFields(position); //make sure we're big enough
         fields[position] = buffer;
+        buffer.mark();
         occupiedFields.set(position);
     }
 
@@ -127,7 +128,7 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
-            System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,finalBytes.length);
+            System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,dataBytes.length);
             return finalBytes;
         }
         return getDataBytes();
