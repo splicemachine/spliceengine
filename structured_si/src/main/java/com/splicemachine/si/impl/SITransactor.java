@@ -524,7 +524,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw failOnWriteConflict(updateTransaction);
+                            throw new WriteConflict("write/write conflict");
                         }
                         break;
                 }
@@ -534,7 +534,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 // Committed transaction
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getEffectiveBeginTimestamp()) {
-                    throw failOnWriteConflict(updateTransaction);
+                    throw new WriteConflict("write/write conflict");
                 }
             }
         }
@@ -587,14 +587,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         } else {
             return updateTransaction.isInConflictWith(dataTransaction, transactionSource);
         }
-    }
-
-    /**
-     * A write conflict was discovered, throw an exception and kill the offending transaction.
-     */
-    private WriteConflict failOnWriteConflict(ImmutableTransaction transaction) throws IOException {
-        fail(transaction.getTransactionId());
-        return new WriteConflict("write/write conflict");
     }
 
     /**

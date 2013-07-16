@@ -172,7 +172,7 @@ public class SITransactorTest extends SIConstants {
                 final byte[] packedRow = entryEncoder.encode();
                 dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
             } else {
-                    dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+                dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
             }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
@@ -513,6 +513,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
         Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         transactor.commit(t1);
@@ -522,6 +524,31 @@ public class SITransactorTest extends SIConstants {
         } catch (DoNotRetryIOException dnrio) {
             Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
         }
+    }
+
+    @Test
+    public void writeWriteOverlapRecovery() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe142 absent", read(t1, "joe142"));
+        insertAge(t1, "joe142", 20);
+        Assert.assertEquals("joe142 age=20 job=null", read(t1, "joe142"));
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe142 age=20 job=null", read(t1, "joe142"));
+        Assert.assertEquals("joe142 absent", read(t2, "joe142"));
+        try {
+            insertAge(t2, "joe142", 30);
+            Assert.fail();
+        } catch (WriteConflict e) {
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertWriteConflict(e);
+        }
+        // can still use a transaction after a write conflict
+        insertAge(t2, "bob142", 30);
+        Assert.assertEquals("bob142 age=30 job=null", read(t2, "bob142"));
+        Assert.assertEquals("joe142 age=20 job=null", read(t1, "joe142"));
+        transactor.commit(t1);
+        transactor.commit(t2);
     }
 
     @Test
@@ -994,6 +1021,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
         Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
@@ -1032,6 +1061,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
         Assert.assertEquals("joe13 absent", read(t1, "joe13"));
         transactor.commit(t1);
@@ -1721,6 +1752,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(other);
         }
     }
 
@@ -1754,6 +1787,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(other);
         }
     }
 
@@ -2332,6 +2367,8 @@ public class SITransactorTest extends SIConstants {
                 } catch (WriteConflict e) {
                 } catch (RetriesExhaustedWithDetailsException e) {
                     assertWriteConflict(e);
+                } finally {
+                    transactor.fail(t1b);
                 }
             }
         } finally {
@@ -2514,6 +2551,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
     }
 
@@ -2548,12 +2587,16 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
         try {
             insertAge(t2, "joe66", 23);
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
     }
 
@@ -2607,6 +2650,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
 
         latch2.await(2, TimeUnit.SECONDS);
@@ -2665,6 +2710,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
 
         latch2.await(2, TimeUnit.SECONDS);
@@ -2855,6 +2902,8 @@ public class SITransactorTest extends SIConstants {
                         } catch (WriteConflict e) {
                         } catch (RetriesExhaustedWithDetailsException e) {
                             assertWriteConflict(e);
+                        } finally {
+                            transactor.fail(t2);
                         }
                         success[0] = true;
                         latch3.countDown();
@@ -2928,6 +2977,8 @@ public class SITransactorTest extends SIConstants {
                         } catch (WriteConflict e) {
                         } catch (RetriesExhaustedWithDetailsException e) {
                             assertWriteConflict(e);
+                        } finally {
+                            transactor.fail(t2);
                         }
                         success[0] = true;
                         latch3.countDown();
@@ -3222,6 +3273,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t3);
         }
     }
 
@@ -3292,6 +3345,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(other);
         }
     }
 
@@ -3365,6 +3420,8 @@ public class SITransactorTest extends SIConstants {
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
             assertWriteConflict(e);
+        } finally {
+            transactor.fail(t2);
         }
         Assert.assertEquals("joe116 age=null job=null", read(t1, "joe116"));
         transactor.commit(t1);

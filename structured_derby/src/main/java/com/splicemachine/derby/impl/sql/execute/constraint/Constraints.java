@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.hbase.MutationResult;
-import com.splicemachine.si.impl.WriteConflict;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
