@@ -105,18 +105,7 @@ public abstract class AbstractImportTask extends ZkTask {
                 }
             }else
                 keyColumns = new int[0];
-            FormatableBitSet fbt = importContext.getActiveCols();
-            BitSet bitSet = new BitSet();
-            if(fbt!=null){
-                for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
-                    bitSet.set(i);
-                }
-            }else{
-                DataValueDescriptor[] rowArray = row.getRowArray();
-                for(int i=0;i<rowArray.length;i++){
-                    bitSet.set(i);
-                }
-            }
+            BitSet bitSet = getNonNullFields(row);
             entryEncoder = EntryEncoder.create(row.nColumns(),bitSet,scalarFields,floatFields,doubleFields);
 
             Long numImported;
@@ -134,6 +123,23 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
+    private BitSet getNonNullFields(ExecRow row) {
+        FormatableBitSet fbt = importContext.getActiveCols();
+        BitSet bitSet = new BitSet();
+        if(fbt!=null){
+            for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
+                bitSet.set(i);
+            }
+        }else{
+            DataValueDescriptor[] rowArray = row.getRowArray();
+            for(int i=0;i<rowArray.length;i++){
+                if(rowArray[i]!=null&&!rowArray[i].isNull())
+                    bitSet.set(i);
+            }
+        }
+        return bitSet;
+    }
+
     protected CallBuffer<Mutation> getCallBuffer() throws Exception {
         return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
     }
@@ -144,6 +150,11 @@ public abstract class AbstractImportTask extends ZkTask {
         populateRow(line, importContext.getActiveCols(), row);
 
         DataValueDescriptor[] fields = row.getRowArray();
+        BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+        BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
+        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
+        BitSet nonNullFields = getNonNullFields(row);
+        entryEncoder.reset(nonNullFields,scalarFields,floatFields,doubleFields);
 
         //create the key
         keyEncoder.reset();
@@ -162,10 +173,8 @@ public abstract class AbstractImportTask extends ZkTask {
         }else{
             for(int i=0;i<row.nColumns();i++){
                 DataValueDescriptor field = fields[i];
-                if(field==null||field.isNull())
-                    rowEncoder.encodeEmpty();
-                else
-                    DerbyBytesUtil.encodeInto(rowEncoder,fields[i],false);
+                if(field!=null&&!field.isNull())
+                    DerbyBytesUtil.encodeInto(rowEncoder, fields[i], false);
             }
         }
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
