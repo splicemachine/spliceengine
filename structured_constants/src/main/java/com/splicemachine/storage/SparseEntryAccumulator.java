@@ -20,14 +20,17 @@ public class SparseEntryAccumulator implements EntryAccumulator {
     private BitSet floatFields;
     private BitSet doubleFields;
 
-    public SparseEntryAccumulator(BitSet remainingFields) {
+    private final EntryPredicateFilter predicateFilter;
+
+    public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
         fields = new ByteBuffer[remainingFields.length()];
         this.returnIndex = false;
+        this.predicateFilter = predicateFilter;
     }
 
-    public SparseEntryAccumulator(BitSet remainingFields,boolean returnIndex) {
+    public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields,boolean returnIndex) {
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
         fields = new ByteBuffer[remainingFields.length()];
@@ -35,6 +38,7 @@ public class SparseEntryAccumulator implements EntryAccumulator {
         this.scalarFields = new BitSet();
         this.floatFields = new BitSet();
         this.doubleFields = new BitSet();
+        this.predicateFilter = predicateFilter;
     }
 
     @Override
@@ -75,18 +79,31 @@ public class SparseEntryAccumulator implements EntryAccumulator {
 
     @Override
     public byte[] finish(){
+        if(predicateFilter!=null){
+            BitSet checkColumns = predicateFilter.getCheckedColumns();
+            for(int i=0;i<checkColumns.length();i++){
+                if(i>=fields.length||fields[i]==null){
+                    if(!predicateFilter.checkPredicates(null,i)) return null;
+                }else{
+                    ByteBuffer buffer = fields[i];
+                    buffer.reset();
+                    if(!predicateFilter.checkPredicates(buffer,i)) return null;
+                }
+            }
+        }
+        byte[] dataBytes = getDataBytes();
+        if(dataBytes==null) return null; //failed our predicate filters
         if(returnIndex){
             BitIndex index = BitIndexing.getBestIndex(allFields,scalarFields,floatFields,doubleFields);
             byte[] indexBytes = index.encode();
 
-            byte[] dataBytes = getDataBytes();
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
             System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,dataBytes.length);
             return finalBytes;
         }
-        return getDataBytes();
+        return dataBytes;
     }
 
     private byte[] getDataBytes() {

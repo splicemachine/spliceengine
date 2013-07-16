@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -18,7 +19,8 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        SparseEntryAccumulator accumulator = new SparseEntryAccumulator(fields);
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, Collections.<Predicate>emptyList());
+        SparseEntryAccumulator accumulator = new SparseEntryAccumulator(predicateFilter,fields);
         accumulator.add(2, ByteBuffer.wrap(Encoding.encode(1)));
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));
 
@@ -33,7 +35,8 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator();
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, Collections.<Predicate>emptyList());
+        EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(predicateFilter);
         accumulator.add(2, ByteBuffer.wrap(Encoding.encode(1)));
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));
 

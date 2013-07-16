@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -210,6 +211,14 @@ public class RowEncoder {
             if(rowEncoder!=null)
                 rowEncoder.reset();
 
+
+            //TODO -sf- more elegant way of doing this reset is needed
+            BitSet setFields = DerbyBytesUtil.getNonNullFields(row.getRowArray());
+            BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+            BitSet floatFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+            BitSet doubleFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+            entryEncoder.reset(setFields,scalarFields,floatFields,doubleFields);
+            rowEncoder = entryEncoder.getEntryEncoder();
             rowType.fill(row.getRowArray(), rowColumns, rowEncoder);
 
             try {

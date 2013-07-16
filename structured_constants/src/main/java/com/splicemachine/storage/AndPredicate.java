@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -45,6 +46,21 @@ public class AndPredicate implements Predicate{
         ands = Lists.newArrayListWithCapacity(size);
         for(int i=0;i<size;i++){
             ands.add((Predicate)in.readObject());
+        }
+    }
+
+    @Override
+    public boolean checkAfter() {
+        for(Predicate and:ands){
+            if(and.checkAfter()) return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void setCheckedColumns(BitSet checkedColumns) {
+        for(Predicate predicate:ands){
+            predicate.setCheckedColumns(checkedColumns);
         }
     }
 }

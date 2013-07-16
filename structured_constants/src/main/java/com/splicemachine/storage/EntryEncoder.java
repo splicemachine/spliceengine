@@ -65,20 +65,30 @@ public class EntryEncoder {
     public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();
-        boolean differs=false;
-        for(int i=newIndex.nextSetBit(0);i>=0;i=newIndex.nextSetBit(i+1)){
-            if(!bitIndex.isSet(i)){
-                differs=true;
-                break;
-            }else if(newScalarFields.get(i)!=bitIndex.isScalarType(i)){
-                differs=true;
-                break;
-            }else if(newFloatFields.get(i)!=bitIndex.isFloatType(i)){
-                differs=true;
-                break;
-            }else if(newDoubleFields.get(i)!=bitIndex.isDoubleType(i)){
-                differs=true;
-                break;
+        boolean differs=newIndex.cardinality()!=oldCardinality;
+
+        if(!differs){
+            for(int i=newIndex.nextSetBit(0);i>=0;i=newIndex.nextSetBit(i+1)){
+                if(!bitIndex.isSet(i)){
+                    differs=true;
+                    break;
+                }else if(newScalarFields.get(i)!=bitIndex.isScalarType(i)){
+                    differs=true;
+                    break;
+                }else if(newFloatFields.get(i)!=bitIndex.isFloatType(i)){
+                    differs=true;
+                    break;
+                }else if(newDoubleFields.get(i)!=bitIndex.isDoubleType(i)){
+                    differs=true;
+                    break;
+                }
+            }
+
+            for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
+                if(!newIndex.get(i)){
+                    differs=true;
+                    break;
+                }
             }
         }
         if(differs){

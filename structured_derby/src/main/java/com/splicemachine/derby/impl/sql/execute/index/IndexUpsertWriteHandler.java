@@ -72,7 +72,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         if(newKeyAccumulator==null)
             newKeyAccumulator = getKeyAccumulator();
         if(newRowAccumulator==null)
-            newRowAccumulator = new SparseEntryAccumulator(nonUniqueIndexedColumns,true);
+            newRowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexedColumns,true);
 
         newKeyAccumulator.reset();
         newRowAccumulator.reset();
@@ -112,7 +112,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     protected SparseEntryAccumulator getKeyAccumulator() {
-        return new SparseEntryAccumulator(nonUniqueIndexedColumns,false);
+        return new SparseEntryAccumulator(null,nonUniqueIndexedColumns,false);
     }
 
     protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
@@ -169,7 +169,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             if(newKeyAccumulator==null)
                 newKeyAccumulator = getKeyAccumulator();
             if(newRowAccumulator==null)
-                newRowAccumulator = new SparseEntryAccumulator(nonUniqueIndexedColumns,true);
+                newRowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexedColumns,true);
 
             newKeyAccumulator.reset();
             newRowAccumulator.reset();
@@ -187,7 +187,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
             BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
             MultiFieldDecoder oldDecoder = oldDataDecoder.getEntryDecoder();
-            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(indexedColumns);
+            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns);
 
             //fill in all the index fields that have changed
             for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){

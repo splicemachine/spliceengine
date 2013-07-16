@@ -185,11 +185,11 @@ public class CreateIndexTask extends ZkTask {
     private List<Put> translateResult(List<KeyValue> result) throws IOException{
         EntryAccumulator keyAccumulator;
         if(isUnique)
-            keyAccumulator = new SparseEntryAccumulator(indexedColumns,false);
+            keyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
         else
-            keyAccumulator = new SparseEntryAccumulator(nonUniqueIndexColumns,false);
+            keyAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,false);
 
-        EntryAccumulator rowAccumulator = new SparseEntryAccumulator(nonUniqueIndexColumns,true);
+        EntryAccumulator rowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,true);
 
 
         EntryDecoder decoder = new EntryDecoder();

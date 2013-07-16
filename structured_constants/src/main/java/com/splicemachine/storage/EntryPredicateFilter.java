@@ -89,7 +89,28 @@ public class EntryPredicateFilter implements Externalizable{
         return true;
     }
 
+    public BitSet getCheckedColumns(){
+        BitSet predicateColumns = new BitSet();
+        for(Predicate predicate:valuePredicates){
+            predicate.setCheckedColumns(predicateColumns);
+        }
+        return predicateColumns;
+    }
 
+    public boolean checkPredicates(ByteBuffer buffer,int position){
+        for(Predicate predicate:valuePredicates){
+            if(predicate.checkAfter()){
+                if(buffer!=null){
+                    if(!predicate.match(position,buffer.array(),buffer.position(),buffer.remaining()))
+                        return false;
+                }else{
+                    if(!predicate.match(position,null,0,0))
+                        return false;
+                }
+            }
+        }
+        return true;
+    }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -114,9 +135,9 @@ public class EntryPredicateFilter implements Externalizable{
 
     public EntryAccumulator newAccumulator(){
         if(fieldsToReturn.isEmpty())
-            return new AlwaysAcceptEntryAccumulator(returnIndex);
+            return new AlwaysAcceptEntryAccumulator(this,returnIndex);
         else
-            return new SparseEntryAccumulator(fieldsToReturn,returnIndex);
+            return new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
     }
 
     public byte[] toBytes() {

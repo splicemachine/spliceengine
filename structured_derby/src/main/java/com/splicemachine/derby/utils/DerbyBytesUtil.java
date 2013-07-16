@@ -17,6 +17,7 @@ import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -466,7 +467,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null){
+            if(dvd!=null&&!dvd.isNull()){
                 Format format = Format.formatFor(dvd);
                 Serializer serializer = serializationMap.get(format);
                 if(serializer.isScalarType()){
@@ -481,7 +482,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null){
+            if(dvd!=null&&!dvd.isNull()){
                 Format format = Format.formatFor(dvd);
                 if(format==Format.REAL)
                     bitSet.set(i);
@@ -494,7 +495,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null){
+            if(dvd!=null&&!dvd.isNull()){
                 Format format = Format.formatFor(dvd);
                 if(format==Format.DOUBLE)
                     bitSet.set(i);
@@ -518,6 +519,15 @@ public class DerbyBytesUtil {
     public static boolean isDoubleType(DataValueDescriptor dvd){
         if(dvd==null) return false;
         return Format.formatFor(dvd)==Format.DOUBLE;
+    }
+
+    public static BitSet getNonNullFields(DataValueDescriptor[] row) {
+        BitSet nonNullRows = new BitSet(row.length);
+        for(int i=0;i<row.length;i++){
+            if(row[i]!=null&&!row[i].isNull())
+                nonNullRows.set(i);
+        }
+        return nonNullRows;
     }
 
     private enum Format{

@@ -50,7 +50,12 @@ public class TableScanOperation extends ScanOperation {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 	}
 
-	public TableScanOperation() {
+    private boolean shouldContinue = true;
+    private MultiFieldDecoder rowDecoder;
+    private boolean next = true;
+
+
+    public TableScanOperation() {
 		super();
 	}
 

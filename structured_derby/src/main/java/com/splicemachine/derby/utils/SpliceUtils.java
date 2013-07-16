@@ -372,6 +372,7 @@ public class SpliceUtils extends SpliceUtilities {
         int pos=0;
         for(int i=bitSet.anySetBit();i!=-1;i=bitSet.anySetBit(i)){
             validCols[pos] = i;
+            pos++;
         }
         return validCols;
     }

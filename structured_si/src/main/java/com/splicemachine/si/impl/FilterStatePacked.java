@@ -104,8 +104,10 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     public KeyValue produceAccumulatedKeyValue() {
         if (hasAccumulation) {
             final Data resultData = accumulator.result();
-            final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
-            return keyValue;
+            if(resultData!=null){
+                final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
+                return keyValue;
+            }else return null;
         } else {
             return null;
         }

@@ -22,14 +22,17 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
     private BitSet floatFields = new BitSet();
     private BitSet doubleFields = new BitSet();
 
-    AlwaysAcceptEntryAccumulator(){
-        this(false);
+    private EntryPredicateFilter predicateFilter;
+
+    AlwaysAcceptEntryAccumulator(EntryPredicateFilter predicateFilter){
+        this(predicateFilter,false);
     }
 
-    AlwaysAcceptEntryAccumulator(boolean returnIndex) {
+    AlwaysAcceptEntryAccumulator(EntryPredicateFilter predicateFilter,boolean returnIndex) {
         this.occupiedFields = new BitSet();
         this.completed = false;
         this.returnIndex = returnIndex;
+        this.predicateFilter = predicateFilter;
     }
 
     @Override
@@ -115,6 +118,20 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
 
     @Override
     public byte[] finish() {
+        //check final predicates to make sure that we don't miss any
+        if(predicateFilter!=null){
+            BitSet checkColumns = predicateFilter.getCheckedColumns();
+            for(int i=0;i<checkColumns.length();i++){
+                if(i>=fields.length||fields[i]==null){
+                    if(!predicateFilter.checkPredicates(null,i)) return null;
+                }else{
+                    ByteBuffer buffer = fields[i];
+                    buffer.reset();
+                    if(!predicateFilter.checkPredicates(buffer,i)) return null;
+                }
+            }
+        }
+        byte[] dataBytes = getDataBytes();
         if(returnIndex){
             BitSet setFields = new BitSet(fields.length);
             for(int i=0;i<fields.length;i++){
@@ -124,14 +141,12 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
             BitIndex index = BitIndexing.getBestIndex(setFields,scalarFields,floatFields,doubleFields);
             byte[] indexBytes = index.encode();
 
-            byte[] dataBytes = getDataBytes();
-
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
             System.arraycopy(dataBytes,0,finalBytes,indexBytes.length+1,dataBytes.length);
             return finalBytes;
         }
-        return getDataBytes();
+        return dataBytes;
     }
 
     private byte[] getDataBytes() {

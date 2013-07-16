@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -33,6 +34,14 @@ public class OrPredicate implements Predicate {
     }
 
     @Override
+    public boolean checkAfter() {
+        for(Predicate predicate:ors){
+            if(predicate.checkAfter()) return true;
+        }
+        return false;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(ors.size());
         for(Predicate predicate:ors){
@@ -46,6 +55,13 @@ public class OrPredicate implements Predicate {
         ors = Lists.newArrayListWithCapacity(size);
         for(int i=0;i<size;i++){
             ors.add((Predicate)in.readObject());
+        }
+    }
+
+    @Override
+    public void setCheckedColumns(BitSet checkedColumns) {
+        for(Predicate or:ors){
+            or.setCheckedColumns(checkedColumns);
         }
     }
 }

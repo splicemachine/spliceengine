@@ -98,7 +98,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             EntryDecoder getDecoder = new EntryDecoder();
             getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
 
-            EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(indexedColumns,false);
+            EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
             BitIndex getIndex = getDecoder.getCurrentIndex();
             MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
             for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){

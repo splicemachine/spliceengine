@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -91,5 +92,19 @@ public class ValuePredicate implements Predicate {
         }
         compareValue = new byte[in.readInt()];
         in.readFully(compareValue);
+    }
+
+    @Override
+    public boolean checkAfter() {
+        /*
+         * Remove null entries is an implicit not-null check--we thus need to make sure that
+         * we are checking nulls AFTER the row is completed as well as before.
+         */
+        return removeNullEntries;
+    }
+
+    @Override
+    public void setCheckedColumns(BitSet checkedColumns) {
+        checkedColumns.set(column);
     }
 }
