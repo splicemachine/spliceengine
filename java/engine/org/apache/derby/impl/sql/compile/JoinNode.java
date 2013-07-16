@@ -1709,7 +1709,7 @@ public class JoinNode extends TableOperatorNode {
                     ColumnReference leftCol = null;
                     ColumnReference rightCol = null;
 
-                    if(maybeLeftCol.getTableNumber() < maybeRightCol.getTableNumber()){
+                    if(maybeRightCol.getTableNumber() == table.getTableNumber()){
                         leftCol = maybeLeftCol;
                         rightCol = maybeRightCol;
                     } else{
@@ -1720,10 +1720,16 @@ public class JoinNode extends TableOperatorNode {
                     leftHashCols[i] = leftCol.getColumnNumber();
                     rightHashCols[i] = rightCol.getColumnNumber();
 
-                    leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
-                    leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
-                    rightTableName = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
-                    rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    if(leftCol.getSource().getTableColumnDescriptor() != null){
+                        leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
+                        leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    }
+
+                    if(rightCol.getSource().getTableColumnDescriptor() != null){
+                        rightTableName = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
+                        rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    }
+
 		        }
 
                 FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashCols);
