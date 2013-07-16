@@ -12,7 +12,9 @@ import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -25,6 +27,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -104,6 +107,12 @@ public class RegionWriteHandler implements WriteHandler {
             if (toProcessList.size() > 0) {
                 toProcess = toProcessList.toArray(new Mutation[toProcessList.size()]);
                 doWrite(ctx, toProcess);
+            }
+        } catch (WriteConflict wce) {
+            failed = true;
+            MutationResult result = new MutationResult(MutationResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
+            for (Mutation mutation : mutations) {
+                ctx.result(mutation, result);
             }
         } catch (IOException ioe) {
             /*

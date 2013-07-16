@@ -79,6 +79,8 @@ public class Exceptions {
             return parseException((Exception)gson.fromJson(json,exceptionClass));
         }else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
+        }else if(rootCause instanceof WriteConflict){
+            return StandardException.newException(SQLState.LANG_SERIALIZABLE,rootCause.getMessage());
         }
 
         return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);

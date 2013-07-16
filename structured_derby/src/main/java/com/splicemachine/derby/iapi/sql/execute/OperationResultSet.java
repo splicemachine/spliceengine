@@ -275,8 +275,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public void finish() throws StandardException {
-        checkDelegate();
-        delegate.finish();
+        if (delegate != null) {
+            delegate.finish();
+        }
     }
 
     @Override
