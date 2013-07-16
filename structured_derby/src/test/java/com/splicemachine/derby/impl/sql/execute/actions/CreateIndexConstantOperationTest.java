@@ -123,7 +123,7 @@ public class CreateIndexConstantOperationTest extends SpliceUnitTest {
             c3.createStatement().execute("insert into"+this.getPaddedTableReference(TABLE_NAME_6)+"(TaskId, empId, StartedAt, FinishedAt) values (1236,'JC',0500,0630)");
             Assert.fail("Didn't raise write-conflict exception");
         } catch (SQLException e) {
-            Assert.assertTrue("Didn't detect write-write conflict", e.getCause().getCause().getMessage().contains("WriteConflict"));
+            Assert.assertTrue("Didn't detect write-write conflict", e.getCause().getMessage().contains("serializable"));
         }
     }
 }

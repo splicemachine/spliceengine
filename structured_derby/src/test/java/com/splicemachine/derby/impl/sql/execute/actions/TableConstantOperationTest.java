@@ -285,7 +285,7 @@ public class TableConstantOperationTest extends SpliceUnitTest {
                 connection2.createStatement().execute(create);
                 Assert.fail("Isolation violated, write conflict undetected");
             } catch (SQLException e) {
-                Assert.assertTrue("Unknown exception", e.getCause().getCause().getMessage().contains("WriteConflict"));
+                Assert.assertTrue("Unknown exception", e.getCause().getMessage().contains("serializable"));
             }
             connection2.rollback();
             try {
