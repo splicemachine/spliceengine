@@ -22,6 +22,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -46,6 +47,13 @@ public class TableScanOperation extends ScanOperation {
 	private Properties scanProperties;
 	public String startPositionString;
 	public String stopPositionString;
+	protected ThreadLocal<Boolean> initialized = new ThreadLocal<Boolean>() {
+		@Override
+		protected Boolean initialValue() {
+			return false;
+		}
+		
+	};
 	
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
@@ -177,9 +185,18 @@ public class TableScanOperation extends ScanOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		beginTime = getCurrentTimeMillis();
 		try {
+			  if (!initialized.get()) {
+				  region.startRegionOperation();
+		      	  MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
+		      	  initialized.set(true);
+			  }			
 	        keyValues.clear();
-	        regionScanner.next(keyValues);
+	        regionScanner.nextRaw(keyValues,null);
 			if (keyValues.isEmpty()) {
+				if (initialized.get()) {
+					region.closeRegionOperation();
+					initialized.set(false);
+				}
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
@@ -205,6 +222,7 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}
@@ -223,8 +241,7 @@ public class TableScanOperation extends ScanOperation {
 	{
 		SpliceLogUtils.trace(LOG, "close in TableScan");
 		beginTime = getCurrentTimeMillis();
-		if ( isOpen )
-	    {
+		if ( isOpen ) {
 		    clearCurrentRow();
 
 			if (runTimeStatisticsOn)
