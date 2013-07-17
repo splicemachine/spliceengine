@@ -8312,11 +8312,17 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
        <family>
           <title>Generic Splice Engine message.</title>
 
-          <msg>
-             <name>SE001</name>
-             <text>Splice Engine exception: {0}</text>
-             <arg>exceptionText</arg>
-          </msg>
+           <msg>
+               <name>SE001</name>
+               <text>Splice Engine exception: {0}</text>
+               <arg>exceptionText</arg>
+           </msg>
+
+           <msg>
+               <name>SE002</name>
+               <text>Splice Engine operation unsupported exception: {0} is unsupported.</text>
+               <arg>classSimpleName</arg>
+           </msg>
 
        </family>
     </section>
