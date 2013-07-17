@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ public class FixedDecimalEncodingTest {
     }
 
     @Test
+    @Ignore("not actually a test")
     public void testEncodeAsDoubleDecodeAsFloat() throws Exception {
         double val = 1.0;
 
@@ -38,16 +40,17 @@ public class FixedDecimalEncodingTest {
         float v2= 1.0f;
 
         byte[] encoded2 = DecimalEncoding.toBytes(v2, false);
-        System.out.println(Arrays.toString(encoded2));
-        System.out.println(Arrays.toString(encoded));
+//        System.out.println(Arrays.toString(encoded2));
+//        System.out.println(Arrays.toString(encoded));
     }
 
     @Test
+    @Ignore("not actually a test")
     public void testEncodeBigDecimalZeros() throws Exception {
         BigDecimal decimal = new BigDecimal("00000000000000.012340004");
 
         byte[] data = Encoding.encode(decimal);
-        System.out.println(Arrays.toString(data));
+//        System.out.println(Arrays.toString(data));
 
     }
 }

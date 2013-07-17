@@ -48,17 +48,14 @@ public class BasicSnowflakeTest {
                 @Override
                 public Boolean call() throws Exception {
                     startBarrier.await(); //wait for everyone to force contention
-//                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
                     for(int i=0;i<numIterations;i++){
                         long time = System.currentTimeMillis();
                         long uuid = snowflake.nextUUID();
-//                        System.out.println(Long.toBinaryString(uuid));
                         if(existing.putIfAbsent(uuid,true)!=null){
                             System.out.println("     already present!i= "+i+", value="+Long.toBinaryString(uuid)+", time="+Long.toBinaryString(time));
                             return false;  //uh-oh, duplicates!
                         }
                     }
-                    System.out.println("current time: "+Long.toBinaryString(System.currentTimeMillis()));
                     return true;
                 }
             }));
@@ -75,7 +72,6 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreadsSameSnowflake() throws Exception {
         for(int i=0;i<10;i++){
-            System.out.println(i);
             testNoDuplicatesManyThreadsSameSnowflake();
         }
     }
@@ -83,7 +79,6 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreads() throws Exception {
         for(int i=0;i<10;i++){
-            System.out.println(i);
             testNoDuplicatesManyThreads();
         }
     }

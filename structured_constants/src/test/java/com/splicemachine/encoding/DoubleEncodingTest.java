@@ -102,10 +102,7 @@ public class DoubleEncodingTest {
         for(int i=data.length-1,j=0;i>=0;i--,j++){
         	reversed[j] = data[i];
         }
-        for (int i = 0; i<deserialized.length;i++) {
-        	System.out.println("deserialized value " + deserialized[i]);
-        }
-        
+
         Assert.assertArrayEquals("Incorrect sort ordering",reversed,deserialized,Math.pow(10,-12));
     }
 }

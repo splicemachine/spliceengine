@@ -86,7 +86,14 @@ public class EntryEncoderTest {
 
     @Test
     public void testEncodeAllColumnsSafely() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
+        BitSet setCols = new BitSet();
+        setCols.set(0);
+        setCols.set(1);
+        setCols.set(2);
+
+        BitSet scalarFields = new BitSet();
+        scalarFields.set(1);
+        EntryEncoder encoder = EntryEncoder.create(3, setCols,scalarFields,null,null);
         String longTest = "hello this is a tale of woe and sadness from which we will never return";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();

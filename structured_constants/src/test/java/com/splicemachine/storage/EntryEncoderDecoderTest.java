@@ -15,7 +15,14 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetData() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(2, null, null,null,null);
+        BitSet setCols = new BitSet();
+        setCols.set(0);
+        setCols.set(1);
+
+        BitSet scalarFields = new BitSet();
+        scalarFields.set(0);
+        scalarFields.set(1);
+        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -31,7 +38,15 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
+        BitSet setCols = new BitSet();
+        setCols.set(0);
+        setCols.set(1);
+        setCols.set(2);
+
+        BitSet scalarFields = new BitSet();
+        scalarFields.set(0);
+        scalarFields.set(2);
+        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -49,7 +64,15 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithHeadNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
+        BitSet setCols = new BitSet();
+        setCols.set(0);
+        setCols.set(1);
+        setCols.set(2);
+
+        BitSet scalarFields = new BitSet();
+        scalarFields.set(1);
+        scalarFields.set(2);
+        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.setRawBytes(null);
@@ -67,7 +90,15 @@ public class EntryEncoderDecoderTest {
 
     @Test
     public void testGetDataWithTailNull() throws Exception {
-        EntryEncoder encoder = EntryEncoder.create(3, null,null,null,null);
+        BitSet setCols = new BitSet();
+        setCols.set(0);
+        setCols.set(1);
+        setCols.set(2);
+
+        BitSet scalarFields = new BitSet();
+        scalarFields.set(1);
+        scalarFields.set(2);
+        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
