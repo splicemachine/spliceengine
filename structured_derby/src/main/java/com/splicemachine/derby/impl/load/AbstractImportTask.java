@@ -51,9 +51,8 @@ public abstract class AbstractImportTask extends ZkTask {
 
     private KeyMarshall keyType;
     private int[] keyColumns = null;
-    private MultiFieldEncoder keyEncoder;
 
-    private EntryEncoder entryEncoder;
+    private RowEncoder entryEncoder;
 
     public AbstractImportTask() { }
 
@@ -115,7 +114,8 @@ public abstract class AbstractImportTask extends ZkTask {
             }else
                 keyColumns = new int[0];
             BitSet bitSet = getNonNullFields(row);
-            entryEncoder = EntryEncoder.create(row.nColumns(),bitSet,scalarFields,floatFields,doubleFields);
+
+            entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
 
             Long numImported;
             try{
@@ -158,37 +158,7 @@ public abstract class AbstractImportTask extends ZkTask {
     protected void doImportRow(String transactionId,String[] line, ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
         populateRow(line, importContext.getActiveCols(), row);
 
-        DataValueDescriptor[] fields = row.getRowArray();
-        BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
-        BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
-        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
-        BitSet nonNullFields = getNonNullFields(row);
-        entryEncoder.reset(nonNullFields,scalarFields,floatFields,doubleFields);
-
-        //create the key
-        keyEncoder.reset();
-        keyType.encodeKey(fields,keyColumns,null,null,keyEncoder);
-
-        Put put = SpliceUtils.createPut(keyEncoder.build(),transactionId);
-
-        //create the row data
-        FormatableBitSet activeCols = importContext.getActiveCols();
-        MultiFieldEncoder rowEncoder = entryEncoder.getEntryEncoder();
-        rowEncoder.reset();
-        if(activeCols!=null){
-            for(int i=activeCols.anySetBit();i>=0;i=activeCols.anySetBit(i)){
-                DerbyBytesUtil.encodeInto(rowEncoder, fields[i],false);
-            }
-        }else{
-            for(int i=0;i<row.nColumns();i++){
-                DataValueDescriptor field = fields[i];
-                if(field!=null&&!field.isNull())
-                    DerbyBytesUtil.encodeInto(rowEncoder, fields[i], false);
-            }
-        }
-        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
-
-        writeBuffer.add(put);
+        entryEncoder.write(row,transactionId,writeBuffer);
     }
 
 
