@@ -184,7 +184,7 @@ public class IterativeBitIndexTest {
         comparisonSet.set(5);
 
 
-        BitIndex uncompressed = BitIndexing.uncompressedBitMap(comparisonSet);
+        BitIndex uncompressed = BitIndexing.uncompressedBitMap(comparisonSet,null,null,null);
 
         byte[] encoded = uncompressed.encode();
         BitIndex lazy = BitIndexing.uncompressedBitMap(encoded,0,encoded.length);

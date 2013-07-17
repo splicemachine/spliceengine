@@ -122,9 +122,7 @@ public class SpliceUtils extends SpliceUtilities {
 
 
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
-            ByteDataOutput bdo = new ByteDataOutput();
-            bdo.writeObject(predicateFilter);
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 //			if(validColumns!=null){
 //				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
 //					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));

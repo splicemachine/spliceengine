@@ -239,9 +239,7 @@ public class Scans extends SpliceUtils {
                                             Qualifier[][] qualifiers,
                                             FormatableBitSet scanColumnList, Scan scan) throws StandardException, IOException {
         EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
-        ByteDataOutput bao  = new ByteDataOutput();
-        bao.writeObject(pqf);
-        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bao.toByteArray());
+        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
     }
 
     private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,

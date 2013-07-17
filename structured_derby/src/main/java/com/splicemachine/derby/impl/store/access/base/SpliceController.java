@@ -156,8 +156,8 @@ public abstract class SpliceController implements ConglomerateController {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
+            MultiFieldDecoder decoder = MultiFieldDecoder.create();
             for(KeyValue kv:result.raw()){
-                MultiFieldDecoder decoder = MultiFieldDecoder.create();
                 RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
             }
 			return true;
@@ -195,6 +195,8 @@ public abstract class SpliceController implements ConglomerateController {
         BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row);
         if(entryEncoder==null)
             entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns),scalarFields,floatFields,doubleFields);
+        else
+            entryEncoder.reset(EncodingUtils.getNonNullColumns(row,validColumns),scalarFields,floatFields,doubleFields);
 
         EncodingUtils.encodeRow(row, put, columns, validColumns, entryEncoder);
     }

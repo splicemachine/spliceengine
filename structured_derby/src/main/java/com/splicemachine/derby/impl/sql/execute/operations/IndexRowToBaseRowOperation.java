@@ -185,13 +185,22 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 			if(heapOnlyColRefItem!=-1){
 				this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
-                if(heapOnlyCols!=null){
-                    this.heapCols = new FormatableBitSet(heapOnlyCols.size());
-                    for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
-                        heapCols.set(i-1);
-                    }
+                adjustedBaseColumnMap = new int[heapOnlyCols.getNumBitsSet()];
+                int pos=0;
+                for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
+                    adjustedBaseColumnMap[pos] = baseColumnMap[i];
+                    pos++;
                 }
-                //adjust the base column map down by 1
+//                if(heapOnlyCols!=null){
+//                    adjustedBaseColumnMap = new int[heapOnlyCols.getNumBitsSet()];
+//                    this.heapCols = new FormatableBitSet(heapOnlyCols.size());
+//                    for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
+//                        adjustedBaseColumnMap[i-1] = baseColumnMap[i];
+//                    }
+//                }else{
+//                    heapCols = heapOnlyCols;
+//                    adjustedBaseColumnMap = baseColumnMap;
+//                }
 			}
 
             if (accessedHeapCols == null) {
@@ -325,12 +334,12 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             if(table==null)
                 table = SpliceAccessManager.getHTable(conglomId);
             baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapCols, getTransactionID());
+            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
             boolean rowExists = false;
             try{
                 Result result = table.get(get);
                 SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapCols,Arrays.toString(baseColumnMap));
+                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
                 rowExists = result!=null && !result.isEmpty();
                 if(rowExists){
 
@@ -338,7 +347,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         fieldDecoder = MultiFieldDecoder.create();
                     fieldDecoder.reset();
                     for(KeyValue kv:result.raw()){
-                        RowMarshaller.sparsePacked().decode(kv, compactRow.getRowArray(), baseColumnMap, fieldDecoder);
+                        RowMarshaller.sparsePacked().decode(kv, compactRow.getRowArray(),adjustedBaseColumnMap, fieldDecoder);
                     }
                 }
             }catch(IOException ioe){
