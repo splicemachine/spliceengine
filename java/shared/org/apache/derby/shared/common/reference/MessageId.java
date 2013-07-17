@@ -242,5 +242,6 @@ public interface MessageId {
      * Splice Engine
      */
     String SPLICE_GENERIC_EXCEPTION                      = "SE001";
+    String SPLICE_UNSUPPORTED_OPERATION                  = "SE002";
 
 }
