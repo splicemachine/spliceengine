@@ -36,22 +36,12 @@ public class EncodingUtils {
     }
 
     public static void encodeRow(DataValueDescriptor[] row, Put put,int[] columns,FormatableBitSet validColumns,EntryEncoder encoder) throws StandardException, IOException {
-<<<<<<< HEAD
         BitSet lengthFields = DerbyBytesUtil.getScalarFields(row);
         BitSet floatFields = DerbyBytesUtil.getFloatFields(row);
         BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row);
         encoder.reset(getNonNullColumns(row,validColumns),lengthFields,floatFields,doubleFields);
 
         RowMarshaller.sparsePacked().fill(row, columns, encoder.getEntryEncoder());
-=======
-        encoder.reset(getNonNullColumns(row,validColumns));
-
-<<<<<<< HEAD
-        RowMarshaller.packedCompressed().fill(row, columns, encoder.getEntryEncoder());
->>>>>>> Reorganization of insertion in System Table code
-=======
-        RowMarshaller.sparsePacked().fill(row, columns, encoder.getEntryEncoder());
->>>>>>> Adding tests for LazyBitIndex encoding/decoding
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, encoder.encode());
     }
 }

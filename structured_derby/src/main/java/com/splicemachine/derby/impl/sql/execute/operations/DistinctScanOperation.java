@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,7 +55,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private static final HashMerger merger = new DistinctMerger();
 
     private Scan reduceScan;
-    private MultiFieldDecoder rowDecoder;
 
     public DistinctScanOperation() {
     }
@@ -250,6 +250,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
             private ExecRow nextRow;
             private boolean populated = false;
+            private MultiFieldDecoder decoder;
 
             @Override
             public boolean hasNext() throws StandardException {
@@ -265,8 +266,11 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                             nextRow = rowTemplate.getClone();
                             DataValueDescriptor[] rowArray = nextRow.getRowArray();
 
+                            if(decoder==null)
+                                decoder = MultiFieldDecoder.create();
+
                             for(KeyValue kv:values){
-                                RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
+                                RowMarshaller.sparsePacked().decode(kv, rowArray, null, decoder);
                             }
                         }
 

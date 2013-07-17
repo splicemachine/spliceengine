@@ -424,47 +424,6 @@ public class DerbyBytesUtil {
         return nonNullRows;
     }
 
-    private enum Format{
-        BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
-        TINYINT(StoredFormatIds.SQL_TINYINT_ID),
-        SMALLINT(StoredFormatIds.SQL_SMALLINT_ID),
-        INTEGER(StoredFormatIds.SQL_INTEGER_ID),
-        LONGINT(StoredFormatIds.SQL_LONGINT_ID),
-        REAL(StoredFormatIds.SQL_REAL_ID),
-        DOUBLE(StoredFormatIds.SQL_DOUBLE_ID),
-        DECIMAL(StoredFormatIds.SQL_DECIMAL_ID),
-        REF(StoredFormatIds.SQL_REF_ID),
-        USERTYPE(StoredFormatIds.SQL_USERTYPE_ID_V3),
-        DATE(StoredFormatIds.SQL_DATE_ID),
-        TIME(StoredFormatIds.SQL_TIME_ID),
-        TIMESTAMP(StoredFormatIds.SQL_TIMESTAMP_ID),
-        VARCHAR(StoredFormatIds.SQL_VARCHAR_ID),
-        LONGVARCHAR(StoredFormatIds.SQL_LONGVARCHAR_ID),
-        CLOB(StoredFormatIds.SQL_CLOB_ID),
-        XML(StoredFormatIds.XML_ID),
-        CHAR(StoredFormatIds.SQL_CHAR_ID),
-        VARBIT(StoredFormatIds.SQL_VARBIT_ID),
-        LONGVARBIT(StoredFormatIds.SQL_LONGVARBIT_ID),
-        BLOB(StoredFormatIds.SQL_BLOB_ID),
-        BIT(StoredFormatIds.SQL_BIT_ID),
-        ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
-
-        private final int storedFormatId;
-
-        private Format(int storedFormatId) {
-            this.storedFormatId = storedFormatId;
-        }
-
-        public static Format formatFor(DataValueDescriptor dvd){
-            for(Format format:values()){
-                if(format.storedFormatId==dvd.getTypeFormatId()){
-                    return format;
-                }
-            }
-            return null;
-        }
-    }
-
     private interface Serializer{
         byte[] encode(DataValueDescriptor dvd) throws StandardException;
 
@@ -684,38 +643,10 @@ public class DerbyBytesUtil {
 
             @Override public boolean isScalarType() { return false; }
 
-            private Object getObject(byte[] data, boolean desc) throws StandardException{
-                byte[] actualData = stripLength(data, desc);
-                try{
-                    ByteDataInput bdi = new ByteDataInput(actualData);
-                    return bdi.readObject();
-                } catch (ClassNotFoundException e) {
-                    throw Exceptions.parseException(e);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
-            }
-
-            private byte[] getBytes(DataValueDescriptor dvd,boolean desc) throws StandardException{
-                try{
-                    ByteDataInput bdi = new ByteDataInput(decoder.decodeNextBytesUnsorted());
-                    dvd.setValue(bdi.readObject());
-                } catch (ClassNotFoundException e) {
-                    throw Exceptions.parseException(e);
-                } catch (IOException e) {
-                    throw Exceptions.parseException(e);
-                }
-            }
-
-            @Override
-            public boolean isLengthDelimited() {
-                return true;
-            }
 
             private Object getObject(byte[] data, boolean desc) throws StandardException{
-                byte[] actualData = stripLength(data, desc);
                 try{
-                    ByteDataInput bdi = new ByteDataInput(actualData);
+                    ByteDataInput bdi = new ByteDataInput(Encoding.decodeBytesUnsortd(data,0,data.length));
                     return bdi.readObject();
                 } catch (ClassNotFoundException e) {
                     throw Exceptions.parseException(e);
