@@ -6,6 +6,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.StatementContext;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.shared.common.reference.MessageId;
 
 /**
  *	This class  describes actions that are ALWAYS performed for a
@@ -44,20 +45,21 @@ public class SavepointConstantOperation extends DDLConstantOperation {
 	 * @exception StandardException		Thrown on failure
 	 */
 	public void	executeConstantAction( Activation activation ) throws StandardException {
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-			//Bug 4507 - savepoint not allowed inside trigger
-			StatementContext stmtCtxt = lcc.getStatementContext();
-			if (stmtCtxt!= null && stmtCtxt.inTrigger())
-				throw StandardException.newException(SQLState.NO_SAVEPOINT_IN_TRIGGER);
-		if (savepointStatementType == 1) { //this is set savepoint
-			if (savepointName.startsWith("SYS")) //to enforce DB2 restriction which is savepoint name can't start with SYS
-				throw StandardException.newException(SQLState.INVALID_SCHEMA_SYS, "SYS");
-			lcc.languageSetSavePoint(savepointName, savepointName);
-		} else if (savepointStatementType == 2) { //this is rollback savepoint
-			lcc.internalRollbackToSavepoint(savepointName,true, savepointName);
-		} else { //this is release savepoint
-			lcc.releaseSavePoint(savepointName, savepointName);
-		}
+        throw StandardException.newException(MessageId.SPLICE_UNSUPPORTED_OPERATION, getClass().getSimpleName());
+//		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+//			//Bug 4507 - savepoint not allowed inside trigger
+//			StatementContext stmtCtxt = lcc.getStatementContext();
+//			if (stmtCtxt!= null && stmtCtxt.inTrigger())
+//				throw StandardException.newException(SQLState.NO_SAVEPOINT_IN_TRIGGER);
+//		if (savepointStatementType == 1) { //this is set savepoint
+//			if (savepointName.startsWith("SYS")) //to enforce DB2 restriction which is savepoint name can't start with SYS
+//				throw StandardException.newException(SQLState.INVALID_SCHEMA_SYS, "SYS");
+//			lcc.languageSetSavePoint(savepointName, savepointName);
+//		} else if (savepointStatementType == 2) { //this is rollback savepoint
+//			lcc.internalRollbackToSavepoint(savepointName,true, savepointName);
+//		} else { //this is release savepoint
+//			lcc.releaseSavePoint(savepointName, savepointName);
+//		}
 	}
 
 }
