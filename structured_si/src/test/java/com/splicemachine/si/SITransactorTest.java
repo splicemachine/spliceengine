@@ -1223,20 +1223,20 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeManyDeleteOneScanWithIncludeSIColumnSameTransaction() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "110joe", 20);
-        insertAge(t1, "110toe", 30);
-        insertAge(t1, "110boe", 40);
-        insertAge(t1, "110moe", 50);
-        insertAge(t1, "110xoe", 60);
+        insertAge(t1, "143joe", 20);
+        insertAge(t1, "143toe", 30);
+        insertAge(t1, "143boe", 40);
+        insertAge(t1, "143moe", 50);
+        insertAge(t1, "143xoe", 60);
         transactor.commit(t1);
 
         TransactionId t2 = transactor.beginTransaction();
-        deleteRow(t2, "110moe");
-        String expected = "110boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
-                "110joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
-                "110toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
-                "110xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
-        Assert.assertEquals(expected, scanAll(t2, "110a", "110z", null, true));
+        deleteRow(t2, "143moe");
+        String expected = "143boe age=40 job=null[ S.TX@~9 V.age@~9=40 ]\n" +
+                "143joe age=20 job=null[ S.TX@~9 V.age@~9=20 ]\n" +
+                "143toe age=30 job=null[ S.TX@~9 V.age@~9=30 ]\n" +
+                "143xoe age=60 job=null[ S.TX@~9 V.age@~9=60 ]\n";
+        Assert.assertEquals(expected, scanAll(t2, "143a", "143z", null, true));
     }
 
     @Test
