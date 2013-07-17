@@ -56,7 +56,7 @@ public class SITableWriterHBaseTest extends SIConstants {
         HTableDescriptor tableDesc = new HTableDescriptor(TABLE_NAME);
         tableDesc.addCoprocessor("com.splicemachine.derby.hbase.SpliceIndexEndpoint");
         tableDesc.addCoprocessor("com.splicemachine.hbase.TestWriteLoader");
-        tableDesc.addCoprocessor("com.splicemachine.si.coprocessors.SIObserver");
+        tableDesc.addCoprocessor("com.splicemachine.si.coprocessors.SIObserverUnPacked");
         tableDesc.addFamily(new HColumnDescriptor("attributes"));
         tableDesc.addFamily(new HColumnDescriptor("_si"));
 

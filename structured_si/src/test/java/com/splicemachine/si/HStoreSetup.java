@@ -4,7 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.coprocessors.SIObserverPacked;
+import com.splicemachine.si.coprocessors.SIObserverUnPacked;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -48,7 +48,7 @@ public class HStoreSetup implements StoreSetup {
         try {
             testCluster = new HBaseTestingUtility();
             testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,
-                    usePacked ? SIObserverPacked.class.getName() : SIObserver.class.getName());
+                    usePacked ? SIObserver.class.getName() : SIObserverUnPacked.class.getName());
             setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);

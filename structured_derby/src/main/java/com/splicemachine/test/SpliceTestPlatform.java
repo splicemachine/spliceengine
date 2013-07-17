@@ -1,12 +1,8 @@
 package com.splicemachine.test;
 
-import java.io.File;
-import java.util.Arrays;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.coprocessors.SIObserverPacked;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
@@ -15,7 +11,6 @@ import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceMasterObserver;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 
 public class SpliceTestPlatform extends TestConstants {
@@ -111,7 +106,7 @@ public class SpliceTestPlatform extends TestConstants {
                         SpliceIndexManagementEndpoint.class.getCanonicalName() + "," +
                         SpliceIndexEndpoint.class.getCanonicalName() + "," +
                         CoprocessorTaskScheduler.class.getCanonicalName()+","+
-                        SIObserverPacked.class.getCanonicalName()
+                        SIObserver.class.getCanonicalName()
         );
         configuration.set("hbase.coprocessor.master.classes", SpliceMasterObserver.class.getCanonicalName() + "");
     }
