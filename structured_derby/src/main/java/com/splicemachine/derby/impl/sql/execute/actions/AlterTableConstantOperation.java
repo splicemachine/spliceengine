@@ -221,7 +221,8 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
     boolean                     dropStatisticsAll,
     String                      indexNameForStatistics) {
 		super(tableId);
-		SpliceLogUtils.trace(LOG, "instantiating AlterTableConstantOperation for table {%s.%s} with ColumnInfo {%s} and constraintActions {%s}",sd!=null?sd.getSchemaName():"default",tableName, Arrays.toString(columnInfo), Arrays.toString(constraintActions));
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "instantiating AlterTableConstantOperation for table {%s.%s} with ColumnInfo {%s} and constraintActions {%s}",sd!=null?sd.getSchemaName():"default",tableName, Arrays.toString(columnInfo), Arrays.toString(constraintActions));
 		this.sd                     = sd;
 		this.tableName              = tableName;
 		this.tableConglomerateId    = tableConglomerateId;
