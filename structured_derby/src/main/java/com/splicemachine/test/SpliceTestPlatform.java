@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
@@ -93,6 +94,8 @@ public class SpliceTestPlatform extends TestConstants {
         setInt(configuration, "hbase.master.info.port", masterInfoPort);
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
+        configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
+        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 128 * 1024 * 1024L);        
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);
