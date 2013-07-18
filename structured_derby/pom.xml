@@ -147,7 +147,9 @@
 					<includes>
 						<include>${runClass}</include>
 					</includes>
+                <!--
 				<forkCount>4</forkCount>
+				-->
 				</configuration>
 				<dependencies>
 					<dependency>
