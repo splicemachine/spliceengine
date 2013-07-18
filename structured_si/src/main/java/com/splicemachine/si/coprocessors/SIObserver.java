@@ -155,7 +155,7 @@ public class SIObserver extends BaseRegionObserver {
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
                                 Filter currentFilter, EntryPredicateFilter predicateFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
-        final SIFilterPacked siFilter = new SIFilterPacked(transactor, transactionId, rollForwardQueue, predicateFilter,
+        final SIFilterPacked siFilter = new SIFilterPacked(tableName, transactor, transactionId, rollForwardQueue, predicateFilter,
                 includeSIColumn, includeUncommittedAsOfStart);
         Filter newFilter;
         if (currentFilter != null) {

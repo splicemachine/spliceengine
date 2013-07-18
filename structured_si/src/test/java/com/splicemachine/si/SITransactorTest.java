@@ -335,7 +335,7 @@ public class SITransactorTest extends SIConstants {
                     throw new RuntimeException(e);
                 }
                 if (usePacked) {
-                    filterState = new FilterStatePacked(storeSetup.getDataLib(), transactorSetup.dataStore, (FilterState) filterState, new LRowAccumulator());
+                    filterState = new FilterStatePacked(null, storeSetup.getDataLib(), transactorSetup.dataStore, (FilterState) filterState, new LRowAccumulator());
                 }
                 result = transactorSetup.transactor.filterResult(filterState, rawTuple);
                 if (usePacked && result != null) {

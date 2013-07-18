@@ -51,7 +51,7 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
     IFilterState newFilterState(TransactionId transactionId) throws IOException;
     IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
                                 boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
-    IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
+    IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue,EntryPredicateFilter predicateFilter,
                                       TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart)
             throws IOException;
 

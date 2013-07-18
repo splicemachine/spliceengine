@@ -11,6 +11,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
 
+    private final String tableName;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter;
@@ -22,9 +23,10 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
 
-    public FilterStatePacked(SDataLib dataLib, DataStore dataStore,
+    public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter,
                              RowAccumulator<Data> accumulator) {
+        this.tableName = tableName;
         this.dataLib = dataLib;
         this.dataStore = dataStore;
         this.simpleFilter = simpleFilter;

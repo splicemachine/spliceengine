@@ -28,6 +28,8 @@ import java.util.List;
  */
 public class SIFilterPacked extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
+
+    private String tableName;
     private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = null;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
@@ -43,9 +45,10 @@ public class SIFilterPacked extends FilterBase {
     public SIFilterPacked() {
     }
 
-    public SIFilterPacked(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
+    public SIFilterPacked(String tableName, Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
                           TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
                           boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+        this.tableName = tableName;
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
@@ -56,8 +59,6 @@ public class SIFilterPacked extends FilterBase {
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
         try {
             initFilterStateIfNeeded();
             ReturnCode returnCode = transactor.filterKeyValue(filterState, keyValue);
@@ -83,7 +84,7 @@ public class SIFilterPacked extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterStatePacked(rollForwardQueue, predicateFilter,
+            filterState = transactor.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
                     transactor.transactionIdFromString(transactionIdString), includeSIColumn, includeUncommittedAsOfStart);
         }
     }

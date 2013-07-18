@@ -219,7 +219,7 @@ public class Scans extends SpliceUtils {
         try{
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    qualifiers, primaryKeys, sortOrder);
+                    qualifiers, primaryKeys, scanColumnList, sortOrder);
 
             buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
         }catch(IOException e){
@@ -533,12 +533,14 @@ public class Scans extends SpliceUtils {
 	}
 
 
-	private static void attachScanKeys(Scan scan,DataValueDescriptor[] startKeyValue,int startSearchOperator,
-																		DataValueDescriptor[] stopKeyValue,int stopSearchOperator,
-																		Qualifier[][] qualifiers,
-                                                                        FormatableBitSet primaryKeys,
-																		boolean[] sortOrder) throws IOException {
-        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+	private static void attachScanKeys(Scan scan, DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                       DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                       Qualifier[][] qualifiers,
+                                       FormatableBitSet primaryKeys, FormatableBitSet scanColumnList,
+                                       boolean[] sortOrder) throws IOException {
+        if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
+            scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+        }
 		try{
 			boolean generateKey = true;
 			if(startKeyValue!=null && stopKeyValue!=null){

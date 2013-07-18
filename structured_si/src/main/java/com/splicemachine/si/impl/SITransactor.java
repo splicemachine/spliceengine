@@ -649,9 +649,9 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public IFilterState newFilterStatePacked(RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
+    public IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
                                              TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
-        return new FilterStatePacked(dataLib, dataStore,
+        return new FilterStatePacked(tableName, dataLib, dataStore,
                 (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
                 new HRowAccumulator(predicateFilter, new EntryDecoder()));
     }
