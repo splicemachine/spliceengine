@@ -95,7 +95,7 @@ public class SpliceTestPlatform extends TestConstants {
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
-        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 128 * 1024 * 1024L);        
+        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 256 * 1024 * 1024L);        
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);
