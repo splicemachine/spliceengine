@@ -1,0 +1,6 @@
+<ivy-module version="2.0">
+    <info organisation="org.apache" module="derby"/>
+    <dependencies>
+        <dependency org="joda-time" name="joda-time" rev="2.2"/>
+    </dependencies>
+</ivy-module>

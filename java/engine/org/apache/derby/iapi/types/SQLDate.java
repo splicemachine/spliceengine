@@ -22,37 +22,27 @@
 package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.db.DatabaseContext;
-
 import org.apache.derby.iapi.services.context.ContextService;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
- 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
 import org.apache.derby.iapi.util.StringUtil;
+import org.joda.time.DateTime;
 
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.PreparedStatement;
-
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 
@@ -125,13 +115,19 @@ public final class SQLDate extends DataType
      */
     private long getTimeInMillis(Calendar cal)
     {
-        if( cal == null)
-            cal = new GregorianCalendar();
-        cal.clear();
+    	long result;
+    	
+        if( cal == null){
+        	DateTime dt = new DateTime(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), 0, 0);
+        	result = dt.getMillis();
+        }else{
+        	cal.clear();
+            
+            SQLDate.setDateInCalendar(cal, encodedDate);
+            result = cal.getTimeInMillis();
+        }
         
-        SQLDate.setDateInCalendar(cal, encodedDate);
-        
-        return cal.getTimeInMillis();
+        return result;
     }
     
     /**
@@ -864,11 +860,24 @@ public final class SQLDate extends DataType
     {
 		if (value == null)
 			return 0;			//encoded dates have a 0 value for null
-        if( currentCal == null)
-            currentCal = new GregorianCalendar();
-		currentCal.setTime(value);
-		return SQLDate.computeEncodedDate(currentCal);
+		
+		int result;
+		
+        if( currentCal == null){
+        	result = computeEncodedDate( new DateTime(value) );
+        }else{
+            currentCal.setTime(value);
+            result = SQLDate.computeEncodedDate(currentCal);
+        }
+        
+        return result;
 	}
+    
+    static int computeEncodedDate(DateTime dateTime) throws StandardException
+    {
+    	return computeEncodedDate(dateTime.getYear(), dateTime.getMonthOfYear(), dateTime.getDayOfMonth());
+    	
+    }
 
 
         /**

@@ -22,20 +22,17 @@
 package org.apache.derby.iapi.types;
 
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.io.ArrayInputStream;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.db.DatabaseContext;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.context.ContextService;
- 
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.iapi.util.ReuseFactory;
+import org.joda.time.DateTime;
 
 import java.sql.Date;
 import java.sql.Time;
@@ -43,14 +40,11 @@ import java.sql.Timestamp;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
-
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 
@@ -829,14 +823,25 @@ public final class SQLTimestamp extends DataType
 	{
 		if (isNull())
 			return null;
-
-        if (cal == null)
-            cal = new GregorianCalendar();
-        setCalendar(cal);
-		Timestamp t = new Timestamp(cal.getTimeInMillis());
+		
+		Timestamp t = null;
+        
+		if (cal == null){
+        	DateTime dt = createDateTime();
+        	t = new Timestamp(dt.getMillis());
+        	
+        }else{
+        	setCalendar(cal);
+        	t = new Timestamp(cal.getTimeInMillis());
+        }
+        		
 		t.setNanos(nanos);
 		return t;
 	}
+	
+	private DateTime createDateTime(){
+		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
+    }
 
     private void setCalendar(Calendar cal)
     {
@@ -861,11 +866,17 @@ public final class SQLTimestamp extends DataType
 		}
 		if (value != null)
 		{
-            if( cal == null)
-                cal = new GregorianCalendar();
-			encodedDate = computeEncodedDate(value, cal);
-			encodedTime = computeEncodedTime(value, cal);
-			nanos = value.getNanos();
+            if( cal == null){
+            	DateTime dt = new DateTime(value);
+            	encodedDate = computeEncodedDate(dt);
+    			encodedTime = computeEncodedTime(dt);
+    			nanos = value.getNanos();
+            }else{
+            	encodedDate = computeEncodedDate(value, cal);
+    			encodedTime = computeEncodedTime(value, cal);
+    			nanos = value.getNanos();
+            }
+			
 		}
 		/* encoded date should already be 0 for null */
 	}
@@ -884,8 +895,18 @@ public final class SQLTimestamp extends DataType
 		if (value == null)
 			return 0;
 
+       
+
 		currentCal.setTime(value);
 		return SQLDate.computeEncodedDate(currentCal);
+	}
+	
+	private static int computeEncodedDate(DateTime value) throws StandardException
+	{
+		if (value == null)
+			return 0;
+
+		return SQLDate.computeEncodedDate(value.getYear(), value.getMonthOfYear(), value.getDayOfMonth());
 	}
 	/**
 		computeEncodedTime extracts the hour, minute and seconds from
@@ -900,6 +921,11 @@ public final class SQLTimestamp extends DataType
 	{
 		currentCal.setTime(value);
 		return SQLTime.computeEncodedTime(currentCal);
+	}
+	
+	private static int computeEncodedTime(DateTime value) throws StandardException
+	{
+		return SQLTime.computeEncodedTime(value.getHourOfDay(), value.getMinuteOfHour(), value.getSecondOfMinute());
 	}
 
     
