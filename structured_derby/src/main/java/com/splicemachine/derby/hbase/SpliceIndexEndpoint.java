@@ -172,7 +172,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                     }
                 }else{
                     try{
-                        region.delete((Delete)mutation,null,true);
+                        region.delete((Delete)mutation,true);
                         return MutationResult.success();
                     }catch(IOException ioe){
                         return new MutationResult(MutationResult.Code.FAILED,ioe.getMessage());
