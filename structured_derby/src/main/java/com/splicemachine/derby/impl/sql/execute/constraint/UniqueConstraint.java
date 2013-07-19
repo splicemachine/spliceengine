@@ -76,8 +76,7 @@ public class UniqueConstraint implements Constraint {
         if(!HRegion.rowIsInRange(region.getRegionInfo(),get.getRow())){
 
         }
-        Result result = region.get(get,null);
-
+        Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
 //        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
         if(rowPresent)
@@ -91,7 +90,7 @@ public class UniqueConstraint implements Constraint {
 
         HRegion region = rce.getRegion();
         for(Get get:putsToValidate){
-            Result result = region.get(get,null);
+            Result result = region.get(get);
             boolean rowPresent =result!=null && ! result.isEmpty();
             if(rowPresent) return false;
         }
