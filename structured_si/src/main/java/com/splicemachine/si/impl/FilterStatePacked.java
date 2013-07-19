@@ -60,16 +60,28 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                 } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
                     return accumulateUserData(dataKeyValue);
                 } else {
-                    hasAccumulation=true;
-                    family = simpleFilter.keyValue.family();
-                    qualifier = simpleFilter.keyValue.qualifier();
-                    timestamp = simpleFilter.keyValue.timestamp();
-                    rowKey = simpleFilter.keyValue.row();
+                    if (!hasAccumulation) {
+                        final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
+                        switch (returnCode) {
+                            case INCLUDE:
+                            case INCLUDE_AND_NEXT_COL:
+                                accumulated();
+                                break;
+                        }
+                    }
                     return Filter.ReturnCode.SKIP;
                 }
             default:
                 throw new RuntimeException("unknown key value type");
         }
+    }
+
+    private void accumulated() {
+        hasAccumulation = true;
+        family = simpleFilter.keyValue.family();
+        qualifier = simpleFilter.keyValue.qualifier();
+        timestamp = simpleFilter.keyValue.timestamp();
+        rowKey = simpleFilter.keyValue.row();
     }
 
     private Filter.ReturnCode accumulateUserData(KeyValue dataKeyValue) throws IOException {
@@ -88,11 +100,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                         throw new RuntimeException("key value mis-match");
                     }
                 } else {
-                    hasAccumulation = true;
-                    family = simpleFilter.keyValue.family();
-                    qualifier = simpleFilter.keyValue.qualifier();
-                    timestamp = simpleFilter.keyValue.timestamp();
-                    rowKey = simpleFilter.keyValue.row();
+                    accumulated();
                 }
                 if (accumulator.isFinished()) {
                     return Filter.ReturnCode.NEXT_ROW;
@@ -111,11 +119,11 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     public KeyValue produceAccumulatedKeyValue() {
         if (hasAccumulation) {
             final Data resultData = accumulator.result();
-            if(resultData!=null){
+            if (resultData != null) {
                 final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
                 return keyValue;
-            }else {
-                excludeRow=true;
+            } else {
+                excludeRow = true;
                 return null;
             }
         } else {
