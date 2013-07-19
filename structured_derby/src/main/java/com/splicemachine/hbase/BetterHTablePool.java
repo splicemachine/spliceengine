@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Scott Fines
  * Created on: 5/7/13
  */
+@SuppressWarnings("deprecation")
 public class BetterHTablePool {
     private static final Logger LOG = Logger.getLogger(BetterHTablePool.class);
     private final ConcurrentMap<String,TablePool> tablePool;
@@ -198,10 +199,8 @@ public class BetterHTablePool {
         @Override public void put(List<Put> puts) throws IOException { table.put(puts); }
         @Override public boolean isAutoFlush() { return table.isAutoFlush(); }
         @Override public void flushCommits() throws IOException { table.flushCommits(); }
-        @SuppressWarnings("deprecation")
 		@Override public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
-        @SuppressWarnings("deprecation")
-		@Override public void unlockRow(RowLock rl) throws IOException { table.unlockRow(rl); }
+		@Override public void unlockRow( RowLock rl) throws IOException { table.unlockRow(rl); }
         @Override public void delete(Delete delete) throws IOException { table.delete(delete); }
         @Override public void delete(List<Delete> deletes) throws IOException { table.delete(deletes); }
 

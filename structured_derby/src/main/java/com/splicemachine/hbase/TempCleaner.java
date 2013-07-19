@@ -164,12 +164,12 @@ public class TempCleaner {
             try {
                 while(scanner.next(keys)){
                     Delete delete = new Delete(keys.get(0).getRow());
-                    region.delete(delete,null,true);
+                    region.delete(delete,true);
                     keys.clear();
                 }
                 if(keys.size()>0){
                     Delete delete = new Delete(keys.get(0).getRow());
-                    region.delete(delete,null,true);
+                    region.delete(delete,true);
                 }
             } catch (IOException e) {
                 throw new ExecutionException(e);
