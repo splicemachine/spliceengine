@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
@@ -84,11 +85,15 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
             Get get = SpliceUtils.createGet(mutation, mutation.getRow());
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo = new ByteDataOutput();
-            bdo.writeObject(predicateFilter);
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
-
-            Result result = ctx.getRegion().get(get,null);
+            ByteDataOutput bdo = null;
+            try {
+            	bdo = new ByteDataOutput();
+            	bdo.writeObject(predicateFilter);
+            	get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+            } catch (Exception e) {
+            	Closeables.closeQuietly(bdo);
+            }
+            Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){
                 //already deleted? Weird, but okay, we can deal with that
                 ctx.success(mutation);
