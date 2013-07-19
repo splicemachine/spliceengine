@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,7 +76,7 @@ public class RollForwardQueue<Data, Hashable> {
     /**
      * The queue of pending roll-forward requests. It is a map from transaction ID to a set of row keys.
      */
-    private Map<Long, Set<Hashable>> transactionMap;
+    private Map<Long, Set<Hashable>> transactionMap = new HashMap<Long, Set<Hashable>>();
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -190,7 +191,7 @@ public class RollForwardQueue<Data, Hashable> {
      */
     private List<Data> produceRowList(Set<Hashable> rowSet) {
         if (rowSet == null) {
-            return new ArrayList<Data>();
+            return Collections.emptyList();
         } else {
             List<Data> result = new ArrayList<Data>(rowSet.size());
             for (Hashable row : rowSet) {
@@ -216,7 +217,7 @@ public class RollForwardQueue<Data, Hashable> {
      */
     private void reset() {
         synchronized (this) {
-            transactionMap = new HashMap<Long, Set<Hashable>>();
+            transactionMap.clear();
             count = 0;
             scheduleReset();
         }
