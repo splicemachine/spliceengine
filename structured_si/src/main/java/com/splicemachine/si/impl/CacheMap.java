@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import java.lang.ref.ReferenceQueue;
-import java.lang.ref.SoftReference;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * can be thread safe for concurrent access.
  */
 public class CacheMap implements Map {
-    final Map<Object, SoftReference> delegate;
+    final Map<Object, CacheReference> delegate;
     final ReferenceQueue referenceQueue;
     final int maxSize;
     final static int DEFAULT_MAX_SIZE = 10000;
@@ -65,7 +64,7 @@ public class CacheMap implements Map {
 
     @Override
     public Object get(Object key) {
-        SoftReference reference = delegate.get(key);
+        CacheReference reference = delegate.get(key);
         if (reference == null) {
             return null;
         } else {
@@ -81,7 +80,7 @@ public class CacheMap implements Map {
     public Object put(Object key, Object value) {
         purge();
         if (delegate.size() < maxSize) {
-            return delegate.put(key, new SoftReference(value, referenceQueue));
+            return delegate.put(key, new CacheReference(value, referenceQueue, key));
         } else {
             return get(key);
         }
