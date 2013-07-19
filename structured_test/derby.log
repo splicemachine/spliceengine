@@ -1,0 +1,10 @@
+----------------------------------------------------------------
+Tue Jul 09 11:08:44 PDT 2013:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.9.1.0 - (1344872): instance a816c00e-013f-c49f-07c5-000004e94ee0 
+on database directory /Users/johnleach/splicemachine/workspace/structured_hbase/structured_test/derbyDB  with class loader sun.misc.Launcher$AppClassLoader@20cf2c80 
+Loaded from file:/Users/johnleach/.m2/repository/org/apache/derby/derby/10.9.1.0/derby-10.9.1.0.jar
+java.vendor=Apple Inc.
+java.runtime.version=1.6.0_51-b11-456-11M4508
+user.dir=/Users/johnleach/splicemachine/workspace/structured_hbase/structured_test
+derby.system.home=null
+Database Class Loader started - derby.database.classpath=''

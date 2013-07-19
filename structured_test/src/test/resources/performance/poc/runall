@@ -1,0 +1,190 @@
+#!/usr/bin/perl -w
+
+#  top level test driver
+#
+
+$|=1;
+use Cwd;
+use Getopt::Long;
+use Time::HiRes qw(time);
+
+my $derby=1;
+my $testfile;
+my $derbydir;
+my $verbose;
+my $maven=0;
+my $newdb=1;
+my $runtest=1;
+my $keep=0;
+my $Usage = << 'EOF';
+
+usage: runtests [options] [tests]
+options are:
+   -h|-help        - prints this message
+   -derby          - run derby to generate expected output file, if not set use\n
+                     existing master files (default=derby)
+                     requires DERBYDIR to be set to the full path of the derby 
+                     home installation, where lib and bin are.
+   -test <testname> - test to run (default to all)
+   -notest         - just run the import_splice.sql file to create tables, no tests run
+   -mvn            - use the maven env to run splice (required MAVENDIR to be 
+                     set to the full path of structured_derby directory)
+   -connect        - don't run all schemas and populate with data.  Assumes the 
+                     database is already created/populated.  
+                     Default is to create a new database.
+   -keep           - keep the intermediate files, don't delete theme even if test passes
+EOF
+#   -v              - verbose setting to print out intermediate steps
+
+GetOptions('h|help' => sub {print STDERR $Usage;exit(0) },
+	   'derby'  => sub {$derby=1},
+	   'test=s' => \$testfile,
+	   'v'     => sub {$verbose=1},
+	   'mvn'   => sub {$maven=1},
+	   'connect' => sub {$newdb=0},
+	   'notest'=> sub {$runtest=0},
+	   'keep'=> sub {$keep=1},
+	   ) or die $Usage;
+
+# check for env vars
+if ($maven) { die "MAVENDIR not set.  set it to the full path of where the structured_derby directory is" if (!defined($ENV{MAVENDIR})); }
+  
+if ($derby) {  die "set DERBYDIR to the derby home directory; i.e. top level where bin and lib are\n" if !(defined ($ENV{DERBYDIR} )); }
+
+# current working directory
+my $testdir=cwd;
+
+# find bindir
+chdir "../bin";
+my $bindir=cwd;
+chdir $testdir;
+
+# where test results go
+my $resultdir="$testdir/results";
+
+mkdir ($resultdir) if !(-e $resultdir);
+# set info re using maven to run splice or running outside of maven env
+if ($maven) {
+  print "MAVENDIR=$ENV{MAVENDIR}\n";
+}
+
+# are we comparing results with derby?
+if ($derby) {
+  $derbydir=$ENV{DERBYDIR};
+  print "DERBYDIR=$derbydir\n";
+  $derby="-derby";
+} else {
+  $derby="";
+}
+
+# print settings
+print "TESTDIR=$testdir\n";
+print "CLASSPATH=$ENV{CLASSPATH}\n" if (defined $ENV{CLASSPATH});
+print "JAVAOPTS=$ENV{JAVAOPTS}\n" if (defined $ENV{JAVAOPTS});
+print "\n";
+
+# clean resultdir
+system("rm -f $resultdir/* > /dev/null 2>&1");
+
+# separate out the schemas from tests so that if we rerun tests, we need not reload the data
+# if test is run with -connect
+my @schemalist=("import_splice");
+my @testlist=();
+my $line;
+my @skiptests=();
+
+# generate import_splice from import_splice.sql
+open (DATA,"$testdir/import_splice") || die "Could not open $testdir/import_splice\n";
+open (NEWDATA,"> $testdir/import_splice.sql") || die "Could not write $testdir/import_splice\n";
+
+while ($line=<DATA>) {
+ $line =~s/CURRENT_WORKING_DIRECTORY/$testdir/g;
+ print NEWDATA $line;
+}
+close DATA;
+close NEWDATA;
+
+#if -test nor -notest are set on the command line, create testlist to run
+if ($testfile) {
+    push(@testlist,$testfile);
+} else {
+#  if there are tests to run, check to see if there are any tests to skip, get them
+  if ($runtest) {
+    if (-e "$testdir/skip.tests") {
+      open(SKIP,"$testdir/skip.tests");
+      while ($line=<SKIP>) {
+	chomp($line);
+	next if ($line=~/^#/);
+	next if ($line=~/^$/);
+	push(@skiptests,$line);
+      }
+      # read from the test directory to get the test list
+      opendir(TESTDIR, $testdir) || die "Could not read $testdir\n";
+      while($line=readdir TESTDIR) {
+	next if ($line !~ /\.sql/);
+	next if ($line =~ /drop\.sql/);
+	next if !(-e "$testdir/$line");
+	$line=~s/\.sql//;
+	# if not one of the files to be skipped or a schema file, add it to the testlist
+	next if (grep /$line/,@schemalist);
+	next if (grep /$line/,@skiptests);
+	push(@testlist,$line);
+      }
+      closedir TESTDIR;
+    }
+  }
+}
+
+my $cntr=1;
+my $runsofar=0;
+my $starttestruns=time();
+
+# set the order to be alphetical
+if ($runtest) {
+  @testlist=reverse(sort(@testlist));
+}
+
+if ($newdb) {
+    @schemalist=reverse(@schemalist);      #preserve the schema order
+    @testlist=(@testlist,@schemalist);  #put schemas at end to get them run first since they are being put on a stack
+}
+my $total=$#testlist+1;
+my $first=1;  # for the first test run, set the newdb option for spdiff if -newdb is set on the command line
+
+while(@testlist) {
+  $test=pop(@testlist);
+  print "\nRunning Test(".$cntr++."/$total): $test\n";
+  $cmd="$bindir/spdiff $derby -timeout 0 ";
+  $cmd.="-keep " if ($keep);
+  $cmd.="-newdb " if ( $first && $newdb);
+  $first=0;
+  $cmd.="-mvn " if ($maven);
+  $cmd.="-test $test.sql";
+  system($cmd);
+  $runsofar++;
+}
+my $endtestruns=time();
+my $duration=$endtestruns-$starttestruns;
+
+my $days= int($duration/(24*60*60));
+my $hours= ($duration/(60*60))%24;
+my $mins=($duration/60)%60;
+my $sec= $duration%60;
+$duration="";
+
+$duration="$days day(s) and " if ($days);
+$duration.="$hours:$mins:$sec";
+
+my $totalpass=0;
+my $totalfail=0;
+
+opendir(my $dh, $resultdir) || die "Could not read $resultdir\n";
+while($line=readdir $dh) {
+    chomp($line);
+    $totalpass++ if ($line =~ /.pass/);
+    $totalfail++ if ($line =~ /.fail/);
+}
+
+print "Summary Total: $runsofar\tPassed: $totalpass\tFailed: $totalfail\tDuration: $duration\n";
+
+1;
