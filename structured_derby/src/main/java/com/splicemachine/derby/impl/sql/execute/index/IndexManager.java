@@ -230,7 +230,7 @@ public class IndexManager {
         for(byte[] mainColumn:mainColPos){
             get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,mainColumn);
         }
-        Result result = rce.getRegion().get(get, null);
+        Result result = rce.getRegion().get(get);
         if(result==null||result.isEmpty()) return table; //already deleted? weird, but oh well, we're good
 
         NavigableMap<byte[],byte[]> familyMap = result.getFamilyMap(SpliceConstants.DEFAULT_FAMILY_BYTES);
@@ -360,7 +360,7 @@ public class IndexManager {
             oldGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,indexColPos);
         }
 
-        Result r = region.get(oldGet,null);
+        Result r = region.get(oldGet);
         if(r==null||r.isEmpty()) return mainPut; //no row to change, so this is really an insert!
 
         byte[][] rowToDelete = getDataArray();
