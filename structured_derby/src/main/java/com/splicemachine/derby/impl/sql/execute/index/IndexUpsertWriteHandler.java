@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
@@ -153,11 +154,18 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             Get oldGet = SpliceUtils.createGet(mutation,mutation.getRow());
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo = new ByteDataOutput();
-            bdo.writeObject(filter);
-            oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
-
-            Result r = ctx.getRegion().get(oldGet,null);
+            ByteDataOutput bdo = null;
+            try {
+            	bdo = new ByteDataOutput();
+            	bdo.writeObject(filter);
+            	oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+            } catch (Exception e) {
+            	throw e;
+            } finally {
+            	Closeables.closeQuietly(bdo);
+            }
+            	
+            Result r = ctx.getRegion().get(oldGet);
             if(r==null||r.isEmpty()){
                 /*
                  * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
