@@ -1,19 +1,18 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents the parts of a transaction record that do not change once the transaction is created. It is useful to
  * represent these immutable parts separately because they can be cached more aggressively.
  */
 public class ImmutableTransaction {
+    private final static Map<IntersectArgs, ImmutableTransaction[]> intersectCache = CacheMap.makeCache(true);
+
     final TransactionBehavior behavior;
 
     private final TransactionId transactionId;
@@ -24,15 +23,6 @@ public class ImmutableTransaction {
     private final long beginTimestamp;
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
-
-    private final LoadingCache<IntersectArgs, ImmutableTransaction[]> intersectCache = CacheBuilder.newBuilder().maximumSize(10000).build(
-            new CacheLoader<IntersectArgs, ImmutableTransaction[]>() {
-                @Override
-                public ImmutableTransaction[] load(IntersectArgs key) throws Exception {
-                    return intersectDirect(key.collapse, key.transaction1, key.transaction2);
-                }
-            }
-    );
 
     public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
                                 Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
@@ -279,7 +269,13 @@ public class ImmutableTransaction {
      * @throws IOException
      */
     private ImmutableTransaction[] intersect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {
-        return intersectCache.getUnchecked(new IntersectArgs(collapse, transaction1, transaction2));
+        final IntersectArgs key = new IntersectArgs(collapse, transaction1, transaction2);
+        ImmutableTransaction[] result = intersectCache.get(key);
+        if (result == null) {
+            result = intersectDirect(collapse, transaction1, transaction2);
+            intersectCache.put(key, result);
+        }
+        return result;
     }
 
     private static ImmutableTransaction[] intersectDirect(boolean collapse, ImmutableTransaction transaction1, ImmutableTransaction transaction2) throws IOException {

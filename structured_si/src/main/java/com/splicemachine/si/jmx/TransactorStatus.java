@@ -48,21 +48,6 @@ public interface TransactorStatus {
      */
     long getTotalFailedTransactions();
 
-    long getActiveTxnCacheHits();
-    long getActiveTxnCacheMisses();
-    double getActiveTxnCacheHitRatio();
-    long getActiveTxnEvictionCount();
-
-    long getImmutableTxnCacheHits();
-    long getImmutableTxnCacheMisses();
-    double getImmutableTxnCacheHitRatio();
-    long getImmutableTxnEvictionCount();
-
-    long getCacheHits();
-    long getCacheMisses();
-    double getCacheHitRatio();
-    long getCacheEvictionCount();
-
     /**
      * @return the total number of Transactions which were loaded by the store
      */

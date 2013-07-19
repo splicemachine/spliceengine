@@ -1,6 +1,5 @@
 package com.splicemachine.si.jmx;
 
-import com.google.common.cache.Cache;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.hbase.IHTable;
@@ -16,6 +15,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor implements TransactorListener, TransactorStatus {
@@ -30,18 +30,6 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
 
     private final AtomicLong writes = new AtomicLong(0l);
     private final AtomicLong loadedTxns = new AtomicLong(0l);
-
-    private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
-    private final Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache;
-    private final Cache<Long, Transaction> transactionCache;
-
-    public ManagedTransactor(Cache<Long, ImmutableTransaction> immutableTransactionCache,
-                             Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
-                             Cache<Long, Transaction> transactionCache) {
-        this.immutableTransactionCache = immutableTransactionCache;
-        this.activeTransactionCache = activeTransactionCache;
-        this.transactionCache = transactionCache;
-    }
 
     public Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> getTransactor() {
         return transactor;
@@ -115,66 +103,6 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
     }
 
     // Implement TransactionStoreStatus
-
-    @Override
-    public long getActiveTxnCacheHits() {
-        return activeTransactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getActiveTxnCacheMisses() {
-        return activeTransactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getActiveTxnCacheHitRatio() {
-        return activeTransactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getActiveTxnEvictionCount() {
-        return activeTransactionCache.stats().evictionCount();
-    }
-
-    @Override
-    public long getImmutableTxnCacheHits() {
-        return immutableTransactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getImmutableTxnCacheMisses() {
-        return immutableTransactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getImmutableTxnCacheHitRatio() {
-        return immutableTransactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getImmutableTxnEvictionCount() {
-        return immutableTransactionCache.stats().evictionCount();
-    }
-
-    @Override
-    public long getCacheHits() {
-        return transactionCache.stats().hitCount();
-    }
-
-    @Override
-    public long getCacheMisses() {
-        return transactionCache.stats().missCount();
-    }
-
-    @Override
-    public double getCacheHitRatio() {
-        return transactionCache.stats().hitRate();
-    }
-
-    @Override
-    public long getCacheEvictionCount() {
-        return transactionCache.stats().evictionCount();
-    }
 
     @Override
     public long getNumLoadedTxns() {

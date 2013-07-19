@@ -1,7 +1,5 @@
 package com.splicemachine.si.api;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.si.data.api.SDataLib;
@@ -14,6 +12,7 @@ import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
+import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.SITransactor;
@@ -37,7 +36,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -45,11 +44,11 @@ import java.util.concurrent.TimeUnit;
  * Also defines the various configuration options and plugins for the transactor instance.
  */
 public class HTransactorFactory extends SIConstants {
-    private final static Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-    private final static Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-    private final static Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-    private final static Cache<Long, Transaction> committedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-    private final static Cache<Long, Transaction> failedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
+    private final static Map<Long, ImmutableTransaction> immutableCache = CacheMap.makeCache(true);
+    private final static Map<Long, ActiveTransactionCacheEntry> activeCache = CacheMap.makeCache(true);
+    private final static Map<Long, Transaction> cache = CacheMap.makeCache(true);
+    private final static Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
+    private final static Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
 
     private static volatile ManagedTransactor managedTransactor;
 
@@ -105,16 +104,16 @@ public class HTransactorFactory extends SIConstants {
                     TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
                     TRANSACTION_COUNTER_COLUMN
             );
-            managedTransactor = new ManagedTransactor(immutableCache, activeCache, cache);
+            managedTransactor = new ManagedTransactor();
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
                     immutableCache, activeCache, cache, committedCache, failedCache, 1000, managedTransactor);
 
-            final DataStore rowStore = new DataStore(dataLib, reader, writer,SI_NEEDED, SI_NEEDED_VALUE,
+            final DataStore rowStore = new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE, SI_UNCOMMITTED, EMPTY_BYTE_ARRAY, SI_TRANSACTION_ID_KEY,
                     SI_DELETE_PUT, SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, SI_ANTI_TOMBSTONE_VALUE,
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan,Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus>
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus>
                     (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
                             new HHasher(), managedTransactor);
             managedTransactor.setTransactor(transactor);

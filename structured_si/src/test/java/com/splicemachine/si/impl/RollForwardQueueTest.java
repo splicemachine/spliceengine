@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.NoOpHasher;
-import junit.extensions.TestSetup;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

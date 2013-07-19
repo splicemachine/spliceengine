@@ -1,13 +1,11 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
 import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
@@ -24,8 +22,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     /**
      * The transactions that have been loaded as part of running this filter.
      */
-    final Cache<Long, Transaction> transactionCache;
-    final Cache<Long, VisibleResult> visibleCache;
+    final Map<Long, Transaction> transactionCache;
+    final Map<Long, VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -60,8 +58,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
         this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
         this.myTransaction = myTransaction;
 
-        transactionCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-        visibleCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(2, TimeUnit.MINUTES).build();
+        transactionCache = CacheMap.makeCache(false);
+        visibleCache = CacheMap.makeCache(false);
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -179,7 +177,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
      */
     private Filter.ReturnCode processCommitTimestamp() throws IOException {
         log("processCommitTimestamp");
-        Transaction transaction = transactionCache.getIfPresent(keyValue.timestamp());
+        Transaction transaction = transactionCache.get(keyValue.timestamp());
         if (transaction == null) {
             transaction = processCommitTimestampDirect();
         }
@@ -202,7 +200,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
     }
 
     private Transaction getTransactionFromFilterCache(long timestamp) throws IOException {
-        Transaction transaction = transactionCache.getIfPresent(timestamp);
+        Transaction transaction = transactionCache.get(timestamp);
         if (transaction == null) {
             if (!myTransaction.getEffectiveReadCommitted() && !myTransaction.getEffectiveReadUncommitted()
                     && !myTransaction.isAncestorOf(transactionStore.getImmutableTransaction(timestamp))) {
@@ -236,7 +234,7 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
 
     private VisibleResult checkVisibility(Transaction dataTransaction) throws IOException {
         final long timestamp = dataTransaction.getLongTransactionId();
-        VisibleResult result = visibleCache.getIfPresent(timestamp);
+        VisibleResult result = visibleCache.get(timestamp);
         if (result == null) {
             result = myTransaction.canSee(dataTransaction, transactionSource);
             visibleCache.put(timestamp, result);

@@ -1,6 +1,5 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.cache.Cache;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -12,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
@@ -37,33 +37,33 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     /**
      * The immutable parts (e.g. id, begin time, parent, transaction type) never change and can be cached.
      */
-    private final Cache<Long, ImmutableTransaction> immutableTransactionCache;
+    private final Map<Long, ImmutableTransaction> immutableTransactionCache;
 
     /**
      * Cache for transactions that have not yet reached a final state. This can be used for satisfying transaction
      * lookups as long as the cached value is more recent than the perspective of the requester.
      */
-    private final Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache;
+    private final Map<Long, ActiveTransactionCacheEntry> activeTransactionCache;
 
     /**
      * Cache for transactions that have reached a final state. They are now fully immutable and can be cached aggressively.
      */
-    private final Cache<Long, Transaction> completedTransactionCache;
+    private final Map<Long, Transaction> completedTransactionCache;
 
     /**
      * In some cases, all that we care about for committed/failed transactions is their global begin/end timestamps and
      * their status. These caches are for these "stub" transaction objects. These objects are immutable and can be cached.
      */
-    private final Cache<Long, Transaction> stubCommittedTransactionCache;
-    private final Cache<Long, Transaction> stubFailedTransactionCache;
+    private final Map<Long, Transaction> stubCommittedTransactionCache;
+    private final Map<Long, Transaction> stubFailedTransactionCache;
 
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
-                            Cache<Long, ImmutableTransaction> immutableTransactionCache,
-                            Cache<Long, ActiveTransactionCacheEntry> activeTransactionCache,
-                            Cache<Long, Transaction> completedTransactionCache,
-                            Cache<Long, Transaction> stubCommittedTransactionCache,
-                            Cache<Long, Transaction> stubFailedTransactionCache,
+                            Map<Long, ImmutableTransaction> immutableTransactionCache,
+                            Map<Long, ActiveTransactionCacheEntry> activeTransactionCache,
+                            Map<Long, Transaction> completedTransactionCache,
+                            Map<Long, Transaction> stubCommittedTransactionCache,
+                            Map<Long, Transaction> stubFailedTransactionCache,
                             int waitForCommittingMS, TransactorListener listener) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
@@ -231,11 +231,11 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      */
     public Transaction getTransactionAsOf(long transactionId, long perspectiveTimestamp) throws IOException {
         // If a transaction has completed then it won't change and we can use the cached value.
-        final Transaction cachedTransaction = completedTransactionCache.getIfPresent(transactionId);
+        final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
         if (cachedTransaction != null) {
             return cachedTransaction;
         }
-        final ActiveTransactionCacheEntry activeEntry = activeTransactionCache.getIfPresent(transactionId);
+        final ActiveTransactionCacheEntry activeEntry = activeTransactionCache.get(transactionId);
         if (activeEntry != null && activeEntry.effectiveTimestamp >= perspectiveTimestamp) {
             return activeEntry.transaction;
         }
@@ -247,17 +247,17 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     // Internal helper functions for retrieving transactions from the caches or the transaction table.
 
     private ImmutableTransaction getImmutableTransactionFromCache(long transactionId) throws IOException {
-        ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.getIfPresent(transactionId);
+        ImmutableTransaction immutableCachedTransaction = immutableTransactionCache.get(transactionId);
         if (immutableCachedTransaction != null) {
             return immutableCachedTransaction;
         }
         // Since the ImmutableTransaction part of a transaction never changes, if we have a Transaction object cached
         // anywhere, then we can use it.
-        final Transaction cachedTransaction = completedTransactionCache.getIfPresent(transactionId);
+        final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
         if (cachedTransaction != null) {
             return cachedTransaction;
         }
-        final ActiveTransactionCacheEntry activeCachedTransaction = activeTransactionCache.getIfPresent(transactionId);
+        final ActiveTransactionCacheEntry activeCachedTransaction = activeTransactionCache.get(transactionId);
         if (activeCachedTransaction != null) {
             return activeCachedTransaction.transaction;
         }
@@ -272,7 +272,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
         // If the transaction is completed then we will use the cached value, otherwise load it from the transaction table.
-        final Transaction cachedTransaction = completedTransactionCache.getIfPresent(transactionId);
+        final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
         if (cachedTransaction != null) {
             //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
             return cachedTransaction;
@@ -453,7 +453,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     public Transaction makeStubCommittedTransaction(final long timestamp, final long globalCommitTimestamp) {
         // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
-        Transaction result = stubCommittedTransactionCache.getIfPresent(timestamp);
+        Transaction result = stubCommittedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
                     timestamp, 0, Transaction.rootTransaction, true, false, false, false,
@@ -465,7 +465,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     public Transaction makeStubFailedTransaction(final long timestamp) {
         // avoid using the cache get() that takes a loader to avoid the object creation cost of the anonymous inner class
-        Transaction result = stubFailedTransactionCache.getIfPresent(timestamp);
+        Transaction result = stubFailedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
                     timestamp, 0, Transaction.rootTransaction, true, false, false, false,

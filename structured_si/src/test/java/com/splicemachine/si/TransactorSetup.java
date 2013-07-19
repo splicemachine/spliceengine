@@ -1,25 +1,24 @@
 package com.splicemachine.si;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
+import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 public class TransactorSetup extends SIConstants {
     final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
@@ -48,12 +47,12 @@ public class TransactorSetup extends SIConstants {
         ageQualifier = dataLib.encode("age");
         jobQualifier = dataLib.encode("job");
 
-        final Cache<Long, ImmutableTransaction> immutableCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long, ActiveTransactionCacheEntry> activeCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long, Transaction> cache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long, Transaction> committedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final Cache<Long, Transaction> failedCache = CacheBuilder.newBuilder().maximumSize(10000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-        final ManagedTransactor listener = new ManagedTransactor(immutableCache, activeCache, cache);
+        final Map<Long, ImmutableTransaction> immutableCache = CacheMap.makeCache(true);
+        final Map<Long, ActiveTransactionCacheEntry> activeCache = CacheMap.makeCache(true);
+        final Map<Long, Transaction> cache = CacheMap.makeCache(true);
+        final Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
+        final Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
+        final ManagedTransactor listener = new ManagedTransactor();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
                 cache, committedCache, failedCache, 1000, listener);
 
