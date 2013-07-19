@@ -216,7 +216,7 @@ public class SpliceConstants {
     public static double debugTaskFailureRate;
     public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
     private static final String CONFIG_MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
-    private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 10; //probably too low
+    private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 20; //probably too low
 
 
     public static enum TableEnv {
