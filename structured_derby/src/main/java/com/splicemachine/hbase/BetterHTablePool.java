@@ -198,8 +198,8 @@ public class BetterHTablePool {
         @Override public void put(List<Put> puts) throws IOException { table.put(puts); }
         @Override public boolean isAutoFlush() { return table.isAutoFlush(); }
         @Override public void flushCommits() throws IOException { table.flushCommits(); }
-        @Override public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
-        @Override public void unlockRow(RowLock rl) throws IOException { table.unlockRow(rl); }
+        @Override @Deprecated public RowLock lockRow(byte[] row) throws IOException { return table.lockRow(row); }
+        @Override @Deprecated public void unlockRow(RowLock rl) throws IOException { table.unlockRow(rl); }
         @Override public void delete(Delete delete) throws IOException { table.delete(delete); }
         @Override public void delete(List<Delete> deletes) throws IOException { table.delete(deletes); }
 
