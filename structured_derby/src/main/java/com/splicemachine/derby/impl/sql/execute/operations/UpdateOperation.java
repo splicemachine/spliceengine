@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.Serializer;
@@ -143,7 +144,6 @@ public class UpdateOperation extends DMLWriteOperation{
         private final boolean modifiedPks;
         private FormatableBitSet finalHeapList;
         private int[] colPositionMap;
-        private HTableInterface htable;
         private byte[] filterBytes;
         private MultiFieldDecoder heapDecoder;
         private EntryEncoder nonPkEncoder;
@@ -207,20 +207,26 @@ public class UpdateOperation extends DMLWriteOperation{
 
                 buffer.add(put);
             }else{
-                if(htable ==null){
-                    htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
-                }
-                SpliceLogUtils.trace(LOG,"UpdateOperation sink: primary keys modified");
-
+            	Result result = null;
+            	HTableInterface htable = null;
+            	try {
+            		htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
+            		if (LOG.isTraceEnabled())
+            			SpliceLogUtils.trace(LOG,"UpdateOperation sink: primary keys modified");
                     /*
                      * Since we modified a primary key, we have to delete the data and reinsert it into the new location
                      * That means we have to do a Get to get the full row, then merge it with the update values,
                      * re-insert it in the new location, and then delete the old location.
                      */
-                Get remoteGet = SpliceUtils.createGet(getTransactionID(), location.getBytes());
-                remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
-                remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,getFilterBytes());
-                Result result = htable.get(remoteGet);
+            		Get remoteGet = SpliceUtils.createGet(getTransactionID(), location.getBytes());
+            		remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+            		remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,getFilterBytes());
+            		result = htable.get(remoteGet);
+            	} catch (Exception e) {
+            		throw e;
+            	} finally {
+            		Closeables.closeQuietly(htable);
+            	}
 
                 //convert Result into put under the new row key
                 keyEncoder.reset();
