@@ -5,6 +5,8 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
@@ -47,7 +49,8 @@ public class OperationTree {
     public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
-        LOG.info(String.format("OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation));
+        if (LOG.isDebugEnabled())
+        	SpliceLogUtils.debug(LOG, "OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation);
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
