@@ -3,24 +3,25 @@ package com.splicemachine.nist;
 import java.io.File;
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.nist.DerbyEmbedConnection;
 
 public class DerbyNistTest extends BaseNistTest {
 	protected static ExecutorService executor;
-	protected static final String TYPE = ".derby";
+	public static final String TYPE = ".derby";
 	protected static Connection connection;
-	/* Add Scripts Here to Run First */
 
-	static {
+    static {
 		System.setProperty("derby.system.home", getBaseDirectory()+"/target/derby");
 	}
 	
@@ -36,11 +37,16 @@ public class DerbyNistTest extends BaseNistTest {
         	FileUtils.deleteDirectory(nistDir);
 		connection = DerbyEmbedConnection.getCreateConnection();
 		connection.close();
+
+        loadSchemaList(getResourceDirectory() + "/nist/schema.list", "#");
+        loadSkipTests(getResourceDirectory() + "/nist/skip.tests", "#");
+        nonSqlFilesFilter = Lists.newArrayList(BaseNistTest.SKIP_TESTS);
+        nonSqlFilesFilter.addAll(BaseNistTest.SCHEMA_SCRIPTS);
 	}
-		
-	@Test
+
+    @Test
 	public void generateDerby() throws Exception {
-		Collection<File> files = FileUtils.listFiles(new File("src/test/resources/nist"), new SpliceIOFileFilter(SCHEMA_SCRIPTS,null),null);
+		Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(SCHEMA_SCRIPTS,null),null);
 		Connection connection = DerbyEmbedConnection.getConnection();
 		connection.setAutoCommit(true);
 		for (File file: files) {
@@ -53,7 +59,7 @@ public class DerbyNistTest extends BaseNistTest {
 			connection.close();
 		}
 
-		Collection<File> regularFiles = FileUtils.listFiles(new File("src/test/resources/nist"), new SpliceIOFileFilter(null,SKIP_TESTS),null);
+		Collection<File> regularFiles = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(null, nonSqlFilesFilter),null);
 		connection = DerbyEmbedConnection.getConnection();
 		connection.setAutoCommit(false);
 		for (File file: regularFiles) {
