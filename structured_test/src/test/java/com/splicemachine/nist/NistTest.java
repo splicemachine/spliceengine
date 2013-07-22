@@ -1,6 +1,7 @@
 package com.splicemachine.nist;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -14,26 +15,36 @@ import java.util.Collection;
  */
 public class NistTest {
 
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        BaseNistTest.loadFilteredFiles();
+    }
+
     @Test
     public void runNistTest() throws Exception {
         System.out.println("Starting...");
+
         // run derby
-        long start = System.currentTimeMillis();
+        System.out.println("Derby...");
         DerbyNistTest.setup();
-        System.out.println("Setting up Derby (schema creation and load) run took: " + BaseNistTest.getDuration(start,System.currentTimeMillis()));
+        long start = System.currentTimeMillis();
+        DerbyNistTest.createSchema();
+        System.out.println("    Schema creation and load: " + BaseNistTest.getDuration(start,System.currentTimeMillis()));
 
         start = System.currentTimeMillis();
         DerbyNistTest.runDerby();
-        System.out.println("Running Derby test run took: " + BaseNistTest.getDuration(start, System.currentTimeMillis()));
+        System.out.println("    Tests: " + BaseNistTest.getDuration(start, System.currentTimeMillis()));
 
         // run splice
-        start = System.currentTimeMillis();
+        System.out.println("Splice...");
         SpliceNistTest.setup();
-        System.out.println("Setting up Splice run took: " + BaseNistTest.getDuration(start,System.currentTimeMillis()));
+        start = System.currentTimeMillis();
+        SpliceNistTest.createSchema();
+        System.out.println("    Schema creation and load: " + BaseNistTest.getDuration(start,System.currentTimeMillis()));
 
         start = System.currentTimeMillis();
         SpliceNistTest.runSplice();
-        System.out.println("Running Derby test run took: " + BaseNistTest.getDuration(start,System.currentTimeMillis()));
+        System.out.println("    Tests: " + BaseNistTest.getDuration(start, System.currentTimeMillis()));
 
         // diff output
         Collection<BaseNistTest.DiffReport> reports = BaseNistTest.diffOutput(new ArrayList<String>());
@@ -47,6 +58,6 @@ public class NistTest {
             success = success && report.isEmpty();
         }
 
-        Assert.assertTrue(reports.size() +" Tests failed"+baos.toString("UTF-8"), success);
+        Assert.assertTrue(reports.size() +" Tests failed"+baos.toString("UTF-8")+"\n"+reports.size()+" Tests had differencs.", success);
     }
 }

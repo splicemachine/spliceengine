@@ -3,12 +3,11 @@ package com.splicemachine.nist;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.nist.SpliceNetConnection;
 import org.apache.commons.io.FileUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import java.io.File;
 import java.sql.Connection;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,29 +17,31 @@ public class SpliceNistTest extends BaseNistTest {
 	protected static ExecutorService executor;
 	
 	public static void setup() throws Exception {
+        // TODO: Remove
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("derby-nist-generator").build();
+    }
+
+    public static void createSchema() throws Exception {
+        // Load the tests
+        runSplice(SCHEMA_FILES);
+     }
+
+    public static void runSplice() throws Exception {
+        // Run the tests
+        runSplice(NON_TEST_FILES_TO_FILTER);
+    }
+
+    public static void runSplice(List<String> filesToFilter) throws Exception {
         executor = Executors.newFixedThreadPool(4);
-	}
-		
-	public static void runSplice() throws Exception {
-		Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(SCHEMA_FILES,null),null);
-		for (File file: files) {
-			executor.submit(new SpliceCallable(file));	
-		}		
-		executor.shutdown();
-		while (!executor.isTerminated()) {
-			
-		}
-        executor = Executors.newFixedThreadPool(4);
-		files = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(null, NON_TEST_FILES_TO_FILTER),null);
-		for (File file: files) {
-			executor.submit(new SpliceCallable(file));	
-		}		
-		executor.shutdown();
-		while (!executor.isTerminated()) {
-			
-		}
-	}
+        Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(null, filesToFilter),null);
+        for (File file: files) {
+            executor.submit(new SpliceCallable(file));
+        }
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+
+        }
+    }
 
 	public static class SpliceCallable implements Callable<Void> {
 		protected File file;
