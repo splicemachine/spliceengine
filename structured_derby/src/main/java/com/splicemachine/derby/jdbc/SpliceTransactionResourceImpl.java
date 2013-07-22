@@ -12,10 +12,13 @@ import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.util.IdUtil;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -62,12 +65,20 @@ public final class SpliceTransactionResourceImpl {
 	public void setDatabase(SpliceDatabase db) {
 		database = db;
 	}
+	
+	public void marshallTransaction(SpliceObserverInstructions instructions) throws StandardException, SQLException {
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",instructions.getTransactionId());
+		lcc = database.generateLanguageConnectionContext(instructions.getTransactionId(),cm, username, drdaID, dbname, instructions.getSessionUserName(), instructions.getDefaultSchemaDescriptor());
+	}
 
 	public void marshallTransaction(String transactionID) throws StandardException, SQLException {
-		SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",transactionID);
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s",transactionID);
 		lcc = database.generateLanguageConnectionContext(transactionID,cm, username, drdaID, dbname);
 	}
 
+	
 	public ContextService getCsf() {
 		return csf;
 	}
