@@ -75,10 +75,9 @@ public class SinkTask extends ZkTask {
         try {
             impl = new SpliceTransactionResourceImpl();
             ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
-            impl.marshallTransaction(status.getTransactionId());
-
             if(instructions==null)
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+            impl.marshallTransaction(instructions);
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceOperationContext opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation());
