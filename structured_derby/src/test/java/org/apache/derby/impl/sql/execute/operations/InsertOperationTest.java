@@ -191,7 +191,6 @@ public class InsertOperationTest extends SpliceUnitTest {
 	}
 	
 	@Test
-	@Ignore
 	public void testInsertBlob() throws Exception{
 		InputStream fin = new FileInputStream(getResourceDirectory()+"customer_iso_10k.csv");		
 		PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("FILES")+"(name, doc) values (?,?)");
@@ -202,7 +201,7 @@ public class InsertOperationTest extends SpliceUnitTest {
         byte buff[] = new byte[1024];
         while (rs.next()) {
             Blob ablob = rs.getBlob(1);
-            File newFile = new File(this.getBaseDirectory()+"/target/newimage.jpg");
+            File newFile = new File(getBaseDirectory()+"/target/customer_iso_10k.csv");
             if (newFile.exists()) {
             	newFile.delete();
             }
