@@ -25,6 +25,7 @@ public class SICompactionScanner implements InternalScanner {
     private final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor;
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
+    List<KeyValue> rawList = new ArrayList<KeyValue>();
 
     public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
                                InternalScanner scanner) {
@@ -57,7 +58,7 @@ public class SICompactionScanner implements InternalScanner {
      * Read data from the underlying scanner and send the results through the SICompactionState.
      */
     private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
-        List<KeyValue> rawList = new ArrayList<KeyValue>((limit == -1) ? 0 : limit);
+        rawList.clear();
         final boolean more = (limit == -1) ? delegate.next(rawList) : delegate.next(rawList, limit);
         transactor.compact(compactionState, rawList, results);
         return more;
