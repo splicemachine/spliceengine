@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -146,7 +147,9 @@ public class RollForwardQueue<Data, Hashable> {
                 List<Data> rowList = takeRowList(transactionId);
                 try {
                     action.rollForward(transactionId, rowList);
-                } catch (IOException e) {
+                } catch (WrongRegionException e) {
+                    LOG.debug("WrongRegionException while rolling forward", e);
+                }  catch (IOException e) {
                     // Since this is running on a separate thread and the roll-forward is best effort there is no need
                     // to propagate this further up the call stack.
                     LOG.warn("Error while rolling forward", e);
