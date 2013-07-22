@@ -386,31 +386,29 @@ public class GenericLanguageConnectionContext
      * Initialize the LCC without the extraneous SQL Calls.
      * 
      */
-    public void initializeSplice() throws StandardException {
-        interruptedException = null;
-  //      sessionUser = IdUtil.getUserAuthorizationId(userName);
-        //
-        //Creating the authorizer authorizes the connection.
- //       authorizer = new GenericAuthorizer(this);
+    public void initializeSplice(String sessionUser, SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
+            interruptedException = null;
+            this.sessionUser = sessionUser;
+            //
+            //Creating the authorizer authorizes the connection.
+            authorizer = new GenericAuthorizer(this);
 
-        /*
-        ** Set the authorization id.  User shouldn't
-        ** be null or else we are going to blow up trying
-        ** to create a schema for this user.
-        */
-        /*
-        if (SanityManager.DEBUG)
-        {
-            if (getSessionUserId() == null)
+            /*
+            ** Set the authorization id.  User shouldn't
+            ** be null or else we are going to blow up trying
+            ** to create a schema for this user.
+            */
+            if (SanityManager.DEBUG)
             {
-                SanityManager.THROWASSERT("User name is null," +
-                    " check the connection manager to make sure it is set" +
-                    " reasonably");
+                if (getSessionUserId() == null)
+                {
+                    SanityManager.THROWASSERT("User name is null," +
+                        " check the connection manager to make sure it is set" +
+                        " reasonably");
+                }
             }
-        }
-*/
-//        setDefaultSchema(initDefaultSchemaDescriptor());
-        referencedColumnMap = new WeakHashMap();
+            setDefaultSchema(defaultSchemaDescriptor);
+            referencedColumnMap = new WeakHashMap();
     }
 
     
