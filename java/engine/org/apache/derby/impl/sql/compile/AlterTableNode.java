@@ -43,8 +43,6 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.types.StringDataValue;
 
 import org.apache.derby.impl.sql.execute.ColumnInfo;
-import org.apache.derby.impl.sql.execute.ConstraintConstantAction;
-import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 
 /**
  * A AlterTableNode represents a DDL statement that alters a table.
@@ -109,7 +107,7 @@ public class AlterTableNode extends DDLStatementNode
 
 	protected	SchemaDescriptor			schemaDescriptor = null;
 	protected	ColumnInfo[] 				colInfos = null;
-	protected	ConstraintConstantAction[]	conActions = null;
+	protected	ConstantAction[]	conActions = null;
 
 
 	/**
@@ -537,20 +535,14 @@ public String statementToString()
 
 		if (numConstraints > 0)
 		{
-			conActions = new ConstraintConstantAction[numConstraints];
+			conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
 
 			tableElementList.genConstraintActions(false, conActions, getRelativeName(), schemaDescriptor,
 												  getDataDictionary());
 
-			for (int conIndex = 0; conIndex < conActions.length; conIndex++)
-			{
-				ConstraintConstantAction cca = conActions[conIndex];
-
-				if (cca instanceof CreateConstraintConstantAction)
-				{
-					int constraintType = cca.getConstraintType();
-					if (constraintType == DataDictionary.PRIMARYKEY_CONSTRAINT)
-					{
+			for (int conIndex = 0; conIndex < conActions.length; conIndex++) {
+				ConstantAction cca = conActions[conIndex];
+				if (getGenericConstantActionFactory().primaryKeyConstantActionCheck(cca)) {
 						DataDictionary dd = getDataDictionary();
 						// Check to see if a constraint of the same type 
 						// already exists
@@ -565,7 +557,6 @@ public String statementToString()
 						}
 					}
 				}
-			}
 		}
 	}
 	  

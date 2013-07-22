@@ -28,6 +28,7 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
@@ -1080,6 +1081,10 @@ public class GenericConstantActionFactory
 	
     public ConstantAction[] createConstraintConstantActionArray(int size) {
     	return new CreateConstraintConstantAction[size];
+    }
+    
+    public boolean primaryKeyConstantActionCheck(ConstantAction constantAction) {
+		return (constantAction instanceof CreateConstraintConstantAction) && ((CreateConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;
     }
     
 }
