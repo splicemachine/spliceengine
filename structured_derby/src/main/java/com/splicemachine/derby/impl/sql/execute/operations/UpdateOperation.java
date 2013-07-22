@@ -201,7 +201,10 @@ public class UpdateOperation extends DMLWriteOperation{
                 fieldEncoder.reset();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
-                    DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
+                    if(dvd==null||dvd.isNull())
+                        fieldEncoder.encodeEmpty();
+                    else
+                        DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
                 }
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,encoder.encode());
 

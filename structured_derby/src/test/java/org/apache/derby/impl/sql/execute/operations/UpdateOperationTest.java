@@ -173,6 +173,45 @@ public class UpdateOperationTest extends SpliceUnitTest {
             LOG.info(result);
         }
         Assert.assertEquals("Incorrect rows returned!", 1, results.size());
+    }
 
+    @Test
+    public void testUpdateSetNullValues() throws Exception {
+        /*
+         * Regression test for Bug 682.
+         */
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ nullTableWatcher +" values (?,?)");
+        ps.setString(1,"900 Green Meadows Road");
+        ps.setString(2, "65201");
+        ps.execute();
+
+        //get initial count
+        ResultSet rs = methodWatcher.executeQuery("select * from "+ nullTableWatcher+" where zip = '65201'");
+        int originalCount=0;
+        while(rs.next()){
+            originalCount++;
+        }
+
+        //update to set a null entry
+        int numChanged = methodWatcher.prepareStatement("update " + nullTableWatcher + " set zip = null where zip = '65201'").executeUpdate();
+        Assert.assertEquals("Incorrect rows changed",1,numChanged);
+
+        rs = methodWatcher.executeQuery("select * from "+ nullTableWatcher+" where zip is null");
+        int count=0;
+        while(rs.next()){
+            String zip = rs.getString(2);
+            Assert.assertNull("returned zip is not null!",zip);
+            count++;
+        }
+        Assert.assertEquals("Incorrect row count returned",1,count);
+
+        //make sure old value isn't there anymore
+        rs = methodWatcher.executeQuery("select * from "+nullTableWatcher+" where zip = '65201'");
+        int finalCount=0;
+        while(rs.next()){
+            finalCount++;
+        }
+
+        Assert.assertEquals("Row was not removed from original set",originalCount-1,finalCount);
     }
 }
