@@ -2,16 +2,25 @@ package com.splicemachine.nist.test;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.nist.BaseNistTest;
+import difflib.Chunk;
+import difflib.Delta;
+import difflib.DiffUtils;
+import difflib.Patch;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import static com.splicemachine.nist.BaseNistTest.SKIP_TESTS;
+import static com.splicemachine.nist.BaseNistTest.SCHEMA_FILES;
+import static com.splicemachine.nist.BaseNistTest.NON_TEST_FILES_TO_FILTER;
+import static com.splicemachine.nist.BaseNistTest.SCHEMA_LIST_FILE_NAME;
+import static com.splicemachine.nist.BaseNistTest.SKIP_TESTS_FILE_NAME;
 import static com.splicemachine.nist.BaseNistTest.fileToLines;
 import static com.splicemachine.nist.BaseNistTest.getResourceDirectory;
 
@@ -40,26 +49,67 @@ public class TestClassTests {
     }
 
     @Test
-    public void testSkipTestsFilter() throws Exception {
-        BaseNistTest.loadSkipTests(getResourceDirectory() + "/nist/skip.tests", "#");
+    public void testFileFilters() throws Exception {
+        BaseNistTest.loadFilteredFiles();
         Assert.assertFalse(SKIP_TESTS.isEmpty());
+        Assert.assertFalse(SCHEMA_FILES.isEmpty());
 
+        // test files to skip filter
         List<String> filter = Lists.newArrayList(BaseNistTest.SKIP_TESTS);
-        filter.addAll(BaseNistTest.SCHEMA_SCRIPTS);
+        filter.addAll(BaseNistTest.SCHEMA_FILES);
         Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
                 new BaseNistTest.SpliceIOFileFilter(null, filter), null);
 
         Assert.assertTrue(files.contains(new File(getResourceDirectory(), "/nist/cdr002.sql")));
+
         for (File file : files) {
-            Assert.assertFalse(SKIP_TESTS.contains(file.getName()));
-            Assert.assertFalse(file.getName().equals("schema1.sql"));
+            Assert.assertFalse(printList(files), SKIP_TESTS.contains(file.getName()));
+            Assert.assertFalse(printList(files), SCHEMA_FILES.contains(file.getName()));
         }
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SCHEMA_LIST_FILE_NAME));
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
+
+        // test schema files filter
+        filter = Lists.newArrayList(BaseNistTest.SCHEMA_FILES);
+        filter.addAll(BaseNistTest.SKIP_TESTS);
+        files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
+                new BaseNistTest.SpliceIOFileFilter(null, filter), null);
+
+        Assert.assertFalse(files.contains(new File(getResourceDirectory(), "/nist/schema5.sql")));
+
+        for (File file : files) {
+            Assert.assertFalse(printList(files), SKIP_TESTS.contains(file.getName()));
+            Assert.assertFalse(printList(files), SCHEMA_FILES.contains(file.getName()));
+        }
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SCHEMA_LIST_FILE_NAME));
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
     }
 
-    private void printList( Collection<? extends Object> things) {
+    @Test
+    public void testDiff() throws Exception {
+        File sqlFile = new File(BaseNistTest.getBaseDirectory() + "/target/nist/dml001.sql");
+        String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
+        List<String> derbyFileLines = fileToLines(derbyFileName, null);
+
+        String spliceFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
+        List<String> spliceFileLines = fileToLines(spliceFileName, null);
+
+        Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
+        List<Delta> deltas = patch.getDeltas();
+
+        BaseNistTest.DiffReport report = new BaseNistTest.DiffReport(derbyFileName, spliceFileName);
+        BaseNistTest.reportDeltas(patch.getDeltas(), report, null);
+        PrintStream out = System.out;
+        report.print(out);
+    }
+
+    private String printList(Collection<? extends Object> things) {
+        StringBuilder buf = new StringBuilder("\n");
         for (Object thing : things) {
-            System.out.println(thing);
+            buf.append(thing);
+            buf.append('\n');
         }
+        return buf.toString();
     }
 
     private static List<String> EXPECTED_SKIP_TESTS = Arrays.asList(
