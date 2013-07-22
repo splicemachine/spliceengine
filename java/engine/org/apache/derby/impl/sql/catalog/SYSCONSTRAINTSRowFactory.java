@@ -344,10 +344,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 						parentTupleDescriptor.getClass().getName());
 					}
 				}
-
-                SubKeyConstraintDescriptor subKeyConstraintDescriptor =  (SubKeyConstraintDescriptor)parentTupleDescriptor;
-                UUID conglomUUID = subKeyConstraintDescriptor.getIndexId();
-				conglomDesc = td.getConglomerateDescriptor(conglomUUID);
+				conglomDesc = td.getConglomerateDescriptor( 
+										((SubKeyConstraintDescriptor) 
+											parentTupleDescriptor).getIndexId());
 				/* Take care the rare case of conglomDesc being null.  The
 				 * reason is that our "td" is out of date.  Another thread
 				 * which was adding a constraint committed between the moment
@@ -369,7 +368,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					if (scd != null)
 						scd.setTableDescriptor(td);
 					// try again now
-					conglomDesc = td.getConglomerateDescriptor(conglomUUID);
+					conglomDesc = td.getConglomerateDescriptor( 
+									((SubKeyConstraintDescriptor) 
+										parentTupleDescriptor).getIndexId());
 				}
 
 				if (SanityManager.DEBUG)
@@ -377,7 +378,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					SanityManager.ASSERT(conglomDesc != null,
 					"conglomDesc is expected to be non-null for backing index");
 				}
-				referencedConstraintId = subKeyConstraintDescriptor.getKeyConstraintId();
+				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
+				referencedConstraintId = ((SubKeyConstraintDescriptor) 
+											parentTupleDescriptor).getKeyConstraintId();
 				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
 				break;
 
