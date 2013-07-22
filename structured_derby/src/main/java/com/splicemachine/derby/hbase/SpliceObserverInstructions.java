@@ -15,6 +15,7 @@ import org.apache.derby.iapi.sql.ParameterValueSet;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.StatementContext;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
@@ -43,6 +44,8 @@ public class SpliceObserverInstructions implements Externalizable {
 	protected GenericStorablePreparedStatement statement;
 	protected SpliceOperation topOperation;
     private ActivationContext activationContext;
+    protected SchemaDescriptor defaultSchemaDescriptor;
+    protected String sessionUserName;
 
     // propagate transactionId to all co-processors running operations for this SQL statement
     private String transactionId;
@@ -53,12 +56,14 @@ public class SpliceObserverInstructions implements Externalizable {
 	}
 
 	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,
-                                      ActivationContext activationContext, String transactionId ) {
+                                      ActivationContext activationContext, String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) {
 		SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 		this.statement = statement;
 		this.topOperation = topOperation;
         this.activationContext = activationContext;
         this.transactionId = transactionId;
+        this.sessionUserName = sessionUserName;
+        this.defaultSchemaDescriptor = defaultSchemaDescriptor;
 	}
 
     public String getTransactionId() {
@@ -71,7 +76,9 @@ public class SpliceObserverInstructions implements Externalizable {
 		this.statement = (GenericStorablePreparedStatement) in.readObject();
 		this.topOperation = (SpliceOperation) in.readObject();
         this.activationContext = (ActivationContext)in.readObject();
-        this.transactionId = (String) in.readObject();
+        this.transactionId = in.readUTF();
+        this.sessionUserName = in.readUTF();
+        this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
 	}
 
 	@Override
@@ -80,7 +87,9 @@ public class SpliceObserverInstructions implements Externalizable {
 		out.writeObject(statement);
 		out.writeObject(topOperation);
         out.writeObject(activationContext);
-        out.writeObject(transactionId);
+        out.writeUTF(transactionId);
+        out.writeUTF(sessionUserName);
+        out.writeObject(defaultSchemaDescriptor);
 	}
 	/**
 	 * Retrieve the GenericStorablePreparedStatement: This contains the byte code for the activation.
@@ -119,7 +128,7 @@ public class SpliceObserverInstructions implements Externalizable {
 
         return new SpliceObserverInstructions(
 				(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-				topOperation,activationContext, transactionID);
+				topOperation,activationContext, transactionID, activation.getLanguageConnectionContext().getSessionUserId(), activation.getLanguageConnectionContext().getDefaultSchema() );
 	}
 
     private static String getTransactionId(Activation activation) {
@@ -327,4 +336,20 @@ public class SpliceObserverInstructions implements Externalizable {
         }
 
     }
+
+	public SchemaDescriptor getDefaultSchemaDescriptor() {
+		return defaultSchemaDescriptor;
+	}
+
+	public void setDefaultSchemaDescriptor(SchemaDescriptor defaultSchemaDescriptor) {
+		this.defaultSchemaDescriptor = defaultSchemaDescriptor;
+	}
+
+	public String getSessionUserName() {
+		return sessionUserName;
+	}
+
+	public void setSessionUserName(String sessionUserName) {
+		this.sessionUserName = sessionUserName;
+	}    
 }

@@ -76,7 +76,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                         instructions.getStatement(),instructions.getTopOperation(), scan);
                 SpliceLogUtils.trace(LOG,"Creating RegionScanner");
                 imp = new SpliceTransactionResourceImpl();
-                imp.marshallTransaction(instructions.getTransactionId());
+                imp.marshallTransaction(instructions);
                 Activation activation = instructions.getActivation(imp.getLcc());
                 SpliceOperationContext context = new SpliceOperationContext(region,scan,activation, instructions.getStatement(),imp.getLcc(),true,instructions.getTopOperation());
                 SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);

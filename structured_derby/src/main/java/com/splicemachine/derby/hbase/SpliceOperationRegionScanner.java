@@ -9,7 +9,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
@@ -27,10 +26,8 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -45,7 +42,6 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     protected Iterator<ExecRow> currentRows;
     protected List<KeyValue> currentResult;
     protected Activation activation; // has to be passed by reference... jl
-    private Serializer serializer = Serializer.get();
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
     private SpliceOperationContext context;
@@ -81,7 +77,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        statement = soi.getStatement();
 	        topOperation = soi.getTopOperation();
 	        impl = new SpliceTransactionResourceImpl();
-	        impl.marshallTransaction(soi.getTransactionId());
+	        impl.marshallTransaction(soi);
 	        activation = soi.getActivation(impl.getLcc());
 	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
             context.setSpliceRegionScanner(this);
