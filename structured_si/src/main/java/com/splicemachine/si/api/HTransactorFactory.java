@@ -2,6 +2,9 @@ package com.splicemachine.si.api;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConfiguration;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -37,6 +40,7 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Used to construct a transactor object that is bound to the HBase types and that provides SI functionality. This is
@@ -82,9 +86,12 @@ public class HTransactorFactory extends SIConstants {
                 return managedTransactor;
             }
 
-            final Configuration configuration = SpliceConfiguration.create();
+            final Configuration configuration = SpliceConstants.config;
             TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
-            HTablePool hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
+            BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
+                    SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
+                    SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
+//            HTablePool hTablePool = new HTablePool(configuration, Integer.MAX_VALUE);
             final HPoolTableSource tableSource = new HPoolTableSource(hTablePool);
             SDataLib dataLib = new HDataLib();
             final STableReader reader = new HTableReader(tableSource);

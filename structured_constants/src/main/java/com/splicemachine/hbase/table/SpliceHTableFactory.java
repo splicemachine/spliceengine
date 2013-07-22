@@ -1,15 +1,10 @@
-package com.splicemachine.derby.impl.store.access;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+package com.splicemachine.hbase.table;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -18,7 +13,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SpliceHTableFactory implements HTableInterfaceFactory {
 	private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
@@ -34,9 +35,9 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 		SpliceLogUtils.trace(LOG, "instantiated with autoFlush set to %s",autoFlush);
 		this.autoFlush = autoFlush;
 
-        tableExecutor = getExecutor(SpliceUtils.config);
+        tableExecutor = getExecutor(SpliceConstants.config);
         try {
-            connection = HConnectionManager.getConnection(SpliceUtils.config);
+            connection = HConnectionManager.getConnection(SpliceConstants.config);
         } catch (ZooKeeperConnectionException e) {
             throw new RuntimeException(e);
         }

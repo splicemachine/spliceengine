@@ -1,7 +1,7 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.table;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -140,7 +140,7 @@ public class BetterHTablePool {
                 //before we create it
                 table = tablesToClose.poll();
                 if(table==null)
-                    table = (HTable)tableFactory.createHTableInterface(SpliceUtils.config, Bytes.toBytes(tableName));
+                    table = (HTable)tableFactory.createHTableInterface(SpliceConstants.config, Bytes.toBytes(tableName));
             }
             return table;
         }
