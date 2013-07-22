@@ -109,7 +109,7 @@ public interface LanguageConnectionContext extends Context {
 	 *
 	 * @exception StandardException thrown if something goes wrong
 	 */
-	void initializeSplice() throws StandardException;
+	void initializeSplice(String sessionUser, SchemaDescriptor defaultSchemaDescriptor) throws StandardException;
 
 	
 	/**

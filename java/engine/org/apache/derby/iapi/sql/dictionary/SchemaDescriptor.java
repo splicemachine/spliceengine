@@ -21,6 +21,11 @@
 
 package org.apache.derby.iapi.sql.dictionary;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.depend.Provider;
@@ -40,9 +45,7 @@ import org.apache.derby.catalog.Dependable;
  * @version 0.1
  */
 
-public final class SchemaDescriptor extends TupleDescriptor 
-	implements UniqueTupleDescriptor, Provider
-{
+public final class SchemaDescriptor extends TupleDescriptor implements UniqueTupleDescriptor, Provider, Externalizable {
 	
 	/*
 	** When we boot, we put the system tables in
@@ -153,12 +156,12 @@ public final class SchemaDescriptor extends TupleDescriptor
 	*/
 
 	//// Implementation
-	private final String			name;
+	private String			name;
 	private UUID			oid;
 	private String			aid;
 
-    private final boolean isSystem;
-    private final boolean isSYSIBM;
+    private boolean isSystem;
+    private boolean isSYSIBM;
     
     /**
      * For system schemas, the only possible value for collation type is
@@ -167,6 +170,12 @@ public final class SchemaDescriptor extends TupleDescriptor
      */
     private int collationType;
 
+    /**
+     * Needed for serialization...
+     */
+	public SchemaDescriptor() {
+		
+	}
 	/**
 	 * Constructor for a SchemaDescriptor.
 	 *
@@ -449,4 +458,26 @@ public final class SchemaDescriptor extends TupleDescriptor
 	     */
 		lcc.resetSchemaUsages(activation, getSchemaName());
 	}
+
+	public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+		name = input.readUTF();
+		aid = input.readUTF();
+		oid = (UUID) input.readObject();
+		isSystem = input.readBoolean();
+		isSYSIBM = input.readBoolean();
+		collationType = input.readInt();
+	}
+
+	public void writeExternal(ObjectOutput output) throws IOException {
+		output.writeUTF(name);
+		output.writeUTF(aid);
+		output.writeObject(oid);		
+		output.writeBoolean(isSystem);
+		output.writeBoolean(isSYSIBM);
+		output.writeInt(collationType);		
+	}
+	public void setDataDictionary(DataDictionary dataDictionary) {
+		this.dataDictionary = dataDictionary;
+	}
+	
 }
