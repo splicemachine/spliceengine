@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.db;
 
 import java.util.Properties;
 
+import javax.security.auth.login.Configuration;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
@@ -9,6 +10,7 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.property.PropertyFactory;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.store.access.AccessFactory;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -22,6 +24,7 @@ import com.splicemachine.utils.ZkUtils;
 public class SpliceDatabase extends BasicDatabase {
 	private static Logger LOG = Logger.getLogger(SpliceDatabase.class);
 	public void boot(boolean create, Properties startParams) throws StandardException {
+		Configuration.setConfiguration(null);
 		//System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         System.setProperty("derby.language.logStatementText", Boolean.toString(true));
         System.setProperty("derby.connection.requireAuthentication","false");
@@ -59,7 +62,43 @@ public class SpliceDatabase extends BasicDatabase {
 			SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
 			af = (AccessFactory) Monitor.bootServiceModule(create, this, AccessFactory.MODULE, startParams);
 		}
-		
+		/**
+		 * This is the light creation of languageConnectionContext that removes 4 rpc calls per context creation.
+		 * 
+		 * @param transactionID
+		 * @param cm
+		 * @param user
+		 * @param drdaID
+		 * @param dbname
+		 * @param sessionUserName
+		 * @param defaultSchemaDescriptor
+		 * @return
+		 * @throws StandardException
+		 */
+		public LanguageConnectionContext generateLanguageConnectionContext(String transactionID, ContextManager cm, String user, String drdaID, String dbname, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
+			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, transactionID);
+			cm.setLocaleFinder(this);
+			pushDbContext(cm);
+			LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, drdaID, dbname);
+			pushClassFactoryContext(cm, lcf.getClassFactory());
+			ExecutionFactory ef = lcf.getExecutionFactory();
+			ef.newExecutionContext(cm);
+			lctx.initializeSplice(sessionUserName, defaultSchemaDescriptor);		
+			return lctx;
+		}
+		/**
+		 * This will perform a lookup of the user (index and main table) and the default schema (index and main table)
+		 * 
+		 * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.  
+		 * 
+		 * @param transactionID
+		 * @param cm
+		 * @param user
+		 * @param drdaID
+		 * @param dbname
+		 * @return
+		 * @throws StandardException
+		 */
 		public LanguageConnectionContext generateLanguageConnectionContext(String transactionID, ContextManager cm, String user, String drdaID, String dbname) throws StandardException {
 			TransactionController tc = ((SpliceAccessManager) af).marshallTransaction(cm, transactionID);
 			cm.setLocaleFinder(this);
@@ -71,6 +110,7 @@ public class SpliceDatabase extends BasicDatabase {
 			lctx.initialize();		
 			return lctx;
 		}
-		
+
+
 		
 }
