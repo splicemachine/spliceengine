@@ -1,40 +1,25 @@
 package com.splicemachine.nist;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.nist.SpliceNetConnection;
-import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.sql.Connection;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 public class SpliceNistTest extends BaseNistTest {
 	protected static ExecutorService executor;
 	
 	public static void setup() throws Exception {
-        // TODO: Remove
-        ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("derby-nist-generator").build();
+        // nothing to do
     }
 
-    public static void createSchema() throws Exception {
-        // Load the tests
-        runSplice(SCHEMA_FILES);
-     }
+    public static void runSplice(List<File> testFiles) throws Exception {
+        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
 
-    public static void runSplice() throws Exception {
-        // Run the tests
-        runSplice(NON_TEST_FILES_TO_FILTER);
-    }
-
-    public static void runSplice(List<String> filesToFilter) throws Exception {
-        executor = Executors.newFixedThreadPool(4);
-        Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(),"/nist"), new SpliceIOFileFilter(null, filesToFilter),null);
-        for (File file: files) {
+        for (File file: testFiles) {
             executor.submit(new SpliceCallable(file));
         }
         executor.shutdown();

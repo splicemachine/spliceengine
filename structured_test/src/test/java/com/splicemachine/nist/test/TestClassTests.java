@@ -4,8 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.nist.BaseNistTest;
 import com.splicemachine.nist.DerbyNistTest;
 import com.splicemachine.nist.SpliceNistTest;
-import difflib.Chunk;
-import difflib.Delta;
 import difflib.DiffUtils;
 import difflib.Patch;
 import org.apache.commons.io.FileUtils;
@@ -14,17 +12,10 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static com.splicemachine.nist.BaseNistTest.SKIP_TESTS;
-import static com.splicemachine.nist.BaseNistTest.SCHEMA_FILES;
-import static com.splicemachine.nist.BaseNistTest.NON_TEST_FILES_TO_FILTER;
-import static com.splicemachine.nist.BaseNistTest.SCHEMA_LIST_FILE_NAME;
-import static com.splicemachine.nist.BaseNistTest.SKIP_TESTS_FILE_NAME;
-import static com.splicemachine.nist.BaseNistTest.fileToLines;
-import static com.splicemachine.nist.BaseNistTest.getResourceDirectory;
+import static com.splicemachine.nist.BaseNistTest.*;
 
 /**
  *
@@ -52,7 +43,7 @@ public class TestClassTests {
 
     @Test
     public void testFileFilters() throws Exception {
-        BaseNistTest.loadFilteredFiles();
+        BaseNistTest.getTestFileList();
         Assert.assertFalse(SKIP_TESTS.isEmpty());
         Assert.assertFalse(SCHEMA_FILES.isEmpty());
 
@@ -87,7 +78,7 @@ public class TestClassTests {
         Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
     }
 
-    @Test
+//    @Test         Gotta find somewhere to keep around a couple of files to diff
     public void testDiff() throws Exception {
         File sqlFile = new File(BaseNistTest.getBaseDirectory() + "/target/nist/dml001.sql");
         String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);

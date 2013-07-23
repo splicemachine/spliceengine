@@ -1,8 +1,10 @@
 # List of schema files to load
+dml016.sql
+dml080.sql
 schema1.sql
-temp_schem10.sql
-temp_cts5sch2.sql
+schema4.sql
 schema5.sql
 schema8.sql
+temp_cts5sch2.sql
 temp_cts5tab.sql
-schema4.sql
+temp_schem10.sql

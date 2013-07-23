@@ -1,32 +1,41 @@
 package com.splicemachine.nist;
 
-import java.io.*;
-import java.sql.Connection;
-import java.util.*;
-
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
 import difflib.Chunk;
 import difflib.Delta;
 import difflib.DiffUtils;
 import difflib.Patch;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.derby.tools.ij;
-
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
 import org.junit.Assert;
 
+import java.io.*;
+import java.sql.Connection;
+import java.util.*;
+
 public class BaseNistTest {
+
+    public static int DEFAULT_THREAD_POOL_SIZE = 4;
+
+
     public static final String DERBY_OUTPUT_EXT = ".derby";
     public static final String SPLICE_OUTPUT_EXT = ".splice";
 
+    // SQL files listed in this file are to be skipped from testing
     public static final String SKIP_TESTS_FILE_NAME = "skip.tests";
+
+    // SQL files listed in this file contain "create schema..." directives
+    // that are needed by other tests too.  Run these first.
     public static final String SCHEMA_LIST_FILE_NAME = "schema.list";
+
     public static List<String> SCHEMA_FILES = new ArrayList<String>();
 	public static List<String> SKIP_TESTS = new ArrayList<String>();
     public static List<String> NON_TEST_FILES_TO_FILTER = new ArrayList<String>();
 
-    public static void loadFilteredFiles() {
+    public static List<File> getTestFileList() {
         // load SKIP_TESTS
         for (String baseName :  fileToLines(getResourceDirectory() + "/nist/"+SKIP_TESTS_FILE_NAME, "#")) {
             SKIP_TESTS.add(baseName + ".sql");
@@ -35,20 +44,84 @@ public class BaseNistTest {
         for (String schemaFile :  fileToLines(getResourceDirectory() + "/nist/"+SCHEMA_LIST_FILE_NAME, "#")) {
             SCHEMA_FILES.add(schemaFile);
         }
-        // remove schema files from SKIP_TESTS
-        SKIP_TESTS.removeAll(SCHEMA_FILES);
+        // remove all SKIP_TESTS from SCHEMA_FILES
+        SCHEMA_FILES.removeAll(SKIP_TESTS);
 
-        // collect all none test files so that they can be filtered
+        // collect all non test files so that they can be filtered
         NON_TEST_FILES_TO_FILTER.addAll(BaseNistTest.SKIP_TESTS);
-        NON_TEST_FILES_TO_FILTER.addAll(BaseNistTest.SCHEMA_FILES);
         NON_TEST_FILES_TO_FILTER.add(SKIP_TESTS_FILE_NAME);
         NON_TEST_FILES_TO_FILTER.add(SCHEMA_LIST_FILE_NAME);
+        // Adding schema files to be filtered here too. They will be run first.
+        NON_TEST_FILES_TO_FILTER.addAll(BaseNistTest.SCHEMA_FILES);
 
-        // remove control files from SKIP_TESTS
-        SCHEMA_FILES.remove(SKIP_TESTS_FILE_NAME);
-        SCHEMA_FILES.remove(SCHEMA_LIST_FILE_NAME);
-        SKIP_TESTS.remove(SKIP_TESTS_FILE_NAME);
-        SKIP_TESTS.remove(SCHEMA_LIST_FILE_NAME);
+        // this is the list of all test sql files, except schema creators
+        List<File> testFiles2 = new ArrayList<File>(FileUtils.listFiles(new File(BaseNistTest.getResourceDirectory(), "/nist"),
+                // exclude skipped and other non-test files
+                new BaseNistTest.SpliceIOFileFilter(null, BaseNistTest.NON_TEST_FILES_TO_FILTER),
+                null));
+
+        // NIST sql files must be in sorted order
+        Collections.sort(testFiles2, new Comparator<File>() {
+            @Override
+            public int compare(File file1, File file2) {
+                return file1.getName().compareTo(file2.getName());
+            }
+        });
+
+        // Now create a new List with schema files in front
+        List<File> testFiles = new ArrayList<File>(FileUtils.listFiles(new File(BaseNistTest.getResourceDirectory(), "/nist"),
+                // include schema files
+                new BaseNistTest.SpliceIOFileFilter(BaseNistTest.SCHEMA_FILES, null),
+                null));
+
+        // NIST sql files must be in sorted order
+        Collections.sort(testFiles, new Comparator<File>() {
+            @Override
+            public int compare(File file1, File file2) {
+                return file1.getName().compareTo(file2.getName());
+            }
+        });
+
+        // finally, add rest of test files to end
+        testFiles.addAll(testFiles2);
+
+        return testFiles;
+
+    }
+
+    public static void runTest(File file, String type, Connection connection) throws Exception {
+        FileInputStream fis = null;
+        FileOutputStream fop = null;
+        try {
+            fis = new FileInputStream(file);
+            File targetFile = new File(getBaseDirectory()+"/target/nist/" + file.getName().replace(".sql", type));
+            Files.createParentDirs(targetFile);
+            if (targetFile.exists())
+                targetFile.delete();
+            targetFile.createNewFile();
+            fop = new FileOutputStream(targetFile);
+            ij.runScript(connection, fis,"UTF-8",fop,"UTF-8");
+            fop.flush();
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            Closeables.closeQuietly(fop);
+            Closeables.closeQuietly(fis);
+        }
+    }
+
+    public static void assertNoDiffs(Collection<DiffReport> reports) throws Exception {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+
+        boolean success = true;
+        for (BaseNistTest.DiffReport report : reports) {
+            report.print(ps);
+            success = success && report.isEmpty();
+        }
+
+        Assert.assertTrue(reports.size() +" Tests failed"+baos.toString("UTF-8")+"\n"+reports.size()+" Tests had differencs.", success);
     }
 
 	public static class SpliceIOFileFilter implements IOFileFilter {
@@ -115,32 +188,10 @@ public class BaseNistTest {
 		return getBaseDirectory()+"/src/test/resources";
 	}
 
-	public static void runTest(File file, String type, Connection connection) throws Exception {
-		FileInputStream fis = null;
-		FileOutputStream fop = null;
-		try {
-			fis = new FileInputStream(file);
-			File targetFile = new File(getBaseDirectory()+"/target/nist/" + file.getName().replace(".sql", type));
-			Files.createParentDirs(targetFile);
-			if (targetFile.exists())
-				targetFile.delete();
-			targetFile.createNewFile();
-			fop = new FileOutputStream(targetFile);
-			ij.runScript(connection, fis,"UTF-8",fop,"UTF-8");		
-			fop.flush();
-		} catch (Exception e) {
-			throw e;
-		} finally {
-			Closeables.closeQuietly(fop);
-			Closeables.closeQuietly(fis);
-		}
-	}
+    public static List<DiffReport> diffOutput(List<File> sqlFiles, List<String> testsToIgnore) {
 
-    public static Collection<DiffReport> diffOutput(Collection<String> testsToIgnore) {
+        List<DiffReport> diffs = new ArrayList<DiffReport>();
 
-        Collection<DiffReport> diffs = new ArrayList<DiffReport>();
-
-        Collection<File> sqlFiles = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"), new SpliceIOFileFilter(null, NON_TEST_FILES_TO_FILTER), null);
         for (File sqlFile: sqlFiles) {
             String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
             List<String> derbyFileLines = fileToLines(derbyFileName, null);
@@ -152,28 +203,28 @@ public class BaseNistTest {
 
             DiffReport diff = new DiffReport(derbyFileName, spliceFileName);
             reportDeltas(patch.getDeltas(), diff, testsToIgnore);
-            if (! diff.isEmpty()) {
+//            if (! diff.isEmpty()) {
                 diffs.add(diff);
-            }
+//            }
         }
         return diffs;
     }
 
-    public static void reportDeltas(List<Delta> deltas, DiffReport diff, Collection<String> testsToIgnoret) {
+    public static void reportDeltas(List<Delta> deltas, DiffReport diff, Collection<String> testsToIgnore) {
         for (Delta delta: deltas) {
-            if (filterDeltas(delta, testsToIgnoret)){
+            if (filterDeltas(delta, testsToIgnore)){
                 continue;
             }
             diff.add("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-            printChunk("Derby", delta.getOriginal(), diff);
+            printChunk(diff.derbyFile, delta.getOriginal(), diff);
             diff.add("++++++++++++++++++++++++++\n");
-            printChunk("Splice", delta.getRevised(), diff);
+            printChunk(diff.spliceFile, delta.getRevised(), diff);
             diff.add(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         }
     }
 
     public static void printChunk(String testType, Chunk chunk, DiffReport diff) {
-        diff.add(testType+" Position "+chunk.getPosition()+": \n");
+        diff.add(testType+"\nPosition "+chunk.getPosition()+": \n");
         for(Object line : chunk.getLines()) {
             diff.add("  "+line+"\n");
         }
@@ -211,12 +262,23 @@ public class BaseNistTest {
 
         public void print(PrintStream out) {
             out.println("\n===========================================================================================");
-            out.println("Derby file: "+derbyFile+"  Splice File: "+spliceFile);
-            for (String line : report) {
-                out.print(line);
+            out.println(sqlName(derbyFile));
+            if (report.isEmpty()) {
+                out.println("  No difference");
+            } else {
+                for (String line : report) {
+                    out.print(line);
+                }
             }
             out.println("===========================================================================================");
         }
+    }
+
+    private static String sqlName(String fullName) {
+        String[] cmpnts = StringUtils.split(fullName, '/');
+        String baseName = cmpnts[cmpnts.length-1];
+        baseName = baseName.replace(".derby",".sql");
+        return baseName;
     }
 
     public static String getDuration(long startMilis, long stopMilis) {
