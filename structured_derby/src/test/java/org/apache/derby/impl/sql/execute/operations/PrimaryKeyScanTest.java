@@ -32,12 +32,17 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(pk_1 varchar(50), pk_2 varchar(50),val int, PRIMARY KEY(pk_1,pk_2))");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("CUSTOMER",CLASS_NAME,	
+	"(c_w_id int NOT NULL,c_d_id int NOT NULL,c_id int NOT NULL,c_data varchar(500) NOT NULL,PRIMARY KEY (c_w_id,c_d_id,c_id))");
+	
+	protected static String CUSTOMER_INSERT_VALUES = String.format("insert into %s.%s (c_w_id, c_d_id, c_id, c_data) values (?,?,?,?)",CLASS_NAME,"CUSTOMER");
 	protected static String INSERT_VALUES = String.format("insert into %s.%s (pk_1, pk_2,val) values (?,?,?)",CLASS_NAME,TABLE_NAME);
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
+		.around(spliceTableWatcher2)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -63,7 +68,30 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
 				}
 			}
 			
-		});
+		}); /*.around(new SpliceDataWatcher(){
+			@Override
+			protected void starting(Description description) {
+				try {
+				PreparedStatement ps = spliceClassWatcher.prepareStatement(CUSTOMER_INSERT_VALUES);
+		        for (int i =0; i< 200000; i++) {
+		        		if (i%10000 == 0) {
+		        			System.out.println("Loading i " + i);
+		        		}
+		        		ps.setInt(1,i);
+		                ps.setInt(2,i);
+		                ps.setInt(3,i);
+		                ps.setString(4, "DFKJSLDJFKDSJFLDKSJFLKDSJFLKDSJFLKSDJFLKDSJFLDKSJFLDKSJFLKDSJLKFDJSLKFJDLKSJFLDKSJFLDKSJFLKDSJFSDFSDFSDFDSFDSFDSFDSFDSFSDFDSFDSFSD");
+		                ps.executeUpdate();
+		        }
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				finally {
+					spliceClassWatcher.closeAll();
+				}
+			}
+			
+		});*/
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();    
 
@@ -71,6 +99,22 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
     private static final int pk1Size = 10;
     private static final int pk2Size = 10;
 
+    /*
+    @Test
+    public void testLookupSpeed() throws Exception{
+    	PreparedStatement ps = methodWatcher.prepareStatement(format("select * from %s where c_w_id = ? and c_d_id = ? and c_id = ?",this.getTableReference("CUSTOMER")));
+    	for (int i = 0; i<5000; i++) {
+    		ps.setInt(1, i);
+    		ps.setInt(2, i);
+    		ps.setInt(3, i);
+    		ResultSet rs = ps.executeQuery();
+    		while (rs.next()) {
+    			
+    		}
+    	}
+    }
+	*/
+    
     @Test
     public void testCountAllData() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s",this.getTableReference(TABLE_NAME)));
