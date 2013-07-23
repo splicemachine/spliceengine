@@ -297,7 +297,7 @@ final class DecimalEncoding {
     	if(desc){
     		val = new byte[8];
     		System.arraycopy(data,offset,val,0,val.length);
-    		for(int i=offset;i<8;i++){
+    		for(int i=0;i<8;i++){
     			val[i] ^= 0xff;
     		}
     		offset=0;

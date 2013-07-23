@@ -246,16 +246,28 @@ public class SortOperationTest extends SpliceUnitTest {
 	}
 
     @Test
-    @Ignore("Bugzilla 560")
+//    @Ignore("Bugzilla 560")
     public void testOrderByFloatDesc() throws Exception {
-        List<Object[]> expected = Arrays.asList(
-                o("tom", 13.4667),
-                o("joe", 5.5),
-                o("bob", 1.2));
+        Map<String,Double> expected = Maps.newHashMapWithExpectedSize(3);
+        expected.put("tom",13.4667);
+        expected.put("joe",5.5);
+        expected.put("bob",1.2);
         ResultSet rs = methodWatcher.executeQuery(format("select name, age from %s order by age desc", this.getTableReference(TABLE_NAME_2)));
-        List<Object[]> results = TestUtils.resultSetToArrays(rs);
+        Map<String,Double> results = Maps.newHashMapWithExpectedSize(3);
+        while(rs.next()){
+            String name = rs.getString(1);
+            double value = rs.getDouble(2);
 
-        Assert.assertArrayEquals("results are wrong", expected.toArray(), results.toArray());
+            Assert.assertFalse("Name "+ name+" has already been found!",results.containsKey(name));
+            results.put(name,value);
+        }
+        Assert.assertEquals("Incorrect result set size",expected.size(),results.size());
+
+        for(String expectedName:expected.keySet()){
+            Assert.assertTrue("Name "+ expectedName + "expected!",results.containsKey(expectedName));
+            Double expectedValue = expected.get(expectedName);
+            Assert.assertEquals(expectedValue,results.get(expectedName),Math.pow(10,-4));
+        }
     }
 
     @Test
