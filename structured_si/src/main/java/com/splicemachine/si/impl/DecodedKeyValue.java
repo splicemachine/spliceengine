@@ -21,9 +21,6 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
     }
 
     public void setKeyValue(KeyValue keyValue) {
-        if (keyValue.getClass().equals(DecodedKeyValue.class)) {
-            throw new RuntimeException("fail");
-        }
         this.row = null;
         this.family = null;
         this.qualifier = null;
