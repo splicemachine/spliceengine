@@ -6,7 +6,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus>
+public class FilterStatePacked<Data, Result, KeyValue, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
+        Scan, OperationWithAttributes, Lock, OperationStatus, Hashable, Mutation, IHTable>
         implements IFilterState<KeyValue> {
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
@@ -14,7 +15,8 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private final String tableName;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
-    private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter;
+    private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus,
+            Hashable, Mutation, IHTable> simpleFilter;
     private final RowAccumulator<Data> accumulator;
     private Data qualifier = null;
     private Data family = null;
@@ -24,7 +26,8 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private boolean excludeRow = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
-                             FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter,
+                             FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock,
+                                     OperationStatus, Hashable, Mutation, IHTable> simpleFilter,
                              RowAccumulator<Data> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
