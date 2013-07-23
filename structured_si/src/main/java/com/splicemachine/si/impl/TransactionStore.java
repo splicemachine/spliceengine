@@ -430,26 +430,24 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @throws IOException
      */
     public long generateTimestamp(long transactionId) throws IOException {
-	        final Table transactionSTable = reader.open(transactionSchema.tableName);
-	    	try {
-	        final Transaction transaction = loadTransactionDirect(transactionId);
-	        long current = transaction.counter;
-	        // TODO: more efficient mechanism for obtaining timestamp
-	        while (current - transaction.counter < 10000) {
-	            final long next = current + 1;
-	            final Put put = buildBasePut(transactionId);
-	            addFieldToPut(put, encodedSchema.counterQualifier, next);
-	            if (writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
-	                    dataLib.encode(transaction.counter), put)) {
-	                return next;
-	            } else {
-	                current = next;
-	            }
-	        }
-    	} catch (IOException e) {
-        	throw e;
+        final Table transactionSTable = reader.open(transactionSchema.tableName);
+        try {
+            final Transaction transaction = loadTransactionDirect(transactionId);
+            long current = transaction.counter;
+            // TODO: more efficient mechanism for obtaining timestamp
+            while (current - transaction.counter < 10000) {
+                final long next = current + 1;
+                final Put put = buildBasePut(transactionId);
+                addFieldToPut(put, encodedSchema.counterQualifier, next);
+                if (writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
+                        dataLib.encode(transaction.counter), put)) {
+                    return next;
+                } else {
+                    current = next;
+                }
+            }
         } finally {
-        	reader.close(transactionSTable);
+            reader.close(transactionSTable);
         }
         throw new RuntimeException("Unable to obtain timestamp");
     }
@@ -487,6 +485,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * Convert a transaction ID into the format/value used for the corresponding row key in the transaction table.
      * The row keys are non-sequential to avoid creating a hotspot in the table around a region that is hosting the
      * "current" transaction IDs.
+     *
      * @param id
      * @return
      */
@@ -496,7 +495,9 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return Bytes.toLong(result);
     }
 
-    /** Convert a TransactionStatus into the representation used for it in the transaction table.
+    /**
+     * Convert a TransactionStatus into the representation used for it in the transaction table.
+     *
      * @param status
      * @return
      */
