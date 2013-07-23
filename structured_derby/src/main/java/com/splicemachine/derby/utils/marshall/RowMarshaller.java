@@ -337,6 +337,8 @@ public class RowMarshaller {
         }else{
             for(int i=0;i<fields.length;i++){
                 DataValueDescriptor dvd = fields[i];
+                if(dvd==null)
+                    continue;
                 if(rowDecoder.nextIsNull()){
                     dvd.setToNull();
                     rowDecoder.skip();
