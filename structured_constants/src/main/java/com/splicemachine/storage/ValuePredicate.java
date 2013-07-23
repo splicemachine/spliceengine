@@ -34,6 +34,11 @@ public class ValuePredicate implements Predicate {
     }
 
     @Override
+    public boolean applies(int column) {
+        return this.column==column;
+    }
+
+    @Override
     public boolean match(int column,byte[] data, int offset, int length){
         if(this.column!=column) return true; //no need to perform anything, because it isn't the correct column
 
@@ -106,5 +111,10 @@ public class ValuePredicate implements Predicate {
     @Override
     public void setCheckedColumns(BitSet checkedColumns) {
         checkedColumns.set(column);
+    }
+
+    @Override
+    public void reset() {
+        //no-op
     }
 }

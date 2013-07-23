@@ -147,6 +147,8 @@ public class SparseEntryAccumulator implements EntryAccumulator {
         for(int i=0;i<fields.length;i++){
             fields[i] = null;
         }
+        if(predicateFilter!=null)
+            predicateFilter.reset();
     }
 
     @Override

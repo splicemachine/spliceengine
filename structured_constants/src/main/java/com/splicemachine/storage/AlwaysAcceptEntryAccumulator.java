@@ -195,6 +195,8 @@ class AlwaysAcceptEntryAccumulator implements EntryAccumulator {
                 fields[i] = null;
             }
         }
+        if(predicateFilter!=null)
+            predicateFilter.reset();
     }
 
     @Override

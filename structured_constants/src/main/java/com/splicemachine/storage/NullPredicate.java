@@ -28,6 +28,11 @@ public class NullPredicate implements Predicate{
     }
 
     @Override
+    public boolean applies(int column) {
+        return this.column==column;
+    }
+
+    @Override
     public boolean match(int column,byte[] data, int offset, int length) {
         if(this.column!=column) return true; //not the right column, don't worry about it
         if(isNullNumericalComparision){
@@ -70,5 +75,10 @@ public class NullPredicate implements Predicate{
     @Override
     public void setCheckedColumns(BitSet checkedColumns) {
         checkedColumns.set(column);
+    }
+
+    @Override
+    public void reset() {
+        //no-op
     }
 }

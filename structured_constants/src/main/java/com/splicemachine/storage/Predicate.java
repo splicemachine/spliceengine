@@ -9,6 +9,8 @@ import java.util.BitSet;
  */
 public interface Predicate extends Externalizable {
 
+    boolean applies(int column);
+
     boolean match(int column,byte[] data, int offset, int length);
 
     /**
@@ -17,5 +19,7 @@ public interface Predicate extends Externalizable {
     boolean checkAfter();
 
     void setCheckedColumns(BitSet checkedColumns);
+
+    void reset();
 
 }

@@ -472,4 +472,20 @@ public class TableScanOperationTest extends SpliceUnitTest {
         Assert.assertEquals(100, results.size());
     }
 
+    @Test
+    public void testWithOrCriteria() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where si = '2' or sc = '30'");
+        int count=0;
+        while(rs.next()){
+            String si = rs.getString(1);
+            String sc = rs.getString(3);
+
+            if(!"2".equals(si)&&!"30".equals(sc))
+                Assert.fail("Either si !=2 or sc !=30. si="+si+", sc="+ sc);
+
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect count returned",2,count);
+    }
 }

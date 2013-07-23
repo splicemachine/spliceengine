@@ -16,6 +16,12 @@ public class OrPredicate implements Predicate {
     private static final long serialVersionUID = 1l;
     private List<Predicate> ors;
 
+    /**
+     * Once matched, we should return true until reset
+     */
+    private boolean matched;
+    private int visitedCount;
+
     @Deprecated
     public OrPredicate() {
     }
@@ -25,12 +31,30 @@ public class OrPredicate implements Predicate {
     }
 
     @Override
-    public boolean match(int column,byte[] data, int offset, int length) {
+    public boolean applies(int column) {
         for(Predicate predicate:ors){
-            if(predicate.match(column,data,offset,length))
-                return true;
+            if(predicate.applies(column)) return true;
         }
-        return false; //nobody matches
+        return false;
+    }
+
+    @Override
+    public boolean match(int column,byte[] data, int offset, int length) {
+        if(matched) return true;
+        if(visitedCount>=ors.size()) return false; //we've visited all of our fields, and none matched
+
+        for(Predicate predicate:ors){
+            if(!predicate.applies(column))
+                continue;
+
+            if(predicate.match(column,data,offset,length)){
+                matched=true;
+                return true;
+            }
+            else
+                visitedCount++;
+        }
+        return visitedCount<ors.size();
     }
 
     @Override
@@ -62,6 +86,16 @@ public class OrPredicate implements Predicate {
     public void setCheckedColumns(BitSet checkedColumns) {
         for(Predicate or:ors){
             or.setCheckedColumns(checkedColumns);
+        }
+    }
+
+    @Override
+    public void reset() {
+        matched=false;
+        visitedCount=0;
+        //reset children
+        for(Predicate predicate:ors){
+            predicate.reset();
         }
     }
 }

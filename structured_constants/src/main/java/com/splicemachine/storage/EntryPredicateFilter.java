@@ -81,7 +81,7 @@ public class EntryPredicateFilter implements Externalizable{
                 limit = array.length-offset;
             }
             for(Predicate valuePredicate : valuePredicates){
-                if(!valuePredicate.match(encodedPos,array, offset,limit)){
+                if(valuePredicate.applies(encodedPos) && !valuePredicate.match(encodedPos,array, offset,limit)){
                     return false;
                 }
             }
@@ -115,6 +115,12 @@ public class EntryPredicateFilter implements Externalizable{
 
     public void rowReturned(){
         visitedRowCount++;
+    }
+
+    public void reset(){
+        for(Predicate predicate:valuePredicates){
+            predicate.reset();
+        }
     }
 
     @Override

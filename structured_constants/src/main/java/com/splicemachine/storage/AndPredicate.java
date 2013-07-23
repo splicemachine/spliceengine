@@ -24,9 +24,18 @@ public class AndPredicate implements Predicate{
     }
 
     @Override
+    public boolean applies(int column) {
+        for(Predicate predicate:ands){
+            if(predicate.applies(column)) return true;
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean match(int column, byte[] data, int offset, int length) {
         for(Predicate predicate:ands){
-            if(!predicate.match(column,data,offset,length))
+            if(predicate.applies(column)&&!predicate.match(column,data,offset,length))
                 return false;
         }
         return true;
@@ -61,6 +70,14 @@ public class AndPredicate implements Predicate{
     public void setCheckedColumns(BitSet checkedColumns) {
         for(Predicate predicate:ands){
             predicate.setCheckedColumns(checkedColumns);
+        }
+    }
+
+    @Override
+    public void reset() {
+        //reset children
+        for(Predicate predicate:ands){
+            predicate.reset();
         }
     }
 }
