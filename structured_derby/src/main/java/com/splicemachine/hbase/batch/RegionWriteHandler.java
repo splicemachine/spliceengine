@@ -133,9 +133,7 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private void doWrite(WriteContext ctx, Mutation[] toProcess) throws IOException {
-        final OperationStatus[] status = SIObserver.doesTableNeedSI(region) ?
-                doSIWrite(toProcess) :
-                doNonSIWrite(toProcess);
+        final OperationStatus[] status = SIObserver.doesTableNeedSI(region) ? doSIWrite(toProcess) : doNonSIWrite(toProcess);
         for (int i = 0; i < status.length; i++) {
             OperationStatus stat = status[i];
             Mutation mutation = toProcess[i];
@@ -146,6 +144,7 @@ public class RegionWriteHandler implements WriteHandler {
                 case BAD_FAMILY:
                 case FAILURE:
                     ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, stat.getExceptionMsg()));
+                    break;
                 default:
                     ctx.success(mutation);
                     break;

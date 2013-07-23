@@ -243,6 +243,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markFailed(Throwable error) throws ExecutionException {
+
         switch (status.getStatus()) {
             case INVALID:
             case FAILED:

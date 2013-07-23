@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -83,5 +84,10 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         scan = new Scan();
         scan.readFields(in);
         instructions = (SpliceObserverInstructions)in.readObject();
+    }
+
+    @Override
+    public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) {
+        return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
     }
 }

@@ -2,6 +2,7 @@ package com.splicemachine.job;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 
@@ -15,7 +16,16 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Created on: 4/3/13
  */
 public class TaskStatus implements Externalizable{
-    private static final long serialVersionUID = 4l;
+    private static final long serialVersionUID = 6l;
+
+    private AtomicReference<Status> status;
+    private final Set<StatusListener> listeners;
+    private volatile TaskStats stats;
+    private volatile String txnId;
+
+    private volatile boolean shouldRetry;
+    private volatile String errorCode;
+    private volatile String errorMessage;
 
     public static TaskStatus failed(String s) {
         return new TaskStatus(Status.FAILED,new IOException(s));
@@ -25,16 +35,14 @@ public class TaskStatus implements Externalizable{
         return txnId;
     }
 
+    public String getErrorCode() {
+        return errorCode;
+    }
+
 
     public static interface StatusListener{
-       void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
+        void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
     }
-    private AtomicReference<Status> status;
-    private volatile Throwable error;
-    private final Set<StatusListener> listeners;
-    private volatile TaskStats stats;
-    private volatile String txnId;
-
     public TaskStatus(){
        this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
     }
@@ -42,15 +50,23 @@ public class TaskStatus implements Externalizable{
     public TaskStatus(Status status, Throwable error) {
         this();
         this.status = new AtomicReference<Status>(status);
-        this.error = error;
+        if(error!=null){
+            error = Exceptions.getRootCause(error);
+            this.shouldRetry = Exceptions.shouldRetry(error);
+            this.errorMessage = error.getMessage();
+        }
     }
 
     public void setTxnId(String txnId){
         this.txnId = txnId;
     }
 
-    public Throwable getError(){
-        return error;
+    public String getErrorMessage(){
+       return errorMessage;
+    }
+
+    public boolean shouldRetry(){
+        return shouldRetry;
     }
 
     public Status getStatus(){
@@ -95,7 +111,10 @@ public class TaskStatus implements Externalizable{
     }
 
     public void setError(Throwable error) {
-        this.error = error;
+        error = Exceptions.getRootCause(error);
+        this.errorMessage = error.getMessage();
+        this.errorCode = Exceptions.getErrorCode(error);
+        this.shouldRetry = Exceptions.shouldRetry(error);
     }
 
     public void setStats(TaskStats stats){
@@ -104,10 +123,12 @@ public class TaskStatus implements Externalizable{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(status.get().name());
-        out.writeBoolean(error!=null);
-        if(error!=null){
-            writeError(out, error);
+        Status statusInfo = status.get();
+        out.writeUTF(statusInfo.name());
+        if(statusInfo==Status.FAILED){
+            out.writeBoolean(shouldRetry);
+            out.writeUTF(errorCode);
+            out.writeUTF(errorMessage);
         }
         out.writeBoolean(stats!=null);
         if(stats!=null)
@@ -135,8 +156,10 @@ public class TaskStatus implements Externalizable{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         status = new AtomicReference<Status>(Status.valueOf(in.readUTF()));
-        if(in.readBoolean()){
-            error = (Throwable)in.readObject();
+        if(status.get()==Status.FAILED){
+            shouldRetry = in.readBoolean();
+            errorCode = in.readUTF();
+            errorMessage = in.readUTF();
         }
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();

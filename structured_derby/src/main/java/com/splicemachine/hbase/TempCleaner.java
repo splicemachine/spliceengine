@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.Task;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -122,6 +123,11 @@ public class TempCleaner {
         @Override
         public String getJobId() {
             return jobId;
+        }
+
+        @Override
+        public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
+            return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
         }
 
         @Override

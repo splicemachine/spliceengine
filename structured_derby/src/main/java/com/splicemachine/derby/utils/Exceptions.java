@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -140,6 +141,35 @@ public class Exceptions {
             else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
         }
         return new DoNotRetryIOException(result.getErrorMsg());
+    }
+
+    public static boolean shouldRetry(Throwable error) {
+        return !(error instanceof StandardException||error instanceof DoNotRetryIOException);
+    }
+
+    public static Throwable getRootCause(Throwable error) {
+        error = Throwables.getRootCause(error);
+        if(error instanceof RetriesExhaustedWithDetailsException ){
+            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)error;
+            List<Throwable> causes = rewde.getCauses();
+            if(causes!=null&&causes.size()>0)
+                error = causes.get(0);
+        }
+        return error;
+    }
+
+    public static Throwable getWrapperException(String errorMessage,String sqlState) {
+        StandardException se =  StandardException.newException(sqlState,errorMessage);
+        se.setSqlState(sqlState);
+        se.setTextMessage(errorMessage);
+        return se;
+    }
+
+    public static String getErrorCode(Throwable error) {
+        if(error instanceof StandardException){
+            return ((StandardException)error).getSqlState();
+        }
+        return SQLState.DATA_UNEXPECTED_EXCEPTION;
     }
 
     public static class LangFormatException extends DoNotRetryIOException{

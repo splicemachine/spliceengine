@@ -113,7 +113,6 @@ public abstract class AbstractImportTask extends ZkTask {
                 }
             }else
                 keyColumns = new int[0];
-            BitSet bitSet = getNonNullFields(row);
 
             entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
 

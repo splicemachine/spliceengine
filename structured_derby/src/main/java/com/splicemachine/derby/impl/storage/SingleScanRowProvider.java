@@ -55,7 +55,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
                     return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
                 else
                     return new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
         }else{

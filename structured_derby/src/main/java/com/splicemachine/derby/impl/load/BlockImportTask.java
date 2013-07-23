@@ -97,6 +97,7 @@ public class BlockImportTask extends AbstractImportTask{
                 start += reader.readLine(text);
 
             long pos = start;
+            String txnId = getTaskStatus().getTransactionId();
             while(pos<end){
                 long newSize = reader.readLine(text);
                 if(newSize==0)
@@ -106,7 +107,7 @@ public class BlockImportTask extends AbstractImportTask{
                 if(line==null||line.length()==0)
                     continue; //skip empty lines
                 String[] cols = parser.parseLine(line);
-                doImportRow(importContext.getTransactionId(),cols,row,writeBuffer);
+                doImportRow(txnId,cols,row,writeBuffer);
                 numImported++;
 
                 reportIntermediate(numImported);

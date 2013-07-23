@@ -1,12 +1,14 @@
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.collect.*;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.job.Task;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -14,7 +16,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -99,6 +100,25 @@ public class BlockImportJob extends FileImportJob{
         return taskMap;
     }
 
+    @Override
+    public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
+        //get regions within range
+
+        List<HRegionLocation> regionsInRange;
+        if(table instanceof HTable)
+            regionsInRange = ((HTable)table).getRegionsInRange(taskStartKey,taskEndKey);
+        else if(table instanceof BetterHTablePool.ReturningHTable){
+            regionsInRange = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionsInRange(taskStartKey,taskEndKey);
+        }else{
+            throw new IOException("Unexpected Table type: " + table.getClass());
+        }
+
+        //take the first, and find its boundaries
+        HRegionInfo info = regionsInRange.get(0).getRegionInfo();
+
+        return Pair.newPair(originalTask,getTaskBoundary(info));
+    }
+
     private void putTask(Map<BlockImportTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
         BlockImportTask task = new BlockImportTask(
                 jobId,
@@ -107,16 +127,11 @@ public class BlockImportJob extends FileImportJob{
                 SpliceConstants.DEFAULT_IMPORT_TASK_PRIORITY,
                 parentTxnString,
                 false);
-//        byte[] end = next.getEndKey();
-//        byte[] endKey;
-//        if(end.length>0){
-//            endKey = new byte[end.length];
-//            System.arraycopy(end,0,endKey,0,end.length);
-//            do{
-//                BytesUtil.decrementAtIndex(endKey, endKey.length - 1);
-//            }while(!HRegion.rowIsInRange(next,endKey));
-//        }else
-//            endKey = end;
+        Pair<byte[], byte[]> regionBounds = getTaskBoundary(next);
+        taskMap.put(task,regionBounds);
+    }
+
+    private Pair<byte[], byte[]> getTaskBoundary(HRegionInfo next) {
         byte[] start = next.getStartKey();
         if(start.length<=0){
             /*
@@ -133,11 +148,10 @@ public class BlockImportJob extends FileImportJob{
             if(end.length>0){
                 start = new byte[end.length];
                 System.arraycopy(end,0,start,0,end.length);
-                BytesUtil.decrementAtIndex(start,start.length-1);
+                BytesUtil.decrementAtIndex(start, start.length - 1);
             }
         }
-        Pair<byte[],byte[]> regionBounds = Pair.newPair(start, start); //should guarantee only one region involved
-        taskMap.put(task,regionBounds);
+        return Pair.newPair(start, start);
     }
 
     private Map<ServerName,HRegionInfo> getRegionLocations() throws IOException{
@@ -170,71 +184,6 @@ public class BlockImportJob extends FileImportJob{
                 regionsToReturn.put(serverName,info);
         }
         return regionsToReturn;
-    }
-
-    private List<HRegionLocation> getRegionLocations(HBaseAdmin admin,byte[] tableBytes)
-            throws IOException {
-		/*
-		 * Get the RegionLocations for a table based on the HRegionInfos returned.
-		 */
-        NavigableMap<HRegionInfo,ServerName> regionLocations;
-        if(table instanceof HTable){
-            regionLocations = ((HTable) table).getRegionLocations();
-        }else if(table instanceof BetterHTablePool.ReturningHTable){
-            regionLocations = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations();
-        }else{
-            throw new IOException("Unexpected Table Type:" + table.getClass());
-        }
-
-        List<HRegionLocation> regions = Lists.newArrayListWithCapacity(regionLocations.size());
-        for (HRegionInfo tableRegion : regionLocations.keySet()) {
-            ServerName serverName = regionLocations.get(tableRegion);
-            regions.add(new HRegionLocation(tableRegion,serverName.getHostname(),serverName.getPort()));
-        }
-
-        /*
-         * It's possible that admin.getTableRegions() will return incorrect regions. particularly in a split
-         * situation, it's possible that the call will return both the parent and the child regions (e.g.
-         * you may see [a,b) AND [a,a1) AND [a2,b) for a < a1 < a2 < b). Because we only want to assign
-         * ONE region for each task, we need to filter those tasks out. Simple enough, just sort by start key
-         * and end key (asc start, descending end), then remove duplicates.
-         */
-        Collections.sort(regions, new Comparator<HRegionLocation>() {
-            @Override
-            public int compare(HRegionLocation o1, HRegionLocation o2) {
-                if(o1==null){
-                    if(o2==null) return 0;
-                    else return -1;
-                }else if(o2==null) return 1;
-
-                HRegionInfo left = o1.getRegionInfo();
-                HRegionInfo right = o2.getRegionInfo();
-                int compare = BytesUtil.emptyBeforeComparator.compare(left.getStartKey(),right.getStartKey());
-                if(compare !=0) return compare; //sort by start key ascending
-                else {
-                    //start keys match, sort by end key descending
-                    compare = BytesUtil.emptyBeforeComparator.compare(left.getEndKey(),right.getEndKey());
-                    if(compare!=0)
-                        return -1*compare;
-                    else
-                        return compare;
-                }
-            }
-        });
-        for(int i=0;i<regions.size();i++){
-            HRegionLocation next = regions.get(i);
-            for(int j=i+1;j<regions.size();j++){
-                HRegionLocation possibleDuplicate = regions.get(j);
-                if(BytesUtil.emptyBeforeComparator.compare(
-                        next.getRegionInfo().getStartKey(),
-                        possibleDuplicate.getRegionInfo().getStartKey())==0){
-                    regions.remove(j);
-                    j--;
-                }
-            }
-        }
-
-        return regions;
     }
 
     public static void main(String... args) throws Exception{

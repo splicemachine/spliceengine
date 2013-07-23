@@ -9,13 +9,8 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.JobSchedulerManagement;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.job.Status;
-import com.splicemachine.job.TaskFuture;
-import com.splicemachine.job.TaskStatus;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -101,7 +96,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         Watcher watcher = new Watcher(job);
         for(final RegionTask task:tasks.keySet()){
-            submit(watcher,task, tasks.get(task), table,0);
+            submit(watcher,job,task, tasks.get(task), table,0);
         }
         return watcher;
     }
@@ -141,6 +136,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
     }
 
     private void submit(final Watcher watcher,
+                        final CoprocessorJob job,
                         final RegionTask task,
                         Pair<byte[],byte[]> range,
                         final HTableInterface table,
@@ -157,7 +153,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     },new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
-                            RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, task, result, table,tryNum);
+                            RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, job, task, result, table,tryNum);
                             watcher.tasksToWatch.add(taskWatcher);
                             watcher.taskChanged(taskWatcher);
                         }
@@ -176,6 +172,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
     private class RegionTaskWatcher implements Comparable<RegionTaskWatcher>,TaskFuture{
         private final byte[] startRow;
         private final RegionTask task;
+        private final CoprocessorJob job;
         private final HTableInterface table;
         private final Watcher watcher;
         private final TaskFutureContext taskFutureContext;
@@ -185,11 +182,13 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
         private RegionTaskWatcher(Watcher watcher,
                                   byte[] startRow,
+                                  CoprocessorJob job,
                                   RegionTask task,
                                   TaskFutureContext taskFutureContext,
                                   HTableInterface table,
                                   int tryNum) {
             this.watcher = watcher;
+            this.job = job;
             this.startRow = startRow;
             this.task = task;
             this.table = table;
@@ -320,23 +319,10 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         private void dealWithError() throws ExecutionException{
-            Throwable error = taskStatus.getError();
-            //TODO -sf- is this an adequate guard?
-            if(error instanceof DoNotRetryIOException
-                    || error instanceof StandardException ){
-                throw new ExecutionException(error);
-            }else if(error instanceof RetriesExhaustedWithDetailsException){
-                List<Throwable> errors = ((RetriesExhaustedWithDetailsException)error).getCauses();
-                for(Throwable e:errors){
-                    if(e instanceof DoNotRetryIOException||e instanceof StandardException)
-                        throw new ExecutionException(e);
-                }
-                //retryable error
+            if(taskStatus.shouldRetry())
                 resubmit();
-            }else{
-                //retryable error
-                resubmit();
-            }
+            else
+                throw new ExecutionException(Exceptions.getWrapperException(taskStatus.getErrorMessage(),taskStatus.getErrorCode()));
         }
 
         private void resubmit() throws ExecutionException{
@@ -356,6 +342,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             }while(nextTask!=null && Bytes.compareTo(nextTask.startRow,startRow)==0); //skip past all tasks that are in the same position as me
 
             watcher.tasksToWatch.remove(this);
+
             //rollback child transaction
             if(taskStatus.getTransactionId()!=null){
                 try {
@@ -379,8 +366,14 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             }else
                 endRow = HConstants.EMPTY_END_ROW;
 
-            //resubmit the task
-            submit(watcher, task, Pair.newPair(startRow, endRow), table,tryNum+1);
+            try{
+                Pair<RegionTask,Pair<byte[],byte[]>> newTaskData = job.resubmitTask(task, startRow, endRow);
+
+                //resubmit the task
+                submit(watcher,job, newTaskData.getFirst(), newTaskData.getSecond(), table,tryNum+1);
+            }catch(IOException ioe){
+                throw new ExecutionException(ioe);
+            }
         }
 
         @Override

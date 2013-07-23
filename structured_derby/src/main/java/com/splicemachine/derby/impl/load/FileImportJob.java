@@ -4,11 +4,15 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -36,8 +40,17 @@ public class FileImportJob extends ImportJob{
         if(!fs.exists(filePath))
             throw new IOException("File "+ filePath+" does not exist");
 
-        byte[] tableBytes = Bytes.toBytes(context.getTableName());
+        return Collections.singletonMap(new FileImportTask(getJobId(), context,
+                SpliceConstants.importTaskPriority, context.getTransactionId()), getTaskBoundary());
+    }
 
+    @Override
+    public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
+        return Pair.newPair(originalTask,getTaskBoundary());
+    }
+
+    private Pair<byte[],byte[]> getTaskBoundary() throws IOException{
+        byte[] tableBytes = Bytes.toBytes(context.getTableName());
         HBaseAdmin admin = new HBaseAdmin(SpliceUtils.config);
         List<HRegionInfo> regions = admin.getTableRegions(tableBytes);
         HRegionInfo regionToSubmit = null;
@@ -52,8 +65,6 @@ public class FileImportJob extends ImportJob{
             BytesUtil.decrementAtIndex(endRow,endRow.length-1);
             end = endRow;
         }
-
-        return Collections.singletonMap(new FileImportTask(getJobId(),context,
-                SpliceConstants.importTaskPriority,context.getTransactionId()),Pair.newPair(start, end));
+        return Pair.newPair(start,end);
     }
 }

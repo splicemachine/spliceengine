@@ -1,12 +1,7 @@
 package com.splicemachine.hbase;
 
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Row;
-
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -20,14 +15,15 @@ public class WriteFailedException extends IOException {
     }
 
     private static String parseIntoErrorMessage(Collection<String> errorMessages) {
-        StringBuilder sb = new StringBuilder("Failed ").append(errorMessages.size()).append(" writes:");
-        boolean isFirst=true;
-        for(String errorMessage:errorMessages){
-            if(!isFirst) sb = sb.append(",");
-            else isFirst=false;
-            sb = sb.append(errorMessage);
-        }
+        StringBuilder sb = new StringBuilder("Failed ").append(errorMessages.size()).append(" writes");
         return sb.toString();
+//        boolean isFirst=true;
+//        for(String errorMessage:errorMessages){
+//            if(!isFirst) sb = sb.append(",");
+//            else isFirst=false;
+//            sb = sb.append(errorMessage);
+//        }
+//        return sb.toString();
     }
 
 

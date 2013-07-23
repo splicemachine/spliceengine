@@ -62,7 +62,7 @@ public class OperationSink {
         return new OperationSink(taskId,operation,writer);
     }
 
-    public TaskStats sink(byte[] destinationTable) throws IOException {
+    public TaskStats sink(byte[] destinationTable) throws Exception {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
@@ -97,7 +97,7 @@ public class OperationSink {
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
-            SpliceLogUtils.logAndThrow(LOG, Exceptions.getIOException(e));
+            SpliceLogUtils.logAndThrow(LOG, e);
         }
         return stats.finish();
     }
