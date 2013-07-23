@@ -154,9 +154,10 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     }
 
     public KeyValueType getKeyValueType(Data family, Data qualifier, Data value) {
-        if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
+        final boolean isSIFamily = dataLib.valuesEqual(family, siFamily);
+        if (isSIFamily && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
             return KeyValueType.COMMIT_TIMESTAMP;
-        } else if (dataLib.valuesEqual(family, siFamily) && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
+        } else if (isSIFamily && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
             if (dataLib.valuesEqual(value, siNull)) {
                 return KeyValueType.TOMBSTONE;
             } else if (dataLib.valuesEqual(value, siAntiTombstoneValue)) {
