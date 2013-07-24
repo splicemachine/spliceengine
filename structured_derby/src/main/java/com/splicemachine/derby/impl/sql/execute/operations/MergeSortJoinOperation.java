@@ -441,15 +441,32 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 			}
         }
 
-        private ExecRow getRightRowForLeft(JoinSideExecRow leftJoinRow) {
+        private ExecRow getRightRowForLeft(JoinSideExecRow leftJoinRow) throws StandardException {
             boolean matchingRights = leftJoinRow.sameHash(rightHash);
-            if (matchingRights){
+            // apply restriction
+            int rightsMax = rights != null ? rights.size() : 0;
+            List<ExecRow> filteredRights = new ArrayList<ExecRow>(rightsMax);
+            if (matchingRights) {
+                if (restriction == null) {
+                    filteredRights = rights;
+                } else {
+                    activation.setCurrentRow(leftJoinRow.getRow(), leftResultSet.resultSetNumber());
+                    for (ExecRow right : rights) {
+                        activation.setCurrentRow(right, rightResultSet.resultSetNumber());
+                        DataValueDescriptor shouldKeep = (DataValueDescriptor) restriction.invoke(activation);
+                        if (!shouldKeep.isNull() && shouldKeep.getBoolean()) {
+                            filteredRights.add(right);
+                        }
+                    }
+                }
+            }
+            if (filteredRights.size() > 0) {
                 if (notExistsRightSide) {
                     SpliceLogUtils.trace(LOG, "right antijoin miss for left=%s", leftJoinRow);
                     return null;
                 }
                 SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", leftJoinRow);
-                rightIterator = rights.iterator();
+                rightIterator = filteredRights.iterator();
                 return rightIterator.next();
             } else {
                 resetRightSide();
