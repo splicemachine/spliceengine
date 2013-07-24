@@ -20,46 +20,41 @@
  */
 
 package org.apache.derby.impl.services.reflect;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.derby.iapi.util.ByteArray;
 
 /**
-	Relfect loader with Privileged block for Java 2 security. 
+	Reflect loader with Privileged block for Java 2 security. 
 */
 
-public final class ReflectClassesJava2 extends DatabaseClasses
-	implements java.security.PrivilegedAction
-{
-
-	private java.util.HashMap preCompiled;
-
+public final class ReflectClassesJava2 extends DatabaseClasses implements java.security.PrivilegedAction {
+	protected ByteArrayClassMap preCompiled;
 	private int action = -1;
 
-	synchronized LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump) {
-
+	LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump) {
+		if (preCompiled == null)
+			preCompiled = new ByteArrayClassMap(1000);
+		LoadedGeneratedClass classAttempt = (LoadedGeneratedClass) preCompiled.get(fullyQualifiedName);
+		if (classAttempt != null)
+			return classAttempt;
 		if (classDump == null || classDump.getArray() == null) {
-
-			if (preCompiled == null)
-				preCompiled = new java.util.HashMap();
-			else
-			{
-				ReflectGeneratedClass gc = (ReflectGeneratedClass) preCompiled.get(fullyQualifiedName);
-				if (gc != null)
-					return gc;
-			}
-
 			// not a generated class, just load the class directly.
 			try {
 				Class jvmClass = Class.forName(fullyQualifiedName);
-				ReflectGeneratedClass gc = new ReflectGeneratedClass(this, jvmClass, null);
-				preCompiled.put(fullyQualifiedName, gc);
-				return gc;
+				classAttempt = new ReflectGeneratedClass(this, jvmClass, null);
+				preCompiled.put(fullyQualifiedName, classAttempt);
+				return classAttempt;
 			} catch (ClassNotFoundException cnfe) {
 				throw new NoClassDefFoundError(cnfe.toString());
 			}
 		}
-
 		action = 1;
-		return ((ReflectLoaderJava2) java.security.AccessController.doPrivileged(this)).loadGeneratedClass(fullyQualifiedName, classDump);
+		classAttempt = ((ReflectLoaderJava2) java.security.AccessController.doPrivileged(this)).loadGeneratedClass(fullyQualifiedName, classDump);
+		preCompiled.put(fullyQualifiedName, classAttempt);
+		return classAttempt;
 	}
 
 	public final Object run() {
@@ -108,5 +103,16 @@ public final class ReflectClassesJava2 extends DatabaseClasses
             foundClass = Class.forName(name);
         }
 		return foundClass;
+	}
+	
+	public static class ByteArrayClassMap extends LinkedHashMap {
+		private int maxCapacity;
+		public ByteArrayClassMap(int maxCapacity){
+			super(0, 0.75F,true); // LRU CACHE
+			this.maxCapacity = maxCapacity;
+		}
+		protected boolean removeEldestEntry(Entry eldest) {
+			return size() >= this.maxCapacity;
+		}
 	}
 }
