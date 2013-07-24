@@ -62,6 +62,27 @@ public class EntryEncoder {
         return entry;
     }
 
+    public void reset(BitSet nonNullFields){
+        /*
+         * Assumes that the fields which are scalar, float, double, are subsets of the nonnull, so adjusts
+         * using and() methods
+         */
+        int oldCardinality = bitIndex.cardinality();
+        boolean differs = nonNullFields.cardinality()!=oldCardinality;
+
+        for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
+            if(!nonNullFields.get(i)){
+                differs=true;
+                break;
+            }
+        }
+
+        if(differs){
+            bitIndex = BitIndexing.getBestIndex(nonNullFields,bitIndex.getScalarFields(),
+                    bitIndex.getFloatFlields(),bitIndex.getDoubleFields());
+        }
+    }
+
     public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();

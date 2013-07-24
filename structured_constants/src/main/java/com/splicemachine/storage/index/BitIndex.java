@@ -74,4 +74,10 @@ public interface BitIndex {
     boolean isDoubleType(int position);
 
     boolean isFloatType(int position);
+
+    BitSet getScalarFields();
+
+    BitSet getDoubleFields();
+
+    BitSet getFloatFlields();
 }

@@ -32,7 +32,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(boolean value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value,false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -41,7 +41,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(boolean value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value, desc);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -50,7 +50,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(short value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value, false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -59,7 +59,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(short value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[]  next = ScalarEncoding.toBytes(value, desc);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -68,7 +68,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(int value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[]  next = ScalarEncoding.toBytes(value, false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -77,7 +77,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(int value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -87,7 +87,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(long value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -96,7 +96,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(long value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -105,7 +105,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(float value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -114,7 +114,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(float value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -124,7 +124,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(double value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -133,7 +133,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(double value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -142,7 +142,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(BigDecimal value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -151,7 +151,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(BigDecimal value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -160,7 +160,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(String value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = StringEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -169,7 +169,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(String value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = StringEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -186,7 +186,7 @@ public class MultiFieldEncoder {
      * position.
      */
     public MultiFieldEncoder encodeNextUnsorted(byte[] value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         //append a length field
         byte[] total = Encoding.encodeBytesUnsorted(value);
 
@@ -197,7 +197,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(byte[] value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] encode = ByteEncoding.encode(value, desc);
         currentSize+=encode.length;
         fields[currentPos] = encode;

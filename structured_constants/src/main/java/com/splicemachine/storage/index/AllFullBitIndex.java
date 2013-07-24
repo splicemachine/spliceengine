@@ -80,4 +80,19 @@ public class AllFullBitIndex implements BitIndex {
     public boolean isFloatType(int position) {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
+
+    @Override
+    public BitSet getScalarFields() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public BitSet getDoubleFields() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public BitSet getFloatFlields() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
 }

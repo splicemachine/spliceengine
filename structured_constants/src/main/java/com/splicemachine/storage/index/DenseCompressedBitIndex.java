@@ -34,6 +34,8 @@ class DenseCompressedBitIndex implements BitIndex {
     private final BitSet floatFields;
     private final BitSet doubleFields;
 
+    private byte[] encodedData;
+
     DenseCompressedBitIndex(BitSet bitSet,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
         this.bitSet = bitSet;
         this.scalarFields =scalarFields;
@@ -64,10 +66,12 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public byte[] encode() {
-        byte[] bytes = new byte[encodedSize()];
-        bytes[0] = (byte)0xC0;
+        if(encodedData!=null) return encodedData;
 
-        BitWriter bitWriter = new BitWriter(bytes,0,bytes.length,5,true);
+        encodedData = new byte[encodedSize()];
+        encodedData[0] = (byte)0xC0;
+
+        BitWriter bitWriter = new BitWriter(encodedData,0,encodedData.length,5,true);
 
         int lastSetBit = -1;
         int numScalars=0;
@@ -131,7 +135,7 @@ class DenseCompressedBitIndex implements BitIndex {
         }
         writeTypedData(bitWriter,numScalars,numFloats,numDoubles,numUntyped);
 
-        return bytes;
+        return encodedData;
     }
 
     private void writeTypedData(BitWriter bitWriter, int numScalars, int numFloats, int numDoubles, int numUntyped) {
@@ -159,6 +163,7 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public int encodedSize() {
+        if(encodedData!=null) return encodedData.length;
 
         int lastSetBit=-1;
         int numScalars = 0;
@@ -327,6 +332,21 @@ class DenseCompressedBitIndex implements BitIndex {
         result = 31 * result + floatFields.hashCode();
         result = 31 * result + doubleFields.hashCode();
         return result;
+    }
+
+    @Override
+    public BitSet getScalarFields() {
+        return scalarFields;
+    }
+
+    @Override
+    public BitSet getDoubleFields() {
+        return doubleFields;
+    }
+
+    @Override
+    public BitSet getFloatFlields() {
+        return floatFields;
     }
 
     public static BitIndex wrap(byte[] data, int offset, int length) {

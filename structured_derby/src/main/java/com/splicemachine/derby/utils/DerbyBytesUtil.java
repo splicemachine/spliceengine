@@ -348,8 +348,9 @@ public class DerbyBytesUtil {
         }
 
         public static Format formatFor(DataValueDescriptor dvd){
+            int typeFormatId = dvd.getTypeFormatId();
             for(Format format:values()){
-                if(format.storedFormatId==dvd.getTypeFormatId()){
+                if(format.storedFormatId==typeFormatId){
                     return format;
                 }
             }
@@ -418,7 +419,8 @@ public class DerbyBytesUtil {
     public static BitSet getNonNullFields(DataValueDescriptor[] row) {
         BitSet nonNullRows = new BitSet(row.length);
         for(int i=0;i<row.length;i++){
-            if(row[i]!=null&&!row[i].isNull())
+            DataValueDescriptor dvd = row[i];
+            if(dvd!=null&&!dvd.isNull())
                 nonNullRows.set(i);
         }
         return nonNullRows;
