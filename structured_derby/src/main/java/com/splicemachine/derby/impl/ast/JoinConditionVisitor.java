@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.ast;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.log4j.Logger;
@@ -34,29 +33,31 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     private List<OptimizablePredicate> pulledPreds = new ArrayList<OptimizablePredicate>();
 
     @Override
-    public FromBaseTable visit(FromBaseTable t){
+    public FromBaseTable visit(FromBaseTable t) {
         return pullPredsFromTable(t);
     }
 
     @Override
-    public JoinNode visit(JoinNode j){
+    public JoinNode visit(JoinNode j) {
         return addPredsToJoin(j);
     }
 
     public FromBaseTable pullPredsFromTable(FromBaseTable t) {
-        PredicateList pl = new PredicateList();
-        try {
-            t.pullOptPredicates(pl);
-            for (int i = 0, s = pl.size(); i < s; i++) {
-                OptimizablePredicate p = pl.getOptPredicate(i);
-                if (!predicateIsEvalable(p, t)) {
-                    pulledPreds.add(p);
-                } else {
-                    t.pushOptPredicate(p);
+        if (t.getTrulyTheBestAccessPath().getJoinStrategy().getClass() == MergeSortJoinStrategy.class) {
+            PredicateList pl = new PredicateList();
+            try {
+                t.pullOptPredicates(pl);
+                for (int i = 0, s = pl.size(); i < s; i++) {
+                    OptimizablePredicate p = pl.getOptPredicate(i);
+                    if (!predicateIsEvalable(p, t)) {
+                        pulledPreds.add(p);
+                    } else {
+                        t.pushOptPredicate(p);
+                    }
                 }
+            } catch (StandardException e) {
+                LOG.error("Error pull predicates", e);
             }
-        } catch (StandardException e) {
-            LOG.error("Error pull predicates", e);
         }
         return t;
     }
