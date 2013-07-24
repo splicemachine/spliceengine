@@ -24,7 +24,7 @@ import static com.splicemachine.nist.BaseNistTest.*;
  * @author Jeff Cunningham
  *         Date: 7/19/13
  */
-public class TestClassTests {
+public class TestTheTestClassesTest {
 
     @Test
     public void testReadFile() throws Exception {
@@ -78,31 +78,28 @@ public class TestClassTests {
         Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
     }
 
-//    @Test         Gotta find somewhere to keep around a couple of files to diff
+    @Test
     public void testDiff() throws Exception {
-        File sqlFile = new File(BaseNistTest.getBaseDirectory() + "/target/nist/dml001.sql");
-        String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
+        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/diff_cdr002.derby";
         List<String> derbyFileLines = fileToLines(derbyFileName, null);
 
-        String spliceFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
+        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/diff_cdr002.splice";
         List<String> spliceFileLines = fileToLines(spliceFileName, null);
 
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
         BaseNistTest.DiffReport report = new BaseNistTest.DiffReport(derbyFileName, spliceFileName);
-        BaseNistTest.reportDeltas(patch.getDeltas(), report, null);
+        BaseNistTest.reportDeltas(patch.getDeltas(), report);
         PrintStream out = System.out;
         report.print(out);
     }
 
     @Test
-    public void testDerbySetup() throws Exception {
-        DerbyNistTest.setup();
-    }
-
-    @Test
-    public void testSpliceSetup() throws Exception {
-        SpliceNistTest.setup();
+    public void testGetTestFiles() throws Exception {
+        List<File> testFiles = BaseNistTest.getTestFileList();
+        Assert.assertFalse("Got nuthin", testFiles.isEmpty());
+        System.out.println(printList(testFiles));
+        System.out.println(testFiles.size()+" files");
     }
 
     private String printList(Collection<? extends Object> things) {

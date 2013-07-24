@@ -10,7 +10,7 @@ import java.util.Properties;
 import org.junit.Ignore;
 
 @Ignore
-public class DerbyEmbedConnection {
+public class DerbyEmbedConnection implements ConnectionFactory {
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
     protected static String protocol = "jdbc:derby:derbyDB;create=true";
@@ -19,23 +19,32 @@ public class DerbyEmbedConnection {
 	protected static Connection conn = null;
 	protected static List<Statement> statements = new ArrayList<Statement>();
 	protected static boolean loaded;
+
+    public DerbyEmbedConnection() throws Exception {
+        loadDriver();
+        DriverManager.getConnection(protocol, props);
+    }
 	
-    protected synchronized static void loadDriver() {
+    public synchronized void loadDriver() throws Exception {
         try {
             Class.forName(driver).newInstance();
         } catch (ClassNotFoundException cnfe) {
             System.err.println("\nUnable to load the JDBC driver " + driver);
             System.err.println("Please check your CLASSPATH.");
             cnfe.printStackTrace(System.err);
+            throw cnfe;
         } catch (InstantiationException ie) {
             System.err.println(
                         "\nUnable to instantiate the JDBC driver " + driver);
             ie.printStackTrace(System.err);
+            throw ie;
         } catch (IllegalAccessException iae) {
             System.err.println(
                         "\nNot allowed to access the JDBC driver " + driver);
             iae.printStackTrace(System.err);
+            throw iae;
         }
+        loaded =  true;
     }
     
     protected static void printSQLException(SQLException e) {
@@ -50,16 +59,15 @@ public class DerbyEmbedConnection {
     }
 
     
-    public static Connection getCreateConnection() throws Exception {
-    	if (!loaded)
-    		loadDriver();
-        return DriverManager.getConnection(protocol, props);
-    }
+//    private Connection createConnection() throws Exception {
+//        return DriverManager.getConnection(protocol, props);
+//    }
 
-    public static Connection getConnection() throws Exception {
-    	if (!loaded)
-    		loadDriver();
-        return DriverManager.getConnection(protocol2, props);
+    public Connection getConnection() throws Exception {
+//    	if (!loaded) {
+//    		loadDriver();
+//        }
+        return DriverManager.getConnection(protocol, props);
     }
 
 }

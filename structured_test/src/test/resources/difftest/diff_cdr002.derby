@@ -1,0 +1,14 @@
+-- TEST:0303 CHECK <comp. predicate> in <col. cons.>, insert!
+
+-- setup
+  DELETE FROM SUN.STAFF6;
+ERROR 42Y07: Schema 'SUN' does not exist
+ij> INSERT INTO SUN.STAFF6
+        VALUES('E1','Alice',0,'Deale');
+ERROR 42Y07: Schema 'SUN' does not exist
+ij> -- PASS:0303 If ERROR, check constraint, 0 rows inserted?
+
+  INSERT INTO SUN.STAFF6
+        VALUES('E2','Tom',22,'Newyork');
+ERROR 42Y07: Schema 'SUN' does not exist
+ij> -- PASS:0303 If ERROR, check constraint, 0 rows inserted?

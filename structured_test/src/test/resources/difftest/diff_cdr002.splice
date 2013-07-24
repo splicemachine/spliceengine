@@ -1,0 +1,12 @@
+-- TEST:0303 CHECK <comp. predicate> in <col. cons.>, insert!
+
+-- setup
+  DELETE FROM SUN.STAFF6;
+
+  INSERT INTO SUN.STAFF6
+        VALUES('E1','Alice',0,'Deale');
+-- PASS:0303 If ERROR, check constraint, 0 rows inserted?
+
+  INSERT INTO SUN.STAFF6
+        VALUES('E2','Tom',22,'Newyork');
+-- PASS:0303 If ERROR, check constraint, 0 rows inserted?

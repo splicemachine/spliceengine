@@ -14,12 +14,14 @@ import org.junit.Assert;
 
 import java.io.*;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 
 public class BaseNistTest {
+    public static int DEFAULT_THREAD_POOL_SIZE = 1;
 
-    public static int DEFAULT_THREAD_POOL_SIZE = 4;
-
+    private static final String DERBY_FILTER = "derby.filter";
+    private static final String SPLICE_FILTER = "splice.filter";
 
     public static final String DERBY_OUTPUT_EXT = ".derby";
     public static final String SPLICE_OUTPUT_EXT = ".splice";
@@ -89,6 +91,22 @@ public class BaseNistTest {
 
     }
 
+    public static List<String> readDerbyFilters() {
+        List<String> derbyFilters = new ArrayList<String>();
+        for (String filter :  fileToLines(getResourceDirectory() + "/nist/"+DERBY_FILTER, "#")) {
+            derbyFilters.add(filter.trim());
+        }
+        return derbyFilters;
+    }
+
+    public static List<String> readSpliceFilters() {
+        List<String> spliceFilters = new ArrayList<String>();
+        for (String filter :  fileToLines(getResourceDirectory() + "/nist/"+SPLICE_FILTER, "#")) {
+            spliceFilters.add(filter.trim());
+        }
+        return spliceFilters;
+    }
+
     public static void runTest(File file, String type, Connection connection) throws Exception {
         FileInputStream fis = null;
         FileOutputStream fop = null;
@@ -103,6 +121,11 @@ public class BaseNistTest {
             ij.runScript(connection, fis,"UTF-8",fop,"UTF-8");
             fop.flush();
         } catch (Exception e) {
+            try {
+                connection.close();
+            } catch (SQLException e1) {
+                // ignore
+            }
             throw e;
         } finally {
             Closeables.closeQuietly(fop);
@@ -115,16 +138,18 @@ public class BaseNistTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
 
-        boolean success = true;
+        int success = 0;
         for (BaseNistTest.DiffReport report : reports) {
             report.print(ps);
-            success = success && report.isEmpty();
+            if (! report.isEmpty()) {
+                success++;
+            }
         }
 
-        Assert.assertTrue(reports.size() +" Tests failed"+baos.toString("UTF-8")+"\n"+reports.size()+" Tests had differencs.", success);
+        Assert.assertEquals("Some test comparison failed: "+baos.toString("UTF-8")+"\n"+reports.size()+" Tests had differencs.", 0, success);
     }
 
-	public static class SpliceIOFileFilter implements IOFileFilter {
+    public static class SpliceIOFileFilter implements IOFileFilter {
 		private List<String> inclusions;
 		private List<String> exclusions;
 		public SpliceIOFileFilter(List<String> inclusions, List<String> exclusions) {
@@ -188,31 +213,58 @@ public class BaseNistTest {
 		return getBaseDirectory()+"/src/test/resources";
 	}
 
-    public static List<DiffReport> diffOutput(List<File> sqlFiles, List<String> testsToIgnore) {
+    public static List<DiffReport> diffOutput(List<File> sqlFiles,
+                                              List<String> derbyFilter,
+                                              List<String> spliceFilter) {
 
         List<DiffReport> diffs = new ArrayList<DiffReport>();
 
         for (File sqlFile: sqlFiles) {
-            String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
-            List<String> derbyFileLines = fileToLines(derbyFileName, null);
+            // derby output
+            String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" +
+                    sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
+            List<String> derbyFileLines = fileToLines(derbyFileName, "--");
+            // filter derby warnings, etc
+            derbyFileLines = filterOutput(derbyFileLines, derbyFilter);
 
-            String spliceFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" + sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
-            List<String> spliceFileLines = fileToLines(spliceFileName, null);
+            // splice output
+            String spliceFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" +
+                    sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
+            List<String> spliceFileLines = fileToLines(spliceFileName, "--");
+            // filter splice warnings, etc
+            spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 
             Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
             DiffReport diff = new DiffReport(derbyFileName, spliceFileName);
-            reportDeltas(patch.getDeltas(), diff, testsToIgnore);
-//            if (! diff.isEmpty()) {
-                diffs.add(diff);
-//            }
+            reportDeltas(patch.getDeltas(), diff);
+            diffs.add(diff);
         }
         return diffs;
     }
 
-    public static void reportDeltas(List<Delta> deltas, DiffReport diff, Collection<String> testsToIgnore) {
+    private static List<String> filterOutput(List<String> fileLines, List<String> warnings) {
+        if (fileLines == null) {
+            return null;
+        }
+        List<String> filteredLines = new ArrayList<String>(fileLines.size());
+        for (String line : fileLines) {
+            boolean filter = false;
+            for (String warning : warnings) {
+                if (line.contains(warning)) {
+                    filter = true;
+                }
+            }
+            if (! filter) {
+                filteredLines.add(line);
+            }
+        }
+        return filteredLines;
+    }
+
+    public static void reportDeltas(List<Delta> deltas, DiffReport diff) {
         for (Delta delta: deltas) {
-            if (filterDeltas(delta, testsToIgnore)){
+            if (filterDeltas(delta)){
                 continue;
             }
             diff.add("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
@@ -230,7 +282,7 @@ public class BaseNistTest {
         }
     }
 
-    public static boolean filterDeltas(Delta delta, Collection<String> testsToIgnore) {
+    public static boolean filterDeltas(Delta delta) {
         Chunk chunk = delta.getOriginal();
         if (chunk.getLines() == null || chunk.getLines().isEmpty()){
             return true;
