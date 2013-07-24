@@ -19,6 +19,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -576,6 +577,16 @@ public class RowCountOperation extends SpliceBaseOperation{
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.shuffleRows(instructions);
+        }
+
+        @Override
+        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            return provider.asyncShuffleRows(instructions);
+        }
+
+        @Override
+        public JobStats finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+            return provider.finishShuffle(jobFutures);
         }
 
         @Override

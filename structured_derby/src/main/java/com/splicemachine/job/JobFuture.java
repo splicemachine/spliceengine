@@ -1,5 +1,6 @@
 package com.splicemachine.job;
 
+import java.io.Closeable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -71,4 +72,6 @@ public interface JobFuture {
     JobStats getJobStats();
 
     void cleanup() throws ExecutionException;
+
+    void addCleanupTask(Closeable closable);
 }

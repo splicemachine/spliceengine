@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -10,6 +12,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -61,7 +64,8 @@ public class RowProviders {
     }
 
 	public static abstract class DelegatingRowProvider implements RowProvider{
-		protected final RowProvider provider;
+
+        protected final RowProvider provider;
 
 		protected DelegatingRowProvider(RowProvider provider) {
 			this.provider = provider;
@@ -79,6 +83,16 @@ public class RowProviders {
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.shuffleRows(instructions);
+        }
+
+        @Override
+        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            return provider.asyncShuffleRows(instructions);
+        }
+
+        @Override
+        public JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException {
+            return provider.finishShuffle(jobFuture);
         }
 
         @Override
@@ -210,9 +224,26 @@ public class RowProviders {
 
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            JobStats firstStats = firstRowProvider.shuffleRows(instructions);
-            JobStats secondStats = secondRowProvider.shuffleRows(instructions);
-            return new CombinedJobStats(firstStats,secondStats);
+            return finishShuffle( asyncShuffleRows(instructions) );
+        }
+
+        @Override
+        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+
+            List<JobFuture> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
+            List<JobFuture> secondFutures = secondRowProvider.asyncShuffleRows(instructions);
+
+            List<JobFuture> l = new LinkedList<JobFuture>();
+            l.addAll(firstFutures);
+            l.addAll(secondFutures);
+            return l;
+        }
+
+        @Override
+        public JobStats finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+
+            return firstRowProvider.finishShuffle(jobFutures);
+
         }
 
         @Override

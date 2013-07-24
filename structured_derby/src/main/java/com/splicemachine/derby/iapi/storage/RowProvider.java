@@ -1,10 +1,13 @@
 package com.splicemachine.derby.iapi.storage;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+
+import java.util.List;
 
 /**
  * Provides ExecRows for later stages in the execution computation.
@@ -40,6 +43,10 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      * @throws StandardException if something goes wrong during the shuffle phase
      */
     JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
+
+    List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException;
+
+    JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.

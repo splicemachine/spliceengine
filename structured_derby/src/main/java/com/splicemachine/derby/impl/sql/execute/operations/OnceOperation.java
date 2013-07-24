@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -257,6 +258,16 @@ public class OnceOperation extends SpliceBaseOperation {
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return delegate.shuffleRows(instructions);
+        }
+
+        @Override
+        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            return delegate.asyncShuffleRows(instructions);
+        }
+
+        @Override
+        public JobStats finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+            return delegate.finishShuffle(jobFutures);
         }
 
 

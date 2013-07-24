@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -15,6 +16,8 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import java.util.List;
 
 
 /**
@@ -97,6 +100,16 @@ public class MiscOperation extends NoRowsOperation
 
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException {
             throw new UnsupportedOperationException();
         }
 

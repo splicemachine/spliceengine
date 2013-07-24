@@ -97,6 +97,16 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
     }
 
+    @Override
+    public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        return null;
+    }
+
+    @Override
+    public JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException {
+        return null;
+    }
+
     private void cancelAll(LinkedList<JobFuture> jobs) {
         //cancel all remaining tasks
         for(JobFuture jobToCancel:jobs){

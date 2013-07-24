@@ -36,6 +36,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -474,7 +475,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         private final Set<RegionTaskWatcher> cancelledTasks;
         private volatile boolean cancelled = false;
         private JobStatsAccumulator stats;
-
+        private List<Closeable> cleanupTasks = new LinkedList<Closeable>();
 
         public AtomicInteger invalidCount = new AtomicInteger(0);
 
@@ -511,15 +512,29 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                                 if(ke.code()!= KeeperException.Code.NONODE)
                                     throw ke;
                             }
+
                         }
+
                         return null;
                     }
                 });
+
+                for(Closeable closeable : cleanupTasks){
+                    closeable.close();
+                }
+
+            }catch (IOException e) {
+                throw new ExecutionException(e);
             } catch (InterruptedException e) {
                 throw new ExecutionException(e);
             } catch (KeeperException e) {
                 throw new ExecutionException(e);
             }
+        }
+
+        @Override
+        public void addCleanupTask(Closeable closable) {
+            cleanupTasks.add(closable);
         }
 
         @Override
