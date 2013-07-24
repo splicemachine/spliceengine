@@ -2,8 +2,6 @@ package com.splicemachine.nist.test;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.nist.BaseNistTest;
-import com.splicemachine.nist.DerbyNistTest;
-import com.splicemachine.nist.SpliceNistTest;
 import difflib.DiffUtils;
 import difflib.Patch;
 import org.apache.commons.io.FileUtils;
@@ -12,6 +10,8 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -82,18 +82,63 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testRawDiff() throws Exception {
-        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/diff_cdr002.derby";
-        List<String> derbyFileLines = fileToLines(derbyFileName, null);
+        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/cdr002.derby";
+        List<String> derbyFileLines = fileToLines(derbyFileName, "--", "ij> --");
 
-        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/diff_cdr002.splice";
-        List<String> spliceFileLines = fileToLines(spliceFileName, null);
+        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/cdr002.splice";
+        List<String> spliceFileLines = fileToLines(spliceFileName, "--", "ij> --");
 
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
-        BaseNistTest.DiffReport report = new BaseNistTest.DiffReport(derbyFileName, spliceFileName);
-        BaseNistTest.reportDeltas(patch.getDeltas(), report);
+        BaseNistTest.DiffReport report = new BaseNistTest.DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
         PrintStream out = System.out;
         report.print(out);
+    }
+
+    @Test
+    public void testRawDiffInDepth() throws Exception {
+        // derby output
+        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/fakeDiff01.derby";
+        List<String> derbyFileLines = fileToLines(derbyFileName, "--", "ij> --");
+        // filter derby warnings, etc
+        derbyFileLines = filterOutput(derbyFileLines, readDerbyFilters());
+
+        // splice output
+        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/fakeDiff01.splice";
+        List<String> spliceFileLines = fileToLines(spliceFileName, "--", "ij> --");
+        // filter splice warnings, etc
+        spliceFileLines = filterOutput(spliceFileLines, readSpliceFilters());
+
+        Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
+
+        DiffReport diff = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
+        diff.print(System.out);
+    }
+
+    @Test
+    public void testDiff_cdr002() throws Exception {
+        File file = new File(BaseNistTest.getResourceDirectory()+BaseNistTest.TARGET_NIST, "cdr002.sql");
+        List<File> files = Arrays.asList(file);
+
+        PrintStream out = System.out;
+        for (BaseNistTest.DiffReport report : BaseNistTest.diffOutput(files,
+                BaseNistTest.getResourceDirectory() + "/difftest/", readDerbyFilters(), readSpliceFilters())) {
+            report.print(out);
+            Assert.assertEquals(3, report.getNumberOfDiffs());
+        }
+    }
+
+    @Test
+    public void testDiff_schema8() throws Exception {
+        File file = new File(BaseNistTest.getResourceDirectory()+BaseNistTest.TARGET_NIST, "schema8.sql");
+        List<File> files = Arrays.asList(file);
+
+        PrintStream out = System.out;
+        for (BaseNistTest.DiffReport report : BaseNistTest.diffOutput(files,
+                BaseNistTest.getResourceDirectory() + "/difftest/", BaseNistTest.readDerbyFilters(), BaseNistTest.readSpliceFilters())) {
+            report.print(out);
+            Assert.assertEquals(66, report.getNumberOfDiffs());
+        }
     }
 
     @Test

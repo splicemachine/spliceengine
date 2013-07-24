@@ -18,36 +18,11 @@ public class SpliceNistTest extends BaseNistTest {
     private final ConnectionPool pool;
 	private final ExecutorService executor;
 	
-	public SpliceNistTest(ConnectionPool pool) throws Exception {
+	public SpliceNistTest(ConnectionPool pool) {
         this.pool = pool;
 //        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
         executor = Executors.newSingleThreadExecutor();
     }
-
-//    public void runSplice(List<File> testFiles) throws Exception {
-//
-//
-//        for (File file: testFiles) {
-//            Connection connection = pool.getConnection();
-//            connection.setAutoCommit(false);
-//            runTest(file, SPLICE_OUTPUT_EXT, connection);
-////            connection.commit();
-//            pool.returnConnection(connection);
-//        }
-//    }
-
-//    public void runSplice(List<File> testFiles) throws Exception {
-//
-//        for (File file: testFiles) {
-//            Connection connection = pool.getConnection();
-//            executor.submit(new SpliceCallable(file, connection));
-//            pool.returnConnection(connection);
-//        }
-//        executor.shutdown();
-//        while (!executor.isTerminated()) {
-//
-//        }
-//    }
 
     public void runSplice(List<File> testFiles) throws Exception {
         Collection<Future<String>> testRuns = new ArrayList<Future<String>>(testFiles.size());
@@ -73,15 +48,8 @@ public class SpliceNistTest extends BaseNistTest {
 
 		@Override
 		public String call() throws Exception {
-//            connection.setAutoCommit(false);
 			runTest(file,SPLICE_OUTPUT_EXT, connection);
-//			try {
-//				connection.close();
-//			} catch (Exception e) {
-//				connection.commit();
-//				connection.close();
-//			}
-			return null;
+			return file.getName();
 		}
 
 	}

@@ -8,7 +8,5 @@ import java.sql.Connection;
  */
 public interface ConnectionFactory {
 
-    void loadDriver() throws Exception;
-
     Connection getConnection() throws Exception;
 }

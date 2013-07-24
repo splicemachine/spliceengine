@@ -47,8 +47,6 @@ public class SpliceNetConnection implements ConnectionFactory {
     }
 
     public Connection getConnection() throws Exception {
-//        if (!loaded)
-//            loadDriver();
         return DriverManager.getConnection(protocol + "spliceDB;create=true", props);
     }
 }

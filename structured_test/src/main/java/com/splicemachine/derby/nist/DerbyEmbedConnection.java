@@ -7,10 +7,14 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import org.apache.log4j.Logger;
 import org.junit.Ignore;
 
 
-public class DerbyEmbedConnection implements ConnectionFactory {
+public class DerbyEmbedConnection {
+    private static final Logger LOG = Logger.getLogger(DerbyEmbedConnection.class);
+
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
     protected static String protocol = "jdbc:derby:derbyDB;create=true";
@@ -20,10 +24,7 @@ public class DerbyEmbedConnection implements ConnectionFactory {
 	protected static List<Statement> statements = new ArrayList<Statement>();
 	protected static boolean loaded;
 
-    public DerbyEmbedConnection() throws Exception {
-    }
-	
-    public synchronized void loadDriver() throws Exception {
+    private synchronized static void loadDriver() throws Exception {
         try {
             Class.forName(driver).newInstance();
         } catch (ClassNotFoundException cnfe) {
@@ -57,12 +58,12 @@ public class DerbyEmbedConnection implements ConnectionFactory {
     }
 
 
-    private Connection createConnection() throws Exception {
+    private static synchronized Connection createConnection() throws Exception {
         loadDriver();
         return DriverManager.getConnection(protocol, props);
     }
 
-    public Connection getConnection() throws Exception {
+    public static Connection getConnection() throws Exception {
         if (!loaded) {
             return createConnection();
         } else {

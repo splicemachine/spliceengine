@@ -32,8 +32,8 @@ public class NistTest {
         derbyFilter = BaseNistTest.readDerbyFilters();
         spliceFilter = BaseNistTest.readSpliceFilters();
 
+        derbyTest = new DerbyNistTest();
         spliceTest = new SpliceNistTest(new SimpleConnectionPool(new SpliceNetConnection()));
-        derbyTest = new DerbyNistTest(new SimpleConnectionPool(new DerbyEmbedConnection()));
     }
 
     @Test(timeout=1000*60*360)  // Time out after 6 min
@@ -41,6 +41,7 @@ public class NistTest {
         runTests(testFiles);
     }
 
+    // Temporary - for framework testing
     @Test
     public void runTests() throws Exception {
         // need two tests run cause 2nd depends on schema creation in 1st
@@ -71,7 +72,8 @@ public class NistTest {
         System.out.println("    Tests: " + BaseNistTest.getDuration(start, System.currentTimeMillis()));
 
         // diff output and assert no differences in each report
-        Collection<BaseNistTest.DiffReport> reports = BaseNistTest.diffOutput(testFiles, derbyFilter, spliceFilter);
+        Collection<BaseNistTest.DiffReport> reports = BaseNistTest.diffOutput(testFiles,
+                BaseNistTest.getBaseDirectory()+BaseNistTest.TARGET_NIST, derbyFilter, spliceFilter);
         BaseNistTest.assertNoDiffs(reports);
 
         return reports;

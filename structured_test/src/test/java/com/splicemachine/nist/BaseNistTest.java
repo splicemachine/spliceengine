@@ -18,7 +18,8 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class BaseNistTest {
-    public static int DEFAULT_THREAD_POOL_SIZE = 1;
+    public static final String TARGET_NIST = "/target/nist/";
+    public static int DEFAULT_THREAD_POOL_SIZE = 4;
 
     public static final String DERBY_FILTER = "derby.filter";
     public static final String SPLICE_FILTER = "splice.filter";
@@ -95,19 +96,22 @@ public class BaseNistTest {
     }
 
     public static List<String> readDerbyFilters() {
-        List<String> derbyFilters = new ArrayList<String>();
-        for (String filter :  fileToLines(getResourceDirectory() + "/nist/"+DERBY_FILTER, "#")) {
-            derbyFilters.add(filter.trim());
-        }
-        return derbyFilters;
+        return readFilters(fileToLines(getResourceDirectory() + "/nist/"+DERBY_FILTER, "#"));
     }
 
     public static List<String> readSpliceFilters() {
-        List<String> spliceFilters = new ArrayList<String>();
-        for (String filter :  fileToLines(getResourceDirectory() + "/nist/"+SPLICE_FILTER, "#")) {
-            spliceFilters.add(filter.trim());
+        return readFilters(fileToLines(getResourceDirectory() + "/nist/"+SPLICE_FILTER, "#"));
+    }
+
+    private static List<String> readFilters(List<String> fileLines) {
+        List<String> filters = new ArrayList<String>(fileLines.size());
+        for (String line :  fileLines) {
+            String filter = line.trim();
+            if (! filter.isEmpty()) {
+                filters.add(filter);
+            }
         }
-        return spliceFilters;
+        return filters;
     }
 
     public static void runTest(File file, String type, Connection connection) throws Exception {
@@ -115,7 +119,7 @@ public class BaseNistTest {
         FileOutputStream fop = null;
         try {
             fis = new FileInputStream(file);
-            File targetFile = new File(getBaseDirectory()+"/target/nist/" + file.getName().replace(".sql", type));
+            File targetFile = new File(getBaseDirectory()+ TARGET_NIST + file.getName().replace(".sql", type));
             Files.createParentDirs(targetFile);
             if (targetFile.exists())
                 targetFile.delete();
@@ -183,7 +187,7 @@ public class BaseNistTest {
 		
 	}
 
-    public static List<String> fileToLines(String filename, String commentPattern) {
+    public static List<String> fileToLines(String filename, String...commentPattern) {
         List<String> lines = new LinkedList<String>();
         try {
             BufferedReader in = new BufferedReader(new FileReader(filename));
@@ -191,7 +195,7 @@ public class BaseNistTest {
             String line = in.readLine();
             while(line != null) {
                 if (commentPattern != null) {
-                    if (! line.startsWith(commentPattern)) {
+                    if (! lineIsComment(line, commentPattern)) {
                     lines.add(line);
                     }
                 } else {
@@ -200,9 +204,21 @@ public class BaseNistTest {
                 line = in.readLine();
             }
         } catch (IOException e) {
-           Assert.fail("Unable to read: " + filename);
+           Assert.fail("Unable to read: " + filename+": "+e.getLocalizedMessage());
         }
         return lines;
+    }
+
+    public static boolean lineIsComment(String line, String...commentPatterns) {
+        if (commentPatterns == null || commentPatterns.length == 0) {
+            return false;
+        }
+        for (String pattern : commentPatterns) {
+            if (line.startsWith(pattern)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String getBaseDirectory() {
@@ -217,115 +233,118 @@ public class BaseNistTest {
 	}
 
     public static List<DiffReport> diffOutput(List<File> sqlFiles,
+                                              String testOutputDir,
                                               List<String> derbyFilter,
                                               List<String> spliceFilter) {
 
         List<DiffReport> diffs = new ArrayList<DiffReport>();
 
+        String inputDir = BaseNistTest.getBaseDirectory() + TARGET_NIST;
+        if (testOutputDir != null && ! testOutputDir.isEmpty()) {
+            inputDir = testOutputDir;
+        }
         for (File sqlFile: sqlFiles) {
             // derby output
-            String derbyFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" +
-                    sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
-            List<String> derbyFileLines = fileToLines(derbyFileName, "--");
+            String derbyFileName = inputDir + sqlFile.getName().replace(".sql", BaseNistTest.DERBY_OUTPUT_EXT);
+            List<String> derbyFileLines = fileToLines(derbyFileName, "--", "ij> --");
             // filter derby warnings, etc
             derbyFileLines = filterOutput(derbyFileLines, derbyFilter);
 
             // splice output
-            String spliceFileName = BaseNistTest.getBaseDirectory() + "/target/nist/" +
-                    sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
-            List<String> spliceFileLines = fileToLines(spliceFileName, "--");
+            String spliceFileName = inputDir + sqlFile.getName().replace(".sql", BaseNistTest.SPLICE_OUTPUT_EXT);
+            List<String> spliceFileLines = fileToLines(spliceFileName, "--", "ij> --");
             // filter splice warnings, etc
             spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 
             Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
-            DiffReport diff = new DiffReport(derbyFileName, spliceFileName);
-            reportDeltas(patch.getDeltas(), diff);
+            DiffReport diff = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
             diffs.add(diff);
         }
         return diffs;
     }
 
-    private static List<String> filterOutput(List<String> fileLines, List<String> warnings) {
-        if (fileLines == null) {
-            return null;
+    public static List<String> filterOutput(List<String> fileLines, List<String> warnings) {
+        if (fileLines == null || fileLines.isEmpty()) {
+            return fileLines;
         }
-        List<String> filteredLines = new ArrayList<String>(fileLines.size());
-        for (String line : fileLines) {
+        List<String> copy = Collections.synchronizedList(new ArrayList<String>(fileLines));
+        List<String> filteredLines = Collections.synchronizedList(new ArrayList<String>(fileLines.size()));
+        for (String line : copy) {
             boolean filter = false;
+
+            if (line.startsWith("CONNECTION")) {
+//                filteredLines.add("");
+                continue;
+            }
+
             for (String warning : warnings) {
                 if (line.contains(warning)) {
                     filter = true;
+                    break;
                 }
             }
-            if (! filter) {
+            if (filter) {
+                filteredLines.add("");
+            } else {
                 filteredLines.add(line);
+
             }
         }
         return filteredLines;
     }
 
-    public static void reportDeltas(List<Delta> deltas, DiffReport diff) {
-        for (Delta delta: deltas) {
-            if (filterDeltas(delta)){
-                continue;
-            }
-            diff.add("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-            printChunk(diff.derbyFile, delta.getOriginal(), diff);
-            diff.add("++++++++++++++++++++++++++\n");
-            printChunk(diff.spliceFile, delta.getRevised(), diff);
-            diff.add(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        }
-    }
-
-    public static void printChunk(String testType, Chunk chunk, DiffReport diff) {
-        diff.add(testType+"\nPosition "+chunk.getPosition()+": \n");
-        for(Object line : chunk.getLines()) {
-            diff.add("  "+line+"\n");
-        }
-    }
-
-    public static boolean filterDeltas(Delta delta) {
-        Chunk chunk = delta.getOriginal();
-        if (chunk.getLines() == null || chunk.getLines().isEmpty()){
-            return true;
-        }
-        if (chunk.getLines().get(0).toString().startsWith("CONNECTION")) {
-            return true;
-        }
-        // default
-        return false;
-    }
-
     public static class DiffReport {
         public final String derbyFile;
+        public final List<Delta> deltas;
         public final String spliceFile;
-        public List<String> report = new ArrayList<String>();
 
-        public DiffReport(String derbyFile, String spliceFile) {
+        public DiffReport(String derbyFile, String spliceFile, List<Delta> deltas) {
             this.derbyFile = derbyFile;
             this.spliceFile = spliceFile;
-        }
-
-        public void add(String report) {
-            this.report.add(report);
+            if (! deltas.isEmpty()) {
+                this.deltas = deltas;
+            } else {
+                this.deltas = Collections.emptyList();
+            }
         }
 
         public boolean isEmpty() {
-            return report.isEmpty();
+            return this.deltas.isEmpty();
+        }
+
+        public int getNumberOfDiffs() {
+            return (this.deltas.isEmpty() ? 0 : this.deltas.size());
         }
 
         public void print(PrintStream out) {
             out.println("\n===========================================================================================");
             out.println(sqlName(derbyFile));
-            if (report.isEmpty()) {
-                out.println("  No difference");
+            if (isEmpty()) {
+                out.println("No differences");
             } else {
-                for (String line : report) {
-                    out.print(line);
-                }
+                out.println(getNumberOfDiffs()+" differences");
+                printDeltas(this.deltas, out);
             }
             out.println("===========================================================================================");
+            out.flush();
+        }
+
+        private void printDeltas(List<Delta> deltas, PrintStream out) {
+            for (Delta delta: deltas) {
+                out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                printChunk(this.derbyFile, delta.getOriginal(), out);
+                out.println("++++++++++++++++++++++++++");
+                printChunk(this.spliceFile, delta.getRevised(), out);
+                out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+            }
+        }
+
+        private static void printChunk(String testType, Chunk chunk, PrintStream out) {
+            out.println(testType + "\nPosition " + chunk.getPosition() + ": ");
+            for(Object line : chunk.getLines()) {
+                out.println("  " + line);
+            }
         }
     }
 
