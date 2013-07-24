@@ -102,7 +102,7 @@ final public class GenericActivationHolder implements Activation
 {
 	public BaseActivation			ac;
 	ExecPreparedStatement	ps;
-	GeneratedClass			gc;
+	public GeneratedClass			gc;
 	DataTypeDescriptor[]	paramTypes;
 	private final LanguageConnectionContext lcc;
 	/**
