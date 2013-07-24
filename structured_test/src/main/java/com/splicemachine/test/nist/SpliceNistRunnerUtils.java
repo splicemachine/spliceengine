@@ -1,8 +1,6 @@
-package com.splicemachine.nist;
+package com.splicemachine.test.nist;
 
-import com.splicemachine.derby.nist.ConnectionPool;
-import com.splicemachine.derby.nist.SimpleConnectionPool;
-import com.splicemachine.derby.nist.SpliceNetConnection;
+import com.splicemachine.test.connection.ConnectionPool;
 
 import java.io.File;
 import java.sql.Connection;
@@ -14,11 +12,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class SpliceNistTest extends BaseNistTest {
+public class SpliceNistRunnerUtils extends NistTestUtils {
     private final ConnectionPool pool;
 	private final ExecutorService executor;
 	
-	public SpliceNistTest(ConnectionPool pool) {
+	public SpliceNistRunnerUtils(ConnectionPool pool) {
         this.pool = pool;
 //        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
         executor = Executors.newSingleThreadExecutor();

@@ -1,4 +1,4 @@
-package com.splicemachine.derby.nist;
+package com.splicemachine.test.connection;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
-import org.junit.Ignore;
 
 
 public class DerbyEmbedConnection {

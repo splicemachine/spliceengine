@@ -1,4 +1,4 @@
-package com.splicemachine.derby.nist.statement;
+package com.splicemachine.test.statement;
 
 /**
  * @author Jeff Cunningham

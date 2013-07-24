@@ -1,4 +1,4 @@
-package com.splicemachine.derby.nist;
+package com.splicemachine.test.connection;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

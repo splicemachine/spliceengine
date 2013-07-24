@@ -1,7 +1,9 @@
-package com.splicemachine.nist.test;
+package com.splicemachine.test.nist.test;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.nist.BaseNistTest;
+import com.splicemachine.test.diff.DiffEngine;
+import com.splicemachine.test.diff.DiffReport;
+import com.splicemachine.test.nist.NistTestUtils;
 import difflib.DiffUtils;
 import difflib.Patch;
 import org.apache.commons.io.FileUtils;
@@ -10,12 +12,11 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static com.splicemachine.nist.BaseNistTest.*;
+import static com.splicemachine.test.nist.NistTestUtils.*;
 
 /**
  *
@@ -43,15 +44,15 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testFileFilters() throws Exception {
-        BaseNistTest.getTestFileList();
+        NistTestUtils.getTestFileList();
         Assert.assertFalse(SKIP_TESTS.isEmpty());
         Assert.assertFalse(SCHEMA_FILES.isEmpty());
 
         // test files to skip filter
-        List<String> filter = Lists.newArrayList(BaseNistTest.SKIP_TESTS);
-        filter.addAll(BaseNistTest.SCHEMA_FILES);
+        List<String> filter = Lists.newArrayList(NistTestUtils.SKIP_TESTS);
+        filter.addAll(NistTestUtils.SCHEMA_FILES);
         Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
-                new BaseNistTest.SpliceIOFileFilter(null, filter), null);
+                new NistTestUtils.SpliceIOFileFilter(null, filter), null);
 
         Assert.assertTrue(files.contains(new File(getResourceDirectory(), "/nist/cdr002.sql")));
 
@@ -63,10 +64,10 @@ public class TestTheTestClassesTest {
         Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
 
         // test schema files filter
-        filter = Lists.newArrayList(BaseNistTest.SCHEMA_FILES);
-        filter.addAll(BaseNistTest.SKIP_TESTS);
+        filter = Lists.newArrayList(NistTestUtils.SCHEMA_FILES);
+        filter.addAll(NistTestUtils.SKIP_TESTS);
         files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
-                new BaseNistTest.SpliceIOFileFilter(null, filter), null);
+                new NistTestUtils.SpliceIOFileFilter(null, filter), null);
 
         Assert.assertFalse(files.contains(new File(getResourceDirectory(), "/nist/schema5.sql")));
 
@@ -82,15 +83,15 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testRawDiff() throws Exception {
-        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/cdr002.derby";
+        String derbyFileName = NistTestUtils.getResourceDirectory() + "/difftest/cdr002.derby";
         List<String> derbyFileLines = fileToLines(derbyFileName, "--", "ij> --");
 
-        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/cdr002.splice";
+        String spliceFileName = NistTestUtils.getResourceDirectory() + "/difftest/cdr002.splice";
         List<String> spliceFileLines = fileToLines(spliceFileName, "--", "ij> --");
 
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
-        BaseNistTest.DiffReport report = new BaseNistTest.DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
+        DiffReport report = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
         PrintStream out = System.out;
         report.print(out);
     }
@@ -98,16 +99,16 @@ public class TestTheTestClassesTest {
     @Test
     public void testRawDiffInDepth() throws Exception {
         // derby output
-        String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/fakeDiff01.derby";
+        String derbyFileName = NistTestUtils.getResourceDirectory() + "/difftest/fakeDiff01.derby";
         List<String> derbyFileLines = fileToLines(derbyFileName, "--", "ij> --");
         // filter derby warnings, etc
-        derbyFileLines = filterOutput(derbyFileLines, readDerbyFilters());
+        derbyFileLines = DiffEngine.filterOutput(derbyFileLines, readDerbyFilters());
 
         // splice output
-        String spliceFileName = BaseNistTest.getResourceDirectory() + "/difftest/fakeDiff01.splice";
+        String spliceFileName = NistTestUtils.getResourceDirectory() + "/difftest/fakeDiff01.splice";
         List<String> spliceFileLines = fileToLines(spliceFileName, "--", "ij> --");
         // filter splice warnings, etc
-        spliceFileLines = filterOutput(spliceFileLines, readSpliceFilters());
+        spliceFileLines = DiffEngine.filterOutput(spliceFileLines, readSpliceFilters());
 
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
@@ -117,12 +118,12 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testDiff_cdr002() throws Exception {
-        File file = new File(BaseNistTest.getResourceDirectory()+BaseNistTest.TARGET_NIST, "cdr002.sql");
+        File file = new File(NistTestUtils.getResourceDirectory()+ NistTestUtils.TARGET_NIST, "cdr002.sql");
         List<File> files = Arrays.asList(file);
 
         PrintStream out = System.out;
-        for (BaseNistTest.DiffReport report : BaseNistTest.diffOutput(files,
-                BaseNistTest.getResourceDirectory() + "/difftest/", readDerbyFilters(), readSpliceFilters())) {
+        for (DiffReport report : DiffEngine.diffOutput(files,
+                NistTestUtils.getResourceDirectory() + "/difftest/", readDerbyFilters(), readSpliceFilters())) {
             report.print(out);
             Assert.assertEquals(3, report.getNumberOfDiffs());
         }
@@ -130,12 +131,12 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testDiff_schema8() throws Exception {
-        File file = new File(BaseNistTest.getResourceDirectory()+BaseNistTest.TARGET_NIST, "schema8.sql");
+        File file = new File(NistTestUtils.getResourceDirectory()+ NistTestUtils.TARGET_NIST, "schema8.sql");
         List<File> files = Arrays.asList(file);
 
         PrintStream out = System.out;
-        for (BaseNistTest.DiffReport report : BaseNistTest.diffOutput(files,
-                BaseNistTest.getResourceDirectory() + "/difftest/", BaseNistTest.readDerbyFilters(), BaseNistTest.readSpliceFilters())) {
+        for (DiffReport report : DiffEngine.diffOutput(files,
+                NistTestUtils.getResourceDirectory() + "/difftest/", NistTestUtils.readDerbyFilters(), NistTestUtils.readSpliceFilters())) {
             report.print(out);
             Assert.assertEquals(66, report.getNumberOfDiffs());
         }
@@ -143,7 +144,7 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testGetTestFiles() throws Exception {
-        List<File> testFiles = BaseNistTest.getTestFileList();
+        List<File> testFiles = NistTestUtils.getTestFileList();
         Assert.assertFalse("Got nuthin", testFiles.isEmpty());
         System.out.println(printList(testFiles));
         System.out.println(testFiles.size()+" files");
