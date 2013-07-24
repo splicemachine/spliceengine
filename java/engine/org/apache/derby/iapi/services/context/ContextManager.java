@@ -565,12 +565,15 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 	{
 		errorStream = stream;
 		owningCsf = csf;
-
-		logSeverityLevel = PropertyUtil.getSystemInt(Property.LOG_SEVERITY_LEVEL,
+		logSeverityLevel = 0;
+		extDiagSeverityLevel = 40000;
+/*		XXX - TODO John Leach: Need to make this configurable.  Quick hack to stop hitting file system.
+      logSeverityLevel = PropertyUtil.getSystemInt(Property.LOG_SEVERITY_LEVEL,
 			SanityManager.DEBUG ? 0 : ExceptionSeverity.SESSION_SEVERITY);
         extDiagSeverityLevel = PropertyUtil.getSystemInt(
                 Property.EXT_DIAG_SEVERITY_LEVEL,
                 ExceptionSeverity.SESSION_SEVERITY);
+                */
 	}
 
 	final ContextService owningCsf;
