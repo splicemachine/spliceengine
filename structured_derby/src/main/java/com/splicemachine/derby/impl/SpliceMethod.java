@@ -23,7 +23,7 @@ public class SpliceMethod<T> {
 		e0,e1,e2,e3,e4,e5,e6,e7,e8,e9;
 	  protected static HashSet<String> strings; 
 	  static {
-		  strings = Sets.newHashSet(Arrays.toString(values()));
+		  strings = Sets.newHashSet("e0","e1","e2","e3","e4","e5","e6","e7","e8","e9");
 	  }	
 	  public static boolean contains(String s) {
 		  return strings.contains(s);
