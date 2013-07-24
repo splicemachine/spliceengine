@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
@@ -18,6 +19,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -29,12 +31,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class CallStatementOperation extends NoRowsOperation {
 	private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
-	
-	private GeneratedMethod methodCall;
+	private String methodName;
+	private SpliceMethod<Object> methodCall;
 
 	public CallStatementOperation(GeneratedMethod methodCall,Activation a) throws StandardException  {
 		super(a);
-		this.methodCall = methodCall;
+		methodName = (methodCall!= null) ? methodCall.getMethodName() : null;
+		this.methodCall = new SpliceMethod<Object>(methodName,activation);
 		recordConstructorTime(); 
 	}
 
@@ -42,13 +45,21 @@ public class CallStatementOperation extends NoRowsOperation {
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
 		super.readExternal(in);
-		methodCall = (GeneratedMethod)in.readObject();
+		methodName = in.readUTF();
+	}
+
+	
+	
+	@Override
+	public void init(SpliceOperationContext context) throws StandardException {
+		super.init(context);
+		methodCall = new SpliceMethod<Object>(methodName,activation);
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		super.writeExternal(out);
-		out.writeObject(methodCall);
+		out.writeUTF(methodName);
 	}
 	
 	@Override
@@ -77,7 +88,7 @@ public class CallStatementOperation extends NoRowsOperation {
 			SpliceLogUtils.trace(LOG, "open");
 			try {
 				setup();
-				methodCall.invoke(activation);
+				methodCall.invoke();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
