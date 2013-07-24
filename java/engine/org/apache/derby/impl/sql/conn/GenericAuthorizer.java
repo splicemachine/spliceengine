@@ -267,11 +267,11 @@ implements Authorizer
 		}
 	}
 
-	private boolean userOnAccessList(String listName) throws StandardException
-	{
+	private boolean userOnAccessList(String listName) throws StandardException {
 		PersistentSet tc = lcc.getTransactionExecute();
-		String listS = (String)
-			PropertyUtil.getServiceProperty(tc, listName);
+		//String listS = (String) PropertyUtil.getServiceProperty(tc, listName);
+		// XXX = TODO JLEACH: Fix This...
+		String listS = null;
         return IdUtil.idOnList(lcc.getSessionUserId(),listS);
 	}
 
