@@ -21,6 +21,9 @@
 
 package org.apache.derby.impl.sql.execute;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import org.apache.derby.iapi.sql.Activation;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -93,7 +96,25 @@ public class GenericQualifier implements Qualifier
 		{
 			if (orderableCache == null)
 			{
-				orderableCache = (DataValueDescriptor) (orderableGetter.invoke(activation));
+				try {
+					Method method = activation.getClass().getMethod(orderableGetter.getMethodName(), null);
+					orderableCache = (DataValueDescriptor) (method.invoke(activation,null));
+				} catch (SecurityException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (NoSuchMethodException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}				
 			}
 			return orderableCache;
 		}
