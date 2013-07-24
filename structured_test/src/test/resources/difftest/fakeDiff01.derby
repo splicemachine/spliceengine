@@ -1,0 +1,23 @@
+No current connection
+ij> -- SQL Test Suite, V6.0, Schema Definition, schema8.smi
+-- 59-byte ID
+-- TEd Version #
+-- date_time print
+-- ***************************************************************
+-- ****** THIS FILE SHOULD BE RUN UNDER AUTHORIZATION ID SUN *****
+-- ***************************************************************
+
+-- This file defines the base tables used in most of the CDR tests.
+
+-- This non-standard schema definition is provided so that
+-- implementations which require semicolons to terminate statements,
+-- but which are otherwise conforming, can still execute the
+-- remaining tests.
+
+
+  CREATE SCHEMA
+--O      AUTHORIZATION SUN;
+      SUN;
+IJ ERROR: Unable to establish connection
+ij> set schema SUN;
+IJ ERROR: Unable to establish connection
