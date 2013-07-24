@@ -22,11 +22,13 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.derby.impl.sql.execute.SelectConstantAction;
+import org.apache.derby.impl.sql.execute.UpdateConstantAction;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
@@ -160,7 +162,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();
-
+            
             if(activation.getConstantAction() instanceof SelectConstantAction){
                 SelectConstantAction action = (SelectConstantAction) activation.getConstantAction();
                 int[] pks = action.getKeyColumns();
@@ -170,6 +172,21 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                     pkCols.set(pk-1);
                 }
             }
+
+            if(activation.getConstantAction() instanceof UpdateConstantOperation) {
+            	UpdateConstantOperation action = (UpdateConstantOperation) activation.getConstantAction();
+                int[] pks = action.getPkColumns();
+                if (pks != null) {
+                pkCols = new FormatableBitSet(pks.length);
+	                for(int pk:pks){
+	                    pkCols.grow(pk+1);
+	                    pkCols.set(pk-1);
+	                }
+                }
+            }
+
+            
+            
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();
         } catch (Exception e) {
