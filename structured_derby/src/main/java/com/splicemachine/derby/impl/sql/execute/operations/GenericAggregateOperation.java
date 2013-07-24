@@ -28,6 +28,7 @@ import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
@@ -36,14 +37,13 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	protected String rowAllocatorMethodName;
 	protected int aggregateItem;
 	protected SpliceGenericAggregator[] aggregates;	
-	protected GeneratedMethod rowAllocator;
+	protected SpliceMethod<ExecRow> rowAllocator;
 	protected AggregatorInfoList aggInfoList;	
 	protected ExecIndexRow sourceExecIndexRow;
 	protected ExecIndexRow sortTemplateRow;
-
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
-	
+
 	protected long rowsInput;
 	
 	static {
@@ -62,7 +62,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		double optimizerEstimatedCost) throws StandardException {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
     	this.source = source;
-    	this.rowAllocator = ra;
     	this.rowAllocatorMethodName = (ra == null) ? null : ra.getMethodName();
     	this.aggregateItem = aggregateItem;
 	}
@@ -107,11 +106,11 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		try {
             GenericStorablePreparedStatement statement = context.getPreparedStatement();
             LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			rowAllocator = (rowAllocatorMethodName == null) ? null : statement.getActivationClass().getMethod(rowAllocatorMethodName);
+			rowAllocator = (rowAllocatorMethodName == null) ? null : new SpliceMethod<ExecRow>(rowAllocatorMethodName, activation);
 			aggInfoList = (AggregatorInfoList) (statement.getSavedObject(aggregateItem));
 			aggregates = getSortAggregators(aggInfoList, false, lcc);
 			ExecutionFactory factory = activation.getExecutionFactory();
-			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
+			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, e);
@@ -179,7 +178,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 			** finish() will take care of it for us.
 			*/ 
 			if (row == null) {
-				row = getActivation().getExecutionFactory().getIndexableRow((ExecRow) rowAllocator.invoke(activation));
+				row = getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
 			}
 			setCurrentRow(row);
 			boolean eliminatedNulls = false;
@@ -209,7 +208,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		** finish() will take care of it for us.
 		*/ 
 		if (row == null) {
-			row = this.getActivation().getExecutionFactory().getIndexableRow((ExecRow) rowAllocator.invoke(activation));
+			row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
 		}
 		setCurrentRow(row);
 		boolean eliminatedNulls = false;

@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -26,17 +24,16 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,11 +42,9 @@ import com.splicemachine.utils.SpliceLogUtils;
  * Maps between an Index Table and a data Table.
  */
 public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements CursorResultSet{
-
 	private static Logger LOG = Logger.getLogger(IndexRowToBaseRowOperation.class);
 	protected int lockMode;
 	protected int isolationLevel;
-//	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
 	protected StaticCompiledOpenConglomInfo scoci;
@@ -57,7 +52,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected SpliceOperation source;
 	protected String indexName;
 	protected boolean forUpdate;
-	protected GeneratedMethod restriction;
+	protected SpliceMethod<DataValueDescriptor> restriction;
 	protected String restrictionMethodName;
 	protected FormatableBitSet accessedHeapCols;
 	protected FormatableBitSet heapOnlyCols;
@@ -73,7 +68,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected int indexColMapItem;
 	private ExecRow compactRow;
 	RowLocation baseRowLocation = null;
-//	FormatableBitSet accessFromTableCols;
 	boolean copiedFromSource = false;
 
 	/*
@@ -81,10 +75,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
  	 * getExecRowDefinition(). Save a little bit of performance by caching it
  	 * once created.
  	 */
-//	private ExecRow definition;
 	private HTableInterface table;
     private MultiFieldDecoder fieldDecoder;
-    private FormatableBitSet heapCols; //used during the fetch to access the correct heap columns --0-indexed
     private int[] adjustedBaseColumnMap;
 
 
@@ -118,7 +110,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		scociItem = in.readInt();
 		conglomId = in.readLong();
@@ -135,7 +126,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeInt(scociItem);
 		out.writeLong(conglomId);
@@ -152,22 +142,19 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
-//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		source.init(context);
 		try {
-			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			if(restrictionMethodName !=null){
 				SpliceLogUtils.trace(LOG,"%s:restrictionMethodName=%s",indexName,restrictionMethodName);
-				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
+				restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			}
-			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
+			SpliceMethod<ExecRow> generatedMethod = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
 			final GenericPreparedStatement gp = (GenericPreparedStatement)activation.getPreparedStatement();
 			final Object[] saved = gp.getSavedObjects();
 			scoci = (StaticCompiledOpenConglomInfo)saved[scociItem];
 			TransactionController tc = activation.getTransactionController();
 			dcoci = tc.getDynamicCompiledConglomInfo(conglomId);
-
 			// the saved objects, if it exists
 			if (heapColRefItem != -1) {
 				this.accessedHeapCols = (FormatableBitSet)saved[heapColRefItem];
@@ -178,8 +165,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
             // retrieve the array of columns coming from the index
             indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();
-			/* Get the result row template */
-            resultRow = (ExecRow) generatedMethod.invoke(activation);
+			/* Get the result row template */           
+			resultRow = generatedMethod.invoke();
 
             compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
 
@@ -191,16 +178,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                     adjustedBaseColumnMap[pos] = baseColumnMap[i];
                     pos++;
                 }
-//                if(heapOnlyCols!=null){
-//                    adjustedBaseColumnMap = new int[heapOnlyCols.getNumBitsSet()];
-//                    this.heapCols = new FormatableBitSet(heapOnlyCols.size());
-//                    for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
-//                        adjustedBaseColumnMap[i-1] = baseColumnMap[i];
-//                    }
-//                }else{
-//                    heapCols = heapOnlyCols;
-//                    adjustedBaseColumnMap = baseColumnMap;
-//                }
 			}
 
             if (accessedHeapCols == null) {
@@ -234,7 +211,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
         } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
+        	SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
         }
 
     }
@@ -278,7 +255,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
     @Override
 	public SpliceOperation getLeftOperation() {
-//		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
 		return this.source;
 	}
 	
@@ -368,9 +344,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                 SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
                 setCurrentRow(compactRow);
                 currentRowLocation = baseRowLocation;
-
-                restrictBoolean = (DataValueDescriptor)
-                        ((restriction == null) ? null: restriction.invoke(activation));
+                restrictBoolean = ((restriction == null) ? null: restriction.invoke());
                 restrict = (restrictBoolean ==null) ||
                         ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
             }
@@ -386,7 +360,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 		}while(!restrict);
 		SpliceLogUtils.trace(LOG, "emitting row %s",retRow);
-//        setCurrentRow(retRow);
 		return retRow;
 	}
 

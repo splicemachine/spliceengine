@@ -243,7 +243,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
     }
 
-    protected ExecRow getEmptyRow() {
+    protected ExecRow getEmptyRow() throws StandardException{
         throw new RuntimeException("Should only be called on outer joins");
     }
 

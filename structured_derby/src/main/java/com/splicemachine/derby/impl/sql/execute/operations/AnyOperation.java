@@ -10,6 +10,7 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -42,7 +43,7 @@ public class AnyOperation extends SpliceBaseOperation {
     // set in constructor and not altered during
     // life of object.
     public SpliceOperation source;
-	private GeneratedMethod emptyRowFun;
+	private SpliceMethod<ExecRow> emptyRowFun;
     private String emptyRowFunName;
 
 	public int subqueryNumber;
@@ -62,11 +63,9 @@ public class AnyOperation extends SpliceBaseOperation {
 						double optimizerEstimatedCost) throws StandardException {
 		super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         source = (SpliceOperation) s;
-		this.emptyRowFun = emptyRowFun;
 		this.subqueryNumber = subqueryNumber;
 		this.pointOfAttachment = pointOfAttachment;
         this.emptyRowFunName = emptyRowFun.getMethodName();
-
         init(SpliceOperationContext.newContext(a));
     }
 
@@ -117,14 +116,13 @@ public class AnyOperation extends SpliceBaseOperation {
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
         source.init(context);
-
         if(emptyRowFun==null)
-            emptyRowFun = context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunName);
+            emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunName,activation);
     }
 
     private ExecRow getRowWithNulls() throws StandardException {
         if (rowWithNulls == null){
-            rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
+            rowWithNulls = emptyRowFun.invoke();
         }
         return rowWithNulls;
     }

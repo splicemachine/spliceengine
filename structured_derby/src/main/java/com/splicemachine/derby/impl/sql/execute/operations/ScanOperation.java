@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -65,7 +66,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	public boolean forUpdate;
 	
 	private int colRefItem;
-	protected GeneratedMethod resultRowAllocator;
+	protected SpliceMethod<ExecRow> resultRowAllocator;
     protected ExecRow currentTemplate;
     protected FormatableBitSet pkCols;
     
@@ -147,8 +148,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(statement.getSavedObject(colRefItem)) : null;
         SpliceLogUtils.trace(LOG,"<%d> colRefItem=%d,accessedCols=%s",conglomId,colRefItem,accessedCols);
         try {
-            resultRowAllocator = statement.getActivationClass()
-                    .getMethod(resultRowAllocatorMethodName);
+            resultRowAllocator = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
             this.conglomerate = (SpliceConglomerate)((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
             
             this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
@@ -158,7 +158,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             if (stopKeyGetterMethodName != null) {
                 stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
             }
-            candidate = (ExecRow) resultRowAllocator.invoke(activation);
+            candidate = resultRowAllocator.invoke();
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();

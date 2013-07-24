@@ -3,28 +3,25 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -45,8 +42,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	protected SpliceOperation source;
 	protected static List<NodeType> nodeTypes;
     private boolean alwaysFalse;	
-	protected GeneratedMethod restriction;
-	protected GeneratedMethod projection;
+	protected SpliceMethod<DataValueDescriptor> restriction;
+	protected SpliceMethod<ExecRow> projection;
     private ExecRow candidateRow;
     private ExecRow result;
     private boolean restrict;
@@ -146,9 +143,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
             }
 			if (restrictionMethodName != null)
-				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
+				restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			if (projectionMethodName != null)
-				projection = statement.getActivationClass().getMethod(projectionMethodName);
+				projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
 	}
 
 
@@ -174,7 +171,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	private ExecRow doProjection(ExecRow sourceRow) throws StandardException { 
 		ExecRow result;
         if (projection != null) {
-            result = (ExecRow) projection.invoke(activation);
+            result = projection.invoke();
         } else {
             result = mappedResultRow;
         }
@@ -250,7 +247,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				}
 				else {
 					setCurrentRow(candidateRow);
-					restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					restrictBoolean = restriction.invoke();
 					// if the result is null, we make it false --
 					// so the row won't be returned.
 					restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());

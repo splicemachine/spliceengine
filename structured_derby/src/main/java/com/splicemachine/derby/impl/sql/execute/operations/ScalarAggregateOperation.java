@@ -70,7 +70,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         this.singleInputRow = singleInputRow;
 
         ExecutionFactory factory = a.getExecutionFactory();
-        sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
+        sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
         sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
         recordConstructorTime();
     }
@@ -120,7 +120,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {
-			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
+			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
