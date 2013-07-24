@@ -23,16 +23,18 @@ package org.apache.derby.iapi.services.loader;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.LinkedHashMap;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassInfo implements InstanceGetter {
-
 	private static final Class[] noParameters = new Class[0];
 	private static final Object[] noArguments = new Object[0];
-
 	private final Class clazz;
 	private boolean useConstructor = true;
 	private Constructor noArgConstructor;
-
+	protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(1000);
+	
 	public ClassInfo(Class clazz) {
 		this.clazz = clazz;
 	}
@@ -68,14 +70,17 @@ public class ClassInfo implements InstanceGetter {
 		throws InstantiationException, IllegalAccessException, InvocationTargetException  {
 
 		if (!useConstructor) {
-
 			return clazz.newInstance();
 		}
 
 		if (noArgConstructor == null) {
 
 			try {
-				noArgConstructor =  clazz.getConstructor(noParameters);
+				noArgConstructor = (Constructor) constructors.get(clazz.getCanonicalName());
+				if (noArgConstructor == null) {
+					noArgConstructor =  clazz.getConstructor(noParameters);
+					constructors.put(clazz.getCanonicalName(), noArgConstructor);
+				}
 
 			} catch (NoSuchMethodException nsme) {
 				// let Class.newInstace() generate the exception
@@ -97,4 +102,16 @@ public class ClassInfo implements InstanceGetter {
 			return null;
 		}
 	}
+	
+	public static class NoArgumentConstructorMap extends LinkedHashMap {
+		private int maxCapacity;
+		public NoArgumentConstructorMap(int maxCapacity){
+			super(0, 0.75F,true); // LRU CACHE
+			this.maxCapacity = maxCapacity;
+		}
+		protected boolean removeEldestEntry(Entry eldest) {
+			return size() >= this.maxCapacity;
+		}
+	}
+	
 }
