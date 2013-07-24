@@ -52,7 +52,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                     switch (returnCode) {
                         case INCLUDE:
                         case INCLUDE_AND_NEXT_COL:
-                            return Filter.ReturnCode.NEXT_ROW;
+                            return Filter.ReturnCode.NEXT_COL;
                         case SKIP:
                         case NEXT_COL:
                         case NEXT_ROW:
@@ -94,7 +94,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
             case INCLUDE_AND_NEXT_COL:
                 if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
                     excludeRow = true;
-                    return Filter.ReturnCode.NEXT_ROW;
+                    return Filter.ReturnCode.NEXT_COL;
                 }
                 if (hasAccumulation) {
                     if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
@@ -106,7 +106,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                     accumulated();
                 }
                 if (accumulator.isFinished()) {
-                    return Filter.ReturnCode.NEXT_ROW;
+                    return Filter.ReturnCode.NEXT_COL;
                 }
                 return Filter.ReturnCode.SKIP;
             case SKIP:
