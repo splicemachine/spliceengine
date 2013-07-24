@@ -22,7 +22,6 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.derby.impl.sql.execute.SelectConstantAction;
-import org.apache.derby.impl.sql.execute.UpdateConstantAction;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -58,8 +57,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected SpliceConglomerate conglomerate;
 	protected long conglomId;
 	protected boolean isKeyed;
-	protected GeneratedMethod startKeyGetter;
-	protected GeneratedMethod stopKeyGetter;
+	protected SpliceMethod<ExecIndexRow> startKeyGetter;
+	protected SpliceMethod<ExecIndexRow> stopKeyGetter;
 	protected String tableName;
 	protected String indexName;
 	public boolean isConstraint;
@@ -153,10 +152,10 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             
             this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
             if (startKeyGetterMethodName != null) {
-                startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
+                startKeyGetter = new SpliceMethod<ExecIndexRow>(startKeyGetterMethodName,activation);
             }
             if (stopKeyGetterMethodName != null) {
-                stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
+                stopKeyGetter = new SpliceMethod<ExecIndexRow>(stopKeyGetterMethodName,activation);
             }
             candidate = resultRowAllocator.invoke();
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
@@ -531,7 +530,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
     protected void populateStartAndStopPositions() throws StandardException {
         if(startKeyGetter!=null){
-            startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
+            startPosition = startKeyGetter.invoke();
             if(sameStartStopPosition){
                 /*
                  * if the stop position is the same as the start position, we are
@@ -545,7 +544,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             }
         }
         if(stopKeyGetter!=null){
-            stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
+            stopPosition = stopKeyGetter.invoke();
         }
     }
 
@@ -619,7 +618,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	 * that.  Otherwise, invoke the activation to get it.
    	 */
    	private String printPosition(int searchOperator,
-   								 GeneratedMethod positionGetter,
+   								 SpliceMethod<ExecIndexRow> positionGetter,
    								 ExecIndexRow positioner)
    	{
    		String output = "";
@@ -633,7 +632,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    					SQLState.LANG_POSITION_NOT_AVAIL) +
                                        "\n";
    			try {
-   				positioner = (ExecIndexRow)positionGetter.invoke(activation);
+   				positioner = positionGetter.invoke();
    			} catch (StandardException e) {
    				return "\t" + MessageService.getTextMessage(
    						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,
