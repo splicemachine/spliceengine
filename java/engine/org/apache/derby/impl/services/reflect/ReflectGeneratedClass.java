@@ -32,10 +32,11 @@ import org.apache.derby.iapi.services.context.Context;
 
 import java.lang.reflect.Method;
 import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 
-	private final Hashtable methodCache;
+	private final ConcurrentHashMap methodCache;
 	private static final GeneratedMethod[] directs;
 
 
@@ -51,7 +52,7 @@ public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 
 	public ReflectGeneratedClass(ClassFactory cf, Class jvmClass, Class factoryClass) {
 		super(cf, jvmClass);
-		methodCache = new Hashtable();
+		methodCache = new ConcurrentHashMap();
 		this.factoryClass = factoryClass;
 	}
 
