@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import org.junit.Ignore;
 
-@Ignore
+
 public class DerbyEmbedConnection implements ConnectionFactory {
     protected static String framework = "embedded";
     protected static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
@@ -21,8 +21,6 @@ public class DerbyEmbedConnection implements ConnectionFactory {
 	protected static boolean loaded;
 
     public DerbyEmbedConnection() throws Exception {
-        loadDriver();
-        DriverManager.getConnection(protocol, props);
     }
 	
     public synchronized void loadDriver() throws Exception {
@@ -58,16 +56,18 @@ public class DerbyEmbedConnection implements ConnectionFactory {
         }
     }
 
-    
-//    private Connection createConnection() throws Exception {
-//        return DriverManager.getConnection(protocol, props);
-//    }
+
+    private Connection createConnection() throws Exception {
+        loadDriver();
+        return DriverManager.getConnection(protocol, props);
+    }
 
     public Connection getConnection() throws Exception {
-//    	if (!loaded) {
-//    		loadDriver();
-//        }
-        return DriverManager.getConnection(protocol, props);
+        if (!loaded) {
+            return createConnection();
+        } else {
+            return DriverManager.getConnection(protocol2, props);
+        }
     }
 
 }

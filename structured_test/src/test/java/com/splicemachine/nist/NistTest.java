@@ -27,6 +27,7 @@ public class NistTest {
     public static void beforeClass() throws Exception {
         // Gather the sql files we want to run as tests
         testFiles = BaseNistTest.getTestFileList();
+
         // Read in the bug filters for output files
         derbyFilter = BaseNistTest.readDerbyFilters();
         spliceFilter = BaseNistTest.readSpliceFilters();

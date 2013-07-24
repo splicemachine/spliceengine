@@ -76,10 +76,12 @@ public class TestTheTestClassesTest {
         }
         Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SCHEMA_LIST_FILE_NAME));
         Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(DERBY_FILTER));
+        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SPLICE_FILTER));
     }
 
     @Test
-    public void testDiff() throws Exception {
+    public void testRawDiff() throws Exception {
         String derbyFileName = BaseNistTest.getResourceDirectory() + "/difftest/diff_cdr002.derby";
         List<String> derbyFileLines = fileToLines(derbyFileName, null);
 

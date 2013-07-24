@@ -20,8 +20,8 @@ import java.util.*;
 public class BaseNistTest {
     public static int DEFAULT_THREAD_POOL_SIZE = 1;
 
-    private static final String DERBY_FILTER = "derby.filter";
-    private static final String SPLICE_FILTER = "splice.filter";
+    public static final String DERBY_FILTER = "derby.filter";
+    public static final String SPLICE_FILTER = "splice.filter";
 
     public static final String DERBY_OUTPUT_EXT = ".derby";
     public static final String SPLICE_OUTPUT_EXT = ".splice";
@@ -39,11 +39,11 @@ public class BaseNistTest {
 
     public static List<File> getTestFileList() {
         // load SKIP_TESTS
-        for (String baseName :  fileToLines(getResourceDirectory() + "/nist/"+SKIP_TESTS_FILE_NAME, "#")) {
+        for (String baseName : fileToLines(getResourceDirectory() + "/nist/"+SKIP_TESTS_FILE_NAME, "#")) {
             SKIP_TESTS.add(baseName + ".sql");
         }
         // load SCHEMA_FILES
-        for (String schemaFile :  fileToLines(getResourceDirectory() + "/nist/"+SCHEMA_LIST_FILE_NAME, "#")) {
+        for (String schemaFile : fileToLines(getResourceDirectory() + "/nist/"+SCHEMA_LIST_FILE_NAME, "#")) {
             SCHEMA_FILES.add(schemaFile);
         }
         // remove all SKIP_TESTS from SCHEMA_FILES
@@ -53,7 +53,10 @@ public class BaseNistTest {
         NON_TEST_FILES_TO_FILTER.addAll(BaseNistTest.SKIP_TESTS);
         NON_TEST_FILES_TO_FILTER.add(SKIP_TESTS_FILE_NAME);
         NON_TEST_FILES_TO_FILTER.add(SCHEMA_LIST_FILE_NAME);
-        // Adding schema files to be filtered here too. They will be run first.
+        NON_TEST_FILES_TO_FILTER.add(DERBY_FILTER);
+        NON_TEST_FILES_TO_FILTER.add(SPLICE_FILTER);
+        // Adding schema files to be filtered here too. They will be re-added later to front
+        // so that they run first.
         NON_TEST_FILES_TO_FILTER.addAll(BaseNistTest.SCHEMA_FILES);
 
         // this is the list of all test sql files, except schema creators
@@ -84,7 +87,7 @@ public class BaseNistTest {
             }
         });
 
-        // finally, add rest of test files to end
+        // finally, add rest of test files to end of list after schema files
         testFiles.addAll(testFiles2);
 
         return testFiles;
