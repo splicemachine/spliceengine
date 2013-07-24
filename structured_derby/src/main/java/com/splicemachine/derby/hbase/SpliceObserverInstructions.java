@@ -103,7 +103,9 @@ public class SpliceObserverInstructions implements Externalizable {
 
     public Activation getActivation(LanguageConnectionContext lcc) throws StandardException {
         try{
-            Activation activation = ((GenericActivationHolder)statement.getActivation(lcc,false)).ac;
+        	GenericActivationHolder gah = (GenericActivationHolder)statement.getActivation(lcc,false);
+        	this.statement.setActivationClass(gah.gc);
+            Activation activation = gah.ac;
             return activationContext.populateActivation(activation,statement,topOperation);
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrow(LOG,e);
