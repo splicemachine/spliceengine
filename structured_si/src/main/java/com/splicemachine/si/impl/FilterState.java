@@ -15,7 +15,8 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus>
+public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
+        Scan, Lock, OperationStatus, Hashable, Mutation, IHTable>
         implements IFilterState<KeyValue> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
@@ -27,7 +28,8 @@ public class FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, Operati
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final DataStore dataStore;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put,
+            Delete, Get, Scan, IHTable, Lock, OperationStatus> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
