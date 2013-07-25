@@ -9,7 +9,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class SpliceNetConnection implements ConnectionFactory {
+public class SpliceNetConnection {
 	private static final Logger LOG = Logger.getLogger(SpliceNetConnection.class);
     protected static String framework = "client";
     protected static String driver = "org.apache.derby.jdbc.ClientDriver";
@@ -19,11 +19,7 @@ public class SpliceNetConnection implements ConnectionFactory {
 	protected static List<Statement> statements = new ArrayList<Statement>();
 	protected static boolean loaded;
 
-    public SpliceNetConnection() throws Exception {
-        loadDriver();
-    }
-		
-    public synchronized void loadDriver() throws Exception{
+    public static synchronized void loadDriver() throws Exception{
     	SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
         try {
             Class.forName(driver).newInstance();
@@ -46,7 +42,10 @@ public class SpliceNetConnection implements ConnectionFactory {
         loaded =  true;
     }
 
-    public Connection getConnection() throws Exception {
+    public static Connection getConnection() throws Exception {
+        if (!loaded) {
+            loadDriver();
+        }
         return DriverManager.getConnection(protocol + "spliceDB;create=true", props);
     }
 }

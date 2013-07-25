@@ -125,7 +125,7 @@ public class TestTheTestClassesTest {
         for (DiffReport report : DiffEngine.diffOutput(files,
                 NistTestUtils.getResourceDirectory() + "/difftest/", readDerbyFilters(), readSpliceFilters())) {
             report.print(out);
-            Assert.assertEquals(3, report.getNumberOfDiffs());
+            Assert.assertEquals(0, report.getNumberOfDiffs());
         }
     }
 

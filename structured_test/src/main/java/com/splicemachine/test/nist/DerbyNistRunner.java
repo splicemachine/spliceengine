@@ -8,14 +8,14 @@ import java.io.File;
 import java.sql.Connection;
 import java.util.List;
 
-public class DerbyNistRunnerUtils extends NistTestUtils {
-    private static final Logger LOG = Logger.getLogger(DerbyNistRunnerUtils.class);
+public class DerbyNistRunner extends NistTestUtils {
+    private static final Logger LOG = Logger.getLogger(DerbyNistRunner.class);
 
     static {
 		System.setProperty("derby.system.home", NistTestUtils.getBaseDirectory()+"/target/derby");
 	}
 
-    public DerbyNistRunnerUtils() throws Exception {
+    public DerbyNistRunner() throws Exception {
         File derbyDir = new File(NistTestUtils.getBaseDirectory()+"/target/derby");
         if (derbyDir.exists())
         	FileUtils.deleteDirectory(derbyDir);
@@ -29,9 +29,8 @@ public class DerbyNistRunnerUtils extends NistTestUtils {
     public void runDerby(List<File> filesToTest) throws Exception {
 
         Connection connection = DerbyEmbedConnection.getConnection();
-        connection.setAutoCommit(true);
         for (File file: filesToTest) {
-           NistTestUtils.runTest(file, NistTestUtils.DERBY_OUTPUT_EXT, connection);
+            NistTestUtils.runTest(file, NistTestUtils.DERBY_OUTPUT_EXT, connection);
         }
         try {
             connection.close();

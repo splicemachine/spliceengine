@@ -3,6 +3,8 @@ package com.splicemachine.test.diff;
 import com.splicemachine.test.nist.NistTestUtils;
 import difflib.DiffUtils;
 import difflib.Patch;
+import difflib.myers.Equalizer;
+import difflib.myers.MyersDiff;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ public class DiffEngine {
             // filter splice warnings, etc
             spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 
-            Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
+            Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines, new DashedLineExqualizer());
 
             DiffReport diff = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
             diffs.add(diff);
@@ -57,7 +59,6 @@ public class DiffEngine {
             boolean filter = false;
 
             if (line.startsWith("CONNECTION")) {
-//                filteredLines.add("");
                 continue;
             }
 
@@ -67,13 +68,25 @@ public class DiffEngine {
                     break;
                 }
             }
-            if (filter) {
-                filteredLines.add("");
-            } else {
+            if (! filter) {
                 filteredLines.add(line);
-
             }
         }
         return filteredLines;
+    }
+
+    private static class DashedLineExqualizer implements Equalizer<String> {
+
+        @Override
+        public boolean equals(String original, String revised) {
+            // TODO: replace with regex for whole line contains '-'
+            // FIXME: didn't work
+            if (original.startsWith("-") && original.endsWith("-") &&
+                    revised.startsWith("-") && revised.endsWith("-")) {
+                return true;
+            } else {
+                return original.equals(revised);
+            }
+        }
     }
 }

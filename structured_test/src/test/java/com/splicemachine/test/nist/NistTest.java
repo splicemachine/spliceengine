@@ -24,8 +24,8 @@ public class NistTest {
     private static List<String> derbyFilter;
     private static List<String> spliceFilter;
 
-    private static DerbyNistRunnerUtils derbyTest;
-    private static SpliceNistRunnerUtils spliceTest;
+    private static DerbyNistRunner derbyTest;
+    private static SpliceNistRunner spliceTest;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -36,8 +36,8 @@ public class NistTest {
         derbyFilter = NistTestUtils.readDerbyFilters();
         spliceFilter = NistTestUtils.readSpliceFilters();
 
-        derbyTest = new DerbyNistRunnerUtils();
-        spliceTest = new SpliceNistRunnerUtils(new SimpleConnectionPool(new SpliceNetConnection()));
+        derbyTest = new DerbyNistRunner();
+        spliceTest = new SpliceNistRunner();
     }
 
     @Test(timeout=1000*60*360)  // Time out after 6 min
@@ -89,15 +89,16 @@ public class NistTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
 
-        int success = 0;
+        int failed = 0;
         for (DiffReport report : reports) {
             report.print(ps);
             if (! report.isEmpty()) {
-                success++;
+                failed++;
             }
         }
 
-        Assert.assertEquals("Some test comparison failed: " + baos.toString("UTF-8") + "\n" + reports.size() + " Tests had differencs.", 0, success);
+        Assert.assertEquals(baos.toString("UTF-8") + "\nSome test comparison failed: " + failed +
+                " tests had differences.", reports.size(), (reports.size()-failed));
     }
 
 }
