@@ -8,6 +8,10 @@ import java.io.File;
 import java.sql.Connection;
 import java.util.List;
 
+/**
+ * Test runner for Derby.
+ * @see SpliceNistRunner
+ */
 public class DerbyNistRunner extends NistTestUtils {
     private static final Logger LOG = Logger.getLogger(DerbyNistRunner.class);
 
@@ -15,6 +19,11 @@ public class DerbyNistRunner extends NistTestUtils {
 		System.setProperty("derby.system.home", NistTestUtils.getBaseDirectory()+"/target/derby");
 	}
 
+    /**
+     * Constructor. Initializes by deleting a previous instance of the Derby DB
+     * and creating a new embedded connection to Derby.
+     * @throws Exception for failure to find
+     */
     public DerbyNistRunner() throws Exception {
         File derbyDir = new File(NistTestUtils.getBaseDirectory()+"/target/derby");
         if (derbyDir.exists())
@@ -26,10 +35,15 @@ public class DerbyNistRunner extends NistTestUtils {
         connection.close();
     }
 
-    public void runDerby(List<File> filesToTest) throws Exception {
+    /**
+     * Run the given set of tests.
+     * @param testFiles the SQL scrips to run
+     * @throws Exception any failure
+     */
+    public void runDerby(List<File> testFiles) throws Exception {
 
         Connection connection = DerbyEmbedConnection.getConnection();
-        for (File file: filesToTest) {
+        for (File file: testFiles) {
             NistTestUtils.runTest(file, NistTestUtils.DERBY_OUTPUT_EXT, connection);
         }
         try {

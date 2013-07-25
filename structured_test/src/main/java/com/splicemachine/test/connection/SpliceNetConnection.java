@@ -9,6 +9,9 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+/**
+ * Static helper class to get an embedded connection to Splice
+ */
 public class SpliceNetConnection {
 	private static final Logger LOG = Logger.getLogger(SpliceNetConnection.class);
     protected static String framework = "client";
@@ -42,6 +45,11 @@ public class SpliceNetConnection {
         loaded =  true;
     }
 
+    /**
+     * Acquire a connection
+     * @return a new connection
+     * @throws Exception for any failure
+     */
     public static Connection getConnection() throws Exception {
         if (!loaded) {
             loadDriver();

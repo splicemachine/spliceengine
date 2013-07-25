@@ -10,7 +10,9 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-
+/**
+ * Static helper class to get an embedded connection to Derby
+ */
 public class DerbyEmbedConnection {
     private static final Logger LOG = Logger.getLogger(DerbyEmbedConnection.class);
 
@@ -62,6 +64,11 @@ public class DerbyEmbedConnection {
         return DriverManager.getConnection(protocol, props);
     }
 
+    /**
+     * Acquire a connection
+     * @return a new connection
+     * @throws Exception for any failure
+     */
     public static Connection getConnection() throws Exception {
         if (!loaded) {
             return createConnection();

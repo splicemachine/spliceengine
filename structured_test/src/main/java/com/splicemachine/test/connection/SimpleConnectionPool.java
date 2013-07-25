@@ -5,6 +5,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
+ * Currently unused.
+ *
  * @author Jeff Cunningham
  *         Date: 7/23/13
  */

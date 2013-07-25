@@ -118,28 +118,27 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testDiff_cdr002() throws Exception {
-        File file = new File(NistTestUtils.getResourceDirectory()+ NistTestUtils.TARGET_NIST, "cdr002.sql");
-        List<File> files = Arrays.asList(file);
-
-        PrintStream out = System.out;
-        for (DiffReport report : DiffEngine.diffOutput(files,
-                NistTestUtils.getResourceDirectory() + "/difftest/", readDerbyFilters(), readSpliceFilters())) {
-            report.print(out);
-            Assert.assertEquals(0, report.getNumberOfDiffs());
-        }
+        helpDiffOutputFiles("cdr002.sql", 0);
     }
 
     @Test
     public void testDiff_schema8() throws Exception {
-        File file = new File(NistTestUtils.getResourceDirectory()+ NistTestUtils.TARGET_NIST, "schema8.sql");
-        List<File> files = Arrays.asList(file);
+        helpDiffOutputFiles("schema8.sql", 1);
+    }
 
-        PrintStream out = System.out;
-        for (DiffReport report : DiffEngine.diffOutput(files,
-                NistTestUtils.getResourceDirectory() + "/difftest/", NistTestUtils.readDerbyFilters(), NistTestUtils.readSpliceFilters())) {
-            report.print(out);
-            Assert.assertEquals(66, report.getNumberOfDiffs());
-        }
+    @Test
+    public void testDiff_dml005() throws Exception {
+        helpDiffOutputFiles("dml005.sql", 0);
+    }
+
+    @Test
+    public void testDiff_dml182() throws Exception {
+        helpDiffOutputFiles("dml182.sql", 0);
+    }
+
+    @Test
+    public void testDiff_dml059() throws Exception {
+        helpDiffOutputFiles("dml059.sql", 1);
     }
 
     @Test
@@ -148,6 +147,16 @@ public class TestTheTestClassesTest {
         Assert.assertFalse("Got nuthin", testFiles.isEmpty());
         System.out.println(printList(testFiles));
         System.out.println(testFiles.size()+" files");
+    }
+
+    private static void helpDiffOutputFiles(String sqlFileName, int expectedFailures) throws Exception {
+        File sqlFile = new File(NistTestUtils.getResourceDirectory()+ NistTestUtils.TARGET_NIST_DIR, sqlFileName);
+        List<File> files = Arrays.asList(sqlFile);
+
+        PrintStream out = System.out;
+        int reportsWithDiffs = DiffReport.reportCollection(DiffEngine.diffOutput(files,
+                NistTestUtils.getResourceDirectory() + "/difftest/", NistTestUtils.readDerbyFilters(), NistTestUtils.readSpliceFilters()), out);
+        Assert.assertEquals(expectedFailures, reportsWithDiffs);
     }
 
     private String printList(Collection<? extends Object> things) {

@@ -5,18 +5,26 @@ import difflib.Delta;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * @author Jeff Cunningham
- *         Date: 7/24/13
+ * A report of the differences in the output of the execution of a given
+ * SQL script against both Derby and Splice.
  */
 public class DiffReport {
+    public final String sqlFileName;
     public final String derbyFile;
-    public final List<Delta> deltas;
     public final String spliceFile;
+    public final List<Delta> deltas;
 
+    /**
+     * Constructor
+     * @param derbyFile derby output file
+     * @param spliceFile splice output file
+     * @param deltas the differences between the two
+     */
     public DiffReport(String derbyFile, String spliceFile, List<Delta> deltas) {
         this.derbyFile = derbyFile;
         this.spliceFile = spliceFile;
@@ -25,20 +33,42 @@ public class DiffReport {
         } else {
             this.deltas = Collections.emptyList();
         }
+        this.sqlFileName = sqlName(this.derbyFile);
     }
 
-    public boolean isEmpty() {
-        return this.deltas.isEmpty();
+    /**
+     * Get the base name of the SQL script that was run to produce
+     * this output
+     * @return SQL script base name
+     */
+    public String getSqlFileName() {
+        return this.sqlFileName;
     }
 
+    /**
+     * Does this report have differences?
+     * @return <code>true</code>, if so
+     */
+    public boolean hasDifferences() {
+        return ! this.deltas.isEmpty();
+    }
+
+    /**
+     * Get the number of differences in the output
+     * @return number of differences
+     */
     public int getNumberOfDiffs() {
         return (this.deltas.isEmpty() ? 0 : this.deltas.size());
     }
 
+    /**
+     * Pretty print the difference output of this report
+     * @param out the output location
+     */
     public void print(PrintStream out) {
         out.println("\n===========================================================================================");
-        out.println(sqlName(derbyFile));
-        if (isEmpty()) {
+        out.println(sqlFileName);
+        if (! hasDifferences()) {
             out.println("No differences");
         } else {
             out.println(getNumberOfDiffs()+" differences");
@@ -46,6 +76,23 @@ public class DiffReport {
         }
         out.println("===========================================================================================");
         out.flush();
+    }
+
+    /**
+     * Create a report of all difference reports in the collection.
+     * @param reports the collection of difference reports
+     * @param ps location of output
+     * @return the number of reports in the collection that have differences
+     */
+    public static int reportCollection(Collection<DiffReport> reports, PrintStream ps) {
+        int failed = 0;
+        for (DiffReport report : reports) {
+            report.print(ps);
+            if (report.hasDifferences()) {
+                failed++;
+            }
+        }
+        return failed;
     }
 
     private void printDeltas(List<Delta> deltas, PrintStream out) {
@@ -61,10 +108,9 @@ public class DiffReport {
     private static void printChunk(String testType, Chunk chunk, PrintStream out) {
         out.println(testType + "\nPosition " + chunk.getPosition() + ": ");
         for(Object line : chunk.getLines()) {
-            out.println("  " + line);
+            out.println("  [" + line + "]");
         }
     }
-
 
     private static String sqlName(String fullName) {
         String[] cmpnts = StringUtils.split(fullName, '/');
