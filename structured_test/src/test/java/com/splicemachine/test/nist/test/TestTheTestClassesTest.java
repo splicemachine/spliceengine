@@ -154,9 +154,9 @@ public class TestTheTestClassesTest {
         List<File> files = Arrays.asList(sqlFile);
 
         PrintStream out = System.out;
-        int reportsWithDiffs = DiffReport.reportCollection(DiffEngine.diffOutput(files,
+        List<String> failedDiffs = DiffReport.reportCollection(DiffEngine.diffOutput(files,
                 NistTestUtils.getResourceDirectory() + "/difftest/", NistTestUtils.readDerbyFilters(), NistTestUtils.readSpliceFilters()), out);
-        Assert.assertEquals(expectedFailures, reportsWithDiffs);
+        Assert.assertEquals(expectedFailures, failedDiffs.size());
     }
 
     private String printList(Collection<? extends Object> things) {

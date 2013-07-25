@@ -45,6 +45,10 @@ public class DerbyNistRunner extends NistTestUtils {
         Connection connection = DerbyEmbedConnection.getConnection();
         for (File file: testFiles) {
             NistTestUtils.runTest(file, NistTestUtils.DERBY_OUTPUT_EXT, connection);
+            if (connection.isClosed()) {
+                LOG.warn("DB connection was closed. Attempting to get new...");
+                connection = DerbyEmbedConnection.getConnection();
+            }
         }
         try {
             connection.close();

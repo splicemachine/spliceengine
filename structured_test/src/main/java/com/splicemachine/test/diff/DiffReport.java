@@ -5,6 +5,7 @@ import difflib.Delta;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -82,17 +83,17 @@ public class DiffReport {
      * Create a report of all difference reports in the collection.
      * @param reports the collection of difference reports
      * @param ps location of output
-     * @return the number of reports in the collection that have differences
+     * @return the names of all scripts that have output file differences
      */
-    public static int reportCollection(Collection<DiffReport> reports, PrintStream ps) {
-        int failed = 0;
+    public static List<String> reportCollection(Collection<DiffReport> reports, PrintStream ps) {
+        List<String> failedTestNames = new ArrayList<String>();
         for (DiffReport report : reports) {
             report.print(ps);
             if (report.hasDifferences()) {
-                failed++;
+                failedTestNames.add(report.sqlFileName);
             }
         }
-        return failed;
+        return failedTestNames;
     }
 
     private void printDeltas(List<Delta> deltas, PrintStream out) {

@@ -157,22 +157,32 @@ public class NistTestUtils {
                                                   List<String> spliceOutputFilter,
                                                   PrintStream out) throws Exception {
         out.println("Starting...");
+        // print to stdout also for user feedback...
+        System.out.println("Starting...");
 
         // run derby
         out.println("Derby...");
+        System.out.println("Derby...");
 
         out.println("    Running "+testFiles.size()+" tests...");
+        System.out.println("    Running "+testFiles.size()+" tests...");
         long start = System.currentTimeMillis();
         derbyRunner.runDerby(testFiles);
-        out.println("    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis()));
+        String derbyDone = "    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        out.println(derbyDone);
+        System.out.println(derbyDone);
 
         // run splice
         out.println("Splice...");
+        System.out.println("Splice...");
 
         out.println("    Running "+testFiles.size()+" tests...");
+        System.out.println("    Running "+testFiles.size()+" tests...");
         start = System.currentTimeMillis();
         spliceRunner.runSplice(testFiles);
-        out.println("    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis()));
+        String spliceDone = "    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        out.println(spliceDone);
+        System.out.println(spliceDone);
 
         // diff output and assert no differences in each report
         Collection<DiffReport> reports = DiffEngine.diffOutput(testFiles,

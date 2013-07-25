@@ -120,6 +120,7 @@ public class DiffEngine {
                 // Compare all non-whitespace tokens
                 return equalsIgnoreWhitespace(derbyTrimmed, spliceTrimmed);
             } else {
+                // default impl; string compare
                 return derbyTrimmed.equals(spliceTrimmed);
             }
         }

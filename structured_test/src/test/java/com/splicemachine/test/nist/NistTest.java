@@ -45,11 +45,11 @@ public class NistTest {
 
         Collection<DiffReport> reports = NistTestUtils.runTests(testFiles, derbyRunner, derbyOutputFilter, spliceRunner, spliceOutputFilter, ps);
 
-        int reportsWithDiffs = DiffReport.reportCollection(reports, ps);
+        List<String> failedDiffs = DiffReport.reportCollection(reports, ps);
 
         System.out.print(baos.toString("UTF-8"));
 
-        Assert.assertEquals("Some test comparison failed: " + reportsWithDiffs +
-                " tests had differences.", reports.size(), (reports.size() - reportsWithDiffs));
+        Assert.assertEquals(failedDiffs.size() +  " tests had differences: "+failedDiffs,
+                reports.size(), (reports.size() - failedDiffs.size()));
     }
 }

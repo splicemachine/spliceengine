@@ -14,35 +14,36 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SpliceNetConnection {
 	private static final Logger LOG = Logger.getLogger(SpliceNetConnection.class);
-    protected static String framework = "client";
+
     protected static String driver = "org.apache.derby.jdbc.ClientDriver";
-    protected static String protocol = "jdbc:derby://localhost:1527/";
+    protected static String protocol = "jdbc:derby://localhost:1527/spliceDB;create=true";
+    protected static String protocol2 = "jdbc:derby://localhost:1527/spliceDB";
     protected static Properties props = new Properties();
-	protected static Connection conn = null;
-	protected static List<Statement> statements = new ArrayList<Statement>();
 	protected static boolean loaded;
 
-    public static synchronized void loadDriver() throws Exception{
-    	SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
+    protected static synchronized void loadDriver() throws Exception{
+        SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
         try {
             Class.forName(driver).newInstance();
         } catch (ClassNotFoundException e) {
-            System.err.println("\nUnable to load the JDBC driver " + driver);
-            System.err.println("Please check your CLASSPATH.");
-            e.printStackTrace(System.err);
+            String msg = "\nUnable to load the JDBC driver " + driver + " Please check your CLASSPATH.";
+            LOG.error(msg, e);
             throw e;
         } catch (InstantiationException e) {
-            System.err.println(
-                        "\nUnable to instantiate the JDBC driver " + driver);
-            e.printStackTrace(System.err);
+            String msg = "\nUnable to instantiate the JDBC driver " + driver;
+            LOG.error(msg, e);
             throw e;
         } catch (IllegalAccessException e) {
-            System.err.println(
-                        "\nNot allowed to access the JDBC driver " + driver);
-            e.printStackTrace(System.err);
+            String msg = "\nNot allowed to access the JDBC driver " + driver;
+            LOG.error(msg, e);
             throw e;
         }
         loaded =  true;
+    }
+
+    private static synchronized Connection createConnection() throws Exception {
+        loadDriver();
+        return DriverManager.getConnection(protocol, props);
     }
 
     /**
@@ -52,8 +53,9 @@ public class SpliceNetConnection {
      */
     public static Connection getConnection() throws Exception {
         if (!loaded) {
-            loadDriver();
+            return createConnection();
+        } else {
+            return DriverManager.getConnection(protocol2, props);
         }
-        return DriverManager.getConnection(protocol + "spliceDB;create=true", props);
     }
 }

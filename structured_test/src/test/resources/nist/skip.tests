@@ -17,7 +17,7 @@ dml022
 dml026
 #dml035 - Bug 560
 dml035
-# dml049: select from 10 tables in where clause
+# dml049: select from 10 tables in where clause 
 dml049
 # dml050: bug 492
 dml050
@@ -67,3 +67,14 @@ yts798
 # yts799: bug 494
 yts799
 drop
+# regressions: 7/17/2013
+#Bug 682 - cdr027, dml023 
+# Bug 684 - dml033
+#Bug 662 - dml038
+#Bug 685 - dml060
+# Bug 682 - dml061
+# Bug 686 - dml070
+# Bug 662 - dml079
+#Bug 687 - dml080
+#Bug 662 - dml085, dml087
+#Bug 683 - dml181, dml182

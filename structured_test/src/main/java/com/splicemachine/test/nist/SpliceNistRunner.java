@@ -1,6 +1,8 @@
 package com.splicemachine.test.nist;
 
+import com.splicemachine.test.connection.DerbyEmbedConnection;
 import com.splicemachine.test.connection.SpliceNetConnection;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.sql.Connection;
@@ -29,7 +31,9 @@ import java.util.concurrent.Future;
  * @see DerbyNistRunner
  */
 public class SpliceNistRunner extends NistTestUtils {
-	private final ExecutorService executor;
+    private static final Logger LOG = Logger.getLogger(SpliceNistRunner.class);
+
+    private final ExecutorService executor;
 
     /**
      * Constructor. Initializes.
@@ -52,6 +56,12 @@ public class SpliceNistRunner extends NistTestUtils {
         Connection connection = SpliceNetConnection.getConnection();
         for (File file: testFiles) {
             testRuns.add(executor.submit(new SpliceCallable(file, connection)));
+            if (connection.isClosed()) {
+                // FIXME: this does not handle reconnect when "disconnect;"
+                // is called from a script...
+                LOG.warn("DB connection was closed. Attempting to get new...");
+                connection = SpliceNetConnection.getConnection();
+            }
         }
 
         for (Future<String> testRun : testRuns) {
