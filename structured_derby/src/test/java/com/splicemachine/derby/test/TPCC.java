@@ -33,7 +33,7 @@ public class TPCC extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					PreparedStatement s = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?, ?, ?)", CLASS_NAME, STOCK));
-					for (int i = 0; i< 5000; i++) {
+					for (int i = 0; i< 50000; i++) {
 						if (i%500 == 0)
 							System.out.println("i: " + i);
 						s.setInt(1, i);
