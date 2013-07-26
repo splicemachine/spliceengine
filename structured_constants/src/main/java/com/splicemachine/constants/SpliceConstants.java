@@ -164,7 +164,9 @@ public class SpliceConstants {
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
     public static final String PROPERTIES_CACHE = "properties";
-    
+    public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
+    public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
+    public static final String[] SYSSCHEMAS_CACHES = {SYSSCHEMAS_CACHE,SYSSCHEMAS_INDEX1_ID_CACHE};
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
