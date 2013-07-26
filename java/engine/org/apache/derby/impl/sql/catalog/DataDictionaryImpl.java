@@ -157,7 +157,7 @@ import java.util.concurrent.Executors;
 import org.apache.derby.iapi.store.access.FileResource;
 import org.apache.derby.impl.sql.execute.JarUtil;
 
-/**
+/** g
  * Standard database implementation of the data dictionary
  * that stores the information in the system catlogs.
  */
@@ -167,25 +167,25 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 * Runtime definition of the functions from SYSFUN_FUNCTIONS.
 	 * Populated dynamically as functions are called.
 	 */
-	private final AliasDescriptor[] sysfunDescriptors = new AliasDescriptor[SYSFUN_FUNCTIONS.length];
+	protected final AliasDescriptor[] sysfunDescriptors = new AliasDescriptor[SYSFUN_FUNCTIONS.length];
 
 	// the structure that holds all the core table info
-	private TabInfoImpl[] coreInfo;
+	protected TabInfoImpl[] coreInfo;
 
 	/*
 	** SchemaDescriptors for system and app schemas.  Both
 	** are canonical.  We cache them for fast lookup.
 	*/
-	private SchemaDescriptor systemSchemaDesc;
-	private SchemaDescriptor sysIBMSchemaDesc;
-	private SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
-	private SchemaDescriptor systemUtilSchemaDesc;
+	protected SchemaDescriptor systemSchemaDesc;
+	protected SchemaDescriptor sysIBMSchemaDesc;
+	protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
+	protected SchemaDescriptor systemUtilSchemaDesc;
 	/** Dictionary version of the on-disk database */
-	private DD_Version  dictionaryVersion;
+	protected DD_Version  dictionaryVersion;
 	/** Dictionary version of the currently running engine */
-	private DD_Version  softwareVersion;
-	private String authorizationDatabaseOwner;
-	private boolean usesSqlAuthorization;
+	protected DD_Version  softwareVersion;
+	protected String authorizationDatabaseOwner;
+	protected boolean usesSqlAuthorization;
 
 	/*
 	** This property and value are written into the database properties
@@ -213,7 +213,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
 	/* Information about whether or not we are at boot time */
 	protected	boolean				booting;
-	private TransactionController	bootingTC;
+	protected TransactionController	bootingTC;
 	protected   DependencyManager dmgr;
 
 	/* Cache of table descriptors */
@@ -1623,9 +1623,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	private SchemaDescriptor locateSchemaRow(String schemaName, 
-								TransactionController tc)
-		throws StandardException
+	public SchemaDescriptor locateSchemaRow(String schemaName,  TransactionController tc) throws StandardException
 	{
 		DataValueDescriptor		  schemaNameOrderable;
 		TabInfoImpl					  ti = coreInfo[SYSSCHEMAS_CORE_NUM];
@@ -1638,8 +1636,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		/* Set up the start/stop position for the scan */
 		ExecIndexRow keyRow = exFactory.getIndexableRow(1);
 		keyRow.setColumn(1, schemaNameOrderable);
-
-		return (SchemaDescriptor)
+		
+		// XXX - TODO Cache Lookup
+		
+		SchemaDescriptor desc = (SchemaDescriptor)
 					getDescriptorViaIndex(
 						SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
 						keyRow,
@@ -1650,6 +1650,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 						false,
                         TransactionController.ISOLATION_REPEATABLE_READ,
 						tc);
+		
+		return desc;
 	}
 
 
@@ -9254,7 +9256,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException Thrown on error.
 	 */
-	private final TupleDescriptor getDescriptorViaIndex(
+	public final TupleDescriptor getDescriptorViaIndex(
 						int indexId,
 						ExecIndexRow keyRow,
 						ScanQualifier [][] scanQualifiers,
@@ -9282,7 +9284,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
 
-	private final TupleDescriptor getDescriptorViaIndexMinion(
+	public final TupleDescriptor getDescriptorViaIndexMinion(
 						int indexId,
 						ExecIndexRow keyRow,
 						ScanQualifier [][] scanQualifiers,
