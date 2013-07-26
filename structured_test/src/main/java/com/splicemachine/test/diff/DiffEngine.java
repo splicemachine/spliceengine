@@ -40,7 +40,7 @@ public class DiffEngine {
             String derbyFileName = inputDir + sqlFile.getName().replace(".sql", NistTestUtils.DERBY_OUTPUT_EXT);
             // NOTE: we need ALL lines, including "--" comments because
             // there are differencing directives in there
-            List<String> derbyFileLines = NistTestUtils.fileToLines(derbyFileName, null);
+            List<String> derbyFileLines = NistTestUtils.fileToLines(derbyFileName, (String)null);
             // filter derby warnings, etc
             derbyFileLines = filterOutput(derbyFileLines, derbyFilter);
 
@@ -48,7 +48,7 @@ public class DiffEngine {
             String spliceFileName = inputDir + sqlFile.getName().replace(".sql", NistTestUtils.SPLICE_OUTPUT_EXT);
             // NOTE: we need ALL lines, including "--" comments because
             // there are differencing directives in there
-            List<String> spliceFileLines = NistTestUtils.fileToLines(spliceFileName, null);
+            List<String> spliceFileLines = NistTestUtils.fileToLines(spliceFileName, (String)null);
             // filter splice warnings, etc
             spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 

@@ -49,7 +49,7 @@ public class NistTest {
         Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
 
         String report = baos.toString("UTF-8");
-        NistTestUtils.createLog(NistTestUtils.getBaseDirectory(), "NistTest.log", report);
+        NistTestUtils.createLog(NistTestUtils.getBaseDirectory(), "NistTest.log", null, report);
 
         Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs + "\n" + report,
                 reports.size(), (reports.size() - failedDiffs.size()));

@@ -291,13 +291,13 @@ public class NistTestUtils {
      * Read files into a list of Strings optionally ignoring comment lines.
      *
      * @param filePath the full path of the file to read.
-     * @param commentPattern the optional list of beginning line comments to
+     * @param commentPattern the optional beginning line comment to
      *                       ignore.
      * @return the list of lines from the file with any comment lines optionally
      * absent.
-     * @see #lineIsComment(String, String...)
+     * @see #lineIsComment(String, String)
      */
-    public static List<String> fileToLines(String filePath, String...commentPattern) {
+    public static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
         try {
             BufferedReader in = new BufferedReader(new FileReader(filePath));
@@ -320,22 +320,20 @@ public class NistTestUtils {
     }
 
     /**
-     * Returns <code>true</code> if a the given string starts with any of the
-     * <code>commentPatterns</code>
+     * Returns <code>true</code> if a the given string starts with the
+     * <code>commentPattern</code>
      *
      * @param line the string to consider with leading whitespace ignored
-     * @param commentPatterns the comment patterns to employ
-     * @return <code>true</code> if and only if the line begins with one of
-     * the <code>commentPatterns</code>
+     * @param commentPattern the comment pattern to employ
+     * @return <code>true</code> if and only if the line begins with
+     * the <code>commentPattern</code>
      */
-    public static boolean lineIsComment(String line, String...commentPatterns) {
-        if (commentPatterns == null || commentPatterns.length == 0) {
+    public static boolean lineIsComment(String line, String commentPattern) {
+        if (commentPattern == null || commentPattern.isEmpty()) {
             return false;
         }
-        for (String pattern : commentPatterns) {
-            if (line.trim().startsWith(pattern)) {
-                return true;
-            }
+        if (line.trim().startsWith(commentPattern)) {
+            return true;
         }
         return false;
     }

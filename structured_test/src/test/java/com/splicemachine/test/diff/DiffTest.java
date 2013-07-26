@@ -44,10 +44,10 @@ public class DiffTest {
     @Test
     public void testRawDiff() throws Exception {
         String derbyFileName = NistTestUtils.getResourceDirectory() + "/difftest/cdr002.derby";
-        List<String> derbyFileLines = fileToLines(derbyFileName, null);
+        List<String> derbyFileLines = fileToLines(derbyFileName, (String)null);
 
         String spliceFileName = NistTestUtils.getResourceDirectory() + "/difftest/cdr002.splice";
-        List<String> spliceFileLines = fileToLines(spliceFileName, null);
+        List<String> spliceFileLines = fileToLines(spliceFileName, (String)null);
 
         // using diff util directly here (no filtering), so expecting diffs
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
@@ -62,13 +62,13 @@ public class DiffTest {
     public void testRawDiffInDepth() throws Exception {
         // derby output
         String derbyFileName = NistTestUtils.getResourceDirectory() + "/difftest/fakeDiff01.derby";
-        List<String> derbyFileLines = fileToLines(derbyFileName, null);
+        List<String> derbyFileLines = fileToLines(derbyFileName, (String)null);
         // filter derby warnings, etc
         derbyFileLines = DiffEngine.filterOutput(derbyFileLines, readDerbyFilters());
 
         // splice output
         String spliceFileName = NistTestUtils.getResourceDirectory() + "/difftest/fakeDiff01.splice";
-        List<String> spliceFileLines = fileToLines(spliceFileName, null);
+        List<String> spliceFileLines = fileToLines(spliceFileName, (String)null);
         // filter splice warnings, etc
         spliceFileLines = DiffEngine.filterOutput(spliceFileLines, readSpliceFilters());
 
