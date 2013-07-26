@@ -1,0 +1,9 @@
+import_splice - creates all 8 tables and loads data
+
+queries/*.sql - has all of 22 querries
+
+1.sql - 22.sql - can be used to run individual querries.
+
+all_queries.sql - runs all 22 select stmts.
+
+check_answers - directory has results from all 22 sq statements for comparison.
