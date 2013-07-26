@@ -601,6 +601,7 @@ public class Scans extends SpliceUtils {
                     boolean[] shouldContinue = new boolean[]{true,true};
                     boolean addStart=shouldContinue[0];
                     boolean addStop = shouldContinue[1];
+                    QualifierBounds qualifierBounds = null;
                     for(int pkCol = primaryKeys.anySetBit();pkCol!=-1&&(addStart||addStop);pkCol = primaryKeys.anySetBit(pkCol)){
                         //empty out previous runs
                         pkQualifiers.clear();
@@ -617,12 +618,15 @@ public class Scans extends SpliceUtils {
                             shouldContinue[1] = false;
                             continue;
                         }
-                        QualifierBounds qualifierBounds = QualifierBounds.getOperator(pkQualifiers);
+                        qualifierBounds = QualifierBounds.getOperator(pkQualifiers);
                         qualifierBounds.process(pkQualifiers,startKeyBounds,endKeyBounds,shouldContinue);
                     }
 
                     byte[] qualifiedStart = BytesUtil.concat(startKeyBounds);
                     byte[] qualifiedStop = BytesUtil.concat(endKeyBounds);
+                    if(!QualifierBounds.isLessThanOperator(qualifierBounds)&&qualifiedStop.length>0){
+                       BytesUtil.incrementAtIndex(qualifiedStop,qualifiedStop.length-1);
+                    }
 
                     if(qualifiedStart!=null&&qualifiedStart.length>0){
                         byte[] currentStart = scan.getStartRow();

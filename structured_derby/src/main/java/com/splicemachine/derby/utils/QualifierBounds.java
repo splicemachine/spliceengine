@@ -63,7 +63,7 @@ public enum QualifierBounds {
                                  List<byte[]> stops,
                                  boolean[] shouldContinue) throws StandardException, IOException {
             shouldContinue[0] = false;
-            if(shouldContinue[1]) stops.add(getIncrementedBytes(bestStop));
+            if(shouldContinue[1]) stops.add(DerbyBytesUtil.generateBytes(bestStop));
         }
     },
     EQUALS{
@@ -79,7 +79,7 @@ public enum QualifierBounds {
                                  boolean[] shouldContinue) throws StandardException, IOException {
             byte[] startBytes = DerbyBytesUtil.generateBytes(bestStart);
             if(shouldContinue[0]) starts.add(startBytes);
-            if(shouldContinue[1]) stops.add(BytesUtil.copyAndIncrement(startBytes));
+            if(shouldContinue[1]) stops.add(startBytes);
         }
     },
     GREATER_THAN{
@@ -157,7 +157,7 @@ public enum QualifierBounds {
                                  List<byte[]> stops,
                                  boolean[] shouldContinue) throws StandardException, IOException {
             if(shouldContinue[0]) starts.add(DerbyBytesUtil.generateBytes(bestStart));
-            if(shouldContinue[1]) stops.add(getIncrementedBytes(bestStop));
+            if(shouldContinue[1]) stops.add(DerbyBytesUtil.generateBytes(bestStop));
         }
     },
     LESS_THAN_GREATER_EQUALS{
@@ -179,7 +179,7 @@ public enum QualifierBounds {
                                  List<byte[]> stops,
                                  boolean[] shouldContinue) throws StandardException, IOException {
             if(shouldContinue[0])starts.add(getIncrementedBytes(bestStart));
-            if(shouldContinue[1])stops.add(getIncrementedBytes(bestStop));
+            if(shouldContinue[1])stops.add(DerbyBytesUtil.generateBytes(bestStop));
         }
     },
     LESS_EQUALS_GREATER_EQUALS{
@@ -190,7 +190,7 @@ public enum QualifierBounds {
                                  List<byte[]> stops,
                                  boolean[] shouldContinue) throws StandardException, IOException {
             if(shouldContinue[0])starts.add(DerbyBytesUtil.generateBytes(bestStart));
-            if(shouldContinue[1])stops.add(getIncrementedBytes(bestStop));
+            if(shouldContinue[1])stops.add(DerbyBytesUtil.generateBytes(bestStop));
         }
     };
 
@@ -260,5 +260,11 @@ public enum QualifierBounds {
                     return NOT_EQUALS; //when in doubt, not equals is what we want
             }
         }
+    }
+
+    public static boolean isLessThanOperator(QualifierBounds qualifierBounds) {
+        return qualifierBounds==LESS_THAN||
+                qualifierBounds==LESS_THAN_GREATER_EQUALS
+                || qualifierBounds == LESS_THAN_GREATER_THAN;
     }
 }
