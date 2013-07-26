@@ -5,10 +5,7 @@ import difflib.Delta;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * A report of the differences in the output of the execution of a given
@@ -83,17 +80,19 @@ public class DiffReport {
      * Create a report of all difference reports in the collection.
      * @param reports the collection of difference reports
      * @param ps location of output
-     * @return the names of all scripts that have output file differences
+     * @return the mapping names of all scripts that have output file differences
+     * and their number of differences
      */
-    public static List<String> reportCollection(Collection<DiffReport> reports, PrintStream ps) {
-        List<String> failedTestNames = new ArrayList<String>();
+    public static Map<String, Integer> reportCollection(Collection<DiffReport> reports, PrintStream ps) {
+        Map<String, Integer> failedTestMap = new HashMap<String, Integer>();
         for (DiffReport report : reports) {
             report.print(ps);
             if (report.hasDifferences()) {
-                failedTestNames.add(report.sqlFileName);
+                failedTestMap.put(report.sqlFileName,report.getNumberOfDiffs());
             }
         }
-        return failedTestNames;
+        ps.println(reports.size()+" tests run. "+failedTestMap.size()+" failed output differencing.");
+        return failedTestMap;
     }
 
     private void printDeltas(List<Delta> deltas, PrintStream out) {

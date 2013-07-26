@@ -234,6 +234,26 @@ public class NistTestUtils {
     }
 
     /**
+     * Write the given <code>content</code> to the given <code>logName</code>
+     * to be created in the given <code>dirName</code>.
+     * @param dirName full path to the directory in which to create the log.
+     * @param logName the name of the log file.
+     * @param discriminator a file discriminator to append to <code>logName</code>
+     *                      when writing multiple copies of the same file. Ignored
+     *                      if <code>null</code>.
+     * @param content the content of which to write to the file.
+     * @throws Exception any failure.
+     */
+    public static void createLog(String dirName, String logName, String discriminator, String content) throws Exception {
+        File targetFile = new File(dirName,logName+(discriminator != null ? discriminator : ""));
+        Files.createParentDirs(targetFile);
+        if (targetFile.exists())
+            targetFile.delete();
+        targetFile.createNewFile();
+        FileUtils.writeStringToFile(targetFile, content);
+    }
+
+    /**
      * File filter to use when determining types of files to be included in a list.
      */
     public static class SpliceIOFileFilter implements IOFileFilter {

@@ -5,11 +5,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Run all NIST SQL scripts
@@ -43,13 +42,16 @@ public class NistTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
 
-        Collection<DiffReport> reports = NistTestUtils.runTests(testFiles, derbyRunner, derbyOutputFilter, spliceRunner, spliceOutputFilter, ps);
+        Collection<DiffReport> reports = NistTestUtils.runTests(testFiles,
+                                                                derbyRunner, derbyOutputFilter,
+                                                                spliceRunner, spliceOutputFilter, ps);
 
-        List<String> failedDiffs = DiffReport.reportCollection(reports, ps);
+        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
 
-        System.out.print(baos.toString("UTF-8"));
+        String report = baos.toString("UTF-8");
+        NistTestUtils.createLog(NistTestUtils.getBaseDirectory(), "NistTest.log", report);
 
-        Assert.assertEquals(failedDiffs.size() +  " tests had differences: "+failedDiffs,
+        Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs + "\n" + report,
                 reports.size(), (reports.size() - failedDiffs.size()));
     }
 }

@@ -3,12 +3,10 @@ package com.splicemachine.test.diff;
 import com.splicemachine.test.nist.NistTestUtils;
 import difflib.DiffUtils;
 import difflib.Patch;
-import difflib.StringUtills;
-import difflib.myers.Equalizer;
-import org.apache.derby.iapi.util.StringUtil;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,20 +38,24 @@ public class DiffEngine {
         for (File sqlFile: sqlFiles) {
             // derby output
             String derbyFileName = inputDir + sqlFile.getName().replace(".sql", NistTestUtils.DERBY_OUTPUT_EXT);
-            // NOTE: the "--" comment pattern also removes formatted output lines with only dashes
-            List<String> derbyFileLines = NistTestUtils.fileToLines(derbyFileName, "--", "ij> --");
+            // NOTE: we need ALL lines, including "--" comments because
+            // there are differencing directives in there
+            List<String> derbyFileLines = NistTestUtils.fileToLines(derbyFileName, null);
             // filter derby warnings, etc
             derbyFileLines = filterOutput(derbyFileLines, derbyFilter);
 
             // splice output
             String spliceFileName = inputDir + sqlFile.getName().replace(".sql", NistTestUtils.SPLICE_OUTPUT_EXT);
-            // NOTE: the "--" comment pattern also removes formatted output lines with only dashes
-            List<String> spliceFileLines = NistTestUtils.fileToLines(spliceFileName, "--", "ij> --");
+            // NOTE: we need ALL lines, including "--" comments because
+            // there are differencing directives in there
+            List<String> spliceFileLines = NistTestUtils.fileToLines(spliceFileName, null);
             // filter splice warnings, etc
             spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 
+            // Diff the output files using a custom Equalizer
             Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines, new NistLineEqualizer());
 
+            // Create a diff report for this SQL script output
             DiffReport diff = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
             diffs.add(diff);
         }
@@ -63,23 +65,26 @@ public class DiffEngine {
     /**
      * Remove (filter) any lines in <code>fileLines</code> that contain any occurrences of
      * <code>lineFilters</code>
+     * <p>
+     *     This method is used to filter lines from one output file that are not in the
+     *     other.  Lines in one file that ARE NOT in the other throw off diff comparison
+     *     by one line.<br/>
+     *     <b>NEVER</b> use this method to filter lines from one output file that are also
+     *     in the other, unless you filter the same lines from the other.
+     * </p>
      * @param fileLines the strings to consider
      * @param lineFilters patterns, occurrences of which, should be filtered.
      * @return the result of the <code>fileLines</code> filtering (lines with lineFilters
      * removed).
      */
     public static List<String> filterOutput(List<String> fileLines, List<String> lineFilters) {
-        if (fileLines == null || fileLines.isEmpty()) {
+        if (isEmpty(fileLines) || isEmpty(lineFilters)) {
             return fileLines;
         }
         List<String> copy = Collections.synchronizedList(new ArrayList<String>(fileLines));
         List<String> filteredLines = Collections.synchronizedList(new ArrayList<String>(fileLines.size()));
         for (String line : copy) {
             boolean filter = false;
-
-            if (line.startsWith("CONNECTION")) {
-                continue;
-            }
 
             for (String warning : lineFilters) {
                 if (line.contains(warning)) {
@@ -94,52 +99,12 @@ public class DiffEngine {
         return filteredLines;
     }
 
-    private static class NistLineEqualizer implements Equalizer<String> {
-        private static final String CONSTRAINT_ERROR = "ERROR X0Y44: Constraint 'SQL";
-        @Override
-        public boolean equals(String derby, String splice) {
-            String derbyTrimmed = derby.trim();
-            String spliceTrimmed = splice.trim();
-            if (derbyTrimmed.startsWith(CONSTRAINT_ERROR) &&
-                    spliceTrimmed.startsWith(CONSTRAINT_ERROR)) {
-                // Not a bug, chars appearing after "SQL" are a conglomerate ID - different for each DB instance
-                return true;
-            } else if(derbyTrimmed.contains("|") && spliceTrimmed.contains("|")) {
-                // Case where formatted output is formatted differently by Derby and Splice:
-                //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                //Users/jeff/dev/spliceengine/structured_test/target/nist/dml130.derby
-                //Position 79:
-                //  [1               |NU&|NUM1C3]
-                //  [0.00            |0  |0     ]
-                //++++++++++++++++++++++++++
-                //Users/jeff/dev/spliceengine/structured_test/target/nist/dml130.splice
-                //Position 79:
-                //  [1              |NU&|NUM1C3]
-                //  [0.00           |0  |0     ]
-                //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                // Compare all non-whitespace tokens
-                return equalsIgnoreWhitespace(derbyTrimmed, spliceTrimmed);
-            } else {
-                // default impl; string compare
-                return derbyTrimmed.equals(spliceTrimmed);
-            }
-        }
-
-        private static boolean equalsIgnoreWhitespace(String derby, String splice) {
-            String[] derbyTokens = StringUtil.split(derby, ' ');
-            String[] spliceTokens = StringUtil.split(splice, ' ');
-            if (derbyTokens.length != spliceTokens.length) {
-                return false;
-            } else {
-                int i = 0;
-                while (i < derbyTokens.length) {
-                    if (! derbyTokens[i].equals(spliceTokens[i])) {
-                        return false;
-                    }
-                    ++i;
-                }
-            }
-            return true;
-        }
+    public static boolean isEmpty(String string) {
+        return (string == null || string.isEmpty());
     }
+
+    public static boolean isEmpty(Collection<? extends Object> objects) {
+        return (objects == null || objects.isEmpty());
+    }
+
 }

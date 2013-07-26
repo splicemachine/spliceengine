@@ -15,6 +15,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * TODO: Temporary - for framework testing
@@ -50,7 +51,7 @@ public class ShortNistTest {
         testFiles.add(new File(NistTestUtils.getResourceDirectory(), "/nist/cdr002.sql"));
         Collection<DiffReport> reports = NistTestUtils.runTests(testFiles, derbyRunner, derbyOutputFilter, spliceRunner, spliceOutputFilter, ps);
 
-        List<String> failedDiffs = DiffReport.reportCollection(reports, ps);
+        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
 
         System.out.print(baos.toString("UTF-8"));
 
