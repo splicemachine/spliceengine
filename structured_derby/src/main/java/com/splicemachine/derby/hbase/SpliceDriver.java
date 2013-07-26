@@ -392,8 +392,8 @@ public class SpliceDriver extends SIConstants {
     		return true;    	
     }
     
-    public Cache getPropertiesCache() {
-    	return cache.getCacheManager().getCache(SpliceConstants.PROPERTIES_CACHE);
+    public Cache getCache(String cacheName) {
+    	return cache.getCacheManager().getCache(cacheName);
     }
 
     public Snowflake getUUIDGenerator(){
