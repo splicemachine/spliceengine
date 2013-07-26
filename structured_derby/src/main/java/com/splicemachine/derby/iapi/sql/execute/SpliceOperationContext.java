@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -88,6 +89,7 @@ public class SpliceOperationContext {
             if (scanner == null) {
                 scanner = region.getScanner(scan);
             }
+            scanner = new BufferedRegionScanner(region,scanner,scan.getCaching());
         }
         return scanner;
     }

@@ -362,7 +362,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null&&!dvd.isNull()){
+            if(dvd!=null){
                 Format format = Format.formatFor(dvd);
                 Serializer serializer = serializationMap.get(format);
                 if(serializer.isScalarType()){
@@ -377,7 +377,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null&&!dvd.isNull()){
+            if(dvd!=null){
                 Format format = Format.formatFor(dvd);
                 if(format==Format.REAL)
                     bitSet.set(i);
@@ -390,7 +390,7 @@ public class DerbyBytesUtil {
         BitSet bitSet = new BitSet();
         for(int i=0;i<rowArray.length;i++){
             DataValueDescriptor dvd = rowArray[i];
-            if(dvd!=null&&!dvd.isNull()){
+            if(dvd!=null){
                 Format format = Format.formatFor(dvd);
                 if(format==Format.DOUBLE)
                     bitSet.set(i);

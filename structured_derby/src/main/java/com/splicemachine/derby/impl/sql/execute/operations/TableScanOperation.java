@@ -185,18 +185,18 @@ public class TableScanOperation extends ScanOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		beginTime = getCurrentTimeMillis();
 		try {
-			  if (!initialized.get()) {
-				  region.startRegionOperation();
-		      	  MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
-		      	  initialized.set(true);
-			  }			
+//			  if (!initialized.get()) {
+//				  region.startRegionOperation();
+//		      	  MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
+//		      	  initialized.set(true);
+//			  }
 	        keyValues.clear();
-	        regionScanner.nextRaw(keyValues,null);
+            regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
-				if (initialized.get()) {
-					region.closeRegionOperation();
-					initialized.set(false);
-				}
+//				if (initialized.get()) {
+//					region.closeRegionOperation();
+//					initialized.set(false);
+//				}
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
