@@ -19,7 +19,7 @@ public class TransactionId {
         this.independentReadOnly = independentReadOnly;
     }
 
-    TransactionId(String transactionId) {
+    public TransactionId(String transactionId) {
         if (transactionId.endsWith(IRO)) {
             this.id = Long.parseLong(transactionId.substring(0, transactionId.length() - IRO.length()));
             this.independentReadOnly = true;
