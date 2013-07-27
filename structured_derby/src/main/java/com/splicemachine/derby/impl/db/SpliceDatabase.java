@@ -4,6 +4,7 @@ import java.util.*;
 
 import javax.security.auth.login.Configuration;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
 import com.splicemachine.derby.impl.ast.ISpliceVisitor;
 import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
 import com.splicemachine.derby.impl.ast.SpliceASTWalker;
@@ -72,6 +73,7 @@ public class SpliceDatabase extends BasicDatabase {
         LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
 
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
+        afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
         lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, Collections.EMPTY_LIST, afterOptVisitors));
 
