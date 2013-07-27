@@ -445,28 +445,29 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             boolean matchingRights = leftJoinRow.sameHash(rightHash);
             // apply restriction
             int rightsMax = rights != null ? rights.size() : 0;
-            List<ExecRow> filteredRights = new ArrayList<ExecRow>(rightsMax);
+            List<ExecRow> filtered = new ArrayList<ExecRow>(rightsMax);
             if (matchingRights) {
                 if (restriction == null) {
-                    filteredRights = rights;
+                    filtered = rights;
                 } else {
-                    activation.setCurrentRow(leftJoinRow.getRow(), leftResultSet.resultSetNumber());
+                    ExecRow leftRow = leftJoinRow.getRow();
                     for (ExecRow right : rights) {
-                        activation.setCurrentRow(right, rightResultSet.resultSetNumber());
+                        ExecRow merged = JoinUtils.getMergedRow(leftRow, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+                        activation.setCurrentRow(merged, resultSetNumber());
                         DataValueDescriptor shouldKeep = (DataValueDescriptor) restriction.invoke(activation);
                         if (!shouldKeep.isNull() && shouldKeep.getBoolean()) {
-                            filteredRights.add(right);
+                            filtered.add(right);
                         }
                     }
                 }
             }
-            if (filteredRights.size() > 0) {
+            if (filtered.size() > 0) {
                 if (notExistsRightSide) {
                     SpliceLogUtils.trace(LOG, "right antijoin miss for left=%s", leftJoinRow);
                     return null;
                 }
                 SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", leftJoinRow);
-                rightIterator = filteredRights.iterator();
+                rightIterator = filtered.iterator();
                 return rightIterator.next();
             } else {
                 resetRightSide();
