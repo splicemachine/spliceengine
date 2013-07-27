@@ -20,7 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class TCPH extends SpliceUnitTest {
+public class TCPHTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = "TPCH1X";
 	protected static final String LINEITEM = "LINEITEM";
@@ -230,11 +230,6 @@ public class TCPH extends SpliceUnitTest {
 	public void sql20() throws Exception {
 		Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 	}
-
-	
-	
-	
-	
 	
 	protected static String getResource(String name) {
 		return getResourceDirectory()+"tcph/data/"+name;
