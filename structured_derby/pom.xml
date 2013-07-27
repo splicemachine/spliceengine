@@ -392,7 +392,7 @@
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
-								<argument>-Xmx2g</argument>
+								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
                                 <argument>-enableassertions</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
