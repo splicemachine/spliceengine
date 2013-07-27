@@ -21,19 +21,12 @@
 
 package org.apache.derby.impl.sql.execute;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
 import org.apache.derby.iapi.sql.Activation;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 /**
@@ -90,35 +83,24 @@ public class GenericQualifier implements Qualifier
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataValueDescriptor getOrderable() throws StandardException
-	{
-		if (variantType != VARIANT)
-		{
-			if (orderableCache == null)
-			{
+	public DataValueDescriptor getOrderable() throws StandardException {
+		if (variantType != VARIANT) {
+			if (orderableCache == null) {
 				try {
 					Method method = activation.getClass().getMethod(orderableGetter.getMethodName(), null);
 					orderableCache = (DataValueDescriptor) (method.invoke(activation,null));
-				} catch (SecurityException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (NoSuchMethodException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}				
+				} catch (Exception e) {
+					throw StandardException.unexpectedUserException(e);
+				}
 			}
 			return orderableCache;
 		}
-		return (DataValueDescriptor) (orderableGetter.invoke(activation));
+		try {
+			Method method = activation.getClass().getMethod(orderableGetter.getMethodName(), null);
+			return (DataValueDescriptor) (method.invoke(activation,null));
+		} catch (Exception e) {
+			throw StandardException.unexpectedUserException(e);
+		}
 	}
 
 	/** Get the operator to use in the comparison. 
