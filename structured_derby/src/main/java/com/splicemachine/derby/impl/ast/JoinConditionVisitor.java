@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.ast;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
+import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -69,7 +69,8 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         for (OptimizablePredicate p : currentPreds) {
             if (predicateIsEvalable(p, j)) {
                 try {
-                    j.pushOptPredicate(p);
+                    updatePredColRefsToThis((Predicate)p, j);
+                    j.reAttachOptPredicate(p);
                     pulledPreds.remove(p);
                 } catch (StandardException e) {
                     LOG.error(e);
@@ -79,4 +80,68 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return j;
     }
 
+    public Predicate updatePredColRefsToThis(Predicate p, JoinNode j)
+            throws StandardException
+    {
+        ResultColumnList rcl = j.getResultColumns();
+        Map<List<Integer>, ResultColumn> chain = rsnChainMap(rcl);
+        Vector<ColumnReference> predCRs = collectNodes(p, ColumnReference.class);
+        for (ColumnReference cr: predCRs){
+            ResultColumn rc = cr.getSource();
+            List<Integer> rsnAndCol = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
+            if (chain.containsKey(rsnAndCol)){
+                cr.setSource(chain.get(rsnAndCol));
+            }
+        }
+        return p;
+    }
+
+
+    public Map<List<Integer>, ResultColumn> rsnChainMap(ResultColumnList rcl)
+            throws StandardException
+    {
+        Map<List<Integer>, ResultColumn> chain = new HashMap<List<Integer>, ResultColumn>();
+        Vector<ResultColumn> cols = collectNodes(rcl, ResultColumn.class);
+
+        for (ResultColumn rc: cols){
+            List<Integer> top = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
+            chain.put(top, rc);
+            for (List<Integer> link: rsnChain(rc)){
+                chain.put(link, rc);
+            }
+        }
+
+        return chain;
+    }
+
+    public List<List<Integer>> rsnChain(ResultColumn rc)
+            throws StandardException
+    {
+        List<List<Integer>> chain = new ArrayList<List<Integer>>();
+
+        ValueNode expression = rc.getExpression();
+        while (expression != null) {
+            if (expression instanceof VirtualColumnNode) {
+                ResultColumn sc = ((VirtualColumnNode) expression).getSourceColumn();
+                chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
+                expression = sc.getExpression();
+            } else if (expression instanceof ColumnReference) {
+                ResultColumn sc = ((ColumnReference) expression).getSource();
+                chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
+                expression = sc.getExpression();
+            } else {
+                expression = null;
+            }
+        }
+
+        return chain;
+    }
+
+    public <N> Vector<N> collectNodes(Visitable node, Class<N> clazz)
+            throws StandardException
+    {
+        CollectNodesVisitor v = new CollectNodesVisitor(clazz);
+        node.accept(v);
+        return (Vector<N>)v.getList();
+    }
 }
