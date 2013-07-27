@@ -13,6 +13,8 @@ public interface ISpliceVisitor {
     public boolean stopTraversal();
     public boolean skipChildren(Visitable node);
 
+    public Visitable defaultVisit(Visitable node);
+
     // ResultSet nodes
     public Visitable visit(CurrentOfNode node);
     public Visitable visit(DistinctNode node);
