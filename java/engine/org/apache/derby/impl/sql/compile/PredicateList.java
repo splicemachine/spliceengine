@@ -21,16 +21,12 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-
+import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
-
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
@@ -40,38 +36,18 @@ import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.Row;
-
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.StatisticsDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
-import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.util.JBitSet;
-
 import java.lang.reflect.Modifier;
-
-import java.sql.Types;
-
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Properties;
 import java.util.Vector;
 
 /**
@@ -87,7 +63,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 	private int	numberOfStartPredicates;
 	private int numberOfStopPredicates;
 	private int numberOfQualifiers;
-
+	
 	public PredicateList()
 	{
 	}
@@ -512,10 +488,25 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 										boolean nonMatchingIndexScan,
 										boolean coveringIndexScan)
 						throws StandardException
-	{
+	{	
+
+		int[] baseColumnPositions = null;
+		boolean[]	isAscending = null;
+
+			ConglomerateDescriptorList cdl = optTable.getTableDescriptor().getConglomerateDescriptorList();
+		   for(int index=0;index< cdl.size();index++){
+	            ConglomerateDescriptor primaryKeyCheck = (ConglomerateDescriptor) cdl.get(index);
+	            IndexDescriptor indexDec = primaryKeyCheck.getIndexDescriptor();
+	            if(indexDec!=null){
+	                String indexType = indexDec.indexType();
+	                if(indexType!=null && indexType.contains("PRIMARY")) {
+	                	baseColumnPositions = cd.getIndexDescriptor().getIndexDescriptor().baseColumnPositions();
+	                	isAscending = cd.getIndexDescriptor().getIndexDescriptor().isAscending();
+	                }
+	            }
+	        }
+
 		boolean[]	deletes;
-		int[]		baseColumnPositions;
-		boolean[]	isAscending;
 		int			size = size();
 		Predicate[]	usefulPredicates = new Predicate[size];
 		int			usefulCount = 0;
@@ -542,9 +533,10 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		*/
 
 		/* Is a heap scan or a non-matching index scan on a covering index? */
-		if ((cd == null) ||  (! cd.isIndex()) || 
+		if ((cd == null) ||  (! cd.isIndex() && baseColumnPositions==null) || // Making sure there is not an index available, if there is I need to evaluate the keys
 			 (nonMatchingIndexScan && coveringIndexScan))
 		{
+			System.out.println("miss");
 			/*
 			** For the heap, the useful predicates are the relational
 			** operators that have a column from the table on one side,
@@ -634,8 +626,8 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 			return;
 		}
 
-		baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-		isAscending = cd.getIndexDescriptor().isAscending();
+		baseColumnPositions = baseColumnPositions == null?cd.getIndexDescriptor().baseColumnPositions():baseColumnPositions;
+		isAscending = isAscending == null?cd.getIndexDescriptor().isAscending():isAscending;
 
 		/* If we have a "useful" IN list probe predicate we will generate a
 		 * start/stop key for optTable of the form "col = <val>", where <val>
