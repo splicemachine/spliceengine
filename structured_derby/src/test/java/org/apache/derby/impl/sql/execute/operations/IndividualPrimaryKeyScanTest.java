@@ -103,4 +103,34 @@ public class IndividualPrimaryKeyScanTest {
             }
         }
     }
+
+    @Test
+    public void testGroupedByCountWorksAsExpected() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select i_id, count(*) from "+ spliceTableWatcher+" group by i_id");
+        int count=0;
+        while(rs.next()){
+            int groupedCount = rs.getInt(2);
+            Assert.assertEquals("count is incorrect for key "+ rs.getInt(1),1,groupedCount);
+            count++;
+        }
+        Assert.assertEquals("Not all rows returned!",5000,count);
+    }
+
+    @Test
+    public void testGroupedByCountDescendingOrderWorksAsExpected() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select i_id, count(*) from "+ spliceTableWatcher+" group by i_id order by i_id desc");
+        int count=0;
+        int lastId = 5001;
+        while(rs.next()){
+            int id = rs.getInt(1);
+            Assert.assertEquals("incorrect ordering",lastId-1,id);
+            int groupedCount = rs.getInt(2);
+            Assert.assertEquals("count is incorrect for key "+ rs.getInt(1),1,groupedCount);
+
+            count++;
+            lastId = id;
+        }
+        Assert.assertEquals("Not all rows returned!",5000,count);
+    }
+
 }
