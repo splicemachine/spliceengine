@@ -84,11 +84,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		this.isolationLevel = isolationLevel;
 		this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
 		this.colRefItem = colRefItem;
-		this.scanQualifiersField = scanQualifiersField;
-		
-		System.out.println(startKeyGetter);
-		System.out.println(stopKeyGetter);
-		
+		this.scanQualifiersField = scanQualifiersField;		
 		this.startKeyGetterMethodName = (startKeyGetter!= null) ? startKeyGetter.getMethodName() : null;
 		this.stopKeyGetterMethodName = (stopKeyGetter!= null) ? stopKeyGetter.getMethodName() : null;
 		this.startSearchOperator = startSearchOperator;
