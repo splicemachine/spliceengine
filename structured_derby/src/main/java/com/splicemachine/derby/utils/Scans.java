@@ -21,7 +21,6 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
-import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
 
@@ -165,56 +164,12 @@ public class Scans extends SpliceUtils {
                                  boolean[] sortOrder,
                                  FormatableBitSet scanColumnList,
                                  String transactionId) throws StandardException {
-        return setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifiers, sortOrder,
-                null, scanColumnList, transactionId);
-    }
-    /**
-     * Builds a Scan from qualified starts and stops.
-     *
-     * This method does the following:
-     *
-     * 1. builds a basic scan with {@link #DEFAULT_CACHE_SIZE} and attaches transaction information to it.
-     * 2. Constructs start and stop keys for the scan based on {@code startKeyValue} and {@code stopKeyValue},
-     * according to the following rules:
-     * 		A. if {@code startKeyValue ==null}, then set "" as the start of the scan
-     * 	 	B. if {@code startKeyValue !=null}, then serialize the startKeyValue into a start key and set that.
-     * 	 	C. if {@code stopKeyValue ==null}, then set "" as the end of the scan
-     * 	 	D. if {@code stopKeyValue !=null}, then serialize the stopKeyValue into a stop key and set that.
-     * 3. Construct startKeyFilters as necessary, according to the rules defined in
-     * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
-     * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
-     *
-     * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
-     * @param startSearchOperator the operator for the start. Can be any of
-     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-     * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
-     * @param stopSearchOperator the operator for the stop. Can be any of
-     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
-     * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
-     *                   the amount of data returned.
-     * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
-     * @param primaryKeys the primary keys to use in restricting the scan, or {@code null} if no primary key
-     *                    restrictions are desired.
-     * @param scanColumnList a bitset determining which columns should be returned by the scan.
-     * @param transactionId the transactionId to use
-     * @return a transactionally aware scan from {@code startKeyValue} to {@code stopKeyValue}, with appropriate
-     * filters aas specified by {@code qualifiers}
-     * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
-     * properly serialized into a byte[].
-     */
-    public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
-                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-                                 Qualifier[][] qualifiers,
-                                 boolean[] sortOrder,
-                                 int[] primaryKeys,
-                                 FormatableBitSet scanColumnList,
-                                 String transactionId) throws StandardException {
         Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
         scan.setCaching(DEFAULT_CACHE_SIZE);
         try{
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    qualifiers, primaryKeys, scanColumnList, sortOrder);
+                    qualifiers, scanColumnList, sortOrder);
 
             buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
         }catch(IOException e){
@@ -537,7 +492,7 @@ public class Scans extends SpliceUtils {
 	private static void attachScanKeys(Scan scan, DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                        DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
                                        Qualifier[][] qualifiers,
-                                       int[] primaryKeys, FormatableBitSet scanColumnList,
+                                       FormatableBitSet scanColumnList,
                                        boolean[] sortOrder) throws IOException {
         if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
             scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
@@ -558,96 +513,6 @@ public class Scans extends SpliceUtils {
 			if(generateKey){
 				scan.setStartRow(DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder));
 				scan.setStopRow(DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder));
-
-                /*
-                 * It might happen that we'll want to do a primary key lookup (that is, we have primary keys
-                 * that can be used to restrict the search). However, because Derby doesn't like treating Primary
-                 * Keys specially, it's possible that no start or end value will be specified, but a qualifier
-                 * will be used to indicate that a primary key is matched. This is because Derby thinks
-                 * that it's doing a full table scan.
-                 *
-                 * However, we are smarter than Derby here, and can convert those qualifiers into start
-                 * and stop keys based on how we know the primary key columns are structured.
-                 *
-                 * the algorithm goes something like this:
-                 *
-                 * Take the lowest order primary key, and get all the Qualifiers for that key. There are
-                 * different states possible for the qualifiers:
-                 *
-                 * 1. pk < value
-                 * 2. pk <= value
-                 * 3. pk = value
-                 * 4. pk >= value
-                 * 5. pk > value
-                 * 6. value1 <= pk < value2
-                 * 7. value1 <= pk <= value2
-                 * 8. value1 < pk <= value2
-                 * 9. value1 < pk < value2
-                 *
-                 * If 1 or 2 is true, then we can set the qualifier into the stopKey, but we must terminate
-                 * operating on the startKey, and the same argument in reverse works for case 4 and 5, while we
-                 * can set both start and stop key values for cases 3, 6,7,8,9. We then repeat the process on
-                 * all primary key columns, until either we run out of qualifiers or we can go no further with
-                 * constructing the start and stop key.
-                 *
-                 * And then finally, we have a start and an end key, but perhaps what derby specified
-                 * is smarter than this, and has a tighter bound, so in the end we need to compare what
-                 * Derby generated with what we've got from our Qualifiers, and take the tighter bound.
-                 */
-                if(primaryKeys!=null && qualifiers!=null && qualifiers.length >0){
-
-                    List<Qualifier> pkQualifiers = Lists.newArrayListWithCapacity(3);
-                    List<byte[]> startKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.length);
-                    List<byte[]> endKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.length);
-                    boolean[] shouldContinue = new boolean[]{true,true};
-                    boolean addStart=shouldContinue[0];
-                    boolean addStop = shouldContinue[1];
-                    QualifierBounds qualifierBounds = null;
-                    for(int pkCol:primaryKeys){
-                        //empty out previous runs
-                        pkQualifiers.clear();
-                        for(Qualifier[] quals: qualifiers){
-                            for(Qualifier qual:quals){
-                                if(qual.getColumnId()==pkCol){
-                                    pkQualifiers.add(qual);
-                                }
-                            }
-                        }
-
-                        if(pkQualifiers.size()<=0){
-                            shouldContinue[0] = false;
-                            shouldContinue[1] = false;
-                            continue;
-                        }
-                        qualifierBounds = QualifierBounds.getOperator(pkQualifiers);
-                        qualifierBounds.process(pkQualifiers,startKeyBounds,endKeyBounds,shouldContinue);
-                    }
-
-                    byte[] qualifiedStart = BytesUtil.concat(startKeyBounds);
-                    byte[] qualifiedStop = BytesUtil.concat(endKeyBounds);
-                    if(!QualifierBounds.isLessThanOperator(qualifierBounds)&&qualifiedStop.length>0){
-                       BytesUtil.unsignedIncrement(qualifiedStop,qualifiedStop.length-1);
-                    }
-
-                    if(qualifiedStart!=null&&qualifiedStart.length>0){
-                        byte[] currentStart = scan.getStartRow();
-                        if(currentStart==null) scan.setStartRow(qualifiedStart);
-                        else if (Bytes.compareTo(currentStart,qualifiedStart) <0)
-                            scan.setStartRow(qualifiedStart);
-                    }
-                    if(qualifiedStop!=null&&qualifiedStop.length>0){
-                        byte[] currentStop = scan.getStopRow();
-                        if(currentStop==null) scan.setStopRow(qualifiedStop);
-                        else if (Bytes.compareTo(currentStop,qualifiedStop) <0)
-                            scan.setStopRow(qualifiedStop);
-                    }
-                }
-					/*
-					 * If we can't fill the start and end rows correctly, we assume that the scan is empty.
-					 * This causes problems later (particularly in shuffle tasks, where null start and end mean
-					 * "go over the entire table" not "go over nothing") and in those cases, this will have to be
-					 * undone.
-					 */
                 if(scan.getStartRow()==null)
 					scan.setStartRow(HConstants.EMPTY_START_ROW);
 				if(scan.getStopRow()==null)
