@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.job.coprocessor;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.job.Task;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import java.util.concurrent.ExecutionException;
 
 /**

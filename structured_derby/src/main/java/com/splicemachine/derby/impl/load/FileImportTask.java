@@ -2,14 +2,12 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
-
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;

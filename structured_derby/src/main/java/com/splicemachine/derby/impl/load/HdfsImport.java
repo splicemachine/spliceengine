@@ -8,7 +8,6 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
@@ -30,8 +29,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.deser.impl.StringCollectionDeserializer;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.HashMap;

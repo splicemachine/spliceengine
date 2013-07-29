@@ -19,7 +19,6 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

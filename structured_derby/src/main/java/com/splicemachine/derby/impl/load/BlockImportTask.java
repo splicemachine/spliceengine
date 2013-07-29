@@ -13,7 +13,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.util.LineReader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
