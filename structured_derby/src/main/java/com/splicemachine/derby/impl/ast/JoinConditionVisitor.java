@@ -1,9 +1,9 @@
 package com.splicemachine.derby.impl.ast;
 
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.log4j.Logger;
@@ -12,9 +12,16 @@ import java.util.*;
 
 
 /**
+ * This visitor moves join predicates from joined tables to the join nodes themselves for
+ * MergeSort joins. During optimization, Derby pushes down the predicates to FromBaseTable
+ * nodes, assuming that a table on one side of the join will have access to the "current
+ * row" of a table on the other side at query execution time, an assumption which we know
+ * to be incorrect for us.
+ *
  * User: pjt
  * Date: 7/8/13
  */
+
 public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
@@ -35,64 +42,55 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return pRefs.getFirstSetBit() == -1;
     }
 
+
     private List<OptimizablePredicate> pulledPreds = new ArrayList<OptimizablePredicate>();
 
     @Override
-    public FromBaseTable visit(FromBaseTable t) {
+    public FromBaseTable visit(FromBaseTable t) throws StandardException {
         return pullPredsFromTable(t);
     }
 
     @Override
-    public JoinNode visit(JoinNode j) {
+    public JoinNode visit(JoinNode j) throws StandardException {
         return addPredsToJoin(j);
     }
 
-    public FromBaseTable pullPredsFromTable(FromBaseTable t) {
+    public FromBaseTable pullPredsFromTable(FromBaseTable t) throws StandardException {
         if (isMSJ(t.getTrulyTheBestAccessPath())) {
             PredicateList pl = new PredicateList();
-            try {
-                t.pullOptPredicates(pl);
-                for (int i = 0, s = pl.size(); i < s; i++) {
-                    OptimizablePredicate p = pl.getOptPredicate(i);
-                    if (!predicateIsEvalable(p, t)) {
-                        pulledPreds.add(p);
-                    } else {
-                        t.pushOptPredicate(p);
-                    }
+            t.pullOptPredicates(pl);
+            for (int i = 0, s = pl.size(); i < s; i++) {
+                OptimizablePredicate p = pl.getOptPredicate(i);
+                if (!predicateIsEvalable(p, t)) {
+                    pulledPreds.add(p);
+                } else {
+                    t.pushOptPredicate(p);
                 }
-            } catch (StandardException e) {
-                LOG.error("Error pull predicates", e);
-            } catch (NullPointerException npe) {
-                LOG.error(npe);
             }
         }
         return t;
     }
 
-    public JoinNode addPredsToJoin(JoinNode j) {
+    public JoinNode addPredsToJoin(JoinNode j) throws StandardException {
         int pSize = pulledPreds.size();
         OptimizablePredicate[] currentPreds = pulledPreds.toArray(new OptimizablePredicate[pSize]);
 
         for (OptimizablePredicate p : currentPreds) {
             if (predicateIsEvalable(p, j)) {
-                try {
-                    updatePredColRefsToThis((Predicate)p, j);
-                    j.addOptPredicate(p);
-                    pulledPreds.remove(p);
-                } catch (StandardException e) {
-                    LOG.error(e);
-                }
+                p = updatePredColRefsToJoin((Predicate) p, j);
+                j.addOptPredicate(p);
+                pulledPreds.remove(p);
             }
         }
         return j;
     }
 
-    public Predicate updatePredColRefsToThis(Predicate p, JoinNode j)
+    public Predicate updatePredColRefsToJoin(Predicate p, JoinNode j)
             throws StandardException
     {
         ResultColumnList rcl = j.getResultColumns();
-        Map<List<Integer>, ResultColumn> chain = rsnChainMap(rcl);
-        Vector<ColumnReference> predCRs = collectNodes(p, ColumnReference.class);
+        Map<List<Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
+        Vector<ColumnReference> predCRs = ColumnUtils.collectNodes(p, ColumnReference.class);
         for (ColumnReference cr: predCRs){
             ResultColumn rc = cr.getSource();
             List<Integer> rsnAndCol = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
@@ -103,56 +101,4 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return p;
     }
 
-
-    public Map<List<Integer>, ResultColumn> rsnChainMap(ResultColumnList rcl)
-            throws StandardException
-    {
-        Map<List<Integer>, ResultColumn> chain = new HashMap<List<Integer>, ResultColumn>();
-        Vector<ResultColumn> cols = collectNodes(rcl, ResultColumn.class);
-
-        for (ResultColumn rc: cols){
-            List<Integer> top = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
-            chain.put(top, rc);
-            for (List<Integer> link: rsnChain(rc)){
-                chain.put(link, rc);
-            }
-        }
-
-        return chain;
-    }
-
-    public List<List<Integer>> rsnChain(ResultColumn rc)
-            throws StandardException
-    {
-        List<List<Integer>> chain = new ArrayList<List<Integer>>();
-
-        ValueNode expression = rc.getExpression();
-        while (expression != null) {
-            if (expression instanceof VirtualColumnNode) {
-                ResultColumn sc = ((VirtualColumnNode) expression).getSourceColumn();
-                chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
-                expression = sc.getExpression();
-            } else if (expression instanceof ColumnReference) {
-                ResultColumn sc = ((ColumnReference) expression).getSource();
-                if (sc != null){ // A ColumnReference can be sourceless…
-                    chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
-                    expression = sc.getExpression();
-                } else {
-                    expression = null;
-                }
-            } else {
-                expression = null;
-            }
-        }
-
-        return chain;
-    }
-
-    public <N> Vector<N> collectNodes(Visitable node, Class<N> clazz)
-            throws StandardException
-    {
-        CollectNodesVisitor v = new CollectNodesVisitor(clazz);
-        node.accept(v);
-        return (Vector<N>)v.getList();
-    }
 }

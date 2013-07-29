@@ -13,13 +13,9 @@ public class AssignRSNVisitor extends AbstractSpliceVisitor {
     private static Logger LOG = Logger.getLogger(AssignRSNVisitor.class);
 
     @Override
-    public Visitable defaultVisit(Visitable node){
-        if (node instanceof ResultSetNode){
-            try {
-                ((ResultSetNode) node).assignResultSetNumber();
-            } catch (StandardException e) {
-                LOG.error(e);
-            }
+    public Visitable defaultVisit(Visitable node) throws StandardException {
+        if (node instanceof ResultSetNode) {
+            ((ResultSetNode) node).assignResultSetNumber();
         }
         return node;
     }

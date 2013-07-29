@@ -13,6 +13,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
+ * This class is a bridge between Derby's Visitor interface (which has a single visit method)
+ * and the Splice Visitor interface (which has a visit method for each of Derby's Visitable classes).
+ *
  * User: pjt
  * Date: 7/9/13
  */
@@ -20,6 +23,9 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     private Logger LOG = Logger.getLogger(SpliceDerbyVisitorAdapter.class);
 
     ISpliceVisitor v;
+
+    long start;
+    int visited;
 
     // Method lookup
     private static Cache<Class, Method> methods = CacheBuilder.newBuilder().build();
@@ -62,14 +68,19 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     @Override
     public void begin(String statementText, int phase) throws StandardException {
         v.setContext(statementText, phase);
+        start = System.nanoTime();
     }
 
     @Override
     public void end(int phase) throws StandardException {
+        long duration = start - System.nanoTime();
+        LOG.info(String.format("%s visited %d nodes in %d ms", v.getClass().getSimpleName(), visited, (duration / 1000000)));
+        visited = 0;
     }
 
     @Override
     public Visitable visit(Visitable node) throws StandardException {
+        visited++;
         return invokeVisit(v, node);
     }
 

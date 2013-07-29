@@ -1,9 +1,14 @@
 package com.splicemachine.derby.impl.ast;
 
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
 
 /**
+ * Default ISpliceVisitor implementation, which provides identity behavior for each of Derby's Visitable nodes.
+ * Default behavior is encoded in the defaultVisit, which subclasses can override in addition to individual
+ * visit() methods.
+ *
  * User: pjt
  * Date: 7/9/13
  */
@@ -34,742 +39,742 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
-    public Visitable defaultVisit(Visitable node){
+    public Visitable defaultVisit(Visitable node) throws StandardException {
         return node;
     }
 
     @Override
-    public Visitable visit(CurrentOfNode node) {
+    public Visitable visit(CurrentOfNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DistinctNode node) {
+    public Visitable visit(DistinctNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FromBaseTable node) {
+    public Visitable visit(FromBaseTable node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FromSubquery node) {
+    public Visitable visit(FromSubquery node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FromTable node) {
+    public Visitable visit(FromTable node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FromVTI node) {
+    public Visitable visit(FromVTI node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GroupByNode node) {
+    public Visitable visit(GroupByNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(HalfOuterJoinNode node) {
+    public Visitable visit(HalfOuterJoinNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(HashTableNode node) {
+    public Visitable visit(HashTableNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(IndexToBaseRowNode node) {
+    public Visitable visit(IndexToBaseRowNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(IntersectOrExceptNode node) {
+    public Visitable visit(IntersectOrExceptNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(JoinNode node) {
+    public Visitable visit(JoinNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(MaterializeResultSetNode node) {
+    public Visitable visit(MaterializeResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NormalizeResultSetNode node) {
+    public Visitable visit(NormalizeResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrderByNode node) {
+    public Visitable visit(OrderByNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ProjectRestrictNode node) {
+    public Visitable visit(ProjectRestrictNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RowCountNode node) {
+    public Visitable visit(RowCountNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RowResultSetNode node) {
+    public Visitable visit(RowResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ScrollInsensitiveResultSetNode node) {
+    public Visitable visit(ScrollInsensitiveResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SelectNode node) {
+    public Visitable visit(SelectNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnionNode node) {
+    public Visitable visit(UnionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowResultSetNode node) {
+    public Visitable visit(WindowResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(AggregateNode node) {
+    public Visitable visit(AggregateNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(AggregateWindowFunctionNode node) {
+    public Visitable visit(AggregateWindowFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(AllResultColumn node) {
+    public Visitable visit(AllResultColumn node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(AlterTableNode node) {
+    public Visitable visit(AlterTableNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(AndNode node) {
+    public Visitable visit(AndNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BaseColumnNode node) {
+    public Visitable visit(BaseColumnNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BetweenOperatorNode node) {
+    public Visitable visit(BetweenOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BinaryArithmeticOperatorNode node) {
+    public Visitable visit(BinaryArithmeticOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BinaryComparisonOperatorNode node) {
+    public Visitable visit(BinaryComparisonOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BinaryListOperatorNode node) {
+    public Visitable visit(BinaryListOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BinaryOperatorNode node) {
+    public Visitable visit(BinaryOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BinaryRelationalOperatorNode node) {
+    public Visitable visit(BinaryRelationalOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BitConstantNode node) {
+    public Visitable visit(BitConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(BooleanConstantNode node) {
+    public Visitable visit(BooleanConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CallStatementNode node) {
+    public Visitable visit(CallStatementNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CastNode node) {
+    public Visitable visit(CastNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CharConstantNode node) {
+    public Visitable visit(CharConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CoalesceFunctionNode node) {
+    public Visitable visit(CoalesceFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ColumnDefinitionNode node) {
+    public Visitable visit(ColumnDefinitionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ColumnReference node) {
+    public Visitable visit(ColumnReference node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ConcatenationOperatorNode node) {
+    public Visitable visit(ConcatenationOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ConditionalNode node) {
+    public Visitable visit(ConditionalNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ConstraintDefinitionNode node) {
+    public Visitable visit(ConstraintDefinitionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateAliasNode node) {
+    public Visitable visit(CreateAliasNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateIndexNode node) {
+    public Visitable visit(CreateIndexNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateRoleNode node) {
+    public Visitable visit(CreateRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateSchemaNode node) {
+    public Visitable visit(CreateSchemaNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateSequenceNode node) {
+    public Visitable visit(CreateSequenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateTableNode node) {
+    public Visitable visit(CreateTableNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateTriggerNode node) {
+    public Visitable visit(CreateTriggerNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CreateViewNode node) {
+    public Visitable visit(CreateViewNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CurrentDatetimeOperatorNode node) {
+    public Visitable visit(CurrentDatetimeOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CurrentRowLocationNode node) {
+    public Visitable visit(CurrentRowLocationNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(CursorNode node) {
+    public Visitable visit(CursorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DB2LengthOperatorNode node) {
+    public Visitable visit(DB2LengthOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DefaultNode node) {
+    public Visitable visit(DefaultNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DeleteNode node) {
+    public Visitable visit(DeleteNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropAliasNode node) {
+    public Visitable visit(DropAliasNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropIndexNode node) {
+    public Visitable visit(DropIndexNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropRoleNode node) {
+    public Visitable visit(DropRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropSchemaNode node) {
+    public Visitable visit(DropSchemaNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropSequenceNode node) {
+    public Visitable visit(DropSequenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropTableNode node) {
+    public Visitable visit(DropTableNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropTriggerNode node) {
+    public Visitable visit(DropTriggerNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(DropViewNode node) {
+    public Visitable visit(DropViewNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ExecSPSNode node) {
+    public Visitable visit(ExecSPSNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ExtractOperatorNode node) {
+    public Visitable visit(ExtractOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FKConstraintDefinitionNode node) {
+    public Visitable visit(FKConstraintDefinitionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(FromList node) {
+    public Visitable visit(FromList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GenerationClauseNode node) {
+    public Visitable visit(GenerationClauseNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GetCurrentConnectionNode node) {
+    public Visitable visit(GetCurrentConnectionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GrantNode node) {
+    public Visitable visit(GrantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GrantRoleNode node) {
+    public Visitable visit(GrantRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GroupByColumn node) {
+    public Visitable visit(GroupByColumn node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(GroupByList node) {
+    public Visitable visit(GroupByList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(InListOperatorNode node) {
+    public Visitable visit(InListOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(InsertNode node) {
+    public Visitable visit(InsertNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(IsNode node) {
+    public Visitable visit(IsNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(IsNullNode node) {
+    public Visitable visit(IsNullNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(JavaToSQLValueNode node) {
+    public Visitable visit(JavaToSQLValueNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(LengthOperatorNode node) {
+    public Visitable visit(LengthOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(LikeEscapeOperatorNode node) {
+    public Visitable visit(LikeEscapeOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(LockTableNode node) {
+    public Visitable visit(LockTableNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ModifyColumnNode node) {
+    public Visitable visit(ModifyColumnNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NewInvocationNode node) {
+    public Visitable visit(NewInvocationNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NextSequenceNode node) {
+    public Visitable visit(NextSequenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NonStaticMethodCallNode node) {
+    public Visitable visit(NonStaticMethodCallNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NOPStatementNode node) {
+    public Visitable visit(NOPStatementNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NotNode node) {
+    public Visitable visit(NotNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(NumericConstantNode node) {
+    public Visitable visit(NumericConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrderByColumn node) {
+    public Visitable visit(OrderByColumn node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrderByList node) {
+    public Visitable visit(OrderByList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrderedColumn node) {
+    public Visitable visit(OrderedColumn node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrderedColumnList node) {
+    public Visitable visit(OrderedColumnList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(OrNode node) {
+    public Visitable visit(OrNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ParameterNode node) {
+    public Visitable visit(ParameterNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(Predicate node) {
+    public Visitable visit(Predicate node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(PredicateList node) {
+    public Visitable visit(PredicateList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(PrivilegeNode node) {
+    public Visitable visit(PrivilegeNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(QueryTreeNode node) {
+    public Visitable visit(QueryTreeNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RenameNode node) {
+    public Visitable visit(RenameNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ResultColumn node) {
+    public Visitable visit(ResultColumn node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ResultColumnList node) {
+    public Visitable visit(ResultColumnList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ResultSetNode node) {
+    public Visitable visit(ResultSetNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RevokeNode node) {
+    public Visitable visit(RevokeNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RevokeRoleNode node) {
+    public Visitable visit(RevokeRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(RowNumberFunctionNode node) {
+    public Visitable visit(RowNumberFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SavepointNode node) {
+    public Visitable visit(SavepointNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SetRoleNode node) {
+    public Visitable visit(SetRoleNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SetSchemaNode node) {
+    public Visitable visit(SetSchemaNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SetTransactionIsolationNode node) {
+    public Visitable visit(SetTransactionIsolationNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SimpleStringOperatorNode node) {
+    public Visitable visit(SimpleStringOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SpecialFunctionNode node) {
+    public Visitable visit(SpecialFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SQLBooleanConstantNode node) {
+    public Visitable visit(SQLBooleanConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SQLToJavaValueNode node) {
+    public Visitable visit(SQLToJavaValueNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(StatementNode node) {
+    public Visitable visit(StatementNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(StaticClassFieldReferenceNode node) {
+    public Visitable visit(StaticClassFieldReferenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(StaticMethodCallNode node) {
+    public Visitable visit(StaticMethodCallNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SubqueryList node) {
+    public Visitable visit(SubqueryList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(SubqueryNode node) {
+    public Visitable visit(SubqueryNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TableElementList node) {
+    public Visitable visit(TableElementList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TableElementNode node) {
+    public Visitable visit(TableElementNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TableName node) {
+    public Visitable visit(TableName node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TablePrivilegesNode node) {
+    public Visitable visit(TablePrivilegesNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TernaryOperatorNode node) {
+    public Visitable visit(TernaryOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TestConstraintNode node) {
+    public Visitable visit(TestConstraintNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(TimestampOperatorNode node) {
+    public Visitable visit(TimestampOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnaryArithmeticOperatorNode node) {
+    public Visitable visit(UnaryArithmeticOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnaryComparisonOperatorNode node) {
+    public Visitable visit(UnaryComparisonOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnaryDateTimestampOperatorNode node) {
+    public Visitable visit(UnaryDateTimestampOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnaryLogicalOperatorNode node) {
+    public Visitable visit(UnaryLogicalOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UnaryOperatorNode node) {
+    public Visitable visit(UnaryOperatorNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UntypedNullConstantNode node) {
+    public Visitable visit(UntypedNullConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UpdateNode node) {
+    public Visitable visit(UpdateNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(UserTypeConstantNode node) {
+    public Visitable visit(UserTypeConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ValueNode node) {
+    public Visitable visit(ValueNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(ValueNodeList node) {
+    public Visitable visit(ValueNodeList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(VarbitConstantNode node) {
+    public Visitable visit(VarbitConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(VirtualColumnNode node) {
+    public Visitable visit(VirtualColumnNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowDefinitionNode node) {
+    public Visitable visit(WindowDefinitionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowFunctionNode node) {
+    public Visitable visit(WindowFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowList node) {
+    public Visitable visit(WindowList node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowNode node) {
+    public Visitable visit(WindowNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(WindowReferenceNode node) {
+    public Visitable visit(WindowReferenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 
     @Override
-    public Visitable visit(XMLConstantNode node) {
+    public Visitable visit(XMLConstantNode node) throws StandardException {
         return defaultVisit(node);
     }
 
