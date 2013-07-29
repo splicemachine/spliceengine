@@ -128,7 +128,7 @@ public class TaskStatus implements Externalizable{
         if(statusInfo==Status.FAILED){
             out.writeBoolean(shouldRetry);
             out.writeUTF(errorCode);
-            out.writeUTF(errorMessage);
+            out.writeUTF((errorMessage != null ? errorMessage : "NULL"));
         }
         out.writeBoolean(stats!=null);
         if(stats!=null)
