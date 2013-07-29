@@ -20,7 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class TCPHTest extends SpliceUnitTest {
+public class TPCHTest extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = "TPCH1X";
 	protected static final String LINEITEM = "LINEITEM";
