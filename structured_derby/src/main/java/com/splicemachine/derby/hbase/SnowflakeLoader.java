@@ -124,7 +124,8 @@ public class SnowflakeLoader {
     }
 
     public static class AllocatedFilter extends FilterBase {
-        private static final long serialVersionUID = 2l;
+        @SuppressWarnings("unused")
+		private static final long serialVersionUID = 2l;
 
         private byte[] addressMatch;
         private boolean foundMatch;
