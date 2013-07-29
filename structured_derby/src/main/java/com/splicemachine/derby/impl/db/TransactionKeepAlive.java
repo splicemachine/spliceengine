@@ -47,7 +47,8 @@ public class TransactionKeepAlive {
     private static void performKeepAlive() {
     	SpliceLogUtils.trace(LOG,"running keepAlive task");
         final ContextService contextService = ContextService.getFactory();
-        final Set contextManagers = getContextManagers(contextService);
+        @SuppressWarnings("rawtypes")
+		final Set contextManagers = getContextManagers(contextService);
         if (contextManagers != null) {
             SpliceLogUtils.trace(LOG,"contextManager count %d",contextManagers.size());
             final Set<String> keptAlive = new HashSet<String>();
@@ -71,7 +72,8 @@ public class TransactionKeepAlive {
         }
     }
 
-    private static Set getContextManagers(ContextService contextService) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	private static Set getContextManagers(ContextService contextService) {
         try {
             final Field allContextsField = contextService.getClass().getDeclaredField("allContexts");
             allContextsField.setAccessible(true);
