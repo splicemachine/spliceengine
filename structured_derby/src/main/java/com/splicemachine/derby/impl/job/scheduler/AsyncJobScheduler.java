@@ -362,7 +362,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                 endRow = new byte[nextTask.startRow.length];
                 System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
 
-                BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+                BytesUtil.unsignedDecrement(endRow,endRow.length-1);
             }else
                 endRow = HConstants.EMPTY_END_ROW;
 

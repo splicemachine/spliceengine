@@ -272,7 +272,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     protected void doDelete(WriteContext ctx, final Mutation delete) throws Exception {
         HTableInterface hTable = ctx.getHTable(indexConglomBytes);
         try{
-            final byte[] indexStop = BytesUtil.copyAndIncrement(delete.getRow());
+            final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
             hTable.coprocessorExec(BatchProtocol.class,
                     delete.getRow(),indexStop, new Batch.Call<BatchProtocol, Object>() {
                 @Override

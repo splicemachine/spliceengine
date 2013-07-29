@@ -218,7 +218,7 @@ public enum QualifierBounds {
 
     private static byte[] getIncrementedBytes(DataValueDescriptor bestStop) throws IOException, StandardException {
         byte[] val = DerbyBytesUtil.generateBytes(bestStop);
-        BytesUtil.incrementAtIndex(val,val.length-1);
+        BytesUtil.unsignedIncrement(val,val.length-1);
         return val;
     }
 

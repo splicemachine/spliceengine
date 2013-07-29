@@ -100,8 +100,8 @@ public class ConcurrentRingBufferTest {
                         try{
                             Integer next = buffer.next();
                             Assert.assertTrue("Received an unexpected null entry!",next!=null);
-                            if(next%1000==0)
-                                System.out.println(next);
+//                            if(next%1000==0)
+//                                System.out.println(next);
 
                             Boolean aBoolean = presenceMap.putIfAbsent(next, Boolean.TRUE);
                             if(aBoolean!=null&&aBoolean){

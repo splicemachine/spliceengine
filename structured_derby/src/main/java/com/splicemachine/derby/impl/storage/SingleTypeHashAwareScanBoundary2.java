@@ -33,7 +33,7 @@ public class SingleTypeHashAwareScanBoundary2 extends BaseHashAwareScanBoundary{
     @Override
     public byte[] getStopKey(Result result) {
         byte[] start = getStartKey(result);
-        BytesUtil.incrementAtIndex(start,start.length-1);
+        BytesUtil.unsignedIncrement(start,start.length-1);
         return start;
     }
 }

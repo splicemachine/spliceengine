@@ -254,7 +254,7 @@ public class IndexManager {
              * until we find the first row, then delete it. We can do this locally by pushing
              * to the BatchProtocol endpoint
              */
-            final byte[] indexStop = BytesUtil.copyAndIncrement(indexRowKey);
+            final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(indexRowKey);
             try {
                 if(table==null) table = rce.getTable(indexConglomBytes);
                 table.coprocessorExec(BatchProtocol.class,indexRowKey,indexStop,new Batch.Call<BatchProtocol, Void>() {

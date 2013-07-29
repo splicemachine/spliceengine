@@ -106,7 +106,7 @@ public abstract class AbstractImportTask extends ZkTask {
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
             int pos =0;
             if(pkCols!=null){
-                keyColumns = new int[pkCols.size()];
+                keyColumns = new int[pkCols.getNumBitsSet()];
                 for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
                     keyColumns[pos] = i;
                     pos++;

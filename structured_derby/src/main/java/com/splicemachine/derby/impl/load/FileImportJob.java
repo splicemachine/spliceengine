@@ -62,7 +62,7 @@ public class FileImportJob extends ImportJob{
         if(end.length>0){
             byte[] endRow = new byte[end.length];
             System.arraycopy(end,0,endRow,0,end.length);
-            BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+            BytesUtil.unsignedDecrement(endRow,endRow.length-1);
             end = endRow;
         }
         return Pair.newPair(start,end);

@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import sun.misc.Unsafe;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -67,7 +68,7 @@ public class Scans extends SpliceUtils {
 	public static Scan buildPrefixRangeScan(DataValueDescriptor prefix,String transactionId) throws IOException {
 		try {
 			byte[] start = DerbyBytesUtil.generateBeginKeyForTemp(prefix);
-			byte[] finish = BytesUtil.copyAndIncrement(start);
+			byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
 			return newScan(start,finish,transactionId);
 		} catch (StandardException e) {
 			throw new IOException(e);
@@ -91,7 +92,7 @@ public class Scans extends SpliceUtils {
         byte[] start = new byte[prefix.length];
         System.arraycopy(prefix,0,start,0,start.length);
 
-        byte[] finish = BytesUtil.copyAndIncrement(start);
+        byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
         return newScan(start,finish,transactionId);
     }
 
@@ -620,7 +621,7 @@ public class Scans extends SpliceUtils {
                     byte[] qualifiedStart = BytesUtil.concat(startKeyBounds);
                     byte[] qualifiedStop = BytesUtil.concat(endKeyBounds);
                     if(!QualifierBounds.isLessThanOperator(qualifierBounds)&&qualifiedStop.length>0){
-                       BytesUtil.incrementAtIndex(qualifiedStop,qualifiedStop.length-1);
+                       BytesUtil.unsignedIncrement(qualifiedStop,qualifiedStop.length-1);
                     }
 
                     if(qualifiedStart!=null&&qualifiedStart.length>0){
@@ -651,6 +652,4 @@ public class Scans extends SpliceUtils {
 			throw new IOException(e);
 		}
 	}
-
-
 }

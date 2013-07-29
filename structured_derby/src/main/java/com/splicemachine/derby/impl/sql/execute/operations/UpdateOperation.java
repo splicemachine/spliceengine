@@ -236,6 +236,8 @@ public class UpdateOperation extends DMLWriteOperation{
                 keyType.encodeKey(nextRow.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
 
                 Put put = new Put(keyEncoder.build());
+                //we don't need to check constraints
+                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
                 SpliceUtils.attachTransaction(put,txnId);
 
                 if(heapDecoder==null)

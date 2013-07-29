@@ -212,7 +212,7 @@ public class DerbyBytesUtil {
                     case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
                         String t = dvd.getString();
                         byte[] bytes = Bytes.toBytes(t);
-                        BytesUtil.incrementAtIndex(bytes, bytes.length - 1);
+                        BytesUtil.unsignedIncrement(bytes, bytes.length - 1);
                         encoder = encoder.encodeNext(Bytes.toString(bytes),desc);
                         break;
                     case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
@@ -221,7 +221,7 @@ public class DerbyBytesUtil {
                     case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
                     case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
                         byte[] data = dvd.getBytes();
-                        BytesUtil.copyAndIncrement(data);
+                        BytesUtil.unsignedCopyAndIncrement(data);
                         encoder = encoder.encodeNext(data,desc);
                         break;
                     case StoredFormatIds.SQL_DECIMAL_ID:
