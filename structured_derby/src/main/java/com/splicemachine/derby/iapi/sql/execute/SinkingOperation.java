@@ -1,11 +1,8 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-
-import java.io.IOException;
 
 /**
  * User: pjt
