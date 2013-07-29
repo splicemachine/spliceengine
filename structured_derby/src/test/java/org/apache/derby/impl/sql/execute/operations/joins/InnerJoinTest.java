@@ -330,6 +330,43 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testThreeTableJoinOnItemsPredicateIsExpression() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+                "from item t1, category_sub t2, category t3 " +
+                "where (t1.itm_subcat_id + 1) = (t2.sbc_id + 1) and (t2.sbc_category_id + 1) = (t3.cat_id + 1)");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(10, results.size());
+
+        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+
+        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+
+    }
+
+    @Test
+    public void testThreeTableJoinOnItemsWithCriteria() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+                "from item t1, category_sub t2, category t3 " +
+                "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id " +
+                "and t1.itm_name = 'Seal (94)'");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+
+        Assert.assertEquals("Seal (94)", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(0).get("SBC_DESC"));
+
+    }
+
+    @Test
     public void testFourTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t4.sbc_desc " +
                 "from order_line t1, customer t2, item t3, category_sub t4 " +
