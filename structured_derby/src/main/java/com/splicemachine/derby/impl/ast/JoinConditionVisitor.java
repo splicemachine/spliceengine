@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.ast;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.util.JBitSet;
@@ -17,6 +18,10 @@ import java.util.*;
 public class JoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
+
+    public static boolean isMSJ(AccessPath ap){
+        return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
+    }
 
     public static boolean predicateIsEvalable(OptimizablePredicate p, ResultSetNode n) {
         JBitSet pRefs = (JBitSet) p.getReferencedMap().clone();
@@ -43,7 +48,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public FromBaseTable pullPredsFromTable(FromBaseTable t) {
-        if (t.getTrulyTheBestAccessPath().getJoinStrategy().getClass() == MergeSortJoinStrategy.class) {
+        if (isMSJ(t.getTrulyTheBestAccessPath())) {
             PredicateList pl = new PredicateList();
             try {
                 t.pullOptPredicates(pl);
@@ -57,6 +62,8 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 }
             } catch (StandardException e) {
                 LOG.error("Error pull predicates", e);
+            } catch (NullPointerException npe) {
+                LOG.error(npe);
             }
         }
         return t;
@@ -127,8 +134,12 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 expression = sc.getExpression();
             } else if (expression instanceof ColumnReference) {
                 ResultColumn sc = ((ColumnReference) expression).getSource();
-                chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
-                expression = sc.getExpression();
+                if (sc != null){ // A ColumnReference can be sourceless…
+                    chain.add(Arrays.asList(sc.getResultSetNumber(), sc.getVirtualColumnId()));
+                    expression = sc.getExpression();
+                } else {
+                    expression = null;
+                }
             } else {
                 expression = null;
             }
