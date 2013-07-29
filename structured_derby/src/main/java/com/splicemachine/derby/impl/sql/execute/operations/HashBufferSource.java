@@ -62,7 +62,7 @@ public class HashBufferSource{
                     }
                 }
             }
-            doneReadingSource = true;
+            doneReadingSource = result==null;
 
             if(finisher != null){
                 currentRows = currentRows.finishAggregates(finisher);
