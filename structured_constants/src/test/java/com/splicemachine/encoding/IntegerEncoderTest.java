@@ -18,7 +18,7 @@ import java.util.Random;
 @RunWith(Parameterized.class)
 public class IntegerEncoderTest {
 
-    private static final int numTests=10;
+    private static final int numTests=0;
     private static final int testSize=100;
 
     @Parameterized.Parameters
@@ -32,6 +32,15 @@ public class IntegerEncoderTest {
             }
             paramSet.add(new Object[]{testData});
         }
+
+        //add the fixed parameters--these are edge case values that should always be checked
+        paramSet.add(new Object[]{
+            new int[]{-1,0},
+        });
+        paramSet.add(new Object[]{
+                new int[]{4607,4608},
+        });
+
         return paramSet;
     }
 

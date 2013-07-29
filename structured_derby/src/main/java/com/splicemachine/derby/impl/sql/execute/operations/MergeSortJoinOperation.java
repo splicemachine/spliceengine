@@ -187,7 +187,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         if(uniqueSequenceID!=null){
             byte[] start = new byte[uniqueSequenceID.length];
             System.arraycopy(uniqueSequenceID,0,start,0,start.length);
-            byte[] finish = BytesUtil.copyAndIncrement(start);
+            byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
             rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
             if(regionScanner==null){
                 reduceScan = Scans.newScan(start,finish, getTransactionID());

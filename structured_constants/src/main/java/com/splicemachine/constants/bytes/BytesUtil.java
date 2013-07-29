@@ -68,35 +68,72 @@ public class BytesUtil {
 	 * @param array
 	 * @param index
 	 */
-	public static void incrementAtIndex(byte[] array, int index) {
-          if (array[index] == Byte.MAX_VALUE) {
-              array[index] = 0;
-              if(index > 0)
-                  incrementAtIndex(array, index - 1);
-          }
-          else {
-              array[index]++;
-          }
-      }
-	
-	public static void decrementAtIndex(byte[] array,int index) {
-		if(array[index] == Byte.MIN_VALUE){
-			array[index] = Byte.MAX_VALUE;
-			if(index >0)
-				decrementAtIndex(array,index-1);
-		}else{
-			array[index]--;
-		}
-	}
+//	public static void incrementAtIndex(byte[] array, int index) {
+//          if (array[index] == Byte.MAX_VALUE) {
+//              array[index] = 0;
+//              if(index > 0)
+//                  incrementAtIndex(array, index - 1);
+//          }
+//          else {
+//              array[index]++;
+//          }
+//      }
 
-    public static byte[] copyAndIncrement(byte[] start) {
-        if(start.length==0) return new byte[]{1};
-
-        byte[] other = new byte[start.length];
-        System.arraycopy(start,0,other,0,start.length);
-        incrementAtIndex(other,other.length-1);
-        return other;
+    public static void unsignedIncrement(byte[] array,int index){
+        if(index<0){
+            /*
+             *  looks like the array is something like [0xFF,0xFF,0xFF,...].
+             *
+             *  In normal circumstances, we could increment this via rolling bytes over--
+             *  e.g. the array becomes [1,0,0,0,...] which has 1 more byte to the left
+             *  than the input array.
+             *
+             *  However, our comparators will sort going from left to right, which means that
+             *  rolling over like that will actually place the increment BEFORE the array, instead
+             *  of after it like it should. As this violates sort-order restrictions, we are forced
+             *  to explode here
+             */
+            throw new AssertionError("Unable to increment byte[] "+ Arrays.toString(array) +", incrementing would violate sort order");
+        }
+        int value = array[index] & 0xff;
+        if(value==255){
+            array[index]=0;
+            //we've looped past the entry, so increment the next byte in the array
+            unsignedIncrement(array, index-1);
+        }else {
+            array[index]++;
+        }
     }
+	
+//	public static void decrementAtIndex(byte[] array,int index) {
+//		if(array[index] == Byte.MIN_VALUE){
+//			array[index] = Byte.MAX_VALUE;
+//			if(index >0)
+//				decrementAtIndex(array,index-1);
+//		}else{
+//			array[index]--;
+//		}
+//	}
+
+    public static void unsignedDecrement(byte[] array, int index){
+        if(index<0){
+            throw new AssertionError("Unable to decrement "+ Arrays.toString(array)+", as it would violate sort-order");
+        }
+        if(array[index]==0){
+            array[index] = (byte)0xff;
+            unsignedDecrement(array,index-1);
+        }else
+            array[index]--;
+    }
+
+//    public static byte[] copyAndIncrement(byte[] start) {
+//        if(start.length==0) return new byte[]{1};
+//
+//        byte[] other = new byte[start.length];
+//        System.arraycopy(start,0,other,0,start.length);
+//        incrementAtIndex(other,other.length-1);
+//        return other;
+//    }
 
     public static String debug(Object o) {
         byte[] bytes = (byte[]) o;
@@ -241,5 +278,12 @@ public class BytesUtil {
         vals[2] = new byte[]{4,5};
 
         System.out.println(Arrays.toString(concatenate(vals,6)));
+    }
+
+    public static byte[] unsignedCopyAndIncrement(byte[] start) {
+        byte[] next = new byte[start.length];
+        System.arraycopy(start,0,next,0,next.length);
+        unsignedIncrement(next,next.length-1);
+        return next;
     }
 }

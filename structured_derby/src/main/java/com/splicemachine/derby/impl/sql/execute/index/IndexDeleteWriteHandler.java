@@ -54,7 +54,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             if(failed){
                 ctx.notRun(delete);
             }else{
-                final byte[] indexStop = BytesUtil.copyAndIncrement(delete.getRow());
+                final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
                 HTableInterface table = ctx.getHTable(indexConglomBytes);
                 try {
                     table.coprocessorExec(BatchProtocol.class,

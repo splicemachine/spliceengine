@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -44,7 +45,9 @@ public class UniqueConstraint implements Constraint {
             if(Mutations.isDelete(input)) {
                 return false;
             }
-            return !Arrays.equals(input.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE);
+            byte[] putType = input.getAttribute(Puts.PUT_TYPE);
+            return putType == null || !Bytes.equals(putType, Puts.FOR_UPDATE);
+//            return !Bytes.equals(input.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE);
         }
     };
 

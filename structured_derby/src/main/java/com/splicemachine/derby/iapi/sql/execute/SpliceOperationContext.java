@@ -61,7 +61,7 @@ public class SpliceOperationContext {
                                   boolean isSink,SpliceOperation topOperation ){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.scanner = scanner;
+        this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching());
         this.region=region;
         this.scan = scan;
         this.lcc = lcc;
