@@ -77,7 +77,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             if (predicateIsEvalable(p, j)) {
                 try {
                     updatePredColRefsToThis((Predicate)p, j);
-                    j.reAttachOptPredicate(p);
+                    j.addOptPredicate(p);
                     pulledPreds.remove(p);
                 } catch (StandardException e) {
                     LOG.error(e);
