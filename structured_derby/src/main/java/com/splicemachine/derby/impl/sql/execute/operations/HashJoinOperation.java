@@ -180,7 +180,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 					return false;
 				}
 				if (restriction != null) {
-					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					DataValueDescriptor restrictBoolean = restriction.invoke();
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
 						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						hasNext();

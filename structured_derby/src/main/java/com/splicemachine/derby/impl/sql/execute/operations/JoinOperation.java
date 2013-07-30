@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.impl.SpliceMethod;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
@@ -16,6 +17,7 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.compile.JoinNode;
 import org.apache.log4j.Logger;
@@ -36,7 +38,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	protected String restrictionMethodName;
 	protected SpliceOperation rightResultSet;
 	protected SpliceOperation leftResultSet;
-	protected GeneratedMethod restriction;
+	protected SpliceMethod<DataValueDescriptor> restriction;
 	protected ExecRow leftRow;
 	protected ExecRow rightRow;
 	protected ExecRow mergedRow;
@@ -127,7 +129,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
             GenericStorablePreparedStatement statement = context.getPreparedStatement();
-			restriction = (restrictionMethodName == null) ? null : statement.getActivationClass().getMethod(restrictionMethodName);
+			restriction = restrictionMethodName == null ?
+                            null : new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			leftResultSet.init(context);
 			rightResultSet.init(context);
             SpliceLogUtils.trace(LOG,"leftResultSet=%s,rightResultSet=%s",leftResultSet,rightResultSet);

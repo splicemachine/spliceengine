@@ -252,7 +252,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				}
 
 				if (restriction != null) {
-					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					DataValueDescriptor restrictBoolean = restriction.invoke();
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
 						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						populated=false;

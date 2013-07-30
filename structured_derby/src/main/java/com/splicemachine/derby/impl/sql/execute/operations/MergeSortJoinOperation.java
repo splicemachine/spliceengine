@@ -454,7 +454,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     for (ExecRow right : rights) {
                         ExecRow merged = JoinUtils.getMergedRow(leftRow, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
                         activation.setCurrentRow(merged, resultSetNumber());
-                        DataValueDescriptor shouldKeep = (DataValueDescriptor) restriction.invoke(activation);
+                        DataValueDescriptor shouldKeep = restriction.invoke();
                         if (!shouldKeep.isNull() && shouldKeep.getBoolean()) {
                             filtered.add(right);
                         }
