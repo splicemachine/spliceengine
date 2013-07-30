@@ -4776,7 +4776,7 @@ public class FromBaseTable extends FromTable
         }
         return (qualifiedIndexes > 0);
     }
-
+/*
     public ConstantAction makeConstantAction() throws StandardException {
         ConglomerateDescriptorList cdl = tableDescriptor.getConglomerateDescriptorList();
         for(int index=0;index< cdl.size();index++){
@@ -4790,4 +4790,5 @@ public class FromBaseTable extends FromTable
         }
         return super.makeConstantAction();    //To change body of overridden methods use File | Settings | File Templates.
     }
+    */
 }
