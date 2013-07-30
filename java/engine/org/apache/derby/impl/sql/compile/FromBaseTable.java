@@ -72,7 +72,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 // Temporary until user override for disposable stats has been removed.
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.catalog.SYSUSERSRowFactory;
-import org.apache.derby.impl.sql.execute.SelectConstantAction;
 
 /**
  * A FromBaseTable represents a table in the FROM list of a DML statement,
