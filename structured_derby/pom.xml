@@ -145,6 +145,8 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
 				<configuration>
+					<parallel>4</parallel>
+					<perCoreThreadCount>false</perCoreThreadCount>
 					<!--
 					<forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
 					-->
@@ -153,9 +155,6 @@
 					<includes>
 						<include>${runClass}</include>
 					</includes>
-                <!--
-				<forkCount>4</forkCount>
-				-->
 				</configuration>
 				<dependencies>
 					<dependency>
@@ -231,24 +230,7 @@
 							</arguments>
 						</configuration>
 					</plugin>
-								<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.7.2</version>
-				<configuration>
-					<!--
-                    <forkedProcessTimeoutInSeconds>3600</forkedProcessTimeoutInSeconds>
-					-->
-					<argLine>-Xms256M -Xmx512M -Djava.awt.headless=true</argLine>
-					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>${runClass}</include>
-					</includes>
-					<!--
-					<reuseForks>false</reuseForks>
-				    <forkCount>4</forkCount>
-				    -->
-				</configuration>
-			</plugin>
+
 				</plugins>
 			</build>
 		</profile>
