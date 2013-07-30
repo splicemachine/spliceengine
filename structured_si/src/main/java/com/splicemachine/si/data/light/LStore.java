@@ -4,6 +4,7 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.impl.PushBackIterator;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -19,7 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
+public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValue, LScanner, Object>,
         STableWriter<LTable, LTuple, LTuple, LTuple, Object, LRowLock, OperationStatus> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
@@ -68,8 +69,17 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
         return runScan(table, scan);
     }
 
+    private Iterator<List<LKeyValue>> scanRegion(LTable table, LGet scan) throws IOException {
+        final Iterator<LTuple> iterator = runScan(table, scan);
+        List<List<LKeyValue>> results = new ArrayList<List<LKeyValue>>();
+        while(iterator.hasNext()) {
+            results.add(iterator.next().values);
+        }
+        return results.iterator();
+    }
+
     private Iterator runScan(LTable table, LGet get) {
-        List<LTuple> tuples = relations.get(((LTable) table).relationIdentifier);
+        List<LTuple> tuples = relations.get(table.relationIdentifier);
         if (tuples == null) {
             tuples = new ArrayList<LTuple>();
         }
@@ -360,5 +370,24 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
             newRows.add(newRow);
         }
         relations.put(tableName, newRows);
+    }
+
+    @Override
+    public LScanner openRegionScanner(LTable table, LGet scan) throws IOException {
+        return new LScanner(new PushBackIterator<List<LKeyValue>>(scanRegion(table, scan)));
+    }
+
+    @Override
+    public List<LKeyValue> nextResultsOnRegionScanner(LScanner scanner) throws IOException {
+        return scanner.next();
+    }
+
+    @Override
+    public void seekOnRegionScanner(LScanner scanner, Object rowKey) throws IOException {
+       scanner.seek(rowKey);
+    }
+
+    @Override
+    public void closeRegionScanner(LTable table) {
     }
 }

@@ -78,7 +78,7 @@ public class SIBrowser extends SIConstants {
                 //dumpTable("SYCOLUMNS_INDEX2", "161");
 
                 //dumpTable("p", "SPLICE_CONGLOMERATE");
-                //dumpTable("p2", "1184");
+                dumpTable("p2", "1200");
             }
         } catch (IOException e) {
             throw e;

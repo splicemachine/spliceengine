@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -9,6 +10,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -39,6 +41,16 @@ public class HbTable implements IHTable {
     public Iterator<Result> scan(Scan scan) throws IOException {
         final ResultScanner scanner = table.getScanner(scan);
         return scanner.iterator();
+    }
+
+    @Override
+    public RegionScanner startRegionScanner(Scan scan) {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void closeScanner() {
+        throw new RuntimeException("not implemented");
     }
 
     @Override

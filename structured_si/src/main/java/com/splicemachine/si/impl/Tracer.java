@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.base.Function;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 /**
  * Provides hooks for tests to provide callbacks. Mainly used to provide thread coordination in tests. It allows tests
@@ -13,6 +14,7 @@ public class Tracer {
     public static transient Runnable fCompact = null;
     private static transient Function<Long, Object> fCommitting = null;
     private static transient Function<Long, Object> fWaiting = null;
+    private static transient Function<Object[], Object> fRegion = null;
 
     public static Integer rollForwardDelayOverride = null;
 
@@ -38,6 +40,10 @@ public class Tracer {
 
     public static void registerWaiting(Function<Long, Object> f) {
         Tracer.fWaiting = f;
+    }
+
+    public static void registerRegion(Function<Object[], Object> f) {
+        Tracer.fRegion = f;
     }
 
     public static void traceRowRollForward(Object key) {
@@ -73,6 +79,12 @@ public class Tracer {
     public static void traceWaiting(long transactionId) {
         if (fWaiting != null) {
             fWaiting.apply(transactionId);
+        }
+    }
+
+    public static void traceRegion(String tableName, HRegion region) {
+        if (fRegion != null) {
+            fRegion.apply(new Object[] {tableName, region});
         }
     }
 

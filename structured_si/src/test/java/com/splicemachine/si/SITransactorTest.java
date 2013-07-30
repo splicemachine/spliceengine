@@ -7,6 +7,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
@@ -28,6 +29,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -38,6 +40,7 @@ import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,7 +70,7 @@ public class SITransactorTest extends SIConstants {
     void baseSetUp() {
         transactor = transactorSetup.transactor;
         transactorSetup.rollForwardQueue = new RollForwardQueue(
-                new NoOpHasher(),
+                storeSetup.getHasher(),
                 new RollForwardAction() {
                     @Override
                     public void rollForward(long transactionId, List rowList) throws IOException {
@@ -92,6 +95,10 @@ public class SITransactorTest extends SIConstants {
 
     private void insertAge(TransactionId transactionId, String name, Integer age) throws IOException {
         insertAgeDirect(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, age);
+    }
+
+    private void insertAgeBatch(Object[]... args) throws IOException {
+        insertAgeDirectBatch(useSimple, usePacked, transactorSetup, storeSetup, args);
     }
 
     private void insertJob(TransactionId transactionId, String name, String job) throws IOException {
@@ -138,6 +145,11 @@ public class SITransactorTest extends SIConstants {
         insertField(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, transactorSetup.ageQualifier, age);
     }
 
+    static void insertAgeDirectBatch(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                Object[] args) throws IOException {
+        insertFieldBatch(useSimple, usePacked, transactorSetup, storeSetup, args, transactorSetup.ageQualifier);
+    }
+
     static void insertJobDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
                                 TransactionId transactionId, String name, String job) throws IOException {
         insertField(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobQualifier, job);
@@ -148,7 +160,11 @@ public class SITransactorTest extends SIConstants {
             throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
+        Object put = makePut(useSimple, usePacked, transactorSetup, transactionId, name, qualifier, fieldValue, dataLib);
+        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, put);
+    }
 
+    private static Object makePut(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, TransactionId transactionId, String name, Object qualifier, Object fieldValue, SDataLib dataLib) throws IOException {
         Object key = dataLib.newRowKey(new Object[]{name});
         Object put = dataLib.newPut(key);
         if (fieldValue != null) {
@@ -176,8 +192,25 @@ public class SITransactorTest extends SIConstants {
             }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
+        return put;
+    }
 
-        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, put);
+    private static void insertFieldBatch(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
+                                         Object[] args, Object qualifier) throws IOException {
+        final SDataLib dataLib = storeSetup.getDataLib();
+        final STableReader reader = storeSetup.getReader();
+        Object[] puts = new Object[args.length];
+        int i = 0;
+        for (Object subArgs: args) {
+            Object[] subArgsArray = (Object[]) subArgs;
+            TransactionId transactionId = (TransactionId) subArgsArray[0];
+            String name = (String) subArgsArray[1];
+            Object fieldValue = subArgsArray[2];
+            Object put = makePut(useSimple, usePacked, transactorSetup, transactionId, name, qualifier, fieldValue, dataLib);
+            puts[i] = put;
+            i++;
+        }
+        processPutDirectBatch(useSimple, usePacked, transactorSetup, storeSetup, reader, puts);
     }
 
     static void deleteRowDirect(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
@@ -204,6 +237,32 @@ public class SITransactorTest extends SIConstants {
                 }
             } else {
                 storeSetup.getWriter().write(testSTable, put);
+            }
+        } finally {
+            reader.close(testSTable);
+        }
+    }
+
+    private static void processPutDirectBatch(boolean useSimple, boolean usePacked,
+                                         TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
+                                         Object[] puts) throws IOException {
+        final Object testSTable = reader.open(storeSetup.getPersonTableName());
+        try {
+            Object tableToUse = testSTable;
+            if (useSimple) {
+                if (usePacked) {
+                    Object[] packedPuts = new Object[puts.length];
+                    for (int i=0; i<puts.length; i++) {
+                        packedPuts[i] = ((LTuple) puts[i]).pack("V", "p");
+                    }
+                    puts = packedPuts;
+                }
+            } else {
+                tableToUse = new HbRegion(HStoreSetup.regionMap.get(storeSetup.getPersonTableName()));
+            }
+            final Object[] results = transactorSetup.transactor.processPutBatch(tableToUse, transactorSetup.rollForwardQueue, puts);
+            for (Object r : results) {
+                Assert.assertEquals(HConstants.OperationStatusCode.SUCCESS, ((OperationStatus) r).getOperationStatusCode());
             }
         } finally {
             reader.close(testSTable);
@@ -500,15 +559,15 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeWriteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        Assert.assertEquals("joe2 absent", read(t1, "joe2"));
-        insertAge(t1, "joe2", 20);
-        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
+        Assert.assertEquals("joe012 absent", read(t1, "joe012"));
+        insertAge(t1, "joe012", 20);
+        Assert.assertEquals("joe012 age=20 job=null", read(t1, "joe012"));
 
         TransactionId t2 = transactor.beginTransaction();
-        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
-        Assert.assertEquals("joe2 absent", read(t2, "joe2"));
+        Assert.assertEquals("joe012 age=20 job=null", read(t1, "joe012"));
+        Assert.assertEquals("joe012 absent", read(t2, "joe012"));
         try {
-            insertAge(t2, "joe2", 30);
+            insertAge(t2, "joe012", 30);
             Assert.fail();
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
@@ -516,7 +575,7 @@ public class SITransactorTest extends SIConstants {
         } finally {
             transactor.fail(t2);
         }
-        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
+        Assert.assertEquals("joe012 age=20 job=null", read(t1, "joe012"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -1012,11 +1071,11 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeDeleteOverlap() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
-        insertAge(t1, "joe12", 20);
+        insertAge(t1, "joe2", 20);
 
         TransactionId t2 = transactor.beginTransaction();
         try {
-            deleteRow(t2, "joe12");
+            deleteRow(t2, "joe2");
             Assert.fail();
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
@@ -1024,8 +1083,8 @@ public class SITransactorTest extends SIConstants {
         } finally {
             transactor.fail(t2);
         }
-        Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
-        Assert.assertEquals("joe12 age=20 job=null", read(t1, "joe12"));
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
+        Assert.assertEquals("joe2 age=20 job=null", read(t1, "joe2"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -1048,15 +1107,15 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeWriteDeleteOverlap() throws IOException {
         TransactionId t0 = transactor.beginTransaction();
-        insertAge(t0, "jo13", 20);
+        insertAge(t0, "joe013", 20);
         transactor.commit(t0);
 
         TransactionId t1 = transactor.beginTransaction();
-        deleteRow(t1, "joe13");
+        deleteRow(t1, "joe013");
 
         TransactionId t2 = transactor.beginTransaction();
         try {
-            insertAge(t2, "joe13", 21);
+            insertAge(t2, "joe013", 21);
             Assert.fail();
         } catch (WriteConflict e) {
         } catch (RetriesExhaustedWithDetailsException e) {
@@ -1064,7 +1123,7 @@ public class SITransactorTest extends SIConstants {
         } finally {
             transactor.fail(t2);
         }
-        Assert.assertEquals("joe13 absent", read(t1, "joe13"));
+        Assert.assertEquals("joe013 absent", read(t1, "joe013"));
         transactor.commit(t1);
         try {
             transactor.commit(t2);
@@ -1074,7 +1133,7 @@ public class SITransactorTest extends SIConstants {
         }
 
         TransactionId t3 = transactor.beginTransaction();
-        Assert.assertEquals("joe13 absent", read(t3, "joe13"));
+        Assert.assertEquals("joe013 absent", read(t3, "joe013"));
         transactor.commit(t3);
     }
 
@@ -3462,6 +3521,94 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe119 age=null job=null[ S.TX@~9 ]", scan(t2, "joe119"));
 
         Assert.assertEquals("joe119 age=null job=null", read(t2, "joe119"));
+    }
+
+    @Test
+    public void batchWriteRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        Assert.assertEquals("joe144 absent", read(t1, "joe144"));
+        insertAgeBatch(new Object[] {t1, "joe144", 20}, new Object[] {t1, "bob144", 30});
+        Assert.assertEquals("joe144 age=20 job=null", read(t1, "joe144"));
+        Assert.assertEquals("bob144 age=30 job=null", read(t1, "bob144"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe144 age=20 job=null", read(t2, "joe144"));
+        Assert.assertEquals("bob144 age=30 job=null", read(t2, "bob144"));
+    }
+
+    @Test
+    public void writeDeleteBatchInsertRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe145", 10);
+        deleteRow(t1, "joe145");
+        insertAgeBatch(new Object[]{t1, "joe145", 20}, new Object[]{t1, "bob145", 30});
+        Assert.assertEquals("joe145 age=20 job=null", read(t1, "joe145"));
+        Assert.assertEquals("bob145 age=30 job=null", read(t1, "bob145"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("joe145 age=20 job=null", read(t2, "joe145"));
+        Assert.assertEquals("bob145 age=30 job=null", read(t2, "bob145"));
+    }
+
+    @Test
+    public void writeManyDeleteBatchInsertRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "146joe", 10);
+        insertAge(t1, "146doe", 20);
+        insertAge(t1, "146boe", 30);
+        insertAge(t1, "146moe", 40);
+        insertAge(t1, "146zoe", 50);
+
+        deleteRow(t1, "146joe");
+        deleteRow(t1, "146doe");
+        deleteRow(t1, "146boe");
+        deleteRow(t1, "146moe");
+        deleteRow(t1, "146zoe");
+
+        insertAgeBatch(new Object[]{t1, "146zoe", 51}, new Object[]{t1, "146moe", 41},
+                new Object[]{t1, "146boe", 31}, new Object[]{t1, "146doe", 21}, new Object[]{t1, "146joe", 11});
+        Assert.assertEquals("146joe age=11 job=null", read(t1, "146joe"));
+        Assert.assertEquals("146doe age=21 job=null", read(t1, "146doe"));
+        Assert.assertEquals("146boe age=31 job=null", read(t1, "146boe"));
+        Assert.assertEquals("146moe age=41 job=null", read(t1, "146moe"));
+        Assert.assertEquals("146zoe age=51 job=null", read(t1, "146zoe"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("146joe age=11 job=null", read(t2, "146joe"));
+        Assert.assertEquals("146doe age=21 job=null", read(t2, "146doe"));
+        Assert.assertEquals("146boe age=31 job=null", read(t2, "146boe"));
+        Assert.assertEquals("146moe age=41 job=null", read(t2, "146moe"));
+        Assert.assertEquals("146zoe age=51 job=null", read(t2, "146zoe"));
+    }
+
+    @Test
+    public void writeManyDeleteBatchInsertSomeRead() throws IOException {
+        TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "147joe", 10);
+        insertAge(t1, "147doe", 20);
+        insertAge(t1, "147boe", 30);
+        insertAge(t1, "147moe", 40);
+        insertAge(t1, "147zoe", 50);
+
+        deleteRow(t1, "147joe");
+        deleteRow(t1, "147doe");
+        deleteRow(t1, "147boe");
+        deleteRow(t1, "147moe");
+        deleteRow(t1, "147zoe");
+
+        insertAgeBatch(new Object[]{t1, "147zoe", 51}, new Object[]{t1, "147boe", 31}, new Object[]{t1, "147joe", 11});
+        Assert.assertEquals("147joe age=11 job=null", read(t1, "147joe"));
+        Assert.assertEquals("147boe age=31 job=null", read(t1, "147boe"));
+        Assert.assertEquals("147zoe age=51 job=null", read(t1, "147zoe"));
+        transactor.commit(t1);
+
+        TransactionId t2 = transactor.beginTransaction();
+        Assert.assertEquals("147joe age=11 job=null", read(t2, "147joe"));
+        Assert.assertEquals("147boe age=31 job=null", read(t2, "147boe"));
+        Assert.assertEquals("147zoe age=51 job=null", read(t2, "147zoe"));
     }
 
 }

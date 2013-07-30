@@ -59,6 +59,7 @@ public class SIObserver extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
+        Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
         RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
@@ -77,7 +78,8 @@ public class SIObserver extends BaseRegionObserver {
         return (EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_TABLE)
                 || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.USER_INDEX_TABLE)
                 || EnvUtils.getTableEnv(tableName).equals(SpliceConstants.TableEnv.DERBY_SYS_TABLE))
-                && !tableName.equals(SpliceConstants.TEMP_TABLE);
+                && !tableName.equals(SpliceConstants.TEMP_TABLE)
+                && !tableName.equals(SpliceConstants.TEST_TABLE);
     }
 
     @Override

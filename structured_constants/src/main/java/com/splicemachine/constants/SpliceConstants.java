@@ -159,6 +159,7 @@ public class SpliceConstants {
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
+    public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";

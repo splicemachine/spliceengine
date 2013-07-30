@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class RollForwardQueue<Data, Hashable> {
+public class RollForwardQueue<Data, Hashable extends Comparable> {
     static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
 
     /**

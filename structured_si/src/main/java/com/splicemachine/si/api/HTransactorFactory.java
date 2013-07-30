@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -115,14 +116,15 @@ public class HTransactorFactory extends SIConstants {
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
                     immutableCache, activeCache, cache, committedCache, failedCache, 1000, managedTransactor);
 
+            final HHasher hasher = new HHasher();
             final DataStore rowStore = new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE, SI_UNCOMMITTED, EMPTY_BYTE_ARRAY, SI_TRANSACTION_ID_KEY,
                     SI_DELETE_PUT, SNAPSHOT_ISOLATION_FAMILY, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING,
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, SI_ANTI_TOMBSTONE_VALUE,
-                    SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
-            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus>
+                    SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY, hasher);
+            final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
                     (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
-                            new HHasher(), managedTransactor);
+                            hasher, managedTransactor);
             managedTransactor.setTransactor(transactor);
             HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
         }
