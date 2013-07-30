@@ -124,20 +124,20 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		return operations;
 	}
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG, "init called");
-		super.init(context);
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
-			restriction = restrictionMethodName == null ?
-                            null : new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
-			leftResultSet.init(context);
-			rightResultSet.init(context);
-            SpliceLogUtils.trace(LOG,"leftResultSet=%s,rightResultSet=%s",leftResultSet,rightResultSet);
-			leftRow = ((SpliceOperation)this.leftResultSet).getExecRowDefinition();
-			rightRow = ((SpliceOperation)this.rightResultSet).getExecRowDefinition();
-            SpliceLogUtils.trace(LOG,"leftRow=%s,rightRow=%s",leftRow,rightRow);
-	}
+    @Override
+    public void init(SpliceOperationContext context) throws StandardException {
+        SpliceLogUtils.trace(LOG, "init called");
+        super.init(context);
+        GenericStorablePreparedStatement statement = context.getPreparedStatement();
+        restriction = restrictionMethodName == null ?
+                        null : new SpliceMethod<DataValueDescriptor>(restrictionMethodName, activation);
+        leftResultSet.init(context);
+        rightResultSet.init(context);
+        SpliceLogUtils.trace(LOG, "leftResultSet=%s,rightResultSet=%s", leftResultSet, rightResultSet);
+        leftRow = ((SpliceOperation) this.leftResultSet).getExecRowDefinition();
+        rightRow = ((SpliceOperation) this.rightResultSet).getExecRowDefinition();
+        SpliceLogUtils.trace(LOG, "leftRow=%s,rightRow=%s", leftRow, rightRow);
+    }
 
     protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
 
