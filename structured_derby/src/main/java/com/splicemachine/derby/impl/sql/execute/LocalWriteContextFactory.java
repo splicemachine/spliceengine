@@ -41,7 +41,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
     //TODO -sf- hook this into JMX
-    private static final int writeBatchSize = 200;
+    private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
     private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();

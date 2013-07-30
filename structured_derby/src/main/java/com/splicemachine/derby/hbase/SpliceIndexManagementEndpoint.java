@@ -1,8 +1,6 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.impl.sql.execute.index.SpliceIndexProtocol;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
-import com.splicemachine.derby.utils.Exceptions;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 
 import java.io.IOException;
@@ -15,10 +13,6 @@ public class SpliceIndexManagementEndpoint extends BaseEndpointCoprocessor imple
 
     @Override
     public void dropIndex(long indexConglomId,long baseConglomId) throws IOException {
-        try {
-            WriteContextFactoryPool.getContextFactory(baseConglomId).dropIndex(indexConglomId);
-        } catch (Exception e) {
-            throw Exceptions.getIOException(e);
-        }
+        SpliceIndexEndpoint.factoryMap.get(baseConglomId).getFirst().dropIndex(indexConglomId);
     }
 }

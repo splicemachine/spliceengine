@@ -154,17 +154,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             Get oldGet = SpliceUtils.createGet(mutation,mutation.getRow());
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo = null;
-            try {
-            	bdo = new ByteDataOutput();
-            	bdo.writeObject(filter);
-            	oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
-            } catch (Exception e) {
-            	throw e;
-            } finally {
-            	Closeables.closeQuietly(bdo);
-            }
-            	
+            oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
+
             Result r = ctx.getRegion().get(oldGet);
             if(r==null||r.isEmpty()){
                 /*

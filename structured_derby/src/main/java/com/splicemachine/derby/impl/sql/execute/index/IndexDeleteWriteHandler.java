@@ -85,14 +85,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
             Get get = SpliceUtils.createGet(mutation, mutation.getRow());
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo = null;
-            try {
-            	bdo = new ByteDataOutput();
-            	bdo.writeObject(predicateFilter);
-            	get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
-            } catch (Exception e) {
-            	Closeables.closeQuietly(bdo);
-            }
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){
                 //already deleted? Weird, but okay, we can deal with that

@@ -170,13 +170,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
             //we need the index so that we can transform data without the information necessary to decode it
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo  = new ByteDataOutput();
-            try {
-                bdo.writeObject(predicateFilter);
-                this.filterBytes = bdo.toByteArray();
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
+            this.filterBytes = predicateFilter.toBytes();
             return filterBytes;
         }
 

@@ -144,11 +144,12 @@ public class SIObserver extends BaseRegionObserver {
 
     private EntryPredicateFilter getPredicateFilter(OperationWithAttributes operation) throws IOException {
         final byte[] serializedPredicateFilter = operation.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
-        try {
-            return (EntryPredicateFilter) new ByteDataInput(serializedPredicateFilter).readObject();
-        } catch (ClassNotFoundException ex) {
-            throw new IOException(ex);
-        }
+        return EntryPredicateFilter.fromBytes(serializedPredicateFilter);
+//        try {
+//            return (EntryPredicateFilter) new ByteDataInput(serializedPredicateFilter).readObject();
+//        } catch (ClassNotFoundException ex) {
+//            throw new IOException(ex);
+//        }
 
     }
 

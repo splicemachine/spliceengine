@@ -2,10 +2,7 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -21,6 +18,7 @@ import java.sql.ResultSet;
  * @author Scott Fines
  * Created on: 7/29/13
  */
+@Ignore("Ignored because it takes forever and doesn't usually help much, but is nifty in some cases")
 public class IndividualPrimaryKeyScanTest {
     private static Logger LOG = Logger.getLogger(PrimaryKeyScanTest.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -123,7 +121,7 @@ public class IndividualPrimaryKeyScanTest {
         int lastId = 5001;
         while(rs.next()){
             int id = rs.getInt(1);
-            Assert.assertEquals("incorrect ordering",lastId-1,id);
+            Assert.assertEquals("incorrect ordering", lastId - 1, id);
             int groupedCount = rs.getInt(2);
             Assert.assertEquals("count is incorrect for key "+ rs.getInt(1),1,groupedCount);
 

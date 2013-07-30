@@ -1,20 +1,19 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
+import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
-import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -37,7 +36,6 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -130,7 +128,7 @@ public class CreateIndexTask extends ZkTask {
 
         try{
             //add index to table watcher
-            WriteContextFactory contextFactory = WriteContextFactoryPool.getContextFactory(baseConglomId);
+            LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
             contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique);
             
             //backfill the index with previously committed data

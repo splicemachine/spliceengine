@@ -63,15 +63,6 @@ public class BlockImportTask extends AbstractImportTask{
         super.prepareTask(rce, zooKeeper);
     }
 
-//    @Override
-//    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
-//        CallBuffer<Mutation> remote = super.getCallBuffer();
-//        //get the local buffer
-//
-//        return new SwitchingCallBuffer(remote,rce,isRemote,
-//                WriteContextFactoryPool.getContextFactory(importContext.getTableId()));
-//    }
-
     @Override
     protected long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
         Path path = importContext.getFilePath();
@@ -79,7 +70,6 @@ public class BlockImportTask extends AbstractImportTask{
         FSDataInputStream is = null;
         LineReader reader = null;
         CSVParser parser = getCsvParser(importContext);
-        long numImported = 0l;
         try{
             CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
             CompressionCodec codec = codecFactory.getCodec(path);
@@ -97,27 +87,31 @@ public class BlockImportTask extends AbstractImportTask{
                 start += reader.readLine(text);
 
             long pos = start;
-            String txnId = getTaskStatus().getTransactionId();
-            while(pos<end){
-                long newSize = reader.readLine(text);
-                if(newSize==0)
-                    break; //we didn't actually read any more data
-                pos+=newSize;
-                String line = text.toString();
-                if(line==null||line.length()==0)
-                    continue; //skip empty lines
-                String[] cols = parser.parseLine(line);
-                doImportRow(txnId,cols,row,writeBuffer);
-                numImported++;
-
-                reportIntermediate(numImported);
-            }
-
-            return numImported;
+            return importData(row, writeBuffer, reader, parser, end, text, pos);
         }finally{
             if(is!=null) is.close();
             if(reader!=null)reader.close();
         }
+    }
+
+    private long importData(ExecRow row, CallBuffer<Mutation> writeBuffer, LineReader reader, CSVParser parser, long end, Text text, long pos) throws Exception {
+        String txnId = getTaskStatus().getTransactionId();
+        long numImported = 0l;
+        while(pos<end){
+            long newSize = reader.readLine(text);
+            if(newSize==0)
+                break; //we didn't actually read any more data
+            pos+=newSize;
+            String line = text.toString();
+            if(line==null||line.length()==0)
+                continue; //skip empty lines
+            String[] cols = parser.parseLine(line);
+            doImportRow(txnId,cols,row,writeBuffer);
+            numImported++;
+
+            reportIntermediate(numImported);
+        }
+        return numImported;
     }
 
     private CSVParser getCsvParser(ImportContext context) {

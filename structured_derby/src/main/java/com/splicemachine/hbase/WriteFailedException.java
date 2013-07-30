@@ -15,7 +15,13 @@ public class WriteFailedException extends IOException {
     }
 
     private static String parseIntoErrorMessage(Collection<String> errorMessages) {
-        StringBuilder sb = new StringBuilder("Failed ").append(errorMessages.size()).append(" writes");
+        StringBuilder sb = new StringBuilder("Failed ").append(errorMessages.size()).append(" writes:");
+        for(String errorMessage:errorMessages){
+            sb.append(errorMessage);
+            sb.append(",");
+            break;
+        }
+        sb.append(" + ").append(errorMessages.size() - 1).append(" additional errors");
         return sb.toString();
 //        boolean isFirst=true;
 //        for(String errorMessage:errorMessages){

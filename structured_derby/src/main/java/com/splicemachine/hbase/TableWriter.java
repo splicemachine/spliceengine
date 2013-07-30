@@ -157,8 +157,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
 
-        return new TableWriter(writerPool,cacheUpdater,connection,regionCache,
-                writeBufferSize,maxBufferEntries,maxPendingBuffers,cacheUpdatePeriod,numRetries,compressWrites,pause,configuration);
+        return new TableWriter(writerPool,cacheUpdater,connection,regionCache, writeBufferSize,pause,configuration);
     }
 
     private TableWriter( MonitoredThreadPool writerPool,
@@ -166,11 +165,6 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                         HConnection connection,
                         LoadingCache<Integer, Set<HRegionInfo>> regionCache,
                         long maxHeapSize,
-                        int maxBufferEntries,
-                        int maxPendingBuffers,
-                        long cacheUpdatePeriod,
-                        int numRetries,
-                        boolean compressWrites,
                         long pause,
                         Configuration configuration) {
         this.writerPool = writerPool;
@@ -178,12 +172,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         this.connection = connection;
         this.regionCache = regionCache;
         this.configuration = configuration;
-        this.cacheUpdatePeriod = cacheUpdatePeriod;
         this.maxHeapSize = maxHeapSize;
-        this.maxBufferEntries = maxBufferEntries;
-        this.maxPendingBuffers = maxPendingBuffers;
-        this.numRetries = numRetries;
-        this.compressWrites = compressWrites;
         this.pause = pause;
     }
 
@@ -522,6 +511,12 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
         @Override
         public void bufferFlushed(List<Mutation> entries) throws Exception {
+            //check if any prior flushes failed
+            for(Future<Void> future:futures){
+                if(future.isDone()){
+                    future.get();
+                }
+            }
             /* transform the entries to be flushed according to the FlushWatcher's opinion. */
             entries = flushWatcher.preFlush(entries);
             /*
@@ -580,7 +575,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             return Lists.transform(entries,new Function<Mutation, Row>() {
                 @Override
                 public Row apply(@Nullable Mutation input) {
-                    if(input instanceof Row) return (Row)input;
+                    if(input != null) return input;
                     return null;
                 }
             });

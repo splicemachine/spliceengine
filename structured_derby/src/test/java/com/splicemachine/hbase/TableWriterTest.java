@@ -22,6 +22,7 @@ import java.util.concurrent.*;
  * @author Scott Fines
  *         Created on: 3/21/13
  */
+@Ignore("Tested elsewhere")
 public class TableWriterTest extends SpliceConstants {
     private static final Logger LOG = Logger.getLogger(TableWriterTest.class);
 

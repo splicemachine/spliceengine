@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
@@ -12,9 +11,7 @@ import com.splicemachine.hbase.MutationRequest;
 import com.splicemachine.hbase.MutationResponse;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -32,10 +29,11 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -47,53 +45,55 @@ import java.util.Map;
 public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
 
-    private volatile WriteContextFactory<RegionCoprocessorEnvironment> writeContextFactory;
-    //TODO -sf- instantiate!
+    public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new ConcurrentHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
+    static{
+        factoryMap.put(-1l,Pair.newPair(LocalWriteContextFactory.unmanagedContextFactory(),new AtomicInteger(1)));
+    }
 
+    private long conglomId;
     @Override
     public void start(CoprocessorEnvironment env) {
         String tableName = ((RegionCoprocessorEnvironment)env).getRegion().getTableDesc().getNameAsString();
-        final long conglomId;
         try{
             conglomId = Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse conglomerate id for table %s, " +
                     "index management for batch operations will be diabled",tableName);
-            writeContextFactory = WriteContextFactoryPool.getDefaultFactory();
+            conglomId=-1;
             super.start(env);
             return;
         }
 
-        try {
-            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        final Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger(1));
+        Pair<LocalWriteContextFactory, AtomicInteger> originalPair = factoryMap.putIfAbsent(conglomId, factoryPair);
+        if(originalPair!=null){
+            //someone else already created the factory
+            originalPair.getSecond().incrementAndGet();
+        }else{
+            SpliceDriver.Service service = new SpliceDriver.Service(){
+
+                @Override
+                public boolean start() {
+                    factoryPair.getFirst().prepare();
+                    SpliceDriver.driver().deregisterService(this);
+                    return true;
+                }
+
+                @Override
+                public boolean shutdown() {
+                    return true;
+                }
+            };
+            SpliceDriver.driver().registerService(service);
         }
-        SpliceDriver.Service service = new SpliceDriver.Service(){
-
-            @Override
-            public boolean start() {
-                if(writeContextFactory instanceof LocalWriteContextFactory)
-                    ((LocalWriteContextFactory) writeContextFactory).prepare();
-                SpliceDriver.driver().deregisterService(this);
-                return true;
-            }
-
-            @Override
-            public boolean shutdown() {
-                return true;
-            }
-        };
-        SpliceDriver.driver().registerService(service);
         super.start(env);
     }
 
     @Override
     public void stop(CoprocessorEnvironment env) {
-        try {
-            WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
-        } catch (Exception e) {
-            LOG.error("Unable to close context factory, beware memory leaks!",e);
+        Pair<LocalWriteContextFactory,AtomicInteger> factoryPair = factoryMap.get(conglomId);
+        if(factoryPair!=null &&  factoryPair.getSecond().decrementAndGet()<=0){
+            factoryMap.remove(conglomId);
         }
     }
 
@@ -103,7 +103,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         WriteContext context;
         try {
-            context = writeContextFactory.create(rce);
+            context = getWriteContext(rce);
         } catch (InterruptedException e) {
             //was interrupted while trying to create a write context.
             //we're done, someone else will have to write this batch
@@ -126,6 +126,12 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         return response;
     }
 
+    private WriteContext getWriteContext(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
+        Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
+        return ctxFactoryPair.getFirst().create(rce);
+    }
+
+
     @SuppressWarnings("unchecked")
 	@Override
     public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
@@ -137,7 +143,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 //        scan.setCaching(1);
 //        scan.setBatch(1);
         //TODO -sf- make us only pull back one entry instead of everything
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
+        EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
         RegionScanner scanner = region.getCoprocessorHost().preScannerOpen(scan);
@@ -189,4 +195,20 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         return MutationResult.notRun();
     }
 
+    private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
+        Pair<LocalWriteContextFactory,AtomicInteger> ctxFactoryPair = factoryMap.get(conglomId);
+        if(ctxFactoryPair==null){
+            ctxFactoryPair = Pair.newPair(new LocalWriteContextFactory(conglomId),new AtomicInteger());
+            Pair<LocalWriteContextFactory, AtomicInteger> existing = factoryMap.putIfAbsent(conglomId, ctxFactoryPair);
+            if(existing!=null){
+                ctxFactoryPair = existing;
+            }
+        }
+        return ctxFactoryPair;
+    }
+
+    public static LocalWriteContextFactory getContextFactory(long baseConglomId) {
+        Pair<LocalWriteContextFactory,AtomicInteger> ctxPair = getContextPair(baseConglomId);
+        return ctxPair.getFirst();
+    }
 }

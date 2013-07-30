@@ -1,13 +1,10 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Delete;
@@ -20,6 +17,7 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
 /**
@@ -31,58 +29,21 @@ import java.io.IOException;
 public class SpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
 
-    private volatile WriteContextFactory<RegionCoprocessorEnvironment> writeContextFactory;
+    private long conglomId;
     @Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
         String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-        final long conglomId;
         try{
             conglomId = Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
-            writeContextFactory = WriteContextFactoryPool.getDefaultFactory();
+            conglomId=-1;
             return;
         }
 
-        try {
-            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
-        } catch (Exception e1) {
-            throw new RuntimeException(e1);
-        }
-        SpliceDriver.Service service = new SpliceDriver.Service() {
-            @Override
-            public boolean start() {
-                //get the index set now that we know we can
-                if(writeContextFactory instanceof LocalWriteContextFactory)
-                    ((LocalWriteContextFactory) writeContextFactory).prepare();
-                //now that we know we can start, we don't care what else happens in the lifecycle
-                SpliceDriver.driver().deregisterService(this);
-                return true;
-            }
-
-            @Override
-            public boolean shutdown() {
-                //we don't care
-                return true;
-            }
-        };
-
-        //register for notifications--allow the registration to tell us if we can go ahead or not
-        SpliceDriver.driver().registerService(service);
-
         super.postOpen(e);
-    }
-
-    @Override
-    public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
-    	SpliceLogUtils.trace(LOG, "postClose");
-        try {
-            WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
-        } catch (Exception e1) {
-            SpliceLogUtils.error(LOG,"Unable to close Context factory--beware of memory leaks!");
-        }
     }
 
     @Override
@@ -116,7 +77,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return;
         WriteContext context;
         try{
-            context = writeContextFactory.createPassThrough(rce);
+            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(rce);
         }catch(InterruptedException e){
             throw new IOException(e);
         }

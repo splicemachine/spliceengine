@@ -4,6 +4,7 @@ import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import java.io.IOException;
 
@@ -25,7 +26,10 @@ public class ConstraintHandler implements WriteHandler {
         if(failed)
             ctx.notRun(mutation);
         try {
-            if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
+            if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
+                //we can't check the mutation, it'll explode
+                ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
+            }else if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
                 failed = true;
                 ctx.result(mutation,
                         new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));

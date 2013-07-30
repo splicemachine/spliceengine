@@ -84,8 +84,6 @@ public class RegionWriteHandler implements WriteHandler {
         }
         //write all the puts first, since they are more likely
         boolean failed = false;
-        Mutation[] toProcess = null;
-        List<Mutation> toProcessList = Lists.newArrayListWithCapacity(writeBatchSize);
         try {
             Collection<Mutation> filteredMutations = Collections2.filter(mutations, new Predicate<Mutation>() {
                 @Override
@@ -93,21 +91,24 @@ public class RegionWriteHandler implements WriteHandler {
                     return ctx.canRun(input);
                 }
             });
+            Mutation[] toProcess = new Mutation[filteredMutations.size()];
+            filteredMutations.toArray(toProcess);
 
-            for (Mutation mutation : filteredMutations) {
-                toProcessList.add(mutation);
-                if (toProcessList.size() == writeBatchSize) {
-                    if (toProcess == null)
-                        toProcess = new Mutation[writeBatchSize];
-                    toProcess = toProcessList.toArray(toProcess);
-                    doWrite(ctx, toProcess);
-                    toProcessList.clear();
-                }
-            }
-            if (toProcessList.size() > 0) {
-                toProcess = toProcessList.toArray(new Mutation[toProcessList.size()]);
-                doWrite(ctx, toProcess);
-            }
+            doWrite(ctx,toProcess);
+//            for (Mutation mutation : filteredMutations) {
+//                toProcessList.add(mutation);
+//                if (toProcessList.size() == writeBatchSize) {
+//                    if (toProcess == null)
+//                        toProcess = new Mutation[writeBatchSize];
+//                    toProcess = toProcessList.toArray(toProcess);
+//                    doWrite(ctx, toProcess);
+//                    toProcessList.clear();
+//                }
+//            }
+//            if (toProcessList.size() > 0) {
+//                toProcess = toProcessList.toArray(new Mutation[toProcessList.size()]);
+//                doWrite(ctx, toProcess);
+//            }
         } catch (WriteConflict wce) {
             failed = true;
             MutationResult result = new MutationResult(MutationResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());

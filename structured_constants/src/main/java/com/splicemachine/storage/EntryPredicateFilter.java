@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 import com.google.common.collect.Lists;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 
 import java.io.Externalizable;
@@ -11,6 +12,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,11 +20,17 @@ import java.util.List;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter implements Externalizable{
+    public static EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
     private static final long serialVersionUID = 3l;
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
     private boolean returnIndex;
     private long visitedRowCount;
+
+
+    public static EntryPredicateFilter emptyPredicate(){
+        return EMPTY_PREDICATE;
+    }
 
     /**
      * Used for Serialization, DO NOT USE
@@ -152,6 +160,10 @@ public class EntryPredicateFilter implements Externalizable{
     }
 
     public byte[] toBytes() {
+        //if we dont have any distinguishing information, just send over an empty byte array
+        if(fieldsToReturn.length()==0 && valuePredicates.size()<=0 && !returnIndex)
+            return new byte[]{};
+
         ByteDataOutput bdo = new ByteDataOutput();
         try{
             bdo.writeObject(this);
@@ -167,5 +179,16 @@ public class EntryPredicateFilter implements Externalizable{
 
     public long getVisitedRowCount() {
         return visitedRowCount;
+    }
+
+    public static EntryPredicateFilter fromBytes(byte[] data) throws IOException {
+        if(data.length==0) return EMPTY_PREDICATE;
+
+        ByteDataInput bdi = new ByteDataInput(data);
+        try {
+            return (EntryPredicateFilter)bdi.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 }

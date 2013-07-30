@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
-import sun.misc.Unsafe;
 
 /**
  * Utility methods and classes related to building HBase Scans

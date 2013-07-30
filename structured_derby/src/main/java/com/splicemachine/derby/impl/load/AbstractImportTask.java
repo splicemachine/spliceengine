@@ -1,16 +1,13 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -20,9 +17,7 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
@@ -33,8 +28,9 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -131,24 +127,15 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
-    private BitSet getNonNullFields(ExecRow row) {
-        FormatableBitSet fbt = importContext.getActiveCols();
-        BitSet bitSet = new BitSet();
-        if(fbt!=null){
-            for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
-                bitSet.set(i);
-            }
-        }else{
-            DataValueDescriptor[] rowArray = row.getRowArray();
-            for(int i=0;i<rowArray.length;i++){
-                if(rowArray[i]!=null&&!rowArray[i].isNull())
-                    bitSet.set(i);
-            }
-        }
-        return bitSet;
-    }
-
     protected CallBuffer<Mutation> getCallBuffer() throws Exception {
+//        FormatableBitSet primaryKeys = importContext.getPrimaryKeys();
+//        if(primaryKeys !=null&&primaryKeys.getNumBitsSet()>0){
+//            /*
+//             * With Primary keys, we need to spread the load more evenly, which involves randomizing
+//             * the buffer flushes. Without Primary Keys, we have plenty of randomization already.
+//             */
+//            return new SpreadingCallBuffer(5,importContext.getTableName().getBytes());
+//        }
         return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
     }
 
@@ -259,5 +246,52 @@ public abstract class AbstractImportTask extends ZkTask {
         if(delimiter==null||delimiter.length()<=0)
             delimiter = ",";
         return delimiter.charAt(0);
+    }
+
+    private static class SpreadingCallBuffer implements CallBuffer<Mutation>{
+        private final CallBuffer<Mutation>[] buffers;
+        private final Random random;
+
+        private SpreadingCallBuffer(int numBuffers,byte[] tableName) {
+            this.buffers =new CallBuffer[numBuffers];
+            this.random = new Random();
+            for(int i=0;i<buffers.length;i++){
+                buffers[i] = SpliceDriver.driver().getTableWriter().writeBuffer(tableName);
+            }
+        }
+
+        @Override
+        public void add(Mutation element) throws Exception {
+            //add this to a random buffer
+            buffers[random.nextInt(buffers.length)].add(element);
+        }
+
+        @Override
+        public void addAll(Mutation[] elements) throws Exception {
+            for(Mutation mutation:elements){
+                add(mutation);
+            }
+        }
+
+        @Override
+        public void addAll(Collection<? extends Mutation> elements) throws Exception {
+            for(Mutation mutation:elements){
+                add(mutation);
+            }
+        }
+
+        @Override
+        public void flushBuffer() throws Exception {
+            for(CallBuffer<Mutation> buffer:buffers){
+                buffer.flushBuffer();
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            for(CallBuffer<Mutation> buffer:buffers){
+                buffer.close();
+            }
+        }
     }
 }

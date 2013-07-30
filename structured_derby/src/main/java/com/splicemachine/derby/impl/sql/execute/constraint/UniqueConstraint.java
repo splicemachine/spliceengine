@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -57,7 +58,7 @@ public class UniqueConstraint implements Constraint {
             try {
                 Get get = SpliceUtils.createGet(input, input.getRow());
                 get.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
-                EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(), Collections.<com.splicemachine.storage.Predicate>emptyList());
+                EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
                 get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
                 return get;
             } catch (IOException e) {
@@ -76,14 +77,11 @@ public class UniqueConstraint implements Constraint {
         Get get = validator.apply(mutation);
 
         HRegion region = rce.getRegion();
-        if(!HRegion.rowIsInRange(region.getRegionInfo(),get.getRow())){
-
-        }
         Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
 //        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
         if(rowPresent)
-            SpliceLogUtils.trace(logger,result.toString());
+            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
         return !rowPresent;
     }
 

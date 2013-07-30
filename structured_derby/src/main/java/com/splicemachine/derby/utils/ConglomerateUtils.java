@@ -54,10 +54,8 @@ public class ConglomerateUtils extends SpliceConstants {
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			Get get = SpliceUtils.createGet(transactionID, Bytes.toBytes(conglomId));
             get.addColumn(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
-            EntryPredicateFilter predicateFilter  = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
-            ByteDataOutput bdo = new ByteDataOutput();
-            bdo.writeObject(predicateFilter);
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
+            EntryPredicateFilter predicateFilter  = EntryPredicateFilter.emptyPredicate();
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 			Result result = table.get(get);
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
