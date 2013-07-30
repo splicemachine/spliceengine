@@ -536,7 +536,6 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		if ((cd == null) ||  (! cd.isIndex() && baseColumnPositions==null) || // Making sure there is not an index available, if there is I need to evaluate the keys
 			 (nonMatchingIndexScan && coveringIndexScan))
 		{
-			System.out.println("miss");
 			/*
 			** For the heap, the useful predicates are the relational
 			** operators that have a column from the table on one side,
