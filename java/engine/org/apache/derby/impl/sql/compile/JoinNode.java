@@ -319,6 +319,33 @@ public class JoinNode extends TableOperatorNode {
 		return true;
 	}
 
+    /**
+     * (Splice method) Whereas pushOptPredicate assumes the predicate to add
+     * is coming from higher in the tree & therefore its column references
+     * need to be remapped, this method simply adds the predicate to the node
+     * without modification.
+     *
+     * @param optimizablePredicate
+     * @return boolean
+     * @throws StandardException
+     */
+    public boolean addOptPredicate(OptimizablePredicate optimizablePredicate)
+			throws StandardException
+	{
+		if (SanityManager.DEBUG)
+		{
+			SanityManager.ASSERT(optimizablePredicate instanceof Predicate,
+				"optimizablePredicate expected to be instanceof Predicate");
+			SanityManager.ASSERT(! optimizablePredicate.hasSubquery() &&
+								 ! optimizablePredicate.hasMethodCall(),
+				"optimizablePredicate either has a subquery or a method call");
+		}
+
+		joinPredicates.addPredicate((Predicate) optimizablePredicate);
+
+		return true;
+	}
+
 	/**
 	 * @see Optimizable#modifyAccessPath
 	 *
@@ -1690,18 +1717,23 @@ public class JoinNode extends TableOperatorNode {
                     table = (FromBaseTable)rightResultSet;
                 }
                 PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
-                int[] leftHashCols = new int[nonStoreRestrictionList.size()];
-
+                List equalsPreds = new ArrayList(nonStoreRestrictionList.size());
+                for(int i=0;i<nonStoreRestrictionList.size();i++){
+                    Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
+                    if (op.isJoinPredicate() && op.getRelop().getOperator() == RelationalOperator.EQUALS_RELOP){
+                        equalsPreds.add(op);
+                    }
+                }
+                int[] leftHashCols = new int[equalsPreds.size()];
                 String leftTableName = null;
                 long leftTableNumber = -1;
 
-                int[] rightHashCols = new int[nonStoreRestrictionList.size()];
+                int[] rightHashCols = new int[equalsPreds.size()];
                 String rightTableName = null;
                 long rightTableNumber = -1;
 
-                for(int i=0;i<nonStoreRestrictionList.size();i++){
-                    Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
-                    BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)op.getAndNode().getLeftOperand();
+                for(int i=0;i<equalsPreds.size();i++){
+                    BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode) ((Predicate)equalsPreds.get(i)).getRelop();
 
                     ColumnReference maybeLeftCol = (ColumnReference) opNode.getLeftOperand();
                     ColumnReference maybeRightCol = (ColumnReference) opNode.getRightOperand();
@@ -1709,10 +1741,10 @@ public class JoinNode extends TableOperatorNode {
                     ColumnReference leftCol = null;
                     ColumnReference rightCol = null;
 
-                    if(maybeRightCol.getTableNumber() == table.getTableNumber()){
+                    if (maybeRightCol.getTableNumber() == table.getTableNumber()) {
                         leftCol = maybeLeftCol;
                         rightCol = maybeRightCol;
-                    } else{
+                    } else {
                         leftCol = maybeRightCol;
                         rightCol = maybeLeftCol;
                     }
@@ -1720,17 +1752,16 @@ public class JoinNode extends TableOperatorNode {
                     leftHashCols[i] = leftCol.getColumnNumber();
                     rightHashCols[i] = rightCol.getColumnNumber();
 
-                    if(leftCol.getSource().getTableColumnDescriptor() != null){
+                    if (leftCol.getSource().getTableColumnDescriptor() != null) {
                         leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
                         leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
                     }
 
-                    if(rightCol.getSource().getTableColumnDescriptor() != null){
+                    if (rightCol.getSource().getTableColumnDescriptor() != null) {
                         rightTableName = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
                         rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
                     }
-
-		        }
+                }
 
                 FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashCols);
 
