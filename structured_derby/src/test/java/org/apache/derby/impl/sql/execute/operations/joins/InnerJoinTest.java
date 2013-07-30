@@ -836,7 +836,6 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Bugzilla 597")
     public void testSelfJoinWithLessThanSelection() throws Exception {
         List<Object[]> expected = Arrays.asList(
                 o("E1", "E4", "Alice", "Don"),
