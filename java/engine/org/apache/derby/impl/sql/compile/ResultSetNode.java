@@ -70,7 +70,7 @@ import java.util.Set;
 
 public abstract class ResultSetNode extends QueryTreeNode
 {
-	int					resultSetNumber;
+	int					resultSetNumber = -1;
 	/* Bit map of referenced tables under this ResultSetNode */
 	JBitSet				referencedTableMap;
 	ResultColumnList	resultColumns;
@@ -193,8 +193,11 @@ public abstract class ResultSetNode extends QueryTreeNode
 
 	public void assignResultSetNumber() throws StandardException
 	{
-		resultSetNumber = getCompilerContext().getNextResultSetNumber();
-		resultColumns.setResultSetNumber(resultSetNumber);
+        // only set if currently unset
+        if (resultSetNumber == -1) {
+            resultSetNumber = getCompilerContext().getNextResultSetNumber();
+            resultColumns.setResultSetNumber(resultSetNumber);
+        }
 	}
 
 	/**
