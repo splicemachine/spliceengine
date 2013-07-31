@@ -1,15 +1,11 @@
 package com.splicemachine.encoding;
 
-import com.google.common.base.Charsets;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 
 /**
@@ -79,6 +75,12 @@ public class FixedDecimalEncodingTest {
         l &= Long.MIN_VALUE>>2;
         System.out.println(pad(l));
         System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l), false)));
+        System.out.println(Double.longBitsToDouble(l));
+        l &=(l>>>8);
+        l |= Long.MIN_VALUE>>2;
+        l &= Long.MIN_VALUE>>2;
+        System.out.println(pad(l));
+        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l),false)));
         System.out.println(Double.longBitsToDouble(l));
 
         int i = Integer.MAX_VALUE | Integer.MIN_VALUE;
