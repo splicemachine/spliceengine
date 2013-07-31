@@ -342,7 +342,6 @@ public class MultiFieldEncoderTest {
         for(Pair<Type,Object> type:types){
             Type t = type.getFirst();
             Object c = type.getSecond();
-            System.out.printf("%s%s,%n",t,c);
             t.load(encoder,c,false);
         }
 

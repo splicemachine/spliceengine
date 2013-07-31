@@ -1,11 +1,15 @@
 package com.splicemachine.encoding;
 
+import com.google.common.base.Charsets;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 
 /**
