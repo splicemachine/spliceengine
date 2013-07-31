@@ -165,8 +165,8 @@ public final class Encoding {
      * @return an order-preserving byte encoding.
      */
     public static byte[] encode(byte value){
-        //TODO -sf- is this the most effective way to do this?
-        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
+        return ScalarEncoding.toBytes(value,false);
+//        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
     }
 
     /**
@@ -176,7 +176,7 @@ public final class Encoding {
      * @return the decoded byte.
      */
     public static byte decodeByte(byte[] data){
-        return decodeBytes(data)[0];
+        return (byte)ScalarEncoding.toLong(data,false);
     }
 
     /**
@@ -191,7 +191,7 @@ public final class Encoding {
      * @return an order-preserving representation of {@code value}
      */
     public static byte[] encode(byte value,boolean desc){
-        return encode(new byte[]{value},desc);
+        return ScalarEncoding.toBytes(value,desc);
     }
 
     /**
@@ -205,15 +205,15 @@ public final class Encoding {
      * @return the byte represented by {@code data}
      */
     public static byte decodeByte(byte[] data,boolean desc){
-        return decodeBytes(data,desc)[0];
+        return (byte)ScalarEncoding.toLong(data,desc);
     }
 
     public static byte decodeByte(byte[] data, int offset){
-        return decodeBytes(data,offset,false)[0];
+        return (byte)ScalarEncoding.toLong(data,offset,false);
     }
 
     public static byte decodeByte(byte[] data, int offset,boolean desc){
-        return decodeBytes(data,offset,desc)[0];
+        return (byte)ScalarEncoding.toLong(data,offset, desc);
     }
 
     /**
@@ -906,8 +906,8 @@ public final class Encoding {
         return ByteEncoding.decode(encodedData,desc);
     }
 
-    public static byte[] decodeBytes(byte[] encodedData,int offset,boolean desc){
-        return ByteEncoding.decode(encodedData,offset,desc);
+    public static byte[] decodeBytes(byte[] encodedData,int offset,int length,boolean desc){
+        return ByteEncoding.decode(encodedData,offset,length,desc);
     }
 
     public static byte[] decodeBytesUnsortd(byte[] encodedData,int offset,int length){
@@ -916,5 +916,13 @@ public final class Encoding {
 
     public static byte[] encodeBytesUnsorted(byte[] dataToEncode){
         return ByteEncoding.encodeUnsorted(dataToEncode);
+    }
+
+    public static byte[] encodedNullDouble() {
+        return DecimalEncoding.NULL_DOUBLE_BYTES;
+    }
+
+    public static byte[] encodedNullFloat() {
+        return DecimalEncoding.NULL_FLOAT_BYTES;
     }
 }

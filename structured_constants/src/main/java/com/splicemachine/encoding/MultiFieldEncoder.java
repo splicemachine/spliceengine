@@ -49,6 +49,18 @@ public class MultiFieldEncoder {
         return this;
     }
 
+    public MultiFieldEncoder encodeNext(byte value){
+        return encodeNext(value,false);
+    }
+
+    public MultiFieldEncoder encodeNext(byte value,boolean desc){
+        byte[] next = Encoding.encode(value,desc);
+        currentSize+=next.length;
+        fields[currentPos] = next;
+        currentPos++;
+        return this;
+    }
+
     public MultiFieldEncoder encodeNext(short value){
 //        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value, false);
@@ -285,4 +297,5 @@ public class MultiFieldEncoder {
         currentPos++;
         return this;
     }
+
 }

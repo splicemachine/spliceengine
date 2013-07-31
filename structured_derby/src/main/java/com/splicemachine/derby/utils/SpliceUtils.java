@@ -104,7 +104,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
-		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
 			Get get = createGet(transID, loc.getBytes());
             get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
@@ -118,8 +119,6 @@ public class SpliceUtils extends SpliceUtilities {
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
             }
-
-
 
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());

@@ -35,6 +35,25 @@ public class RowMarshaller {
     }
 
     private static void pack(DataValueDescriptor[] row, int[] rowColumns,MultiFieldEncoder encoder,boolean encodeEmpty) throws StandardException{
+//        if(rowColumns!=null){
+//            for(int rowCol:rowColumns){
+//                DataValueDescriptor dvd = row[rowCol];
+//                if(dvd==null && encodeEmpty)
+//                    encoder.encodeEmpty();
+//                else if (dvd!=null){
+//                    DerbyBytesUtil.encodeInto(encoder,dvd,false,encodeEmpty);
+//                }
+//            }
+//        }else{
+//            for (DataValueDescriptor dvd : row) {
+//                if(dvd==null&&encodeEmpty)
+//                    encoder.encodeEmpty();
+//                else if(dvd!=null){
+//                    DerbyBytesUtil.encodeInto(encoder,dvd,false,encodeEmpty);
+//                }
+//            }
+//        }
+
         if(rowColumns!=null){
             for(int rowCol:rowColumns){
                 DataValueDescriptor dvd = row[rowCol];
@@ -148,17 +167,34 @@ public class RowMarshaller {
                     DerbyBytesUtil.decodeInto(rowDecoder, dvd);
             }
         }else{
-            for(int i=0;i<fields.length;i++){
-                DataValueDescriptor dvd = fields[i];
-                if(dvd==null)
+            for (DataValueDescriptor dvd : fields) {
+                if (dvd == null)
                     continue;
-                if(rowDecoder.nextIsNull()){
+                if (rowDecoder.nextIsNull()) {
                     dvd.setToNull();
                     rowDecoder.skip();
-                }else
-                    DerbyBytesUtil.decodeInto(rowDecoder,dvd);
+                } else
+                    DerbyBytesUtil.decodeInto(rowDecoder, dvd);
             }
         }
+//        if(reversedKeyColumns!=null){
+//            for(int keyCol:reversedKeyColumns){
+//                DataValueDescriptor dvd = fields[keyCol];
+//                if(DerbyBytesUtil.isNextFieldNull(rowDecoder, dvd)){
+//                    DerbyBytesUtil.skip(rowDecoder,dvd);
+//                }else
+//                    DerbyBytesUtil.decodeInto(rowDecoder,dvd);
+//            }
+//        }else{
+//            for (DataValueDescriptor dvd : fields) {
+//                if (dvd == null)
+//                    continue;
+//                if (DerbyBytesUtil.isNextFieldNull(rowDecoder, dvd)) {
+//                    DerbyBytesUtil.skip(rowDecoder, dvd);
+//                } else
+//                    DerbyBytesUtil.decodeInto(rowDecoder, dvd);
+//            }
+//        }
     }
 
     private static final RowMarshall PACKED_COMPRESSED = new RowMarshall() {

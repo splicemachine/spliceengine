@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EncodingUtils;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -162,7 +163,7 @@ public abstract class SpliceController implements ConglomerateController {
             }
 			return true;
 		} catch (Exception e) {
-			throw new RuntimeException(e.getMessage(), e);
+			throw Exceptions.parseException(e);
 		}finally{
             try {
                 htable.close();

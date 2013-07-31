@@ -1,5 +1,7 @@
 package com.splicemachine.encoding;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
@@ -44,7 +46,7 @@ public class MultiFieldDecoder {
         }
 
         byte elem =Encoding.decodeByte(data,currentOffset,desc);
-        currentOffset+=2; //skip the terminator
+        adjustOffset(3);
         return elem;
     }
 
@@ -88,10 +90,7 @@ public class MultiFieldDecoder {
 
     public float decodeNextFloat(boolean desc){
         assert currentOffset < data.length;
-        if(currentOffset>=0 &&data[currentOffset]==0x00){
-            currentOffset++;
-            return 0f;
-        }
+        if(nextIsNullFloat()) return 0f;
 
         float next = Encoding.decodeFloat(data,currentOffset,desc);
         currentOffset+=5;
@@ -104,14 +103,12 @@ public class MultiFieldDecoder {
 
     public double decodeNextDouble(boolean desc){
         assert currentOffset < data.length;
-        if(currentOffset>=0 &&data[currentOffset]==0x00){
-            currentOffset++;
+        if(nextIsNullDouble()){
+            currentOffset+=9;
             return 0d;
         }
-
         double next = Encoding.decodeDouble(data,currentOffset,desc);
         currentOffset+=9;
-//        adjustOffset(9);
         return next;
     }
 
@@ -158,14 +155,14 @@ public class MultiFieldDecoder {
     }
 
     public byte[] decodeNextBytes(boolean desc){
-        assert currentOffset < data.length;
+        if(currentOffset>=data.length) return new byte[]{};
         if(currentOffset>=0 &&data[currentOffset]==0x00){
             currentOffset++;
             return new byte[]{};
         }
-        byte[] decoded= Encoding.decodeBytes(data,currentOffset,desc);
-        currentOffset+=decoded.length+1;
-        return decoded;
+        int offset = currentOffset;
+        adjustOffset(-1);
+        return Encoding.decodeBytes(data,offset,currentOffset-offset-1,desc);
     }
 
     public byte[] decodeNextBytesUnsorted(){
@@ -321,5 +318,16 @@ public class MultiFieldDecoder {
 
     public boolean available() {
         return currentOffset<data.length;
+    }
+
+    public boolean nextIsNullDouble() {
+        //look at the next 8 bytes and see if they equal the double entry
+        byte[] nullDouble = Encoding.encodedNullDouble();
+        return Bytes.equals(nullDouble,0,nullDouble.length,data,currentOffset,8);
+    }
+
+    public boolean nextIsNullFloat(){
+        byte[] nullFloat = Encoding.encodedNullFloat();
+        return Bytes.equals(nullFloat,0,nullFloat.length,data,currentOffset,4);
     }
 }

@@ -65,7 +65,7 @@ public class RowEncoder {
             keyEncoder.mark();
         }
 
-        if(!rowType.isColumnar()){
+        if(!rowType.isColumnar()&&rowColumns!=null){
             rowEncoder = MultiFieldEncoder.create(rowColumns.length);
         }
     }

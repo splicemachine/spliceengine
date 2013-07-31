@@ -273,7 +273,15 @@ public class DerbyBytesUtil {
         return encoder.build();
 	}
 
-    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
+    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder,DataValueDescriptor dvd, boolean desc) throws StandardException{
+        return encodeInto(encoder, dvd, desc,false);
+    }
+
+    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc,boolean encodeUntypedEmpty) throws StandardException {
+        if(dvd.isNull()){
+            encodeTypedEmpty(encoder,dvd,desc,encodeUntypedEmpty);
+            return encoder;
+        }
         if(dvd.isLazy()){
             lazySerializer.encodeInto(dvd,encoder,desc);
             return encoder;
@@ -314,6 +322,33 @@ public class DerbyBytesUtil {
         if(descriptor==null) return false;
 
         return serializationMap.get(Format.formatFor(descriptor)).isScalarType();
+    }
+
+    public static void encodeTypedEmpty(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc,boolean encodeEmptyUntyped) {
+        if(isDoubleType(dvd))
+            fieldEncoder.setRawBytes(Encoding.encodedNullDouble());
+        else if(isFloatType(dvd))
+            fieldEncoder.setRawBytes(Encoding.encodedNullFloat());
+        else if (encodeEmptyUntyped)
+            fieldEncoder.encodeEmpty();
+    }
+
+    public static boolean isNextFieldNull(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd) {
+        if(isDoubleType(dvd))
+            return rowDecoder.nextIsNullDouble();
+        else if(isFloatType(dvd))
+            return rowDecoder.nextIsNullFloat();
+        else return rowDecoder.nextIsNull();
+    }
+
+    public static void skip(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd) {
+        dvd.setToNull();
+        if(isDoubleType(dvd))
+            rowDecoder.seek(9);
+        if(isFloatType(dvd))
+            rowDecoder.seek(5);
+        else
+            rowDecoder.skip();
     }
 
     private enum Format{

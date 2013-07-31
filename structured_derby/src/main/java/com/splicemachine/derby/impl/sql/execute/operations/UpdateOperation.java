@@ -195,8 +195,9 @@ public class UpdateOperation extends DMLWriteOperation{
                 fieldEncoder.reset();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
-                    if(dvd==null||dvd.isNull())
-                        fieldEncoder.encodeEmpty();
+                    //we know that derby never spits out a null field here--we hope.
+                    if(dvd.isNull())
+                        DerbyBytesUtil.encodeTypedEmpty(fieldEncoder,dvd,false,false);
                     else
                         DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
                 }

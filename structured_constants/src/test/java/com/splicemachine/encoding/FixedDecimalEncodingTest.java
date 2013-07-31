@@ -1,11 +1,15 @@
 package com.splicemachine.encoding;
 
+import com.google.common.base.Charsets;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
 
 /**
@@ -52,5 +56,61 @@ public class FixedDecimalEncodingTest {
         byte[] data = Encoding.encode(decimal);
 //        System.out.println(Arrays.toString(data));
 
+    }
+
+    @Test
+    public void testCanGetAllZerosDouble() throws Exception {
+        double a = 0;
+
+        System.out.println(pad(Double.doubleToLongBits(a)));
+        byte[] data = DecimalEncoding.toBytes(a,false);
+        System.out.println(Arrays.toString(data));
+
+        long l = Long.MAX_VALUE | Long.MIN_VALUE;
+        System.out.println(pad(l));
+        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l), false)));
+        System.out.println(Double.longBitsToDouble(l));
+        l ^=(l>>>11);
+        System.out.println(pad(l));
+        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Double.longBitsToDouble(l),false)));
+        System.out.println(Double.longBitsToDouble(l));
+
+        int i = Integer.MAX_VALUE | Integer.MIN_VALUE;
+        System.out.println(pad(i));
+        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Float.intBitsToFloat(i),false)));
+        System.out.println(Float.intBitsToFloat(i));
+        i ^= (i>>>9);
+        System.out.println(pad(i));
+        System.out.println(Arrays.toString(DecimalEncoding.toBytes(Float.intBitsToFloat(i),false)));
+        System.out.println(Float.intBitsToFloat(i));
+
+
+
+    }
+
+    @Test
+    public void testEncodeDecodeBytesAsZeros() throws Exception {
+        for(int i=Byte.MIN_VALUE;i<=Byte.MAX_VALUE;i++){
+            System.out.printf("%d,%s%n",i,Arrays.toString(Encoding.encode(i)));
+        }
+
+    }
+
+    private static String pad(int number){
+        String num = Integer.toBinaryString(number);
+        char[] zeros = new char[Integer.numberOfLeadingZeros(number)];
+        for(int i=0;i<zeros.length;i++){
+            zeros[i] = '0';
+        }
+        return new String(zeros)+num;
+    }
+
+    private static String pad(long number){
+        String num = Long.toBinaryString(number);
+        char[] zeros = new char[Long.numberOfLeadingZeros(number)];
+        for(int i=0;i<zeros.length;i++){
+            zeros[i] = '0';
+        }
+        return new String(zeros)+num;
     }
 }
