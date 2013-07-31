@@ -124,8 +124,6 @@ public class BlockImportTask extends AbstractImportTask{
             out.writeUTF(topologyPath);
         out.writeLong(location.getOffset());
         out.writeLong(location.getLength());
-        out.writeBoolean(location.isCorrupt());
-
         out.writeBoolean(isRemote);
     }
 
@@ -150,8 +148,6 @@ public class BlockImportTask extends AbstractImportTask{
         location.setTopologyPaths(topologyPaths);
         location.setOffset(in.readLong());
         location.setLength(in.readLong());
-        location.setCorrupt(in.readBoolean());
-
         isRemote = in.readBoolean();
     }
 
