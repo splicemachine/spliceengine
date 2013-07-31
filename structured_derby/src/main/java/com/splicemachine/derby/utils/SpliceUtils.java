@@ -264,32 +264,32 @@ public class SpliceUtils extends SpliceUtilities {
 		return null;
 	}
 
-	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
-			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("update row " + row);
-
-		try {
-			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
-			//May need to read more HTableInteface's checkAndPut
-			Get get = createGet(transID, loc.getBytes());
-
-			Result result = htable.get(get);
-			if (result.isEmpty()) {
-				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");
-				return false;
-			}
-
-            Put put = createPut(loc.getBytes(),transID);
-            RowMarshaller.columnar().encodeRow(row, bitSetToMap(validColumns), put, null);
-			//FIXME: checkAndPut can only do one column at a time, too expensive
-			htable.put(put);
-			return true;
-		} catch (IOException ie) {
-			LOG.error(ie.getMessage(), ie);
-		}
-		return false;
-	}
+//	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
+//			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("update row " + row);
+//
+//		try {
+//			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
+//			//May need to read more HTableInteface's checkAndPut
+//			Get get = createGet(transID, loc.getBytes());
+//
+//			Result result = htable.get(get);
+//			if (result.isEmpty()) {
+//				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");
+//				return false;
+//			}
+//
+//            Put put = createPut(loc.getBytes(),transID);
+//            RowMarshaller.sparsePacked().encodeRow(row, bitSetToMap(validColumns), put, null);
+//			//FIXME: checkAndPut can only do one column at a time, too expensive
+//			htable.put(put);
+//			return true;
+//		} catch (IOException ie) {
+//			LOG.error(ie.getMessage(), ie);
+//		}
+//		return false;
+//	}
 	
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)

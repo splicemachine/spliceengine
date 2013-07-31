@@ -130,7 +130,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
         return new UpdateRowEncoder(finalPkColumns,null,null,null,
                 KeyType.BARE,
-                RowMarshaller.columnar(),
+                RowMarshaller.sparsePacked(),
                 modifiedPks,finalHeapList,colPositionMap);
     }
 

@@ -237,7 +237,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
-                      RowMarshaller.mappedColumnar().decode(kv, rowArray, baseColumnMap, null);
+                      RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, null);
                   }
                   SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);

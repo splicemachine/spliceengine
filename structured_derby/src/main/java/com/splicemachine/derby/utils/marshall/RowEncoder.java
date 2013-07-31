@@ -135,7 +135,7 @@ public class RowEncoder {
 
     public static RowEncoder createDeleteEncoder(final String txnId,KeyMarshall keyMarshall){
 
-       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowMarshaller.columnar()){
+       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowMarshaller.sparsePacked()){
            @Override
            protected Put doPut(ExecRow row) throws StandardException {
                //construct the row key
