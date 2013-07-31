@@ -16,7 +16,7 @@ import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
 public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Hashable, Mutation, IHTable>
+        Scan, Lock, OperationStatus, Hashable extends Comparable, Mutation, IHTable, Scanner>
         implements IFilterState<KeyValue> {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
@@ -29,7 +29,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put,
-            Delete, Get, Scan, IHTable, Lock, OperationStatus> dataStore;
+            Delete, Get, Scan, IHTable, Lock, OperationStatus, Scanner> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;

@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -7,6 +8,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -33,4 +35,6 @@ public interface IHTable {
 
     Integer lockRow(byte[] rowKey) throws IOException;
     void unLockRow(Integer lock) throws IOException;
+    RegionScanner startRegionScanner(Scan scan) throws IOException;
+    void closeScanner();
 }

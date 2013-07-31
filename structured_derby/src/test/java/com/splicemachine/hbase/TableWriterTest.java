@@ -7,7 +7,6 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.junit.*;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -27,7 +26,7 @@ public class TableWriterTest extends SpliceConstants {
     private static final Logger LOG = Logger.getLogger(TableWriterTest.class);
 
     private static HBaseAdmin admin;
-    private String tableName = "TABLEWRITER_TEST";
+    private String tableName = SpliceConstants.TEST_TABLE;
     private int numWrites = 10000;
     private ExecutorService executor;
 

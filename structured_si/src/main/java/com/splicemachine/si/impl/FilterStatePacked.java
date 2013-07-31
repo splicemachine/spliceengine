@@ -7,7 +7,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 
 public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Hashable, Mutation, IHTable>
+        Scan, Lock, OperationStatus, Hashable extends Comparable, Mutation, IHTable, Scanner>
         implements IFilterState<KeyValue> {
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
@@ -16,7 +16,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
-            Hashable, Mutation, IHTable> simpleFilter;
+            Hashable, Mutation, IHTable, Scanner> simpleFilter;
     private final RowAccumulator<Data> accumulator;
     private Data qualifier = null;
     private Data family = null;
@@ -27,7 +27,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
-                                     OperationStatus, Hashable, Mutation, IHTable> simpleFilter,
+                                     OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
                              RowAccumulator<Data> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;

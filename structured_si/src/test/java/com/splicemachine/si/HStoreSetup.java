@@ -1,5 +1,6 @@
 package com.splicemachine.si;
 
+import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
@@ -9,18 +10,29 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
+import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.Hasher;
+import com.splicemachine.si.impl.STableReaderDelegate;
 import com.splicemachine.si.impl.SystemClock;
+import com.splicemachine.si.impl.Tracer;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class HStoreSetup implements StoreSetup {
@@ -36,6 +48,7 @@ public class HStoreSetup implements StoreSetup {
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
+    final Hasher hasher = new HHasher();
     Clock clock = new SystemClock();
 
     HBaseTestingUtility testCluster;
@@ -44,9 +57,18 @@ public class HStoreSetup implements StoreSetup {
         setupHBaseHarness(usePacked);
     }
 
+    public static Map<String, HRegion> regionMap = new HashMap<String, HRegion>();
+
     private TestHTableSource setupHTableSource(int basePort, boolean usePacked) {
         try {
             testCluster = new HBaseTestingUtility();
+            Tracer.registerRegion(new Function<Object[], Object>() {
+                @Override
+                public Object apply(@Nullable Object[] input) {
+                    regionMap.put((String) input[0], (HRegion) input[1]);
+                    return null;
+                }
+            });
             testCluster.getConfiguration().setStrings(CoprocessorHost.USER_REGION_COPROCESSOR_CONF_KEY,
                     usePacked ? SIObserver.class.getName() : SIObserverUnPacked.class.getName());
             setTestingUtilityPorts(testCluster, basePort);
@@ -70,29 +92,11 @@ public class HStoreSetup implements StoreSetup {
 
     private void setupHBaseHarness(boolean usePacked) {
         dataLib = new HDataLib();
-        final STableReader<IHTable, Result, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
-        reader = new STableReader<IHTable, Result, Get, Scan>() {
-            @Override
-            public IHTable open(String tableName) {
-                try {
-                    return rawReader.open(tableName);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
+        final STableReader<IHTable, Result, Get, Scan, KeyValue, RegionScanner, byte[]> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
+        reader = new STableReaderDelegate<IHTable, Result, Get, Scan, KeyValue, RegionScanner, byte[]>(rawReader) {
             @Override
             public void close(IHTable table) {
-            }
-
-            @Override
-            public Result get(IHTable table, Get get) throws IOException {
-                return rawReader.get(table, get);
-            }
-
-            @Override
-            public Iterator<Result> scan(IHTable table, Scan scan) throws IOException {
-                return rawReader.scan(table, scan);
+                // Ignore close calls
             }
         };
         writer = new HTableWriter();
@@ -111,6 +115,11 @@ public class HStoreSetup implements StoreSetup {
     @Override
     public STableWriter getWriter() {
         return writer;
+    }
+
+    @Override
+    public Hasher getHasher() {
+        return hasher;
     }
 
     @Override

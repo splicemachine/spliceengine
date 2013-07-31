@@ -18,12 +18,12 @@ import java.util.Map;
  * calls so the other classes can be expressed at a higher level. The intent is to capture mechanisms here rather than
  * policy.
  */
-public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, Table, OperationStatus> {
+public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, Table, OperationStatus, Scanner> {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
 
     // Plugins for creating gets/puts against the transaction table and for running the operations.
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final STableReader<Table, Result, Get, Scan> reader;
+    private final STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data> reader;
     private final STableWriter writer;
     private final TransactionSchema transactionSchema;
     private final EncodedTransactionSchema<Data> encodedSchema;

@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -7,7 +8,9 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
@@ -37,6 +40,19 @@ public class HbRegion implements IHTable {
     @Override
     public Iterator<Result> scan(Scan scan) throws IOException {
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public RegionScanner startRegionScanner(Scan scan) throws IOException {
+        RegionScanner scanner = region.getScanner(scan);
+        region.startRegionOperation();
+        MultiVersionConsistencyControl.setThreadReadPoint(scanner.getMvccReadPoint());
+        return scanner;
+    }
+
+    @Override
+    public void closeScanner() {
+        region.closeRegionOperation();
     }
 
     @Override

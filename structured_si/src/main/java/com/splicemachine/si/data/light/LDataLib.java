@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.light;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
 
 import java.util.ArrayList;
@@ -16,6 +17,17 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
             builder.append(a);
         }
         return builder.toString();
+    }
+
+    @Override
+    public Object increment(Object key) {
+        if (key instanceof String) {
+            String s = (String) key;
+            final byte[] bytes = BytesUtil.unsignedCopyAndIncrement(s.getBytes());
+            return new String(bytes);
+        } else {
+            throw new RuntimeException("local data library does not implement increment for key of type: " + key.getClass().getSimpleName());
+        }
     }
 
     private boolean nullSafeComparison(Object o1, Object o2) {

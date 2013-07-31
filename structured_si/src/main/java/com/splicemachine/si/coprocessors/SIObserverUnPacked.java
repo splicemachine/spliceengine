@@ -54,6 +54,7 @@ public class SIObserverUnPacked extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserverUnPacked.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
+        Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
         RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
