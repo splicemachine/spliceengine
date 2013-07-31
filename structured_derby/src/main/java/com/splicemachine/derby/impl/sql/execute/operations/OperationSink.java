@@ -97,6 +97,7 @@ public class OperationSink {
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
+        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             SpliceLogUtils.logAndThrow(LOG, Exceptions.parseException(e));
         }
         return stats.finish();
