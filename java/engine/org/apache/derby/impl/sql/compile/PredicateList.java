@@ -48,6 +48,8 @@ import org.apache.derby.iapi.util.JBitSet;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -481,46 +483,167 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 				columnNumber);
 		}
 	}
+	
+	public static boolean isQualifier(Predicate pred, Optimizable optTable, boolean pushPreds) throws StandardException {
+		/*
+		** Skip over it if it's not a relational operator (this includes
+		** BinaryComparisonOperators and IsNullNodes.
+		*/
+		if (!pred.isRelationalOpPredicate()) {
+            // possible OR clause, check for it.
+
+            if (!pred.isPushableOrClause(optTable)) {
+                /* NOT an OR or AND, so go on to next predicate.
+                 *
+                 * Note: if "pred" (or any predicates in the tree
+                 * beneath "pred") is an IN-list probe predicate
+                 * then we'll "revert" it to its original form
+                 * (i.e. to the source InListOperatorNode from
+                 * which it originated) as part of code generation.
+                 * See generateExpression() in BinaryOperatorNode.
+                 */
+                return false;
+            }
+        }
+        else {
+            if ( ! pred.getRelop().isQualifier(optTable, pushPreds)) {
+                // NOT a qualifier, go on to next predicate.
+            	return false;
+            }
+        }
+		return true;
+	}
+	
+	public static Integer isIndexUseful(Predicate pred,Optimizable optTable, boolean pushPreds, boolean skipProbePreds, int[] baseColumnPositions) throws StandardException {
+		ColumnReference indexCol = null;
+		int			indexPosition;
+		RelationalOperator relop = pred.getRelop();
+		
+		/* InListOperatorNodes, while not relational operators, may still
+		 * be useful.  There are two cases: a) we transformed the IN-list
+		 * into a probe predicate of the form "col = ?", which can then be
+		 * optimized/generated as a start/stop key and used for "multi-
+		 * probing" at execution; or b) we did *not* transform the IN-list,
+		 * in which case we'll generate _dynamic_ start and stop keys in
+		 * order to improve scan performance (beetle 3858).  In either case
+		 * the IN-list may still prove "useful".
+		 */
+		InListOperatorNode inNode = pred.getSourceInList();
+		boolean isIn = (inNode != null);
+
+		/* If it's not an "in" operator and either a) it's not a relational
+		 * operator or b) it's not a qualifier, then it's not useful for
+		 * limiting the scan, so skip it.
+		 */
+		if (!isIn && ((relop == null) || !relop.isQualifier(optTable, pushPreds))) {
+			return null;
+		}
+
+		/* Skip it if we're doing a hash join and it's a probe predicate.
+		 * Then, since the probe predicate is deemed not useful, it will
+		 * be implicitly "reverted" to its underlying IN-list as part of
+		 * code generation.
+		 */
+		if (skipProbePreds && pred.isInListProbePredicate())
+			return null;
+
+		/* Look for an index column on one side of the relop */
+		for (indexPosition = 0;
+			indexPosition < baseColumnPositions.length;
+			indexPosition++)
+		{
+			if (isIn)
+			{
+				if (inNode.getLeftOperand() instanceof ColumnReference)
+				{
+					indexCol = (ColumnReference) inNode.getLeftOperand();
+					if ((optTable.getTableNumber() != indexCol.getTableNumber()) ||
+							(indexCol.getColumnNumber() != baseColumnPositions[indexPosition]) ||
+							inNode.selfReference(indexCol))
+						indexCol = null;
+					else if (pred.isInListProbePredicate()
+							&& (indexPosition > 0))
+					{
+						/* If the predicate is an IN-list probe predicate
+						 * then we only consider it to be useful if the
+						 * referenced column is the *first* one in the
+						 * index (i.e. if (indexPosition == 0)).  Otherwise
+						 * the predicate would be treated as a qualifier
+						 * for store, which could lead to incorrect
+						 * results.
+						 */
+						indexCol = null;
+					}
+				}
+			}
+			else
+			{
+				indexCol =
+					relop.getColumnOperand(
+						optTable,
+						baseColumnPositions[indexPosition]);
+			}
+			if (indexCol != null)
+				break;
+		}
+			
+		/*
+		** Skip over it if there is no index column on one side of the
+		** operand.
+		*/
+		if (indexCol == null)
+		{
+			/* If we're pushing predicates then this is the last time
+			 * we'll get here before code generation.  So if we have
+			 * any IN-list probe predicates that are not useful, we'll
+			 * need to "revert" them back to their original IN-list
+			 * form so that they can be generated as regular IN-list
+			 * restrictions.  That "revert" operation happens in
+			 * the generateExpression() method of BinaryOperatorNode.
+			 */
+			return null;
+		}
+		return new Integer(indexPosition);
+		
+	}
+
 
 	private void orderUsefulPredicates(Optimizable optTable,
 										ConglomerateDescriptor cd,
 										boolean pushPreds,
 										boolean nonMatchingIndexScan,
 										boolean coveringIndexScan)
-						throws StandardException
-	{	
-
+						throws StandardException {	
+		boolean primaryKey = false;
 		int[] baseColumnPositions = null;
 		boolean[]	isAscending = null;
-
-			ConglomerateDescriptorList cdl = optTable.getTableDescriptor().getConglomerateDescriptorList();
+		boolean[]	deletes;
+		int			size = size();
+		Predicate[]	usefulPredicates = new Predicate[size];
+		int			usefulCount = 0;
+		Predicate	predicate;
+		if (!cd.isIndex() && !cd.isConstraint()) {
+		   ConglomerateDescriptorList cdl = optTable.getTableDescriptor().getConglomerateDescriptorList();
 		   for(int index=0;index< cdl.size();index++){
 	            ConglomerateDescriptor primaryKeyCheck = (ConglomerateDescriptor) cdl.get(index);
 	            IndexDescriptor indexDec = primaryKeyCheck.getIndexDescriptor();
 	            if(indexDec!=null){
 	                String indexType = indexDec.indexType();
 	                if(indexType!=null && indexType.contains("PRIMARY")) {
-	                	baseColumnPositions = cd.getIndexDescriptor().getIndexDescriptor().baseColumnPositions();
-	                	isAscending = cd.getIndexDescriptor().getIndexDescriptor().isAscending();
+	                	primaryKey = true;
+	                	baseColumnPositions = indexDec.baseColumnPositions();
+	                	isAscending = indexDec.isAscending();
 	                }
 	            }
 	        }
-
-		boolean[]	deletes;
-		int			size = size();
-		Predicate[]	usefulPredicates = new Predicate[size];
-		int			usefulCount = 0;
-		Predicate	predicate;
-
+		}
 
 		/*
 		** Clear all the scan flags for this predicate list, so that the
 		** flags that get set are only for the given conglomerate.
 		*/
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			predicate = (Predicate) elementAt(index);
-
 			predicate.clearScanFlags();
 		}
 
@@ -533,9 +656,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		*/
 
 		/* Is a heap scan or a non-matching index scan on a covering index? */
-		if ((cd == null) ||  (! cd.isIndex() && baseColumnPositions==null) || // Making sure there is not an index available, if there is I need to evaluate the keys
-			 (nonMatchingIndexScan && coveringIndexScan))
-		{
+		if ((cd == null) ||  (! cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan)) {
 			/*
 			** For the heap, the useful predicates are the relational
 			** operators that have a column from the table on one side,
@@ -553,81 +674,40 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 			*/
 			Predicate[] preds = new Predicate[size];
 
-			for (int index = 0; index < size; index++)
-			{
+			for (int index = 0; index < size; index++) {
 				Predicate	pred = (Predicate) elementAt(index);
-
-				/*
-				** Skip over it if it's not a relational operator (this includes
-				** BinaryComparisonOperators and IsNullNodes.
-				*/
-				if (!pred.isRelationalOpPredicate())
-                {
-                    // possible OR clause, check for it.
-
-                    if (!pred.isPushableOrClause(optTable))
-                    {
-                        /* NOT an OR or AND, so go on to next predicate.
-                         *
-                         * Note: if "pred" (or any predicates in the tree
-                         * beneath "pred") is an IN-list probe predicate
-                         * then we'll "revert" it to its original form
-                         * (i.e. to the source InListOperatorNode from
-                         * which it originated) as part of code generation.
-                         * See generateExpression() in BinaryOperatorNode.
-                         */
-                        continue;
-                    }
-                }
-                else
-                {
-                    if ( ! pred.getRelop().isQualifier(optTable, pushPreds))
-                    {
-                        // NOT a qualifier, go on to next predicate.
-                        continue;
-                    }
-                }
-
-				pred.markQualifier();
-
-				if (SanityManager.DEBUG)
-				{
-					if (pred.isInListProbePredicate())
-					{
-						SanityManager.THROWASSERT("Found an IN-list probe " +
-							"predicate (" + pred.binaryRelOpColRefsToString() +
-							") that was marked as a qualifier, which should " +
-							"not happen.");
+				if (isQualifier(pred,optTable,pushPreds)) {
+					pred.markQualifier();
+					if (SanityManager.DEBUG) {
+						if (pred.isInListProbePredicate()) {
+							SanityManager.THROWASSERT("Found an IN-list probe " +
+									"predicate (" + pred.binaryRelOpColRefsToString() +
+									") that was marked as a qualifier, which should " +
+									"not happen.");
+						}
 					}
-				}
-
-				if (pushPreds)
-				{
-					/* Push the predicate down.
-					 * (Just record for now.)
-					 */
-					if (optTable.pushOptPredicate(pred))
-					{
-						preds[index] = pred;
+					if (pushPreds) {
+						/* Push the predicate down.
+						 * (Just record for now.)
+						 */
+						if (optTable.pushOptPredicate(pred)) {
+							preds[index] = pred;
+						}
 					}
 				}
 			}
 
 			/* Now we actually push the predicates down */
-			for (int inner = size - 1; inner >= 0; inner--)
-			{
+			for (int inner = size - 1; inner >= 0; inner--) {
 				if (preds[inner] != null)
-				{
 					removeOptPredicate(preds[inner]);
-				}
 			}
-
 			return;
 		}
-
-		baseColumnPositions = baseColumnPositions == null?cd.getIndexDescriptor().baseColumnPositions():baseColumnPositions;
-		isAscending = isAscending == null?cd.getIndexDescriptor().isAscending():isAscending;
-
+		if (!primaryKey) {
+			baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+			isAscending = cd.getIndexDescriptor().isAscending();
+		}
 		/* If we have a "useful" IN list probe predicate we will generate a
 		 * start/stop key for optTable of the form "col = <val>", where <val>
 		 * is the first value in the IN-list.  Then during normal index multi-
@@ -654,111 +734,34 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		 * modifying access paths and thus we know for sure that we are going
 		 * to generate a hash join.
 		 */
-		boolean skipProbePreds = pushPreds &&
-			optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+		boolean skipProbePreds = pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
 
 		/*
 		** Create an array of useful predicates.  Also, count how many
 		** useful predicates there are.
 		*/
-		for (int index = 0; index < size; index++)
-		{
+		List predicates = new ArrayList();
+		for (int index = 0; index < size; index++) {
 			Predicate pred = (Predicate) elementAt(index);
-			ColumnReference indexCol = null;
-			int			indexPosition;
-			RelationalOperator relop = pred.getRelop();
-
-			/* InListOperatorNodes, while not relational operators, may still
-			 * be useful.  There are two cases: a) we transformed the IN-list
-			 * into a probe predicate of the form "col = ?", which can then be
-			 * optimized/generated as a start/stop key and used for "multi-
-			 * probing" at execution; or b) we did *not* transform the IN-list,
-			 * in which case we'll generate _dynamic_ start and stop keys in
-			 * order to improve scan performance (beetle 3858).  In either case
-			 * the IN-list may still prove "useful".
-			 */
-			InListOperatorNode inNode = pred.getSourceInList();
-			boolean isIn = (inNode != null);
-
-			/* If it's not an "in" operator and either a) it's not a relational
-			 * operator or b) it's not a qualifier, then it's not useful for
-			 * limiting the scan, so skip it.
-			 */
-			if (!isIn &&
-				((relop == null) || !relop.isQualifier(optTable, pushPreds)))
-			{
-				continue;
-			}
-
-			/* Skip it if we're doing a hash join and it's a probe predicate.
-			 * Then, since the probe predicate is deemed not useful, it will
-			 * be implicitly "reverted" to its underlying IN-list as part of
-			 * code generation.
-			 */
-			if (skipProbePreds && pred.isInListProbePredicate())
-				continue;
-
-			/* Look for an index column on one side of the relop */
-			for (indexPosition = 0;
-				indexPosition < baseColumnPositions.length;
-				indexPosition++)
-			{
-				if (isIn)
-				{
-					if (inNode.getLeftOperand() instanceof ColumnReference)
-					{
-						indexCol = (ColumnReference) inNode.getLeftOperand();
-						if ((optTable.getTableNumber() != indexCol.getTableNumber()) ||
-								(indexCol.getColumnNumber() != baseColumnPositions[indexPosition]) ||
-								inNode.selfReference(indexCol))
-							indexCol = null;
-						else if (pred.isInListProbePredicate()
-								&& (indexPosition > 0))
-						{
-							/* If the predicate is an IN-list probe predicate
-							 * then we only consider it to be useful if the
-							 * referenced column is the *first* one in the
-							 * index (i.e. if (indexPosition == 0)).  Otherwise
-							 * the predicate would be treated as a qualifier
-							 * for store, which could lead to incorrect
-							 * results.
-							 */
-							indexCol = null;
+			Integer position = isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
+					if (position != null) {
+						pred.setIndexPosition(position.intValue());
+						/* Remember the useful predicate */
+						usefulPredicates[usefulCount++] = pred;
+					} else {
+						if (primaryKey && isQualifier(pred,optTable,pushPreds)) {
+							pred.markQualifier();
+							if (pushPreds) {
+								if (optTable.pushOptPredicate(pred)) {
+									predicates.add(pred);
+								}
+							}
 						}
 					}
-				}
-				else
-				{
-					indexCol =
-						relop.getColumnOperand(
-							optTable,
-							baseColumnPositions[indexPosition]);
-				}
-				if (indexCol != null)
-					break;
-			}
-				
-			/*
-			** Skip over it if there is no index column on one side of the
-			** operand.
-			*/
-			if (indexCol == null)
-			{
-				/* If we're pushing predicates then this is the last time
-				 * we'll get here before code generation.  So if we have
-				 * any IN-list probe predicates that are not useful, we'll
-				 * need to "revert" them back to their original IN-list
-				 * form so that they can be generated as regular IN-list
-				 * restrictions.  That "revert" operation happens in
-				 * the generateExpression() method of BinaryOperatorNode.
-				 */
-				continue;
-			}
-
-			pred.setIndexPosition(indexPosition);
-
-			/* Remember the useful predicate */
-			usefulPredicates[usefulCount++] = pred;
+		}
+		Iterator iterator = predicates.iterator();
+		for (int k=0;k<predicates.size();k++) {
+			removeOptPredicate((Predicate) iterator.next());
 		}
 
 		/* We can end up with no useful
@@ -772,12 +775,9 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 			return;
 
 		/* The array of useful predicates may have unused slots.  Shrink it */
-		if (usefulPredicates.length > usefulCount)
-		{
+		if (usefulPredicates.length > usefulCount) {
 			Predicate[]	shrink = new Predicate[usefulCount];
-
 			System.arraycopy(usefulPredicates, 0, shrink, 0, usefulCount);
-
 			usefulPredicates = shrink;
 		}
 
@@ -806,8 +806,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		 */
 		boolean seenGE = false, seenGT = false;
 
-		for (int i = 0; i < usefulCount; i++)
-		{
+		for (int i = 0; i < usefulCount; i++) {
 			Predicate	        thisPred          = usefulPredicates[i];
 			int			        thisIndexPosition = thisPred.getIndexPosition();
 			boolean		        thisPredMarked    = false;
@@ -820,14 +819,12 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 				thisOperator = relop.getOperator();
 
 			/* Allow only one start and stop position per index column */
-			if (currentStartPosition != thisIndexPosition)
-			{
+			if (currentStartPosition != thisIndexPosition) {
 				/*
 				** We're working on a new index column for the start position.
 				** Is it just one more than the previous position?
 				*/
-				if ((thisIndexPosition - currentStartPosition) > 1)
-				{
+				if ((thisIndexPosition - currentStartPosition) > 1) {
 					/*
 					** There's a gap in the start positions.  Don't mark any
 					** more predicates as start predicates.
@@ -835,8 +832,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 					gapInStartPositions = true;
 				}
 				else if ((thisOperator == RelationalOperator.EQUALS_RELOP) ||
-						 (thisOperator == RelationalOperator.IS_NULL_RELOP))
-				{
+						 (thisOperator == RelationalOperator.IS_NULL_RELOP)) {
 					/* Remember the last "=" or IS NULL predicate in the start
 					 * position.  (The sort on the predicates above has ensured
 					 * that these predicates appear 1st within the predicates on
@@ -845,8 +841,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 					lastStartEqualsPosition = thisIndexPosition;
 				}
 
-				if ( ! gapInStartPositions)
-				{
+				if ( ! gapInStartPositions) {
 					/*
 					** There is no gap in start positions.  Is this predicate
 					** useful as a start position?  This depends on the
