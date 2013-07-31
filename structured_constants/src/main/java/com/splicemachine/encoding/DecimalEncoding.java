@@ -11,8 +11,8 @@ import java.nio.ByteBuffer;
  */
 final class DecimalEncoding {
 
-    static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0,0,0,0,0,0,0};
-    static final byte[] NULL_FLOAT_BYTES = new byte[]{0, 0, 0, 0};
+    static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0};
+    static final byte[] NULL_FLOAT_BYTES = new byte[]{0, 0};
 
     /**
      * Serialize a BigDecimal to a byte[] in such a way as to preserve

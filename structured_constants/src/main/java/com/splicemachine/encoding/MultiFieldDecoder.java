@@ -323,11 +323,37 @@ public class MultiFieldDecoder {
     public boolean nextIsNullDouble() {
         //look at the next 8 bytes and see if they equal the double entry
         byte[] nullDouble = Encoding.encodedNullDouble();
-        return Bytes.equals(nullDouble,0,nullDouble.length,data,currentOffset,8);
+        return Bytes.equals(nullDouble,0,nullDouble.length,data,currentOffset,nullDouble.length);
     }
 
     public boolean nextIsNullFloat(){
         byte[] nullFloat = Encoding.encodedNullFloat();
-        return Bytes.equals(nullFloat,0,nullFloat.length,data,currentOffset,4);
+        return Bytes.equals(nullFloat,0,nullFloat.length,data,currentOffset,nullFloat.length);
+    }
+
+    public void skipDouble() {
+        int offset = currentOffset;
+
+        byte[] nullDouble = Encoding.encodedNullDouble();
+        if(Bytes.equals(nullDouble,0,nullDouble.length,data,offset,nullDouble.length)){
+            //skip forward the length of nullDouble+1
+            currentOffset+=nullDouble.length+1;
+        }else{
+            //non-null, so it occupies 8 bytes
+            currentOffset+=9;
+        }
+    }
+
+    public void skipFloat(){
+        int offset = currentOffset;
+        byte[] nullFloat = Encoding.encodedNullFloat();
+        if(Bytes.equals(nullFloat,0,nullFloat.length,data,offset,nullFloat.length)){
+            //skip forward the length of nullFloat+1
+            currentOffset+=nullFloat.length+1;
+        }else{
+            //non-null, so it occupies 4 bytes
+            currentOffset+=5;
+        }
+
     }
 }

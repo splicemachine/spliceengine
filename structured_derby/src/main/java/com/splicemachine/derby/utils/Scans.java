@@ -314,8 +314,14 @@ public class Scans extends SpliceUtils {
             boolean isNullvalue = dvd==null||dvd.isNull();
             boolean isOrderedNulls = qualifier.getOrderedNulls();
             boolean isNullNumericalComparison = (isNullvalue && !isOrderedNulls);
-            //TODO -sf- this is not likely fully correct
-            return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId());
+            if(dvd==null)
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
+            else if(DerbyBytesUtil.isDoubleType(dvd))
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),true,false);
+            else if(DerbyBytesUtil.isFloatType(dvd))
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,true);
+            else
+                return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
         }else{
             byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
             return new ValuePredicate(getHBaseCompareOp(qualifier.getOperator(),qualifier.negateCompareResult()),

@@ -344,9 +344,9 @@ public class DerbyBytesUtil {
     public static void skip(MultiFieldDecoder rowDecoder, DataValueDescriptor dvd) {
         dvd.setToNull();
         if(isDoubleType(dvd))
-            rowDecoder.seek(9);
-        if(isFloatType(dvd))
-            rowDecoder.seek(5);
+            rowDecoder.skipDouble();
+        else if(isFloatType(dvd))
+            rowDecoder.skipFloat();
         else
             rowDecoder.skip();
     }

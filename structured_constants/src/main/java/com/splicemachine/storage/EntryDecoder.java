@@ -126,10 +126,9 @@ public class EntryDecoder {
             decoder.decodeNextLong(); //don't need the value, just need to seek past it
         }else if(bitIndex.isFloatType(position)){
             //floats are always 4 bytes, so skip the after delimiter
-            decoder.seek(decoder.offset() + 5);
+            decoder.skipFloat();
         }else if(bitIndex.isDoubleType(position)){
-            //doubles are always 8 bytes, so skip the after delimiter as well
-            decoder.seek(decoder.offset()+ 9);
+            decoder.skipDouble();
         }else
             decoder.skip();
     }

@@ -57,17 +57,25 @@ public class RowMarshaller {
         if(rowColumns!=null){
             for(int rowCol:rowColumns){
                 DataValueDescriptor dvd = row[rowCol];
-                if(dvd!=null&&!dvd.isNull())
+                if(dvd==null){
+                    if(encodeEmpty)
+                        encoder.encodeEmpty();
+                }else if(!dvd.isNull())
                     DerbyBytesUtil.encodeInto(encoder,dvd,false);
-                else if (encodeEmpty)
-                    encoder.encodeEmpty();
+                else if(encodeEmpty){
+                    DerbyBytesUtil.encodeTypedEmpty(encoder,dvd,false,true);
+                }
             }
         }else{
             for (DataValueDescriptor dvd : row) {
-                if (dvd != null && !dvd.isNull())
-                    DerbyBytesUtil.encodeInto(encoder, dvd, false);
-                else if (encodeEmpty)
-                    encoder.encodeEmpty();
+                if(dvd==null ){
+                   if(encodeEmpty)
+                       encoder.encodeEmpty();
+                }else if(!dvd.isNull())
+                    DerbyBytesUtil.encodeInto(encoder,dvd,false);
+                else if(encodeEmpty){
+                    DerbyBytesUtil.encodeTypedEmpty(encoder,dvd,false,true);
+                }
             }
         }
     }
@@ -160,9 +168,9 @@ public class RowMarshaller {
         if(reversedKeyColumns!=null){
             for(int keyCol:reversedKeyColumns){
                 DataValueDescriptor dvd = fields[keyCol];
-                if(rowDecoder.nextIsNull()){
+                if (DerbyBytesUtil.isNextFieldNull(rowDecoder,dvd)) {
                     dvd.setToNull();
-                    rowDecoder.skip();
+                    DerbyBytesUtil.skip(rowDecoder,dvd);
                 }else
                     DerbyBytesUtil.decodeInto(rowDecoder, dvd);
             }
@@ -170,9 +178,9 @@ public class RowMarshaller {
             for (DataValueDescriptor dvd : fields) {
                 if (dvd == null)
                     continue;
-                if (rowDecoder.nextIsNull()) {
+                if (DerbyBytesUtil.isNextFieldNull(rowDecoder,dvd)) {
                     dvd.setToNull();
-                    rowDecoder.skip();
+                    DerbyBytesUtil.skip(rowDecoder,dvd);
                 } else
                     DerbyBytesUtil.decodeInto(rowDecoder, dvd);
             }

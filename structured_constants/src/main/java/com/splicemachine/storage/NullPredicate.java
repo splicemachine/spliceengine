@@ -1,5 +1,7 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.encoding.Encoding;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -10,9 +12,11 @@ import java.util.BitSet;
  * Created on: 7/8/13
  */
 public class NullPredicate implements Predicate{
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 4l;
     private boolean filterIfMissing; //when true, equivalent to filterIfMissing null
     private boolean isNullNumericalComparision;
+    private boolean isDoubleColumn;
+    private boolean isFloatColumn;
     private int column;
 
     /**
@@ -21,10 +25,13 @@ public class NullPredicate implements Predicate{
     @Deprecated
     public NullPredicate() { }
 
-    public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,int column) {
+    public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,
+                         int column,boolean isDoubleColumn,boolean isFloatColumn) {
         this.filterIfMissing = filterIfMissing;
         this.isNullNumericalComparision = isNullNumericalComparison;
         this.column = column;
+        this.isFloatColumn = isFloatColumn;
+        this.isDoubleColumn = isDoubleColumn;
     }
 
     @Override
@@ -39,11 +46,21 @@ public class NullPredicate implements Predicate{
             return false; //a numerical comparison with null will never match any columns
         }
         if(filterIfMissing){
+            if(isDoubleColumn){
+                return data!=null && length==8;
+            }else if(isFloatColumn)
+                return data!=null && length==4;
+            else
             //make sure data is NOT null---data cannot be null, and length >0
-            return data!=null && length>0;
+                return data!=null && length>0;
         }else{
-            //make sure data is null--either data itself is null, or length==0
-            return data==null ||length==0;
+            if(isDoubleColumn){
+                return data!=null && length!=8;
+            }else if(isFloatColumn)
+                return data!=null && length!=4;
+            else
+                //make sure data is null--either data itself is null, or length==0
+                return data!=null && length==0;
         }
     }
 
@@ -62,6 +79,8 @@ public class NullPredicate implements Predicate{
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(filterIfMissing);
         out.writeBoolean(isNullNumericalComparision);
+        out.writeBoolean(isDoubleColumn);
+        out.writeBoolean(isFloatColumn);
         out.writeInt(column);
     }
 
@@ -69,6 +88,8 @@ public class NullPredicate implements Predicate{
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         filterIfMissing = in.readBoolean();
         isNullNumericalComparision = in.readBoolean();
+        isDoubleColumn = in.readBoolean();
+        isFloatColumn = in.readBoolean();
         column = in.readInt();
     }
 
