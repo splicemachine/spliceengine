@@ -48,8 +48,11 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-    	SpliceLogUtils.trace(LOG, "prePut %s",put);
-    	mutate(e.getEnvironment(), put);
+        SpliceLogUtils.trace(LOG, "prePut %s", put);
+        if (conglomId > 0) {
+            //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
+            mutate(e.getEnvironment(), put);
+        }
         super.prePut(e, put, edit, writeToWAL);
     }
 
