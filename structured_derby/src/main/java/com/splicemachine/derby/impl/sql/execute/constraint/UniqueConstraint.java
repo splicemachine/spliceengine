@@ -103,6 +103,22 @@ public class UniqueConstraint implements Constraint {
         return constraintContext;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UniqueConstraint)) return false;
+
+        UniqueConstraint that = (UniqueConstraint) o;
+
+        return constraintContext.equals(that.constraintContext);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return constraintContext.hashCode();
+    }
+
     public static Constraint create(ConstraintContext cc) {
         return new UniqueConstraint(cc);
     }

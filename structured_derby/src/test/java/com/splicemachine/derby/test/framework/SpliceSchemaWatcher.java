@@ -39,7 +39,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("Finished");
-		executeDrop(schemaName);
+//		executeDrop(schemaName);
 	}
 	
 	public static void executeDrop(String schemaName) {

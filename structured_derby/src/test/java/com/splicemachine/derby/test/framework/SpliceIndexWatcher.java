@@ -96,4 +96,7 @@ public class SpliceIndexWatcher extends TestWatcher {
 		}
 	}
 
+    public void drop() {
+        executeDrop(indexSchemaName,indexName);
+    }
 }

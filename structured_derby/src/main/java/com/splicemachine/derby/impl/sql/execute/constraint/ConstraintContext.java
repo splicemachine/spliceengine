@@ -63,4 +63,22 @@ public class ConstraintContext implements Externalizable {
             constraintName = objectInput.readUTF();
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ConstraintContext)) return false;
+
+        ConstraintContext that = (ConstraintContext) o;
+
+        return constraintName.equals(that.constraintName) && tableName.equals(that.tableName);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = tableName.hashCode();
+        result = 31 * result + constraintName.hashCode();
+        return result;
+    }
 }

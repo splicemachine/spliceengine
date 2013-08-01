@@ -45,7 +45,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     private final long congomId;
     private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
-    private final List<ConstraintFactory> constraintFactories = new CopyOnWriteArrayList<ConstraintFactory>();
+    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
 
     private final ReentrantLock initializationLock = new ReentrantLock();
     /*
@@ -363,6 +363,23 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public WriteHandler create(){
             return new ConstraintHandler(localConstraint);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ConstraintFactory)) return false;
+
+            ConstraintFactory that = (ConstraintFactory) o;
+
+            if (!localConstraint.equals(that.localConstraint)) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return localConstraint.hashCode();
         }
     }
 
