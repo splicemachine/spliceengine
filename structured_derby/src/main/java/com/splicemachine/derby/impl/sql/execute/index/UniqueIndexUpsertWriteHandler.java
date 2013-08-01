@@ -18,7 +18,7 @@ public class UniqueIndexUpsertWriteHandler extends IndexUpsertWriteHandler{
 
     @Override
     protected SparseEntryAccumulator getKeyAccumulator() {
-        return new SparseEntryAccumulator(null,indexedColumns,false);
+        return new SparseEntryAccumulator(null,translatedIndexColumns,false);
     }
 
     @Override

@@ -59,6 +59,10 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     protected final BitSet indexedColumns;
 
     /*
+     * The columns in the index table (e.g. mainColToIndexPosMap[indexedColumns.get()])
+     */
+    protected final BitSet translatedIndexColumns;
+    /*
      * Mapping between the position in the main column's data stream, and the position in the index
      * key. The length of this is the same as the number of columns in the main table, and if the
      * fields isn't in the index, then the value of this map should be -1.
@@ -69,6 +73,11 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         this.indexedColumns = indexedColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;
+
+        this.translatedIndexColumns = new BitSet(indexedColumns.cardinality());
+        for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+            translatedIndexColumns.set(mainColToIndexPosMap[i]);
+        }
     }
 
     @Override

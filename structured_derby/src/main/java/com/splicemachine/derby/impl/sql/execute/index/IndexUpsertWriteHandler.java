@@ -43,8 +43,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes) {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes);
 
-        nonUniqueIndexedColumns = (BitSet)indexedColumns.clone();
-        nonUniqueIndexedColumns.set(indexedColumns.length());
+        nonUniqueIndexedColumns = (BitSet)translatedIndexColumns.clone();
+        nonUniqueIndexedColumns.set(translatedIndexColumns.length());
     }
 
     @Override
@@ -95,7 +95,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             }
 
             //add the row to the end of the index rob
-            newRowAccumulator.add(indexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
+            newRowAccumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexRowKey = getIndexRowKey(newKeyAccumulator);
             Put indexPut = Mutations.translateToPut(mutation,indexRowKey);
             indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
@@ -118,7 +118,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
         byte[] postfix = SpliceUtils.getUniqueKey();
-        accumulator.add(indexedColumns.length(), ByteBuffer.wrap(postfix));
+        accumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(postfix));
         return accumulator.finish();
     }
 
@@ -186,7 +186,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
             BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
             MultiFieldDecoder oldDecoder = oldDataDecoder.getEntryDecoder();
-            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns);
+            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(null,translatedIndexColumns);
 
             //fill in all the index fields that have changed
             for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
@@ -239,7 +239,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             //insert the new
             byte[] newIndexRowKey = getIndexRowKey(newKeyAccumulator);
             Put newPut = Mutations.translateToPut(mutation,newIndexRowKey);
-            newRowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
+            newRowAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
             indexToMainMutationMap.put(mutation,newPut);
             indexBuffer.add(newPut);

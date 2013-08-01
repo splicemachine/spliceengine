@@ -14,6 +14,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
+import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -36,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -55,6 +57,7 @@ public class CreateIndexTask extends ZkTask {
     private MultiFieldEncoder translateEncoder;
 
     private HRegion region;
+    private RegionCoprocessorEnvironment rce;
 
     public CreateIndexTask() { }
 
@@ -77,6 +80,7 @@ public class CreateIndexTask extends ZkTask {
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
+        this.rce = rce;
         super.prepareTask(rce, zooKeeper);
     }
 
@@ -135,43 +139,24 @@ public class CreateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            byte[] indexBytes = Long.toString(indexConglomId).getBytes();
-            CallBuffer<Mutation> writeBuffer =
-                    SpliceDriver.driver().getTableWriter().writeBuffer(indexBytes, new TableWriter.FlushWatcher() {
-                        @Override
-                        public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
-                            return mutations;
-                        }
-
-                        @Override
-                        public Response globalError(Throwable t) throws Exception {
-                            if(t instanceof NotServingRegionException) return Response.RETRY;
-                            else if(t instanceof WrongRegionException) return Response.RETRY;
-                            else
-                                return Response.THROW_ERROR;
-                        }
-
-                        @Override
-                        public Response partialFailure(MutationRequest request, MutationResponse response) throws Exception {
-                            for(MutationResult result : response.getFailedRows().values()){
-                                if(result.isRetryable())
-                                    return Response.RETRY;
-                            }
-                            return  Response.THROW_ERROR;
-                        }
-                    });
 
             List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
             boolean shouldContinue = true;
+            WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(indexConglomId, rce);
             while(shouldContinue){
                 nextRow.clear();
                 shouldContinue  = sourceScanner.next(nextRow);
-                List<Put> indexPuts = translateResult(nextRow);
-
-                writeBuffer.addAll(indexPuts);
+                List<Put> puts = translateResult(nextRow);
+                for(Put put:puts){
+                    indexOnlyWriteHandler.sendUpstream(put);
+                }
             }
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
+            Map<Mutation,MutationResult> finish = indexOnlyWriteHandler.finish();
+            for(MutationResult result:finish.values()){
+                if(result.getCode()== MutationResult.Code.FAILED){
+                    throw new IOException(result.getErrorMsg());
+                }
+            }
 
         } catch (IOException e) {
             throw new ExecutionException(e);
@@ -181,62 +166,29 @@ public class CreateIndexTask extends ZkTask {
     }
 
     private List<Put> translateResult(List<KeyValue> result) throws IOException{
-        EntryAccumulator keyAccumulator;
-        if(isUnique)
-            keyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
-        else
-            keyAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,false);
-
-        EntryAccumulator rowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,true);
-
-
-        EntryDecoder decoder = new EntryDecoder();
         //we know that there is only one KeyValue for each row
         List<Put> indexPuts = Lists.newArrayListWithExpectedSize(result.size());
+        Put currentPut;
         for(KeyValue kv:result){
             if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,kv.getFamily()))
                 continue; //ignore SI keyValues
-            keyAccumulator.reset();
-            rowAccumulator.reset();
 
-            decoder.set(kv.getValue());
+            currentPut = SpliceUtils.createPut(kv.getRow(),transactionId);
+            currentPut.add(kv);
 
-            BitIndex mainTableIndex = decoder.getCurrentIndex();
-
-            MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
-            for(int mainTableCol=mainTableIndex.nextSetBit(0);
-                mainTableCol>=0&&mainTableCol<=indexedColumns.length();
-                mainTableCol=mainTableIndex.nextSetBit(mainTableCol+1)){
-
-                if(indexedColumns.get(mainTableCol)){
-                    ByteBuffer buffer = decoder.nextAsBuffer(fieldDecoder,mainTableCol);
-                    accumulate(keyAccumulator,mainTableIndex,buffer,mainTableCol);
-                    accumulate(rowAccumulator,mainTableIndex,buffer,mainTableCol);
-                }
-            }
-
-            if(!isUnique){
-                keyAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(SpliceUtils.getUniqueKey()));
-            }
-            byte[] finalIndexRow = keyAccumulator.finish();
-            Put put = SpliceUtils.createPut(finalIndexRow,transactionId);
-
-            rowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(kv.getRow())));
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,rowAccumulator.finish());
-
-            indexPuts.add(put);
+            indexPuts.add(currentPut);
         }
         return indexPuts;
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
         if(updateIndex.isScalarType(newPos))
-            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addScalar(newPos, newBuffer);
         else if(updateIndex.isFloatType(newPos))
-            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addFloat(newPos,newBuffer);
         else if(updateIndex.isDoubleType(newPos))
-            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addDouble(newPos,newBuffer);
         else
-            newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.add(newPos,newBuffer);
     }
 }
