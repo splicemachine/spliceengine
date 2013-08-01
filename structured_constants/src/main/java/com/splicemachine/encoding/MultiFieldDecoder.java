@@ -291,6 +291,7 @@ public class MultiFieldDecoder {
         int offset = currentOffset>=0?currentOffset:0;
         int fieldsSkipped = 0;
         while(fieldsSkipped<numFields&&currentOffset<data.length){
+            //TODO -sf- need to slice the number of fields knowing the type of the data
             adjustOffset(-1);
             fieldsSkipped++;
         }

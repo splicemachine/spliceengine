@@ -281,7 +281,7 @@ public class RegionAwareScanner implements Closeable {
                     //the key starts entirely in this region, so we don't need
                     //to worry about lookbehinds or skipping ahead
                     localStart = regionStart;
-                    lookBehindExhausted=false;
+                    lookBehindExhausted=true;
                 }else if(boundary.shouldLookBehind(startKey)){
                     localStart = regionStart;
                     remoteStart = startKey;
