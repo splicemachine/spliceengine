@@ -210,7 +210,58 @@ public class MultiFieldEncoderTest {
             public void check(MultiFieldDecoder decoder, Object correct,boolean descending) {
                 Assert.assertArrayEquals("Incorrect sorted byte[] encode/decode",(byte[])correct,decoder.decodeNextBytes(descending));
             }
-        };
+        },
+        NULL{
+            @Override
+            public Object generateRandom(Random random) {
+                return null;
+            }
+
+            @Override
+            public void load(MultiFieldEncoder encoder, Object correct, boolean descending) {
+                encoder.encodeEmpty();
+            }
+
+            @Override
+            public void check(MultiFieldDecoder decoder, Object correct, boolean descending) {
+                Assert.assertTrue("Value is not null!",decoder.nextIsNull());
+                decoder.skip();
+            }
+        },
+        NULL_FLOAT{
+            @Override
+            public Object generateRandom(Random random) {
+                return null;
+            }
+
+            @Override
+            public void load(MultiFieldEncoder encoder, Object correct, boolean descending) {
+                encoder.encodeEmptyFloat();
+            }
+
+            @Override
+            public void check(MultiFieldDecoder decoder, Object correct, boolean descending) {
+                Assert.assertTrue("Value is not null!",decoder.nextIsNullFloat());
+                decoder.skipFloat();
+            }
+        },
+        NULL_DOUBLE{
+            @Override
+            public Object generateRandom(Random random) {
+                return null;
+            }
+
+            @Override
+            public void load(MultiFieldEncoder encoder, Object correct, boolean descending) {
+                encoder.encodeEmptyDouble();
+            }
+
+            @Override
+            public void check(MultiFieldDecoder decoder, Object correct, boolean descending) {
+                Assert.assertTrue("Value is not null!",decoder.nextIsNullDouble());
+                decoder.skipDouble();
+            }
+        }
     }
 
     @Parameterized.Parameters
@@ -260,18 +311,21 @@ public class MultiFieldEncoderTest {
                 }
             }
         }
-        for(Type type:Type.values()){
-            for(Type secondType:Type.values()){
-                for(Type thirdType:Type.values()){
-                    for(Type fourthType:Type.values()){
-                    data.add(new Object[]{Arrays.asList(Pair.newPair(type,type.generateRandom(random)),
-                            Pair.newPair(secondType,secondType.generateRandom(random)),
-                            Pair.newPair(thirdType,thirdType.generateRandom(random)),
-                        Pair.newPair(fourthType,fourthType.generateRandom(random)))});
-                    }
-                }
-            }
-        }
+
+        //you can't test for combinations of 4 fields with the default Java Heap Size--there are too many permutations
+        //if you want to test it, up your heap size, and uncomment the following section.
+//        for(Type type:Type.values()){
+//            for(Type secondType:Type.values()){
+//                for(Type thirdType:Type.values()){
+//                    for(Type fourthType:Type.values()){
+//                    data.add(new Object[]{Arrays.asList(Pair.newPair(type,type.generateRandom(random)),
+//                            Pair.newPair(secondType,secondType.generateRandom(random)),
+//                            Pair.newPair(thirdType,thirdType.generateRandom(random)),
+//                        Pair.newPair(fourthType,fourthType.generateRandom(random)))});
+//                    }
+//                }
+//            }
+//        }
 
         return data;
     }
@@ -288,6 +342,7 @@ public class MultiFieldEncoderTest {
         for(Pair<Type,Object> type:types){
             Type t = type.getFirst();
             Object c = type.getSecond();
+            System.out.printf("%s%s,%n",t,c);
             t.load(encoder,c,false);
         }
 

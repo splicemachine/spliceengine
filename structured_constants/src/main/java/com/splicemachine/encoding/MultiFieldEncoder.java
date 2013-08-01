@@ -280,22 +280,17 @@ public class MultiFieldEncoder {
         return this;
     }
 
-    public MultiFieldEncoder setRawBuffer(ByteBuffer buffer){
-        assert currentPos < numFields;
-        byte[] bytes;
-        if(buffer==null)
-            bytes= null;
-        else{
-            bytes = new byte[buffer.remaining()];
-            buffer.get(bytes);
-        }
-        return setRawBytes(bytes);
-    }
-
     public MultiFieldEncoder encodeEmpty() {
         fields[currentPos] = null;
         currentPos++;
         return this;
     }
 
+    public MultiFieldEncoder encodeEmptyFloat() {
+        return setRawBytes(Encoding.encodedNullFloat());
+    }
+
+    public MultiFieldEncoder encodeEmptyDouble(){
+        return setRawBytes(Encoding.encodedNullDouble());
+    }
 }

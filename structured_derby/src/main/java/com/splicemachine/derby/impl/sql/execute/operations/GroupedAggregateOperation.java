@@ -15,7 +15,9 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -30,6 +32,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
@@ -124,9 +127,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         groupByColumns = new ArrayList<Integer>();
         descAscInfo = new ArrayList<Boolean>();
         groupByDescAscInfo = new ArrayList<Boolean>();
+        final int[] keyCols = new int[order.length];
         for (int index = 0; index < order.length; index++) {
             keyColumns.add(order[index].getColumnId());
             descAscInfo.add(order[index].getIsAscending());
+            keyCols[index] = order[index].getColumnId();
         }
         
         for(SpliceGenericAggregator agg: aggregates){
@@ -164,6 +169,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     sinkEncoder.getEncodedBytes(0),
                     KeyType.FIXED_PREFIX,
                     RowMarshaller.packedCompressed());
+
+            //build a ScanBoundary based off the type of the entries
+            final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
+            ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
+                @Override
+                public byte[] getStartKey(Result result) {
+                    MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    fieldDecoder.seek(9); //skip the prefix value
+
+                    return DerbyBytesUtil.slice(fieldDecoder,keyCols,cols);
+                }
+
+                @Override
+                public byte[] getStopKey(Result result) {
+                    byte[] start = getStartKey(result);
+                    BytesUtil.unsignedIncrement(start,start.length-1);
+                    return start;
+                }
+            };
             rowProvider = new SimpleRegionAwareRowProvider(
                     "groupedAggregateRowProvider",
                     SpliceUtils.NA_TRANSACTION_ID,
@@ -171,7 +195,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     context.getScan(),
                     SpliceConstants.TEMP_TABLE_BYTES,
                     SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    scanEncoder.getDual(sourceExecIndexRow),groupByColumns.size()); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
+                    scanEncoder.getDual(sourceExecIndexRow),
+                    boundary); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
             rowProvider.open();
             isTemp = !context.isSink() || context.getTopOperation()!=this;
         }

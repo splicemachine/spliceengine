@@ -11,7 +11,7 @@ import org.junit.runner.Description;
 
 public class SpliceTableWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceTableWatcher.class);
-	protected String tableName;
+	public String tableName;
 	protected String schemaName;
 	protected String createString;
 	public SpliceTableWatcher(String tableName,String schemaName, String createString) {

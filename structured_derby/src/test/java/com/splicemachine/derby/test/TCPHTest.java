@@ -232,11 +232,13 @@ public class TCPHTest extends SpliceUnitTest {
 	}
 	
 	protected static String getResource(String name) {
-		return "/Users/scottfines/workspace/qatest/performance/tpch/dbgen/data/"+name;
+//		return "/Users/scottfines/workspace/qatest/performance/tpch/dbgen/data/"+name;
+        return getResourceDirectory()+"/tpch/data/"+name;
 	}
 
 	protected static String getSQLFile(String name) {
-        return "/Users/scottfines/workspace/qatest/performance/tpch/queries/"+name;
+//        return "/Users/scottfines/workspace/qatest/performance/tpch/queries/"+name;
+        return getResourceDirectory()+"/tpch/queries/"+name;
 	}
 
 	

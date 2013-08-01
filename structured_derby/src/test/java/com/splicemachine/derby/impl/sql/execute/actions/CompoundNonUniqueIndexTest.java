@@ -41,7 +41,8 @@ public class CompoundNonUniqueIndexTest {
     public void testCanInsertIntoTwoIndexColumns() throws Exception {
         int size = 10;
         //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoIndexedColumnsWatcher.toString(), spliceSchemaWatcher.schemaName, "A_IDX_1", spliceSchemaWatcher.schemaName, "(a,b)");
+        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoIndexedColumnsWatcher.tableName, spliceSchemaWatcher.schemaName, "A_IDX_1", spliceSchemaWatcher.schemaName, "(a,b)");
+        a_idx_1.starting(null);
         try{
             PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoIndexedColumnsWatcher+" (a,b,c,d) values (?,?,?,?)");
             for(int i=0;i<size;i++){
@@ -69,8 +70,8 @@ public class CompoundNonUniqueIndexTest {
             }
 
             //validate that we don't return anything for bad qualifiers
-            for(int i=0;i<size;i++){
-                ps.setInt(1,2*i);
+            for(int i=1;i<size;i++){
+                ps.setInt(1,size*i);
                 ResultSet rs = ps.executeQuery();
                 try{
                     Assert.assertFalse("Rows returned for query a="+(2*i),rs.next());
@@ -97,7 +98,7 @@ public class CompoundNonUniqueIndexTest {
             }
 
             //validate that an incorrect qualifier will return no results for two columns
-            for(int i=0;i<size;i++){
+            for(int i=1;i<size;i++){
                 //a is good, b is bad
                 ps.setInt(1,i);
                 ps.setFloat(2,3*i);
@@ -109,7 +110,7 @@ public class CompoundNonUniqueIndexTest {
                 }
 
                 //a is bad, b is good
-                ps.setInt(2*i,i);
+                ps.setInt(1,2*i);
                 ps.setFloat(2,2*i);
                 rs = ps.executeQuery();
                 try{
@@ -119,11 +120,11 @@ public class CompoundNonUniqueIndexTest {
                 }
 
                 //both a and b are bad
-                ps.setInt(2*i,i);
+                ps.setInt(1,size*i);
                 ps.setFloat(2,3*i);
                 rs = ps.executeQuery();
                 try{
-                    Assert.assertFalse("Rows returned for query a="+(2*i) +" and b="+(3*i),rs.next());
+                    Assert.assertFalse("Rows returned for query a="+(size*i) +" and b="+(3*i),rs.next());
                 }finally{
                     rs.close();
                 }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
@@ -20,11 +21,17 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     private final byte[] table;
 
 
-    public SimpleRegionAwareRowProvider(String type,String txnId,HRegion region,Scan scan,byte[] tableName,byte[] columnFamily, RowDecoder decoder, int slice){
+    public SimpleRegionAwareRowProvider(String type,
+                                        String txnId,
+                                        HRegion region,
+                                        Scan scan,
+                                        byte[] tableName,
+                                        byte[] columnFamily,
+                                        RowDecoder decoder,
+                                        ScanBoundary boundary){
         super(decoder, type);
         this.table = tableName;
-        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName,
-                new SingleTypeHashAwareScanBoundary2(columnFamily,decoder,slice));
+        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName, boundary);
     }
 
     @Override

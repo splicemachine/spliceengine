@@ -184,7 +184,7 @@ public class DerbyBytesUtil {
                             l = dvd.getTimestamp(null).getTime();
                             longSet=true;
                         }
-                    case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+
                     case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
                     case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
                     case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
@@ -204,6 +204,10 @@ public class DerbyBytesUtil {
                     case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
                         float f = dvd.getFloat()+Float.MIN_VALUE;
                         encoder = encoder.encodeNext(f,desc);
+                        break;
+                    case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+                        double d = dvd.getDouble()+Double.MIN_VALUE;
+                        encoder.encodeNext(d,desc);
                         break;
                     case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
                     case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
@@ -299,7 +303,10 @@ public class DerbyBytesUtil {
             case ScanController.GE:
                 return generateIndexKey(startKeyValue,sortOrder);
             case ScanController.GT:
-                return generateIncrementedScanKey(startKeyValue,sortOrder);
+                byte[] indexKey = generateIndexKey(startKeyValue,sortOrder);
+                BytesUtil.unsignedIncrement(indexKey,indexKey.length-1);
+                return indexKey;
+//                return generateIncrementedScanKey(startKeyValue,sortOrder);
             default:
                 throw new RuntimeException("Error with Key Generation");
 		}
@@ -460,6 +467,24 @@ public class DerbyBytesUtil {
         }
         return nonNullRows;
     }
+
+    public static byte[] slice(MultiFieldDecoder fieldDecoder, int[] keyColumns, DataValueDescriptor[] rowArray) {
+        int size=0;
+        int offset = fieldDecoder.offset();
+        for(int keyColumn:keyColumns){
+            DataValueDescriptor dvd = rowArray[keyColumn];
+            if(DerbyBytesUtil.isFloatType(dvd))
+                size+=fieldDecoder.skipFloat();
+            else if(DerbyBytesUtil.isDoubleType(dvd))
+                size+=fieldDecoder.skipDouble();
+            else
+                size+=fieldDecoder.skip();
+        }
+        //return to the original position
+        fieldDecoder.seek(offset);
+        return fieldDecoder.slice(size);
+    }
+
 
     private interface Serializer{
         byte[] encode(DataValueDescriptor dvd) throws StandardException;

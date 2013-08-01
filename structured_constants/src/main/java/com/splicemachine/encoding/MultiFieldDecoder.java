@@ -272,32 +272,22 @@ public class MultiFieldDecoder {
         return next;
     }
 
-    public void skip() {
+    public int skip() {
+        int offset = currentOffset;
         //read out raw bytes, and throw them away
         if(currentOffset>=data.length||(currentOffset>=0&&data[currentOffset]==0x00)){
             currentOffset++;
-            return;
+            return currentOffset-offset;
         }
         adjustOffset(-1);
+        return currentOffset-offset;
     }
 
-    /**
-     * Gets a slice of the byte[] that encompases the next {@code numFields} fields.
-     *
-     * @param numFields
-     * @return
-     */
-    public byte[] slice(int numFields) {
+    public byte[] slice(int size) {
         int offset = currentOffset>=0?currentOffset:0;
-        int fieldsSkipped = 0;
-        while(fieldsSkipped<numFields&&currentOffset<data.length){
-            //TODO -sf- need to slice the number of fields knowing the type of the data
-            adjustOffset(-1);
-            fieldsSkipped++;
-        }
-        int length = currentOffset-offset-1;
-        byte[] retData = new byte[length];
-        System.arraycopy(data,offset,retData,0,length);
+        currentOffset+=size;
+        byte[] retData = new byte[size];
+        System.arraycopy(data,offset,retData,0,size);
         return retData;
     }
 
@@ -322,17 +312,20 @@ public class MultiFieldDecoder {
     }
 
     public boolean nextIsNullDouble() {
+        if(currentOffset>=data.length) return true;
         //look at the next 8 bytes and see if they equal the double entry
         byte[] nullDouble = Encoding.encodedNullDouble();
         return Bytes.equals(nullDouble,0,nullDouble.length,data,currentOffset,nullDouble.length);
     }
 
     public boolean nextIsNullFloat(){
+        if(currentOffset>=data.length) return true;
         byte[] nullFloat = Encoding.encodedNullFloat();
         return Bytes.equals(nullFloat,0,nullFloat.length,data,currentOffset,nullFloat.length);
     }
 
-    public void skipDouble() {
+    public int skipDouble() {
+        if(currentOffset>=data.length) return 0;
         int offset = currentOffset;
 
         byte[] nullDouble = Encoding.encodedNullDouble();
@@ -343,9 +336,11 @@ public class MultiFieldDecoder {
             //non-null, so it occupies 8 bytes
             currentOffset+=9;
         }
+        return currentOffset-offset;
     }
 
-    public void skipFloat(){
+    public int skipFloat(){
+        if(currentOffset>=data.length) return 0;
         int offset = currentOffset;
         byte[] nullFloat = Encoding.encodedNullFloat();
         if(Bytes.equals(nullFloat,0,nullFloat.length,data,offset,nullFloat.length)){
@@ -355,6 +350,6 @@ public class MultiFieldDecoder {
             //non-null, so it occupies 4 bytes
             currentOffset+=5;
         }
-
+        return currentOffset-offset;
     }
 }
