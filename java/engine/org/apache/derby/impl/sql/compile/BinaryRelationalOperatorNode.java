@@ -26,6 +26,7 @@ import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.util.JBitSet;
 
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 
@@ -331,6 +332,20 @@ public class BinaryRelationalOperatorNode
 					** We've found the correct column -
 					** return the other side
 					*/
+					//we like the right operand, but if it's a numeric type, gotta mess with it
+					if(rightOperand instanceof NumericConstantNode){
+						try{
+							if(!rightOperand.getTypeId().equals(leftOperand.getTypeId())){
+								DataValueDescriptor leftObject = leftOperand.getTypeServices().getNull();
+								leftObject.setValue(((NumericConstantNode)rightOperand).getValue());
+								((NumericConstantNode)rightOperand).setValue(leftObject);	
+								rightOperand.setNodeType(getCorrectNodeType(leftObject.getTypeFormatId(),rightOperand.getNodeType()));
+								rightOperand.setType(leftOperand.getTypeServices());
+							}
+						}catch(StandardException se){
+							throw new RuntimeException(se);	
+						}	
+					}
 					return rightOperand;
 				}
 			}
@@ -355,12 +370,44 @@ public class BinaryRelationalOperatorNode
 					** We've found the correct column -
 					** return the other side
 					*/
+					if(leftOperand instanceof NumericConstantNode){
+						try{
+							if(!rightOperand.getTypeId().equals(leftOperand.getTypeId())){
+								DataValueDescriptor rightObject = rightOperand.getTypeServices().getNull();
+								rightObject.setValue(((NumericConstantNode)leftOperand).getValue());
+								((NumericConstantNode)leftOperand).setValue(rightObject);	
+								leftOperand.setNodeType(getCorrectNodeType(rightObject.getTypeFormatId(),leftOperand.getNodeType()));
+								leftOperand.setType(rightOperand.getTypeServices());
+							}
+						}catch(StandardException se){
+								throw new RuntimeException(se);	
+							}	
+					}
 					return leftOperand;
 				}
 			}
 		}
 
 		return null;
+	}
+
+	private int getCorrectNodeType(int typeFormatId,int originalNodeType){
+		switch(typeFormatId){
+			case StoredFormatIds.SQL_TINYINT_ID:
+				return C_NodeTypes.TINYINT_CONSTANT_NODE;
+			case StoredFormatIds.SQL_SMALLINT_ID:
+				return C_NodeTypes.SMALLINT_CONSTANT_NODE;
+			case StoredFormatIds.SQL_INTEGER_ID:
+				return C_NodeTypes.INT_CONSTANT_NODE;
+			case StoredFormatIds.SQL_LONGINT_ID:
+				return C_NodeTypes.LONGINT_CONSTANT_NODE;
+			case StoredFormatIds.SQL_REAL_ID:
+				return C_NodeTypes.FLOAT_CONSTANT_NODE;
+			case StoredFormatIds.SQL_DOUBLE_ID:
+				return C_NodeTypes.DOUBLE_CONSTANT_NODE;
+			default:
+				return originalNodeType;
+		}
 	}
 
 	/**
