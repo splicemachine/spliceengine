@@ -31,7 +31,7 @@ public class DiffTest {
 
         List<DiffReport> reports = DiffEngine.diffOutput(files,
                 NistTestUtils.getResourceDirectory() + "/difftest/", NistTestUtils.readDerbyFilters(), NistTestUtils.readSpliceFilters());
-        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, System.out);
+        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, null); // System.out);
 
         int totalDiffs = 0;
         for (Map.Entry<String,Integer> entry : failedDiffs.entrySet()) {
@@ -54,7 +54,7 @@ public class DiffTest {
 
         DiffReport report = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
         PrintStream out = System.out;
-        report.print(out);
+//        report.print(out);
         Assert.assertTrue(report.hasDifferences());
     }
 
@@ -76,7 +76,7 @@ public class DiffTest {
         Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
         DiffReport report = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
-        report.print(System.out);
+//        report.print(System.out);
         Assert.assertTrue(report.hasDifferences());
     }
 

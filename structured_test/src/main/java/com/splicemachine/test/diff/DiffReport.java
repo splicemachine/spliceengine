@@ -64,6 +64,9 @@ public class DiffReport {
      * @param out the output location
      */
     public void print(PrintStream out) {
+        if (out == null) {
+            return;
+        }
         out.println("\n===========================================================================================");
         out.println(sqlFileName);
         if (! hasDifferences()) {
@@ -86,12 +89,16 @@ public class DiffReport {
     public static Map<String, Integer> reportCollection(Collection<DiffReport> reports, PrintStream ps) {
         Map<String, Integer> failedTestMap = new HashMap<String, Integer>();
         for (DiffReport report : reports) {
-            report.print(ps);
+            if (ps != null) {
+                report.print(ps);
+            }
             if (report.hasDifferences()) {
                 failedTestMap.put(report.sqlFileName,report.getNumberOfDiffs());
             }
         }
-        ps.println(reports.size()+" tests run. "+failedTestMap.size()+" failed output differencing.");
+        if (ps != null) {
+            ps.println(reports.size()+" tests run. "+failedTestMap.size()+" failed output differencing.");
+        }
         return failedTestMap;
     }
 

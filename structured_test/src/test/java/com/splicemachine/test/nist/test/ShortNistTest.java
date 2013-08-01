@@ -7,6 +7,7 @@ import com.splicemachine.test.nist.NistTestUtils;
 import com.splicemachine.test.nist.SpliceNistRunner;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -41,6 +42,7 @@ public class ShortNistTest {
     }
 
     @Test
+    @Ignore
     public void runTests() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);

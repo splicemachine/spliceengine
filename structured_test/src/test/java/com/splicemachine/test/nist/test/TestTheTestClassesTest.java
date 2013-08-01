@@ -94,7 +94,7 @@ public class TestTheTestClassesTest {
     public void testGetTestFiles() throws Exception {
         List<File> testFiles = NistTestUtils.getTestFileList();
         Assert.assertFalse("Got nuthin", testFiles.isEmpty());
-        System.out.println(printList(testFiles));
-        System.out.println(testFiles.size()+" files");
+//        System.out.println(printList(testFiles));
+//        System.out.println(testFiles.size()+" files");
     }
 }

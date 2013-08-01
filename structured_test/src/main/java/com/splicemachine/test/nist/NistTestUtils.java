@@ -168,7 +168,7 @@ public class NistTestUtils {
         System.out.println("    Running "+testFiles.size()+" tests...");
         long start = System.currentTimeMillis();
         derbyRunner.runDerby(testFiles);
-        String derbyDone = "    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        String derbyDone = "    Duration: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
         out.println(derbyDone);
         System.out.println(derbyDone);
 
@@ -180,7 +180,7 @@ public class NistTestUtils {
         System.out.println("    Running "+testFiles.size()+" tests...");
         start = System.currentTimeMillis();
         spliceRunner.runSplice(testFiles);
-        String spliceDone = "    Tests: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        String spliceDone = "    Duration: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
         out.println(spliceDone);
         System.out.println(spliceDone);
 
