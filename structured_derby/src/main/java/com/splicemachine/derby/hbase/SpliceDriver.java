@@ -25,6 +25,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -403,4 +404,16 @@ public class SpliceDriver extends SIConstants {
     public void loadUUIDGenerator() throws IOException {
         snowflake =  snowLoader.load();
     }
+    
+    public static void setOptimizerTrace(boolean onOrOff) {
+    	SpliceLogUtils.trace(LOG, "setOptimizerTrace %s", onOrOff);
+    	OptimizerTrace.setOptimizerTrace(onOrOff);
+    }
+
+    public static void writeOptimizerTraceOutput(String filename) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "writeOptimizerTraceOutput %s", filename);
+    	OptimizerTrace.writeOptimizerTraceOutputHtml(filename);
+    }
+
+    
 }
