@@ -41,43 +41,48 @@ public class NistTestUtils {
     // that are needed by other tests too.  Run these first.
     public static final String SCHEMA_LIST_FILE_NAME = "schema.list";
 
-    public static List<String> SCHEMA_FILES = new ArrayList<String>();
-	public static List<String> SKIP_TESTS = new ArrayList<String>();
-    public static List<String> NON_TEST_FILES_TO_FILTER = new ArrayList<String>();
+    /**
+     * Determine the order of, and the list of SQL scrips to run before
+     * the given script so that it can run.<br/>
+     *
+     * @param sqlFileName the single script to run
+     * @return the list of SQL script files to run in the order they should be run.
+     */
+    public static List<File> createRunList(String sqlFileName) {
+        List<String> runListNames = getSchemaFileNames();
+        runListNames.add(sqlFileName);
+
+        // turn them into files
+        List<File> runList = createFiles(runListNames);
+        return runList;
+    }
 
     /**
-     * Determine the order of and the list of SQL scrips to run using information
-     * from various files in the SQL script directory.
+     * Determine the order of, and the list of SQL scrips to run using information
+     * from various files in the SQL script directory.<br/>
      *
      * @return the list of SQL script files to run in the order they should be run.
      */
     public static List<File> getTestFileList() {
-        // load SKIP_TESTS
-        for (String baseName : fileToLines(getResourceDirectory() + NIST_DIR_SLASH +SKIP_TESTS_FILE_NAME, HASH_COMMENT)) {
-            SKIP_TESTS.add(baseName + SQL_FILE_EXT);
-        }
-        // load SCHEMA_FILES
-        for (String schemaFile : fileToLines(getResourceDirectory() + NIST_DIR_SLASH +SCHEMA_LIST_FILE_NAME, HASH_COMMENT)) {
-            SCHEMA_FILES.add(schemaFile);
-        }
-        // remove all SKIP_TESTS from SCHEMA_FILES
-        SCHEMA_FILES.removeAll(SKIP_TESTS);
+        List<String> schemaFileNames = getSchemaFileNames();
+
+        // create a list with schema files in front
+//        List<File> testFiles = new ArrayList<File>(FileUtils.listFiles(new File(getResourceDirectory(), NIST_DIR),
+//                // include schema files
+//                new SpliceIOFileFilter(schemaFileNames, null), null));
+        List<File> testFiles = createFiles(schemaFileNames);
 
         // collect all non test files so that they can be filtered
-        NON_TEST_FILES_TO_FILTER.addAll(NistTestUtils.SKIP_TESTS);
-        NON_TEST_FILES_TO_FILTER.add(SKIP_TESTS_FILE_NAME);
-        NON_TEST_FILES_TO_FILTER.add(SCHEMA_LIST_FILE_NAME);
-        NON_TEST_FILES_TO_FILTER.add(DERBY_FILTER);
-        NON_TEST_FILES_TO_FILTER.add(SPLICE_FILTER);
-        // Adding schema files to be filtered here too. They will be re-added later to front
-        // so that they run first.
-        NON_TEST_FILES_TO_FILTER.addAll(NistTestUtils.SCHEMA_FILES);
+        List<String> fileNamesToFilter = getExcludedFileNames();
+        // Adding schema files to be filtered here too. They will be in front of
+        // testFiles list so that they run first.
+        fileNamesToFilter.addAll(schemaFileNames);
 
         // this is the list of all test sql files, except schema creators
-        List<File> testFiles2 = new ArrayList<File>(FileUtils.listFiles(new File(NistTestUtils.getResourceDirectory(), NIST_DIR),
+        // and non test files
+        List<File> testFiles2 = new ArrayList<File>(FileUtils.listFiles(new File(getResourceDirectory(), NIST_DIR),
                 // exclude skipped and other non-test files
-                new NistTestUtils.SpliceIOFileFilter(null, NistTestUtils.NON_TEST_FILES_TO_FILTER),
-                null));
+                new SpliceIOFileFilter(null, fileNamesToFilter), null));
 
         // NIST sql files must be in sorted order
         Collections.sort(testFiles2, new Comparator<File>() {
@@ -85,27 +90,68 @@ public class NistTestUtils {
             public int compare(File file1, File file2) {
                 return file1.getName().compareTo(file2.getName());
             }
-        });
+       });
 
-        // Now create a new List with schema files in front
-        List<File> testFiles = new ArrayList<File>(FileUtils.listFiles(new File(NistTestUtils.getResourceDirectory(), NIST_DIR),
-                // include schema files
-                new NistTestUtils.SpliceIOFileFilter(NistTestUtils.SCHEMA_FILES, null),
-                null));
-
-        // NIST sql files must be in sorted order
-        Collections.sort(testFiles, new Comparator<File>() {
-            @Override
-            public int compare(File file1, File file2) {
-                return file1.getName().compareTo(file2.getName());
-            }
-        });
-
-        // finally, add rest of test files to end of list after schema files
+        // finally, append rest of test files to end of list after schema files
         testFiles.addAll(testFiles2);
 
         return testFiles;
+    }
 
+    /**
+     * Create files from nist test script names. Preserves order.
+     * @param fileNames names of files to create.
+     * @return a list of files in given file name order.
+     */
+    public static List<File> createFiles(List<String> fileNames) {
+        List<File> runList = new ArrayList<File>(fileNames.size());
+        for (String fileName : fileNames) {
+            runList.add(new File(getResourceDirectory()+NIST_DIR_SLASH+fileName));
+        }
+        return runList;
+    }
+
+    /**
+     * Get the list of nist file name scripts that create schema
+     * @return the schema creators
+     */
+    public static List<String> getSchemaFileNames() {
+        List<String> schemaFileNames = new ArrayList<String>();
+        // load all schema creation scripts
+        for (String schemaFile : fileToLines(getResourceDirectory() + NIST_DIR_SLASH +SCHEMA_LIST_FILE_NAME, HASH_COMMENT)) {
+            schemaFileNames.add(schemaFile);
+        }
+        // remove all skipped test scripts from schema creators
+        schemaFileNames.removeAll(getSkipTestFileNames());
+        return schemaFileNames;
+    }
+
+    /**
+     * Get the list of nist script files to skip
+     * @return the test scripts to skip
+     */
+    public static List<String> getSkipTestFileNames() {
+        List<String> skipTestFileNames = new ArrayList<String>();
+        // load skip test file names from file
+        for (String baseName : fileToLines(getResourceDirectory() + NIST_DIR_SLASH +SKIP_TESTS_FILE_NAME, HASH_COMMENT)) {
+            skipTestFileNames.add(baseName + SQL_FILE_EXT);
+        }
+        return skipTestFileNames;
+    }
+
+    /**
+     * Get the list of file names to exclude from testing.<br/>
+     * Includes skip test file names and configuration files names
+     * @return the list of all excluded file names
+     */
+    public static List<String> getExcludedFileNames() {
+        List<String> nonTestFileNames = new ArrayList<String>();
+        nonTestFileNames.addAll(getSkipTestFileNames());
+        nonTestFileNames.add(SKIP_TESTS_FILE_NAME);
+        nonTestFileNames.add(SCHEMA_LIST_FILE_NAME);
+        nonTestFileNames.add(DERBY_FILTER);
+        nonTestFileNames.add(SPLICE_FILTER);
+        return nonTestFileNames;
     }
 
     /**
@@ -168,7 +214,7 @@ public class NistTestUtils {
         System.out.println("    Running "+testFiles.size()+" tests...");
         long start = System.currentTimeMillis();
         derbyRunner.runDerby(testFiles);
-        String derbyDone = "    Duration: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        String derbyDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
         out.println(derbyDone);
         System.out.println(derbyDone);
 
@@ -180,13 +226,20 @@ public class NistTestUtils {
         System.out.println("    Running "+testFiles.size()+" tests...");
         start = System.currentTimeMillis();
         spliceRunner.runSplice(testFiles);
-        String spliceDone = "    Duration: " + NistTestUtils.getDuration(start, System.currentTimeMillis());
+        String spliceDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
         out.println(spliceDone);
         System.out.println(spliceDone);
 
         // diff output and assert no differences in each report
         Collection<DiffReport> reports = DiffEngine.diffOutput(testFiles,
-                NistTestUtils.getBaseDirectory() + NistTestUtils.TARGET_NIST_DIR, derbyOutputFilter, spliceOutputFilter);
+                getBaseDirectory() + TARGET_NIST_DIR, derbyOutputFilter, spliceOutputFilter);
+
+
+        // also, always add drop script to end for cleanup
+        List<File> cleanup = Arrays.asList(new File(getResourceDirectory()+NIST_DIR_SLASH, "drop.sql"));
+        out.println("Dropping test schema...");
+        derbyRunner.runDerby(cleanup);
+        spliceRunner.runSplice(cleanup);
 
         return reports;
     }
@@ -257,8 +310,8 @@ public class NistTestUtils {
      * File filter to use when determining types of files to be included in a list.
      */
     public static class SpliceIOFileFilter implements IOFileFilter {
-		private List<String> inclusions;
-		private List<String> exclusions;
+		private final List<String> inclusions;
+		private final List<String> exclusions;
 		public SpliceIOFileFilter(List<String> inclusions, List<String> exclusions) {
 			this.inclusions = inclusions;
 			this.exclusions = exclusions;
@@ -269,7 +322,7 @@ public class NistTestUtils {
 			if (inclusions != null) {
 				if (inclusions.contains(file.getName()))
 					return true;
-				else 
+				else
 					return false;
 			}
 			if (exclusions != null) {
@@ -332,10 +385,7 @@ public class NistTestUtils {
         if (commentPattern == null || commentPattern.isEmpty()) {
             return false;
         }
-        if (line.trim().startsWith(commentPattern)) {
-            return true;
-        }
-        return false;
+        return line.trim().startsWith(commentPattern);
     }
 
     /**

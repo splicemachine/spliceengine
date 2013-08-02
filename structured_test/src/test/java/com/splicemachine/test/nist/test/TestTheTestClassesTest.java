@@ -1,20 +1,13 @@
 package com.splicemachine.test.nist.test;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.test.diff.DiffEngine;
-import com.splicemachine.test.diff.DiffReport;
 import com.splicemachine.test.nist.NistTestUtils;
-import difflib.DiffUtils;
-import difflib.Patch;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.test.nist.NistTestUtils.*;
 
@@ -36,15 +29,20 @@ public class TestTheTestClassesTest {
         return buf.toString();
     }
 
+    private void assertNoDuplicates(List<File> files) {
+        Set<File> unique = new HashSet<File>(files);
+        Assert.assertEquals("Contains duplicates",unique.size(),files.size());
+    }
+
     @Test
     public void testReadFile() throws Exception {
-        List<String> lines = fileToLines(getResourceDirectory() + "/nist/skip.tests", "#");
+        List<String> lines = fileToLines(getResourceDirectory() + NIST_DIR_SLASH+"skip.tests", "#");
         Assert.assertFalse("Got nuthin", lines.isEmpty());
         for (String line : lines) {
             Assert.assertFalse("Unexpected comment string: #", line.startsWith("#"));
         }
 
-        lines = fileToLines(getResourceDirectory() + "/nist/cdr002.sql", "--");
+        lines = fileToLines(getResourceDirectory() + NIST_DIR_SLASH+"cdr002.sql", "--");
         Assert.assertFalse("Got nuthin", lines.isEmpty());
         for (String line : lines) {
             Assert.assertFalse("Unexpected comment string: --", line.startsWith("--"));
@@ -53,48 +51,133 @@ public class TestTheTestClassesTest {
 
     @Test
     public void testFileFilters() throws Exception {
-        NistTestUtils.getTestFileList();
-        Assert.assertFalse(SKIP_TESTS.isEmpty());
-        Assert.assertFalse(SCHEMA_FILES.isEmpty());
+        List<String> skipTestFileNames = getSkipTestFileNames();
+        List<String> schemaFileNames = getSchemaFileNames();
+        List<String> nonTestFileNames = getExcludedFileNames();
 
         // test files to skip filter
-        List<String> filter = Lists.newArrayList(NistTestUtils.SKIP_TESTS);
-        filter.addAll(NistTestUtils.SCHEMA_FILES);
-        Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
+        List<String> filter = Lists.newArrayList(skipTestFileNames);
+        filter.addAll(schemaFileNames);
+        Collection<File> files = FileUtils.listFiles(new File(getResourceDirectory(), NIST_DIR),
                 new NistTestUtils.SpliceIOFileFilter(null, filter), null);
 
-        Assert.assertTrue(files.contains(new File(getResourceDirectory(), "/nist/cdr002.sql")));
+        Assert.assertTrue(files.contains(new File(getResourceDirectory(), NIST_DIR_SLASH+"cdr002.sql")));
 
         for (File file : files) {
-            Assert.assertFalse(printList(files), SKIP_TESTS.contains(file.getName()));
-            Assert.assertFalse(printList(files), SCHEMA_FILES.contains(file.getName()));
+            Assert.assertFalse(printList(files), skipTestFileNames.contains(file.getName()));
+            Assert.assertFalse(printList(files), schemaFileNames.contains(file.getName()));
         }
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SCHEMA_LIST_FILE_NAME));
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
+        Assert.assertTrue(nonTestFileNames.contains(SCHEMA_LIST_FILE_NAME));
+        Assert.assertTrue(nonTestFileNames.contains(SKIP_TESTS_FILE_NAME));
 
         // test schema files filter
-        filter = Lists.newArrayList(NistTestUtils.SCHEMA_FILES);
-        filter.addAll(NistTestUtils.SKIP_TESTS);
-        files = FileUtils.listFiles(new File(getResourceDirectory(), "/nist"),
+        filter = Lists.newArrayList(schemaFileNames);
+        filter.addAll(skipTestFileNames);
+        files = FileUtils.listFiles(new File(getResourceDirectory(), NIST_DIR),
                 new NistTestUtils.SpliceIOFileFilter(null, filter), null);
 
-        Assert.assertFalse(files.contains(new File(getResourceDirectory(), "/nist/schema5.sql")));
+        Assert.assertFalse(files.contains(new File(getResourceDirectory(), NIST_DIR_SLASH+"schema5.sql")));
 
         for (File file : files) {
-            Assert.assertFalse(printList(files), SKIP_TESTS.contains(file.getName()));
-            Assert.assertFalse(printList(files), SCHEMA_FILES.contains(file.getName()));
+            Assert.assertFalse(printList(files), skipTestFileNames.contains(file.getName()));
+            Assert.assertFalse(printList(files), schemaFileNames.contains(file.getName()));
         }
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SCHEMA_LIST_FILE_NAME));
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SKIP_TESTS_FILE_NAME));
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(DERBY_FILTER));
-        Assert.assertTrue(NON_TEST_FILES_TO_FILTER.contains(SPLICE_FILTER));
+        Assert.assertTrue(nonTestFileNames.contains(SCHEMA_LIST_FILE_NAME));
+        Assert.assertTrue(nonTestFileNames.contains(SKIP_TESTS_FILE_NAME));
+        Assert.assertTrue(nonTestFileNames.contains(DERBY_FILTER));
+        Assert.assertTrue(nonTestFileNames.contains(SPLICE_FILTER));
     }
 
     @Test
-    public void testGetTestFiles() throws Exception {
-        List<File> testFiles = NistTestUtils.getTestFileList();
+    public void testGetSchemaFilesExist() throws Exception {
+        List<String> schemaFileNames = getSchemaFileNames();
+        List<File> schemaFiles = createFiles(schemaFileNames);
+        assertNoDuplicates(schemaFiles);
+        Assert.assertEquals(schemaFileNames.size(),schemaFiles.size());
+        for (File aFile : schemaFiles) {
+            Assert.assertTrue(aFile + " does not exist",aFile.exists());
+        }
+        Assert.assertTrue("schema1.sql should be first",
+                schemaFiles.get(0).equals(new File(getResourceDirectory() + NIST_DIR_SLASH+"schema1.sql")));
+    }
+
+    @Test
+    public void testGetFilesExclude() throws Exception {
+        List<String> schemaFileNames = getSchemaFileNames();
+        List<String> excludedFileNames = getExcludedFileNames();
+        excludedFileNames.addAll(schemaFileNames);
+
+        // this is the list of all test sql files, except schema creators
+        // and non test files
+        List<File> testFiles = new ArrayList<File>(FileUtils.listFiles(new File(getResourceDirectory(), NIST_DIR),
+                // exclude skipped and other non-test files
+                new SpliceIOFileFilter(null, excludedFileNames), null));
+        assertNoDuplicates(testFiles);
+
+        List<String> testFileNames = new ArrayList<String>();
+        for (File aFile : testFiles) {
+            Assert.assertFalse(schemaFileNames.contains(aFile.getName()));
+            testFileNames.add(aFile.getName());
+        }
+
+        Collections.sort(testFileNames, new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        });
+        schemaFileNames.addAll(testFileNames);
+    }
+
+    @Test
+    public void testGetTestFilesExist() throws Exception {
+        List<File> testFiles = getTestFileList();
+        for (File aFile : testFiles) {
+            Assert.assertTrue(aFile.getCanonicalPath()+" does not exist",aFile.exists());
+        }
+    }
+
+    @Test
+    public void testGetTestFilesNoDuplicates() throws Exception {
+        List<File> testFiles = getTestFileList();
         Assert.assertFalse("Got nuthin", testFiles.isEmpty());
-//        System.out.println(printList(testFiles));
-//        System.out.println(testFiles.size()+" files");
+        assertNoDuplicates(testFiles);
+    }
+
+    @Test
+    public void testGetTestFilesOrder() throws Exception {
+        List<File> testFiles = getTestFileList();
+        File schema1 = new File(getResourceDirectory() + NIST_DIR_SLASH+"schema1.sql");
+        Assert.assertTrue("Missing schema1.sql", testFiles.contains(schema1));
+        Assert.assertTrue("schema1.sql should be first", testFiles.get(0).equals(schema1));
+    }
+
+    @Test
+    public void testGetTestFilesAssertSorted() throws Exception {
+        List<File> testFiles = getTestFileList();
+        List<File> schemaFiles = new ArrayList<File>();
+        for (String schemaFileName : getSchemaFileNames()) {
+            schemaFiles.add(new File(getResourceDirectory() + NIST_DIR_SLASH+schemaFileName));
+        }
+        testFiles.removeAll(schemaFiles);
+        List<File> sortedTestFiles = new ArrayList<File>(testFiles);
+
+        Collections.sort(sortedTestFiles, new Comparator<File>() {
+            @Override
+            public int compare(File o1, File o2) {
+                return o1.getName().compareTo(o2.getName());
+            }
+        });
+
+        Assert.assertEquals(sortedTestFiles,testFiles);
+    }
+
+    @Test
+    public void testGetRunList() throws Exception {
+        List<File> testFiles = createRunList("cdr005.sql");
+        Assert.assertFalse("Got nuthin", testFiles.isEmpty());
+        for (File aFile : testFiles) {
+            Assert.assertTrue(aFile.getCanonicalPath()+" does not exist",aFile.exists());
+        }
     }
 }

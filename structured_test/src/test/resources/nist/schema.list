@@ -1,10 +1,14 @@
 # List of schema files to load
-dml016.sql
-dml080.sql
+# This list should be maintained by adding any and all scripts that contain "create schema".
+# Also, this list should be ordered so that all schema creation scripts that depend on
+#   schema created by other schema creator scripts are ordered after them.
 schema1.sql
-schema4.sql
+temp_schem10.sql
+temp_cts5sch2.sql
 schema5.sql
 schema8.sql
-temp_cts5sch2.sql
 temp_cts5tab.sql
-temp_schem10.sql
+schema4.sql
+dml016.sql
+dml080.sql
+basetab.sql
