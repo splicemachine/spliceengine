@@ -291,10 +291,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         if (scanQualifiersField != null){
             try {
                 scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-            } catch (IllegalAccessException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            } catch (NoSuchFieldException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            } catch (Exception e) {
+            	throw StandardException.unexpectedUserException(e);
             }
             //convert types of filters against column type
             if(scanQualifiers!=null){
@@ -304,6 +302,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                         Qualifier qualifier = qualifiers[qualPos];
                         int columnFormat = format_ids[qualifier.getColumnId()];
                         DataValueDescriptor dvd = qualifier.getOrderable();
+                        if (dvd==null)
+                        	continue;
                         if(dvd.getTypeFormatId()!=columnFormat){
                             //we need to convert the types to match
                             qualifier = adjustQualifier(qualifier, columnFormat);
