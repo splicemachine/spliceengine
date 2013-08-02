@@ -26,13 +26,15 @@ public class CreateIndexJob implements CoprocessorJob{
     private final int[] mainColToIndexPosMap;
     private final BitSet indexedColumns;
     private final boolean isUnique;
+    private final BitSet descColumns;
 
     public CreateIndexJob(HTableInterface table,
                           String transactionId,
                           long indexConglomId,
                           long baseConglomId,
                           int[] indexColToMainColPosMap,
-                          boolean unique) {
+                          boolean unique,
+                          boolean[] descColumns) {
         this.table = table;
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
@@ -49,12 +51,17 @@ public class CreateIndexJob implements CoprocessorJob{
             int mainCol = indexColToMainColPosMap[indexCol];
             mainColToIndexPosMap[mainCol-1] = indexCol;
         }
+        this.descColumns = new BitSet(descColumns.length);
+        for(int col=0;col<descColumns.length;col++){
+            if(descColumns[col])
+                this.descColumns.set(col);
+        }
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         CreateIndexTask task = new CreateIndexTask(transactionId,indexConglomId,
-                        baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId());
+                        baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId(),descColumns);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

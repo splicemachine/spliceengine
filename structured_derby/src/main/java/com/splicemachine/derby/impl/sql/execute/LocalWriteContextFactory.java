@@ -124,11 +124,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique) {
+    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique,BitSet descColumns) {
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique));
+                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique,descColumns));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -389,6 +389,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         private final boolean isUnique;
         private BitSet indexedColumns;
         private int[] mainColToIndexPosMap;
+        private BitSet descColumns;
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
@@ -396,15 +397,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             this.isUnique=false;
         }
 
-        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique) {
+        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,BitSet descColumns) {
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=isUnique;
             this.indexedColumns=indexedColumns;
             this.mainColToIndexPosMap=mainColToIndexPosMap;
+            this.descColumns = descColumns;
         }
 
-        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique){
+        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,BitSet descColumns){
             BitSet indexedCols = new BitSet();
             for(int indexCol:indexColsToMainColMap){
                 indexedCols.set(indexCol-1);
@@ -415,7 +417,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 mainColToIndexPosMap[mainCol-1] = indexCol;
             }
 
-            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique);
+            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique, descColumns);
         }
 
         public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor) {
@@ -424,17 +426,25 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique) {
             int[] indexColsToMainColMap = indexDescriptor.baseColumnPositions();
-            return create(conglomerateNumber,indexColsToMainColMap,isUnique);
+
+            //get the descending columns
+            boolean[] ascending = indexDescriptor.isAscending();
+            BitSet descColumns = new BitSet();
+            for(int i=0;i<ascending.length;i++){
+                if(!ascending[i])
+                    descColumns.set(i);
+            }
+            return create(conglomerateNumber,indexColsToMainColMap,isUnique,descColumns);
         }
 
         public void addTo(PipelineWriteContext ctx){
 
             if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns));
+                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns));
             }else{
-                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
-                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns));
+                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns));
             }
         }
 

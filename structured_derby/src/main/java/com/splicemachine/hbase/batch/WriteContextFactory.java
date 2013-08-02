@@ -22,5 +22,5 @@ public interface WriteContextFactory<T> {
 
     void dropIndex(long indexConglomId);
 
-    void addIndex(long indexConglomId, BitSet indexedColumns, int[] mainColToIndexPosMap, boolean unique);
+    void addIndex(long indexConglomId, BitSet indexedColumns, int[] mainColToIndexPosMap, boolean unique,BitSet descColumns);
 }

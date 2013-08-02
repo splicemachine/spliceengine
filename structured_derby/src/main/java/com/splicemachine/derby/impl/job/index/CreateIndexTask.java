@@ -45,7 +45,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class CreateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 4l;
     private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
@@ -53,6 +53,7 @@ public class CreateIndexTask extends ZkTask {
     private boolean isUnique;
     private BitSet indexedColumns;
     private BitSet nonUniqueIndexColumns;
+    private BitSet descColumns;
 
     private MultiFieldEncoder translateEncoder;
 
@@ -67,13 +68,15 @@ public class CreateIndexTask extends ZkTask {
                            int[] mainColToIndexPosMap,
                            BitSet indexedColumns,
                            boolean unique,
-                           String jobId ) {
+                           String jobId,
+                           BitSet descColumns) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexedColumns = indexedColumns;
+        this.descColumns = descColumns;
         isUnique = unique;
     }
 
@@ -98,6 +101,7 @@ public class CreateIndexTask extends ZkTask {
         out.writeObject(indexedColumns);
         ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
+        out.writeObject(descColumns);
     }
 
     @Override
@@ -109,6 +113,7 @@ public class CreateIndexTask extends ZkTask {
         indexedColumns = (BitSet)in.readObject();
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
+        descColumns = (BitSet)in.readObject();
     }
 
     @Override
@@ -133,7 +138,7 @@ public class CreateIndexTask extends ZkTask {
         try{
             //add index to table watcher
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
-            contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique);
+            contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique,descColumns);
             
             //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);

@@ -34,8 +34,8 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<Mutation> deletes = Lists.newArrayListWithExpectedSize(0);
 
-    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes){
-        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes);
+    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns){
+        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns);
 
 
     }
@@ -100,7 +100,10 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             BitIndex getIndex = getDecoder.getCurrentIndex();
             MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
             for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
-                accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+                if(descColumns.get(i))
+                    accumulate(indexKeyAccumulator,getIndex,getDescendingBuffer(getDecoder.nextAsBuffer(fieldDecoder,i)),i);
+                else
+                    accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
             }
 
             byte[] indexRowKey = indexKeyAccumulator.finish();

@@ -563,6 +563,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		indexRows = new ExecIndexRow[bulkFetchSize];
 		compactBaseRows = new ExecRow[bulkFetchSize];
 
+        ColumnOrdering[] order;
 		try {
 			// Create the array of base row template
 			for (int i = 0; i < bulkFetchSize; i++) {
@@ -654,14 +655,13 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 				numColumnOrderings = baseColumnPositions.length + 1;
 			}
 
-			ColumnOrdering[]	order = new ColumnOrdering[numColumnOrderings];
+            order= new ColumnOrdering[numColumnOrderings];
 			for (int i=0; i < numColumnOrderings; i++) {
 				order[i] = new IndexColumnOrder(i, unique || i < numColumnOrderings - 1 ? isAscending[i] : true);
 			}
 
 			conglomId = tc.createConglomerate(indexType, indexTemplateRow.getRowArray(), order, indexRowGenerator.getColumnCollationIds(
                         td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
-						
 
 		}
 		finally {
@@ -704,13 +704,17 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			conglomerateUUID = cgd.getUUID();
 		}
 
-		
+
+        boolean[] descColumns = new boolean[isAscending.length];
+        for(int i=0;i<isAscending.length;i++){
+           descColumns[i] = !isAscending[i];
+        }
         final long tableConglomId = td.getHeapConglomerateId();
         final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         JobFuture future = null;
         try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique));
+            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique,descColumns));
             future.completeAll();
         } catch (ExecutionException e) {
         	e.printStackTrace();

@@ -69,10 +69,13 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
      */
     protected final int[] mainColToIndexPosMap;
 
-    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes) {
+    protected final BitSet descColumns;
+
+    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns) {
         this.indexedColumns = indexedColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;
+        this.descColumns = descColumns;
 
         this.translatedIndexColumns = new BitSet(indexedColumns.cardinality());
         for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
@@ -180,5 +183,16 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
         else
             newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
+    }
+
+    protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
+        entry.mark();
+        byte[] data = new byte[entry.remaining()];
+        entry.get(data);
+        entry.reset();
+        for(int i=0;i<data.length;i++){
+            data[i]^=0xff;
+        }
+        return ByteBuffer.wrap(data);
     }
 }

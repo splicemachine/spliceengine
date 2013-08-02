@@ -184,7 +184,11 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         JobFuture future = null;
         try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique));
+            boolean [] desc = new boolean[ascending.length];
+            for(int i=0;i<ascending.length;i++){
+                desc[i] = !ascending[i];
+            }
+            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique,desc));
 
             future.completeAll();
         } catch (ExecutionException e) {

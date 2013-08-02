@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.google.common.base.Throwables;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
@@ -16,7 +15,6 @@ import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -40,8 +38,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private BitSet nonUniqueIndexedColumns;
 
-    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes) {
-        super(indexedColumns,mainColToIndexPos,indexConglomBytes);
+    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes,BitSet descColumns) {
+        super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns);
 
         nonUniqueIndexedColumns = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexedColumns.set(translatedIndexColumns.length());
@@ -89,8 +87,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             for(int i=mutationIndex.nextSetBit(0);i>=0&&i<=indexedColumns.length();i=mutationIndex.nextSetBit(i+1)){
                 if(indexedColumns.get(i)){
                     ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
-                    accumulate(newKeyAccumulator,mutationIndex,entry,i);
+                    if(descColumns.get(i))
+                        accumulate(newKeyAccumulator,mutationIndex,getDescendingBuffer(entry),i);
+                    else
+                        accumulate(newKeyAccumulator,mutationIndex,entry,i);
                     accumulate(newRowAccumulator,mutationIndex,entry,i);
+                }else{
+                    newPutDecoder.seekForward(mutationDecoder,i);
                 }
             }
 
@@ -111,6 +114,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
+
+
 
     protected SparseEntryAccumulator getKeyAccumulator() {
         return new SparseEntryAccumulator(null,nonUniqueIndexedColumns,false);
@@ -192,7 +197,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
                 if(indexedColumns.get(newPos)){
                     ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
-                    accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
+                    if(descColumns.get(newPos))
+                        accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(newBuffer),newPos);
+                    else
+                        accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
                     accumulate(newRowAccumulator,updateIndex,newBuffer,newPos);
                 }
             }
@@ -200,12 +208,19 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             BitSet newRemainingCols = newKeyAccumulator.getRemainingFields();
             for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=updateIndex.nextSetBit(oldPos+1)){
                 if(indexedColumns.get(oldPos)){
-                    ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder,oldPos);
+                    ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder, oldPos);
                     //fill in the old key for checking
-                    accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
+                    if(descColumns.get(oldPos))
+                        accumulate(oldKeyAccumulator,oldIndex,getDescendingBuffer(oldBuffer),oldPos);
+                    else
+                        accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
 
                     if(oldPos!=indexedColumns.length()&&newRemainingCols.get(oldPos)){
                         //we are missing this field from the new update, so add in the field from the old position
+                        if(descColumns.get(oldPos))
+                            accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(oldBuffer),oldPos);
+                        else
+                            accumulate(newKeyAccumulator,updateIndex,oldBuffer,oldPos);
                         accumulate(newKeyAccumulator,oldIndex,oldBuffer,oldPos);
                         accumulate(newRowAccumulator,oldIndex,oldBuffer,oldPos);
                     }

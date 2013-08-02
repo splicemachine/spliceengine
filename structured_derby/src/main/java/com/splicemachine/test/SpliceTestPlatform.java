@@ -61,7 +61,7 @@ public class SpliceTestPlatform extends TestConstants {
             spliceTestPlatform.start();
 
         }else{
-			System.out.println("Splice Test Platform supports one argument providing the target directory" +
+			System.out.println("Splice TestContext Platform supports one argument providing the target directory" +
 					" or two arguments dictating the zookeeper and hbase directory.");
 			System.exit(1);
 		}
