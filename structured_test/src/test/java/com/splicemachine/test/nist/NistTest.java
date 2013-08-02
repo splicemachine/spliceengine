@@ -24,10 +24,19 @@ public class NistTest {
     private static DerbyNistRunner derbyRunner;
     private static SpliceNistRunner spliceRunner;
 
+    private static boolean justDrop;
+
     @BeforeClass
     public static void beforeClass() throws Exception {
         // Gather the sql files we want to run as tests
-        testFiles = NistTestUtils.getTestFileList();
+        String singleScript = System.getProperty("script", null);
+        if (singleScript == null) {
+            testFiles = NistTestUtils.getTestFileList();
+        } else if (singleScript.equalsIgnoreCase(NistTestUtils.DROP_SQL)) {
+            justDrop = true;
+        } else {
+            testFiles = NistTestUtils.createRunList(singleScript);
+        }
 
         // Read in the bug filters for output files
         derbyOutputFilter = NistTestUtils.readDerbyFilters();
@@ -39,6 +48,10 @@ public class NistTest {
 
     @Test(timeout=1000*60*360)  // Time out after 6 min
     public void runNistTest() throws Exception {
+        if (justDrop) {
+            NistTestUtils.runDrop(derbyRunner, spliceRunner);
+            return;
+        }
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
 

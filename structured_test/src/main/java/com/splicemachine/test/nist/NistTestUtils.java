@@ -18,6 +18,7 @@ import java.util.*;
  * Static utility class to support various operations to run the Derby NIST SQL Scripts.
  */
 public class NistTestUtils {
+    public static final String DROP_SQL = "drop.sql";
     public static int DEFAULT_THREAD_POOL_SIZE = 4;
 
     public static final String HASH_COMMENT = "#";
@@ -50,7 +51,19 @@ public class NistTestUtils {
      */
     public static List<File> createRunList(String sqlFileName) {
         List<String> runListNames = getSchemaFileNames();
-        runListNames.add(sqlFileName);
+        if (! runListNames.contains(sqlFileName)) {
+            runListNames.add(sqlFileName);
+        } else {
+            // if sqlFileName is one of the schema files,
+            // as it is here, there's no need to run scripts that
+            // are in list after this one - trim
+            int index = runListNames.indexOf(sqlFileName);
+            if (index < runListNames.size()) {
+                for (int i=runListNames.size()-1; i>index; i--) {
+                    runListNames.remove(i);
+                }
+            }
+        }
 
         // turn them into files
         List<File> runList = createFiles(runListNames);
@@ -236,12 +249,17 @@ public class NistTestUtils {
 
 
         // also, always add drop script to end for cleanup
-        List<File> cleanup = Arrays.asList(new File(getResourceDirectory()+NIST_DIR_SLASH, "drop.sql"));
         out.println("Dropping test schema...");
-        derbyRunner.runDerby(cleanup);
-        spliceRunner.runSplice(cleanup);
+        runDrop(derbyRunner, spliceRunner);
 
         return reports;
+    }
+
+    public static void runDrop(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner) throws Exception {
+        System.out.println("Dropping test schema...");
+        List<File> cleanup = Arrays.asList(new File(getResourceDirectory()+NIST_DIR_SLASH, DROP_SQL));
+        derbyRunner.runDerby(cleanup);
+        spliceRunner.runSplice(cleanup);
     }
 
     /**

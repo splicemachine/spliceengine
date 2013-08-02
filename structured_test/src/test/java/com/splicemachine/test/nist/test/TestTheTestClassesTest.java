@@ -173,11 +173,23 @@ public class TestTheTestClassesTest {
     }
 
     @Test
-    public void testGetRunList() throws Exception {
-        List<File> testFiles = createRunList("cdr005.sql");
+    public void testCreateRunList() throws Exception {
+        List<File> testFiles = createRunList("dml016.sql");
         Assert.assertFalse("Got nuthin", testFiles.isEmpty());
         for (File aFile : testFiles) {
             Assert.assertTrue(aFile.getCanonicalPath()+" does not exist",aFile.exists());
         }
+        assertNoDuplicates(testFiles);
+    }
+
+    @Test
+    public void testCreateRunListTrim() throws Exception {
+        List<File> testFiles = createRunList("schema4.sql");
+        Assert.assertEquals(7, testFiles.size());
+        Assert.assertEquals("schema4.sql", testFiles.get(testFiles.size()-1).getName());
+        for (File aFile : testFiles) {
+            Assert.assertTrue(aFile.getCanonicalPath()+" does not exist",aFile.exists());
+        }
+        assertNoDuplicates(testFiles);
     }
 }
