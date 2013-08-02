@@ -67,7 +67,6 @@ public class WriteWriteRollbackTest extends SpliceUnitTest {
 
 
 
-    @Ignore("Currently failing")
     @Test
     public void testUpdateWriteWriteRollbackConcurrent() throws Exception {
 
