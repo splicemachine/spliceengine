@@ -87,7 +87,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             for(int i=mutationIndex.nextSetBit(0);i>=0&&i<=indexedColumns.length();i=mutationIndex.nextSetBit(i+1)){
                 if(indexedColumns.get(i)){
                     ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
-                    if(descColumns.get(i))
+                    if(descColumns.get(mainColToIndexPosMap[i]))
                         accumulate(newKeyAccumulator,mutationIndex,getDescendingBuffer(entry),i);
                     else
                         accumulate(newKeyAccumulator,mutationIndex,entry,i);
@@ -197,7 +197,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
                 if(indexedColumns.get(newPos)){
                     ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
-                    if(descColumns.get(newPos))
+                    if(descColumns.get(mainColToIndexPosMap[newPos]))
                         accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(newBuffer),newPos);
                     else
                         accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
@@ -210,7 +210,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 if(indexedColumns.get(oldPos)){
                     ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder, oldPos);
                     //fill in the old key for checking
-                    if(descColumns.get(oldPos))
+                    if(descColumns.get(mainColToIndexPosMap[oldPos]))
                         accumulate(oldKeyAccumulator,oldIndex,getDescendingBuffer(oldBuffer),oldPos);
                     else
                         accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
