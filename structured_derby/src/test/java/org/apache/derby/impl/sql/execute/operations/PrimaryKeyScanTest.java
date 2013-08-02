@@ -11,6 +11,7 @@ import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -139,6 +140,7 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore ("Need nulls handled")
     public void testScanForNullEntries() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 is null",this.getTableReference(TABLE_NAME)));
         Assert.assertTrue("Expected 0 rows returned!",!rs.next());
