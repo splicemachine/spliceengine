@@ -162,7 +162,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public boolean returnsRows() {
-        checkDelegate();
+    	if (delegate == null)
+    		return false;
         return delegate.returnsRows();
     }
 
