@@ -25,46 +25,148 @@ public class CompoundNonUniqueIndexTest {
     private static String CLASS_NAME = CompoundNonUniqueIndexTest.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
-    private static SpliceTableWatcher twoContiguousColumns = new SpliceTableWatcher("TWO_CONTIGUOUS",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoContiguousAscDescColumns = new SpliceTableWatcher("TWO_CONTIGUOUS_ASC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoContiguousDescAscColumns = new SpliceTableWatcher("TWO_CONTIGUOUS_DESC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoNonContiguousColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoNonContiguousAscDescColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS_ASC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoNonContiguousDescAscColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS_DESC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoOutOfOrderNonContiguousColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoOutOfOrderNonContiguousAscDescColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_ASC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher twoOutOfOrderNonContiguousDescAscColumns = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_DESC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousAscAscDescColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_ASC_ASC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousAscDescAscColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_ASC_DESC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousDescAscAscColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_DESC_ASC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousAscDescDescColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_ASC_DESC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousDescAscDescColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_DESC_ASC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousDescDescAscColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_DESC_DESC_ASC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeNonContiguousDescDescDescColumns = new SpliceTableWatcher("THREE_NONCONTIGUOUS_DESC_DESC_DESC",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
-    private static SpliceTableWatcher threeOutOfOrderNonContiguousColumns = new SpliceTableWatcher("TTHREE_NONCONTIGUOUS_OUT_OF_ORDER",spliceSchemaWatcher.schemaName,"(a int, b float,c int, d double)");
+    private static final String tableSchema = "(a int, b float, c int, d double)";
+    private static SpliceTableWatcher twoContiguousColumns                          = new SpliceTableWatcher("TWO_CONTIGUOUS",               spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoContiguousColumnsAfter                     = new SpliceTableWatcher("TWO_CONTIGUOUS_AFTER",         spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoContiguousAscDescColumns                   = new SpliceTableWatcher("TWO_CONTIGUOUS_ASC_DESC",      spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoContiguousAscDescColumnsAfter              = new SpliceTableWatcher("TWO_CONTIGUOUS_ASC_DESC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoContiguousDescAscColumns                   = new SpliceTableWatcher("TWO_CONTIGUOUS_DESC_ASC",      spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoContiguousDescAscColumnsAfter              = new SpliceTableWatcher("TWO_CONTIGUOUS_DESC_ASC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+
+    private static SpliceTableWatcher twoNonContiguousColumns                       = new SpliceTableWatcher("TWO_NONCONTIGUOUS",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoNonContiguousColumnsAfter                  = new SpliceTableWatcher("TWO_NONCONTIGUOUS_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoNonContiguousAscDescColumns                = new SpliceTableWatcher("TWO_NONCONTIGUOUS_ASC_DESC",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoNonContiguousAscDescColumnsAfter           = new SpliceTableWatcher("TWO_NONCONTIGUOUS_ASC_DESC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoNonContiguousDescAscColumns                = new SpliceTableWatcher("TWO_NONCONTIGUOUS_DESC_ASC",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoNonContiguousDescAscColumnsAfter           = new SpliceTableWatcher("TWO_NONCONTIGUOUS_DESC_ASC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousColumns             = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER",               spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousColumnsAfter        = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_AFTER",         spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousAscDescColumns      = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_ASC_DESC",      spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousAscDescColumnsAfter = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_ASC_DESC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousDescAscColumns      = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_DESC_ASC",      spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher twoOutOfOrderNonContiguousDescAscColumnsAfter = new SpliceTableWatcher("TWO_NONCONTIGUOUS_OUT_OF_ORDER_DESC_ASC_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+
+    private static SpliceTableWatcher threeContiguousColumns                     = new SpliceTableWatcher("THREE_CTG",      spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousColumnsAfter                = new SpliceTableWatcher("THREE_CTG_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscAscDescColumns           = new SpliceTableWatcher("THREE_CTG_AAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscAscDescColumnsAfter      = new SpliceTableWatcher("THREE_CTG_AAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscDescAscColumns           = new SpliceTableWatcher("THREE_CTG_ADA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscDescAscColumnsAfter      = new SpliceTableWatcher("THREE_CTG_ADA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescAscAscColumns           = new SpliceTableWatcher("THREE_CTG_DAA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescAscAscColumnsAfter      = new SpliceTableWatcher("THREE_CTG_DAA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescDescAscColumns          = new SpliceTableWatcher("THREE_CTG_DDA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescDescAscColumnsAfter     = new SpliceTableWatcher("THREE_CTG_DDA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescAscDescColumns          = new SpliceTableWatcher("THREE_CTG_DAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescAscDescColumnsAfter     = new SpliceTableWatcher("THREE_CTG_DAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscDescDescColumns          = new SpliceTableWatcher("THREE_CTG_ADD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousAscDescDescColumnsAfter     = new SpliceTableWatcher("THREE_CTG_ADD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescDescDescColumns         = new SpliceTableWatcher("THREE_CTG_DDD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeContiguousDescDescDescColumnsAfter    = new SpliceTableWatcher("THREE_CTG_DDD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+
+    private static SpliceTableWatcher threeNonContiguousColumns                     = new SpliceTableWatcher("THREE_NCTG",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousColumnsAfter                = new SpliceTableWatcher("THREE_NCTG_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscAscDescColumns           = new SpliceTableWatcher("THREE_NCTG_AAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscAscDescColumnsAfter      = new SpliceTableWatcher("THREE_NCTG_AAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscDescAscColumns           = new SpliceTableWatcher("THREE_NCTG_ADA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscDescAscColumnsAfter      = new SpliceTableWatcher("THREE_NCTG_ADA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescAscAscColumns           = new SpliceTableWatcher("THREE_NCTG_DAA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescAscAscColumnsAfter      = new SpliceTableWatcher("THREE_NCTG_DAA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescDescAscColumns          = new SpliceTableWatcher("THREE_NCTG_DDA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescDescAscColumnsAfter     = new SpliceTableWatcher("THREE_NCTG_DDA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescAscDescColumns          = new SpliceTableWatcher("THREE_NCTG_DAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescAscDescColumnsAfter     = new SpliceTableWatcher("THREE_NCTG_DAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscDescDescColumns          = new SpliceTableWatcher("THREE_NCTG_ADD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousAscDescDescColumnsAfter     = new SpliceTableWatcher("THREE_NCTG_ADD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescDescDescColumns         = new SpliceTableWatcher("THREE_NCTG_DDD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeNonContiguousDescDescDescColumnsAfter    = new SpliceTableWatcher("THREE_NCTG_DDD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousColumns                     = new SpliceTableWatcher("THREE_OO_NCTG",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousColumnsAfter                = new SpliceTableWatcher("THREE_OO_NCTG_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscAscDescColumns           = new SpliceTableWatcher("THREE_OO_NCTG_AAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscAscDescColumnsAfter      = new SpliceTableWatcher("THREE_OO_NCTG_AAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscDescAscColumns           = new SpliceTableWatcher("THREE_OO_NCTG_ADA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscDescAscColumnsAfter      = new SpliceTableWatcher("THREE_OO_NCTG_ADA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescAscAscColumns           = new SpliceTableWatcher("THREE_OO_NCTG_DAA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescAscAscColumnsAfter      = new SpliceTableWatcher("THREE_OO_NCTG_DAA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescDescAscColumns          = new SpliceTableWatcher("THREE_OO_NCTG_DDA",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescDescAscColumnsAfter     = new SpliceTableWatcher("THREE_OO_NCTG_DDA_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescAscDescColumns          = new SpliceTableWatcher("THREE_OO_NCTG_DAD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescAscDescColumnsAfter     = new SpliceTableWatcher("THREE_OO_NCTG_DAD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscDescDescColumns          = new SpliceTableWatcher("THREE_OO_NCTG_ADD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousAscDescDescColumnsAfter     = new SpliceTableWatcher("THREE_OO_NCTG_ADD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescDescDescColumns         = new SpliceTableWatcher("THREE_OO_NCTG_DDD",spliceSchemaWatcher.schemaName,tableSchema);
+    private static SpliceTableWatcher threeOutOfOrderNonContiguousDescDescDescColumnsAfter    = new SpliceTableWatcher("THREE_OO_NCTG_DDD_AFTER",spliceSchemaWatcher.schemaName,tableSchema);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSchemaWatcher)
             .around(twoContiguousColumns)
+            .around(twoContiguousColumnsAfter)
             .around(twoContiguousAscDescColumns)
+            .around(twoContiguousAscDescColumnsAfter)
             .around(twoContiguousDescAscColumns)
+            .around(twoContiguousDescAscColumnsAfter)
             .around(twoNonContiguousColumns)
+            .around(twoNonContiguousColumnsAfter)
             .around(twoNonContiguousAscDescColumns)
+            .around(twoNonContiguousAscDescColumnsAfter)
             .around(twoNonContiguousDescAscColumns)
+            .around(twoNonContiguousDescAscColumnsAfter)
             .around(twoOutOfOrderNonContiguousColumns)
+            .around(twoOutOfOrderNonContiguousColumnsAfter)
             .around(twoOutOfOrderNonContiguousAscDescColumns)
+            .around(twoOutOfOrderNonContiguousAscDescColumnsAfter)
             .around(twoOutOfOrderNonContiguousDescAscColumns)
-            .around(threeOutOfOrderNonContiguousColumns)
+            .around(twoOutOfOrderNonContiguousDescAscColumnsAfter)
+            .around(threeContiguousColumns)
+            .around(threeContiguousColumnsAfter)
+            .around(threeContiguousAscAscDescColumns)
+            .around(threeContiguousAscAscDescColumnsAfter)
+            .around(threeContiguousAscDescAscColumns)
+            .around(threeContiguousAscDescAscColumnsAfter)
+            .around(threeContiguousDescAscAscColumns)
+            .around(threeContiguousDescAscAscColumnsAfter)
+            .around(threeContiguousDescDescAscColumns)
+            .around(threeContiguousDescDescAscColumnsAfter)
+            .around(threeContiguousDescAscDescColumns)
+            .around(threeContiguousDescAscDescColumnsAfter)
+            .around(threeContiguousAscDescDescColumns)
+            .around(threeContiguousAscDescDescColumnsAfter)
+            .around(threeContiguousDescDescDescColumns)
+            .around(threeContiguousDescDescDescColumnsAfter)
             .around(threeNonContiguousColumns)
+            .around(threeNonContiguousColumnsAfter)
             .around(threeNonContiguousAscAscDescColumns)
+            .around(threeNonContiguousAscAscDescColumnsAfter)
             .around(threeNonContiguousAscDescAscColumns)
+            .around(threeNonContiguousAscDescAscColumnsAfter)
             .around(threeNonContiguousDescAscAscColumns)
+            .around(threeNonContiguousDescAscAscColumnsAfter)
             .around(threeNonContiguousDescDescAscColumns)
+            .around(threeNonContiguousDescDescAscColumnsAfter)
             .around(threeNonContiguousDescAscDescColumns)
+            .around(threeNonContiguousDescAscDescColumnsAfter)
             .around(threeNonContiguousAscDescDescColumns)
-            .around(threeNonContiguousDescDescDescColumns);
+            .around(threeNonContiguousAscDescDescColumnsAfter)
+            .around(threeNonContiguousDescDescDescColumns)
+            .around(threeNonContiguousDescDescDescColumnsAfter)
+            .around(threeOutOfOrderNonContiguousColumns)
+            .around(threeOutOfOrderNonContiguousColumnsAfter)
+            .around(threeOutOfOrderNonContiguousAscAscDescColumns)
+            .around(threeOutOfOrderNonContiguousAscAscDescColumnsAfter)
+            .around(threeOutOfOrderNonContiguousAscDescAscColumns)
+            .around(threeOutOfOrderNonContiguousAscDescAscColumnsAfter)
+            .around(threeOutOfOrderNonContiguousDescAscAscColumns)
+            .around(threeOutOfOrderNonContiguousDescAscAscColumnsAfter)
+            .around(threeOutOfOrderNonContiguousDescDescAscColumns)
+            .around(threeOutOfOrderNonContiguousDescDescAscColumnsAfter)
+            .around(threeOutOfOrderNonContiguousDescAscDescColumns)
+            .around(threeOutOfOrderNonContiguousDescAscDescColumnsAfter)
+            .around(threeOutOfOrderNonContiguousAscDescDescColumns)
+            .around(threeOutOfOrderNonContiguousAscDescDescColumnsAfter)
+            .around(threeOutOfOrderNonContiguousDescDescDescColumns)
+            .around(threeOutOfOrderNonContiguousDescDescDescColumnsAfter);
+
     private static final float FLOAT_PRECISION = (float) Math.pow(10, -6);
     private static final float DOUBLE_PRECISION = (float) Math.pow(10, -12);
 
@@ -72,2744 +174,475 @@ public class CompoundNonUniqueIndexTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
-    public void testCanInsertIntoThreeNonContiguousColumns() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a,c,d)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsAscAscDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousAscAscDescColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousAscAscDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscAscDescColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsAscDescAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousAscDescAscColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousAscDescAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescAscColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsDescAscAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousDescAscAscColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousDescAscAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscAscColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsDescDescAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousDescDescAscColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousDescDescAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescAscColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsDescAscDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousDescAscDescColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousDescAscDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescAscDescColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsAscDescDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousAscDescDescColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousAscDescDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousAscDescDescColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsDescDescDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeNonContiguousDescDescDescColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,c asc,d desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeNonContiguousDescDescDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
-
-
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
-
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
-
-
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
-
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
-
-
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0)continue;
-
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
-
-
-            ps = methodWatcher.prepareStatement("select * from "+ threeNonContiguousDescDescDescColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
-
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-    }
-
-    @Test
     public void testCanInsertIntoTwoIndexColumns() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoContiguousColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_1", spliceSchemaWatcher.schemaName, "(a,b)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoContiguousColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoContiguousColumns,"TWO_CTG_BEFORE","(b,c)");
+        insertData(3,twoContiguousColumns.toString());
+        assertCorrectScan(3,twoContiguousColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousColumns +" where a = ? and b = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+",b="+(2*i),i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //a is good, b is bad
-                ps.setInt(1,i);
-                ps.setFloat(2,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //a is bad, b is good
-                ps.setInt(1,2*i);
-                ps.setFloat(2,2*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(2*i)+"and b="+(2*i),i,rs,false);
-//                    Assert.assertFalse("Rows returned for query a="+(2*i) +" and b="+(2*i),rs.next());
-                }finally{
-                    rs.close();
-                }
-
-                //both a and b are bad
-                ps.setInt(1,size*i);
-                ps.setFloat(2,3*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i)+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoIndexColumnsAfterInsertion() throws Exception {
+        insertData(3,twoContiguousColumnsAfter.toString());
+        createIndex(twoContiguousColumnsAfter,"TWO_CTG_AFTER","(b,c)");
+        assertCorrectScan(3,twoContiguousColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoIndexColumnsAscDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoContiguousAscDescColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,b desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoContiguousAscDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoContiguousAscDescColumns,"TWO_CTG_ASC_DESC_BEFORE","(b asc,c desc)");
+        insertData(3,twoContiguousAscDescColumns.toString());
+        assertCorrectScan(3,twoContiguousAscDescColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousAscDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousAscDescColumns +" where a = ? and b = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+",b="+(2*i),i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //a is good, b is bad
-                ps.setInt(1,i);
-                ps.setFloat(2,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //a is bad, b is good
-                ps.setInt(1,2*i);
-                ps.setFloat(2,2*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(2*i)+"and b="+(2*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //both a and b are bad
-                ps.setInt(1,size*i);
-                ps.setFloat(2,3*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i)+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoIndexColumnsAscDescAfterInsertion() throws Exception {
+        insertData(3,twoContiguousAscDescColumnsAfter.toString());
+        createIndex(twoContiguousAscDescColumnsAfter,"TWO_CTG_ASC_DESC_AFTER","(b asc,c desc)");
+        assertCorrectScan(3,twoContiguousAscDescColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoIndexColumnsDescAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoContiguousDescAscColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_1", spliceSchemaWatcher.schemaName, "(a asc,b desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoContiguousDescAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoContiguousDescAscColumns,"TWO_CTG_DESC_ASC_BEFORE","(b desc,c asc)");
+        insertData(3,twoContiguousDescAscColumns.toString());
+        assertCorrectScan(3,twoContiguousDescAscColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousDescAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoContiguousDescAscColumns +" where a = ? and b = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+",b="+(2*i),i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //a is good, b is bad
-                ps.setInt(1,i);
-                ps.setFloat(2,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //a is bad, b is good
-                ps.setInt(1,2*i);
-                ps.setFloat(2,2*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(2*i)+"and b="+(2*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //both a and b are bad
-                ps.setInt(1,size*i);
-                ps.setFloat(2,3*i);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i)+"and b="+(3*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoIndexColumnsDescAscAfterInsertion() throws Exception {
+        insertData(3,twoContiguousDescAscColumnsAfter.toString());
+        createIndex(twoContiguousDescAscColumnsAfter,"TWO_CTG_DESC_ASC_AFTER","(b desc,c asc)");
+        assertCorrectScan(3,twoContiguousDescAscColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumns() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoContiguousColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_2", spliceSchemaWatcher.schemaName, "(a,c)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoNonContiguousColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoNonContiguousColumns,"TWO_NCTG_BEFORE","(a,c)");
+        insertData(3,twoNonContiguousColumns.toString());
+        assertCorrectScan(3,twoNonContiguousColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoNonContiguousColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoNonContiguousColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //bad a, good c
-                int a = (size*i);
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsAfterInsertion() throws Exception {
+        insertData(3,twoNonContiguousColumnsAfter.toString());
+        createIndex(twoNonContiguousColumnsAfter,"TWO_NCTG_AFTER","(a,c)");
+        assertCorrectScan(3,twoNonContiguousColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumnsAscDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoNonContiguousAscDescColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_2", spliceSchemaWatcher.schemaName, "(a asc,c desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoNonContiguousAscDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoNonContiguousAscDescColumns,"TWO_NCTG_ASC_DESC_BEFORE","(a asc,c desc)");
+        insertData(3,twoNonContiguousAscDescColumns.toString());
+        assertCorrectScan(3,twoNonContiguousAscDescColumns.toString());
+    }
 
-            ps = methodWatcher.prepareStatement("select * from "+ twoNonContiguousAscDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                //validate that we can return every row for every i
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+i,i, rs,true);
-
-                if(i==0) continue;
-                //validate that we don't return anything for bad qualifiers
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+(size*i),i,rs,false);
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            String sql = "select * from "+ twoNonContiguousAscDescColumns +" where a = ? and c = ?";
-            System.out.println(sql);
-            ps = methodWatcher.prepareStatement(sql);
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-
-                //validate that an incorrect qualifier will return no results for two columns
-                if(i==0) continue;
-                //bad a, good c
-                a = (size*i);
-                c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-            }
-
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsAscDescAfterInsertion() throws Exception {
+        insertData(3,twoNonContiguousAscDescColumnsAfter.toString());
+        createIndex(twoNonContiguousAscDescColumnsAfter,"TWO_NCTG_ASC_DESC_AFTER","(a asc,c desc)");
+        assertCorrectScan(3,twoNonContiguousAscDescColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumnsDescAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoNonContiguousDescAscColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_2", spliceSchemaWatcher.schemaName, "(a desc,c asc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoNonContiguousDescAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoNonContiguousDescAscColumns,"TWO_NCTG_DESC_ASC_BEFORE","(a desc,c asc)");
+        insertData(3,twoNonContiguousDescAscColumns.toString());
+        assertCorrectScan(3,twoNonContiguousDescAscColumns.toString());
+    }
 
-            ps = methodWatcher.prepareStatement("select * from "+ twoNonContiguousDescAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                //validate that we can return every row for every i
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+i,i, rs,true);
-
-                if(i==0) continue;
-                //validate that we don't return anything for bad qualifiers
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+(size*i),i,rs,false);
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            String sql = "select * from "+ twoNonContiguousDescAscColumns +" where a = ? and c = ?";
-            System.out.println(sql);
-            ps = methodWatcher.prepareStatement(sql);
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-
-                //validate that an incorrect qualifier will return no results for two columns
-                if(i==0) continue;
-                //bad a, good c
-                a = (size*i);
-                c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-            }
-
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsDescAscAfterInsertion() throws Exception {
+        insertData(3,twoNonContiguousDescAscColumnsAfter.toString());
+        createIndex(twoNonContiguousDescAscColumnsAfter,"TWO_NCTG_DESC_ASC_AFTER","(a desc,c asc)");
+        assertCorrectScan(3,twoNonContiguousDescAscColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrder() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoOutOfOrderNonContiguousColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_3", spliceSchemaWatcher.schemaName, "(c,a)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoOutOfOrderNonContiguousColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoOutOfOrderNonContiguousColumns,"TWO_NCTG_OO_BEFORE","(d,b)");
+        insertData(3,twoOutOfOrderNonContiguousColumns.toString());
+        assertCorrectScan(3,twoOutOfOrderNonContiguousColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+3*i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,(size+1)*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+((size+1)*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //bad a, good c
-                int a = (size*i);
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrderAfterInsertion() throws Exception {
+        insertData(3,twoOutOfOrderNonContiguousColumnsAfter.toString());
+        createIndex(twoOutOfOrderNonContiguousColumnsAfter,"TWO_NCTG_OO_AFTER","(d,b)");
+        assertCorrectScan(3,twoOutOfOrderNonContiguousColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrderAscDesc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoOutOfOrderNonContiguousAscDescColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_3", spliceSchemaWatcher.schemaName, "(c asc,a desc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoOutOfOrderNonContiguousAscDescColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+        createIndex(twoOutOfOrderNonContiguousAscDescColumns,"TWO_NCTG_OO_ASC_DESC_BEFORE","(d asc,b desc)");
+        insertData(3,twoOutOfOrderNonContiguousAscDescColumns.toString());
+        assertCorrectScan(3,twoOutOfOrderNonContiguousAscDescColumns.toString());
+    }
 
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousAscDescColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousAscDescColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+3*i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,(size+1)*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+((size+1)*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousAscDescColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //bad a, good c
-                int a = (size*i);
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+    @Test
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrderAscDescAfterInsertion() throws Exception {
+        insertData(3,twoOutOfOrderNonContiguousAscDescColumnsAfter.toString());
+        createIndex(twoOutOfOrderNonContiguousAscDescColumnsAfter,"TWO_NCTG_OO_ASC_DESC_AFTER","(d asc,b desc)");
+        assertCorrectScan(3,twoOutOfOrderNonContiguousAscDescColumnsAfter.toString());
     }
 
     @Test
     public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrderDescAsc() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(twoOutOfOrderNonContiguousDescAscColumns.tableName, spliceSchemaWatcher.schemaName, "TWO_IDX_3", spliceSchemaWatcher.schemaName, "(c desc,a asc)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ twoOutOfOrderNonContiguousDescAscColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
-
-            //validate that we can return every row for every i
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousDescAscColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,size*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+(size*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousDescAscColumns +" where c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+3*i,i, rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we don't return anything for bad qualifiers
-            for(int i=1;i<size;i++){
-                ps.setInt(1,(size+1)*i);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("c="+((size+1)*i),i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that we can return every row based on the a and b qualifiers
-            ps = methodWatcher.prepareStatement("select * from "+ twoOutOfOrderNonContiguousDescAscColumns +" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,true);
-                }finally{
-                    rs.close();
-                }
-            }
-
-            //validate that an incorrect qualifier will return no results for two columns
-            for(int i=1;i<size;i++){
-                //bad a, good c
-                int a = (size*i);
-                int c = (3*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ResultSet rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad c, good a
-                a = (i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-
-                //bad a,c
-                a = (size*i);
-                c = (2*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                rs = ps.executeQuery();
-                try{
-                    assertColumnDataCorrect("a="+a+",c="+c,i,rs,false);
-                }finally{
-                    rs.close();
-                }
-            }
-        }finally{
-            a_idx_1.drop();
-        }
-
+        createIndex(twoOutOfOrderNonContiguousDescAscColumns,"TWO_NCTG_OO_ASC_DESC_BEFORE","(d desc,b asc)");
+        insertData(3,twoOutOfOrderNonContiguousDescAscColumns.toString());
+        assertCorrectScan(3,twoOutOfOrderNonContiguousDescAscColumns.toString());
     }
+
     @Test
-    public void testCanInsertIntoThreeNonContiguousColumnsOutOfOrder() throws Exception {
-        int size = 10;
-        //create the index first
-        SpliceIndexWatcher a_idx_1 = new SpliceIndexWatcher(threeOutOfOrderNonContiguousColumns.tableName, spliceSchemaWatcher.schemaName, "THREE_IDX_1", spliceSchemaWatcher.schemaName, "(a,c,d)");
-        a_idx_1.starting(null);
-        try{
-            PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ threeOutOfOrderNonContiguousColumns +" (a,b,c,d) values (?,?,?,?)");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setFloat(2,2*i);
-                ps.setInt(3,3*i);
-                ps.setDouble(4,4*i);
-                ps.executeUpdate();
-            }
+    public void testCanInsertIntoTwoNonContiguousIndexColumnsOutOfOrderDescAscAfterInsertion() throws Exception {
+        insertData(3,twoOutOfOrderNonContiguousDescAscColumnsAfter.toString());
+        createIndex(twoOutOfOrderNonContiguousDescAscColumnsAfter,"TWO_NCTG_OO_DESC_ASC_AFTER","(d desc,b asc)");
+        assertCorrectScan(3,twoOutOfOrderNonContiguousDescAscColumnsAfter.toString());
+    }
 
-            //check that all values of a return correctly
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns +" where a = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ i,i,rs,true);
+    @Test
+    public void testCanInsertIntoThreeContiguousIndexColumns() throws Exception {
+        createIndex(threeContiguousColumns,"THREE_CTG_BEFORE","(a,b,c)");
+        insertData(3,threeContiguousColumns.toString());
+        assertCorrectScan(3,threeContiguousColumns.toString());
+    }
 
+    @Test
+    public void testCanInsertIntoThreeContiguousIndexColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousColumnsAfter.toString());
+        createIndex(threeContiguousColumnsAfter,"THREE_CTG_AFTER","(a,b,c)");
+        assertCorrectScan(3,threeContiguousColumnsAfter.toString());
+    }
 
-                if(i==0) continue;
-                //check bad a
-                ps.setInt(1,size*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("a = "+ (size*i),i,rs,false);
-            }
+    @Test
+    public void testCanInsertIntoThreeContiguousAscAscDescColumns() throws Exception {
+        createIndex(threeContiguousAscAscDescColumns,"THREE_CTG_AAD_BEFORE","(a asc,b asc,c desc)");
+        insertData(3,threeContiguousAscAscDescColumns.toString());
+        assertCorrectScan(3,threeContiguousAscAscDescColumns.toString());
+    }
 
+    @Test
+    public void testCanInsertIntoThreeContiguousAscAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousAscAscDescColumnsAfter.toString());
+        createIndex(threeContiguousAscAscDescColumnsAfter,"THREE_CTG_AAD_AFTER","(a asc,b asc ,c desc)");
+        assertCorrectScan(3,threeContiguousAscAscDescColumnsAfter.toString());
+    }
 
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns+" where c = ?");
-            for(int i=0;i<size;i++){
+    @Test
+    public void testCanInsertIntoThreeContiguousAscDescAscColumns() throws Exception {
+        createIndex(threeContiguousAscDescAscColumns,"THREE_CTG_ADA_BEFORE","(a asc,b desc,c asc)");
+        insertData(3,threeContiguousAscDescAscColumns.toString());
+        assertCorrectScan(3,threeContiguousAscDescAscColumns.toString());
+    }
 
-                //check that all values of c return correctly
-                ps.setInt(1,3*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+(3*i),i,rs,true);
+    @Test
+    public void testCanInsertIntoThreeContiguousAscDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousAscDescAscColumnsAfter.toString());
+        createIndex(threeContiguousAscDescAscColumnsAfter,"THREE_CTG_ADA_AFTER","(a asc,b desc,c asc)");
+        assertCorrectScan(3,threeContiguousAscDescAscColumnsAfter.toString());
+    }
 
-                if(i==0) continue;
-                //check bad values for c
-                ps.setInt(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("c = "+ ((size+1)*i),i,rs,false);
-            }
+    @Test
+    public void testCanInsertIntoThreeContiguousDescAscAscColumns() throws Exception {
+        createIndex(threeContiguousDescAscAscColumns,"THREE_CTG_DAA_BEFORE","(a desc,b asc,c asc)");
+        insertData(3,threeContiguousDescAscAscColumns.toString());
+        assertCorrectScan(3,threeContiguousDescAscAscColumns.toString());
+    }
 
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns+" where d = ?");
-            for(int i=0;i<size;i++){
-                //check that all values of d return correctly
-                ps.setDouble(1,4*i);
-                ResultSet rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ (4*i),i,rs,true);
+    @Test
+    public void testCanInsertIntoThreeContiguousDescAscAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousDescAscAscColumnsAfter.toString());
+        createIndex(threeContiguousDescAscAscColumnsAfter,"THREE_CTG_DAA_AFTER","(a desc,b asc,c asc)");
+        assertCorrectScan(3,threeContiguousDescAscAscColumnsAfter.toString());
+    }
 
-                if(i==0) continue;
-                //check bad values for d
-                ps.setDouble(1,(size+1)*i);
-                rs = ps.executeQuery();
-                assertColumnDataCorrect("d = "+ ((size+1)*i),i,rs,false);
-            }
+    @Test
+    public void testCanInsertIntoThreeContiguousDescDescAscColumns() throws Exception {
+        createIndex(threeContiguousDescDescAscColumns,"THREE_CTG_DDA_BEFORE","(a desc,b desc,c asc)");
+        insertData(3,threeContiguousDescDescAscColumns.toString());
+        assertCorrectScan(3,threeContiguousDescDescAscColumns.toString());
+    }
 
+    @Test
+    public void testCanInsertIntoThreeContiguousDescDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousDescDescAscColumnsAfter.toString());
+        createIndex(threeContiguousDescDescAscColumnsAfter,"THREE_CTG_DDA_AFTER","(a desc,b desc,c asc)");
+        assertCorrectScan(3,threeContiguousDescDescAscColumnsAfter.toString());
+    }
 
-            //check that all values of a=? and c = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns+" where a = ? and c = ?");
-            for(int i=0;i<size;i++){
-                ps.setInt(1,i);
-                ps.setInt(2,3*i);
-                assertColumnDataCorrect("a = "+ i+" and c = "+(3*i),i,ps.executeQuery(),true);
+    @Test
+    public void testCanInsertIntoThreeContiguousDescAscDescColumns() throws Exception {
+        createIndex(threeContiguousDescAscDescColumns,"THREE_CTG_DAD_BEFORE","(a desc,b asc,c desc)");
+        insertData(3,threeContiguousDescAscDescColumns.toString());
+        assertCorrectScan(3,threeContiguousDescAscDescColumns.toString());
+    }
 
-                if(i==0) continue;
-                //check bad values for a, good for c
-                int a = (size*i);
-                int c = 3*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ (size*i)+" and c = "+(3*i),i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeContiguousDescAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousDescAscDescColumnsAfter.toString());
+        createIndex(threeContiguousDescAscDescColumnsAfter,"THREE_CTG_DAD_AFTER","(a desc,b asc,c desc)");
+        assertCorrectScan(3,threeContiguousDescAscDescColumnsAfter.toString());
+    }
 
-                //check bad values for c, good for a
-                a = i;
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeContiguousAscDescDescColumns() throws Exception {
+        createIndex(threeContiguousAscDescDescColumns,"THREE_CTG_ADD_BEFORE","(a asc,b desc,c desc)");
+        insertData(3,threeContiguousAscDescDescColumns.toString());
+        assertCorrectScan(3,threeContiguousAscDescDescColumns.toString());
+    }
 
-                //check bad values for a and c
-                a = (size*i);
-                c = ((size+1)*i);
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                assertColumnDataCorrect("a = "+ a+" and c = "+c,i,ps.executeQuery(),false);
-            }
+    @Test
+    public void testCanInsertIntoThreeContiguousAscDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousAscDescDescColumnsAfter.toString());
+        createIndex(threeContiguousAscDescDescColumnsAfter,"THREE_CTG_ADD_AFTER","(a asc,b desc,c desc)");
+        assertCorrectScan(3,threeContiguousAscDescDescColumnsAfter.toString());
+    }
 
+    @Test
+    public void testCanInsertIntoThreeContiguousDescDescDescColumns() throws Exception {
+        createIndex(threeContiguousDescDescDescColumns,"THREE_CTG_DDD_BEFORE","(a desc,b desc,c desc)");
+        insertData(3,threeContiguousDescDescDescColumns.toString());
+        assertCorrectScan(3,threeContiguousDescDescDescColumns.toString());
+    }
 
-            //check that all values of a=? and d = ? work
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns+" where a = ? and d = ?");
-            for(int i=0;i<size;i++){
-                int a = i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),true);
+    @Test
+    public void testCanInsertIntoThreeContiguousDescDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeContiguousDescDescDescColumnsAfter.toString());
+        createIndex(threeContiguousDescDescDescColumnsAfter,"THREE_CTG_DDD_AFTER","(a desc,b desc,c desc)");
+        assertCorrectScan(3,threeContiguousDescDescDescColumnsAfter.toString());
+    }
 
-                if(i==0)continue;
+    @Test
+    public void testCanInsertIntoThreeNonContiguousIndexColumns() throws Exception {
+        createIndex(threeNonContiguousColumns,"THREE_NCTG_BEFORE","(a,c,d)");
+        insertData(3,threeNonContiguousColumns.toString());
+        assertCorrectScan(3,threeNonContiguousColumns.toString());
+    }
 
-                //check bad values for a, good for d
-                a = (size*i);
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousIndexColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousColumnsAfter.toString());
+        createIndex(threeNonContiguousColumnsAfter,"THREE_NCTG_AFTER","(a,c,d)");
+        assertCorrectScan(3,threeNonContiguousColumnsAfter.toString());
+    }
 
-                //check bad values for d, good for a
-                a = i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscAscDescColumns() throws Exception {
+        createIndex(threeNonContiguousAscAscDescColumns,"THREE_NCTG_AAD_BEFORE","(a asc,c asc,d desc)");
+        insertData(3,threeNonContiguousAscAscDescColumns.toString());
+        assertCorrectScan(3,threeNonContiguousAscAscDescColumns.toString());
+    }
 
-                //check bad values for a and d
-                a = (size*i);
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setDouble(2,d);
-                assertColumnDataCorrect("a = "+ a+" and d = "+d,i,ps.executeQuery(),false);
-            }
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousAscAscDescColumnsAfter.toString());
+        createIndex(threeNonContiguousAscAscDescColumnsAfter,"THREE_NCTG_AAD_AFTER","(a asc,c asc,d desc)");
+        assertCorrectScan(3,threeNonContiguousAscAscDescColumnsAfter.toString());
+    }
 
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscDescAscColumns() throws Exception {
+        createIndex(threeNonContiguousAscDescAscColumns,"THREE_NCTG_ADA_BEFORE","(a asc,c desc,d asc)");
+        insertData(3,threeNonContiguousAscDescAscColumns.toString());
+        assertCorrectScan(3,threeNonContiguousAscDescAscColumns.toString());
+    }
 
-            ps = methodWatcher.prepareStatement("select * from "+ threeOutOfOrderNonContiguousColumns +" where a = ? and c = ? and d = ?");
-            for(int i=0;i<size;i++){
-                //check good values for a,c and d
-                int a = i;
-                int c = 3*i;
-                double d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),true);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousAscDescAscColumnsAfter.toString());
+        createIndex(threeNonContiguousAscDescAscColumnsAfter,"THREE_NCTG_ADA_AFTER","(a asc,c desc,d asc)");
+        assertCorrectScan(3,threeNonContiguousAscDescAscColumnsAfter.toString());
+    }
 
-                if(i==0) continue;
-                //check bad values for a, good for c and d
-                a = (size*i);
-                c = 3*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescAscAscColumns() throws Exception {
+        createIndex(threeNonContiguousDescAscAscColumns,"THREE_NCTG_DAA_BEFORE","(a desc,c asc,d asc)");
+        insertData(3,threeNonContiguousDescAscAscColumns.toString());
+        assertCorrectScan(3,threeNonContiguousDescAscAscColumns.toString());
+    }
 
-                //check bad c,good a and d
-                a = i;
-                c = (size+1)*i;
-                d = 4*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescAscAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousDescAscAscColumnsAfter.toString());
+        createIndex(threeNonContiguousDescAscAscColumnsAfter,"THREE_NCTG_DAA_AFTER","(a desc,c asc,d asc)");
+        assertCorrectScan(3,threeNonContiguousDescAscAscColumnsAfter.toString());
+    }
 
-                //check bad d,good a and c
-                a = i;
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescDescAscColumns() throws Exception {
+        createIndex(threeNonContiguousDescDescAscColumns,"THREE_NCTG_DDA_BEFORE","(a desc,c desc,d asc)");
+        insertData(3,threeNonContiguousDescDescAscColumns.toString());
+        assertCorrectScan(3,threeNonContiguousDescDescAscColumns.toString());
+    }
 
-                //check bad a,c, good d
-                a = (size*i);
-                c = (size+1)*i;
-                d = (4)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousDescDescAscColumnsAfter.toString());
+        createIndex(threeNonContiguousDescDescAscColumnsAfter,"THREE_NCTG_DDA_AFTER","(a desc,c desc,d asc)");
+        assertCorrectScan(3,threeNonContiguousDescDescAscColumnsAfter.toString());
+    }
 
-                //check bad a,d, good c
-                a = (size*i);
-                c = (3)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescAscDescColumns() throws Exception {
+        createIndex(threeNonContiguousDescAscDescColumns,"THREE_NCTG_DAD_BEFORE","(a desc,c asc,d desc)");
+        insertData(3,threeNonContiguousDescAscDescColumns.toString());
+        assertCorrectScan(3,threeNonContiguousDescAscDescColumns.toString());
+    }
 
-                //check bad c,d, good a
-                a = (i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousDescAscDescColumnsAfter.toString());
+        createIndex(threeNonContiguousDescAscDescColumnsAfter,"THREE_NCTG_DAD_AFTER","(a desc,c asc,d desc)");
+        assertCorrectScan(3,threeNonContiguousDescAscDescColumnsAfter.toString());
+    }
 
-                //check bad c,d, a
-                a = (size*i);
-                c = (size+1)*i;
-                d = (size+1)*i;
-                ps.setInt(1,a);
-                ps.setInt(2,c);
-                ps.setDouble(3,d);
-                assertColumnDataCorrect("a = "+ a+" and c = "+ c+ " and d = "+d,i,ps.executeQuery(),false);
-            }
-        }finally{
-            a_idx_1.drop();
-        }
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscDescDescColumns() throws Exception {
+        createIndex(threeNonContiguousAscDescDescColumns,"THREE_NCTG_ADD_BEFORE","(a asc,c desc,d desc)");
+        insertData(3,threeNonContiguousAscDescDescColumns.toString());
+        assertCorrectScan(3,threeNonContiguousAscDescDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeNonContiguousAscDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousAscDescDescColumnsAfter.toString());
+        createIndex(threeNonContiguousAscDescDescColumnsAfter,"THREE_NCTG_ADD_AFTER","(a asc,c desc,d desc)");
+        assertCorrectScan(3,threeNonContiguousAscDescDescColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescDescDescColumns() throws Exception {
+        createIndex(threeNonContiguousDescDescDescColumns,"THREE_NCTG_DDD_BEFORE","(a desc,c desc,d desc)");
+        insertData(3,threeNonContiguousDescDescDescColumns.toString());
+        assertCorrectScan(3,threeNonContiguousDescDescDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeNonContiguousDescDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeNonContiguousDescDescDescColumnsAfter.toString());
+        createIndex(threeNonContiguousDescDescDescColumnsAfter,"THREE_NCTG_DDD_AFTER","(a desc,c desc,d desc)");
+        assertCorrectScan(3,threeNonContiguousDescDescDescColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousIndexColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousColumns,"THREE_OO_NCTG_BEFORE","(c,a,d)");
+        insertData(3,threeOutOfOrderNonContiguousColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousIndexColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousColumnsAfter,"THREE_OO_NCTG_AFTER","(c,a,d)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscAscDescColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousAscAscDescColumns,"THREE_OO_NCTG_AAD_BEFORE","(c asc,a asc,d desc)");
+        insertData(3,threeOutOfOrderNonContiguousAscAscDescColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscAscDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousAscAscDescColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousAscAscDescColumnsAfter,"THREE_OO_NCTG_AAD_AFTER","(c asc,a asc,d desc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscAscDescColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscDescAscColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousAscDescAscColumns,"THREE_OO_NCTG_ADA_BEFORE","(c asc,a desc,d asc)");
+        insertData(3,threeOutOfOrderNonContiguousAscDescAscColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscDescAscColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousAscDescAscColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousAscDescAscColumnsAfter,"THREE_OO_NCTG_ADA_AFTER","(c asc,a desc,d asc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscDescAscColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescAscAscColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousDescAscAscColumns,"THREE_OO_NCTG_DAA_BEFORE","(c desc,a asc,d asc)");
+        insertData(3,threeOutOfOrderNonContiguousDescAscAscColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescAscAscColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescAscAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousDescAscAscColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousDescAscAscColumnsAfter,"THREE_OO_NCTG_DAA_AFTER","(c desc,a asc,d asc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescAscAscColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescDescAscColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousDescDescAscColumns,"THREE_OO_NCTG_DDA_BEFORE","(c desc,a desc,d asc)");
+        insertData(3,threeOutOfOrderNonContiguousDescDescAscColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescDescAscColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescDescAscColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousDescDescAscColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousDescDescAscColumnsAfter,"THREE_OO_NCTG_DDA_AFTER","(c desc,a desc,d asc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescDescAscColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescAscDescColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousDescAscDescColumns,"THREE_OO_NCTG_DAD_BEFORE","(c desc,a asc,d desc)");
+        insertData(3,threeOutOfOrderNonContiguousDescAscDescColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescAscDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescAscDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousDescAscDescColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousDescAscDescColumnsAfter,"THREE_OO_NCTG_DAD_AFTER","(c desc,a asc,d desc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescAscDescColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscDescDescColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousAscDescDescColumns,"THREE_OO_NCTG_ADD_BEFORE","(c asc,a desc,d desc)");
+        insertData(3,threeOutOfOrderNonContiguousAscDescDescColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscDescDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousAscDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousAscDescDescColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousAscDescDescColumnsAfter,"THREE_OO_NCTG_ADD_AFTER","(c asc,a desc,d desc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousAscDescDescColumnsAfter.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescDescDescColumns() throws Exception {
+        createIndex(threeOutOfOrderNonContiguousDescDescDescColumns,"THREE_OO_NCTG_DDD_BEFORE","(c desc,a desc,d desc)");
+        insertData(3,threeOutOfOrderNonContiguousDescDescDescColumns.toString());
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescDescDescColumns.toString());
+    }
+
+    @Test
+    public void testCanInsertIntoThreeOutOfOrderNonContiguousDescDescDescColumnsAfterInsertion() throws Exception {
+        insertData(3,threeOutOfOrderNonContiguousDescDescDescColumnsAfter.toString());
+        createIndex(threeOutOfOrderNonContiguousDescDescDescColumnsAfter,"THREE_OO_NCTG_DDD_AFTER","(c desc,a desc,d desc)");
+        assertCorrectScan(3,threeOutOfOrderNonContiguousDescDescDescColumnsAfter.toString());
+    }
+
+    /* private helper functions */
+    private void createIndex(SpliceTableWatcher tableWatcher,String indexName, String indexSchema) throws Exception{
+        SpliceIndexWatcher idxWatcher = new SpliceIndexWatcher(
+                tableWatcher.tableName,
+                tableWatcher.getSchema(),
+                indexName,
+                tableWatcher.getSchema(),indexSchema);
+        idxWatcher.starting(null);
     }
 
     private void assertColumnDataCorrect(String query,int i, ResultSet rs,boolean expectData) throws SQLException {
@@ -2838,6 +671,229 @@ public class CompoundNonUniqueIndexTest {
         }finally{
             rs.close();
         }
+    }
+
+    private static final String[] queryFormatStrings = new String[]{
+            "select * from %s where a = ?",
+            "select * from %s where b = ?",
+            "select * from %s where c = ?",
+            "select * from %s where d = ?",
+
+            "select * from %s where a = ? and b = ?",
+            "select * from %s where a = ? and c = ?",
+            "select * from %s where a = ? and d = ?",
+            "select * from %s where b = ? and c = ?",
+            "select * from %s where b = ? and d = ?",
+            "select * from %s where c = ? and d = ?",
+
+            "select * from %s where a = ? and b = ? and c = ?",
+            "select * from %s where a = ? and b = ? and d = ?",
+            "select * from %s where a = ? and c = ? and d = ?",
+            "select * from %s where b = ? and c = ? and d = ?",
+
+            "select * from %s where a = ? and b = ? and c = ? and d = ?"
+    };
+
+    private static final int[][] setFields  = new int[][]{
+            new int[]{ 1,-1,-1,-1},
+            new int[]{-1, 1,-1,-1},
+            new int[]{-1,-1, 1,-1},
+            new int[]{-1,-1,-1, 1},
+
+            new int[]{ 1, 1,-1,-1},
+            new int[]{ 1,-1, 1,-1},
+            new int[]{ 1,-1,-1, 1},
+
+            new int[]{-1, 1, 1,-1},
+            new int[]{-1, 1,-1, 1},
+
+            new int[]{-1,-1, 1, 1},
+
+            new int[]{ 1, 1, 1,-1},
+            new int[]{ 1, 1,-1, 1},
+            new int[]{ 1,-1, 1, 1},
+            new int[]{-1, 1, 1, 1},
+
+            new int[]{ 1, 1, 1, 1}
+    };
+
+    private void insertData(int size,String tableName) throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ tableName +" (a,b,c,d) values (?,?,?,?)");
+        for(int i=0;i<size;i++){
+            ps.setInt(1,i);
+            ps.setFloat(2,2*i);
+            ps.setInt(3,3*i);
+            ps.setDouble(4,4*i);
+            ps.executeUpdate();
+        }
+    }
+
+
+    private void assertCorrectScan(int size, String tableName) throws Exception{
+        int[][] badFieldMultipliers = getBadFieldMultipliers(size);
+        PreparedStatement[] statementsToExecute = new PreparedStatement[queryFormatStrings.length];
+        for(int i=0;i<queryFormatStrings.length;i++){
+            statementsToExecute[i] = methodWatcher.prepareStatement(String.format(queryFormatStrings[i],tableName));
+        }
+
+        for(int i=0;i<statementsToExecute.length;i++){
+            PreparedStatement statementToCheck = statementsToExecute[i];
+            int[] fields = setFields[i];
+            for(int num=0;num<size;num++){
+                //check good for all set fields
+                int[] numbers = getGoodFields(fields, num);
+                String queryString = appendToStatement(statementToCheck, numbers);
+
+                assertColumnDataCorrect(queryString,num,statementToCheck.executeQuery(),true);
+                if(num==0) continue;
+
+                for(int[] badField:badFieldMultipliers){
+                    //check if this badField query applies
+
+                    boolean applies=true;
+                    for(int j=0;j<badField.length;j++){
+                        if(fields[j]<=0){
+                            if(badField[j]> 0 ){
+                                //fields[j] is not set, but badField[j] is
+                                applies=false;
+                                break;
+                            }
+                        }else if(badField[j] <=0){
+                            //fields[j] is set, but badField[j] is not
+                            applies=false;
+                            break;
+                        }
+                    }
+                    if(!applies)continue;
+
+                    numbers = getBadFields(badField);
+
+                    queryString = appendToStatement(statementToCheck,numbers);
+                    assertColumnDataCorrect(queryString,num,statementToCheck.executeQuery(),false);
+                }
+            }
+        }
+    }
+
+    private int[] getBadFields(int[] badField) {
+        return new int[]{
+                badField[0]>0? badField[0]: -1,
+                badField[1]>0? 2*badField[1] : -1,
+                badField[2]>0? 3*badField[2] : -1,
+                badField[3]>0? 4*badField[3] : -1
+        };
+    }
+
+    private int[] getGoodFields(int[] fields, int num) {
+        return new int[]{
+            fields[0]>0?num : -1,
+            fields[1]>0? 2*num : -1,
+            fields[2]>0? 3*num : -1,
+            fields[3]>0? 4*num : -1
+        };
+    }
+
+    private String appendToStatement(PreparedStatement statementToCheck, int[] numbers) throws Exception {
+        int nextSpot=1;
+        StringBuilder queryString = new StringBuilder();
+        if(numbers[0]>=0){
+            statementToCheck.setInt(nextSpot,numbers[0]);
+            queryString.append("a = ").append(numbers[0]).append(",");
+            nextSpot++;
+        }
+        if(numbers[1]>=0){
+            statementToCheck.setFloat(nextSpot,numbers[1]);
+            queryString.append("b = ").append(numbers[1]).append(",");
+            nextSpot++;
+        }
+        if(numbers[2]>=0){
+            statementToCheck.setInt(nextSpot,numbers[2]);
+            queryString.append("c = ").append(numbers[2]).append(",");
+            nextSpot++;
+        }
+        if(numbers[3]>=0){
+            statementToCheck.setDouble(nextSpot, numbers[3]);
+            queryString.append("d = ").append(numbers[3]).append(",");
+        }
+        return queryString.toString();
+    }
+
+    private int[][] getBadFieldMultipliers(int size) {
+        return new int[][]{
+                //1 value
+                new int[]{size,    -1,    -1,    -1},
+                new int[]{  -1,size+1,    -1,    -1},
+                new int[]{  -1,    -1,size+1,    -1},
+                new int[]{  -1,    -1,    -1,size+1},
+
+                new int[]{     1,size+1,    -1,    -1},
+                new int[]{size+1,     1,    -1,    -1},
+                new int[]{size+1,size+1,    -1,    -1},
+
+                new int[]{     1,    -1,size+1,    -1},
+                new int[]{size+1,    -1,     1,    -1},
+                new int[]{size+1,    -1,size+1,    -1},
+
+                new int[]{     1,    -1,    -1,size+1},
+                new int[]{size+1,    -1,    -1,     1},
+                new int[]{size+1,    -1,    -1,size+1},
+
+                new int[]{    -1,size+1,     1,    -1},
+                new int[]{    -1,     1,size+1,    -1},
+                new int[]{    -1,size+1,size+1,    -1},
+
+                new int[]{    -1,size+1,    -1,     1},
+                new int[]{    -1,     1,    -1,size+1},
+                new int[]{    -1,size+1,    -1,size+1},
+
+                new int[]{    -1,    -1,size+1,     1},
+                new int[]{    -1,    -1,     1,size+1},
+                new int[]{    -1,    -1,size+1,size+1},
+
+                new int[]{size+1,     1,     1,    -1},
+                new int[]{     1,size+1,     1,    -1},
+                new int[]{     1,     1,size+1,    -1},
+                new int[]{size+1,size+1,     1,    -1},
+                new int[]{size+1,     1,size+1,    -1},
+                new int[]{     1,size+1,size+1,    -1},
+                new int[]{size+1,size+1,size+1,    -1},
+
+                new int[]{size+1,     1,    -1,     1},
+                new int[]{     1,size+1,    -1,     1},
+                new int[]{     1,     1,    -1,size+1},
+                new int[]{size+1,size+1,    -1,     1},
+                new int[]{size+1,     1,    -1,size+1},
+                new int[]{     1,size+1,    -1,size+1},
+                new int[]{size+1,size+1,    -1,size+1},
+
+                new int[]{size+1,    -1,     1,     1},
+                new int[]{     1,    -1,size+1,     1},
+                new int[]{     1,    -1,     1,size+1},
+                new int[]{size+1,    -1,size+1,     1},
+                new int[]{size+1,    -1,     1,size+1},
+                new int[]{     1,    -1,size+1,size+1},
+                new int[]{size+1,    -1,size+1,size+1},
+
+                new int[]{size+1,     1,     1,     1},
+                new int[]{     1,size+1,     1,     1},
+                new int[]{     1,     1,size+1,     1},
+                new int[]{     1,     1,     1,size+1},
+
+                new int[]{size+1,size+1,     1,     1},
+                new int[]{size+1,     1,size+1,     1},
+                new int[]{size+1,     1,     1,size+1},
+
+                new int[]{     1,size+1,size+1,     1},
+                new int[]{     1,size+1,     1,size+1},
+                new int[]{     1,     1,size+1,size+1},
+
+                new int[]{size+1,size+1,size+1,     1},
+                new int[]{size+1,size+1,     1,size+1},
+                new int[]{size+1,     1,size+1,size+1},
+                new int[]{     1,size+1,size+1,size+1},
+
+                new int[]{size+1,size+1,size+1,size+1}
+        };
     }
 
 }
