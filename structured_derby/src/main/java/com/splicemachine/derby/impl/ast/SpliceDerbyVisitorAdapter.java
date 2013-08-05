@@ -73,8 +73,8 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
 
     @Override
     public void end(int phase) throws StandardException {
-        long duration = start - System.nanoTime();
-        LOG.info(String.format("%s visited %d nodes in %d ms", v.getClass().getSimpleName(), visited, (duration / 1000000)));
+        float duration = (System.nanoTime() - start) / 1000000f;
+        LOG.info(String.format("%s visited %d nodes in %.2f ms", v.getClass().getSimpleName(), visited, duration));
         visited = 0;
     }
 

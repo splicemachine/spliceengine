@@ -54,6 +54,9 @@ public class SpliceASTWalker implements ASTVisitor {
 
     @Override
     public void end(int phase) throws StandardException {
+        for(ASTVisitor v: visitors){
+            v.end(phase);
+        }
         visitors.clear();
     }
 
