@@ -6,6 +6,7 @@
         <conf name="test"    extends="runtime"/>
     </configurations>
     <dependencies>
-         <dependency org="org.jruby" name="jruby-complete" rev="1.6.5" transitive="false"/>
+        <dependency org="org.jruby" name="jruby-complete" rev="1.6.5" transitive="false"/>
+        <dependency org="commons-lang" name="commons-lang" rev="2.6"/>
     </dependencies>
 </ivy-module>

@@ -1405,6 +1405,27 @@ public abstract class ValueNode extends QueryTreeNode
 	protected abstract boolean isEquivalent(ValueNode other)
 		throws StandardException;
 
+    public boolean equals(Object o) {
+
+        boolean result;
+
+        if(o instanceof ValueNode){
+
+            try{
+                result = isEquivalent((ValueNode) o);
+            }catch (StandardException e){
+                throw new RuntimeException(e);
+            }
+
+        }else{
+
+            result = super.equals(o);
+
+        }
+
+        return result;
+    }
+
 	/**
 	 * Tests if this node is of the same type as the specified node as
 	 * reported by {@link QueryTreeNode#getNodeType()}.

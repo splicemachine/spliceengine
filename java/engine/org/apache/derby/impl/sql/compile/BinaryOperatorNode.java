@@ -21,21 +21,20 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
 
 import java.lang.reflect.Modifier;
+
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.reference.JDBC40Translation;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
@@ -832,4 +831,15 @@ public class BinaryOperatorNode extends OperatorNode
         	       && leftOperand.isEquivalent(other.leftOperand)
         	       && rightOperand.isEquivalent(other.rightOperand);
         }
+
+    public int hashCode() {
+    	
+    	HashCodeBuilder builder = new HashCodeBuilder(397, 17);
+    	builder.append(methodName)
+    		.append(leftOperand)
+    		.append(rightOperand);
+    	
+    	return builder.toHashCode();
+    }
 }
+

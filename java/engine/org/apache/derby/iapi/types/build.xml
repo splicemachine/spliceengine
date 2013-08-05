@@ -68,9 +68,7 @@
 
   <target name="compile_types" depends="init-ivy">
 
-    <ivy:cachepath transitive="false" organisation="org.jruby" module="jruby-complete" revision="1.6.5" pathid="lib.path.id" inline="true"/>
-
-
+    <ivy:cachepath pathid="lib.path.id"/>
 
     <!-- We only compile SqlXmlUtil against JDK 1.4 because it   -->
     <!-- relies on several XML classes that are part of 1.4 but  -->
