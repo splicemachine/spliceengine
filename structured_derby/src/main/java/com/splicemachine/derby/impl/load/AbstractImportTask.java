@@ -95,22 +95,22 @@ public abstract class AbstractImportTask extends ZkTask {
             BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
             BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
             BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
-            FormatableBitSet pkCols = importContext.getPrimaryKeys();
+            int[] pkCols = importContext.getPrimaryKeys();
 
             CallBuffer<Mutation> writeBuffer = getCallBuffer();
 
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
-            int pos =0;
-            if(pkCols!=null){
-                keyColumns = new int[pkCols.getNumBitsSet()];
-                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
-                    keyColumns[pos] = i;
-                    pos++;
-                }
-            }else
-                keyColumns = new int[0];
+//            int pos =0;
+//            if(pkCols!=null){
+//                keyColumns = new int[pkCols.getNumBitsSet()];
+//                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
+//                    keyColumns[pos] = i;
+//                    pos++;
+//                }
+//            }else
 
-            entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
+
+            entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
 
             Long numImported;
             try{

@@ -2,10 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 import org.junit.Rule;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,13 +46,39 @@ public class AbstractIndexTest {
         idxWatcher.starting(null);
     }
 
-    protected final void createIndex(SpliceTableWatcher tableWatcher,String indexName, String indexSchema,boolean unique) throws Exception{
-        SpliceIndexWatcher idxWatcher = new SpliceIndexWatcher(
-                tableWatcher.tableName,
-                tableWatcher.getSchema(),
-                indexName,
-                tableWatcher.getSchema(),indexSchema,unique);
-        idxWatcher.starting(null);
+    protected final void importData(String schema,String tableName, String fileName) throws Exception {
+        String file = SpliceUnitTest.getResourceDirectory()+ fileName;
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null,'%s',',',null,null,null,null)", schema, tableName, null, file));
+        ps.execute();
+    }
+
+
+    protected final void assertColumnDataCorrect(String query,int[] dataNums, ResultSet rs,boolean expectData) throws SQLException {
+        try{
+            if(!expectData){
+                Assert.assertFalse("Rows returned for query " + query, rs.next());
+            }else{
+                Assert.assertTrue("No Rows returned for query "+ query,rs.next());
+
+                //validate the correct data returned
+                int a = rs.getInt(1);
+                Assert.assertFalse("No value for a returned for query a=" + dataNums[0], rs.wasNull());
+                Assert.assertEquals("Incorrect value for a returned for query "+query ,dataNums[0],a);
+                float b = rs.getFloat(2);
+                Assert.assertFalse("No value for b returned for query a="+dataNums[1],rs.wasNull());
+                Assert.assertEquals("Incorrect value for b returned for query "+query, dataNums[1], b, FLOAT_PRECISION);
+                int c = rs.getInt(3);
+                Assert.assertFalse("No value for c returned for query a="+dataNums[2],rs.wasNull());
+                Assert.assertEquals("Incorrect value for a returned for query "+query , dataNums[2], c);
+                double d = rs.getDouble(4);
+                Assert.assertFalse("No value for d returned for query a="+dataNums[3],rs.wasNull());
+                Assert.assertEquals("Incorrect value for b returned for query "+query , dataNums[3], d, DOUBLE_PRECISION);
+
+                Assert.assertFalse("Too many Rows returned for query "+ query,rs.next());
+            }
+        }finally{
+            rs.close();
+        }
     }
 
     protected final void assertColumnDataCorrect(String query,int i, ResultSet rs,boolean expectData) throws SQLException {
@@ -131,6 +162,46 @@ public class AbstractIndexTest {
             ps.setDouble(4,4*i);
             ps.executeUpdate();
         }
+    }
+
+    protected final void assertImportedDataCorrect(String tableName, String fileName) throws Exception{
+        PreparedStatement[] statementsToExecute = new PreparedStatement[queryFormatStrings.length];
+        for(int i=0;i<queryFormatStrings.length;i++){
+            statementsToExecute[i] = methodWatcher.prepareStatement(String.format(queryFormatStrings[i],tableName));
+        }
+        File file = new File(SpliceUnitTest.getResourceDirectory()+fileName);
+        BufferedReader reader = null;
+        try{
+            reader = new BufferedReader(new FileReader(file));
+            String line;
+            while((line = reader.readLine())!=null){
+                String[] data = line.split(",");
+                int[] dataNums = new int[]{
+                        Integer.parseInt(data[0]),
+                        Integer.parseInt(data[1]),
+                        Integer.parseInt(data[2]),
+                        Integer.parseInt(data[3])
+                };
+                for(int i=0;i<statementsToExecute.length;i++){
+                    PreparedStatement ps = statementsToExecute[i];
+                    int[] numbers = mergeFields(dataNums,setFields[i]);
+                    String queryToCheck = appendToStatement(ps, numbers);
+                    assertColumnDataCorrect(queryToCheck,dataNums,ps.executeQuery(),true);
+                }
+            }
+        }finally{
+            if(reader!=null)
+                reader.close();
+        }
+    }
+
+    private int[] mergeFields(int[] dataNums, int[] setField) {
+        return new int[]{
+                setField[0]>=0 ? dataNums[0]: -1,
+                setField[1]>=0 ? dataNums[1]: -1,
+                setField[2]>=0 ? dataNums[2]: -1,
+                setField[3]>=0 ? dataNums[3] : -1
+        };
     }
 
     protected final void assertCorrectScan(int size, String tableName) throws Exception{

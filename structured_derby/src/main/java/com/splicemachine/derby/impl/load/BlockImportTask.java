@@ -106,7 +106,12 @@ public class BlockImportTask extends AbstractImportTask{
             if(line==null||line.length()==0)
                 continue; //skip empty lines
             String[] cols = parser.parseLine(line);
-            doImportRow(txnId,cols,row,writeBuffer);
+            try{
+                doImportRow(txnId,cols,row,writeBuffer);
+            }catch(Exception e){
+                LOG.error("Failed import at line "+ line,e);
+                throw e;
+            }
             numImported++;
 
             reportIntermediate(numImported);

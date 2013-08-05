@@ -321,15 +321,25 @@ public class HdfsImport extends ParallelVTI {
         Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName,insertColumnList,dmd,builder);
 
         Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd, columns.size());
-        FormatableBitSet primaryKeys = new FormatableBitSet(pkCols.size());
+        int[] pkKeyMap = new int[columns.size()];
+        for(int i=0;i<pkKeyMap.length;i++){
+            pkKeyMap[i] = -1;
+        }
         for(String pkCol:pkCols.keySet()){
-            int colPos = columns.get(pkCol);
-            primaryKeys.grow(colPos+1);
-            primaryKeys.set(colPos);
+            int colSeqNum = columns.get(pkCol);
+            int colNum = columns.get(pkCol);
+            pkKeyMap[colNum] = colSeqNum;
         }
-        if(primaryKeys.getNumBitsSet()>0){
+        int[] primaryKeys = new int[pkCols.size()];
+        int pos = 0;
+        for(int i=0;i<pkKeyMap.length;i++){
+            int pkPos = pkKeyMap[i];
+            if(pkPos<0) continue;
+            primaryKeys[pos] = pkPos;
+            pos++;
+        }
+        if(primaryKeys.length>0)
             builder.primaryKeys(primaryKeys);
-        }
     }
 
     private static Map<String,Integer> getColumns(String schemaName,String tableName,
