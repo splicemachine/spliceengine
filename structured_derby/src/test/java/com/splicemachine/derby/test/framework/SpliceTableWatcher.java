@@ -36,7 +36,7 @@ public class SpliceTableWatcher extends TestWatcher {
 			statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
 			connection.commit();
 		} catch (Exception e) {
-			LOG.error("Create table statement is invalid ");
+			LOG.error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString));
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {

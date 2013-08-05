@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.store.access.AutoCastedQualifier;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -68,7 +69,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected SpliceMethod<ExecRow> resultRowAllocator;
     protected ExecRow currentTemplate;
     protected FormatableBitSet pkCols;
-    
+    private int[] pks;
+
 
     public ScanOperation () {
 		super();
@@ -164,7 +166,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             
             if(activation.getConstantAction() instanceof SelectConstantAction){
                 SelectConstantAction action = (SelectConstantAction) activation.getConstantAction();
-                int[] pks = action.getKeyColumns();
+                pks = action.getKeyColumns();
                 pkCols = new FormatableBitSet(pks.length);
                 for(int pk:pks){
                     pkCols.grow(pk+1);
@@ -174,7 +176,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
             if(activation.getConstantAction() instanceof UpdateConstantOperation) {
             	UpdateConstantOperation action = (UpdateConstantOperation) activation.getConstantAction();
-                int[] pks = action.getPkColumns();
+                pks = action.getPkColumns();
                 if (pks != null) {
                 pkCols = new FormatableBitSet(pks.length);
 	                for(int pk:pks){
@@ -319,7 +321,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         //TODO -sf- push in the column information so that we can do scan casting for correctness
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                autoCastedQuals, conglomerate.getAscDescInfo(), pkCols,accessedCols,
+                autoCastedQuals, conglomerate.getAscDescInfo(), SpliceUtils.translateToZeroIndexed(pks),accessedCols,
                 getTransactionID());
     }
 

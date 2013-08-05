@@ -206,7 +206,7 @@ public class Scans extends SpliceUtils {
                                  DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
                                  Qualifier[][] qualifiers,
                                  boolean[] sortOrder,
-                                 FormatableBitSet primaryKeys,
+                                 int[] primaryKeys,
                                  FormatableBitSet scanColumnList,
                                  String transactionId) throws StandardException {
         Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
@@ -537,7 +537,7 @@ public class Scans extends SpliceUtils {
 	private static void attachScanKeys(Scan scan, DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                        DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
                                        Qualifier[][] qualifiers,
-                                       FormatableBitSet primaryKeys, FormatableBitSet scanColumnList,
+                                       int[] primaryKeys, FormatableBitSet scanColumnList,
                                        boolean[] sortOrder) throws IOException {
         if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
             scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
@@ -597,13 +597,13 @@ public class Scans extends SpliceUtils {
                 if(primaryKeys!=null && qualifiers!=null && qualifiers.length >0){
 
                     List<Qualifier> pkQualifiers = Lists.newArrayListWithCapacity(3);
-                    List<byte[]> startKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.getNumBitsSet());
-                    List<byte[]> endKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.getNumBitsSet());
+                    List<byte[]> startKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.length);
+                    List<byte[]> endKeyBounds = Lists.newArrayListWithCapacity(primaryKeys.length);
                     boolean[] shouldContinue = new boolean[]{true,true};
                     boolean addStart=shouldContinue[0];
                     boolean addStop = shouldContinue[1];
                     QualifierBounds qualifierBounds = null;
-                    for(int pkCol = primaryKeys.anySetBit();pkCol!=-1&&(addStart||addStop);pkCol = primaryKeys.anySetBit(pkCol)){
+                    for(int pkCol:primaryKeys){
                         //empty out previous runs
                         pkQualifiers.clear();
                         for(Qualifier[] quals: qualifiers){

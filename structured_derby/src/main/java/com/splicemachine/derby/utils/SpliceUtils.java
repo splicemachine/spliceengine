@@ -395,4 +395,14 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return validCols;
     }
+
+    public static int[] translateToZeroIndexed(int[] oneIndexed) {
+        if(oneIndexed==null) return null;
+        if(oneIndexed.length<=0) return oneIndexed;
+        int[] zeroIndexed = new int[oneIndexed.length];
+        for(int i=0;i<oneIndexed.length;i++){
+            zeroIndexed[i] = oneIndexed[i] -1;
+        }
+        return zeroIndexed;
+    }
 }
