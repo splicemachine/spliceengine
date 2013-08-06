@@ -7,6 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
 import com.splicemachine.derby.impl.ast.ISpliceVisitor;
 import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
+import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
 import com.splicemachine.derby.impl.ast.SpliceASTWalker;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
@@ -75,7 +76,11 @@ public class SpliceDatabase extends BasicDatabase {
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(JoinConditionVisitor.class);
-        lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, Collections.EMPTY_LIST, afterOptVisitors));
+
+        List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
+        afterBindVisitors.add(RepeatedPredicateVisitor.class);
+
+        lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, afterBindVisitors, afterOptVisitors));
 
 		   return lctx;
 	   }
