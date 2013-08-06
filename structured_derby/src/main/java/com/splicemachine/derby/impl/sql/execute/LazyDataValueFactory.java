@@ -16,12 +16,10 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
     private static final DoubleDVDSerializer doubleSerializer = new DoubleDVDSerializer();
     private static final DecimalDVDSerializer decimalSerializer = new DecimalDVDSerializer();
 
-    @Override
     public StringDataValue getVarcharDataValue(String value) {
         return new LazyStringDataValueDescriptor(new SQLVarchar(value), stringSerializer);
     }
 
-    @Override
     public StringDataValue getVarcharDataValue(String value, StringDataValue previous) throws StandardException {
 
         StringDataValue result;
@@ -41,7 +39,6 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         return result;
     }
 
-    @Override
     public StringDataValue getVarcharDataValue(String value, StringDataValue previous, int collationType) throws StandardException {
         return getVarcharDataValue(value, previous);
     }
@@ -50,10 +47,8 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         return getLazyNull(formatId);
     }
 
-    @Override
     public NumberDataValue getDataValue(double value, NumberDataValue previous) throws StandardException {
-
-        if(previous instanceof LazyNumberDataValueDescriptor){
+        if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
             previous = new LazyNumberDataValueDescriptor(new SQLDouble(value), doubleSerializer);
@@ -62,10 +57,8 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         return previous;
     }
 
-    @Override
     public NumberDataValue getDataValue(Double value, NumberDataValue previous) throws StandardException {
-
-        if(previous instanceof LazyNumberDataValueDescriptor){
+        if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
             previous = new LazyNumberDataValueDescriptor(new SQLDouble(value), doubleSerializer);
@@ -75,10 +68,8 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
 
     }
 
-    @Override
     public NumberDataValue getDecimalDataValue(Long value, NumberDataValue previous) throws StandardException {
-
-        if(previous instanceof LazyNumberDataValueDescriptor){
+        if(previous != null && previous instanceof LazyNumberDataValueDescriptor){
             previous.setValue(value);
         }else{
             previous = new LazyNumberDataValueDescriptor(new SQLDecimal(BigDecimal.valueOf(value.longValue())), decimalSerializer);
@@ -87,14 +78,11 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         return previous;
     }
 
-    @Override
     public NumberDataValue getDecimalDataValue(String value) throws StandardException {
         return new LazyNumberDataValueDescriptor(new SQLDecimal(value), decimalSerializer);
     }
 
-    @Override
     public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
-
         if(dataValue == null){
             dataValue = new LazyNumberDataValueDescriptor(new SQLDecimal(), decimalSerializer);
         }else{
