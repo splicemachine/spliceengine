@@ -20,7 +20,6 @@
       <include>net.sf.opencsv:opencsv</include>
       <include>com.google.code.gson:gson</include>
       <include>net.sf.ehcache:ehcache-core</include>     
-      <include>joda-time:joda-time:jar:2.2</include>
       </includes>
     </dependencySet>
   </dependencySets>
