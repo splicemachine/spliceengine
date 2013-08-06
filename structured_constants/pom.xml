@@ -49,6 +49,20 @@
                 <doUpdate>false</doUpdate>
             </configuration>
         </plugin>
-        </plugins>
+        			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.15</version>
+				<configuration>
+				 	<parallel>classes</parallel>
+          			<threadCount>5</threadCount>
+          			<perCoreThreadCount>false</perCoreThreadCount>
+					<argLine>-Xms256M -Xmx512M</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<includes>
+						<include>${runClass}</include>
+					</includes>
+				</configuration>
+			</plugin>
+        </plugins>        
 	</build>
 </project>
