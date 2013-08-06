@@ -104,7 +104,6 @@ public class IndexTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Create bug for this")
     public void testQueryCustomerByIdWithIndex() throws Exception {
         try {
             createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
@@ -147,7 +146,6 @@ public class IndexTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("TODO: Create bug for this")
     public void testQueryCustomerByNameWithIndex() throws Exception {
         try {
             createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
@@ -252,7 +250,7 @@ public class IndexTest extends SpliceUnitTest {
     }
 
     @Test(timeout=1000*60*3)  // Time out after 3 min
-    @Ignore("Always times out")
+    @Ignore("Always times out - no bug created")
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
         try {
             createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
@@ -296,7 +294,6 @@ public class IndexTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Create bug for this")
     public void testUpdateCustomerWithIndex() throws Exception {
         try {
             createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
@@ -369,7 +366,6 @@ public class IndexTest extends SpliceUnitTest {
 
     private static final String CUST_INSERT2 = "1,1,3002,0.1221,'GC','Jones','Fred',50000.0,-10.0,10.0,1,0,'qmvfraakwixzcrqxt','mamrsdfdsycaxrh','bcsyfdsdkurug','VL','843211111','3185126927164979','2013-08-01 10:33:44.813','OE','tktkdcbjqxbewxllutwigcdmzenarkhiklzfkaybefrppwtvdmecqfqaa'";
     @Test
-    @Ignore("Create bug")
     public void testInsertCustomerWithIndex() throws Exception {
         try {
             createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
