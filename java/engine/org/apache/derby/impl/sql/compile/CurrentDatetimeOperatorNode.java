@@ -22,18 +22,13 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
-
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 import java.lang.reflect.Modifier;
@@ -41,7 +36,8 @@ import java.lang.reflect.Modifier;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.sql.Types;
-
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -190,4 +186,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 		}
 		return false;
 	}
+
+		public List getChildren() {
+			return Collections.EMPTY_LIST;
+		}
 }

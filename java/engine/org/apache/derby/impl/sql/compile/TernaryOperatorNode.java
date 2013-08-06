@@ -29,22 +29,20 @@ import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
-
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.util.ReuseFactory;
 
 import java.lang.reflect.Modifier;
-
 import java.sql.Types;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -982,4 +980,11 @@ public class TernaryOperatorNode extends OperatorNode
         }
     	return false;
     }
+
+	public List getChildren() {
+		return new LinkedList(){{
+			add(leftOperand);
+			add(rightOperand);
+		}};
+	}
 }

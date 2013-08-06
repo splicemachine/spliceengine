@@ -33,6 +33,8 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.util.JBitSet;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -1259,5 +1261,9 @@ public class ColumnReference extends ValueNode
 		void setTableNumber(int tNum) { tableNum = tNum; }
 		void setColName(String cName) { colName = cName; }
 		void setSource(ResultColumn rc) { source = rc; }
+	}
+
+	public List getChildren() {
+		return Collections.EMPTY_LIST;
 	}
 }

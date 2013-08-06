@@ -22,9 +22,7 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.iapi.sql.compile.Visitor;
-
 import org.apache.derby.iapi.reference.JDBC40Translation;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.ClassName;
@@ -32,7 +30,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
-
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 
@@ -42,6 +39,8 @@ import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
 import java.sql.Types;
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -791,4 +790,17 @@ public class UnaryOperatorNode extends OperatorNode
     	}
     	return false;
     }
+
+	public List getChildren() {
+		
+		List result = null;
+		
+		if(operand != null){
+			result = Collections.singletonList(operand);
+		}else{
+			result = Collections.EMPTY_LIST;
+		}
+		
+		return result;
+	}
 }

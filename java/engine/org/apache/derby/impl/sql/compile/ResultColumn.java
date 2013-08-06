@@ -21,6 +21,8 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -1911,6 +1913,10 @@ public class ResultColumn extends ValueNode
 	{
         if ( (columnDescriptor != null) && columnDescriptor.hasGenerationClause() ) { return true; }
         else { return false; }
+	}
+
+	public List getChildren() {
+		return Collections.singletonList(expression);
 	}
     
 }

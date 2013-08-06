@@ -31,6 +31,8 @@ import org.apache.derby.iapi.services.classfile.VMOpcode;
 import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 import java.sql.Types;
 
@@ -188,4 +190,8 @@ public class NextSequenceNode extends ValueNode {
     protected boolean isEquivalent(ValueNode other) throws StandardException {
         return false;
     }
+
+	public List getChildren() {
+		return Collections.EMPTY_LIST;
+	}
 }

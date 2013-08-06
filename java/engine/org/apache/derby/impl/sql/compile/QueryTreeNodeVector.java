@@ -22,12 +22,12 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -140,5 +140,9 @@ abstract class QueryTreeNodeVector extends QueryTreeNode
 		{
 			setElementAt((QueryTreeNode)((QueryTreeNode) elementAt(index)).accept(v), index);
 		}
+	}
+	
+	public List getNodes(){
+		return v;
 	}
 }

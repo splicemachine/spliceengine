@@ -28,23 +28,20 @@ import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import java.lang.reflect.Modifier;
 
 import org.apache.derby.iapi.util.JBitSet;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -353,4 +350,8 @@ public class JavaToSQLValueNode extends ValueNode
     	// anything in the java domain is not equiavlent.
     	return false;
     }
+
+	public List getChildren() {
+		return Collections.singletonList(javaNode);
+	}
 }

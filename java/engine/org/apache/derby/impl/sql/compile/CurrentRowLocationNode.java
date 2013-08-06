@@ -28,23 +28,20 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.RefDataValue;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
-
 import org.apache.derby.iapi.services.compiler.ClassBuilder;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
-
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 import java.lang.reflect.Modifier;
+
 import org.apache.derby.iapi.reference.ClassName;
-
 import org.apache.derby.iapi.services.classfile.VMOpcode;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.catalog.TypeDescriptor;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -167,5 +164,9 @@ public class CurrentRowLocationNode extends ValueNode
 	protected boolean isEquivalent(ValueNode o)
 	{
 		return false;
+	}
+
+	public List getChildren() {
+		return Collections.EMPTY_LIST;
 	}
 }

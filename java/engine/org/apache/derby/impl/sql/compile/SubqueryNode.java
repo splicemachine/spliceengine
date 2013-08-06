@@ -22,34 +22,29 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.CostEstimate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.conn.Authorizer;
-
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.ClassName;
-
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.store.access.Qualifier;
 
 import java.lang.reflect.Modifier;
-
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
 import org.apache.derby.impl.sql.execute.OnceResultSet;
-
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
@@ -2589,5 +2584,20 @@ public class SubqueryNode extends ValueNode
      * @return true if the JDBC limit/offset semantics (rather than the SQL Standard OFFSET/FETCH NEXT) semantics apply
      */
     public boolean hasJDBClimitClause() { return hasJDBClimitClause; }
+
+	public List getChildren() {
+		return new LinkedList(){{
+			if(leftOperand != null){
+				add(leftOperand);
+			}
+			
+			if(parentComparisonOperator != null){
+				add(parentComparisonOperator);
+			}
+			
+			add(offset);
+		    add(fetchFirst);
+		}};
+	}
 
 }

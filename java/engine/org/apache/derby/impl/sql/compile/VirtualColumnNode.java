@@ -21,13 +21,13 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 /**
@@ -293,4 +293,9 @@ public class VirtualColumnNode extends ValueNode
     	}
     	return false;
     }
+
+
+	public List getChildren() {
+		return Collections.singletonList(sourceColumn);
+	}
 }

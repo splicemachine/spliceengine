@@ -22,24 +22,20 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.Parser;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.sql.compile.Visitable;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DefaultDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.catalog.types.DefaultInfoImpl;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -298,4 +294,8 @@ public  class DefaultNode extends ValueNode
     {
 		return false;
     }
+
+	public List getChildren() {
+		return Collections.singletonList(defaultTree);
+	}
 }

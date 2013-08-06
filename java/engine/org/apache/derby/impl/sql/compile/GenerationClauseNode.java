@@ -23,22 +23,15 @@ package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
-
 import org.apache.derby.iapi.sql.depend.ProviderList;
-
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
- import org.apache.derby.iapi.store.access.Qualifier;
-
+import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 import java.lang.reflect.Modifier;
@@ -46,7 +39,8 @@ import java.lang.reflect.Modifier;
 import org.apache.derby.iapi.error.StandardException;
 
 import java.sql.Types;
-
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -195,6 +189,15 @@ public class GenerationClauseNode extends ValueNode
                 _boundExpression.treePrint(depth + 1);
             }
 		}
+	}
+
+	public List getChildren() {
+		List children = new LinkedList(){{
+			add(_generationExpression);
+			add(_boundExpression);
+		}};
+		
+		return children;
 	}
 
     ///////////////////////////////////////////////////////////////////////////////////

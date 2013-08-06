@@ -23,20 +23,16 @@ package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.iapi.util.ReuseFactory;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -287,4 +283,9 @@ abstract class ConstantNode extends ValueNode
 		}
 		return false;
 	}
+	
+	public List getChildren() {
+		return Collections.EMPTY_LIST;
+	}
+
 }

@@ -23,6 +23,8 @@ package	org.apache.derby.impl.sql.compile;
 
 import java.sql.Types;
 import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -521,4 +523,17 @@ public class ParameterNode extends ValueNode
     {
         valToGenerate = vn;
     }
+
+	public List getChildren() {
+		return new LinkedList(){{
+			
+			if(returnOutputParameter != null){
+				add(returnOutputParameter);
+			}
+			
+			if(valToGenerate != null){
+				add(valToGenerate);
+			}
+		}};
+	}
 }

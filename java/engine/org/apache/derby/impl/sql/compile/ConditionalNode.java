@@ -22,40 +22,30 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.iapi.services.monitor.Monitor;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
-
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.services.loader.ClassInspector;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
 import org.apache.derby.iapi.reference.ClassName;
-
-
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -758,5 +748,18 @@ public class ConditionalNode extends ValueNode
                     thenElseList.isEquivalent(other.thenElseList);
 		}
 		return false;
+	}
+
+	public List getChildren() {
+		List nodes = new LinkedList();
+		nodes.add(testCondition);
+		
+		Iterator it = thenElseList.getNodes().iterator();
+		
+		for(Object node = it.next();it.hasNext();){
+			nodes.add(node);
+		}
+		
+		return nodes;
 	}
 }

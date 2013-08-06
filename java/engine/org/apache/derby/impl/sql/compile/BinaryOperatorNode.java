@@ -38,6 +38,8 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -841,5 +843,12 @@ public class BinaryOperatorNode extends OperatorNode
     	
     	return builder.toHashCode();
     }
+
+	public List getChildren() {
+		return new LinkedList(){{
+			add(leftOperand);
+			add(rightOperand);
+			}};
+	}
 }
 

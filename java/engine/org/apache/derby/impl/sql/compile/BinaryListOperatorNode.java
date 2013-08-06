@@ -22,18 +22,17 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.compile.Visitable;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.util.JBitSet;
 
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -420,4 +419,12 @@ public abstract class BinaryListOperatorNode extends ValueNode
 
 		return true;
 	}
+
+	public List getChildren() {
+		return new LinkedList(){{
+			add(leftOperand);	
+			addAll(rightOperandList.getNodes());
+		}};
+	}
+	
 }

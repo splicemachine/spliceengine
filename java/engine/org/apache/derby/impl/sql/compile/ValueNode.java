@@ -21,6 +21,7 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import java.util.List;
 import java.util.Vector;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -1441,5 +1442,7 @@ public abstract class ValueNode extends QueryTreeNode
 		}
 		return false;
 	}
+	
+	public abstract List getChildren();
 	
 }
