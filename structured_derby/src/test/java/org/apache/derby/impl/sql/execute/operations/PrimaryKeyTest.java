@@ -163,7 +163,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         try{
             ps.execute();
         }catch(SQLException sql){
-            Assert.assertTrue("Incorrect error returned!",sql.getMessage().contains("23505"));
+            Assert.assertTrue("Incorrect error returned!",sql.getSQLState().contains("23505"));
             throw sql;
         }
 
