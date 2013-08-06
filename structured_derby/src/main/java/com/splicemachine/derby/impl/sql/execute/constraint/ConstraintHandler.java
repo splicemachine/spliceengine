@@ -30,56 +30,58 @@ public class ConstraintHandler implements WriteHandler {
 
     @Override
     public void next(Mutation mutation, WriteContext ctx) {
-        if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
-            ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
-        }else{
-            mutations.add(mutation);
-            ctx.sendUpstream(mutation);
-        }
-//        if(failed)
-//            ctx.notRun(mutation);
-//        try {
-//            if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
-//                //we can't check the mutation, it'll explode
-//                ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
-//            }else if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
-//                failed = true;
-//                ctx.result(mutation,
-//                        new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
-//            }else
-//                ctx.sendUpstream(mutation);
-//        } catch (IOException e) {
-//            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+//        if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
+//            ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
+//        }else{
+//            mutations.add(mutation);
+//            ctx.sendUpstream(mutation);
 //        }
+        if(failed)
+            ctx.notRun(mutation);
+        try {
+            if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
+                //we can't check the mutation, it'll explode
+                ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
+            }else if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
+                failed = true;
+                ctx.result(mutation,
+                        new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
+            }else
+                ctx.sendUpstream(mutation);
+        } catch (Exception e) {
+            failed=true;
+            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+        }
     }
 
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
-        boolean failed=false;
-
-        Predicate<Mutation> runPredicate = new Predicate<Mutation>() {
-            @Override
-            public boolean apply(@Nullable Mutation input) {
-                return ctx.canRun(input);
-            }
-        };
-        for(Mutation mutation: Collections2.filter(mutations,runPredicate)) {
-            if(failed)
-                ctx.notRun(mutation);
-
-//            if(ctx.getRegion().isClosing()||ctx.getRegion().isClosed()){
-//                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"NotServingRegion"));
+        //no-op
+//        boolean failed=false;
+//
+//        Predicate<Mutation> runPredicate = new Predicate<Mutation>() {
+//            @Override
+//            public boolean apply(@Nullable Mutation input) {
+//                return ctx.canRun(input);
 //            }
-            try{
-                if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
-                    failed=true;
-                    ctx.result(mutation,new MutationResult(Constraints.convertType(localConstraint.getType()),localConstraint.getConstraintContext()));
-                }
-            }catch(IOException ioe){
-                failed=true;
-                ctx.result(mutation,new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage()));
-            }
-        }
+//        };
+//        for(Mutation mutation: Collections2.filter(mutations,runPredicate)) {
+//            if(failed)
+//                ctx.notRun(mutation);
+//
+////            if(ctx.getRegion().isClosing()||ctx.getRegion().isClosed()){
+////                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"NotServingRegion"));
+////            }
+//            try{
+//                if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
+//                    failed=true;
+//                    ctx.result(mutation,new MutationResult(Constraints.convertType(localConstraint.getType()),localConstraint.getConstraintContext()));
+//                }
+//            }catch(IOException ioe){
+//                failed=true;
+//                ctx.result(mutation,new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage()));
+//            }
+//        }
 //        Collection<Mutation> failedWrites = localConstraint.validate(mutations,ctx.getCoprocessorEnvironment());
 //        if(failedWrites.size()>0){
 //            MutationResult result = new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext());

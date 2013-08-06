@@ -5,12 +5,10 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -158,7 +156,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
 
-        int maxPendingBuffers = config.getInt(SpliceConstants.CONFIG_WRITE_BUFFER_MAX_FLUSHES,SpliceConstants.DEFAULT_MAX_PENDING_BUFFERS);
+        int maxPendingBuffers = config.getInt(SpliceConstants.CONFIG_WRITE_BUFFER_MAX_FLUSHES, SpliceConstants.DEFAULT_MAX_PENDING_BUFFERS);
 
         return new TableWriter(writerPool,cacheUpdater,connection,regionCache, maxPendingBuffers,writeBufferSize,pause,configuration);
     }
@@ -612,13 +610,27 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         }
     }
 
+    private static final Comparator<Mutation> mutationComparator = new Comparator<Mutation>(){
+
+            @Override
+            public int compare(Mutation o1, Mutation o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return -1;
+                }else if(o2==null) return 1;
+                else {
+                    return Bytes.compareTo(o1.getRow(),o2.getRow());
+                }
+            }
+        };
+
     private Multimap<byte[],Mutation> getBucketedMutations(Integer tableKey,Collection<Mutation> mutations, int tries) throws Exception{
         if(tries <=0){
             throw new NotServingRegionException("Unable to find a region for mutations "
                     +mutations.size()+" mutations, unable to write buffer");
         }
         Set<HRegionInfo> regionInfos = regionCache.get(tableKey);
-        Multimap<byte[],Mutation> bucketsMutations = ArrayListMultimap.create();
+        Multimap<byte[],Mutation> bucketsMutations = TreeMultimap.create(Bytes.BYTES_COMPARATOR,mutationComparator);
         List<Mutation> regionLessMutations = Lists.newArrayListWithExpectedSize(0);
         for(Mutation mutation:mutations){
             if(mutation==null)continue; //skip null mutations
@@ -646,6 +658,21 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             regionCache.invalidate(tableKey);
             Multimap<byte[],Mutation> tryAgainMutationBuckets = getBucketedMutations(tableKey,mutations,tries-1);
             bucketsMutations.putAll(tryAgainMutationBuckets);
+        }
+
+        //DEBUG
+        //make sure that there are no duplicate entries
+        Map<byte[],byte[]> dupMutations = new TreeMap<byte[], byte[]>(Bytes.BYTES_COMPARATOR);
+        for(byte[] regionStart:bucketsMutations.keySet()){
+            for(Mutation mutation:bucketsMutations.get(regionStart)){
+                byte[] row = mutation.getRow();
+                if(dupMutations.containsKey(row)){
+                    byte[] oldRegion =  dupMutations.get(row);
+                    SpliceLogUtils.warn(LOG,"Row %s is present in bucket for region %s and region %s",
+                            BytesUtil.toHex(row),BytesUtil.toHex(oldRegion),BytesUtil.toHex(regionStart));
+                }
+                dupMutations.put(row,regionStart);
+            }
         }
         return bucketsMutations;
     }

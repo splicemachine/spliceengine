@@ -112,7 +112,6 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void notRun(Mutation mutation) {
-        assert !resultsMap.containsKey(mutation);
         resultsMap.put(mutation,MutationResult.notRun());
     }
 
@@ -123,19 +122,16 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void failed(Mutation put, MutationResult mutationResult) {
-        assert !resultsMap.containsKey(put);
         resultsMap.put(put, mutationResult);
     }
 
     @Override
     public void success(Mutation put) {
-        assert !resultsMap.containsKey(put);
         resultsMap.put(put,MutationResult.success());
     }
 
     @Override
     public void result(Mutation put, MutationResult result) {
-        assert !resultsMap.containsKey(put);
         resultsMap.put(put,result);
     }
 
