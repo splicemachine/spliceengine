@@ -276,12 +276,16 @@ public class IndexSet {
     public void validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment environment) throws IOException {
 
         //validate local constraints
-        if(localConstraint!=null&&!localConstraint.validate(mutations,environment))
-            throw ConstraintViolation.create(localConstraint.getType(), localConstraint.getConstraintContext());
+        if(localConstraint!=null){
+            Collection<Mutation> failed = localConstraint.validate(mutations,environment);
+            if(failed.size()>0)
+                throw ConstraintViolation.create(localConstraint.getType(), localConstraint.getConstraintContext());
+        }
 
         //validate fkConstraints
         for(Constraint fkConstraint:fkConstraints){
-            if(!fkConstraint.validate(mutations,environment))
+            Collection<Mutation> failed = fkConstraint.validate(mutations,environment);
+            if(failed.size()>0)
                 throw ConstraintViolation.create(fkConstraint.getType(), localConstraint.getConstraintContext());
         }
     }

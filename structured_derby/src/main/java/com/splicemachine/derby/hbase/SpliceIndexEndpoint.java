@@ -101,29 +101,35 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException {
         SpliceLogUtils.trace(LOG,"batchMutate %s",mutationsToApply);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        WriteContext context;
-        try {
-            context = getWriteContext(rce);
-        } catch (InterruptedException e) {
-            //was interrupted while trying to create a write context.
-            //we're done, someone else will have to write this batch
-            throw new IOException(e);
-        }
-        for(Mutation mutation:mutationsToApply.getMutations()){
-            context.sendUpstream(mutation); //send all writes along the pipeline
-        }
-        Map<Mutation,MutationResult> resultMap = context.finish();
+        HRegion region = rce.getRegion();
+        region.startRegionOperation();
+        try{
+            WriteContext context;
+            try {
+                context = getWriteContext(rce);
+            } catch (InterruptedException e) {
+                //was interrupted while trying to create a write context.
+                //we're done, someone else will have to write this batch
+                throw new IOException(e);
+            }
+            for(Mutation mutation:mutationsToApply.getMutations()){
+                context.sendUpstream(mutation); //send all writes along the pipeline
+            }
+            Map<Mutation,MutationResult> resultMap = context.finish();
 
-        MutationResponse response = new MutationResponse();
-        List<Mutation> mutations = mutationsToApply.getMutations();
-        int pos=0;
-        for(Mutation mutation:mutations){
-            MutationResult result = resultMap.get(mutation);
-            response.addResult(pos,result);
-            pos++;
-        }
+            MutationResponse response = new MutationResponse();
+            List<Mutation> mutations = mutationsToApply.getMutations();
+            int pos=0;
+            for(Mutation mutation:mutations){
+                MutationResult result = resultMap.get(mutation);
+                response.addResult(pos,result);
+                pos++;
+            }
 
-        return response;
+            return response;
+        }finally{
+            region.closeRegionOperation();
+        }
     }
 
     private WriteContext getWriteContext(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {

@@ -107,28 +107,28 @@ public class TCPHTest extends SpliceUnitTest {
 	public void validateDataLoad() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,LINEITEM));
 		rs.next();
-//		Assert.assertEquals(9958, rs.getLong(1));
+		Assert.assertEquals(9958, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,ORDERS));
 		rs.next();
-//		Assert.assertEquals(2500, rs.getLong(1));
+		Assert.assertEquals(2500, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,CUSTOMERS));
 		rs.next();
-//		Assert.assertEquals(250, rs.getLong(1));
+		Assert.assertEquals(250, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,PARTSUPP));
 		rs.next();
-//		Assert.assertEquals(1332, rs.getLong(1));
+		Assert.assertEquals(1332, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,SUPPLIER));
 		rs.next();
-//		Assert.assertEquals(16, rs.getLong(1));
+		Assert.assertEquals(16, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,PART));
 		rs.next();
-//		Assert.assertEquals(333, rs.getLong(1));
+		Assert.assertEquals(333, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,NATION));
 		rs.next();
-//		Assert.assertEquals(25, rs.getLong(1));
+		Assert.assertEquals(25, rs.getLong(1));
 		rs = methodWatcher.executeQuery(format("select count(*) from %s.%s",CLASS_NAME,REGION));
 		rs.next();
-//		Assert.assertEquals(5, rs.getLong(1));
+		Assert.assertEquals(5, rs.getLong(1));
 	}
 	
 	@Test
@@ -232,13 +232,11 @@ public class TCPHTest extends SpliceUnitTest {
 	}
 	
 	protected static String getResource(String name) {
-//		return "/Users/scottfines/workspace/qatest/performance/tpch/dbgen/data/"+name;
-        return getResourceDirectory()+"/tpch/data/"+name;
+		return getResourceDirectory()+"tcph/data/"+name;
 	}
 
 	protected static String getSQLFile(String name) {
-//        return "/Users/scottfines/workspace/qatest/performance/tpch/queries/"+name;
-        return getResourceDirectory()+"/tpch/queries/"+name;
+		return getResourceDirectory()+"tcph/query/"+name;
 	}
 
 	

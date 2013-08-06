@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Utilities relating to Constraints
@@ -30,8 +31,8 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
-            return true;
+        public Collection<Mutation> validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+            return Collections.emptyList();
         }
 
         @Override

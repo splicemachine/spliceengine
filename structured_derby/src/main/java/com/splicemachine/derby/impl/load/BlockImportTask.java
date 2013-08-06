@@ -1,24 +1,14 @@
 package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
-import com.splicemachine.derby.impl.sql.execute.LocalCallBuffer;
-import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.MutationResult;
-import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.*;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
@@ -30,8 +20,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -166,110 +154,6 @@ public class BlockImportTask extends AbstractImportTask{
         location.setCorrupt(in.readBoolean());
 
         isRemote = in.readBoolean();
-    }
-
-    /**
-     * Class which switches between writing locally and writing remotely, based on whether
-     * or not the Mutation belongs to the assigned region
-     */
-    private static class SwitchingCallBuffer implements CallBuffer<Mutation>{
-        private final CallBuffer<Mutation> remoteBuffer;
-        private final CallBuffer<Mutation> localBuffer;
-        private final HRegion region;
-        private final boolean remoteOnly;
-
-        private SwitchingCallBuffer(final CallBuffer<Mutation> remoteBuffer,
-                                    RegionCoprocessorEnvironment rce,
-                                    boolean remoteOnly,
-                                    LocalWriteContextFactory localContextFactory) throws IOException, InterruptedException {
-            this.remoteBuffer = remoteBuffer;
-            this.remoteOnly = remoteOnly;
-            this.localBuffer = LocalCallBuffer.create(localContextFactory,rce, new LocalCallBuffer.FlushListener() {
-                @Override
-                public void finished(Map<Mutation, MutationResult> results) throws Exception {
-                    for(Mutation mutation:results.keySet()){
-                        MutationResult result = results.get(mutation);
-                        switch (result.getCode()) {
-                            case FAILED:
-                                String errorCd = result.getErrorMsg();
-                                if(errorCd.contains("NotServingRegionException")){
-                                    remoteBuffer.add(mutation);
-                                }else{
-                                    Throwable e = Exceptions.fromString(result);
-                                    throw Exceptions.getIOException(e);
-                                }
-                                break;
-                            case NOT_RUN:
-                                /*
-                                 * Someone else had an error and we had to stop writing early. Either
-                                 * it's a bigger error, in which case we will explode later, or it's a
-                                 * Region closing, in which case we're shifting to remote mode. Either way, just
-                                 * stuff it on the remote buffer. In the worst case, we do one extra buffer write
-                                 * before failing the transaction because of this.
-                                 */
-                                remoteBuffer.add(mutation);
-                                break;
-                            case PRIMARY_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.PRIMARY_KEY_VIOLATION, result.getConstraintContext());
-                            case UNIQUE_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.UNIQUE_VIOLATION, result.getConstraintContext());
-                            case FOREIGN_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.FOREIGN_KEY_VIOLATION, result.getConstraintContext());
-                            case CHECK_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.CHECK_VIOLATION, result.getConstraintContext());
-                            case WRITE_CONFLICT:
-                                throw new WriteConflict(result.getErrorMsg());
-                        }
-                    }
-                }
-            });
-            this.region = rce.getRegion();
-        }
-
-        @Override
-        public void add(Mutation element) throws Exception {
-            if(remoteOnly||!region.isAvailable())
-                remoteBuffer.add(element);
-            else if(HRegion.rowIsInRange(region.getRegionInfo(),element.getRow()))
-                localBuffer.add(element);
-            else
-                remoteBuffer.add(element);
-        }
-
-        @Override
-        public void addAll(Mutation[] elements) throws Exception {
-            for(Mutation mutation:elements){
-                add(mutation);
-            }
-        }
-
-        @Override
-        public void addAll(Collection<? extends Mutation> elements) throws Exception {
-            for(Mutation mutation:elements){
-                add(mutation);
-            }
-        }
-
-        @Override
-        public void flushBuffer() throws Exception {
-            //flush local first--that way, if there are local errors, we won't waste time
-            //attempting to send data remotely
-            try{
-                localBuffer.flushBuffer();
-            }catch(Exception e){
-                Throwable t = Throwables.getRootCause(e);
-                if(t instanceof NotServingRegionException){
-                    //we underwent a split or something, so
-                }
-            }
-            remoteBuffer.flushBuffer();
-        }
-
-        @Override
-        public void close() throws Exception {
-            localBuffer.close();
-            remoteBuffer.close();
-        }
     }
 
     public static void main(String... args) throws Exception{

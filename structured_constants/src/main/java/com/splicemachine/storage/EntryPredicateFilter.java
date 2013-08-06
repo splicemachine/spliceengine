@@ -182,7 +182,7 @@ public class EntryPredicateFilter implements Externalizable{
     }
 
     public static EntryPredicateFilter fromBytes(byte[] data) throws IOException {
-        if(data.length==0) return EMPTY_PREDICATE;
+        if(data==null||data.length==0) return EMPTY_PREDICATE;
 
         ByteDataInput bdi = new ByteDataInput(data);
         try {

@@ -21,6 +21,8 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.ipc.HBaseServer;
+import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
@@ -68,6 +70,12 @@ public class RegionWriteHandler implements WriteHandler {
     @SuppressWarnings({"unchecked", "unused"})
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
+
+        //make sure that the write aborts if the caller disconnects
+        RpcCallContext currentCall = HBaseServer.getCurrentCall();
+        if(currentCall!=null)
+            currentCall.throwExceptionIfCallerDisconnected();
+
         /*
          * We have to block here in case someone did a table manipulation under us.
          * If they didn't, then the writeLatch will be exhausted, and I'll be able to
@@ -83,7 +91,6 @@ public class RegionWriteHandler implements WriteHandler {
             throw new IOException(e);
         }
         //write all the puts first, since they are more likely
-        boolean failed = false;
         try {
             Collection<Mutation> filteredMutations = Collections2.filter(mutations, new Predicate<Mutation>() {
                 @Override
@@ -91,26 +98,16 @@ public class RegionWriteHandler implements WriteHandler {
                     return ctx.canRun(input);
                 }
             });
+//            if(ctx.getRegion().isClosed()||ctx.getRegion().isClosing()){
+//                for(Mutation mutation:filteredMutations){
+//                    ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"NotServingRegion"));
+//                }
+//            }
             Mutation[] toProcess = new Mutation[filteredMutations.size()];
             filteredMutations.toArray(toProcess);
 
             doWrite(ctx,toProcess);
-//            for (Mutation mutation : filteredMutations) {
-//                toProcessList.add(mutation);
-//                if (toProcessList.size() == writeBatchSize) {
-//                    if (toProcess == null)
-//                        toProcess = new Mutation[writeBatchSize];
-//                    toProcess = toProcessList.toArray(toProcess);
-//                    doWrite(ctx, toProcess);
-//                    toProcessList.clear();
-//                }
-//            }
-//            if (toProcessList.size() > 0) {
-//                toProcess = toProcessList.toArray(new Mutation[toProcessList.size()]);
-//                doWrite(ctx, toProcess);
-//            }
         } catch (WriteConflict wce) {
-            failed = true;
             MutationResult result = new MutationResult(MutationResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
             for (Mutation mutation : mutations) {
                 ctx.result(mutation, result);
@@ -125,7 +122,6 @@ public class RegionWriteHandler implements WriteHandler {
              * it's because we were unable to write ANY records to the WAL, so we can safely assume that
              * all the puts failed and can be safely retried.
              */
-            failed = true;
             MutationResult result = new MutationResult(MutationResult.Code.FAILED, ioe.getClass().getSimpleName() + ":" + ioe.getMessage());
             for (Mutation mutation : mutations) {
                 ctx.result(mutation, result);

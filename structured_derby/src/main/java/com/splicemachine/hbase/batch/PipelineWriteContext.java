@@ -8,6 +8,8 @@ import com.splicemachine.hbase.TableWriter;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.ipc.HBaseServer;
+import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -110,6 +112,7 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void notRun(Mutation mutation) {
+        assert !resultsMap.containsKey(mutation);
         resultsMap.put(mutation,MutationResult.notRun());
     }
 
@@ -120,16 +123,19 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void failed(Mutation put, MutationResult mutationResult) {
+        assert !resultsMap.containsKey(put);
         resultsMap.put(put, mutationResult);
     }
 
     @Override
     public void success(Mutation put) {
+        assert !resultsMap.containsKey(put);
         resultsMap.put(put,MutationResult.success());
     }
 
     @Override
     public void result(Mutation put, MutationResult result) {
+        assert !resultsMap.containsKey(put);
         resultsMap.put(put,result);
     }
 
@@ -164,6 +170,9 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public Map<Mutation,MutationResult> finish() throws IOException {
+        RpcCallContext currentCall = HBaseServer.getCurrentCall();
+        if(currentCall!=null)
+            currentCall.throwExceptionIfCallerDisconnected();
         try{
             WriteNode next = head.next;
             while(next!=null){

@@ -127,6 +127,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     private volatile long maxHeapSize;
     private volatile long cacheUpdatedTimestamp;
     private volatile long pause;
+    private volatile int maxPendingBuffers;
 
     private final AtomicInteger pendingBufferFlushes = new AtomicInteger(0);
     private final AtomicInteger executingBufferFlushes = new AtomicInteger(0);
@@ -157,13 +158,16 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
 
-        return new TableWriter(writerPool,cacheUpdater,connection,regionCache, writeBufferSize,pause,configuration);
+        int maxPendingBuffers = config.getInt(SpliceConstants.CONFIG_WRITE_BUFFER_MAX_FLUSHES,SpliceConstants.DEFAULT_MAX_PENDING_BUFFERS);
+
+        return new TableWriter(writerPool,cacheUpdater,connection,regionCache, maxPendingBuffers,writeBufferSize,pause,configuration);
     }
 
     private TableWriter( MonitoredThreadPool writerPool,
                          ScheduledExecutorService cacheUpdater,
                         HConnection connection,
                         LoadingCache<Integer, Set<HRegionInfo>> regionCache,
+                        int maxPendingBuffers,
                         long maxHeapSize,
                         long pause,
                         Configuration configuration) {
@@ -174,6 +178,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         this.configuration = configuration;
         this.maxHeapSize = maxHeapSize;
         this.pause = pause;
+        this.maxPendingBuffers = maxPendingBuffers;
     }
 
     public void start(){
@@ -562,7 +567,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
         private void writeBuffer(List<Mutation> entries, final int tries, final List<Throwable> retryExceptions) throws Exception {
             if(tries > numRetries)
-               throw new RetriesExhaustedWithDetailsException(retryExceptions,getRows(entries), Collections.<String>emptyList());
+               throw new RetriesExhaustedWithDetailsException(retryExceptions,Collections.<Row>emptyList(),Collections.<String>emptyList());
 
             List<MutationRequest> bucketedMutations = bucketMutations(tableName,entries);
             final AtomicInteger runningCounts = new AtomicInteger(bucketedMutations.size());
@@ -814,7 +819,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 //deal with rows which failed due to a NotServingRegionException or WrongRegionException
                 Map<Integer,MutationResult> failedRows = response.getFailedRows();
                 if(failedRows!=null&&failedRows.size()>0){
-                    SpliceLogUtils.debug(LOG,"Received a partial failure response %s",response);
+                    SpliceLogUtils.debug(LOG,"Received a partial failure response %s for request %s",response,mutationRequest);
                     FlushWatcher.Response  partialRetry = flushWatcher.partialFailure(mutationRequest,response);
                     switch (partialRetry) {
                         case THROW_ERROR:
@@ -832,6 +837,8 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 //we need to rethrow it directly
                 if(thrown)
                     throw e;
+
+                SpliceLogUtils.debug(LOG,"Received a global failure ",e);
                 FlushWatcher.Response response = flushWatcher.globalError(e);
                 switch (response) {
                     case THROW_ERROR:

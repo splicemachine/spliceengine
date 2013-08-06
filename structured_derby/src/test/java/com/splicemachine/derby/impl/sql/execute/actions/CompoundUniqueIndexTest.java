@@ -5,6 +5,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -15,6 +16,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  *         Created on: 8/4/13
  */
+@Ignore("Takes forever and uses up loads of memory")
 public class CompoundUniqueIndexTest extends AbstractIndexTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static String CLASS_NAME = CompoundUniqueIndexTest.class.getSimpleName().toUpperCase();

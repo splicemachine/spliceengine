@@ -69,10 +69,10 @@ public interface Constraint {
      *
      * @param mutations the mutations to validate
      * @param rce the environment for the mutations
-     * @return true if <em>all</em> mutations pass the constraint, false if <em>any</em> constraint fails.
+     * @return the Mutations which failed validation
      * @throws IOException if something goes wrong during the validation
      */
-    boolean validate(Collection<Mutation> mutations,
+    Collection<Mutation> validate(Collection<Mutation> mutations,
                      RegionCoprocessorEnvironment rce) throws IOException;
 
     ConstraintContext getConstraintContext();

@@ -25,6 +25,10 @@ public class SpliceLogUtils {
 		if(logger.isDebugEnabled())logger.debug(message);
 	}
 
+    public static void debug(Logger logger, String message,Throwable t){
+        if(logger.isDebugEnabled())logger.debug(message,t);
+    }
+
 	public static void info(Logger logger, String message){
 		if(logger.isInfoEnabled())logger.info(message);
 	}

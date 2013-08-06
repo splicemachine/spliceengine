@@ -3,27 +3,42 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.RollForwardQueueMap;
+import com.splicemachine.si.coprocessors.SIFilterPacked;
+import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.*;
 
 /**
  * A Unique Constraint
@@ -35,6 +50,7 @@ public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
 
     private final ConstraintContext constraintContext;
+    private static final Logger LOG = Logger.getLogger(UniqueConstraint.class);
 
     public UniqueConstraint(ConstraintContext constraintContext){
         this.constraintContext = constraintContext;
@@ -80,22 +96,81 @@ public class UniqueConstraint implements Constraint {
         Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
 //        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
-        if(rowPresent)
-            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
+        if(rowPresent){
+//            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
+            KeyValue[] raw = result.raw();
+            rowPresent=false;
+            for(KeyValue kv:raw){
+                if(Bytes.equals(kv.getFamily(),SpliceConstants.DEFAULT_FAMILY_BYTES)&&Bytes.equals(mutation.getRow(),kv.getRow())){
+                    rowPresent=true;
+                    SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
+                    break;
+                }
+            }
+        }
         return !rowPresent;
     }
 
     @Override
-    public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
-        Collection<Get> putsToValidate = Collections2.transform(Collections2.filter(mutations,stripDeletes),validator);
+    public List<Mutation> validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+        Collection<Mutation> changes = Collections2.filter(mutations,stripDeletes);
+        List<byte[]> rowKeys = Lists.newArrayList(Collections2.transform(changes,new Function<Mutation, byte[]>() {
+            @Override
+            public byte[] apply(@Nullable Mutation input) {
+                return input.getRow();
+            }
+        }));
+        Collections.sort(rowKeys,Bytes.BYTES_COMPARATOR);
+        Scan scan = new Scan();
+        scan.setStartRow(rowKeys.remove(0));
+        scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(rowKeys.get(rowKeys.size()-1)));
+        scan.setCaching(1);
+        scan.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES); //only scan the SI CF for efficiency
+
+        String txnId = null;
+        for(Mutation mutation:mutations){
+            txnId = SpliceUtils.getTransactionId(mutation);
+            break;
+        }
+        SpliceUtils.attachTransaction(scan,txnId,false);
 
         HRegion region = rce.getRegion();
-        for(Get get:putsToValidate){
-            Result result = region.get(get);
-            boolean rowPresent =result!=null && ! result.isEmpty();
-            if(rowPresent) return false;
+        RegionScanner regionScanner = region.getCoprocessorHost().preScannerOpen(scan);
+        if(regionScanner==null){
+            regionScanner = region.getScanner(scan);
         }
-        return true;
+        List<KeyValue> next = Lists.newArrayListWithCapacity(0);
+        boolean shouldContinue;
+        List<Mutation> failedMutations = Lists.newArrayListWithExpectedSize(0);
+        region.startRegionOperation();
+        MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
+        try{
+            do{
+                shouldContinue = regionScanner.nextRaw(next,null);
+                if(!next.isEmpty()){
+                    byte[] row = next.get(0).getRow();
+                    for(Mutation mutation: mutations){
+                        if(Bytes.equals(mutation.getRow(),row)){
+                            failedMutations.add(mutation);
+                            break;
+                        }
+                    }
+                /*
+                 *The row that's returned may not be part of the list, so just seek to the next
+                 * entry if that happens
+                 */
+                    next.clear();
+                    if(rowKeys.size()>0)
+                        regionScanner.reseek(rowKeys.remove(0));
+                    else
+                        return failedMutations;
+                }
+            }while(shouldContinue);
+        }finally{
+            regionScanner.close();
+            region.closeRegionOperation();
+        }
+        return failedMutations;
     }
 
     @Override
@@ -122,5 +197,56 @@ public class UniqueConstraint implements Constraint {
     public static Constraint create(ConstraintContext cc) {
         return new UniqueConstraint(cc);
     }
+
+    private static class UniqueFilter extends FilterBase {
+        private List<byte[]> bytesToCheck;
+        byte[] next;
+
+        private UniqueFilter(List<byte[]> bytesToCheck) {
+            this.bytesToCheck = bytesToCheck;
+            //sort in ascending order
+            Collections.sort(bytesToCheck,Bytes.BYTES_COMPARATOR);
+            next = bytesToCheck.remove(0);
+        }
+
+        @Override
+        public ReturnCode filterKeyValue(KeyValue ignored) {
+            byte[] rowKey = ignored.getRow();
+            boolean failed=Bytes.equals(next,rowKey);
+            if(!failed){
+                for(byte[] bytes:bytesToCheck){
+                    if(Bytes.equals(rowKey,bytes)){
+                        failed=true;
+                        break;
+                    }
+                }
+            }
+            if(failed)
+                return ReturnCode.INCLUDE;
+            else
+                return ReturnCode.SEEK_NEXT_USING_HINT;
+        }
+
+        @Override
+        public KeyValue getNextKeyHint(KeyValue currentKV) {
+            return KeyValue.createFirstOnRow(bytesToCheck.remove(0));
+        }
+
+        @Override
+        public void write(DataOutput out) throws IOException {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
+
+        @Override
+        public void readFields(DataInput in) throws IOException {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
+    }
+
+    public static void main(String... args) throws Exception{
+        System.out.println(Arrays.toString(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES));
+        System.out.println(Arrays.toString(SpliceConstants.DEFAULT_FAMILY_BYTES));
+    }
+
 
 }

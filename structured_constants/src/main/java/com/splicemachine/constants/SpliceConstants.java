@@ -85,7 +85,7 @@ public class SpliceConstants {
     private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
     private static final String CONFIG_POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
     private static final String CONFIG_WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
-    private static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
+    public static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
     private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
     private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
     public static final String CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
@@ -129,7 +129,6 @@ public class SpliceConstants {
 	public static long tablePoolCleanerInterval;
 	public static long writeBufferSize;
 	public static int maxBufferEntries;
-	public static int maxPendingBuffers;
 	public static int maxThreads;
     public static int maxTreeThreads; //max number of threads for concurrent stack execution
 	public static long threadKeepAlive;
@@ -253,16 +252,15 @@ public class SpliceConstants {
 		zkLeaderElection = config.get(CONFIG_LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
 		zkSpliceStartupPath = config.get(CONFIG_STARTUP_PATH,DEFAULT_STARTUP_PATH);
-        derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS,DEFAULT_DERBY_BIND_ADDRESS);
+        derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
         derbyBindPort = config.getInt(CONFIG_DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
         operationTaskPriority = config.getInt(CONFIG_OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
         importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
         tablePoolMaxSize = config.getInt(CONFIG_POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
-        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE,DEFAULT_POOL_CORE_SIZE);
+        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
         tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
         writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
         maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
-        maxPendingBuffers = config.getInt(CONFIG_WRITE_BUFFER_MAX_FLUSHES,DEFAULT_MAX_PENDING_BUFFERS);
         maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
         maxTreeThreads = config.getInt(CONFIG_MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);

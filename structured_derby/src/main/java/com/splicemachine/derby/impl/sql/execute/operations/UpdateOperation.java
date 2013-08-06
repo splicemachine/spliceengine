@@ -197,7 +197,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
                     //we know that derby never spits out a null field here--we hope.
                     if(dvd.isNull())
-                        DerbyBytesUtil.encodeTypedEmpty(fieldEncoder,dvd,false,false);
+                        DerbyBytesUtil.encodeTypedEmpty(fieldEncoder,dvd,false,true);
                     else
                         DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
                 }
@@ -277,19 +277,15 @@ public class UpdateOperation extends DMLWriteOperation{
                 BitSet floatFields = new BitSet();
                 BitSet doubleFields = new BitSet();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
+                    setColumns.set(i-1);
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
                     if(DerbyBytesUtil.isScalarType(dvd)){
                         scalarFields.set(i-1);
-                        if(!dvd.isNull())
-                            setColumns.set(i-1);
                     }else if(DerbyBytesUtil.isFloatType(dvd)){
                         floatFields.set(i-1);
-                        setColumns.set(i-1);
                     }else if(DerbyBytesUtil.isDoubleType(dvd)){
                         doubleFields.set(i-1);
-                        setColumns.set(i-1);
-                    }else if(!dvd.isNull())
-                        setColumns.set(i-1);
+                    }
                 }
                 nonPkEncoder= EntryEncoder.create(nextRow.nColumns(),setColumns,scalarFields,floatFields,doubleFields);
             }

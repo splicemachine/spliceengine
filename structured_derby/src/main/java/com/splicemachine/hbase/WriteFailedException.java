@@ -1,5 +1,9 @@
 package com.splicemachine.hbase;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -12,6 +16,15 @@ public class WriteFailedException extends IOException {
 
     public WriteFailedException(Collection<String> errorMessages){
         super(parseIntoErrorMessage(errorMessages));
+    }
+
+    public static WriteFailedException create(Collection<Throwable> errors){
+        return new WriteFailedException(Collections2.transform(errors,new Function<Throwable, String>() {
+            @Override
+            public String apply(@Nullable Throwable input) {
+                return input.getMessage();
+            }
+        }));
     }
 
     private static String parseIntoErrorMessage(Collection<String> errorMessages) {

@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Representation of a ForeignKey Constraint.
@@ -91,8 +92,8 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    public Collection<Mutation> validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+        return Collections.emptyList();
     }
 
     @Override

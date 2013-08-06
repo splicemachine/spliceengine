@@ -55,12 +55,12 @@ public class NullPredicate implements Predicate{
                 return data!=null && length>0;
         }else{
             if(isDoubleColumn){
-                return data!=null && length!=8;
+                return data==null || length!=8;
             }else if(isFloatColumn)
-                return data!=null && length!=4;
+                return data==null || length!=4;
             else
                 //make sure data is null--either data itself is null, or length==0
-                return data!=null && length==0;
+                return data==null|| length==0;
         }
     }
 
