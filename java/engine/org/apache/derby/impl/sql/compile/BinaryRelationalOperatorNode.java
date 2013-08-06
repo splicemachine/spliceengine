@@ -405,6 +405,8 @@ public class BinaryRelationalOperatorNode
 				return C_NodeTypes.FLOAT_CONSTANT_NODE;
 			case StoredFormatIds.SQL_DOUBLE_ID:
 				return C_NodeTypes.DOUBLE_CONSTANT_NODE;
+			case StoredFormatIds.SQL_DECIMAL_ID:
+				return C_NodeTypes.DECIMAL_CONSTANT_NODE;
 			default:
 				return originalNodeType;
 		}
