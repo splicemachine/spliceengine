@@ -118,7 +118,7 @@ public final class SQLDate extends DataType
     	long result;
     	
         if( cal == null){
-        	DateTime dt = new DateTime(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), 0, 0);
+        	DateTime dt = new DateTime(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), 0, 0, 0, 0);
         	result = dt.getMillis();
         }else{
         	cal.clear();

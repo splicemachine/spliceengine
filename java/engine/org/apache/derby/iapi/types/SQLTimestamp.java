@@ -840,7 +840,7 @@ public final class SQLTimestamp extends DataType
 	}
 	
 	private DateTime createDateTime(){
-		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
+		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), 0);
     }
 
     private void setCalendar(Calendar cal)
