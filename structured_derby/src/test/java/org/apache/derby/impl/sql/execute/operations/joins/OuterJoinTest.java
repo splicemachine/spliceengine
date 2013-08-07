@@ -274,5 +274,15 @@ public class OuterJoinTest extends SpliceUnitTest {
         Assert.assertEquals(9, j);
     }
 
+    @Test
+    public void testLeftOuterJoinWithIsNull() throws Exception {
+        List<Object[]> expected = Collections.singletonList( o("E5") );
+
+        ResultSet rs = methodWatcher.executeQuery("select a.empnum from staff a left outer join works b on a.empnum = b.empnum where b.empnum is null");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
 }
 
