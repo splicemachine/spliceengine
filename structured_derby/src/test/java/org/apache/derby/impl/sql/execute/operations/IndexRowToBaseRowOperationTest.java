@@ -134,6 +134,7 @@ public class IndexRowToBaseRowOperationTest extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testQualifiedIndexScan() throws Exception{
         PreparedStatement stmt = methodWatcher.prepareStatement("select " +
                 "s.schemaname,s.schemaid " +
