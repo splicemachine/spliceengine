@@ -23,14 +23,14 @@ import java.sql.Statement;
  *         Date: 7/17/13
  */
 public class SavepointConstantOperationTest {
-    public static final String SCHEMA_NAME = "A";
+    public static final String CLASS_NAME = SavepointConstantOperationTest.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     public static final String TABLE_NAME_1 = "B";
 
     private static String tableDef = "(TaskId INT NOT NULL)";
-    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, SCHEMA_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, tableDef);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -45,7 +45,7 @@ public class SavepointConstantOperationTest {
         Connection conn = methodWatcher.createConnection();
         conn.setAutoCommit(false);
         Statement stmt = conn.createStatement();
-        stmt.executeUpdate(String.format("INSERT INTO %s.%s (TaskId) VALUES(%d)", SCHEMA_NAME, TABLE_NAME_1, 1));
+        stmt.executeUpdate(String.format("INSERT INTO %s.%s (TaskId) VALUES(%d)", CLASS_NAME, TABLE_NAME_1, 1));
         // set savepoint
         Savepoint svpt1 = null;
         try {
