@@ -109,10 +109,6 @@
 			<name>Codehaus Release Repo</name>
 			<url>http://repository.codehaus.org</url>
 		</pluginRepository>
-		<pluginRepository>
-			<id>DataNucleus_nightly</id>
-			<url>http://www.datanucleus.org/downloads/maven2</url>
-		</pluginRepository>
 			<pluginRepository>
 					<id>cloudera</id>
 					<url>https://repository.cloudera.com/content/repositories/releases/</url>
@@ -142,11 +138,6 @@
 			<id>protostuff-repo</id>
 			<name>protostuff-repo</name>
 			<url>http://protostuff.googlecode.com/svn/repos/maven2</url>
-		</repository>
-		<repository>
-			<id>DN_M2_Repo</id>
-			<name>DataNucleus Repository</name>
-			<url>http://www.datanucleus.org/downloads/maven2</url>
 		</repository>
 		<repository>
 			<id>smartgwt</id>
