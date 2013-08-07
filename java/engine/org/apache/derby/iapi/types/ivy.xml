@@ -1,6 +1,11 @@
 <ivy-module version="2.0">
-    <info organisation="org.apache" module="derby"/>
+    <info organisation="org.apache" module="derby"/>    
+       <configurations>
+        <conf name="compile"/>
+        <conf name="runtime" extends="compile"/>
+        <conf name="test"    extends="runtime"/>
+    </configurations>
     <dependencies>
-        <dependency org="joda-time" name="joda-time" rev="2.2"/>
+         <dependency org="org.jruby" name="jruby-complete" rev="1.6.5" transitive="false"/>
     </dependencies>
 </ivy-module>
