@@ -122,9 +122,11 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
 				<configuration>		
+				<!--  
 					<parallel>classes</parallel>
           			<threadCount>5</threadCount>
           			<perCoreThreadCount>false</perCoreThreadCount> 
+					-->
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 					<includes>
