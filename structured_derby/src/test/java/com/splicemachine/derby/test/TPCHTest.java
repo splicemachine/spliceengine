@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import org.apache.derby.tools.ij;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -222,6 +223,7 @@ public class TPCHTest extends SpliceUnitTest {
 	}
 
 	@Test
+	@Ignore
 	public void sql19() throws Exception {
 		Assert.assertTrue(runScript(new File(getSQLFile("19.sql")),methodWatcher.getOrCreateConnection()));
 	}
