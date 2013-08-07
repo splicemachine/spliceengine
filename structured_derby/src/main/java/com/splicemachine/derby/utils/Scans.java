@@ -175,8 +175,6 @@ public class Scans extends SpliceUtils {
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }
-//		scan.setFilter(buildKeyFilter(startKeyValue, startSearchOperator, qualifiers));
-
 		return scan;
 	}
 
@@ -219,15 +217,13 @@ public class Scans extends SpliceUtils {
         }else{
             colsToReturn.clear(); //we want everything
         }
-
-/* No Longer Needed now that we handle predicate pushdown for Primary Keys - JL        
+/*
         if(startKeyValue!=null && startSearchOperator != ScanController.GT){
             Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
             if(indexPredicate!=null)
                 predicates.add(indexPredicate);
         }
-*/
-
+        */
         return new EntryPredicateFilter(colsToReturn,predicates);
     }
 
