@@ -220,12 +220,13 @@ public class Scans extends SpliceUtils {
             colsToReturn.clear(); //we want everything
         }
 
+/* No Longer Needed now that we handle predicate pushdown for Primary Keys - JL        
         if(startKeyValue!=null && startSearchOperator != ScanController.GT){
             Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
             if(indexPredicate!=null)
                 predicates.add(indexPredicate);
         }
-
+*/
 
         return new EntryPredicateFilter(colsToReturn,predicates);
     }
