@@ -196,16 +196,6 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    public void testNestedLoopLeftOuterJoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select t1.EMPNAME, t1.CITY, t2.PTYPE from STAFF t1 left outer join PROJ t2 --DERBY-PROPERTIES joinStrategy=NESTEDLOOP \n" +
-                " on t1.CITY = t2.CITY");
-
-        List<Map> results = TestUtils.resultSetToMaps(rs);
-        Assert.assertEquals(11, results.size());
-
-    }
-
-    @Test
      public void testThreeTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +
@@ -515,38 +505,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}	
 	
 	@Test
-	public void testScrollableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(2));
-			}
-		}
-		Assert.assertEquals(10, j);
-	}
-
-	@Test
-	public void testSinkableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info(String.format("cc.sa=%s,count=%dd",rs.getString(1),rs.getInt(2)));
-//			Assert.assertNotNull(rs.getString(1));
-//			if (!rs.getString(1).equals("9")) {
-//				Assert.assertEquals(1l,rs.getLong(2));
-//			}
-		}
-		Assert.assertEquals(10, j);
-	}
-
-	@Test
 	public void testReturnOutOfOrderJoin() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		while(rs.next()){
@@ -590,40 +548,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	@Ignore ("Bug 325")
-	public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
-			Assert.assertNotNull(rs.getString(2));
-			if (!rs.getString(2).equals("9")) {
-				Assert.assertNotNull(rs.getString(1));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(1));
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}	
-	@Test
-	@Ignore ("Bug 325")
-	public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			} else {
-				Assert.assertNotNull(null);
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}
-	@Test
 	public void testScrollableNaturalJoin() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc natural join dd");
 		int j = 0;
@@ -657,74 +581,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 		}	
 		Assert.assertEquals(9, j);
 	}	
-	@Test
-	public void testScrollableVarcharLeftOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-            String left = rs.getString(1);
-            String right = rs.getString(2);
-            System.out.printf("left=%s, right=%s%n",left,right);
-			Assert.assertNotNull("left side is null",left);
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull("right side is null",right);
-				Assert.assertEquals(left,right);
-			} else {
-				Assert.assertNull("right side is not null",rs.getString(2));
-			}
-		}	
-		Assert.assertEquals(10, j);
-	}		
 
 	@Test
-	public void testSinkableVarcharLeftOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			}
-		}	
-		Assert.assertEquals(10, j);
-	}		
-	
-	@Test
-	public void testScrollableVarcharRightOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info("c.si="+rs.getString(1)+",d.si="+rs.getString(2));
-			Assert.assertNotNull(rs.getString(2));
-			if (!rs.getString(2).equals("9")) {
-				Assert.assertNotNull(rs.getString(1));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(1));
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}	
-	@Test
-	public void testSinkableVarcharRightOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			} else {
-				Assert.assertNotNull(null);
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}
-
-	@Test  
 	public void testScalarNoValues() throws Exception {		
 			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
 				, TABLE_NAME_6,TABLE_NAME_6, TABLE_NAME_7,TABLE_NAME_7));
