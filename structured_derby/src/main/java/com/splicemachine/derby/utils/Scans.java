@@ -12,6 +12,7 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -217,13 +218,11 @@ public class Scans extends SpliceUtils {
         }else{
             colsToReturn.clear(); //we want everything
         }
-/*
         if(startKeyValue!=null && startSearchOperator != ScanController.GT){
             Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
             if(indexPredicate!=null)
                 predicates.add(indexPredicate);
         }
-        */
         return new EntryPredicateFilter(colsToReturn,predicates);
     }
 
@@ -286,7 +285,8 @@ public class Scans extends SpliceUtils {
         List<Predicate> predicates = Lists.newArrayListWithCapacity(descriptors.length);
         for(int i=0;i<descriptors.length;i++){
             DataValueDescriptor dvd = descriptors[i];
-            if(dvd!=null &&!dvd.isNull()){
+            if(dvd!=null &&!dvd.isNull() && 
+            		(dvd.getTypeFormatId() == StoredFormatIds.SQL_VARCHAR_ID || dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID)){
                 byte[] bytes = DerbyBytesUtil.generateBytes(dvd);
                 if(bytes.length>0){
                     predicates.add(new ValuePredicate(getCompareOp(compareOp,false),i,bytes,true));
