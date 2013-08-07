@@ -622,7 +622,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 		Predicate[]	usefulPredicates = new Predicate[size];
 		int			usefulCount = 0;
 		Predicate	predicate;
-		if (!cd.isIndex() && !cd.isConstraint()) {
+		if (cd != null && !cd.isIndex() && !cd.isConstraint()) {
 		   ConglomerateDescriptorList cdl = optTable.getTableDescriptor().getConglomerateDescriptorList();
 		   for(int index=0;index< cdl.size();index++){
 	            ConglomerateDescriptor primaryKeyCheck = (ConglomerateDescriptor) cdl.get(index);
