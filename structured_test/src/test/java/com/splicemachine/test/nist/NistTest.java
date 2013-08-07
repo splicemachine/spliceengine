@@ -46,7 +46,7 @@ public class NistTest {
         spliceRunner = new SpliceNistRunner();
     }
 
-    @Test(timeout=1000*60*6)  // Time out after 6 min
+    @Test(timeout=1000*60*12)  // Time out after 12 min
     public void runNistTest() throws Exception {
         if (justDrop) {
             NistTestUtils.runDrop(derbyRunner, spliceRunner);
