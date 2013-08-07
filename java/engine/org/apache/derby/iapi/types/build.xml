@@ -68,7 +68,7 @@
 
   <target name="compile_types" depends="init-ivy">
 
-    <ivy:cachepath organisation="joda-time" module="joda-time" revision="2.2" pathid="lib.path.id" inline="true"/>
+    <ivy:cachepath transitive="false" organisation="org.jruby" module="jruby-complete" revision="1.6.5" pathid="lib.path.id" inline="true"/>
 
 
 
