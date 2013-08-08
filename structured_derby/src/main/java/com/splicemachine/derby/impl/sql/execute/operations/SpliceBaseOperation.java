@@ -34,6 +34,8 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -87,7 +89,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * failed and was retried for some reasons. will be null for tasks which do not make use of the TEMP
      * table.
      */
-    protected List<byte[]> failedTasks;
+    protected List<byte[]> failedTasks = Collections.emptyList();
 
 	/*
 	 * Defines a mapping between any FormattableBitSet's column entries
@@ -142,6 +144,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		endExecutionTime = in.readLong();
 		rowsSeen = in.readInt();
 		rowsFiltered = in.readInt();
+        failedTasks = (List<byte[]>)in.readObject();
 //        if(in.readBoolean()){
 //            operationParams = (ParameterValueSet)in.readObject();
 //        }
@@ -166,6 +169,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeLong(endExecutionTime);
 		out.writeInt(rowsSeen);
 		out.writeInt(rowsFiltered);
+        out.writeObject(failedTasks);
 //		out.writeBoolean(operationParams!=null);
 //		if(operationParams!=null){
 //			out.writeObject(operationParams);
@@ -559,7 +563,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
          */
         JobStats stats = doShuffle();
         JobStatsUtils.logStats(stats);
-        failedTasks = Lists.transform(stats.getFailedTasks(),taskToBytes);
+        failedTasks = new ArrayList<byte[]>(Lists.transform(stats.getFailedTasks(),taskToBytes));
 	}
 
     protected JobStats doShuffle() throws StandardException {
