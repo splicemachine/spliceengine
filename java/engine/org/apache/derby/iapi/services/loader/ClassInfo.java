@@ -25,7 +25,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassInfo implements InstanceGetter {
 	private static final Class[] noParameters = new Class[0];
@@ -33,7 +32,7 @@ public class ClassInfo implements InstanceGetter {
 	private final Class clazz;
 	private boolean useConstructor = true;
 	private Constructor noArgConstructor;
-	protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(1000);
+	protected static NoArgumentConstructorMap constructors = new NoArgumentConstructorMap(100);
 	
 	public ClassInfo(Class clazz) {
 		this.clazz = clazz;

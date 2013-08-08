@@ -36,7 +36,7 @@ public final class ReflectClassesJava2 extends DatabaseClasses implements java.s
 
 	LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump) {
 		if (preCompiled == null)
-			preCompiled = new ByteArrayClassMap(1000);
+			preCompiled = new ByteArrayClassMap(100);
 		LoadedGeneratedClass classAttempt = (LoadedGeneratedClass) preCompiled.get(fullyQualifiedName);
 		if (classAttempt != null)
 			return classAttempt;
