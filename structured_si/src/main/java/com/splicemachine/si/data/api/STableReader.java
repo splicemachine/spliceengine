@@ -19,8 +19,8 @@ public interface STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data>
     /**
      * Calls to this method must be paired with calls to closeRegionScanner()
      */
-    Scanner openRegionScanner(Table table, Scan scan) throws IOException;
     void seekOnRegionScanner(Scanner scanner, Data rowKey) throws IOException;
     List<KeyValue> nextResultsOnRegionScanner(Scanner scanner) throws IOException;
-    void closeRegionScanner(Table table);
+	void openOperation(Table table) throws IOException;
+	void closeOperation(Table table) throws IOException;
 }

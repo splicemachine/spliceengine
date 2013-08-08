@@ -446,10 +446,14 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                     current = next;
                 }
             }
-        } finally {
+        } 
+        catch (IOException e) {
+        	throw e;
+        }
+        finally {
             reader.close(transactionSTable);
         }
-        throw new RuntimeException("Unable to obtain timestamp");
+        throw new IOException("Unable to obtain timestamp");
     }
 
     // Pseudo Transaction constructors for transactions that are known to have committed or failed. These return "stub"

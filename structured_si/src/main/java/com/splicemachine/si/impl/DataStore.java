@@ -4,7 +4,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.util.Pair;
-
+import com.splicemachine.si.data.hbase.IHTable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -299,15 +299,12 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         return writer.writeBatch(table, mutationsAndLocks);
     }
 
-    public void closeLowLevelScan(IHTable table) {
-        reader.closeRegionScanner(table);
+    public void closeLowLevelOperation(IHTable table) throws IOException {
+    	reader.closeOperation(table);
     }
 
-    public Scanner startLowLevelScan(IHTable table, Scan resultsScan) throws IOException {
-        return reader.openRegionScanner(table, resultsScan);
+    public void startLowLevelOperation(IHTable table) throws IOException {
+        reader.openOperation(table);
     }
 
-    public SeekScanner newSeekScanner(Scanner scanner) {
-        return new SeekScanner(reader, dataLib, hasher, scanner);
-    }
 }

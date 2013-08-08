@@ -377,11 +377,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             obtainLocksForPutBatchAndPrepNonSIPuts(table, mutations, locks, putInBatchMap, mutationsAndLocks);
 
             final Set<Long>[] conflictingChildren = new Set[mutations.length];
-            final Scanner conflictScanner = dataStore.startLowLevelScan(table, dataStore.getCommitTimestampsAndTombstonesScan(findScanBounds(putInBatchMap)));
+            dataStore.startLowLevelOperation(table);
             try {
-                checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren, conflictScanner);
+            	checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
             } finally {
-                dataStore.closeLowLevelScan(table);
+                dataStore.closeLowLevelOperation(table);
             }
 
             final OperationStatus[] status = dataStore.writeBatch(table, mutationsAndLocks);
@@ -426,12 +426,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private void checkConflictsForPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks, Set<Long>[] conflictingChildren, Scanner scanner) throws IOException {
-        final SeekScanner seekScanner = dataStore.newSeekScanner(scanner);
+    private void checkConflictsForPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks, Set<Long>[] conflictingChildren) throws IOException {
         final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
         for (Hashable hashableRowKey : keys) {
             for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
-                final List<KeyValue>[] values = dataStore.splitCommitTimestampsAndTombstones(seekScanner.seekRow(putInBatch.rowKey));
+                final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
                 final ConflictResults conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
                 final PutToRun<Mutation, Lock> putToRun = getMutationLockPutToRun(table, rollForwardQueue, putInBatch.put, putInBatch.transaction, putInBatch.rowKey, locks.get(hashableRowKey), conflictResults);
                 mutationsAndLocks[putInBatch.index] = putToRun.putAndLock;

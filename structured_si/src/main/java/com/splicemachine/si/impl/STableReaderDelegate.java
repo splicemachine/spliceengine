@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.hbase.IHTable;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -38,11 +39,6 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
     }
 
     @Override
-    public Scanner openRegionScanner(Table table, Scan scan) throws IOException {
-        return delegate.openRegionScanner(table, scan);
-    }
-
-    @Override
     public List<KeyValue> nextResultsOnRegionScanner(Scanner scanner) throws IOException {
         return delegate.nextResultsOnRegionScanner(scanner);
     }
@@ -52,8 +48,13 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
         delegate.seekOnRegionScanner(scanner, rowKey);
     }
 
-    @Override
-    public void closeRegionScanner(Table table) {
-        delegate.closeRegionScanner(table);
-    }
+	@Override
+	public void closeOperation(Table table) throws IOException {
+		delegate.closeOperation(table);		
+	}
+
+	@Override
+	public void openOperation(Table table) throws IOException {
+		delegate.openOperation(table);
+	}
 }

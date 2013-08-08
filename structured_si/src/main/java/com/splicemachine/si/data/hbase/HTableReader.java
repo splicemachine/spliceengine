@@ -40,8 +40,8 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     }
 
     @Override
-    public RegionScanner openRegionScanner(IHTable table, Scan scan) throws IOException {
-        return table.startRegionScanner(scan);
+    public void openOperation(IHTable table) throws IOException {
+        table.startOperation();
     }
 
     @Override
@@ -57,7 +57,8 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     }
 
     @Override
-    public void closeRegionScanner(IHTable table) {
-       table.closeScanner();
+    public void closeOperation(IHTable table) throws IOException {
+       table.closeOperation();
     }
+
 }

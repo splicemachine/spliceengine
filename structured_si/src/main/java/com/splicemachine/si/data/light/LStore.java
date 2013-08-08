@@ -4,6 +4,7 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.PushBackIterator;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
@@ -372,10 +373,6 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
         relations.put(tableName, newRows);
     }
 
-    @Override
-    public LScanner openRegionScanner(LTable table, LGet scan) throws IOException {
-        return new LScanner(new PushBackIterator<List<LKeyValue>>(scanRegion(table, scan)));
-    }
 
     @Override
     public List<LKeyValue> nextResultsOnRegionScanner(LScanner scanner) throws IOException {
@@ -387,7 +384,14 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
        scanner.seek(rowKey);
     }
 
-    @Override
-    public void closeRegionScanner(LTable table) {
-    }
+	@Override
+	public void closeOperation(LTable table) throws IOException {
+		
+	}
+
+	@Override
+	public void openOperation(LTable table) throws IOException {
+		
+	}
+
 }
