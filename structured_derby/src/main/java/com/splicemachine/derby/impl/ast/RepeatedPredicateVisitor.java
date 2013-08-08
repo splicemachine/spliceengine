@@ -13,12 +13,52 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * This Visitor finds the first ValueNode (which is typically an Or/And node and attempts
+ * to find duplicate predicates.  A good example is a join condition contained in every path
+ * of the where clause, such as:
+ *
+ * select *
+ * from table1 t1, table2 t2
+ * where { {
+ *           t1.foo = t2.foo
+ *           and t1.bar = 'bar'
+ *           and t2.baz = 'baz'
+ *
+ *         } OR {
+ *
+ *           t1.foo = t2.foo
+ *           and t1.bar = 'not bar'
+ *           and t2.baz = 'not baz'
+ *
+ *          } OR {
+ *
+ *           t1.foo = t2.foo
+ *           and t1.bar = 'really bar'
+ *           and t2.baz = 'really baz'
+ *
+ *          }
+ *       }
+ *
+ * Derby's optimizer doesn't currently spot the repeated join condition and thus will keep the whole predicate
+ * together.  This does not allow the join condition to be pushed down to the right side and will then not
+ * allow a Merge Sort Join to be used.  This code will spot the repeated BinaryRelationalOperation (i.e. t1.foo = t2.foo)
+ * and break that out from the ORs, move it to an and clause, so t1.foo = t2.foo AND {...} OR {...} OR {...}
+ *
+ */
 public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
 
     private boolean foundWhereClause = false;
 
-    public Map nodesWithMultipleOccurrences(ValueNode pred) throws StandardException {
-        Map<Object, Integer> m = new HashMap<Object,Integer>();
+    /**
+     * Finds any node in the predicate part of the query tree that occurs more than once.
+     *
+     * @param pred
+     * @return a map of the predicate ValueNode and how many times it occurs (only including ValueNodes that occur more than once
+     * @throws StandardException
+     */
+    private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred) throws StandardException {
+        Map<ValueNode, Integer> m = new HashMap<ValueNode,Integer>();
 
         List<BinaryRelationalOperatorNode> binNodes = ColumnUtils.collectNodes(pred, BinaryRelationalOperatorNode.class);
 
@@ -32,11 +72,11 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
             }
         }
 
-        Iterator<Map.Entry<Object, Integer>> mapIt = m.entrySet().iterator();
+        Iterator<Map.Entry<ValueNode, Integer>> mapIt = m.entrySet().iterator();
 
         while(mapIt.hasNext()){
 
-            Map.Entry<Object,Integer> me = mapIt.next();
+            Map.Entry<ValueNode,Integer> me = mapIt.next();
             Integer i = me.getValue();
 
             if(i.intValue() <= 1){
@@ -47,7 +87,16 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         return m;
     }
 
-    public int countPaths(ValueNode vn){
+    /**
+     * Counts the number of distinct paths in a predicate.  An
+     * OR statement will create an additional path and an AND
+     * node's children could potentially add another possible
+     * path.
+     *
+     * @param vn
+     * @return
+     */
+    private int countPaths(ValueNode vn){
 
         List <ValueNode> childNodes = new LinkedList<ValueNode>();
         childNodes.add(vn);
@@ -74,6 +123,16 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         return totalPaths;
     }
 
+    /**
+     * For a given node, check the number of possible paths in the predicate tree
+     * and check for any duplicated predicates.  If a predicate occurs X times, and we
+     * find there are only X possible paths, that predicate can be simplified, by pulling
+     * it out and ANDing it with the rest of the tree.
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
 
