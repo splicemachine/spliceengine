@@ -392,7 +392,7 @@ public class IndexTest extends SpliceUnitTest {
 
     private static final String SELECT_SPECIFIC_INDEX = "select c.conglomeratename from sys.sysconglomerates c inner join sys.sysschemas s on " +
             "c.schemaid = s.schemaid where c.isindex = 'TRUE' and s.schemaname = ? and c.conglomeratename = ?";
-    private static void createIndex(Connection connection, String schemaName, String tableName, String indexName, String definition, boolean unique) throws Exception {
+    public static void createIndex(Connection connection, String schemaName, String tableName, String indexName, String definition, boolean unique) throws Exception {
         PreparedStatement statement = null;
         Statement statement2 = null;
         ResultSet rs = null;
@@ -420,11 +420,11 @@ public class IndexTest extends SpliceUnitTest {
         }
     }
 
-    private static void dropIndex(String schemaName, String indexName) throws Exception {
+    public static void dropIndex(String schemaName, String indexName) throws Exception {
         SpliceIndexWatcher.executeDrop(schemaName,indexName);
     }
 
-    private static int count(ResultSet rs) throws Exception{
+    public static int count(ResultSet rs) throws Exception{
         int cnt = 0;
         while (rs.next()) {
             ++cnt;
@@ -432,7 +432,7 @@ public class IndexTest extends SpliceUnitTest {
         return cnt;
     }
 
-    private synchronized int printResult(String statement, ResultSet rs, PrintStream out) throws SQLException {
+    public static int printResult(String statement, ResultSet rs, PrintStream out) throws SQLException {
         if (rs.isClosed()) {
             return 0;
         }
