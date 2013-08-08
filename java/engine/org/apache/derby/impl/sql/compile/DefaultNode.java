@@ -292,7 +292,7 @@ public  class DefaultNode extends ValueNode
      */
 	protected boolean isEquivalent(ValueNode other)
     {
-		return false;
+		return this == other;
     }
 
 	public List getChildren() {

@@ -348,7 +348,7 @@ public class JavaToSQLValueNode extends ValueNode
     protected boolean isEquivalent(ValueNode o)
     {
     	// anything in the java domain is not equiavlent.
-    	return false;
+    	return false;//this == o;
     }
 
 	public List getChildren() {

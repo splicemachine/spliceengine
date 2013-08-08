@@ -2463,7 +2463,7 @@ public class SubqueryNode extends ValueNode
      */    
     protected boolean isEquivalent(ValueNode o)
     {
-    	return false;
+    	return this == o;
     }
 
     /**

@@ -163,7 +163,7 @@ public class CurrentRowLocationNode extends ValueNode
 	
 	protected boolean isEquivalent(ValueNode o)
 	{
-		return false;
+		return this == o;
 	}
 
 	public List getChildren() {

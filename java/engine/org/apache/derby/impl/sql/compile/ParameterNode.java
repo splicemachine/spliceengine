@@ -509,7 +509,7 @@ public class ParameterNode extends ValueNode
      */
     protected boolean isEquivalent(ValueNode o)
     {
-    	return false;
+    	return this == o;
     }
 
     /**

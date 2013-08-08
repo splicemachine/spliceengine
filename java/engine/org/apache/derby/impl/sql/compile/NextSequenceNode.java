@@ -188,7 +188,7 @@ public class NextSequenceNode extends ValueNode {
     }
 
     protected boolean isEquivalent(ValueNode other) throws StandardException {
-        return false;
+        return this == other;
     }
 
 	public List getChildren() {

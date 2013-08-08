@@ -1904,6 +1904,10 @@ public class ResultColumn extends ValueNode
         }
         return false;
 	}
+	
+	public boolean equals(Object o){
+		return this == o;
+	}
 
 
 	/**

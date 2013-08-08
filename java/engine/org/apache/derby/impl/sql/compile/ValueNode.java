@@ -1407,8 +1407,8 @@ public abstract class ValueNode extends QueryTreeNode
 		throws StandardException;
 
     public boolean equals(Object o) {
-
-        boolean result;
+    	
+    	boolean result;
 
         if(o instanceof ValueNode){
 
