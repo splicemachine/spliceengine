@@ -35,24 +35,6 @@ public class RowMarshaller {
     }
 
     private static void pack(DataValueDescriptor[] row, int[] rowColumns,MultiFieldEncoder encoder,boolean encodeEmpty) throws StandardException{
-//        if(rowColumns!=null){
-//            for(int rowCol:rowColumns){
-//                DataValueDescriptor dvd = row[rowCol];
-//                if(dvd==null && encodeEmpty)
-//                    encoder.encodeEmpty();
-//                else if (dvd!=null){
-//                    DerbyBytesUtil.encodeInto(encoder,dvd,false,encodeEmpty);
-//                }
-//            }
-//        }else{
-//            for (DataValueDescriptor dvd : row) {
-//                if(dvd==null&&encodeEmpty)
-//                    encoder.encodeEmpty();
-//                else if(dvd!=null){
-//                    DerbyBytesUtil.encodeInto(encoder,dvd,false,encodeEmpty);
-//                }
-//            }
-//        }
 
         if(rowColumns!=null){
             for(int rowCol:rowColumns){
@@ -148,9 +130,9 @@ public class RowMarshaller {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
-            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
+            if(value.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES))
                 return;
-            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
+            else if(!value.matchingQualifier(PACKED_COLUMN_KEY))
                 return; //don't try to unpack unless it's the right column
 
             byte[] data = value.getValue();
