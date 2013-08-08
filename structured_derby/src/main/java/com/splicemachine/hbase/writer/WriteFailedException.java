@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;

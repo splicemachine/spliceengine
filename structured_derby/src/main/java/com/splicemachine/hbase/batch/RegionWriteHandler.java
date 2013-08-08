@@ -4,7 +4,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;

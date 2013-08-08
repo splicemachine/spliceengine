@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,7 +114,7 @@ public class ThreadSafeCallBuffer<E> implements CallBuffer<E> {
         queue.drainTo(entries);
         currentHeapSize.addAndGet(-1l*currentHeap);
         if(entries.size()<=0) return; //no worries, someone else is doing the drain
-        listener.bufferFlushed(entries);
+        listener.bufferFlushed(entries,this);
     }
 
     @Override

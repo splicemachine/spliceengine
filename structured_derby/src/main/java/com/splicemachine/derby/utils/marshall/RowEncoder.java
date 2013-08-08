@@ -6,7 +6,7 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;

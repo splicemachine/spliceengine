@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.hbase.writer.TableWriter;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.job.TaskSchedulerManagement;
 import com.splicemachine.tools.ConnectionPool;

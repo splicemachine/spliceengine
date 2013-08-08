@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Mutation;

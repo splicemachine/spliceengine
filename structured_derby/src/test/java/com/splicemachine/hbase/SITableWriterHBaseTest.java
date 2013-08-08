@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.hbase.writer.*;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;

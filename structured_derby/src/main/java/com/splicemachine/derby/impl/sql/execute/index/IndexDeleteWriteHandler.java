@@ -10,7 +10,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;

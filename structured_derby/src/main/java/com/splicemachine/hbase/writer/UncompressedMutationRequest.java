@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;

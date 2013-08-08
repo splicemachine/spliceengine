@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.hbase.writer.*;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
@@ -33,4 +34,6 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @throws IOException if something goes wrong
      */
     public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
+
+    BulkWriteResult bulkWrite(BulkWrite bulkWrite);
 }

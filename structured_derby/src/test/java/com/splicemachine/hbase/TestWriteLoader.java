@@ -1,5 +1,7 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.TableWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Mutation;

@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.load;
 import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.*;

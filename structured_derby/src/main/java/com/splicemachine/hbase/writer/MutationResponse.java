@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

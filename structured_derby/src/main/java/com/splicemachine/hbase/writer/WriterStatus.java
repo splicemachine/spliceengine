@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import javax.management.MXBean;
 

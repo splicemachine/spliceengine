@@ -1,5 +1,6 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -41,6 +42,6 @@ public abstract class MutationRequest implements Externalizable {
 
     @Override
     public String toString() {
-        return "MutationRequest{"+mutations.size()+",regionStart="+ Bytes.toString(regionStartKey)+"}";
+        return "MutationRequest{"+mutations.size()+",regionStart="+ BytesUtil.toHex(regionStartKey)+"}";
     }
 }

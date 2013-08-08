@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import java.util.Collection;
 import java.util.List;
@@ -73,6 +73,6 @@ public interface CallBuffer<E> {
          * @param entries the entries to operate against (the contents of the entire buffer).
          * @throws Exception if the operation fails in some say.
          */
-        void bufferFlushed(List<T> entries) throws Exception;
+        void bufferFlushed(List<T> entries,CallBuffer<T> source) throws Exception;
     }
 }

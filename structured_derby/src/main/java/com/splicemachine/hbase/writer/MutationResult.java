@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 

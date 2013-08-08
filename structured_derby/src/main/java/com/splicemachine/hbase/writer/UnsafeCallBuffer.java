@@ -1,4 +1,4 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,7 +76,7 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
         List<E> elements = new ArrayList<E>(buffer);
         buffer.clear();
         currentHeapSize=0l;
-        listener.bufferFlushed(elements);
+        listener.bufferFlushed(elements,this);
     }
 
     @Override

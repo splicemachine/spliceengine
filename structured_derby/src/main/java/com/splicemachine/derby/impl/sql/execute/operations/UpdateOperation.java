@@ -11,7 +11,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -199,7 +199,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     if(dvd.isNull())
                         DerbyBytesUtil.encodeTypedEmpty(fieldEncoder,dvd,false,true);
                     else
-                        DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
+                        DerbyBytesUtil.encodeInto(fieldEncoder, dvd, false);
                 }
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,encoder.encode());
 

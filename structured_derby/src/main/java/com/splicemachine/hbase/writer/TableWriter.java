@@ -1,15 +1,10 @@
-package com.splicemachine.hbase;
+package com.splicemachine.hbase.writer;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.collect.*;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -18,12 +13,10 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Writables;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -55,7 +48,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * a single, non-blocking, global Table management tool. It wraps a single HConnection,
  * which allows for better region caching at the connection level, and allows for both
  * synchronous and asynchronous buffer flushing. Additionally, it maintains a cache of
- * region information, and uses the {@link BatchProtocol} coprocessor endpoint to perform writes.
+ * region information, and uses the {@link com.splicemachine.hbase.BatchProtocol} coprocessor endpoint to perform writes.
  * This cache is maintained and always used--there is never a situation in which the cache is not used,
  * although there are some situations in which the cache may be invalidated (either wholly or in part),
  * which may impose additional temporary latency on writes until the cache is repopulated.
@@ -106,7 +99,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class TableWriter extends SpliceConstants implements WriterStatus{
     private static final Logger LOG = Logger.getLogger(TableWriter.class);
-    private static final Logger CACHE_LOG = Logger.getLogger(RegionCacheLoader.class);
 
     private static final Class<BatchProtocol> batchProtocolClass = BatchProtocol.class;
     @SuppressWarnings("unchecked")
@@ -115,15 +107,15 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     private final MonitoredThreadPool writerPool;
     private final HConnection connection;
 
-    private final LoadingCache<Integer,Set<HRegionInfo>> regionCache;
-    private final ScheduledExecutorService cacheUpdater;
+//    private final LoadingCache<Integer,Set<HRegionInfo>> regionCache;
+//    private final ScheduledExecutorService cacheUpdater;
+    private final RegionCache regionCache;
     private final Configuration configuration;
 
     /*
      * Manageable state information about handing out buffers
      */
     private volatile long maxHeapSize;
-    private volatile long cacheUpdatedTimestamp;
     private volatile long pause;
     private volatile int maxPendingBuffers;
 
@@ -140,37 +132,28 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         HConnection connection= HConnectionManager.getConnection(configuration);
 
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
-        ScheduledExecutorService cacheUpdater = null;
+        RegionCache regionCache = null;
         if(enableRegionCache){
-            ThreadFactory cacheFactory = new ThreadFactoryBuilder()
-                    .setNameFormat("tablewriter-cacheupdater-%d")
-                    .setDaemon(true)
-                    .setPriority(Thread.NORM_PRIORITY).build();
-            cacheUpdater = Executors.newSingleThreadScheduledExecutor(cacheFactory);
+            regionCache = RegionCache.create(cacheExpirationPeriod,cacheUpdatePeriod);
         }
 
-        LoadingCache<Integer,Set<HRegionInfo>> regionCache = CacheBuilder.newBuilder()
-                .expireAfterWrite(cacheExpirationPeriod,TimeUnit.SECONDS)
-                .build(new RegionLoader(configuration));
 
         long pause = configuration.getLong(HConstants.HBASE_CLIENT_PAUSE,
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
 
         int maxPendingBuffers = config.getInt(SpliceConstants.CONFIG_WRITE_BUFFER_MAX_FLUSHES, SpliceConstants.DEFAULT_MAX_PENDING_BUFFERS);
 
-        return new TableWriter(writerPool,cacheUpdater,connection,regionCache, maxPendingBuffers,writeBufferSize,pause,configuration);
+        return new TableWriter(writerPool,connection,regionCache, maxPendingBuffers,writeBufferSize,pause,configuration);
     }
 
     private TableWriter( MonitoredThreadPool writerPool,
-                         ScheduledExecutorService cacheUpdater,
                         HConnection connection,
-                        LoadingCache<Integer, Set<HRegionInfo>> regionCache,
+                        RegionCache regionCache,
                         int maxPendingBuffers,
                         long maxHeapSize,
                         long pause,
                         Configuration configuration) {
         this.writerPool = writerPool;
-        this.cacheUpdater = cacheUpdater;
         this.connection = connection;
         this.regionCache = regionCache;
         this.configuration = configuration;
@@ -180,18 +163,14 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     }
 
     public void start(){
-        if(cacheUpdater!=null)
-            cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(), 0l, cacheUpdatePeriod, TimeUnit.MILLISECONDS);
+        if(regionCache!=null)
+            regionCache.start();
     }
 
     public void shutdown(){
-        if(cacheUpdater!=null)
-            cacheUpdater.shutdownNow();
+        if(regionCache!=null)
+            regionCache.shutdown();
         writerPool.shutdown();
-    }
-
-    public Collection<HRegionInfo> getCachedRegions(byte[] tableName) throws ExecutionException {
-        return Collections.unmodifiableSet(regionCache.get(Bytes.mapKey(tableName)));
     }
 
 
@@ -375,7 +354,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
      * Creates a synchronous write buffer for the specified table with the specified FlushWatcher attached.
      *
      * When the returned buffer flushes, it will do so <em>on the writing thread</em>. If the flush is desired
-     * to be asynchronous, then use {@link #writeBuffer(byte[], com.splicemachine.hbase.TableWriter.FlushWatcher)}
+     * to be asynchronous, then use {@link #writeBuffer(byte[], TableWriter.FlushWatcher)}
      * instead.
      *
      * The returned buffer is <em>not</em> thread safe, and must be externally synchronized.
@@ -449,11 +428,16 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     @Override public long getNumCachedTables() { return regionCache.size(); }
     @Override public boolean getCompressWrites(){ return compressWrites; }
     @Override public void setCompressWrites(boolean compressWrites) { this.compressWrites = compressWrites; }
-    @Override public long getCacheLastUpdatedTimeStamp() { return cacheUpdatedTimestamp; }
+    @Override public long getCacheLastUpdatedTimeStamp() { return regionCache.getUpdateTimestamp(); }
 
     @Override
     public int getNumCachedRegions(String tableName) {
-        Set<HRegionInfo> regions = regionCache.getIfPresent(Bytes.mapKey(tableName.getBytes()));
+        Set<HRegionInfo> regions;
+        try {
+            regions = regionCache.getRegions(tableName.getBytes());
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e.getCause());
+        }
         if(regions==null) return 0;
         return regions.size();
     }
@@ -491,7 +475,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         }
 
         @Override
-        public void bufferFlushed(List<Mutation> entries) throws Exception {
+        public void bufferFlushed(List<Mutation> entries,CallBuffer<Mutation> buffer) throws Exception {
             List<MutationRequest> mutationRequests = bucketMutations(tableName,entries);
             final List<Future<Void>> futures =new ArrayList<Future<Void>>(mutationRequests.size());
             for(MutationRequest mutationRequest:mutationRequests){
@@ -513,7 +497,7 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         }
 
         @Override
-        public void bufferFlushed(List<Mutation> entries) throws Exception {
+        public void bufferFlushed(List<Mutation> entries,CallBuffer<Mutation> buffer) throws Exception {
             //check if any prior flushes failed
             for(Future<Void> future:futures){
                 if(future.isDone()){
@@ -574,16 +558,6 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             }
         }
 
-        private List<Row> getRows(List<Mutation> entries) {
-            return Lists.transform(entries,new Function<Mutation, Row>() {
-                @Override
-                public Row apply(@Nullable Mutation input) {
-                    if(input != null) return input;
-                    return null;
-                }
-            });
-        }
-
         public void ensureFlushed() throws Exception{
             /*
              * Cycle through the submitted futures and wait for them to return,
@@ -610,41 +584,53 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         }
     }
 
-    private static final Comparator<Mutation> mutationComparator = new Comparator<Mutation>(){
-
-            @Override
-            public int compare(Mutation o1, Mutation o2) {
-                if(o1==null){
-                    if(o2==null) return 0;
-                    return -1;
-                }else if(o2==null) return 1;
-                else {
-                    return Bytes.compareTo(o1.getRow(),o2.getRow());
-                }
-            }
-        };
-
-    private Multimap<byte[],Mutation> getBucketedMutations(Integer tableKey,Collection<Mutation> mutations, int tries) throws Exception{
+    private Pair<byte[],List<Mutation>>[] getBucketedMutations(byte[] tableKey,Collection<Mutation> mutations, int tries) throws Exception{
         if(tries <=0){
             throw new NotServingRegionException("Unable to find a region for mutations "
                     +mutations.size()+" mutations, unable to write buffer");
         }
-        Set<HRegionInfo> regionInfos = regionCache.get(tableKey);
-        Multimap<byte[],Mutation> bucketsMutations = TreeMultimap.create(Bytes.BYTES_COMPARATOR,mutationComparator);
+        Set<HRegionInfo> regionInfos = regionCache.getRegions(tableKey);
+        if(regionInfos.size()<=0){
+              /*
+             * We have some regions that either weren't alive or were splitting or something during
+             * the time when the region loaded (if it loaded). So we need to invalidate the region cache
+             * and try again. But only retry numRetries times. After that, just give up since we can't
+             * write these correctly.
+             */
+            //wait for a backoff period, then try again
+            Thread.sleep(getWaitTime(numRetries-tries+1));
+            regionCache.invalidate(tableKey);
+            return getBucketedMutations(tableKey,mutations,tries-1);
+        }
+
+        Pair<byte[],List<Mutation>>[] buckets = new Pair[regionInfos.size()];
+        int pos=0;
+        for(HRegionInfo regionInfo:regionInfos){
+            buckets[pos] = Pair.<byte[],List<Mutation>>newPair(regionInfo.getStartKey(),Lists.<Mutation>newArrayList());
+            pos++;
+        }
         List<Mutation> regionLessMutations = Lists.newArrayListWithExpectedSize(0);
         for(Mutation mutation:mutations){
             if(mutation==null)continue; //skip null mutations
+
             byte[] row = mutation.getRow();
-            boolean found = false;
-            for(HRegionInfo region:regionInfos){
-                if(HRegion.rowIsInRange(region,row)){
-                    bucketsMutations.put(region.getStartKey(),mutation);
-                    found =true;
-                    break;
+            int i=0;
+            boolean less;
+            Pair<byte[],List<Mutation>> bucket = null;
+            do{
+                Pair<byte[],List<Mutation>> mutationPair = buckets[i];
+                int compare = Bytes.compareTo(mutationPair.getFirst(),row);
+                less = compare<0;
+                if(compare==0 || less){
+                    bucket = mutationPair;
                 }
-            }
-            if(!found)
+                i++;
+            }while(i<buckets.length && less);
+
+            if(bucket==null)
                 regionLessMutations.add(mutation);
+            else
+                bucket.getSecond().add(mutation);
         }
         if(regionLessMutations.size()>0){
             /*
@@ -656,25 +642,26 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             //wait for a backoff period, then try again
             Thread.sleep(getWaitTime(numRetries-tries+1));
             regionCache.invalidate(tableKey);
-            Multimap<byte[],Mutation> tryAgainMutationBuckets = getBucketedMutations(tableKey,mutations,tries-1);
-            bucketsMutations.putAll(tryAgainMutationBuckets);
+            return getBucketedMutations(tableKey,mutations,tries-1);
         }
 
         //DEBUG
         //make sure that there are no duplicate entries
-        Map<byte[],byte[]> dupMutations = new TreeMap<byte[], byte[]>(Bytes.BYTES_COMPARATOR);
-        for(byte[] regionStart:bucketsMutations.keySet()){
-            for(Mutation mutation:bucketsMutations.get(regionStart)){
-                byte[] row = mutation.getRow();
-                if(dupMutations.containsKey(row)){
-                    byte[] oldRegion =  dupMutations.get(row);
-                    SpliceLogUtils.warn(LOG,"Row %s is present in bucket for region %s and region %s",
-                            BytesUtil.toHex(row),BytesUtil.toHex(oldRegion),BytesUtil.toHex(regionStart));
-                }
-                dupMutations.put(row,regionStart);
-            }
-        }
-        return bucketsMutations;
+//        Map<byte[],byte[]> dupMutations = new TreeMap<byte[], byte[]>(Bytes.BYTES_COMPARATOR);
+//        for(Pair<byte[],List<Mutation>> bucket:buckets){
+//            byte[] regionStart = bucket.getFirst();
+//            for(Mutation mutation:bucket.getSecond()){
+//                byte[] row = mutation.getRow();
+//                if(dupMutations.containsKey(row)){
+//                    byte[] oldRegion =  dupMutations.get(row);
+//                    SpliceLogUtils.warn(LOG,"Row %s is present in bucket for region %s and region %s",
+//                            BytesUtil.toHex(row),BytesUtil.toHex(oldRegion),BytesUtil.toHex(regionStart));
+//                }
+//                dupMutations.put(row,regionStart);
+//            }
+//        }
+
+        return buckets;
     }
 
     private long getWaitTime(int tryNum) {
@@ -687,104 +674,24 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
     }
 
     private List<MutationRequest> bucketMutations(byte[] tableName,Collection<Mutation> mutations) throws Exception{
-        Multimap<byte[],Mutation> bucketsMutations = getBucketedMutations(Bytes.mapKey(tableName),mutations,numRetries);
-        List<MutationRequest> mutationRequests = Lists.newArrayListWithCapacity(bucketsMutations.size());
-        for(byte[] regionStart:bucketsMutations.keySet()){
+        Pair<byte[],List<Mutation>>[] bucketsMutations = getBucketedMutations(tableName,mutations,numRetries);
+        List<MutationRequest> mutationRequests = Lists.newArrayListWithCapacity(bucketsMutations.length);
+        for(Pair<byte[],List<Mutation>> bucket:bucketsMutations){
+            byte[] regionStart = bucket.getFirst();
+            List<Mutation> bucketedMutations = bucket.getSecond();
+            if(bucketedMutations.size()<=0) continue;
+
             MutationRequest request = compressWrites? new SnappyMutationRequest(regionStart): new UncompressedMutationRequest(regionStart);
-            request.addAll(bucketsMutations.get(regionStart));
+            request.addAll(bucketedMutations);
             mutationRequests.add(request);
         }
 
         return mutationRequests;
     }
 
-    private class RegionCacheLoader  implements Runnable{
 
-        @Override
-        public void run() {
-            SpliceLogUtils.debug(CACHE_LOG,"Refreshing Region cache for all tables");
-            TableWriter.this.cacheUpdatedTimestamp = System.currentTimeMillis();
-            final Map<byte[],Set<HRegionInfo>> regionInfos = Maps.newHashMap();
-            MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
-                @Override
-                public boolean processRow(Result rowResult) throws IOException {
-                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-                    if(bytes==null){
-                        //TODO -sf- log a message here
-                        return true;
-                    }
-                    HRegionInfo info = Writables.getHRegionInfo(bytes);
-                    Set<HRegionInfo> regions = regionInfos.get(info.getTableName());
-                    if(regions==null){
-                        regions = new CopyOnWriteArraySet<HRegionInfo>();
-                        regionInfos.put(info.getTableName(),regions);
-                    }
-                    if(!(info.isOffline()||info.isSplit()))
-                        regions.add(info);
-                    return true;
-                }
 
-				@Override
-				public void close() throws IOException {
-					// not used ... -- JL
-				}
-            };
-
-            try {
-                MetaScanner.metaScan(configuration,visitor);
-            } catch (IOException e) {
-                SpliceLogUtils.error(CACHE_LOG,"Unable to update region cache",e);
-            }
-            for(byte[] table:regionInfos.keySet()){
-                SpliceLogUtils.trace(CACHE_LOG,"Updating cache for "+ Bytes.toString(table));
-                regionCache.put(Bytes.mapKey(table),regionInfos.get(table));
-            }
-        }
-    }
-
-    private static class RegionLoader extends CacheLoader<Integer, Set<HRegionInfo>> {
-        private final Configuration configuration;
-
-        public RegionLoader(Configuration configuration) {
-            this.configuration = configuration;
-        }
-
-        @Override
-        public Set<HRegionInfo> load(final Integer key) throws Exception {
-            SpliceLogUtils.trace(CACHE_LOG,"Loading regions for key %d",key);
-            final Set<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
-            final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
-                @Override
-                public boolean processRow(Result rowResult) throws IOException {
-                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-                    if(bytes==null){
-                        //TODO -sf- log a message here
-                        return true;
-                    }
-                    HRegionInfo info = Writables.getHRegionInfo(bytes);
-                    Integer tableKey = Bytes.mapKey(info.getTableName());
-                    if(key.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
-                            regionInfos.add(info);
-                    }
-                    return true;
-                }
-
-				@Override
-				public void close() throws IOException {
-					// We do not use this... -- JL
-				}
-            };
-
-            try {
-                MetaScanner.metaScan(configuration,visitor);
-            } catch (IOException e) {
-                SpliceLogUtils.error(LOG,"Unable to update region cache",e);
-            }
-            SpliceLogUtils.trace(CACHE_LOG,"loaded regions %s",regionInfos);
-            return regionInfos;
-        }
-    }
-
+    private static final AtomicLong writeIdGen = new AtomicLong(0l);
     private class BufferWrite implements Callable<Void>{
         /*
          * represents a write of a Mutation request for a Buffer. One of these
@@ -797,6 +704,8 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
         private final AtomicInteger runningCounts;
         private final FlushWatcher flushWatcher;
 
+        private final long id;
+
         private BufferWrite(MutationRequest mutationsToWrite,
                             byte[] tableName,
                             BufferListener writer,
@@ -807,9 +716,12 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
             this.writer = writer;
             this.runningCounts = runningCounts;
             this.flushWatcher = flushWatcher;
+
+            id = writeIdGen.incrementAndGet();
         }
 
         public void tryWrite(int tries,List<MutationRequest> mutationsToWrite) throws Exception {
+            SpliceLogUtils.trace(LOG,"[BufferWrite %d]: tryWrite (%d buckets, %d tries)",id,mutationsToWrite.size(),tries);
         /*
          * The workflow is as follows:
          *
@@ -827,11 +739,11 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 throw new RetriesExhaustedWithDetailsException(retryExceptions,Collections.<Row>emptyList(),Collections.<String>emptyList());
             }
 
-            Iterator<MutationRequest> mutations = mutationsToWrite.iterator();
-            while(mutations.hasNext()){
-                MutationRequest mutationRequest = mutations.next();
+            for(MutationRequest request:mutationsToWrite){
+                SpliceLogUtils.trace(LOG,"[BufferWrite %d]: tryWrite Request %s",id,request);
+            }
+            for(MutationRequest mutationRequest:mutationsToWrite){
                 doRetry(tries, mutationRequest);
-                mutations.remove();
             }
         }
 
@@ -842,21 +754,23 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                     protoClassArray, invoker);
             boolean thrown=false;
             try{
+                SpliceLogUtils.trace(LOG,"[BufferWrite %d]: writeAttempt %s",id,mutationRequest);
                 MutationResponse response = instance.batchMutate(mutationRequest);
+                SpliceLogUtils.trace(LOG,"[BufferWrite %d]: received response %s",id,response);
                 //deal with rows which failed due to a NotServingRegionException or WrongRegionException
                 Map<Integer,MutationResult> failedRows = response.getFailedRows();
                 if(failedRows!=null&&failedRows.size()>0){
-                    SpliceLogUtils.debug(LOG,"Received a partial failure response %s for request %s",response,mutationRequest);
+                    SpliceLogUtils.debug(LOG,"[BufferWrite %d]: PartialFailure response %s, request %s",id,response,mutationRequest);
                     FlushWatcher.Response  partialRetry = flushWatcher.partialFailure(mutationRequest,response);
                     switch (partialRetry) {
                         case THROW_ERROR:
                             thrown=true;
                             throw parseIntoException(response);
                         case RETRY:
-                            SpliceLogUtils.trace(LOG,"Retrying failed and not-run rows");
+                            SpliceLogUtils.trace(LOG,"[BufferWrite %d]: PartialRetry %s",id, mutationRequest);
                             doPartialRetry(tries,mutationRequest,response);
-                        case RETURN:
-                            return;
+                        default:
+                            //return
                     }
                 }
             }catch(Exception e){
@@ -865,14 +779,14 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
                 if(thrown)
                     throw e;
 
-                SpliceLogUtils.debug(LOG,"Received a global failure ",e);
+                SpliceLogUtils.debug(LOG,"[BufferWrite %d], GlobalFailure (%s) ",e,id,mutationRequest);
                 FlushWatcher.Response response = flushWatcher.globalError(e);
                 switch (response) {
                     case THROW_ERROR:
                         throw e;
                     case RETRY:
                         Thread.sleep(getWaitTime(numRetries-tries+1));
-                        regionCache.invalidate(Bytes.mapKey(tableName));
+                        regionCache.invalidate(tableName);
                         //needs to be a mutatable list
                         tryWrite(tries-1,Lists.newArrayList(mutationRequest));
                         break;
@@ -915,26 +829,10 @@ public class TableWriter extends SpliceConstants implements WriterStatus{
 
             if(failedMutations.size()>0){
                 Thread.sleep(getWaitTime(numRetries-tries+1));
-                regionCache.invalidate(Bytes.mapKey(tableName));
+                regionCache.invalidate(tableName);
 
                 tryWrite(tries - 1, bucketMutations(tableName, failedMutations));
             }
-        }
-
-        /*
-         * For error handling, convert a batch of failed mutations into a list of rows for error reporting.
-         */
-        private List<Row> getBadRows(){
-            List<Row> badRows = Lists.newArrayList();
-            for(MutationRequest mutationRequest:mutationsToWrite){
-                badRows.addAll(Lists.transform(mutationRequest.getMutations(),new Function<Mutation, Row>() {
-                    @Override
-                    public Row apply(@Nullable Mutation input) {
-                        return (Row)input;
-                    }
-                }));
-            }
-            return badRows;
         }
 
         @Override

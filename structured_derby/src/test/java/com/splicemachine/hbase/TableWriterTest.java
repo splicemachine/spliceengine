@@ -5,6 +5,8 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.TableWriter;
 import org.junit.*;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;

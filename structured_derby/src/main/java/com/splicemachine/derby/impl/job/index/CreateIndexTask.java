@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.index;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -15,6 +16,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -151,10 +153,7 @@ public class CreateIndexTask extends ZkTask {
             while(shouldContinue){
                 nextRow.clear();
                 shouldContinue  = sourceScanner.next(nextRow);
-                List<Put> puts = translateResult(nextRow);
-                for(Put put:puts){
-                    indexOnlyWriteHandler.sendUpstream(put);
-                }
+                translateResult(nextRow, indexOnlyWriteHandler);
             }
             Map<Mutation,MutationResult> finish = indexOnlyWriteHandler.finish();
             for(MutationResult result:finish.values()){
@@ -166,24 +165,22 @@ public class CreateIndexTask extends ZkTask {
         } catch (IOException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
-            throw new ExecutionException(e);
+            throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
 
-    private List<Put> translateResult(List<KeyValue> result) throws IOException{
+    private void translateResult(List<KeyValue> result,WriteContext ctx) throws IOException{
         //we know that there is only one KeyValue for each row
-        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(result.size());
         Put currentPut;
         for(KeyValue kv:result){
-            if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,kv.getFamily()))
-                continue; //ignore SI keyValues
+            //ignore SI CF
+            if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
             currentPut = SpliceUtils.createPut(kv.getRow(),transactionId);
             currentPut.add(kv);
 
-            indexPuts.add(currentPut);
+            ctx.sendUpstream(currentPut);
         }
-        return indexPuts;
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {

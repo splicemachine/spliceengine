@@ -7,9 +7,9 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.MutationRequest;
-import com.splicemachine.hbase.MutationResponse;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.MutationRequest;
+import com.splicemachine.hbase.writer.MutationResponse;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -51,6 +51,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     private long conglomId;
+//    private final UniqueChecker<byte[]> uniqueChecker = new UniqueChecker<byte[]>(Bytes.BYTES_COMPARATOR);
+
     @Override
     public void start(CoprocessorEnvironment env) {
         String tableName = ((RegionCoprocessorEnvironment)env).getRegion().getTableDesc().getNameAsString();
@@ -113,6 +115,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 throw new IOException(e);
             }
             for(Mutation mutation:mutationsToApply.getMutations()){
+//                byte[] row = mutation.getRow();
+//                long time = uniqueChecker.check(row);
+//                if(time>0){
+//                    LOG.error("mutated row "+ BytesUtil.toHex(row)+" at time "+time);
+//                }
                 context.sendUpstream(mutation); //send all writes along the pipeline
             }
             Map<Mutation,MutationResult> resultMap = context.finish();

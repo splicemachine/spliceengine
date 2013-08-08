@@ -13,7 +13,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.writer.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;

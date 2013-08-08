@@ -11,7 +11,8 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -141,6 +142,21 @@ public class Exceptions {
             else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
         }
         return new DoNotRetryIOException(result.getErrorMsg());
+    }
+
+    public static Throwable fromString(WriteResult result) {
+//        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
+
+        WriteResult.Code writeErrorCode = result.getCode();
+
+        if(writeErrorCode!=null){
+            if(writeErrorCode== WriteResult.Code.WRITE_CONFLICT)
+                return new WriteConflict(result.getErrorMessage());
+            else if(writeErrorCode==WriteResult.Code.FAILED)
+                return new DoNotRetryIOException(result.getErrorMessage());
+            else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
+        }
+        return new DoNotRetryIOException(result.getErrorMessage());
     }
 
     public static boolean shouldRetry(Throwable error) {

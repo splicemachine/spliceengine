@@ -1,8 +1,8 @@
 package com.splicemachine.hbase.batch;
 
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.MutationResult;
-import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.TableWriter;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;

@@ -203,6 +203,5 @@ public class BlockImportJob extends FileImportJob{
             System.out.println(Bytes.toStringBinary(Encoding.encode(Bytes.toString(bits2))));
             System.out.println("");
         }
-
     }
 }

@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Mutation;
 

@@ -8,6 +8,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
+import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
