@@ -118,7 +118,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected abstract void finish(WriteContext ctx) throws Exception;
 
-    protected CallBuffer<Mutation> getWriteBuffer(final WriteContext ctx) {
+    protected CallBuffer<Mutation> getWriteBuffer(final WriteContext ctx) throws Exception {
         return ctx.getWriteBuffer(indexConglomBytes,new TableWriter.FlushWatcher() {
             @Override
             public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {

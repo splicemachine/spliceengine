@@ -101,7 +101,7 @@ public class UniqueConstraint implements Constraint {
             KeyValue[] raw = result.raw();
             rowPresent=false;
             for(KeyValue kv:raw){
-                if(Bytes.equals(kv.getFamily(),SpliceConstants.DEFAULT_FAMILY_BYTES)&&Bytes.equals(mutation.getRow(),kv.getRow())){
+                if(kv.matchingFamily(SpliceConstants.DEFAULT_FAMILY_BYTES)){
                     rowPresent=true;
                     SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
                     break;

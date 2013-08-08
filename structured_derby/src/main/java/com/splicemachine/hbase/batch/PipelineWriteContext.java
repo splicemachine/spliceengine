@@ -2,6 +2,7 @@ package com.splicemachine.hbase.batch;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.CallBuffer;
 import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.TableWriter;
@@ -71,7 +72,7 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) {
+        public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) throws Exception {
             return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener);
         }
 
@@ -94,10 +95,18 @@ public class PipelineWriteContext implements WriteContext{
 
     private WriteNode head;
     private WriteNode tail;
+    private final boolean keepState;
+    private final boolean useAsyncWriteBuffers;
 
     public PipelineWriteContext(RegionCoprocessorEnvironment rce) {
+        this(rce,true,true);
+    }
+
+    public PipelineWriteContext(RegionCoprocessorEnvironment rce,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
         this.resultsMap = Maps.newHashMap();
+        this.keepState = keepState;
+        this.useAsyncWriteBuffers= useAsyncWriteBuffers;
 
         head = tail =new WriteNode(null);
     }
@@ -112,7 +121,8 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void notRun(Mutation mutation) {
-        resultsMap.put(mutation,MutationResult.notRun());
+        if(keepState)
+            resultsMap.put(mutation,MutationResult.notRun());
     }
 
     @Override
@@ -122,17 +132,22 @@ public class PipelineWriteContext implements WriteContext{
 
     @Override
     public void failed(Mutation put, MutationResult mutationResult) {
-        resultsMap.put(put, mutationResult);
+        if(keepState)
+            resultsMap.put(put, mutationResult);
+        else
+            throw new RuntimeException(Exceptions.fromString(mutationResult));
     }
 
     @Override
     public void success(Mutation put) {
-        resultsMap.put(put,MutationResult.success());
+        if(keepState)
+            resultsMap.put(put,MutationResult.success());
     }
 
     @Override
     public void result(Mutation put, MutationResult result) {
-        resultsMap.put(put,result);
+        if(keepState)
+            resultsMap.put(put,result);
     }
 
     @Override
@@ -155,7 +170,9 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) {
+    public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) throws Exception {
+        if(useAsyncWriteBuffers)
+            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes, preFlushListener);
         return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,preFlushListener);
     }
 

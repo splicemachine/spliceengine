@@ -55,8 +55,14 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected boolean updateIndex(Mutation mutation, WriteContext ctx) {
-        if(indexBuffer==null)
-            indexBuffer = getWriteBuffer(ctx);
+        if(indexBuffer==null){
+            try{
+                indexBuffer = getWriteBuffer(ctx);
+            }catch(Exception e){
+                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,e.getClass().getSimpleName()+":"+e.getMessage()));
+                failed=true;
+            }
+        }
 
         if(Mutations.isDelete(mutation)) return true; //send upstream without acting on it
 
@@ -93,7 +99,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                         accumulate(newKeyAccumulator,mutationIndex,entry,i);
                     accumulate(newRowAccumulator,mutationIndex,entry,i);
                 }else{
-                    newPutDecoder.seekForward(mutationDecoder,i);
+                    newPutDecoder.seekForward(mutationDecoder, i);
                 }
             }
 

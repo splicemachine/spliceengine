@@ -31,7 +31,7 @@ public interface WriteContext {
 
     HTableInterface getHTable(byte[] indexConglomBytes);
 
-    CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener);
+    CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) throws Exception;
 
     RegionCoprocessorEnvironment getCoprocessorEnvironment();
 

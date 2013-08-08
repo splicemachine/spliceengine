@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import org.apache.hadoop.hbase.client.Mutation;
 
@@ -20,8 +21,14 @@ public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
 
     @Override
     protected boolean updateIndex(Mutation mutation, WriteContext ctx) {
-        if(indexBuffer==null)
-            indexBuffer = getWriteBuffer(ctx);
+        if(indexBuffer==null){
+            try {
+                indexBuffer = getWriteBuffer(ctx);
+            } catch (Exception e) {
+                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,e.getClass().getSimpleName()+":"+e.getMessage()));
+                failed=true;
+            }
+        }
         return super.updateIndex(mutation, ctx);
     }
 
