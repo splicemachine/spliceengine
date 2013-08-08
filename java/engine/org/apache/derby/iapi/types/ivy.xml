@@ -7,6 +7,6 @@
     </configurations>
     <dependencies>
         <dependency org="org.jruby" name="jruby-complete" rev="1.6.5" transitive="false"/>
-        <dependency org="commons-lang" name="commons-lang" rev="2.6"/>
+        <dependency org="commons-lang" name="commons-lang" rev="2.5"/>
     </dependencies>
 </ivy-module>
