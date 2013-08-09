@@ -284,5 +284,21 @@ public class OuterJoinTest extends SpliceUnitTest {
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
     }
 
+    @Test
+    public void testLeftOuterWithLessThan() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("E2"),
+                o("E4"),
+                o("E5"));
+
+        ResultSet rs = methodWatcher.executeQuery("select a.empnum from staff a left outer join staff b " +
+                "on a.empnum < b.empnum and a.grade = b.grade " +
+                "where b.grade is null");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+    }
+
 }
 

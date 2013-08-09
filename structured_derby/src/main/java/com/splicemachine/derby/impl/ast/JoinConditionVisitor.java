@@ -55,6 +55,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return addPredsToJoin(j);
     }
 
+    @Override
+    public JoinNode visit(HalfOuterJoinNode j) throws StandardException {
+        return addPredsToJoin(j);
+    }
+
     public FromBaseTable pullPredsFromTable(FromBaseTable t) throws StandardException {
         if (isMSJ(t.getTrulyTheBestAccessPath())) {
             PredicateList pl = new PredicateList();
