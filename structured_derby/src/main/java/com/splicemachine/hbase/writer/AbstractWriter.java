@@ -61,8 +61,19 @@ public abstract class AbstractWriter implements Writer{
             errors.add(new IOException("Unable to determine regions for table "+ Bytes.toString(tableName)));
             return bucketWrites(tries-1,tableName,buffer,txnId,errors,retryStrategy);
         }
+        List<BulkWrite> buckets = Lists.newArrayListWithCapacity(regions.size());
+        for(HRegionInfo info:regions){
+            buckets.add(new BulkWrite(txnId,info.getStartKey()));
+        }
 
-        return WriteUtils.bucketWrites(buffer,txnId,regions);
+        if(WriteUtils.bucketWrites(buffer,buckets)){
+            return buckets;
+        }else{
+            //there were regions missing because they were splitting or something similar
+            Thread.sleep(WriteUtils.getWaitTime(retryStrategy.getMaximumRetries()-tries+1,retryStrategy.getPause()));
+            regionCache.invalidate(tableName);
+            return bucketWrites(tries-1,tableName,buffer,txnId,errors,retryStrategy);
+        }
     }
 
     private Exception getError(List<Throwable> errors) {

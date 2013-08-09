@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.splicemachine.hbase.writer.KVPair;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
@@ -62,7 +63,7 @@ public interface Constraint {
      *
      * @throws IOException if something goes wrong during the validation.
      */
-    boolean validate(Mutation mutation,RegionCoprocessorEnvironment rce) throws IOException;
+    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce) throws IOException;
 
     /**
      * Validate that the constraint is satisfied on all the mutations.
@@ -72,7 +73,7 @@ public interface Constraint {
      * @return the Mutations which failed validation
      * @throws IOException if something goes wrong during the validation
      */
-    Collection<Mutation> validate(Collection<Mutation> mutations,
+    Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,
                      RegionCoprocessorEnvironment rce) throws IOException;
 
     ConstraintContext getConstraintContext();

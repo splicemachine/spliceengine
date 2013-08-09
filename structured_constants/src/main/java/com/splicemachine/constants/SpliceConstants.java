@@ -40,6 +40,7 @@ public class SpliceConstants {
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
     public static final int DEFAULT_MAX_BUFFER_ENTRIES = -1;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
+    public static final int DEFAULT_HBASE_HTABLE_THREADS_CORE = 10;
     public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
@@ -88,6 +89,7 @@ public class SpliceConstants {
     public static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
     private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
     private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
+    private static final String CONFIG_HBASE_HTABLE_THREADS_CORE = "hbase.htable.threads.core";
     public static final String CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
     public static final String CONFIG_HBASE_CLIENT_RETRIES_NUMBER = HConstants.HBASE_CLIENT_RETRIES_NUMBER;
     public static final String CONFIG_CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
@@ -130,6 +132,7 @@ public class SpliceConstants {
 	public static long writeBufferSize;
 	public static int maxBufferEntries;
 	public static int maxThreads;
+    public static int coreWriteThreads;
     public static int maxTreeThreads; //max number of threads for concurrent stack execution
 	public static long threadKeepAlive;
     public static int numRetries;
@@ -286,6 +289,13 @@ public class SpliceConstants {
         }
         if(maxThreads<=0)
             maxThreads = 1;
+        coreWriteThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_CORE,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        if(coreWriteThreads>maxThreads){
+            //default the core write threads to 10% of the maximum available
+            coreWriteThreads = maxThreads/10;
+        }
+        if(coreWriteThreads<0)
+            coreWriteThreads=0;
 
         threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
         numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);

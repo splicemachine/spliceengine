@@ -9,7 +9,7 @@ import java.util.BitSet;
  */
 public interface WriteContextFactory<T> {
 
-    WriteContext create(T key) throws IOException, InterruptedException;
+    WriteContext create(String txnId,T key) throws IOException, InterruptedException;
 
     /**
      * Creates a context that only updates side effects.
@@ -18,7 +18,7 @@ public interface WriteContextFactory<T> {
      * @throws IOException
      * @throws InterruptedException
      */
-    WriteContext createPassThrough(T key) throws IOException,InterruptedException;
+    WriteContext createPassThrough(String txnid,T key) throws IOException,InterruptedException;
 
     void dropIndex(long indexConglomId);
 

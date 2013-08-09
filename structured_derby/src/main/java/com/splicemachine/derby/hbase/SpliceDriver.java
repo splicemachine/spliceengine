@@ -13,8 +13,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.writer.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
+import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.tools.CachedResourcePool;
@@ -75,7 +75,7 @@ public class SpliceDriver extends SIConstants {
 
     private volatile NetworkServerControl server;
 
-    private volatile TableWriter writerPool;
+    private volatile WriteCoordinator writerPool;
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
@@ -108,7 +108,7 @@ public class SpliceDriver extends SIConstants {
 
         try {
             snowLoader = new SnowflakeLoader();
-            writerPool = TableWriter.create(SpliceUtils.config);
+            writerPool = WriteCoordinator.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new AsyncJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
@@ -122,7 +122,7 @@ public class SpliceDriver extends SIConstants {
         return (ZkTaskMonitor)taskMonitor;
     }
 
-    public TableWriter getTableWriter() {
+    public WriteCoordinator getTableWriter() {
         return writerPool;
     }
 
@@ -284,12 +284,12 @@ public class SpliceDriver extends SIConstants {
         try{
 
             //register TableWriter
-            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
-            mbs.registerMBean(writerPool,writerName);
+//            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
+//            mbs.registerMBean(writerPool,writerName);
 
             //register TableWriter's writer pool
-            ObjectName writerPoolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
-            mbs.registerMBean(writerPool.getThreadPool(),writerPoolName);
+//            ObjectName writerPoolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
+//            mbs.registerMBean(writerPool.getThreadPool(),writerPoolName);
 
             //register TaskScheduler
             ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");

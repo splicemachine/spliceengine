@@ -28,14 +28,10 @@ public class WriteUtils {
         }
     };
 
-    public static List<BulkWrite> bucketWrites(List<KVPair> buffer,String txnId,Set<HRegionInfo> regions) throws Exception{
-        List<BulkWrite> buckets = Lists.newArrayListWithCapacity(regions.size());
-        for(HRegionInfo info:regions){
-
-            buckets.add(new BulkWrite(txnId,info.getStartKey()));
-        }
+    public static boolean bucketWrites(List<KVPair> buffer,List<BulkWrite> buckets) throws Exception{
         //make sure regions are in sorted order
         Collections.sort(buckets, writeComparator);
+        List<KVPair> regionLessWrites = Lists.newArrayListWithExpectedSize(0);
 
         for(KVPair kv:buffer){
             byte[] row = kv.getRow();
@@ -52,10 +48,13 @@ public class WriteUtils {
                 }
             }while(bucketList.hasNext() && less);
 
-            bucket.addWrite(kv);
+            if(bucket!=null)
+                bucket.addWrite(kv);
+            else
+                return false;
         }
 
-        return buckets;
+        return true;
     }
 
     static long getWaitTime(int tryNum,long pause) {

@@ -3,21 +3,20 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -27,12 +26,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.BitSet;
+import java.util.Collections;
 
 /**
  * @author jessiezhang
@@ -175,7 +176,7 @@ public class UpdateOperation extends DMLWriteOperation{
         }
 
         @Override
-        public void write(ExecRow nextRow, String txnId, CallBuffer<Mutation> buffer) throws Exception {
+        public void write(ExecRow nextRow, CallBuffer<KVPair> buffer) throws Exception {
             RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
 	        /*
 	         * If we have primary keys, it's possible that we have modified one of them, which will change the row
@@ -185,8 +186,8 @@ public class UpdateOperation extends DMLWriteOperation{
 	         * deal with primary keys. Otherwise, we do an update as usual
 	         */
             if(!modifiedPks){
-                Put put = SpliceUtils.createPut(location.getBytes(),txnId);
-                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
+//                Put put = SpliceUtils.createPut(location.getBytes(),((TransactionalCallBuffer)buffer).getTransactionId());
+//                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
 
                 //set the columns from the new row
                 EntryEncoder encoder = getNonPkEncoder(nextRow);
@@ -201,9 +202,9 @@ public class UpdateOperation extends DMLWriteOperation{
                     else
                         DerbyBytesUtil.encodeInto(fieldEncoder, dvd, false);
                 }
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,encoder.encode());
+                byte[] value = encoder.encode();
 
-                buffer.add(put);
+                buffer.add(new KVPair(location.getBytes(),value, KVPair.Type.UPDATE));
             }else{
             	Result result = null;
             	HTableInterface htable = null;
@@ -220,9 +221,7 @@ public class UpdateOperation extends DMLWriteOperation{
             		remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
             		remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,getFilterBytes());
             		result = htable.get(remoteGet);
-            	} catch (Exception e) {
-            		throw e;
-            	} finally {
+            	}  finally {
             		Closeables.closeQuietly(htable);
             	}
 
@@ -230,10 +229,8 @@ public class UpdateOperation extends DMLWriteOperation{
                 keyEncoder.reset();
                 keyType.encodeKey(nextRow.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
 
-                Put put = new Put(keyEncoder.build());
-                //we don't need to check constraints
-                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
-                SpliceUtils.attachTransaction(put,txnId);
+                byte[] rowKey = keyEncoder.build();
+
 
                 if(heapDecoder==null)
                     heapDecoder = MultiFieldDecoder.create();
@@ -264,9 +261,9 @@ public class UpdateOperation extends DMLWriteOperation{
                     }
                 }
 
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
-                buffer.add(put);
-                buffer.add(Mutations.getDeleteOp(txnId,location.getBytes()));
+                byte[] value = entryEncoder.encode();
+                buffer.add(new KVPair(rowKey,value));
+                buffer.add(new KVPair(location.getBytes(),EMPTY_BYTES, KVPair.Type.DELETE));
             }
         }
 

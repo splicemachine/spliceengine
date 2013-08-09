@@ -92,7 +92,19 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
         if(populated) return true;
         Result result = scanner.getNextResult();
         if(result!=null && !result.isEmpty()){
-            int ordinal = Encoding.decodeInt(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,JoinUtils.JOIN_SIDE_COLUMN));
+            /*
+             * We need to get the ordinal from the Row Key.
+             *
+             * The format of the key is
+             *
+             * data + Ordinal + 8-byte task Id + 8 byte UUID
+             *
+             * The ordinal is either 0 or 1, both of which encode to a single byte. Thus,
+             * the ordinal is the byte located at data.length-19 (don't forget the separators).
+             */
+            byte[] key = result.getRow();
+            int ordinal = Encoding.decodeInt(key,key.length-19);
+//            int ordinal = Encoding.decodeInt(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,JoinUtils.JOIN_SIDE_COLUMN));
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 ExecRow rightRow = rightDecoder.decode(result.raw());
                 currentRow = rightRow;

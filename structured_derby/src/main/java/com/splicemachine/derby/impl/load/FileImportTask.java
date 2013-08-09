@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import au.com.bytecode.opencsv.CSVReader;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -26,7 +27,7 @@ public class FileImportTask extends AbstractImportTask{
 
     @Override
     protected long importData(ExecRow row,
-                              CallBuffer<Mutation> writeBuffer) throws Exception {
+                              CallBuffer<KVPair> writeBuffer) throws Exception {
         InputStream is = null;
         Reader reader = null;
         try{
@@ -42,7 +43,7 @@ public class FileImportTask extends AbstractImportTask{
             while((line = csvReader.readNext())!=null){
                 if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
 
-                doImportRow(txnId,line,row, writeBuffer);
+                doImportRow(line,row, writeBuffer);
                 numImported++;
                 reportIntermediate(numImported);
             }

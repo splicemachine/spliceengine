@@ -7,18 +7,21 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -29,12 +32,16 @@ final class BulkWriteAction implements Callable<Void> {
     @SuppressWarnings("unchecked")
     private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 
+    private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
+    private static final AtomicLong idGen = new AtomicLong(0l);
+
     private final BulkWrite bulkWrite;
     private final List<Throwable> errors = new CopyOnWriteArrayList<Throwable>();
     private final Writer.RetryStrategy retryStrategy;
     private final RegionCache regionCache;
     private final HConnection connection;
     private final byte[] tableName;
+    private final long id = idGen.incrementAndGet();
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -70,7 +77,9 @@ final class BulkWriteAction implements Callable<Void> {
                 protoClassArray, invoker);
         boolean thrown=false;
         try{
+            SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
             BulkWriteResult response = instance.bulkWrite(bulkWrite);
+            SpliceLogUtils.trace(LOG,"[%d] %s",id,response);
             Map<Integer,WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = retryStrategy.partialFailure(response,bulkWrite);
@@ -130,14 +139,32 @@ final class BulkWriteAction implements Callable<Void> {
         }
 
         if(failedWrites.size()>0){
-            Set<HRegionInfo> regionInfo = getRegionsFromCache(retryStrategy.getMaximumRetries());
-            tryWrite(tries - 1, WriteUtils.bucketWrites(failedWrites, bulkWrite.getTxnId(), regionInfo));
+            retryFailedWrites(tries, bulkWrite.getTxnId(), failedWrites);
+        }
+    }
+
+    private void retryFailedWrites(int tries, String txnId, List<KVPair> failedWrites) throws Exception {
+        if(tries<=0)
+            throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
+        Set<HRegionInfo> regionInfo = getRegionsFromCache(retryStrategy.getMaximumRetries());
+        List<BulkWrite> newBuckets = getWriteBuckets(txnId,regionInfo);
+        if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
+            tryWrite(tries-1,newBuckets);
+        }else{
+            retryFailedWrites(tries-1,txnId,failedWrites);
         }
     }
 
     private void retry(int tries, BulkWrite bulkWrite) throws Exception {
-        Set<HRegionInfo> info = getRegionsFromCache(retryStrategy.getMaximumRetries());
-        tryWrite(tries - 1, WriteUtils.bucketWrites(bulkWrite.getMutations(), bulkWrite.getTxnId(),info));
+        retryFailedWrites(tries-1,bulkWrite.getTxnId(),bulkWrite.getMutations());
+    }
+
+    private List<BulkWrite> getWriteBuckets(String txnId,Set<HRegionInfo> regionInfos){
+        List<BulkWrite> writes = Lists.newArrayListWithCapacity(regionInfos.size());
+        for(HRegionInfo info:regionInfos){
+            writes.add(new BulkWrite(txnId,info.getStartKey()));
+        }
+        return writes;
     }
 
     private Set<HRegionInfo> getRegionsFromCache(int numTries) throws Exception {

@@ -1,17 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.WriteResult;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -29,9 +27,9 @@ public class ConstraintHandler implements WriteHandler {
     }
 
     @Override
-    public void next(Mutation mutation, WriteContext ctx) {
+    public void next(KVPair mutation, WriteContext ctx) {
 //        if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
-//            ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
+//            ctx.failed(mutation,new WriteResult(MutationResult.Code.FAILED,"WrongRegion"));
 //        }else{
 //            mutations.add(mutation);
 //            ctx.sendUpstream(mutation);
@@ -41,16 +39,18 @@ public class ConstraintHandler implements WriteHandler {
         try {
             if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
                 //we can't check the mutation, it'll explode
-                ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED,"WrongRegion"));
-            }else if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
+                ctx.failed(mutation,WriteResult.wrongRegion());
+            }else if(!localConstraint.validate(mutation,ctx.getTransactionId(),ctx.getCoprocessorEnvironment())){
                 failed = true;
                 ctx.result(mutation,
-                        new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
+                        new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext()));
             }else
                 ctx.sendUpstream(mutation);
-        } catch (Exception e) {
+        }catch(NotServingRegionException nsre){
+            ctx.failed(mutation,WriteResult.notServingRegion());
+        }catch (Exception e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 
@@ -70,21 +70,21 @@ public class ConstraintHandler implements WriteHandler {
 //                ctx.notRun(mutation);
 //
 ////            if(ctx.getRegion().isClosing()||ctx.getRegion().isClosed()){
-////                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,"NotServingRegion"));
+////                ctx.failed(mutation,new WriteResult(MutationResult.Code.FAILED,"NotServingRegion"));
 ////            }
 //            try{
 //                if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
 //                    failed=true;
-//                    ctx.result(mutation,new MutationResult(Constraints.convertType(localConstraint.getType()),localConstraint.getConstraintContext()));
+//                    ctx.result(mutation,new WriteResult(Constraints.convertType(localConstraint.getType()),localConstraint.getConstraintContext()));
 //                }
 //            }catch(IOException ioe){
 //                failed=true;
-//                ctx.result(mutation,new MutationResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage()));
+//                ctx.result(mutation,new WriteResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage()));
 //            }
 //        }
 //        Collection<Mutation> failedWrites = localConstraint.validate(mutations,ctx.getCoprocessorEnvironment());
 //        if(failedWrites.size()>0){
-//            MutationResult result = new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
+//            WriteResult result = new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
 //            for(Mutation mutation:failedWrites){
 //                ctx.failed(mutation,result);
 //            }

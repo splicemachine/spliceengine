@@ -1,13 +1,9 @@
 package com.splicemachine.hbase.batch;
 
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.MutationResult;
-import com.splicemachine.hbase.writer.TableWriter;
+import com.splicemachine.hbase.writer.*;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Map;
@@ -17,25 +13,27 @@ import java.util.Map;
  * Created on: 4/30/13
  */
 public interface WriteContext {
-    void notRun(Mutation mutation);
+    void notRun(KVPair mutation);
 
-    void sendUpstream(Mutation mutation);
+    void sendUpstream(KVPair mutation);
 
-    void failed(Mutation put, MutationResult mutationResult);
+    void failed(KVPair put, WriteResult mutationResult);
 
-    void success(Mutation put);
+    void success(KVPair put);
 
-    void result(Mutation put, MutationResult result);
+    void result(KVPair put, WriteResult result);
 
     HRegion getRegion();
 
     HTableInterface getHTable(byte[] indexConglomBytes);
 
-    CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) throws Exception;
+    CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.RetryStrategy retryStrategy) throws Exception;
 
     RegionCoprocessorEnvironment getCoprocessorEnvironment();
 
-    Map<Mutation,MutationResult> finish() throws IOException;
+    Map<KVPair,WriteResult> finish() throws IOException;
 
-    boolean canRun(Mutation input);
+    boolean canRun(KVPair input);
+
+    String getTransactionId();
 }

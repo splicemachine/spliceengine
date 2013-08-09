@@ -64,12 +64,9 @@ public class RowMarshaller {
 
     private static final RowMarshall SPARSE_PACKED = new RowMarshall() {
         @Override
-        public void encodeRow(DataValueDescriptor[] row, int[] rowColumns, Put put, MultiFieldEncoder rowEncoder) throws StandardException {
-            try {
-                put.add(getPackedKv(row,put.getRow(),rowColumns,rowEncoder,false));
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
+        public byte[] encodeRow(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder rowEncoder) throws StandardException {
+                pack(row,rowColumns,rowEncoder,false);
+                return rowEncoder.build();
         }
 
         @Override
@@ -106,12 +103,9 @@ public class RowMarshaller {
     };
     private static final RowMarshall PACKED = new RowMarshall() {
         @Override
-        public void encodeRow(DataValueDescriptor[] row, int[] rowColumns, Put put, MultiFieldEncoder rowEncoder) throws StandardException {
-            try {
-                put.add(getPackedKv(row,put.getRow(),rowColumns,rowEncoder,true));
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
+        public byte[] encodeRow(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder rowEncoder) throws StandardException {
+            pack(row,rowColumns,rowEncoder,true);
+            return rowEncoder.build();
         }
 
         @Override
@@ -169,35 +163,16 @@ public class RowMarshaller {
                     DerbyBytesUtil.decodeInto(rowDecoder, dvd);
             }
         }
-//        if(reversedKeyColumns!=null){
-//            for(int keyCol:reversedKeyColumns){
-//                DataValueDescriptor dvd = fields[keyCol];
-//                if(DerbyBytesUtil.isNextFieldNull(rowDecoder, dvd)){
-//                    DerbyBytesUtil.skip(rowDecoder,dvd);
-//                }else
-//                    DerbyBytesUtil.decodeInto(rowDecoder,dvd);
-//            }
-//        }else{
-//            for (DataValueDescriptor dvd : fields) {
-//                if (dvd == null)
-//                    continue;
-//                if (DerbyBytesUtil.isNextFieldNull(rowDecoder, dvd)) {
-//                    DerbyBytesUtil.skip(rowDecoder, dvd);
-//                } else
-//                    DerbyBytesUtil.decodeInto(rowDecoder, dvd);
-//            }
-//        }
     }
 
     private static final RowMarshall PACKED_COMPRESSED = new RowMarshall() {
         @Override
-        public void encodeRow(DataValueDescriptor[] row,
+        public byte[] encodeRow(DataValueDescriptor[] row,
                               int[] rowColumns,
-                              Put put, MultiFieldEncoder rowEncoder) throws StandardException {
+                              MultiFieldEncoder rowEncoder) throws StandardException {
             pack(row,rowColumns,rowEncoder,true);
             try {
-                byte[] bytes = Snappy.compress(rowEncoder.build());
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,bytes);
+                return Snappy.compress(rowEncoder.build());
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }

@@ -3,21 +3,21 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.utils.Mutations;
-import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +30,7 @@ import java.util.Collections;
  */
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
-    protected CallBuffer<Mutation> indexBuffer;
+    protected CallBuffer<KVPair> indexBuffer;
     private EntryAccumulator newKeyAccumulator;
     private EntryAccumulator newRowAccumulator;
     private EntryDecoder newPutDecoder;
@@ -38,8 +38,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     private BitSet nonUniqueIndexedColumns;
 
-    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes,BitSet descColumns) {
-        super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns);
+    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes,BitSet descColumns, boolean keepState) {
+        super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
         nonUniqueIndexedColumns = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexedColumns.set(translatedIndexColumns.length());
@@ -54,24 +54,24 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     @Override
-    protected boolean updateIndex(Mutation mutation, WriteContext ctx) {
+    protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
         if(indexBuffer==null){
             try{
                 indexBuffer = getWriteBuffer(ctx);
             }catch(Exception e){
-                ctx.failed(mutation,new MutationResult(MutationResult.Code.FAILED,e.getClass().getSimpleName()+":"+e.getMessage()));
+                ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
                 failed=true;
             }
         }
 
-        if(Mutations.isDelete(mutation)) return true; //send upstream without acting on it
+        if(mutation.getType()== KVPair.Type.DELETE) return true; //send upstream without acting on it
 
-        upsert((Put)mutation,ctx);
+        upsert(mutation,ctx);
         return !failed;
     }
 
-    private void upsert(Put mutation, WriteContext ctx) {
-        Put put = update(mutation, ctx);
+    private void upsert(KVPair mutation, WriteContext ctx) {
+        KVPair put = update(mutation, ctx);
         if(put==null) return; //we updated the table, and the index during the update process
 
         if(newKeyAccumulator==null)
@@ -85,7 +85,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         if(newPutDecoder==null)
             newPutDecoder = new EntryDecoder();
 
-        newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+        newPutDecoder.set(mutation.getValue());
 
         BitIndex mutationIndex = newPutDecoder.getCurrentIndex();
         try{
@@ -106,18 +106,20 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             //add the row to the end of the index rob
             newRowAccumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexRowKey = getIndexRowKey(newKeyAccumulator);
-            Put indexPut = Mutations.translateToPut(mutation,indexRowKey);
-            indexPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
+            byte[] indexRowData = newRowAccumulator.finish();
+            KVPair indexPut = new KVPair(indexRowKey,indexRowData);
 
-            indexToMainMutationMap.put(indexPut,mutation);
+            if(keepState)
+                indexToMainMutationMap.put(indexPut, mutation);
+
             indexBuffer.add(indexPut);
             ctx.sendUpstream(mutation);
         }catch (IOException e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 
@@ -133,14 +135,14 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         return accumulator.finish();
     }
 
-    private Put update(Put mutation, WriteContext ctx) {
-        if(!Bytes.equals(mutation.getAttribute(Puts.PUT_TYPE), Puts.FOR_UPDATE))
+    private KVPair update(KVPair mutation, WriteContext ctx) {
+        if(mutation.getType()!= KVPair.Type.UPDATE)
             return mutation; //not an update, nothing to do here
 
         if(newPutDecoder==null)
             newPutDecoder = new EntryDecoder();
 
-        newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+        newPutDecoder.set(mutation.getValue());
 
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
         boolean needsIndexUpdating = false;
@@ -162,7 +164,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          * insert a new index row with the correct values.
          */
         try{
-            Get oldGet = SpliceUtils.createGet(mutation,mutation.getRow());
+            Get oldGet = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
             oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
@@ -187,7 +189,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             if(newPutDecoder==null)
                 newPutDecoder = new EntryDecoder();
 
-            newPutDecoder.set(mutation.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY).get(0).getValue());
+            newPutDecoder.set(mutation.getValue());
 
             MultiFieldDecoder newDecoder = newPutDecoder.getEntryDecoder();
 
@@ -254,25 +256,28 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             //delete the old record
             byte[] existingIndexRowKey = oldKeyAccumulator.finish();
-            Mutation indexDelete = Mutations.translateToDelete(mutation,existingIndexRowKey);
+            KVPair indexDelete = KVPair.delete(existingIndexRowKey);
             doDelete(ctx,indexDelete);
 
             //insert the new
             byte[] newIndexRowKey = getIndexRowKey(newKeyAccumulator);
-            Put newPut = Mutations.translateToPut(mutation,newIndexRowKey);
+
             newRowAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
-            newPut.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,newRowAccumulator.finish());
-            indexToMainMutationMap.put(mutation,newPut);
+            byte[] indexValue = newRowAccumulator.finish();
+            KVPair newPut = new KVPair(newIndexRowKey,indexValue);
+
+            if(keepState)
+                indexToMainMutationMap.put(mutation, newPut);
             indexBuffer.add(newPut);
 
             ctx.sendUpstream(mutation);
             return null;
         } catch (IOException e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
 
         //if we get an exception, then return null so we don't try and insert anything
@@ -281,21 +286,21 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
 
 
-    protected void doDelete(WriteContext ctx, final Mutation delete) throws Exception {
+    protected void doDelete(final WriteContext ctx, final KVPair delete) throws Exception {
         HTableInterface hTable = ctx.getHTable(indexConglomBytes);
         try{
             final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
             hTable.coprocessorExec(BatchProtocol.class,
                     delete.getRow(),indexStop, new Batch.Call<BatchProtocol, Object>() {
                 @Override
-                public MutationResult call(BatchProtocol instance) throws IOException {
+                public WriteResult call(BatchProtocol instance) throws IOException {
                     return instance.deleteFirstAfter(
-                            SpliceUtils.getTransactionId(delete),delete.getRow(),indexStop);
+                            ctx.getTransactionId(), delete.getRow(), indexStop);
                 }
             });
         } catch (Throwable throwable) {
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(throwable);
-            ctx.failed(delete,new MutationResult(MutationResult.Code.FAILED,t.getClass().getSimpleName()+":"+t.getMessage()));
+            ctx.failed(delete,WriteResult.failed(t.getClass().getSimpleName()+":"+t.getMessage()));
             failed=true;
         }
     }

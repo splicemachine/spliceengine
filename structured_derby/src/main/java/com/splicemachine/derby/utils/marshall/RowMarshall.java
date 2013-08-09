@@ -18,13 +18,11 @@ public interface RowMarshall {
     /**
      * @param row the row to encode
      * @param rowColumns the columns to parse
-     * @param put the put to attach values to
      * @param rowEncoder {@code null} if the row type does not use multi field encodings
      * @throws org.apache.derby.iapi.error.StandardException
      */
-    public void encodeRow(DataValueDescriptor[] row,
+    public byte[] encodeRow(DataValueDescriptor[] row,
                           int[] rowColumns,
-                          Put put,
                           MultiFieldEncoder rowEncoder) throws StandardException;
 
     public void encodeKeyValues(DataValueDescriptor[] row,

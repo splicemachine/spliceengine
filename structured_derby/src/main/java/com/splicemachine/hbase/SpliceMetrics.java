@@ -1,10 +1,9 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.writer.TableWriter;
+import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.tools.ConnectionPool;
 import org.apache.hadoop.metrics.MetricsContext;
 import org.apache.hadoop.metrics.MetricsRecord;
 import org.apache.hadoop.metrics.MetricsUtil;
@@ -106,18 +105,18 @@ public class SpliceMetrics implements Updater {
             totalCompletedJobs.pushMetric(this.jobMetrics);
 
             /*get TableWriter statistics*/
-            TableWriter writer = SpliceDriver.driver().getTableWriter();
-            maxBufferHeapSizeWriter.set(writer.getMaxBufferHeapSize());
-            maxBufferEntriesWriter.set(writer.getMaxBufferEntries());
-            maxFlushesPerBufferWriter.set(writer.getMaxFlushesPerBuffer());
-            outstandingCallBuffersWriter.set(writer.getOutstandingCallBuffers());
-            pendingBufferFlushesWriter.set(writer.getPendingBufferFlushes());
-            executingBufferFlushesWriter.set(writer.getExecutingBufferFlushes());
-            totalBufferFlushesWriter.set(writer.getTotalBufferFlushes());
-            runningWriteThreadsWriter.set(writer.getRunningWriteThreads());
-            cachedTablesWriter.set(writer.getNumCachedTables());
-            cacheLastUpdatedWriter.set(writer.getCacheLastUpdatedTimeStamp());
-            compressedWritesWriter.set(writer.getCompressWrites()?1:0);
+            WriteCoordinator writer = SpliceDriver.driver().getTableWriter();
+//            maxBufferHeapSizeWriter.set(writer.getMaxBufferHeapSize());
+//            maxBufferEntriesWriter.set(writer.getMaxBufferEntries());
+//            maxFlushesPerBufferWriter.set(writer.getMaxFlushesPerBuffer());
+//            outstandingCallBuffersWriter.set(writer.getOutstandingCallBuffers());
+//            pendingBufferFlushesWriter.set(writer.getPendingBufferFlushes());
+//            executingBufferFlushesWriter.set(writer.getExecutingBufferFlushes());
+//            totalBufferFlushesWriter.set(writer.getTotalBufferFlushes());
+//            runningWriteThreadsWriter.set(writer.getRunningWriteThreads());
+//            cachedTablesWriter.set(writer.getNumCachedTables());
+//            cacheLastUpdatedWriter.set(writer.getCacheLastUpdatedTimeStamp());
+//            compressedWritesWriter.set(writer.getCompressWrites()?1:0);
 
             maxBufferHeapSizeWriter.pushMetric(this.writerMetrics);
             maxBufferEntriesWriter.pushMetric(this.writerMetrics);

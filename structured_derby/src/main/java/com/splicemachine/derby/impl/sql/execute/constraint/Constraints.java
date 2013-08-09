@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -27,12 +28,12 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
 
         @Override
-        public Collection<Mutation> validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
+        public Collection<KVPair> validate(Collection<KVPair> mutations,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
             return Collections.emptyList();
         }
 

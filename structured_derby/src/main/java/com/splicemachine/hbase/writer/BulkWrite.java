@@ -66,4 +66,13 @@ public class BulkWrite implements Externalizable {
             mutations.add((KVPair)in.readObject());
         }
     }
+
+    @Override
+    public String toString() {
+        return "BulkWrite{" +
+                "txnId='" + txnId + '\'' +
+                ", regionKey=" + regionKey +
+                ", rows="+mutations.size()+
+                '}';
+    }
 }

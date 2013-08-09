@@ -8,6 +8,7 @@ import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -94,7 +95,7 @@ public abstract class AbstractImportTask extends ZkTask {
             BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
             int[] pkCols = importContext.getPrimaryKeys();
 
-            CallBuffer<Mutation> writeBuffer = getCallBuffer();
+            CallBuffer<KVPair> writeBuffer = getCallBuffer();
 
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
 //            int pos =0;
@@ -124,16 +125,16 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
-    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
-        return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
+    protected CallBuffer<KVPair> getCallBuffer() throws Exception {
+        return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes(), getTaskStatus().getTransactionId());
     }
 
-    protected abstract long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception;
+    protected abstract long importData(ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception;
 
-    protected void doImportRow(String transactionId,String[] line, ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected void doImportRow(String[] line, ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
         populateRow(line, importContext.getActiveCols(), row);
 
-        entryEncoder.write(row,transactionId,writeBuffer);
+        entryEncoder.write(row,writeBuffer);
     }
 
 

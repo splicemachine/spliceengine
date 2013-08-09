@@ -16,7 +16,9 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
@@ -149,16 +151,16 @@ public class CreateIndexTask extends ZkTask {
 
             List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
             boolean shouldContinue = true;
-            WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(indexConglomId, rce);
+            WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
             while(shouldContinue){
                 nextRow.clear();
                 shouldContinue  = sourceScanner.next(nextRow);
                 translateResult(nextRow, indexOnlyWriteHandler);
             }
-            Map<Mutation,MutationResult> finish = indexOnlyWriteHandler.finish();
-            for(MutationResult result:finish.values()){
-                if(result.getCode()== MutationResult.Code.FAILED){
-                    throw new IOException(result.getErrorMsg());
+            Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
+            for(WriteResult result:finish.values()){
+                if(result.getCode()== WriteResult.Code.FAILED){
+                    throw new IOException(result.getErrorMessage());
                 }
             }
 
@@ -176,10 +178,9 @@ public class CreateIndexTask extends ZkTask {
             //ignore SI CF
             if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
-            currentPut = SpliceUtils.createPut(kv.getRow(),transactionId);
-            currentPut.add(kv);
-
-            ctx.sendUpstream(currentPut);
+            byte[] row = kv.getRow();
+            byte[] data = kv.getValue();
+            ctx.sendUpstream(new KVPair(row,data));
         }
     }
 

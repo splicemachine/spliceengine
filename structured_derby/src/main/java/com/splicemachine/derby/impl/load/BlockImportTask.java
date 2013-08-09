@@ -4,6 +4,7 @@ import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.*;
@@ -51,7 +52,7 @@ public class BlockImportTask extends AbstractImportTask{
     }
 
     @Override
-    protected long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected long importData(ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
         Path path = importContext.getFilePath();
 
         FSDataInputStream is = null;
@@ -81,7 +82,7 @@ public class BlockImportTask extends AbstractImportTask{
         }
     }
 
-    private long importData(ExecRow row, CallBuffer<Mutation> writeBuffer, LineReader reader, CSVParser parser, long end, Text text, long pos) throws Exception {
+    private long importData(ExecRow row, CallBuffer<KVPair> writeBuffer, LineReader reader, CSVParser parser, long end, Text text, long pos) throws Exception {
         String txnId = getTaskStatus().getTransactionId();
         long numImported = 0l;
         while(pos<end){
@@ -94,7 +95,7 @@ public class BlockImportTask extends AbstractImportTask{
                 continue; //skip empty lines
             String[] cols = parser.parseLine(line);
             try{
-                doImportRow(txnId,cols,row,writeBuffer);
+                doImportRow(cols,row,writeBuffer);
             }catch(Exception e){
                 LOG.error("Failed import at line "+ line,e);
                 throw e;

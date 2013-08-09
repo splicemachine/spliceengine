@@ -23,6 +23,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -259,7 +260,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     private RowEncoder getRowEncoder(final int numCols,int[] keyColumns) throws StandardException {
         int[] rowColumns;
         final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
-        final byte[] ordinalColumn = JoinUtils.JOIN_SIDE_COLUMN;
         KeyMarshall keyType = new KeyMarshall() {
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
@@ -323,14 +323,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         }
 
-        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType){
-            @Override
-            protected Put doPut(ExecRow row) throws StandardException {
-                Put put =  super.doPut(row);
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,ordinalColumn,joinSideBytes);
-                return put;
-            }
-        };
+        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType);
     }
 
     @Override

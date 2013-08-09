@@ -1,12 +1,18 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -19,6 +25,7 @@ import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Region Observer for managing indices.
@@ -50,8 +57,22 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
     	SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){
+            if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
+
             //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
-            mutate(e.getEnvironment(), put);
+            byte[] row = put.getRow();
+            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+            KVPair kv;
+            if(data!=null&&data.size()>0){
+                byte[] value = data.get(0).getValue();
+                if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
+                    kv = new KVPair(row,value, KVPair.Type.UPDATE);
+                }else
+                    kv = new KVPair(row,value);
+            }else{
+                kv = new KVPair(row, RowEncoder.EMPTY_BYTES);
+            }
+            mutate(e.getEnvironment(), kv, SpliceUtils.getTransactionId(put));
         }
         super.prePut(e, put, edit, writeToWAL);
     }
@@ -60,7 +81,9 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
     	SpliceLogUtils.trace(LOG, "preDelete %s",delete);
-        mutate(e.getEnvironment(), delete);
+        if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
+        KVPair deletePair = KVPair.delete(delete.getRow());
+        mutate(e.getEnvironment(), deletePair,SpliceUtils.getTransactionId(delete));
         super.preDelete(e, delete, edit, writeToWAL);
     }
 
@@ -74,22 +97,21 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     /*private helper methods*/
 
 
-    private void mutate(RegionCoprocessorEnvironment rce, Mutation mutation) throws IOException {
+    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,String txnId) throws IOException {
     	SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
-        if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return;
         WriteContext context;
         try{
-            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(rce);
+            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txnId,rce);
         }catch(InterruptedException e){
             throw new IOException(e);
         }
         context.sendUpstream(mutation);
-        MutationResult mutationResult = context.finish().get(mutation);
+        WriteResult mutationResult = context.finish().get(mutation);
         if(mutationResult==null) return; //we didn't actually do anything, so no worries
         switch (mutationResult.getCode()) {
             case FAILED:
-                throw new IOException(mutationResult.getErrorMsg());
+                throw new IOException(mutationResult.getErrorMessage());
             case PRIMARY_KEY_VIOLATION:
                 throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, mutationResult.getConstraintContext());
             case UNIQUE_VIOLATION:
@@ -99,7 +121,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case CHECK_VIOLATION:
                 throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
             case WRITE_CONFLICT:
-                throw new WriteConflict(mutationResult.getErrorMsg());
+                throw new WriteConflict(mutationResult.getErrorMessage());
 		case NOT_RUN:
 		case SUCCESS:
 		default:

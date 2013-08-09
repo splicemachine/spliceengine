@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -17,13 +18,31 @@ import java.util.Arrays;
  * Created on: 8/8/13
  */
 public class KVPair implements Externalizable,Comparable<KVPair> {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 2l;
     private byte[] rowKey;
     private byte[] value;
+    private Type type;
+
+    public static KVPair delete(byte[] rowKey) {
+        return new KVPair(rowKey, RowEncoder.EMPTY_BYTES,Type.DELETE);
+    }
+
+    public enum Type{
+        INSERT,
+        UPDATE,
+        DELETE
+    }
+
+    public KVPair(){}
 
     public KVPair(byte[] rowKey, byte[] value) {
+        this(rowKey, value,Type.INSERT);
+    }
+
+    public KVPair(byte[] rowKey, byte[] value, Type writeType){
         this.rowKey = rowKey;
         this.value = value;
+        this.type = writeType;
     }
 
     public byte[] getValue(){
@@ -32,6 +51,10 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
 
     public byte[] getRow(){
         return rowKey;
+    }
+
+    public Type getType(){
+        return type;
     }
 
     public Put toPut(){
@@ -56,14 +79,16 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         out.write(rowKey);
         out.writeInt(value.length);
         out.write(value);
+        out.writeUTF(type.name());
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         rowKey = new byte[in.readInt()];
-        in.read(rowKey);
+        in.readFully(rowKey);
         value = new byte[in.readInt()];
-        in.read(value);
+        in.readFully(value);
+        type = Type.valueOf(in.readUTF());
     }
 
     @Override
@@ -73,11 +98,14 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
 
         KVPair kvPair = (KVPair) o;
 
-        return Bytes.equals(rowKey,kvPair.rowKey);
+        return Arrays.equals(rowKey, kvPair.rowKey) && type == kvPair.type;
+
     }
 
     @Override
     public int hashCode() {
-        return rowKey != null ? Arrays.hashCode(rowKey) : 0;
+        int result = Arrays.hashCode(rowKey);
+        result = 31 * result + type.hashCode();
+        return result;
     }
 }

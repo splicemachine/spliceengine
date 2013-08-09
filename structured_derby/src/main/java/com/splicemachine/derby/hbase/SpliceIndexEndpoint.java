@@ -3,13 +3,10 @@ package com.splicemachine.derby.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.writer.MutationRequest;
-import com.splicemachine.hbase.writer.MutationResponse;
-import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -100,21 +97,21 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException {
-        SpliceLogUtils.trace(LOG,"batchMutate %s",mutationsToApply);
+    public BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException {
+        SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         HRegion region = rce.getRegion();
         region.startRegionOperation();
         try{
             WriteContext context;
             try {
-                context = getWriteContext(rce);
+                context = getWriteContext(bulkWrite.getTxnId(),rce);
             } catch (InterruptedException e) {
                 //was interrupted while trying to create a write context.
                 //we're done, someone else will have to write this batch
                 throw new IOException(e);
             }
-            for(Mutation mutation:mutationsToApply.getMutations()){
+            for(KVPair mutation:bulkWrite.getMutations()){
 //                byte[] row = mutation.getRow();
 //                long time = uniqueChecker.check(row);
 //                if(time>0){
@@ -122,13 +119,13 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 //                }
                 context.sendUpstream(mutation); //send all writes along the pipeline
             }
-            Map<Mutation,MutationResult> resultMap = context.finish();
+            Map<KVPair,WriteResult> resultMap = context.finish();
 
-            MutationResponse response = new MutationResponse();
-            List<Mutation> mutations = mutationsToApply.getMutations();
+            BulkWriteResult response = new BulkWriteResult();
+            List<KVPair> mutations = bulkWrite.getMutations();
             int pos=0;
-            for(Mutation mutation:mutations){
-                MutationResult result = resultMap.get(mutation);
+            for(KVPair mutation:mutations){
+                WriteResult result = resultMap.get(mutation);
                 response.addResult(pos,result);
                 pos++;
             }
@@ -139,15 +136,17 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         }
     }
 
-    private WriteContext getWriteContext(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
+
+    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-        return ctxFactoryPair.getFirst().create(rce);
+        return ctxFactoryPair.getFirst().create(txnId,rce);
     }
+
 
 
     @SuppressWarnings("unchecked")
 	@Override
-    public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
+    public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         final HRegion region = rce.getRegion();
         Scan scan = SpliceUtils.createScan(transactionId);
@@ -172,7 +171,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             byte[] rowBytes =  row.get(0).getRow();
             if(Bytes.compareTo(rowBytes,limit)<0){
                 Mutation mutation = Mutations.getDeleteOp(transactionId,rowBytes);
-                mutation.setAttribute(IndexSet.INDEX_UPDATED,IndexSet.INDEX_ALREADY_UPDATED);
+                mutation.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
                 if(mutation instanceof Put){
                     try{
                         @SuppressWarnings("deprecation")
@@ -180,32 +179,32 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                         OperationStatus status = statuses[0];
                         switch (status.getOperationStatusCode()) {
                             case NOT_RUN:
-                                return MutationResult.notRun();
+                                return WriteResult.notRun();
                             case SUCCESS:
-                                return MutationResult.success();
+                                return WriteResult.success();
                             default:
-                                return new MutationResult(MutationResult.Code.FAILED,status.getExceptionMsg());
+                                return WriteResult.failed(status.getExceptionMsg());
                         }
                     }catch(IOException ioe){
-                        return new MutationResult(MutationResult.Code.FAILED,ioe.getMessage());
+                        return WriteResult.failed(ioe.getMessage());
                     }
                 }else{
                     try{
                         region.delete((Delete)mutation,true);
-                        return MutationResult.success();
+                        return WriteResult.success();
                     }catch(IOException ioe){
-                        return new MutationResult(MutationResult.Code.FAILED,ioe.getMessage());
+                        return WriteResult.failed(ioe.getMessage());
                     }
                 }
             }else{
                 //we've gone past our limit value without finding anything, so return notRun() to indicate
                 //no action
-                return MutationResult.notRun();
+                return WriteResult.notRun();
             }
         }while(shouldContinue);
 
         //no rows were found, so nothing to delete
-        return MutationResult.notRun();
+        return WriteResult.notRun();
     }
 
     private static Pair<LocalWriteContextFactory, AtomicInteger> getContextPair(long conglomId) {
