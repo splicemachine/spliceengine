@@ -48,7 +48,11 @@ public class SpliceSchemaWatcher extends TestWatcher {
 		Statement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
-			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
+			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"});
+			while (resultSet.next()) {
+				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"), true);
+			}
+            resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
 			while (resultSet.next()) {
 				SpliceTableWatcher.executeDrop(schemaName, resultSet.getString("TABLE_NAME"));
 			}

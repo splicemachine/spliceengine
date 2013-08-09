@@ -52,16 +52,17 @@ public class SpliceTableWatcher extends TestWatcher {
 //		executeDrop(schemaName,tableName);
 	}
 	
-	public static void executeDrop(String schemaName,String tableName) {
+	public static void executeDrop(String schemaName,String tableName, boolean isView) {
 		LOG.trace("executeDrop");
 		Connection connection = null;
 		Statement statement = null;
+        String tableOrView = isView ? "view" : "table";
 		try {
 			connection = SpliceNetConnection.getConnection();
 			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
 			if (rs.next()) {
 				statement = connection.createStatement();
-				statement.execute(String.format("drop table %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
+				statement.execute(String.format("drop %s %s.%s",tableOrView,schemaName.toUpperCase(),tableName.toUpperCase()));
 				connection.commit();
 			}
 		} catch (Exception e) {
@@ -71,6 +72,10 @@ public class SpliceTableWatcher extends TestWatcher {
 			DbUtils.closeQuietly(statement);
 			DbUtils.commitAndCloseQuietly(connection);
 		}
+	}
+
+    public static void executeDrop(String schemaName,String tableName) {
+        executeDrop(schemaName, tableName, false);
 	}
 
 	public void importData(String filename) {
