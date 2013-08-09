@@ -25,6 +25,7 @@ import java.sql.Statement;
 import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
+import static com.splicemachine.homeless.TestUtils.resultSetToMaps;
 
 
 public class InnerJoinTest extends SpliceUnitTest {
@@ -112,6 +113,7 @@ public class InnerJoinTest extends SpliceUnitTest {
                 }
             }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
@@ -704,5 +706,14 @@ public class InnerJoinTest extends SpliceUnitTest {
         List results = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    @Test
+    public void testJoinOverAggregates() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select a.* from monthly_hits a join monthly_hits b " +
+                "on a.month = b.month ");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertEquals(108, results.size());
     }
 }

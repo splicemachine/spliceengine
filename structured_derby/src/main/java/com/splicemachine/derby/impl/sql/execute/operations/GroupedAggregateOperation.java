@@ -521,7 +521,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			// REVISIT: does this need to be in a finally
 			// block, to ensure that it is executed?
 		    clearCurrentRow();
-			sourceExecIndexRow = null;
 			source.close();
 
 			super.close();
