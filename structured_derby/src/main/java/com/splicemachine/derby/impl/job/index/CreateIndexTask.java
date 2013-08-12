@@ -143,25 +143,28 @@ public class CreateIndexTask extends ZkTask {
             //add index to table watcher
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
             contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique,descColumns);
-            
+
             //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-
-            List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
-            boolean shouldContinue = true;
-            WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
-            while(shouldContinue){
-                nextRow.clear();
-                shouldContinue  = sourceScanner.next(nextRow);
-                translateResult(nextRow, indexOnlyWriteHandler);
-            }
-            Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
-            for(WriteResult result:finish.values()){
-                if(result.getCode()== WriteResult.Code.FAILED){
-                    throw new IOException(result.getErrorMessage());
+            try{
+                List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
+                boolean shouldContinue = true;
+                WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
+                while(shouldContinue){
+                    nextRow.clear();
+                    shouldContinue  = sourceScanner.next(nextRow);
+                    translateResult(nextRow, indexOnlyWriteHandler);
                 }
+                Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
+                for(WriteResult result:finish.values()){
+                    if(result.getCode()== WriteResult.Code.FAILED){
+                        throw new IOException(result.getErrorMessage());
+                    }
+                }
+            }finally{
+                sourceScanner.close();
             }
 
         } catch (IOException e) {

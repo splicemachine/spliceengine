@@ -48,7 +48,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     private long conglomId;
-//    private final UniqueChecker<byte[]> uniqueChecker = new UniqueChecker<byte[]>(Bytes.BYTES_COMPARATOR);
 
     @Override
     public void start(CoprocessorEnvironment env) {

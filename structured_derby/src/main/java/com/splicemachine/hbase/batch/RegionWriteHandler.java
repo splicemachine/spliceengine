@@ -90,7 +90,6 @@ public class RegionWriteHandler implements WriteHandler {
 
     }
 
-    @SuppressWarnings({"unchecked", "unused"})
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
 
@@ -126,10 +125,8 @@ public class RegionWriteHandler implements WriteHandler {
 //                    ctx.failed(mutation,new WriteResult(KVPairResult.Code.FAILED,"NotServingRegion"));
 //                }
 //            }
-            KVPair[] toProcess = new KVPair[filteredMutations.size()];
-            filteredMutations.toArray(toProcess);
 
-            doWrite(ctx,toProcess);
+            doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {
             WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
             for (KVPair mutation : mutations) {
@@ -157,11 +154,11 @@ public class RegionWriteHandler implements WriteHandler {
         }
     }
 
-    private void doWrite(WriteContext ctx, KVPair[] toProcess) throws IOException {
+    private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
         final OperationStatus[] status = SIObserver.doesTableNeedSI(region) ? doSIWrite(toProcess,ctx) : doNonSIWrite(toProcess,ctx);
-        for (int i = 0; i < status.length; i++) {
+        int i=0;
+        for(KVPair mutation:toProcess){
             OperationStatus stat = status[i];
-            KVPair mutation = toProcess[i];
             switch (stat.getOperationStatusCode()) {
                 case NOT_RUN:
                     ctx.notRun(mutation);
@@ -174,24 +171,29 @@ public class RegionWriteHandler implements WriteHandler {
                     ctx.success(mutation);
                     break;
             }
+            i++;
         }
     }
 
-    private OperationStatus[] doNonSIWrite(KVPair[] toProcess,WriteContext ctx) throws IOException {
-        Pair<Mutation, Integer>[] pairsToProcess = new Pair[toProcess.length];
-        for (int i=0; i<toProcess.length; i++) {
-            pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(toProcess[i],ctx), null);
+    private OperationStatus[] doNonSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
+        Pair<Mutation, Integer>[] pairsToProcess = new Pair[toProcess.size()];
+        int i=0;
+        for(KVPair pair:toProcess){
+            pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,ctx), null);
+            i++;
         }
         return region.batchMutate(pairsToProcess);
     }
 
-    private OperationStatus[] doSIWrite(KVPair[] toProcess,WriteContext ctx) throws IOException {
+    private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
         final String tableName = region.getTableDesc().getNameAsString();
         final RollForwardQueue<byte[],ByteBuffer> rollForwardQueue = RollForwardQueueMap.lookupRollForwardQueue(tableName);
-        Mutation[] mutations = new Mutation[toProcess.length];
-        for(int i=0;i<mutations.length;i++){
-            mutations[i] = getMutation(toProcess[i],ctx);
+        Mutation[] mutations = new Mutation[toProcess.size()];
+        int i=0;
+        for(KVPair pair:toProcess){
+            mutations[i] = getMutation(pair,ctx);
+            i++;
         }
         return transactor.processPutBatch(new HbRegion(region), rollForwardQueue, mutations);
     }

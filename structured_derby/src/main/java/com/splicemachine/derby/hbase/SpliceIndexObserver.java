@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -81,9 +82,10 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
     	SpliceLogUtils.trace(LOG, "preDelete %s",delete);
-        if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
-        KVPair deletePair = KVPair.delete(delete.getRow());
-        mutate(e.getEnvironment(), deletePair,SpliceUtils.getTransactionId(delete));
+        if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
+            KVPair deletePair = KVPair.delete(delete.getRow());
+            mutate(e.getEnvironment(), deletePair, Bytes.toString(delete.getAttribute("si_delete_put")));
+        }
         super.preDelete(e, delete, edit, writeToWAL);
     }
 

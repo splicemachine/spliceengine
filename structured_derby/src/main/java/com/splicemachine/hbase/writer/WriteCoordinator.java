@@ -11,13 +11,11 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
@@ -205,6 +203,24 @@ public class WriteCoordinator {
 
         @Override
         protected void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException {
+            /*
+             * Before writing this, check the previous buffers that have been flushed. Remove any successful
+             * flushes from the list to avoid memory leaks, and throw errors on any Future that has failed for
+             * any reason.
+             */
+            Iterator<Future<Void>> futureIterator = futures.iterator();
+            while(futureIterator.hasNext()){
+                Future<Void> future = futureIterator.next();
+                if(future.isDone()){
+                    try {
+                        future.get(); //check for errors
+                    } catch (InterruptedException e) {
+                        throw new ExecutionException(e);
+                    }
+                    futureIterator.remove();
+                }
+            }
+            //submit the flush
             futures.add(writer.write(tableName,entries,transactionId,retryStrategy));
         }
     }

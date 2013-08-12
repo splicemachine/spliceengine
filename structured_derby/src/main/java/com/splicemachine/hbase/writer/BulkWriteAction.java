@@ -35,7 +35,7 @@ final class BulkWriteAction implements Callable<Void> {
     private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
     private static final AtomicLong idGen = new AtomicLong(0l);
 
-    private final BulkWrite bulkWrite;
+    private BulkWrite bulkWrite;
     private final List<Throwable> errors = new CopyOnWriteArrayList<Throwable>();
     private final Writer.RetryStrategy retryStrategy;
     private final RegionCache regionCache;
@@ -57,7 +57,22 @@ final class BulkWriteAction implements Callable<Void> {
 
     @Override
     public Void call() throws Exception {
-        tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
+        try{
+            tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
+        }finally{
+            /*
+             * Because we are a callable, a Future will hold on to a reference to us for the lifetime
+             * of the operation. While the Future code will attempt to clean up as much of those futures
+             * as possible during normal processing, a reference to this BulkWriteAction may remain on the
+             * heap for some time. We can't hold on to the underlying buffer, though, or else we will
+             * end up (potentially) keeping huge chunks of the write buffers in memory for arbitrary lengths
+             * of time.
+             *
+             * To this reason, we help out the collector by dereferencing the actual BulkWrite once we're finished
+             * with it. This should allow most flushes to be collected once they have completed.
+             */
+            bulkWrite = null;
+        }
         return null;
     }
 
@@ -156,7 +171,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void retry(int tries, BulkWrite bulkWrite) throws Exception {
-        retryFailedWrites(tries-1,bulkWrite.getTxnId(),bulkWrite.getMutations());
+        retryFailedWrites(tries - 1, bulkWrite.getTxnId(), bulkWrite.getMutations());
     }
 
     private List<BulkWrite> getWriteBuckets(String txnId,Set<HRegionInfo> regionInfos){
