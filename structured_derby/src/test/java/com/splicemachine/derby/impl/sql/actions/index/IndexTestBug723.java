@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -82,13 +81,13 @@ public class IndexTestBug723 {
     public void testBug723WithIndex() throws Exception {
         try {
             // create index
-            IndexTest.createIndex(methodWatcher.getOrCreateConnection(), SCHEMA_NAME, PARENT_TABLE, "parentIdx", "(i)", false);
+            SpliceIndexWatcher.createIndex(methodWatcher.getOrCreateConnection(), SCHEMA_NAME, PARENT_TABLE, "parentIdx", "(i)", false);
             ResultSet rs = methodWatcher.executeQuery(QUERY);
 //            int count = IndexTest.printResult(QUERY,rs, System.out);
             Assert.assertTrue(rs.next());
             Assert.assertEquals(9, rs.getObject(1));
         } finally {
-            IndexTest.dropIndex(SCHEMA_NAME,"parentIdx");
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, "parentIdx");
         }
     }
 }

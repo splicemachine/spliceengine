@@ -1,16 +1,22 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
-import org.apache.commons.dbutils.DbUtils;
-import org.junit.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.io.PrintStream;
-import java.sql.*;
-import java.util.Map;
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  * Test for index stuff, more or less encompassing:
@@ -48,9 +54,6 @@ public class IndexTest extends SpliceUnitTest {
         }
     };
 
-//    protected static SpliceIndexWatcher customerIndexWatcher =
-//            new SpliceIndexWatcher(CustomerTable.TABLE_NAME,SCHEMA_NAME,CustomerTable.INDEX_NAME,SCHEMA_NAME,CustomerTable.INDEX_DEF, false);
-
     protected static OrderTable orderTableWatcher = new OrderTable(OrderTable.TABLE_NAME,SCHEMA_NAME) {
         @Override
         protected void starting(Description description) {
@@ -67,9 +70,6 @@ public class IndexTest extends SpliceUnitTest {
         }
     };
 
-//    protected static SpliceIndexWatcher orderIndexWatcher =
-//            new SpliceIndexWatcher(OrderTable.TABLE_NAME,SCHEMA_NAME,OrderTable.INDEX_NAME,SCHEMA_NAME,OrderTable.INDEX_DEF, false);
-
     protected static OrderLineTable orderLineTableWatcher = new OrderLineTable(OrderLineTable.TABLE_NAME,SCHEMA_NAME) {
         @Override
         protected void starting(Description description) {
@@ -82,14 +82,120 @@ public class IndexTest extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(customerTableWatcher)
-//            .around(customerIndexWatcher)
             .around(newOrderTableWatcher)
             .around(orderTableWatcher)
             .around(orderLineTableWatcher);
-//            .around(orderIndexWatcher);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
+    
+    // ===============================================================================
+    // Create Index Tests
+    // ===============================================================================
+    
+    @Test
+    public void createIndexesInOrderNonUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, false);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesInOrderUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, true);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesOutOfOrderNonUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesOutOfOrderUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, true);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesAscNonUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, false);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesAscUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, true);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesDescNonUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, false);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
+    
+    @Test
+    public void createIndexesDescUnique() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, true);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, true);
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+        }
+    }
 
     // ===============================================================================
     // Query Tests
@@ -100,19 +206,18 @@ public class IndexTest extends SpliceUnitTest {
         String query = String.format(SELECT_UNIQUE_CUSTOMER,
                 SCHEMA_NAME,CustomerTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(1, count(rs));
+        Assert.assertEquals(1, resultSetSize(rs));
     }
 
     @Test
     public void testQueryCustomerByIdWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
-        String query = String.format(SELECT_UNIQUE_CUSTOMER,
-                SCHEMA_NAME,CustomerTable.TABLE_NAME);
-        ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(1, count(rs));
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
+            ResultSet rs = methodWatcher.executeQuery(query);
+            Assert.assertEquals(1, resultSetSize(rs));
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
         }
     }
 
@@ -122,9 +227,9 @@ public class IndexTest extends SpliceUnitTest {
         long start = System.currentTimeMillis();
         ResultSet rs = methodWatcher.executeQuery(query);
 
-        String duration = getDuration(start, System.currentTimeMillis());
+        String duration = TestUtils.getDuration(start, System.currentTimeMillis());
 //        int cnt = printResult(query, rs, System.out);
-        int cnt = count(rs);
+        int cnt = resultSetSize(rs);
         System.out.println("Rows returned: "+cnt+" in "+duration);
 
         Assert.assertEquals(1, cnt);
@@ -139,8 +244,8 @@ public class IndexTest extends SpliceUnitTest {
         long start = System.currentTimeMillis();
         ResultSet rs = ps.executeQuery();
 
-        String duration = getDuration(start, System.currentTimeMillis());
-        int cnt = count(rs);
+        String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+        int cnt = resultSetSize(rs);
         System.out.println("Rows returned: "+cnt+" in "+duration);
         Assert.assertEquals(8,cnt);
     }
@@ -148,7 +253,7 @@ public class IndexTest extends SpliceUnitTest {
     @Test
     public void testQueryCustomerByNameWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             PreparedStatement ps = methodWatcher.prepareStatement(CUSTOMER_BY_NAME);
             // this column combo is the PK
@@ -158,12 +263,12 @@ public class IndexTest extends SpliceUnitTest {
             long start = System.currentTimeMillis();
             ResultSet rs = ps.executeQuery();
 
-            String duration = getDuration(start, System.currentTimeMillis());
-            int cnt = count(rs);
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertEquals(8,cnt);
         } finally {
-            dropIndex(SCHEMA_NAME, CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
         }
     }
 
@@ -173,8 +278,8 @@ public class IndexTest extends SpliceUnitTest {
         long start = System.currentTimeMillis();
         ResultSet rs = methodWatcher.executeQuery(query);
 
-        String duration = getDuration(start, System.currentTimeMillis());
-        int cnt = count(rs);
+        String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+        int cnt = resultSetSize(rs);
         System.out.println("Rows returned: "+cnt+" in "+duration);
         Assert.assertTrue(cnt >= 3000);
     }
@@ -182,18 +287,18 @@ public class IndexTest extends SpliceUnitTest {
     @Test
     public void testDistinctCustomerByIDWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             String query = String.format("select distinct c_id from %s.%s", SCHEMA_NAME, CustomerTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
 
-            String duration = getDuration(start, System.currentTimeMillis());
-            int cnt = count(rs);
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 3000);
         } finally {
-            dropIndex(SCHEMA_NAME, CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
         }
     }
 
@@ -203,8 +308,8 @@ public class IndexTest extends SpliceUnitTest {
                 SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
         long start = System.currentTimeMillis();
         ResultSet rs = methodWatcher.executeQuery(query);
-        String duration = getDuration(start, System.currentTimeMillis());
-        int cnt = count(rs);
+        String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+        int cnt = resultSetSize(rs);
         System.out.println("Rows returned: "+cnt+" in "+duration);
         Assert.assertTrue(cnt >= 300000);
     }
@@ -212,40 +317,40 @@ public class IndexTest extends SpliceUnitTest {
     @Test
     public void testJoinCustomerOrdersWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
 
             String query = String.format(CUSTOMER_OORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
-            String duration = getDuration(start, System.currentTimeMillis());
-            int cnt = count(rs);
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 300000);
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            dropIndex(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
         }
     }
 
     @Test
     public void testJoinCustomerOrdersWithIndexNotInColumnOrder() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
 
             String query = String.format(CUSTOMER_OORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
-            String duration = getDuration(start, System.currentTimeMillis());
-            int cnt = count(rs);
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 300000);
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            dropIndex(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
         }
     }
 
@@ -253,23 +358,23 @@ public class IndexTest extends SpliceUnitTest {
     @Ignore("Always times out - no bug created")
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
 
             String query = String.format("select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d, %1$s.ol.ol_amount from %1$s.%2$s c, %1$s.%3$s o, %1$s.%4$s ol where c.c_id = o.o_c_id and ol.ol_o_id = o.o_id and c.c_last = 'ESEPRIANTI'",
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME, OrderLineTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
-            String duration = getDuration(start, System.currentTimeMillis());
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
 //        Assert.assertTrue(printResult(query, rs, System.out) > 0);
-            int cnt = count(rs);
+            int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt>0);
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            dropIndex(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            dropIndex(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
         }
     }
 
@@ -281,7 +386,7 @@ public class IndexTest extends SpliceUnitTest {
     public void testUpdateCustomer() throws Exception {
         String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(1, count(rs));
+        Assert.assertEquals(1, resultSetSize(rs));
 
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("update %s.%s c set c.c_credit_lim = %s where %s",
                 SCHEMA_NAME,CustomerTable.TABLE_NAME, "3000.00", "c.c_w_id = 1 and c.c_d_id = 10 and c.c_id = 2365"));
@@ -290,17 +395,17 @@ public class IndexTest extends SpliceUnitTest {
         query = String.format("select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365 and c.c_credit_lim = 3000.00",
                 SCHEMA_NAME,CustomerTable.TABLE_NAME);
         rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(1, count(rs));
+        Assert.assertEquals(1, resultSetSize(rs));
     }
 
     @Test
     public void testUpdateCustomerWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
 
             String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
             ResultSet rs = methodWatcher.executeQuery(query);
-            Assert.assertEquals(1, count(rs));
+            Assert.assertEquals(1, resultSetSize(rs));
 
             int nCols = methodWatcher.getStatement().executeUpdate(String.format("update %s.%s c set c.c_credit_lim = %s where %s",
                     SCHEMA_NAME,CustomerTable.TABLE_NAME, "3000.00", "c.c_w_id = 1 and c.c_d_id = 10 and c.c_id = 2365"));
@@ -309,9 +414,9 @@ public class IndexTest extends SpliceUnitTest {
             query = String.format("select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365 and c.c_credit_lim = 3000.00",
                     SCHEMA_NAME,CustomerTable.TABLE_NAME);
             rs = methodWatcher.executeQuery(query);
-            Assert.assertEquals(1, count(rs));
+            Assert.assertEquals(1, resultSetSize(rs));
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
         }
     }
 
@@ -329,12 +434,12 @@ public class IndexTest extends SpliceUnitTest {
     @Test
     public void testInsertNewOrderWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, NewOrderTable.TABLE_NAME, NewOrderTable.INDEX_NAME, NewOrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, NewOrderTable.TABLE_NAME, NewOrderTable.INDEX_NAME, NewOrderTable.INDEX_ORDER_DEF, false);
             int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
                     SCHEMA_NAME,NewOrderTable.TABLE_NAME, "1,2,2001"));
             Assert.assertEquals(1, nCols);
         } finally {
-            dropIndex(SCHEMA_NAME,NewOrderTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,NewOrderTable.INDEX_NAME);
         }
     }
 
@@ -351,7 +456,7 @@ public class IndexTest extends SpliceUnitTest {
         String query = String.format("select c.c_last, c.c_first, c.c_since from %s.%s c where c.c_last = 'CUNNINGHAM'",
                 SCHEMA_NAME, CustomerTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(0, count(rs));
+        Assert.assertEquals(0, resultSetSize(rs));
 
         int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
                 SCHEMA_NAME,CustomerTable.TABLE_NAME, CUST_INSERT1));
@@ -361,114 +466,28 @@ public class IndexTest extends SpliceUnitTest {
         Assert.assertEquals(1, nCols);
 
         rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals(1, count(rs));
+        Assert.assertEquals(1, resultSetSize(rs));
     }
 
     private static final String CUST_INSERT2 = "1,1,3002,0.1221,'GC','Jones','Fred',50000.0,-10.0,10.0,1,0,'qmvfraakwixzcrqxt','mamrsdfdsycaxrh','bcsyfdsdkurug','VL','843211111','3185126927164979','2013-08-01 10:33:44.813','OE','tktkdcbjqxbewxllutwigcdmzenarkhiklzfkaybefrppwtvdmecqfqaa'";
     @Test
     public void testInsertCustomerWithIndex() throws Exception {
         try {
-            createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
 
             String query = String.format("select c.c_last, c.c_first, c.c_since from %s.%s c where c.c_last = 'Jones'",
                     SCHEMA_NAME, CustomerTable.TABLE_NAME);
             ResultSet rs = methodWatcher.executeQuery(query);
-            Assert.assertEquals(0, count(rs));
+            Assert.assertEquals(0, resultSetSize(rs));
 
             int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
                     SCHEMA_NAME,CustomerTable.TABLE_NAME, CUST_INSERT2));
             Assert.assertEquals(1, nCols);
 
             rs = methodWatcher.executeQuery(query);
-            Assert.assertEquals(1, count(rs));
+            Assert.assertEquals(1, resultSetSize(rs));
         } finally {
-            dropIndex(SCHEMA_NAME,CustomerTable.INDEX_NAME);
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
         }
-    }
-
-    // ===============================================================================
-    // Helpers
-    // ===============================================================================
-
-    private static final String SELECT_SPECIFIC_INDEX = "select c.conglomeratename from sys.sysconglomerates c inner join sys.sysschemas s on " +
-            "c.schemaid = s.schemaid where c.isindex = 'TRUE' and s.schemaname = ? and c.conglomeratename = ?";
-    public static void createIndex(Connection connection, String schemaName, String tableName, String indexName, String definition, boolean unique) throws Exception {
-        PreparedStatement statement = null;
-        Statement statement2 = null;
-        ResultSet rs = null;
-        try {
-            connection = SpliceNetConnection.getConnection();
-            statement = connection.prepareStatement(SELECT_SPECIFIC_INDEX);
-            statement.setString(1, schemaName);
-            statement.setString(2, indexName);
-            rs = statement.executeQuery();
-            if (rs.next()) {
-                SpliceIndexWatcher.executeDrop(schemaName,indexName);
-            }
-            connection.commit();
-            statement2 = connection.createStatement();
-            statement2.execute(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
-                    schemaName,indexName,schemaName,tableName,definition));
-            connection.commit();
-        } catch (Exception e) {
-            throw new RuntimeException("Create index failed.", e);
-        } finally {
-            DbUtils.closeQuietly(rs);
-            DbUtils.closeQuietly(statement);
-            DbUtils.closeQuietly(statement2);
-            DbUtils.commitAndCloseQuietly(connection);
-        }
-    }
-
-    public static void dropIndex(String schemaName, String indexName) throws Exception {
-        SpliceIndexWatcher.executeDrop(schemaName,indexName);
-    }
-
-    public static int count(ResultSet rs) throws Exception{
-        int cnt = 0;
-        while (rs.next()) {
-            ++cnt;
-        }
-        return cnt;
-    }
-
-    public static int printResult(String statement, ResultSet rs, PrintStream out) throws SQLException {
-        if (rs.isClosed()) {
-            return 0;
-        }
-        int count = 0;
-        out.println();
-        out.println(statement);
-        for (Map map : TestUtils.resultSetToMaps(rs)) {
-            out.println("--- "+(++count));
-            for (Object entryObj : map.entrySet()) {
-                Map.Entry entry = (Map.Entry) entryObj;
-                out.println(entry.getKey() + ": " + entry.getValue());
-            }
-        }
-        return count;
-    }
-
-    /**
-     * Calculate and return the string duration of the given start and end times (in milliseconds)
-     * @param startMilis the starting time of the duration given by <code>System.currentTimeMillis()</code>
-     * @param stopMilis the ending time of the duration given by <code>System.currentTimeMillis()</code>
-     * @return example <code>0 hrs 04 min 41 sec 337 mil</code>
-     */
-    public static String getDuration(long startMilis, long stopMilis) {
-
-        long secondInMillis = 1000;
-        long minuteInMillis = secondInMillis * 60;
-        long hourInMillis = minuteInMillis * 60;
-
-        long diff = stopMilis - startMilis;
-        long elapsedHours = diff / hourInMillis;
-        diff = diff % hourInMillis;
-        long elapsedMinutes = diff / minuteInMillis;
-        diff = diff % minuteInMillis;
-        long elapsedSeconds = diff / secondInMillis;
-        diff = diff % secondInMillis;
-
-        return String.format("%d hrs %02d min %02d sec %03d mil", elapsedHours, elapsedMinutes, elapsedSeconds, diff);
     }
 }

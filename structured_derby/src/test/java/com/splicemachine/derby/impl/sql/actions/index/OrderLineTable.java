@@ -10,10 +10,10 @@ public class OrderLineTable extends SpliceTableWatcher {
 
     public static final String TABLE_NAME = "ORDER_LINE";
     public static final String INDEX_NAME = "IDX_ORDER_LINE";
-    public static final String INDEX_DEF = "(ol_w_id,ol_d_id,ol_o_id)";
-    public static final String INDEX_ORDER_DEF = "(ol_o_id,ol_w_id,ol_d_id)";
-    public static final String INDEX_ORDER_DEF_ASC = "(ol_o_id ASC,ol_w_id,ol_d_id)";
-    public static final String INDEX_ORDER_DEF_DESC = "(ol_o_id DESC,ol_w_id,ol_d_id)";
+    public static final String INDEX_DEF = "(ol_w_id,ol_d_id,ol_o_id,ol_number)";
+    public static final String INDEX_ORDER_DEF = "(ol_o_id,ol_w_id,ol_d_id,ol_number)";
+    public static final String INDEX_ORDER_DEF_ASC = "(ol_o_id ASC,ol_w_id,ol_d_id,ol_number)";
+    public static final String INDEX_ORDER_DEF_DESC = "(ol_o_id DESC,ol_w_id,ol_d_id,ol_number)";
 
     private static String PK = "PRIMARY KEY (ol_w_id,ol_d_id,ol_o_id,ol_number)";
 

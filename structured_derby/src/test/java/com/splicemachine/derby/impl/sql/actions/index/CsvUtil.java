@@ -118,8 +118,9 @@ public class CsvUtil {
     }
     private static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
+        BufferedReader in = null;
         try {
-            BufferedReader in = new BufferedReader(new FileReader(filePath));
+            in = new BufferedReader(new FileReader(filePath));
 
             String line = in.readLine();
             while(line != null) {
@@ -134,6 +135,14 @@ public class CsvUtil {
             }
         } catch (IOException e) {
             Assert.fail("Unable to read: " + filePath + ": " + e.getLocalizedMessage());
+        } finally {
+        	if (in != null) {
+        		try {
+					in.close();
+				} catch (IOException e) {
+					// ignore
+				}
+        	}
         }
         return lines;
     }
