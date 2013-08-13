@@ -24,6 +24,10 @@ package org.apache.derby.iapi.db;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.conn.ConnectionUtil;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 /**
   <P>
   This  class provides static methods for controlling the
@@ -89,7 +93,7 @@ public class OptimizerTrace
 	 * html is on, then the String will contain the html tags.
 	 *
 	 * @return The optimizer trace output for the last optimized query as a String.
-	 *    Null will be returned if optimizer trace output is off or not supported 
+	 *    Null will be returned if optimizer trace output is off or not supported
 	 *    or no trace output was found or an exception occurred.
 	 */
 	public static String getOptimizerTraceOutput()
@@ -138,5 +142,42 @@ public class OptimizerTrace
 
 		return retCode;
 	}
+
+    public static boolean writeOptimizerTraceOutputText(String fileName){
+
+        boolean retCode = true;
+
+        FileWriter fw = null;
+        PrintWriter pw = null;
+
+        try{
+
+            String output = getOptimizerTraceOutput();
+
+            fw = new FileWriter(fileName);
+            pw = new PrintWriter(fw);
+            pw.print(output);
+
+        }catch (IOException e){
+
+            retCode = false;
+
+        }finally{
+
+            if(fw != null){
+                try {
+                    fw.close();
+                } catch (IOException e) {
+                    retCode = false;
+                }
+            }
+
+            if(pw != null){
+                pw.close();
+            }
+        }
+
+        return retCode;
+    }
 
 }
