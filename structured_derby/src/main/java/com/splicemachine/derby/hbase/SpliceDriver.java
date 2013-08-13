@@ -412,7 +412,7 @@ public class SpliceDriver extends SIConstants {
 
     public static void writeOptimizerTraceOutput(String filename) throws StandardException {
     	SpliceLogUtils.trace(LOG, "writeOptimizerTraceOutput %s", filename);
-    	OptimizerTrace.writeOptimizerTraceOutputHtml(filename);
+    	OptimizerTrace.writeOptimizerTraceOutputText(filename);
     }
 
     
