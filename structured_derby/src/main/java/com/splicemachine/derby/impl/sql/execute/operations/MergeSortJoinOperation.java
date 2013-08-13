@@ -299,7 +299,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
             }
         };
-        RowMarshall rowType = RowMarshaller.packedCompressed();
+        RowMarshall rowType = RowMarshaller.packed();
         /*
          * Because there may be duplicate entries in keyColumns, we need to make sure
          * that rowColumns deals only with the unique form.

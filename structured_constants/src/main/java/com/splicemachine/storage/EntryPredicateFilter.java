@@ -1,10 +1,12 @@
 package com.splicemachine.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -164,13 +166,26 @@ public class EntryPredicateFilter implements Externalizable{
         if(fieldsToReturn.length()==0 && valuePredicates.size()<=0 && !returnIndex)
             return new byte[]{};
 
-        ByteDataOutput bdo = new ByteDataOutput();
-        try{
-            bdo.writeObject(this);
-            return bdo.toByteArray();
-        }catch(IOException ioe){
-            throw new RuntimeException(ioe);
-        }
+        /*
+         * Format is as follows:
+         * BitSet bytes
+         * 1-byte returnIndex
+         * n-bytes predicates
+         */
+        byte[] bitSetBytes = BytesUtil.toByteArray(fieldsToReturn);
+        byte[] predicates = Predicates.toBytes(valuePredicates);
+        byte[] finalData = new byte[predicates.length+bitSetBytes.length+1];
+        System.arraycopy(bitSetBytes,0,finalData,0,bitSetBytes.length);
+        finalData[bitSetBytes.length] = returnIndex? (byte)0x01: 0x00;
+        System.arraycopy(predicates,0,finalData,bitSetBytes.length+1,predicates.length);
+        return finalData;
+//        ByteDataOutput bdo = new ByteDataOutput();
+//        try{
+//            bdo.writeObject(this);
+//            return bdo.toByteArray();
+//        }catch(IOException ioe){
+//            throw new RuntimeException(ioe);
+//        }
     }
 
     public List<Predicate> getPredicateList() {
@@ -184,11 +199,10 @@ public class EntryPredicateFilter implements Externalizable{
     public static EntryPredicateFilter fromBytes(byte[] data) throws IOException {
         if(data==null||data.length==0) return EMPTY_PREDICATE;
 
-        ByteDataInput bdi = new ByteDataInput(data);
-        try {
-            return (EntryPredicateFilter)bdi.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException(e);
-        }
+        Pair<BitSet,Integer> fieldsToReturn = BytesUtil.fromByteArray(data,0);
+        boolean returnIndex = data[fieldsToReturn.getSecond()] > 0;
+        Pair<List<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
+
+        return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex);
     }
 }

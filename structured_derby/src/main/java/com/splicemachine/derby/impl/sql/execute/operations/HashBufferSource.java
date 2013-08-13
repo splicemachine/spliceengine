@@ -59,6 +59,7 @@ public class HashBufferSource{
                         if(finisher != null){
                             finisher.finishAggregation(result.getSecond());
                         }
+                        return result;
                     }
                 }
             }

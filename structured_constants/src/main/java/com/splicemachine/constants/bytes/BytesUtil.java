@@ -6,12 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -80,6 +75,7 @@ public class BytesUtil {
 //      }
 
     public static void unsignedIncrement(byte[] array,int index){
+        if(array.length<=0) return; //nothing to do
         if(index<0){
             /*
              *  looks like the array is something like [0xFF,0xFF,0xFF,...].
@@ -286,5 +282,48 @@ public class BytesUtil {
         System.arraycopy(start,0,next,0,next.length);
         unsignedIncrement(next,next.length-1);
         return next;
+    }
+
+    public static void intToBytes(int value,byte[] data,int offset) {
+        data[offset] = (byte)(value >>> 3*8);
+        data[offset+1] = (byte)(value >>> 2*8);
+        data[offset+2] = (byte)(value >>> 8);
+        data[offset+3] = (byte)(value);
+    }
+
+    public static int bytesToInt(byte[] data, int offset) {
+        int value = 0;
+        value |= data[offset]<<3*8;
+        value |= data[offset+1]<<2*8;
+        value |= data[offset+2]<< 8;
+        value |= data[offset+3];
+        return value;
+    }
+
+    public static byte[] toByteArray(BitSet bits) {
+        byte[] bytes = new byte[(bits.length()+7)/8+4];
+        intToBytes((bits.length()+7)/8,bytes,0);
+        for (int i=0; i<bits.length(); i++) {
+            if (bits.get(i)) {
+                bytes[(bytes.length-4)-i/8-1+4] |= 1<<(i%8);
+            }
+        }
+        return bytes;
+    }
+
+    public static Pair<BitSet,Integer> fromByteArray(byte[] data, int offset){
+        int numBytes = bytesToInt(data,offset);
+        BitSet bitSet = new BitSet();
+        int currentPos=0;
+        for(int i=numBytes+offset+4-1;i>=offset+4;i--){
+            byte byt = data[i];
+            //a 1 in the position indicates the field is set
+            for(int pos=0;pos<8;pos++){
+                if((byt & (1<<pos))>0)
+                    bitSet.set(currentPos);
+                currentPos++;
+            }
+        }
+        return Pair.newPair(bitSet,offset+numBytes+4);
     }
 }

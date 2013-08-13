@@ -235,7 +235,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         return RowEncoder.create(def.nColumns(), keyColumns,
                 null,
                 uniqueSequenceID,
-                keyType, RowMarshaller.packedCompressed());
+                keyType, RowMarshaller.packed());
     }
 
     @Override

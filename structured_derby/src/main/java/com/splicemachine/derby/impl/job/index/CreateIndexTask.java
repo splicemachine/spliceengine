@@ -30,6 +30,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -148,13 +149,15 @@ public class CreateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
+            region.startRegionOperation();
+            MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 boolean shouldContinue = true;
                 WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
                 while(shouldContinue){
                     nextRow.clear();
-                    shouldContinue  = sourceScanner.next(nextRow);
+                    shouldContinue  = sourceScanner.nextRaw(nextRow,null);
                     translateResult(nextRow, indexOnlyWriteHandler);
                 }
                 Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
@@ -164,6 +167,7 @@ public class CreateIndexTask extends ZkTask {
                     }
                 }
             }finally{
+                region.closeRegionOperation();
                 sourceScanner.close();
             }
 

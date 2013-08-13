@@ -168,7 +168,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
                     sinkEncoder.getEncodedBytes(0),
                     KeyType.FIXED_PREFIX,
-                    RowMarshaller.packedCompressed());
+                    RowMarshaller.packed());
 
             //build a ScanBoundary based off the type of the entries
             final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();

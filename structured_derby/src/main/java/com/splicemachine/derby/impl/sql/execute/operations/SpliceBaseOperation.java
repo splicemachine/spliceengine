@@ -507,7 +507,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         ExecRow row = getExecRowDefinition();
         return RowEncoder.create(row.nColumns(),
                 null,null,null,
-                KeyType.BARE, RowMarshaller.packedCompressed());
+                KeyType.BARE, RowMarshaller.packed());
     }
 
 

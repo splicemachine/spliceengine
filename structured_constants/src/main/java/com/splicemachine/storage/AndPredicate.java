@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -80,4 +82,26 @@ public class AndPredicate implements Predicate{
             predicate.reset();
         }
     }
+
+    @Override
+    public byte[] toBytes() {
+        /*
+         * Format is
+         *
+         * 1-byte type (PredicateType.AND)
+         * 4-byte length field
+         * n-byte predicates
+         */
+        byte[] listData = Predicates.toBytes(ands);
+        byte[] data  = new byte[listData.length+1];
+        data[0] = PredicateType.AND.byteValue();
+        System.arraycopy(listData,0,data,1,listData.length);
+        return data;
+    }
+
+    public static Pair<AndPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
+        Pair<List<Predicate>,Integer> predicates = Predicates.allFromBytes(data,offset);
+        return Pair.newPair(new AndPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
+    }
+
 }

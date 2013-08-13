@@ -235,7 +235,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,
                 uniqueSequenceID,
                 KeyType.PREFIX_UNIQUE_POSTFIX_ONLY,
-                RowMarshaller.packedCompressed());
+                RowMarshaller.packed());
     }
 
     @Override

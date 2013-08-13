@@ -22,4 +22,5 @@ public interface Predicate extends Externalizable {
 
     void reset();
 
+    byte[] toBytes();
 }

@@ -100,7 +100,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     public boolean isDeserialized(){
-        return dvd != null && !dvd.isNull();
+        return deserialized;
     }
 
     protected void forceDeserialization()  {

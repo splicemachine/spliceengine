@@ -111,7 +111,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 if(rowEncoder==null)
                     rowEncoder = MultiFieldEncoder.create(rowArray.length);
                 rowEncoder.reset();
-                RowMarshaller.packedCompressed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
+                RowMarshaller.packed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
 
                 //add any additional columns which were specified during the run
                 Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();

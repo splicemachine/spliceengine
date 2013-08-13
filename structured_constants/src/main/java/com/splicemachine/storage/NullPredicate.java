@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -102,4 +104,35 @@ public class NullPredicate implements Predicate{
     public void reset() {
         //no-op
     }
+
+    @Override
+    public byte[] toBytes() {
+        /*
+         * Format is as follows:
+         *
+         * 1-byte filterIfMissing
+         * 1-byte isNullNumericalComparison
+         * 1-byte isDoubleColumn
+         * 1-byte isFloatColumn
+         * 4-byte column number
+         */
+        byte[] data = new byte[9];
+        data[0] = PredicateType.NULL.byteValue();
+        data[1] = filterIfMissing? (byte)0x01: 0x00;
+        data[2] = isNullNumericalComparision? (byte)0x01: 0x00;
+        data[3] = isDoubleColumn? (byte)0x01:0x00;
+        data[4] = isFloatColumn? (byte)0x01:0x00;
+        BytesUtil.intToBytes(column,data,5);
+        return data;
+    }
+
+    public static Pair<NullPredicate,Integer> fromBytes(byte[] data, int offset){
+        boolean filterIfMissing = data[offset]==0x01;
+        boolean isNullNumericalComparison = data[offset+1]==0x01;
+        boolean isDoubleColumn = data[offset+2]==0x01;
+        boolean isFloatColumn = data[offset+3]==0x01;
+        int column = BytesUtil.bytesToInt(data,offset+4);
+        return Pair.newPair(new NullPredicate(filterIfMissing,isNullNumericalComparison,column,isDoubleColumn,isFloatColumn),9);
+    }
+
 }
