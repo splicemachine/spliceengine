@@ -223,7 +223,6 @@ public class TPCHTest extends SpliceUnitTest {
 	}
 
 	@Test
-	@Ignore
 	public void sql19() throws Exception {
 		Assert.assertTrue(runScript(new File(getSQLFile("19.sql")),methodWatcher.getOrCreateConnection()));
 	}
