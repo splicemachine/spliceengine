@@ -21,15 +21,12 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 
 import java.util.Vector;
@@ -104,5 +101,11 @@ public final class UntypedNullConstantNode extends ConstantNode
 	public ValueNode bindExpression(FromList fromList, SubqueryList	subqueryList, Vector aggregateVector)
 	{
 		return this;
+	}
+	
+	public int hashCode(){
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(203, 103);
+		hcBuilder.append(value);
+		return hcBuilder.toHashCode();
 	}
 }

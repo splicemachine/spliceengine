@@ -21,21 +21,16 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
-
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.store.access.Qualifier;
-
 import org.apache.derby.iapi.util.JBitSet;
 
 import java.util.Vector;
@@ -728,5 +723,14 @@ public class ValueNodeList extends QueryTreeNodeVector
 		}
 
 		return listType;
+	}
+	
+	public int hashCode(){
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(83,63);
+		
+		for(int i=0; i < size(); i++){
+			hcBuilder.append(elementAt(i));
+		}
+		return hcBuilder.toHashCode();
 	}
 }

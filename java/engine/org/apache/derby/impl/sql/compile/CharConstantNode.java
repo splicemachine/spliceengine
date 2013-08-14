@@ -21,16 +21,13 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.types.StringDataValue;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.iapi.reference.SQLState;
-
 import org.apache.derby.iapi.util.ReuseFactory;
 
 import java.util.Vector;
@@ -186,5 +183,11 @@ public final class CharConstantNode extends ConstantNode
 		// The generated java is the expression:
 		// "#getString()"
 		mb.push(getString());
+	}
+	
+	public int hashCode(){
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(99, 107);
+		hcBuilder.append(value);
+		return hcBuilder.toHashCode();
 	}
 }

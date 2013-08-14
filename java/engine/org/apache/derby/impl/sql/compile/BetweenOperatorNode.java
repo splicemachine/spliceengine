@@ -21,18 +21,13 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
 import org.apache.derby.iapi.sql.compile.NodeFactory;
@@ -324,5 +319,14 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 												cm);
 		newAnd.postBindFixup();
 		newAnd.generateExpression(acb, mb);
+	}
+	
+	public int hashCode(){
+		
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(203,13);
+		hcBuilder.append(leftOperand)
+			.append(rightOperandList);
+		
+		return hcBuilder.toHashCode();
 	}
 }

@@ -21,17 +21,13 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.compile.TypeCompiler;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.info.JVMInfo;
-
 import org.apache.derby.iapi.types.SQLDouble;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.iapi.types.SQLLongint;
@@ -41,9 +37,7 @@ import org.apache.derby.iapi.types.SQLTinyint;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeUtilities;
 import org.apache.derby.iapi.types.NumberDataValue;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-
 import org.apache.derby.iapi.util.ReuseFactory;
 
 import java.sql.Types;
@@ -261,5 +255,11 @@ public final class NumericConstantNode extends ConstantNode
 						  "Unexpected nodeType = " + getNodeType());
 			}
 		}	
+	}
+	
+	public int hashCode(){
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(47, 203);
+		hcBuilder.append(value);
+		return hcBuilder.toHashCode();
 	}
 }		

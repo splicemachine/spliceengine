@@ -21,20 +21,17 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
 import org.apache.derby.iapi.types.BooleanDataValue;
 import org.apache.derby.iapi.types.SQLBoolean;
-
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.util.ReuseFactory;
 import org.apache.derby.iapi.util.StringUtil;
+
 import java.sql.Types;
 
 public class SQLBooleanConstantNode extends ConstantNode
@@ -96,5 +93,11 @@ public class SQLBooleanConstantNode extends ConstantNode
 		throws StandardException
 	{
 		mb.push(value.getBoolean());
+	}
+	
+	public int hashCode(){
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(29, 39);
+		hcBuilder.append(value);
+		return hcBuilder.toHashCode();
 	}
 }

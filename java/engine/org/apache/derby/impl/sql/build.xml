@@ -16,8 +16,39 @@
   limitations under the License.
 -->
 
-<project default="compile" basedir="../../../../../../..">
+<project name="sql" xmlns:ivy="antlib:org.apache.ivy.ant" default="compile" basedir="../../../../../../..">
+	
+	<!-- Ivy Download/Setup Properties -->
 
+    <property name="ivy.install.version" value="2.1.0-rc2" />
+    <condition property="ivy.home" value="${env.IVY_HOME}">
+        <isset property="env.IVY_HOME" />
+    </condition>
+    <property name="ivy.home" value="${user.home}/.ant" />
+    <property name="ivy.jar.dir" value="${ivy.home}/lib" />
+    <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+
+    <target name="download-ivy" unless="offline">
+
+        <mkdir dir="${ivy.jar.dir}"/>
+        <!-- download Ivy from web site so that it can be used even without any special installation -->
+        <get src="http://repo2.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar"
+             dest="${ivy.jar.file}" usetimestamp="true"/>
+    </target>
+
+    <target name="init-ivy" depends="download-ivy">
+        <!-- try to load ivy here from ivy home, in case the user has not already dropped
+                it into ant's lib dir (note that the latter copy will always take precedence).
+                We will not fail as long as local lib dir exists (it may be empty) and
+                ivy is in at least one of ant's lib dir or the local lib dir. -->
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target>
+	
 <!-- Set Properties -->
   <!-- User settings -->
   <property file="${user.home}/ant.properties"/>
@@ -76,8 +107,11 @@
 
   </target>
 
-  <target name="compile" depends="parser">
-    <javac
+  <target name="compile" depends="parser, init-ivy">
+  	
+  	<ivy:cachepath pathid="lib.path.id"/>
+  	
+  	<javac
       source="1.4"
       target="1.4"
       bootclasspath="${empty}"
@@ -92,6 +126,7 @@
       destdir="${out.dir}">
       <classpath>
         <pathelement path="${compile.classpath}"/>
+      	<path refid="lib.path.id"/>
       </classpath>
       <include name="${derby.dir}/${cur.dir}/**"/>
     </javac>

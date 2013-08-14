@@ -21,25 +21,19 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.reference.ClassName;
-
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
 import org.apache.derby.iapi.sql.compile.Optimizable;
-
 import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
 import java.lang.reflect.Modifier;
@@ -772,5 +766,16 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	protected boolean sortDescending()
 	{
 		return sortDescending;
-	} 
+	}
+	
+	public int hashCode(){
+		
+		HashCodeBuilder hcBuilder = new HashCodeBuilder(199,99);
+		hcBuilder.append(isOrdered)
+			.append(sortDescending)
+			.append(leftOperand)
+			.append(rightOperandList);
+		
+		return hcBuilder.toHashCode();
+	}
 }
