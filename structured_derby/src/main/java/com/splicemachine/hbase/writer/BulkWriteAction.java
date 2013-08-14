@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -40,6 +41,7 @@ final class BulkWriteAction implements Callable<Void> {
     private final Writer.RetryStrategy retryStrategy;
     private final RegionCache regionCache;
     private final HConnection connection;
+    private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
 
@@ -47,19 +49,23 @@ final class BulkWriteAction implements Callable<Void> {
                            BulkWrite bulkWrite,
                            RegionCache regionCache,
                            Writer.RetryStrategy retryStrategy,
-                           HConnection connection) {
+                           HConnection connection,
+                           ActionStatusReporter statusReporter) {
         this.tableName = tableName;
         this.bulkWrite = bulkWrite;
         this.regionCache = regionCache;
         this.retryStrategy = retryStrategy;
         this.connection = connection;
+        this.statusReporter = statusReporter;
     }
 
     @Override
     public Void call() throws Exception {
+        statusReporter.numExecutingFlushes.incrementAndGet();
         try{
             tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
         }finally{
+            statusReporter.numExecutingFlushes.decrementAndGet();
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
              * of the operation. While the Future code will attempt to clean up as much of those futures
@@ -195,5 +201,21 @@ final class BulkWriteAction implements Callable<Void> {
            throw new IOException("Unable to obtain region information");
         }
         return values;
+    }
+
+    public static class ActionStatusReporter{
+        final AtomicInteger numExecutingFlushes = new AtomicInteger(0);
+        final AtomicLong totalFlushesSubmitted = new AtomicLong(0l);
+        final AtomicLong failedBufferFlushes = new AtomicLong(0l);
+        final AtomicLong writeConflictBufferFlushes = new AtomicLong(0l);
+        final AtomicLong notServingRegionFlushes = new AtomicLong(0l);
+        final AtomicLong wrongRegionFlushes = new AtomicLong(0l);
+        final AtomicLong timedOutFlushes = new AtomicLong(0l);
+
+        final AtomicLong globalFailures = new AtomicLong(0l);
+        final AtomicLong partialFailures = new AtomicLong(0l);
+
+        public ActionStatusReporter(){}
+
     }
 }

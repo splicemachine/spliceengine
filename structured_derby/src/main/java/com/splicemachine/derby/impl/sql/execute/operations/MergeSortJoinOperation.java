@@ -240,7 +240,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
 
         ExecRow rowDef = getExecRowDefinition();
-        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packedCompressed());
+        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packed());
 		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}

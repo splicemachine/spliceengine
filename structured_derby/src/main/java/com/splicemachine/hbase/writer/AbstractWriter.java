@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import javax.management.*;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +48,6 @@ public abstract class AbstractWriter implements Writer{
     }
 
     protected abstract Future<Void> write(byte[] tableName,BulkWrite bulkWrite,RetryStrategy retryStrategy) throws ExecutionException;
-
 
     protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,List<KVPair> buffer,String txnId,List<Throwable> errors,RetryStrategy retryStrategy) throws Exception{
         if(tries<=0)

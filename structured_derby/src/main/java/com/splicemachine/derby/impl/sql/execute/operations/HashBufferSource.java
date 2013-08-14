@@ -70,7 +70,7 @@ public class HashBufferSource{
             }
         }
 
-        if(result == null && doneReadingSource && !currentRows.isEmpty()){
+        if(doneReadingSource && !currentRows.isEmpty()){
             ByteBuffer key = currentRows.keySet().iterator().next();
             result = new Pair(key, currentRows.remove(key));
         }

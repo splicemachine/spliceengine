@@ -471,7 +471,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packedCompressed());
+        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packed());
     }
 
     //    /**

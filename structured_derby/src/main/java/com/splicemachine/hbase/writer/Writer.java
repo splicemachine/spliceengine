@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import javax.management.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -13,6 +14,8 @@ public interface Writer {
     public Future<Void> write(byte[] tableName,List<KVPair> buffer,String transactionId,RetryStrategy retryStrategy) throws ExecutionException;
 
     void stopWrites();
+
+    public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException,NotCompliantMBeanException,InstanceAlreadyExistsException,MBeanRegistrationException;
 
     public enum WriteResponse{
         THROW_ERROR,

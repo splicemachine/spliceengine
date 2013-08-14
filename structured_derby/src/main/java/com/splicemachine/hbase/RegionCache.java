@@ -16,6 +16,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
 
+import javax.management.*;
 import java.io.IOException;
 import java.util.Map;
 import java.util.SortedSet;
@@ -32,6 +33,9 @@ public class RegionCache {
 
     private final long cacheUpdatePeriod;
     private volatile long cacheUpdatedTimestamp;
+    private RegionCacheLoader regionCacheLoader;
+
+    private RegionCacheStatus status = new RegionStatus();
 
     private RegionCache(long cacheUpdatePeriod,
             LoadingCache<Integer, SortedSet<HRegionInfo>> regionCache,
@@ -57,7 +61,8 @@ public class RegionCache {
     }
 
     public void start(){
-        cacheUpdater.scheduleAtFixedRate(new RegionCacheLoader(),0l,cacheUpdatePeriod, TimeUnit.MILLISECONDS);
+        regionCacheLoader = new RegionCacheLoader();
+        cacheUpdater.scheduleAtFixedRate(regionCacheLoader,0l,cacheUpdatePeriod, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown(){
@@ -80,12 +85,16 @@ public class RegionCache {
         return cacheUpdatedTimestamp;
     }
 
+    public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+        ObjectName cacheName = new ObjectName("com.splicemachine.region:type=RegionCacheStatus");
+        mbs.registerMBean(status,cacheName);
+    }
+
     private class RegionCacheLoader  implements Runnable{
 
         @Override
         public void run() {
             SpliceLogUtils.debug(CACHE_LOG, "Refreshing Region cache for all tables");
-            RegionCache.this.cacheUpdatedTimestamp = System.currentTimeMillis();
             final Map<byte[],SortedSet<HRegionInfo>> regionInfos = Maps.newHashMap();
             MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
@@ -165,6 +174,38 @@ public class RegionCache {
             }
             SpliceLogUtils.trace(CACHE_LOG,"loaded regions %s",regionInfos);
             return regionInfos;
+        }
+    }
+
+    private class RegionStatus implements RegionCacheStatus{
+
+        @Override
+        public long getLastUpdatedTimestamp() {
+            return cacheUpdatedTimestamp;
+        }
+
+        @Override
+        public void updateCache() {
+            regionCacheLoader.run();
+        }
+
+        @Override
+        public int getNumCachedRegions(String tableName) {
+            try {
+                return regionCache.get(Bytes.mapKey(tableName.getBytes())).size();
+            } catch (ExecutionException e) {
+                return -1;
+            }
+        }
+
+        @Override
+        public long getNumCachedTables() {
+            return regionCache.size();
+        }
+
+        @Override
+        public long getCacheUpdatePeriod() {
+            return cacheUpdatePeriod;
         }
     }
 

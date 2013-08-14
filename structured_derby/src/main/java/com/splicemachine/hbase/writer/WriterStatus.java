@@ -11,34 +11,19 @@ import javax.management.MXBean;
 @MXBean
 public interface WriterStatus {
 
-    long getMaxBufferHeapSize();
-    void setMaxBufferHeapSize(long newMaxHeapSize);
-
-    int getMaxBufferEntries();
-    void setMaxBufferEntries(int newMaxBufferEntries);
-
-    int getMaxFlushesPerBuffer();
-    void setMaxFlushesPerBuffer(int newMaxPendingBuffers);
-
-    int getOutstandingCallBuffers();
-
-    int getPendingBufferFlushes();
-
     int getExecutingBufferFlushes();
 
-    long getTotalBufferFlushes();
+    long getTotalSubmittedFlushes();
 
-    int getRunningWriteThreads();
+    long getFailedBufferFlushes();
 
-    long getNumCachedTables();
+    long getNotServingRegionFlushes();
 
-    int getNumCachedRegions(String tableName);
+    long getWrongRegionFlushes();
 
-    long getCacheLastUpdatedTimeStamp();
+    long getTimedOutFlushes();
 
+    long getGlobalErrors();
 
-    boolean getCompressWrites();
-
-    void setCompressWrites(boolean compressWrites);
-
+    long getPartialFailures();
 }

@@ -262,7 +262,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             public int getFieldCount(int[] keyColumns) {
                 return 1;
             }
-        }, RowMarshaller.packedCompressed());
+        }, RowMarshaller.packed());
     }
 
     @Override

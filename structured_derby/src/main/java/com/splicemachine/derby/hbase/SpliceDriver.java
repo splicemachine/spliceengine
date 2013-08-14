@@ -283,6 +283,7 @@ public class SpliceDriver extends SIConstants {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
 
+            writerPool.registerJMX(mbs);
             //register TableWriter
 //            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
 //            mbs.registerMBean(writerPool,writerName);
