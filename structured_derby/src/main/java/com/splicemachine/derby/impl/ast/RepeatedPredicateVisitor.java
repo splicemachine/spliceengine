@@ -117,10 +117,9 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
     }
 
     /**
-     * For a given node, check the number of possible paths in the predicate tree
-     * and check for any duplicated predicates.  If a predicate occurs X times, and we
-     * find there are only X possible paths, that predicate can be simplified, by pulling
-     * it out and ANDing it with the rest of the tree.
+     * For a given node, check each possible path to ensure that the possibly duplicated
+     * predicate occurs down that path.  If it is found down each path in the plan, it
+     * can be pulled out, then 'anded' with the rest of the predicate(s)
      *
      * @param node
      * @return
