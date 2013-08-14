@@ -38,7 +38,7 @@ public class SpliceConstants {
     public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
     public static final long DEFAULT_CACHE_EXPIRATION = 60;
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
-    public static final int DEFAULT_MAX_BUFFER_ENTRIES = -1;
+    public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_CORE = 10;
     public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
