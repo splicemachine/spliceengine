@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.ast;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.AndNode;
+import org.apache.derby.impl.sql.compile.BinaryListOperatorNode;
 import org.apache.derby.impl.sql.compile.BinaryRelationalOperatorNode;
 import org.apache.derby.impl.sql.compile.OrNode;
 import org.apache.derby.impl.sql.compile.ValueNode;
@@ -58,11 +59,14 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
      * @throws StandardException
      */
     private Map<ValueNode,Integer> nodesWithMultipleOccurrences(ValueNode pred) throws StandardException {
+
         Map<ValueNode, Integer> m = new HashMap<ValueNode,Integer>();
 
-        List<BinaryRelationalOperatorNode> binNodes = ColumnUtils.collectNodes(pred, BinaryRelationalOperatorNode.class);
+        List<ValueNode> binNodes = new LinkedList<ValueNode>();
+        binNodes.addAll(ColumnUtils.collectNodes(pred, BinaryRelationalOperatorNode.class));
+        binNodes.addAll(ColumnUtils.collectNodes(pred, BinaryListOperatorNode.class));
 
-        for(BinaryRelationalOperatorNode node : binNodes ){
+        for(ValueNode node : binNodes ){
 
             if(m.containsKey(node)){
                 Integer count = m.get(node);
@@ -87,40 +91,29 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         return m;
     }
 
-    /**
-     * Counts the number of distinct paths in a predicate.  An
-     * OR statement will create an additional path and an AND
-     * node's children could potentially add another possible
-     * path.
-     *
-     * @param vn
-     * @return
-     */
-    private int countPaths(ValueNode vn){
+    private boolean foundInPath(ValueNode nodeToFind, ValueNode predNode){
 
-        List <ValueNode> childNodes = new LinkedList<ValueNode>();
-        childNodes.add(vn);
+        boolean result = false;
 
-        int totalPaths = 1;
+        if(nodeToFind.equals(predNode)){
 
-        while(childNodes != null && !childNodes.isEmpty()){
+            result = true;
 
-            List<ValueNode> nextChildren = new LinkedList<ValueNode>();
+        }else if(predNode instanceof OrNode){
 
-            for(ValueNode childNode : childNodes){
-                if(childNode instanceof OrNode){
-                    totalPaths++;
-                    nextChildren.addAll(childNode.getChildren());
-                }else if(childNode instanceof AndNode){
-                    nextChildren.addAll(childNode.getChildren());
-                }
-            }
+            OrNode orNode = (OrNode) predNode;
+            result = foundInPath(nodeToFind, orNode.getLeftOperand())
+                    && foundInPath(nodeToFind, orNode.getRightOperand());
 
-            childNodes = nextChildren;
+        }else if(predNode instanceof AndNode){
 
+            AndNode andNode = (AndNode) predNode;
+            result = foundInPath(nodeToFind, andNode.getLeftOperand())
+                    || foundInPath(nodeToFind, andNode.getRightOperand());
         }
 
-        return totalPaths;
+
+        return result;
     }
 
     /**
@@ -136,30 +129,27 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
 
-        Visitable updatedNode = null;
+        Visitable updatedNode = node;
 
         if(node instanceof ValueNode){
 
             foundWhereClause = true;
 
-            ValueNode whereClause = (ValueNode) node;
+            ValueNode newNode = (ValueNode) node;
 
-            int totalPaths = countPaths(whereClause);
-            Map<ValueNode, Integer> m = nodesWithMultipleOccurrences(whereClause);
+            Map<ValueNode, Integer> m = nodesWithMultipleOccurrences(newNode);
 
             for(Map.Entry<ValueNode,Integer> me : m.entrySet()){
-                if(me.getValue().intValue() == totalPaths){
+                if(foundInPath(me.getKey(), newNode)){
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
-                    whereClause.accept(new SpliceDerbyVisitorAdapter(aor));
+                    newNode.accept(new SpliceDerbyVisitorAdapter(aor));
                     AndNode newAndNode = new AndNode();
-                    newAndNode.init(me.getKey(), whereClause);
-                    updatedNode = newAndNode;
+                    newAndNode.init(me.getKey(), newNode);
+                    newNode = newAndNode;
                 }
             }
-        }
 
-        if(updatedNode == null){
-            updatedNode = node;
+            updatedNode = newNode;
         }
 
         return updatedNode;
