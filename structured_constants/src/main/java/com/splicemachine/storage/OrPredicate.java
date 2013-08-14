@@ -118,9 +118,9 @@ public class OrPredicate implements Predicate {
         return data;
     }
 
-    public static Pair<AndPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
+    public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
         int size = BytesUtil.bytesToInt(data,offset);
         Pair<List<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
-        return Pair.newPair(new AndPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
+        return Pair.newPair(new OrPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
 }

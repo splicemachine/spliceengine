@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -296,7 +297,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		DataValueDescriptor restrictBoolean;
 
         if(ringBuffer==null)
-            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(100,new RowAndLocation[0],new IndexFiller(50,source));
+            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(100,new RowAndLocation[0],new IndexFiller(25,source));
         do{
             try{
                 RowAndLocation roLoc = ringBuffer.next();
@@ -316,7 +317,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                     break;
                 }
                 sourceRow = roLoc.getRow();
-                baseRowLocation = roLoc.location;
+                if(baseRowLocation==null)
+                    baseRowLocation = new HBaseRowLocation();
+
+                baseRowLocation.setValue(roLoc.location);
 
                 SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
                 SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
@@ -459,15 +463,27 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                 fieldDecoder = MultiFieldDecoder.create();
             fieldDecoder.reset();
 
-            try{
-                for(KeyValue kv:nextResult.raw()){
-                    RowMarshaller.sparsePacked().decode(kv,next.getRow().getRowArray(),adjustedBaseColumnMap,fieldDecoder);
-                }
-            } catch (StandardException e) {
-                throw new ExecutionException(e);
-            }
             currentResultPos++;
-            return next;
+            if(old!=null){
+                try{
+                    for(KeyValue kv:nextResult.raw()){
+                        RowMarshaller.sparsePacked().decode(kv,old.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+                    }
+                } catch (StandardException e) {
+                    throw new ExecutionException(e);
+                }
+                old.location = next.location;
+                return old;
+            }else{
+                try{
+                    for(KeyValue kv:nextResult.raw()){
+                        RowMarshaller.sparsePacked().decode(kv,next.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+                    }
+                } catch (StandardException e) {
+                    throw new ExecutionException(e);
+                }
+                return new RowAndLocation(next);
+            }
         }
 
         private void fillBatch() throws ExecutionException {
@@ -496,7 +512,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         rowBatch[batchCount] = rowLoc;
                     }
 
-                    rowLoc.setLocation((RowLocation) sourceRow.getColumn(sourceRow.nColumns()));
+                    rowLoc.setLocation(sourceRow.getColumn(sourceRow.nColumns()).getBytes());
 
                     if(predicateFilterBytes==null){
                         BitSet fieldsToReturn = new BitSet(heapOnlyCols.getNumBitsSet());
@@ -507,7 +523,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         predicateFilterBytes = getPredicateFilter.toBytes();
                     }
 
-                    Get get = SpliceUtils.createGet(getTransactionID(), rowLoc.location.getBytes());
+                    Get get = SpliceUtils.createGet(getTransactionID(), rowLoc.location);
                     get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
                     batch.add(get);
                 }
@@ -536,11 +552,16 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
     private static class RowAndLocation{
         private ExecRow row;
-        private RowLocation location;
+        private byte[] location;
 
-        private RowAndLocation(ExecRow row, RowLocation location) {
+        private RowAndLocation(ExecRow row, byte[] location) {
             this.row = row;
             this.location = location;
+        }
+
+        private RowAndLocation(RowAndLocation rowAndLocation){
+           this.row = rowAndLocation.row.getClone();
+            this.location = rowAndLocation.location;
         }
 
         public ExecRow getRow() {
@@ -551,11 +572,11 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             this.row = row;
         }
 
-        public RowLocation getLocation() {
+        public byte[] getLocation() {
             return location;
         }
 
-        public void setLocation(RowLocation location) {
+        public void setLocation(byte[] location) {
             this.location = location;
         }
     }

@@ -240,7 +240,6 @@ public class Scans extends SpliceUtils {
             andPreds.add(getPredicate(andQual));
         }
 
-        Predicate firstAndPredicate = new AndPredicate(andPreds);
 
         List<Predicate> andedOrPreds = Lists.newArrayList();
         for(int i=1;i<qualifiers.length;i++){
@@ -251,11 +250,11 @@ public class Scans extends SpliceUtils {
             }
             andedOrPreds.add(new OrPredicate(orPreds));
         }
-        if(andedOrPreds.size()>0){
-            Predicate secondAndPredicate = new AndPredicate(andedOrPreds);
-            return Lists.newArrayList(firstAndPredicate,secondAndPredicate);
-        }else
-            return Lists.newArrayList(firstAndPredicate);
+        if(andedOrPreds.size()>0)
+            andPreds.addAll(andedOrPreds);
+
+        Predicate firstAndPredicate = new AndPredicate(andPreds);
+        return Lists.newArrayList(firstAndPredicate);
     }
 
     private static Predicate getPredicate(Qualifier qualifier) throws StandardException {

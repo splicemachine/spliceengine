@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -21,6 +22,7 @@ import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.tools.UniqueChecker;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -126,6 +128,7 @@ public class CreateIndexTask extends ZkTask {
         return true;
     }
 
+    private static final UniqueChecker<byte[]> checker = new UniqueChecker<byte[]>(Bytes.BYTES_COMPARATOR);
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
@@ -186,6 +189,9 @@ public class CreateIndexTask extends ZkTask {
             if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
             byte[] row = kv.getRow();
+            if(checker.check(row)>0){
+                LOG.warn("Byte[] "+ BytesUtil.toHex(row)+" seen twice");
+            }
             byte[] data = kv.getValue();
             ctx.sendUpstream(new KVPair(row,data));
         }
