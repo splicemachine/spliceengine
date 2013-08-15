@@ -432,12 +432,13 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     public long generateTimestamp(long transactionId) throws IOException {
         final Table transactionSTable = reader.open(transactionSchema.tableName);
         try {
-            final Transaction transaction = loadTransactionDirect(transactionId);
+            Transaction transaction = loadTransactionDirect(transactionId);
             long current = transaction.counter;
             // TODO: more efficient mechanism for obtaining timestamp
-            while (current - transaction.counter < 10000) {
+            while (current - transaction.counter < 1000) {
                 final long next = current + 1;
                 final Put put = buildBasePut(transactionId);
+                transaction = loadTransactionDirect(transactionId);
                 addFieldToPut(put, encodedSchema.counterQualifier, next);
                 if (writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
                         dataLib.encode(transaction.counter), put)) {
