@@ -446,11 +446,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                     current = next;
                 }
             }
-        } 
-        catch (IOException e) {
-        	throw e;
-        }
-        finally {
+        } finally {
             reader.close(transactionSTable);
         }
         throw new IOException("Unable to obtain timestamp");

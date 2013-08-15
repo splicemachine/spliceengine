@@ -61,13 +61,12 @@ public class TransactorSetup extends SIConstants {
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
         final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
-        final Hasher hasher = storeSetup.getHasher();
         dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                 "si_include_uncommitted_as_of_start", 1, "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
-                commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName, hasher);
+                commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 dataStore,
-                transactionStore, storeSetup.getClock(), 1500, hasher, listener);
+                transactionStore, storeSetup.getClock(), 1500, storeSetup.getHasher(), listener);
         if (!simple) {
             listener.setTransactor(transactor);
             hTransactor = listener;

@@ -73,7 +73,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     private Iterator<List<LKeyValue>> scanRegion(LTable table, LGet scan) throws IOException {
         final Iterator<LTuple> iterator = runScan(table, scan);
         List<List<LKeyValue>> results = new ArrayList<List<LKeyValue>>();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             results.add(iterator.next().values);
         }
         return results.iterator();
@@ -172,7 +172,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
             write(table, p.getFirst());
         }
         OperationStatus[] result = new OperationStatus[puts.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             result[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
         }
         return result;
@@ -373,25 +373,11 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
         relations.put(tableName, newRows);
     }
 
-
     @Override
-    public List<LKeyValue> nextResultsOnRegionScanner(LScanner scanner) throws IOException {
-        return scanner.next();
+    public void closeOperation(LTable table) throws IOException {
     }
 
     @Override
-    public void seekOnRegionScanner(LScanner scanner, Object rowKey) throws IOException {
-       scanner.seek(rowKey);
+    public void openOperation(LTable table) throws IOException {
     }
-
-	@Override
-	public void closeOperation(LTable table) throws IOException {
-		
-	}
-
-	@Override
-	public void openOperation(LTable table) throws IOException {
-		
-	}
-
 }

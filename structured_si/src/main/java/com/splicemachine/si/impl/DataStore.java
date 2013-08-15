@@ -4,7 +4,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.util.Pair;
-import com.splicemachine.si.data.hbase.IHTable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +23,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final STableReader<IHTable, Result, Get, Scan, KeyValue, Scanner, Data> reader;
     private final STableWriter<IHTable, Mutation, Put, Delete, Data, Lock, OperationStatus> writer;
-    private final Hasher<Data, Hashable> hasher;
 
     private final String siNeededAttribute;
     private final Data siNeededValue;
@@ -48,11 +46,10 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
                      Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
                      Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
-                     Object siNull, Object siAntiTombstoneValue, Object siFail, Object userColumnFamily, Hasher<Data, Hashable> hasher) {
+                     Object siNull, Object siAntiTombstoneValue, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
-        this.hasher = hasher;
 
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);

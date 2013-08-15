@@ -16,11 +16,6 @@ public interface STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data>
 
     // These methods deal with low-level, server-side region scanners.
 
-    /**
-     * Calls to this method must be paired with calls to closeRegionScanner()
-     */
-    void seekOnRegionScanner(Scanner scanner, Data rowKey) throws IOException;
-    List<KeyValue> nextResultsOnRegionScanner(Scanner scanner) throws IOException;
 	void openOperation(Table table) throws IOException;
 	void closeOperation(Table table) throws IOException;
 }

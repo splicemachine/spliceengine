@@ -45,18 +45,6 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     }
 
     @Override
-    public List<KeyValue> nextResultsOnRegionScanner(RegionScanner regionScanner) throws IOException {
-        List<KeyValue> result = new ArrayList<KeyValue>();
-        regionScanner.nextRaw(result, null);
-        return result;
-    }
-
-    @Override
-    public void seekOnRegionScanner(RegionScanner regionScanner, byte[] rowKey) throws IOException {
-        regionScanner.reseek(rowKey);
-    }
-
-    @Override
     public void closeOperation(IHTable table) throws IOException {
        table.closeOperation();
     }

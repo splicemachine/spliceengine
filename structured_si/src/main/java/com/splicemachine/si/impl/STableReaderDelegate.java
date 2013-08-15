@@ -39,22 +39,12 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
     }
 
     @Override
-    public List<KeyValue> nextResultsOnRegionScanner(Scanner scanner) throws IOException {
-        return delegate.nextResultsOnRegionScanner(scanner);
+    public void closeOperation(Table table) throws IOException {
+        delegate.closeOperation(table);
     }
 
     @Override
-    public void seekOnRegionScanner(Scanner scanner, Data rowKey) throws IOException {
-        delegate.seekOnRegionScanner(scanner, rowKey);
+    public void openOperation(Table table) throws IOException {
+        delegate.openOperation(table);
     }
-
-	@Override
-	public void closeOperation(Table table) throws IOException {
-		delegate.closeOperation(table);		
-	}
-
-	@Override
-	public void openOperation(Table table) throws IOException {
-		delegate.openOperation(table);
-	}
 }
