@@ -25,6 +25,7 @@ import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -49,12 +50,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -2582,9 +2578,10 @@ public class SITransactorTest extends SIConstants {
         final BitSet bitSet = new BitSet(2);
         bitSet.set(0);
         bitSet.set(1);
-        final ByteDataOutput bdo = new ByteDataOutput();
-        bdo.writeObject(new EntryPredicateFilter(bitSet, new ArrayList()));
-        dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, bdo.toByteArray());
+        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList());
+//        final ByteDataOutput bdo = new ByteDataOutput();
+//        bdo.writeObject(new EntryPredicateFilter(bitSet, new ArrayList()));
+        dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
     @Test
