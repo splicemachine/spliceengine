@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -62,6 +63,10 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
 
     @Override
     public void close() {
+        if(rightKeyDecoder!=null)
+            rightKeyDecoder.close();
+        if(leftKeyDecoder!=null)
+            leftKeyDecoder.close();
         super.close();
         Closeables.closeQuietly(scanner);
     }
@@ -109,7 +114,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 ExecRow rightRow = rightDecoder.decode(result.raw());
                 currentRow = rightRow;
                 if(rightSideRow==null){
-                    rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
                     rightKeyDecoder.seek(9);
                     byte[] data = DerbyBytesUtil.slice(rightKeyDecoder,rightDecoder.getKeyColumns(),rightRow.getRowArray());
                     rightSideRow = new JoinSideExecRow(rightRow,JoinUtils.JoinSide.RIGHT,data);
@@ -125,7 +130,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 ExecRow leftRow = leftDecoder.decode(result.raw());
                 currentRow = leftRow;
                 if(leftSideRow==null){
-                    leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
                     leftKeyDecoder.seek(9);
                     byte[] data = DerbyBytesUtil.slice(leftKeyDecoder,leftDecoder.getKeyColumns(),leftRow.getRowArray());
                     leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,data);
@@ -170,7 +175,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
             decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal
@@ -185,7 +190,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
             decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal

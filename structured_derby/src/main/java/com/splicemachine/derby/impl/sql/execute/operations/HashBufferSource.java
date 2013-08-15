@@ -77,4 +77,9 @@ public class HashBufferSource{
 
         return result;
     }
+
+    public void close() {
+        if(keyEncoder!=null)
+            keyEncoder.close();
+    }
 }

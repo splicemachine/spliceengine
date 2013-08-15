@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -18,6 +19,7 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -233,37 +235,42 @@ public class UpdateOperation extends DMLWriteOperation{
 
 
                 if(heapDecoder==null)
-                    heapDecoder = MultiFieldDecoder.create();
+                    heapDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
-                EntryDecoder getDecoder = new EntryDecoder();
+                EntryDecoder getDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
                 getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
 
-                EntryEncoder entryEncoder = EntryEncoder.create(getDecoder.getCurrentIndex());
-
-                BitIndex index = getDecoder.getCurrentIndex();
-                MultiFieldEncoder updateEncoder = entryEncoder.getEntryEncoder();
-                MultiFieldDecoder getFieldDecoder = getDecoder.getEntryDecoder();
-                for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
-                    if(finalHeapList.isSet(pos+1)){
-                        DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[pos+1]];
-                        if(dvd==null||dvd.isNull()){
-                            updateEncoder.encodeEmpty();
+                EntryEncoder entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),getDecoder.getCurrentIndex());
+                try{
+                    BitIndex index = getDecoder.getCurrentIndex();
+                    MultiFieldEncoder updateEncoder = entryEncoder.getEntryEncoder();
+                    MultiFieldDecoder getFieldDecoder = getDecoder.getEntryDecoder();
+                    for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
+                        if(finalHeapList.isSet(pos+1)){
+                            DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[pos+1]];
+                            if(dvd==null||dvd.isNull()){
+                                updateEncoder.encodeEmpty();
+                            }else{
+                                DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
+                            }
+                            getDecoder.seekForward(getFieldDecoder,pos);
                         }else{
-                            DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
+                            //use the index to get the correct offsets
+                            int offset = getFieldDecoder.offset();
+                            getDecoder.seekForward(getFieldDecoder,pos);
+                            int limit = getFieldDecoder.offset()-1-offset;
+                            updateEncoder.setRawBytes(getFieldDecoder.array(),offset,limit);
                         }
-                        getDecoder.seekForward(getFieldDecoder,pos);
-                    }else{
-                        //use the index to get the correct offsets
-                        int offset = getFieldDecoder.offset();
-                        getDecoder.seekForward(getFieldDecoder,pos);
-                        int limit = getFieldDecoder.offset()-1-offset;
-                        updateEncoder.setRawBytes(getFieldDecoder.array(),offset,limit);
                     }
-                }
 
-                byte[] value = entryEncoder.encode();
-                buffer.add(new KVPair(rowKey,value));
-                buffer.add(new KVPair(location.getBytes(),EMPTY_BYTES, KVPair.Type.DELETE));
+                    byte[] value = entryEncoder.encode();
+                    buffer.add(new KVPair(rowKey,value));
+                    buffer.add(new KVPair(location.getBytes(),EMPTY_BYTES, KVPair.Type.DELETE));
+                }finally{
+                    entryEncoder.close();
+                    if(heapDecoder!=null)
+                        heapDecoder.close();
+                }
             }
         }
 
@@ -284,9 +291,16 @@ public class UpdateOperation extends DMLWriteOperation{
                         doubleFields.set(i-1);
                     }
                 }
-                nonPkEncoder= EntryEncoder.create(nextRow.nColumns(),setColumns,scalarFields,floatFields,doubleFields);
+                nonPkEncoder= EntryEncoder.create(SpliceDriver.getKryoPool(),nextRow.nColumns(),setColumns,scalarFields,floatFields,doubleFields);
             }
             return nonPkEncoder;
+        }
+
+        @Override
+        public void close() {
+            if(nonPkEncoder!=null)
+                nonPkEncoder.close();
+            super.close();
         }
     }
 }

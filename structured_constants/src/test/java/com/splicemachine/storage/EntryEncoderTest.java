@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,7 +21,7 @@ public class EntryEncoderTest {
         setBits.set(1);
         setBits.set(3);
         setBits.set(8);
-        EntryEncoder encoder = EntryEncoder.create(10,setBits,null,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),10, setBits, null, null, null);
 
         String longTest = "hello this is a tale of woe and sadness from which we will never returnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbeeeeeeeeeeeeeeeeeeeeeeeeeeeeea";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
@@ -31,7 +32,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(1));
@@ -55,7 +56,7 @@ public class EntryEncoderTest {
         setBits.set(1);
         setBits.set(3);
         setBits.set(8);
-        EntryEncoder encoder = EntryEncoder.create(10,setBits,null,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),10,setBits,null,null,null);
 
         String longTest = "hello this is a tale of woe and sadness from which we will never return";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
@@ -66,7 +67,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(1));
@@ -93,7 +94,7 @@ public class EntryEncoderTest {
 
         BitSet scalarFields = new BitSet();
         scalarFields.set(1);
-        EntryEncoder encoder = EntryEncoder.create(3, setCols,scalarFields,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3, setCols,scalarFields,null,null);
         String longTest = "hello this is a tale of woe and sadness from which we will never return";
         BigDecimal correct = new BigDecimal("22.456789012345667890230456677890192348576");
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
@@ -103,7 +104,7 @@ public class EntryEncoderTest {
 
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertTrue(decoder.isSet(0));

@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,7 +26,7 @@ public class EntryAccumulatorTest {
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));
 
         byte[] bytes = accumulator.finish();
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes, KryoPool.defaultPool());
         Assert.assertEquals(2,decoder.decodeNextInt());
         Assert.assertEquals(1,decoder.decodeNextInt());
     }
@@ -41,7 +42,7 @@ public class EntryAccumulatorTest {
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));
 
         byte[] bytes = accumulator.finish();
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes,KryoPool.defaultPool());
         Assert.assertEquals(2,decoder.decodeNextInt());
         Assert.assertEquals(0,decoder.decodeNextInt());
         Assert.assertEquals(1,decoder.decodeNextInt());

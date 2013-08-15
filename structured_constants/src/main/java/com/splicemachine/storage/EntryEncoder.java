@@ -3,6 +3,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.*;
+import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.IOException;
 import java.util.BitSet;
@@ -27,20 +28,23 @@ public class EntryEncoder {
     private static final byte COMPRESSED_DATA_BIT = 0x20;
 
     private MultiFieldEncoder encoder;
+    private final KryoPool kryoPool;
 
-    private EntryEncoder(BitIndex bitIndex){
+    private EntryEncoder(KryoPool kryoPool,BitIndex bitIndex){
         this.bitIndex = bitIndex;
-        this.encoder = MultiFieldEncoder.create(bitIndex.cardinality());
+        this.encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
+        this.kryoPool = kryoPool;
     }
 
-    public EntryEncoder(int size, AllFullBitIndex allFullBitIndex) {
-        this.encoder = MultiFieldEncoder.create(size);
+    public EntryEncoder(KryoPool kryoPool,int size, AllFullBitIndex allFullBitIndex) {
+        this.encoder = MultiFieldEncoder.create(kryoPool,size);
         this.bitIndex = allFullBitIndex;
+        this.kryoPool = kryoPool;
     }
 
     public MultiFieldEncoder getEntryEncoder(){
         if(encoder==null)
-            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
+            encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
         return encoder;
     }
 
@@ -119,17 +123,22 @@ public class EntryEncoder {
         if(oldCardinality==bitIndex.cardinality())
             encoder.reset();
         else
-            encoder = MultiFieldEncoder.create(bitIndex.cardinality());
+            encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
     }
 
-    public static EntryEncoder create(int numCols, BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
+    public void close(){
+        if(encoder!=null)
+            encoder.close();
+    }
+
+    public static EntryEncoder create(KryoPool kryoPool,int numCols, BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields){
         //TODO -sf- return all full stuff as well
         BitIndex indexToUse = BitIndexing.getBestIndex(setCols, scalarFields, floatFields, doubleFields);
-        return new EntryEncoder(indexToUse);
+        return new EntryEncoder(kryoPool,indexToUse);
     }
 
-    public static EntryEncoder create(BitIndex newIndex){
-        return new EntryEncoder(newIndex);
+    public static EntryEncoder create(KryoPool kryoPool,BitIndex newIndex){
+        return new EntryEncoder(kryoPool,newIndex);
     }
 
 

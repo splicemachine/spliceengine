@@ -114,6 +114,7 @@ public abstract class AbstractImportTask extends ZkTask {
             try{
                 numImported = importData(row,writeBuffer);
             }finally{
+                entryEncoder.close();
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
             }

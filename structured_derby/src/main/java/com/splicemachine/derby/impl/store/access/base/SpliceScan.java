@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.impl.sql.execute.LazyScan;
 import com.splicemachine.derby.impl.sql.execute.ParallelScan;
@@ -134,8 +135,13 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void close() throws StandardException {
-			Closeables.closeQuietly(scanner);
-			Closeables.closeQuietly(table);
+        if(fieldDecoder!=null)
+            fieldDecoder.close();
+        if(entryEncoder!=null)
+            entryEncoder.close();
+
+        Closeables.closeQuietly(scanner);
+        Closeables.closeQuietly(table);
 	}
 
 	protected void attachFilter() {
@@ -257,7 +263,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
         if(fieldDecoder==null)
-            fieldDecoder = MultiFieldDecoder.create();
+            fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
         fieldDecoder.reset();
         try{
             if(destRow!=null){
@@ -312,7 +318,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			while ((currentResult = scanner.next()) != null) {
 				SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
                 if(fieldDecoder==null)
-                    fieldDecoder = MultiFieldDecoder.create();
+                    fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
                 fieldDecoder.reset();
 				fetchedRow = RowUtil.newTemplate(
@@ -391,7 +397,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 				SpliceLogUtils.trace(LOG,"HBaseScan fetchNextGroup total number of results=%d",results.length);
 				for (int i = 0; i < results.length; i++) {
                     if(fieldDecoder==null)
-                        fieldDecoder = MultiFieldDecoder.create();
+                        fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
                     fieldDecoder.reset();
 					if (results[i] != null) {
@@ -423,7 +429,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
             Put put = SpliceUtils.createPut(currentRowLocation.getBytes(),transID);
 
             if(entryEncoder==null)
-                entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row,validColumns),
+                entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),row.length, EncodingUtils.getNonNullColumns(row,validColumns),
                         DerbyBytesUtil.getScalarFields(row),
                         DerbyBytesUtil.getFloatFields(row),
                         DerbyBytesUtil.getDoubleFields(row));

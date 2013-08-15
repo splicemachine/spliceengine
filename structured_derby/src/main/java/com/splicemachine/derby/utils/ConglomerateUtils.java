@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
@@ -61,7 +62,7 @@ public class ConglomerateUtils extends SpliceConstants {
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 
 			if(data!=null) {
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data);
+                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,SpliceDriver.getKryoPool());
                 byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
                 return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
@@ -89,7 +90,6 @@ public class ConglomerateUtils extends SpliceConstants {
 	 * Stores information about a new conglomerate, specified by {@code tableName}.
 	 *
 	 * @param tableName the name of the table
-	 * @param conglomerate the conglomerate to store
 	 * @throws IOException if something goes wrong and the data can't be stored.
 	 */
 	public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, String transactionID) throws StandardException {
@@ -99,6 +99,7 @@ public class ConglomerateUtils extends SpliceConstants {
 		Preconditions.checkNotNull(tableName);
 		HBaseAdmin admin = SpliceUtils.getAdmin();
 		HTableInterface table = null;
+        EntryEncoder entryEncoder = null;
 		try{
 			HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(tableName);
 			admin.createTable(td);
@@ -106,13 +107,15 @@ public class ConglomerateUtils extends SpliceConstants {
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomId), transactionID);
             BitSet fields = new BitSet();
             fields.set(0);
-            EntryEncoder entryEncoder = EntryEncoder.create(1, fields,null,null,null);
+            entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1, fields,null,null,null);
             entryEncoder.getEntryEncoder().encodeNextUnsorted(conglomData);
             put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
 		}finally{
+            if(entryEncoder!=null)
+                entryEncoder.close();
 			SpliceAccessManager.closeHTableQuietly(table);
 			Closeables.closeQuietly(admin);
 		}
@@ -128,12 +131,13 @@ public class ConglomerateUtils extends SpliceConstants {
 		String tableName = Long.toString(conglomerate.getContainerid());
 		SpliceLogUtils.debug(LOG, "updating table {%s} in hbase with serialized data {%s}",tableName,conglomerate);
 		HTableInterface table = null;
+        EntryEncoder entryEncoder = null;
 		try{
 			table = SpliceAccessManager.getHTable(CONGLOMERATE_TABLE_NAME_BYTES);
 			Put put = SpliceUtils.createPut(Bytes.toBytes(conglomerate.getContainerid()), transactionID);
             BitSet setFields = new BitSet();
             setFields.set(0);
-            EntryEncoder entryEncoder = EntryEncoder.create(1,setFields,null,null,null); //no need to set length-delimited, we aren't
+            entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),1,setFields,null,null,null); //no need to set length-delimited, we aren't
             entryEncoder.getEntryEncoder().encodeNextUnsorted(DerbyBytesUtil.toBytes(conglomerate));
 			put.add(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, entryEncoder.encode());
 			table.put(put);
@@ -141,6 +145,8 @@ public class ConglomerateUtils extends SpliceConstants {
             SpliceLogUtils.logAndThrow(LOG, "update Conglomerate Failed", Exceptions.parseException(e));
 		}
 		finally{
+            if(entryEncoder!=null)
+                entryEncoder.close();
 			SpliceAccessManager.closeHTableQuietly(table);
 		}
 	}

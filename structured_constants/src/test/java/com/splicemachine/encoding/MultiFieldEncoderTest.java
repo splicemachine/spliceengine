@@ -2,6 +2,7 @@ package com.splicemachine.encoding;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
@@ -338,14 +339,14 @@ public class MultiFieldEncoderTest {
 
     @Test
     public void testCanEncodeAndDecodeAllFieldsCorrectly() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(types.size());
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),types.size());
         for(Pair<Type,Object> type:types){
             Type t = type.getFirst();
             Object c = type.getSecond();
             t.load(encoder,c,false);
         }
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build(),KryoPool.defaultPool());
         for(Pair<Type,Object> cType:types){
             Type cT = cType.getFirst();
             Object correct = cType.getSecond();

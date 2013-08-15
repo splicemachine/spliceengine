@@ -112,7 +112,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
 
                 if(rowEncoder==null)
-                    rowEncoder = MultiFieldEncoder.create(rowArray.length);
+                    rowEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rowArray.length);
                 rowEncoder.reset();
                 RowMarshaller.packed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
 
@@ -165,6 +165,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public void close() throws IOException {
         SpliceLogUtils.trace(LOG, "close");
         boolean success = false;
+        if(rowEncoder!=null)
+            rowEncoder.close();
         try {
             try {
                 topOperation.close();

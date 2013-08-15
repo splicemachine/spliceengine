@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -53,6 +53,8 @@ public abstract class SpliceController implements ConglomerateController {
 	}
 	
 	public void close() throws StandardException {
+        if(entryEncoder!=null)
+            entryEncoder.close();
 		try {
 			if ((openSpliceConglomerate != null) && (openSpliceConglomerate.getTransactionManager() != null))
 				openSpliceConglomerate.getTransactionManager().closeMe(this);
@@ -157,12 +159,16 @@ public abstract class SpliceController implements ConglomerateController {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
-            MultiFieldDecoder decoder = MultiFieldDecoder.create();
-            for(KeyValue kv:result.raw()){
-                RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
+            MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            try {
+                for(KeyValue kv:result.raw()){
+                    RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
+                }
+                return true;
+            } finally {
+               decoder.close();
             }
-			return true;
-		} catch (Exception e) {
+        } catch (Exception e) {
 			throw Exceptions.parseException(e);
 		}finally{
             try {
@@ -195,7 +201,7 @@ public abstract class SpliceController implements ConglomerateController {
         BitSet floatFields = DerbyBytesUtil.getFloatFields(row);
         BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row);
         if(entryEncoder==null)
-            entryEncoder = EntryEncoder.create(row.length, EncodingUtils.getNonNullColumns(row, validColumns),scalarFields,floatFields,doubleFields);
+            entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),row.length, EncodingUtils.getNonNullColumns(row, validColumns),scalarFields,floatFields,doubleFields);
         else
             entryEncoder.reset(EncodingUtils.getNonNullColumns(row,validColumns),scalarFields,floatFields,doubleFields);
 

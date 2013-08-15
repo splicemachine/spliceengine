@@ -22,6 +22,11 @@
             <version>0.11</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+            <version>2.21</version>
+        </dependency>
 	</dependencies>
 	<build>
         <resources>

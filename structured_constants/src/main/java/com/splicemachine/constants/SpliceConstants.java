@@ -53,6 +53,7 @@ public class SpliceConstants {
     public static final int DEFAULT_RING_BUFFER_SIZE=1000;
     public static final int DEFAULT_INDEX_BATCH_SIZE=50;
     public static final int DEFAULT_INDEX_BUFFER_SIZE=100;
+    public static final int DEFAULT_KRYO_POOL_SIZE=50;
 
 
 
@@ -111,6 +112,7 @@ public class SpliceConstants {
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
     private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
     private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
+    private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
 
     private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
@@ -152,6 +154,7 @@ public class SpliceConstants {
     public static int ringBufferSize;
     public static int indexBatchSize;
     public static int indexBufferSize;
+    public static int kryoPoolSize;
 
     /*Used to determine how many sequence numbers to reserve in a given block*/
     public static long sequenceBlockSize;
@@ -319,6 +322,7 @@ public class SpliceConstants {
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
         indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
         indexBufferSize = config.getInt(INDEX_BUFFER_SIZE,DEFAULT_INDEX_BUFFER_SIZE);
+        kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 

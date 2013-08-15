@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
@@ -93,26 +94,30 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            EntryDecoder getDecoder = new EntryDecoder();
-            getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+            EntryDecoder getDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            try{
+                getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
 
-            EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
-            BitIndex getIndex = getDecoder.getCurrentIndex();
-            MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
-            for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
-                if(descColumns.get(i))
-                    accumulate(indexKeyAccumulator,getIndex,getDescendingBuffer(getDecoder.nextAsBuffer(fieldDecoder,i)),i);
-                else
-                    accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+                EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
+                BitIndex getIndex = getDecoder.getCurrentIndex();
+                MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
+                for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+                    if(descColumns.get(i))
+                        accumulate(indexKeyAccumulator,getIndex,getDescendingBuffer(getDecoder.nextAsBuffer(fieldDecoder,i)),i);
+                    else
+                        accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+                }
+
+                byte[] indexRowKey = indexKeyAccumulator.finish();
+
+                KVPair delete = KVPair.delete(indexRowKey);
+                if(keepState)
+                    indexToMainMutationMap.put(delete,mutation);
+
+                performDelete(delete,ctx);
+            }finally{
+                getDecoder.close();
             }
-
-            byte[] indexRowKey = indexKeyAccumulator.finish();
-
-            KVPair delete = KVPair.delete(indexRowKey);
-            if(keepState)
-                indexToMainMutationMap.put(delete,mutation);
-
-            performDelete(delete,ctx);
 
         } catch (IOException e) {
             failed=true;

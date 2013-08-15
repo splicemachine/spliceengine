@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.cache.SpliceCache;
@@ -13,6 +14,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.hbase.writer.WriteCoordinator;
@@ -24,6 +26,7 @@ import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
@@ -69,6 +72,11 @@ public class SpliceDriver extends SIConstants {
 
     private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
+    private static final KryoPool kryoPool;
+    static{
+        kryoPool = new KryoPool(SpliceConstants.kryoPoolSize);
+        kryoPool.setKryoRegistry(new SpliceKryoRegistry());
+    }
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
 
@@ -418,5 +426,8 @@ public class SpliceDriver extends SIConstants {
     	OptimizerTrace.writeOptimizerTraceOutputText(filename);
     }
 
-    
+    public static KryoPool getKryoPool(){
+        return kryoPool;
+    }
+
 }

@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -190,7 +192,7 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
                 if(rowDecoder==null)
-                    rowDecoder = MultiFieldDecoder.create();
+                    rowDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){
@@ -225,8 +227,9 @@ public class TableScanOperation extends ScanOperation {
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException {
+        if(rowDecoder!=null)
+            rowDecoder.close();
 		SpliceLogUtils.trace(LOG, "close in TableScan");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen ) {

@@ -157,7 +157,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         
         
-        sinkEncoder = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        sinkEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         sinkEncoder.setRawBytes(uniqueSequenceID).mark();
 //        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
@@ -175,7 +175,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
                 @Override
                 public byte[] getStartKey(Result result) {
-                    MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
                     fieldDecoder.seek(9); //skip the prefix value
 
                     return DerbyBytesUtil.slice(fieldDecoder,keyCols,cols);
@@ -202,7 +202,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         hasher = KeyType.BARE;
 
-        MultiFieldEncoder mfe = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         boolean[] groupByDescAscArray = convertBooleans(groupByDescAscInfo);
         int[] keyColumnArray = convertIntegers(allKeyColumns);
         RowProviderIterator<ExecRow> sourceProvider = createSourceIterator();
@@ -510,6 +510,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+        if(hbs!=null)
+            hbs.close();
 		SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )

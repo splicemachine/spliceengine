@@ -25,6 +25,9 @@ import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteDataOutput;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
@@ -177,14 +180,18 @@ public class SITransactorTest extends SIConstants {
                 }
                 final BitSet bitSet = new BitSet();
                 bitSet.set(columnIndex);
-                final EntryEncoder entryEncoder = EntryEncoder.create(2, bitSet,null,null,null);
-                if (columnIndex == 0) {
-                    entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
-                } else {
-                    entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+                final EntryEncoder entryEncoder = EntryEncoder.create(KryoPool.defaultPool(),2, bitSet, null, null, null);
+                try{
+                    if (columnIndex == 0) {
+                        entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
+                    } else {
+                        entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
+                    }
+                    final byte[] packedRow = entryEncoder.encode();
+                    dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
+                }finally{
+                    entryEncoder.close();
                 }
-                final byte[] packedRow = entryEncoder.encode();
-                dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
             } else {
                 dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
             }
@@ -409,7 +416,7 @@ public class SITransactorTest extends SIConstants {
                         if (dataLib.valuesEqual(dataLib.getKeyValueFamily(kv), transactorSetup.family) &&
                                 dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
                             final byte[] packedColumns = (byte[]) dataLib.getKeyValueValue(kv);
-                            final MultiFieldDecoder decoder = MultiFieldDecoder.create();
+                            final MultiFieldDecoder decoder = MultiFieldDecoder.create(KryoPool.defaultPool());
                             decoder.set(packedColumns);
                             if (decoder.nextIsNull()) {
                                 decoder.skip();

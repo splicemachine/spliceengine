@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
@@ -83,7 +84,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         newRowAccumulator.reset();
 
         if(newPutDecoder==null)
-            newPutDecoder = new EntryDecoder();
+            newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
         newPutDecoder.set(mutation.getValue());
 
@@ -140,7 +141,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             return mutation; //not an update, nothing to do here
 
         if(newPutDecoder==null)
-            newPutDecoder = new EntryDecoder();
+            newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
         newPutDecoder.set(mutation.getValue());
 
@@ -187,52 +188,62 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             newRowAccumulator.reset();
 
             if(newPutDecoder==null)
-                newPutDecoder = new EntryDecoder();
+                newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
             newPutDecoder.set(mutation.getValue());
 
-            MultiFieldDecoder newDecoder = newPutDecoder.getEntryDecoder();
+            MultiFieldDecoder newDecoder = null;
+            MultiFieldDecoder oldDecoder = null;
+            EntryAccumulator oldKeyAccumulator;
+            try {
+                newDecoder = newPutDecoder.getEntryDecoder();
 
-            if(oldDataDecoder==null)
-                oldDataDecoder = new EntryDecoder();
+                if(oldDataDecoder==null)
+                    oldDataDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-            oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
-            BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
-            MultiFieldDecoder oldDecoder = oldDataDecoder.getEntryDecoder();
-            EntryAccumulator oldKeyAccumulator = new SparseEntryAccumulator(null,translatedIndexColumns);
+                oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+                BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
+                oldDecoder = oldDataDecoder.getEntryDecoder();
+                oldKeyAccumulator = new SparseEntryAccumulator(null,translatedIndexColumns);
 
-            //fill in all the index fields that have changed
-            for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
-                if(indexedColumns.get(newPos)){
-                    ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
-                    if(descColumns.get(mainColToIndexPosMap[newPos]))
-                        accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(newBuffer),newPos);
-                    else
-                        accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
-                    accumulate(newRowAccumulator,updateIndex,newBuffer,newPos);
-                }
-            }
-
-            BitSet newRemainingCols = newKeyAccumulator.getRemainingFields();
-            for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=updateIndex.nextSetBit(oldPos+1)){
-                if(indexedColumns.get(oldPos)){
-                    ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder, oldPos);
-                    //fill in the old key for checking
-                    if(descColumns.get(mainColToIndexPosMap[oldPos]))
-                        accumulate(oldKeyAccumulator,oldIndex,getDescendingBuffer(oldBuffer),oldPos);
-                    else
-                        accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
-
-                    if(oldPos!=indexedColumns.length()&&newRemainingCols.get(oldPos)){
-                        //we are missing this field from the new update, so add in the field from the old position
-                        if(descColumns.get(oldPos))
-                            accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(oldBuffer),oldPos);
+                //fill in all the index fields that have changed
+                for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
+                    if(indexedColumns.get(newPos)){
+                        ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
+                        if(descColumns.get(mainColToIndexPosMap[newPos]))
+                            accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(newBuffer),newPos);
                         else
-                            accumulate(newKeyAccumulator,updateIndex,oldBuffer,oldPos);
-                        accumulate(newKeyAccumulator,oldIndex,oldBuffer,oldPos);
-                        accumulate(newRowAccumulator,oldIndex,oldBuffer,oldPos);
+                            accumulate(newKeyAccumulator,updateIndex,newBuffer,newPos);
+                        accumulate(newRowAccumulator,updateIndex,newBuffer,newPos);
                     }
                 }
+
+                BitSet newRemainingCols = newKeyAccumulator.getRemainingFields();
+                for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=updateIndex.nextSetBit(oldPos+1)){
+                    if(indexedColumns.get(oldPos)){
+                        ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder, oldPos);
+                        //fill in the old key for checking
+                        if(descColumns.get(mainColToIndexPosMap[oldPos]))
+                            accumulate(oldKeyAccumulator,oldIndex,getDescendingBuffer(oldBuffer),oldPos);
+                        else
+                            accumulate(oldKeyAccumulator,oldIndex,oldBuffer,oldPos);
+
+                        if(oldPos!=indexedColumns.length()&&newRemainingCols.get(oldPos)){
+                            //we are missing this field from the new update, so add in the field from the old position
+                            if(descColumns.get(oldPos))
+                                accumulate(newKeyAccumulator,updateIndex,getDescendingBuffer(oldBuffer),oldPos);
+                            else
+                                accumulate(newKeyAccumulator,updateIndex,oldBuffer,oldPos);
+                            accumulate(newKeyAccumulator,oldIndex,oldBuffer,oldPos);
+                            accumulate(newRowAccumulator,oldIndex,oldBuffer,oldPos);
+                        }
+                    }
+                }
+            } finally {
+                if(oldDecoder!=null)
+                    oldDecoder.close();
+                if(newDecoder!=null)
+                    newDecoder.close();
             }
 
             /*

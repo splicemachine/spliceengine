@@ -61,8 +61,9 @@ public class OperationSink {
 
         CallBuffer<KVPair> writeBuffer;
         byte[] postfix = getPostfix(false);
+        RowEncoder encoder = null;
         try{
-            RowEncoder encoder = operation.getRowEncoder();
+            encoder = operation.getRowEncoder();
             encoder.setPostfix(postfix);
             String txnId = operation.getTransactionID();
             writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
@@ -91,6 +92,9 @@ public class OperationSink {
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             SpliceLogUtils.logAndThrow(LOG, Exceptions.parseException(e));
+        }finally{
+            if(encoder!=null)
+                encoder.close();
         }
         return stats.finish();
     }

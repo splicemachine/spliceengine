@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutionException;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
@@ -350,6 +351,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close in IndexRowToBaseRow");
+        if(fieldDecoder!=null)
+            fieldDecoder.close();
 		beginTime = getCurrentTimeMillis();
 		source.close();
 		super.close();
@@ -461,7 +464,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             RowAndLocation next = rowBatch[currentResultPos];
             Result nextResult = resultBatch[currentResultPos];
             if(fieldDecoder==null)
-                fieldDecoder = MultiFieldDecoder.create();
+                fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
             fieldDecoder.reset();
 
             currentResultPos++;

@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.*;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
@@ -18,9 +19,17 @@ public class EntryDecoder {
     private byte[] data;
     private boolean compressedData = false;
     private int dataOffset;
+    private MultiFieldDecoder decoder;
+    private final KryoPool kryoPool;
+
+    public EntryDecoder(KryoPool kryoPool) {
+        this.kryoPool = kryoPool;
+    }
 
     public void set(byte[] bytes){
         this.data = bytes;
+        if(decoder!=null)
+            decoder.set(data);
         rebuildBitIndex();
     }
 
@@ -105,14 +114,23 @@ public class EntryDecoder {
 //        }
     }
 
+//    public MultiFieldDecoder getEntryDecoder() throws IOException{
+//        decompressIfNeeded();
+//        MultiFieldDecoder wrap = MultiFieldDecoder.wrap(data);
+//        wrap.seek(dataOffset); //position self correctly in array
+//
+//        return wrap;
+//    }
+
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
-        MultiFieldDecoder wrap = MultiFieldDecoder.wrap(data);
-        wrap.seek(dataOffset); //position self correctly in array
+        if(decoder==null){
+            decoder = MultiFieldDecoder.wrap(data,kryoPool);
+        }
+        decoder.seek(dataOffset); //position self correctly in array
 
-        return wrap;
+        return decoder;
     }
-
 
     public void seekForward(MultiFieldDecoder decoder,int position) {
     /*
@@ -150,4 +168,10 @@ public class EntryDecoder {
         else
             accumulator.add(position,buffer);
     }
+
+    public void close(){
+        if(decoder!=null)
+            decoder.close();
+    }
+
 }

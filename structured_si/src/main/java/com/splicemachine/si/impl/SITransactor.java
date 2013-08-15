@@ -10,6 +10,7 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -707,7 +708,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                                              TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         return new FilterStatePacked(tableName, dataLib, dataStore,
                 (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
-                new HRowAccumulator(predicateFilter, new EntryDecoder()));
+                new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
     }
 
     @Override

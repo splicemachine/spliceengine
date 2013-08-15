@@ -251,7 +251,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                 initializeAggregation(row);
 
             if(keyEncoder==null){
-                keyEncoder = MultiFieldEncoder.create(row.nColumns());
+                keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),row.nColumns());
                 keyEncoder.setRawBytes(uniqueSequenceID);
                 keyEncoder.mark();
             }

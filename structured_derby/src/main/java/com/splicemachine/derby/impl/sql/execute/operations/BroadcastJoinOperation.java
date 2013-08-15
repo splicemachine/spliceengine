@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Iterators;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -200,7 +201,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         protected ExecRow leftRow;
         protected Iterator<ExecRow> rightSideIterator = null;
         protected KeyMarshall leftKeyEncoder = KeyType.BARE;
-        protected MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(leftNumCols);
+        protected MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),leftNumCols);
 
         public BroadcastNextRowIterator(ExecRow leftRow) throws StandardException {
             this.leftRow = leftRow;
@@ -269,25 +270,29 @@ public class BroadcastJoinOperation extends JoinOperation {
         KeyMarshall hasher = KeyType.BARE;
         NoPutResultSet resultSet = rightResultSet.executeScan();
         resultSet.openCore();
-        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(rightNumCols);
+        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rightNumCols);
+        try{
         keyEncoder.mark();
 
-        while ((rightRow = resultSet.getNextRowCore()) != null) {
-            keyEncoder.reset();
-            hasher.encodeKey(rightRow.getRowArray(),rightHashKeys,null,null,keyEncoder);
-            hashKey = ByteBuffer.wrap(keyEncoder.build());
-            if ((rows = cache.get(hashKey)) != null) {
-                // Only add additional row for same hash if we need it
-                if (!oneRowRightSide) {
+            while ((rightRow = resultSet.getNextRowCore()) != null) {
+                keyEncoder.reset();
+                hasher.encodeKey(rightRow.getRowArray(),rightHashKeys,null,null,keyEncoder);
+                hashKey = ByteBuffer.wrap(keyEncoder.build());
+                if ((rows = cache.get(hashKey)) != null) {
+                    // Only add additional row for same hash if we need it
+                    if (!oneRowRightSide) {
+                        rows.add(rightRow.getClone());
+                    }
+                } else {
+                    rows = new ArrayList<ExecRow>();
                     rows.add(rightRow.getClone());
+                    cache.put(hashKey, rows);
                 }
-            } else {
-                rows = new ArrayList<ExecRow>();
-                rows.add(rightRow.getClone());
-                cache.put(hashKey, rows);
             }
+            return Collections.unmodifiableMap(cache);
+        }finally{
+            keyEncoder.close();
         }
-        return Collections.unmodifiableMap(cache);
     }
 
 }

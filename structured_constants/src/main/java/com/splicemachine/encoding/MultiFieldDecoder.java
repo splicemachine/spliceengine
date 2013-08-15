@@ -1,5 +1,8 @@
 package com.splicemachine.encoding;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.math.BigDecimal;
@@ -16,12 +19,25 @@ public class MultiFieldDecoder {
     private int currentOffset;
     private long[] intValueLength;
 
-    private MultiFieldDecoder(){
+    private final KryoPool kryoPool;
+    private Kryo kryo;
+
+    private MultiFieldDecoder(KryoPool kryoPool){
         this.currentOffset=-1;
+        this.kryoPool = kryoPool;
     }
 
-    public static MultiFieldDecoder create(){
-        return new MultiFieldDecoder();
+//    public static MultiFieldDecoder create(){
+//        return new MultiFieldDecoder(KryoPool.defaultPool());
+//    }
+
+    public static MultiFieldDecoder create(KryoPool kryoPool){
+        return new MultiFieldDecoder(kryoPool);
+    }
+
+    public void close(){
+        if(kryo!=null)
+            kryoPool.returnInstance(kryo);
     }
 
     public MultiFieldDecoder set(byte[] newData){
@@ -265,8 +281,24 @@ public class MultiFieldDecoder {
         return value;
     }
 
-    public static MultiFieldDecoder wrap(byte[] row) {
-        MultiFieldDecoder next = new MultiFieldDecoder();
+    public Object decodeNextObject(){
+        if(kryo==null)
+            kryo = kryoPool.get();
+
+        byte[] bytes = decodeNextBytesUnsorted();
+        Input input = new Input(bytes);
+        return kryo.readClassAndObject(input);
+    }
+
+//    public static MultiFieldDecoder wrap(byte[] row) {
+//        MultiFieldDecoder next = new MultiFieldDecoder(KryoPool.defaultPool());
+//        next.set(row);
+//        next.reset();
+//        return next;
+//    }
+
+    public static MultiFieldDecoder wrap(byte[] row,KryoPool kryoPool) {
+        MultiFieldDecoder next = new MultiFieldDecoder(KryoPool.defaultPool());
         next.set(row);
         next.reset();
         return next;

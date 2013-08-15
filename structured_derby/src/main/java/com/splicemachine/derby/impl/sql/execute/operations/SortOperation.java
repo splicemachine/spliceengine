@@ -153,7 +153,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             descColumns[i] = order[i].getIsAscending();
         }
 
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(keyColumns.length + 1));
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1));
 
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }

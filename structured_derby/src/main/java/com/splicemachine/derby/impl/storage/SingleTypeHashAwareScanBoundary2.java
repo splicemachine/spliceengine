@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.hadoop.hbase.client.Result;
@@ -25,7 +26,7 @@ public class SingleTypeHashAwareScanBoundary2 extends BaseHashAwareScanBoundary{
 
     @Override
     public byte[] getStartKey(Result result) {
-        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow());
+        MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
         fieldDecoder.seek(9); //skip the prefix value
         return fieldDecoder.slice(slice);
     }

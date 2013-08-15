@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -50,7 +51,7 @@ public class RowEncoder {
         this.rowColumns = rowColumns;
 
         int encodedCols = keyType.getFieldCount(keyColumns);
-        this.keyEncoder = MultiFieldEncoder.create(encodedCols);
+        this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
         if(keyType==KeyType.FIXED_PREFIX ||
                 keyType==KeyType.FIXED_PREFIX_AND_POSTFIX
                 ||keyType==KeyType.FIXED_PREFIX_UNIQUE_POSTFIX
@@ -67,7 +68,7 @@ public class RowEncoder {
         }
 
         if(!rowType.isColumnar()&&rowColumns!=null){
-            rowEncoder = MultiFieldEncoder.create(rowColumns.length);
+            rowEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rowColumns.length);
         }
     }
 
@@ -179,6 +180,13 @@ public class RowEncoder {
         buffer.add(element);
     }
 
+    public void close() {
+        if(rowEncoder!=null)
+            rowEncoder.close();
+        if(keyEncoder!=null)
+            keyEncoder.close();
+    }
+
     private static class EntryRowEncoder extends RowEncoder{
         private EntryEncoder entryEncoder;
 
@@ -197,7 +205,7 @@ public class RowEncoder {
                 rowCols.set(rowCol);
             }
 
-            this.entryEncoder = EntryEncoder.create(rowColumns.length,rowCols,scalarFields,floatFields,doubleFields);
+            this.entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),rowColumns.length,rowCols,scalarFields,floatFields,doubleFields);
             rowEncoder = entryEncoder.getEntryEncoder();
         }
 
@@ -227,6 +235,12 @@ public class RowEncoder {
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
+        }
+
+        @Override
+        public void close() {
+            if(entryEncoder!=null)
+                entryEncoder.close();
         }
     }
 }
