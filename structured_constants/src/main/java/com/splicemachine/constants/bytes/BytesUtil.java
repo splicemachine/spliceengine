@@ -285,18 +285,18 @@ public class BytesUtil {
     }
 
     public static void intToBytes(int value,byte[] data,int offset) {
-        data[offset] = (byte)(value >>> 3*8);
-        data[offset+1] = (byte)(value >>> 2*8);
+        data[offset] = (byte)(value >>> 24);
+        data[offset+1] = (byte)(value >>> 16);
         data[offset+2] = (byte)(value >>> 8);
         data[offset+3] = (byte)(value);
     }
 
     public static int bytesToInt(byte[] data, int offset) {
         int value = 0;
-        value |= data[offset]<<3*8;
-        value |= data[offset+1]<<2*8;
-        value |= data[offset+2]<< 8;
-        value |= data[offset+3];
+        value |= (data[offset] & 0xff)<<24;
+        value |= (data[offset+1] & 0xff)<<16;
+        value |= (data[offset+2] & 0xff)<< 8;
+        value |= (data[offset+3] & 0xff);
         return value;
     }
 

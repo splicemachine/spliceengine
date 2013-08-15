@@ -49,8 +49,10 @@ public class SpliceConstants {
 	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
-    public static final int DEFAULT_STARTUP_LOCK_PERIOD=200;
+    public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
     public static final int DEFAULT_RING_BUFFER_SIZE=1000;
+    public static final int DEFAULT_INDEX_BATCH_SIZE=50;
+    public static final int DEFAULT_INDEX_BUFFER_SIZE=100;
 
 
 
@@ -107,6 +109,8 @@ public class SpliceConstants {
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
+    private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
+    private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
 
     private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
@@ -146,6 +150,8 @@ public class SpliceConstants {
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
     public static int ringBufferSize;
+    public static int indexBatchSize;
+    public static int indexBufferSize;
 
     /*Used to determine how many sequence numbers to reserve in a given block*/
     public static long sequenceBlockSize;
@@ -311,6 +317,8 @@ public class SpliceConstants {
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
         startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
+        indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
+        indexBufferSize = config.getInt(INDEX_BUFFER_SIZE,DEFAULT_INDEX_BUFFER_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 

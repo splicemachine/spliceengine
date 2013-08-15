@@ -127,8 +127,6 @@ public class CreateIndexTask extends ZkTask {
     public boolean invalidateOnClose() {
         return true;
     }
-
-    private static final UniqueChecker<byte[]> checker = new UniqueChecker<byte[]>(Bytes.BYTES_COMPARATOR);
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
@@ -189,9 +187,6 @@ public class CreateIndexTask extends ZkTask {
             if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
             byte[] row = kv.getRow();
-            if(checker.check(row)>0){
-                LOG.warn("Byte[] "+ BytesUtil.toHex(row)+" seen twice");
-            }
             byte[] data = kv.getValue();
             ctx.sendUpstream(new KVPair(row,data));
         }

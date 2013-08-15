@@ -297,7 +297,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		DataValueDescriptor restrictBoolean;
 
         if(ringBuffer==null)
-            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(100,new RowAndLocation[0],new IndexFiller(25,source));
+            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(SpliceConstants.indexBufferSize,new RowAndLocation[0],new IndexFiller(SpliceConstants.indexBatchSize,source));
         do{
             try{
                 RowAndLocation roLoc = ringBuffer.next();
@@ -338,6 +338,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                     retRow = sourceRow;
                     setCurrentRow(sourceRow);
                     currentRowLocation = baseRowLocation;
+                    source.setCurrentRowLocation(baseRowLocation);
                 }
             }catch(ExecutionException e){
                 throw Exceptions.parseException(e.getCause());

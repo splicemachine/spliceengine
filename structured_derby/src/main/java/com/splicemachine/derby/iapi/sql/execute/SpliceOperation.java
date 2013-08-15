@@ -21,6 +21,8 @@ public interface SpliceOperation extends NoPutResultSet {
 
     RowLocation getCurrentRowLocation();
 
+    void setCurrentRowLocation(RowLocation rowLocation);
+
     /**
 	 * 
 	 * Enumeration with the following types:

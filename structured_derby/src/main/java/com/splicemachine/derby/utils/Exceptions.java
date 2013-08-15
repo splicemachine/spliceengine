@@ -160,7 +160,7 @@ public class Exceptions {
     }
 
     public static boolean shouldRetry(Throwable error) {
-        return !(error instanceof StandardException||error instanceof DoNotRetryIOException);
+        return !(error instanceof StandardException) && !(error instanceof DoNotRetryIOException);
     }
 
     public static Throwable getRootCause(Throwable error) {

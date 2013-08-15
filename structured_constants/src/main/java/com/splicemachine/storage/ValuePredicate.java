@@ -138,7 +138,7 @@ public class ValuePredicate implements Predicate {
 
         data[5] = removeNullEntries? (byte)0x01: 0x00;
         BytesUtil.intToBytes(compareOp.ordinal(), data, 6);
-        BytesUtil.intToBytes(compareValue.length,data,10);
+        BytesUtil.intToBytes(compareValue.length, data, 10);
         System.arraycopy(compareValue,0,data,14,compareValue.length);
 
         return data;
@@ -146,11 +146,12 @@ public class ValuePredicate implements Predicate {
 
     public static Pair<ValuePredicate,Integer> fromBytes(byte[] data, int offset){
         //first bytes are the Column
-        int column = BytesUtil.bytesToInt(data,offset);
+        int column = BytesUtil.bytesToInt(data, offset);
         boolean removeNullEntries = data[offset+4] ==0x01;
-        CompareFilter.CompareOp compareOp = getCompareOp(BytesUtil.bytesToInt(data,offset+5));
+        CompareFilter.CompareOp compareOp = getCompareOp(BytesUtil.bytesToInt(data, offset + 5));
 
-        byte[] compareValue = new byte[BytesUtil.bytesToInt(data,offset+9)];
+        int compareValueSize = BytesUtil.bytesToInt(data, offset + 9);
+        byte[] compareValue = new byte[compareValueSize];
         System.arraycopy(data,offset+13,compareValue,0,compareValue.length);
         return Pair.newPair(new ValuePredicate(compareOp,column,compareValue,removeNullEntries),compareValue.length+14);
     }

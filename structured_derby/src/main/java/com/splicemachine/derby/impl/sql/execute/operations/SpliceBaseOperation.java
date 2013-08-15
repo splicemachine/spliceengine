@@ -814,4 +814,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     public RowLocation getCurrentRowLocation() {
         return currentRowLocation;
     }
+
+    @Override
+    public void setCurrentRowLocation(RowLocation rowLocation) {
+        currentRowLocation = rowLocation;
+    }
 }

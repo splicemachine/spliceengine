@@ -17,6 +17,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -474,5 +475,10 @@ public class HdfsImport extends ParallelVTI {
     @Override
     public String prettyPrint(int indentLevel) {
         return "HdfsImport";
+    }
+
+    @Override
+    public void setCurrentRowLocation(RowLocation rowLocation) {
+        //no-op
     }
 }
