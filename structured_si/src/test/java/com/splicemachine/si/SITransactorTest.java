@@ -22,17 +22,13 @@ import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.impl.TransactionStatus;
 import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -50,7 +46,13 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -2579,8 +2581,6 @@ public class SITransactorTest extends SIConstants {
         bitSet.set(0);
         bitSet.set(1);
         EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList());
-//        final ByteDataOutput bdo = new ByteDataOutput();
-//        bdo.writeObject(new EntryPredicateFilter(bitSet, new ArrayList()));
         dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 

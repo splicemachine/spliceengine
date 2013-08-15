@@ -1,14 +1,13 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.io.IOException;
 import java.util.concurrent.Executors;
 
 public class SITransactorHBaseTest extends SITransactorTest {
