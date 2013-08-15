@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TempCleaner;
@@ -175,50 +176,54 @@ public class SpliceDriver extends SIConstants {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
+                    try{
+                        SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
 
-                    SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
+                        SpliceLogUtils.info(LOG,"Starting Cache");
+                        startCache();
 
-                    SpliceLogUtils.info(LOG,"Starting Cache");
-                    startCache();
-                    
-                    
-                    writerPool.start();
 
-                    //all we have to do is create it, it will register itself for us
-                    SpliceMetrics metrics = new SpliceMetrics();
+                        writerPool.start();
 
-                    boolean setRunning = true;
-                    SpliceLogUtils.debug(LOG, "Booting Database");
-                    setRunning = bootDatabase();
-                    //table is set up
-                    snowflake = snowLoader.load();
-                    SpliceLogUtils.debug(LOG, "Finished Booting Database");
+                        //all we have to do is create it, it will register itself for us
+                        SpliceMetrics metrics = new SpliceMetrics();
 
-                    //register JMX items --have to wait for the db to boot first
-                    registerJMX();
+                        boolean setRunning = true;
+                        SpliceLogUtils.debug(LOG, "Booting Database");
+                        setRunning = bootDatabase();
+                        //table is set up
+                        snowflake = snowLoader.load();
+                        SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
-                    if(!setRunning){
-                        abortStartup();
-                        return null;
-                    }
-                    SpliceLogUtils.debug(LOG, "Starting Services");
-                    setRunning = startServices();
-                    SpliceLogUtils.debug(LOG, "Done Starting Services");
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    }
+                        //register JMX items --have to wait for the db to boot first
+                        registerJMX();
 
-                    SpliceLogUtils.debug(LOG, "Starting Server");
-                    setRunning = startServer();
-                    SpliceLogUtils.debug(LOG, "Done Starting Server");
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    } else
-                        stateHolder.set(State.RUNNING);
+                        if(!setRunning){
+                            abortStartup();
+                            return null;
+                        }
+                        SpliceLogUtils.debug(LOG, "Starting Services");
+                        setRunning = startServices();
+                        SpliceLogUtils.debug(LOG, "Done Starting Services");
+                        if(!setRunning) {
+                            abortStartup();
+                            return null;
+                        }
+
+                        SpliceLogUtils.debug(LOG, "Starting Server");
+                        setRunning = startServer();
+                        SpliceLogUtils.debug(LOG, "Done Starting Server");
+                        if(!setRunning) {
+                            abortStartup();
+                            return null;
+                        } else
+                            stateHolder.set(State.RUNNING);
                         initalizationLatch.countDown();
-                    return null;
+                        return null;
+                    }catch(Exception e){
+                        ErrorReporter.get().reportError(SpliceDriver.class,e);
+                        throw e;
+                    }
                 }
             });
         }
@@ -284,13 +289,10 @@ public class SpliceDriver extends SIConstants {
         try{
 
             writerPool.registerJMX(mbs);
-            //register TableWriter
-//            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
-//            mbs.registerMBean(writerPool,writerName);
 
-            //register TableWriter's writer pool
-//            ObjectName writerPoolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
-//            mbs.registerMBean(writerPool.getThreadPool(),writerPoolName);
+            //register error reporter
+            ObjectName errorReporterName = new ObjectName("com.splicemachine.error:type=ErrorReport");
+            mbs.registerMBean(ErrorReporter.get(),errorReporterName);
 
             //register TaskScheduler
             ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
