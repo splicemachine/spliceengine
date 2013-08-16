@@ -41,7 +41,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-	protected Result getResult() throws StandardException {
+    public Result getResult() throws StandardException {
 		try {
 			return scanner.next();
 		} catch (IOException e) {

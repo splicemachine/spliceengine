@@ -35,7 +35,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     }
 
     @Override
-    protected Result getResult() throws StandardException {
+    public Result getResult() throws StandardException {
         return scanner.getNextResult();
     }
 

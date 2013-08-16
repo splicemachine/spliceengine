@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -160,6 +161,10 @@ public class Exceptions {
     }
 
     public static boolean shouldRetry(Throwable error) {
+        if(error instanceof ConnectException){
+            //we can safely retry connection refused issued
+            return error.getMessage().contains("Connection refused");
+        }
         return !(error instanceof StandardException) && !(error instanceof DoNotRetryIOException);
     }
 

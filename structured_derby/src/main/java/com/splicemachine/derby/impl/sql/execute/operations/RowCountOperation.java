@@ -32,6 +32,7 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -260,6 +261,33 @@ public class RowCountOperation extends SpliceBaseOperation{
                         baseColumnMap,
                         scanProvider.getTableName());
             }
+        }else if(provider instanceof AbstractScanProvider){
+            final AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
+            AbstractScanProvider newWrap = new AbstractScanProvider(scanProvider){
+                @Override
+                public Result getResult() throws StandardException {
+                    Result result = scanProvider.getResult();
+                    if(!result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+                        return null;
+                    return result;
+                }
+
+                @Override
+                public Scan toScan() {
+                    return scanProvider.toScan();
+                }
+
+                @Override
+                public void open() throws StandardException {
+                    scanProvider.open();
+                }
+
+                @Override
+                public byte[] getTableName() {
+                    return scanProvider.getTableName();
+                }
+            };
+            provider = newWrap;
         }
 
         if(fetchLimit > 0 &&fetchLimit < (long)Integer.MAX_VALUE){
@@ -377,7 +405,7 @@ public class RowCountOperation extends SpliceBaseOperation{
         }
 
         @Override
-        protected Result getResult() throws StandardException {
+        public Result getResult() throws StandardException {
             if (currentScan == null) {
                 Scan next = offsetScans.poll();
 
