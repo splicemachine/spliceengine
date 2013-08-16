@@ -2,6 +2,7 @@ package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.BatchProtocol;
@@ -62,9 +63,12 @@ final class BulkWriteAction implements Callable<Void> {
     @Override
     public Void call() throws Exception {
         statusReporter.numExecutingFlushes.incrementAndGet();
+        long start = System.currentTimeMillis();
         try{
             tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
         }finally{
+            long end = System.currentTimeMillis();
+            statusReporter.updateTime(end-start);
             statusReporter.numExecutingFlushes.decrementAndGet();
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
@@ -109,6 +113,8 @@ final class BulkWriteAction implements Callable<Void> {
                         thrown=true;
                         throw parseIntoException(response);
                     case RETRY:
+                        if(LOG.isDebugEnabled())
+                            LOG.debug(String.format("Retrying write after receiving partial error %s",response));
                         doPartialRetry(tries,bulkWrite,response);
                     default:
                         //return
@@ -123,6 +129,9 @@ final class BulkWriteAction implements Callable<Void> {
                 case THROW_ERROR:
                     throw e;
                 case RETRY:
+                    errors.add(e);
+                    if(LOG.isDebugEnabled())
+                        LOG.debug("Retrying write after receiving global error",e);
                     retry(tries, bulkWrite);
             }
         }
@@ -215,7 +224,23 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong globalFailures = new AtomicLong(0l);
         final AtomicLong partialFailures = new AtomicLong(0l);
 
+        final AtomicLong maxFlushTime = new AtomicLong(0l);
+        final AtomicLong minFlushTime = new AtomicLong(Long.MAX_VALUE);
+
         public ActionStatusReporter(){}
 
+        public void updateTime(long msTaken) {
+            boolean cont = false;
+            while(!cont){
+                long currentMax = maxFlushTime.get();
+                cont = currentMax >= msTaken || maxFlushTime.compareAndSet(currentMax, msTaken);
+            }
+
+            cont=false;
+            while(!cont){
+                long currentMin = minFlushTime.get();
+                cont = currentMin <= msTaken || minFlushTime.compareAndSet(currentMin, msTaken);
+            }
+        }
     }
 }

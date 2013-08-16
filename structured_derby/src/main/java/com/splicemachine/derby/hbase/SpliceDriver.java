@@ -229,6 +229,7 @@ public class SpliceDriver extends SIConstants {
                         initalizationLatch.countDown();
                         return null;
                     }catch(Exception e){
+                        SpliceLogUtils.error(LOG,"Unable to boot Splice Machine",e);
                         ErrorReporter.get().reportError(SpliceDriver.class,e);
                         throw e;
                     }

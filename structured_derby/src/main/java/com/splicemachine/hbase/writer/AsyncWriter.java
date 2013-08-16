@@ -97,6 +97,16 @@ public class AsyncWriter extends AbstractWriter {
         public long getPartialFailures() {
             return statusMonitor.partialFailures.get();
         }
+
+        @Override
+        public long getMaxFlushTime() {
+            return statusMonitor.maxFlushTime.get();
+        }
+
+        @Override
+        public long getMinFlushTime() {
+            return statusMonitor.minFlushTime.get();
+        }
     }
 
     private class CountingRetryStrategy implements RetryStrategy {

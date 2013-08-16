@@ -26,4 +26,8 @@ public interface WriterStatus {
     long getGlobalErrors();
 
     long getPartialFailures();
+
+    long getMaxFlushTime();
+
+    long getMinFlushTime();
 }
