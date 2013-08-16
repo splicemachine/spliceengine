@@ -26,7 +26,7 @@ public class SpliceMethod<T> {
 	  public static boolean contains(String s) {
 		  return strings.contains(s);
 	  } 
-	};
+	}
 	
 	
 	public SpliceMethod() {
@@ -44,8 +44,8 @@ public class SpliceMethod<T> {
 		else { 	
 			try {
 				if (method == null)
-					method = activation.getClass().getMethod(methodName, null);
-				return (T) method.invoke(activation, null);
+					method = activation.getClass().getMethod(methodName, (Class<?>)null);
+				return (T) method.invoke(activation, (Class<?>)null);
 			} catch (Exception e) {
 				SpliceLogUtils.logAndThrow(LOG, "error during invoke",
 						StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));

@@ -257,7 +257,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             }
             keyEncoder.reset();
 
-            keyHasher.encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
+            ((KeyMarshall)keyHasher).encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
             byte[] key = keyEncoder.build();
             ByteBuffer keyBuffer = ByteBuffer.wrap(key);
             if(!currentAggregations.merge(keyBuffer,row,hashMerger)){
@@ -352,7 +352,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
             @Override
             public void decode(DataValueDescriptor[] data, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                keyHasher.decode(data, reversedKeyColumns,sortOrder,rowDecoder);
+                ((KeyMarshall)keyHasher).decode(data, reversedKeyColumns,sortOrder,rowDecoder);
             }
 
             @Override
