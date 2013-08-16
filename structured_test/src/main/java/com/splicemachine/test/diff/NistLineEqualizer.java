@@ -29,8 +29,8 @@ public class NistLineEqualizer implements Equalizer<String> {
     // "in ignore" state flag
     private boolean ignore;
     // lines that will be compared after undergoing sort
-    private List<String> derbyToSort = new ArrayList<String>();
-    private List<String> spliceToSort = new ArrayList<String>();
+    private List<String> derbyOrderIgnore = new ArrayList<String>();
+    private List<String> spliceOrderIgnore = new ArrayList<String>();
 
     /**
      * Override {@link Equalizer#equals(Object)} so we can get our custom behavior.
@@ -42,7 +42,7 @@ public class NistLineEqualizer implements Equalizer<String> {
      *     case.
      * </p>
      *
-     * @param derbyLine the line that comes from a splice output file. Will be trimmed.
+     * @param derbyLine the line that comes from a derby output file. Will be trimmed.
      * @param spliceLine the line that comes from a splice output file. Will be trimmed.
      * @return <code>true</code> if the two output lines compare equal after customizations
      * are applied.
@@ -60,15 +60,15 @@ public class NistLineEqualizer implements Equalizer<String> {
             pushIgnoredLines(derbyTrimmed, spliceTrimmed);
 
             // we're in an ignore directive ("order by" result ordered differently)
-            if (derbyTrimmed.contains(IGNORE_STOP) &&
+            if (derbyTrimmed.contains(IGNORE_STOP) ||
                     spliceTrimmed.contains(IGNORE_STOP)) {
                 // we've found an ignore "stop" directive
                 // ...stop ignoring line diffs
-                LOG.warn("Found [" + IGNORE_STOP + "] no longer ignoring lines...");
+                LOG.debug("Found [" + IGNORE_STOP + "] no longer ignoring lines...");
                 ignore = false;
 
                 // compare lines we've been saving
-                return compareIgnores();
+                return compareIgnoredLines();
             }
             return true;
         }
@@ -76,7 +76,7 @@ public class NistLineEqualizer implements Equalizer<String> {
                 spliceTrimmed.contains(IGNORE_START)) {
             // we've found an ignore directive ("order by" result ordered differently)
             // ...ignore all lines until we see an ignore "stop" directive
-            LOG.warn("Found [" + IGNORE_START + "] ignoring lines...");
+            LOG.debug("Found [" + IGNORE_START + "] ignoring lines...");
             ignore = true;
 
             // add lines that will be sorted then compared
@@ -134,12 +134,12 @@ public class NistLineEqualizer implements Equalizer<String> {
             }
 
             //======================
-            // ignore dashed line rule
+            // ignore dashed line rule. We ignore lines with only dashes, even if
+            // different lengths.
             // (last because matcher.reset(string) may be expensive)
             //======================
-            if (dashedLineMatcher.reset(derbyTrimmed).matches() && dashedLineMatcher.reset(spliceTrimmed).matches()) {
-                // if both lines contain only dashes ('-'), ignore
-                return true;
+            if (bothLinesCompleteDashes(derbyTrimmed, spliceTrimmed)) {
+            	return true;
             }
 
         }
@@ -147,47 +147,77 @@ public class NistLineEqualizer implements Equalizer<String> {
         return isSame;
     }
 
-    private boolean compareIgnores() {
-        // TODO: we may have to do other things to these lines like we do above - i.e. remove WS and "^-+$" - before they will compare.
-        Collections.sort(this.derbyToSort);
-        Collections.sort(this.spliceToSort);
+    private boolean compareIgnoredLines() {
+		// The problem with this stateful approach is, by the time we have
+		// a false equals, we're way past where the problem occurred.
+		// Log something so we can find our way to the real prob
 
-        boolean equal = this.derbyToSort.equals(this.spliceToSort);
-
-        // The problem with this stateful approach is, by the time we have
-        // a false equals, we're way past where the problem occurred.
-        // Log something so we can find our way to the real prob
-        if (! equal) {
-            LOG.error("Order-ignored lines don't compare even after sorting.\nDerby:\n"+this.derbyToSort+"\nSplice:\n"+this.spliceToSort);
-        }
-
-        this.derbyToSort.clear();
-        this.spliceToSort.clear();
-        return equal;
+        try {
+        	if (! (this.derbyOrderIgnore.size() == this.spliceOrderIgnore.size())) {
+        		return logAndReturnFalse(this.derbyOrderIgnore, this.spliceOrderIgnore);
+        	}
+        	// sort and compare each element
+        	List<String> derbySorted = new ArrayList<String>(this.derbyOrderIgnore);
+        	List<String> spliceSorted = new ArrayList<String>(this.spliceOrderIgnore);
+			Collections.sort(derbySorted);
+			Collections.sort(spliceSorted);
+			for (int i = 0; i<derbySorted.size(); i++) {
+				String derbyLine = derbySorted.get(i);
+				String spliceLine = spliceSorted.get(i);
+				boolean equal = derbyLine.equals(spliceLine);
+				if (! equal) {
+					// ignore if both lines contain only dashes
+					if (! bothLinesCompleteDashes(derbyLine, spliceLine)) {
+						if (derbyLine.contains("|") && spliceLine.contains("|")) {
+							// remove WS formatting and compare
+							equal = equalsIgnoreWhitespace(derbyLine, spliceLine);
+						}
+					}
+				}
+				if (! equal) {
+					return logAndReturnFalse(this.derbyOrderIgnore, this.spliceOrderIgnore);
+				}
+			}
+		} finally {
+			this.derbyOrderIgnore.clear();
+			this.spliceOrderIgnore.clear();
+		}
+        return true;
+    }
+    
+    private static boolean logAndReturnFalse(List<String> derbyLines, List<String> spliceLines) {
+		LOG.error("Order-ignored lines don't compare even after sorting.\nDerby:\n"
+				+ derbyLines + "\nSplice:\n" + spliceLines);
+		return false;
     }
 
     private void pushIgnoredLines(String derby, String splice) {
-        this.derbyToSort.add(derby);
-        this.spliceToSort.add(splice);
+        this.derbyOrderIgnore.add(derby);
+        this.spliceOrderIgnore.add(splice);
+    }
+    
+    private static boolean bothLinesCompleteDashes(String derby, String splice) {
+        // if both lines contain only dashes ('-'), ignore (return match == true)
+        return (dashedLineMatcher.reset(derby).matches() && dashedLineMatcher.reset(splice).matches());
     }
 
     private static boolean equalsIgnoreWhitespace(String derby, String splice) {
-        if (DiffEngine.isEmpty(derby) || DiffEngine.isEmpty(splice)) {
-            return false;
-        }
-        String[] derbyTokens = StringUtil.split(derby, ' ');
-        String[] spliceTokens = StringUtil.split(splice, ' ');
-        if (derbyTokens.length != spliceTokens.length) {
-            return false;
-        } else {
-            int i = 0;
-            while (i < derbyTokens.length) {
-                if (!derbyTokens[i].equals(spliceTokens[i])) {
-                    return false;
-                }
-                ++i;
-            }
-        }
-        return true;
+//		if (DiffEngine.isEmpty(derby) || DiffEngine.isEmpty(splice)) {
+//			return false;
+//		}
+		String[] derbyTokens = StringUtil.split(derby, ' ');
+		String[] spliceTokens = StringUtil.split(splice, ' ');
+		if (derbyTokens.length != spliceTokens.length) {
+			return false;
+		} else {
+			int i = 0;
+			while (i < derbyTokens.length) {
+				if (!derbyTokens[i].equals(spliceTokens[i])) {
+					return false;
+				}
+				++i;
+			}
+		}
+		return true;
     }
 }

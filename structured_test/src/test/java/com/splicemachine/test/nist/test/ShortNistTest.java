@@ -1,15 +1,5 @@
 package com.splicemachine.test.nist.test;
 
-import com.splicemachine.test.diff.DiffReport;
-import com.splicemachine.test.nist.DerbyNistRunner;
-import com.splicemachine.test.nist.NistTest;
-import com.splicemachine.test.nist.NistTestUtils;
-import com.splicemachine.test.nist.SpliceNistRunner;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
@@ -17,6 +7,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.splicemachine.test.diff.DiffReport;
+import com.splicemachine.test.nist.DerbyNistRunner;
+import com.splicemachine.test.nist.NistTestUtils;
+import com.splicemachine.test.nist.SpliceNistRunner;
 
 /**
  * TODO: Temporary - for framework testing

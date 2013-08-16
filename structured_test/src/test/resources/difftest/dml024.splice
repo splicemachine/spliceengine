@@ -30,12 +30,8 @@ ij> -- RERUN if USER value does not match preceding AUTHORIZATION comment
 EM&|CITY           
 -------------------
 E1 |Deale          
-E2 |Vienna         
-E3 |Vienna         
-E4 |Deale          
-E5 |Akron          
 
-5 rows selected
+1 row selected
 ij> -- splicetest: ignore-order stop
 -- PASS:0108 If 5 rows are selected ?
 

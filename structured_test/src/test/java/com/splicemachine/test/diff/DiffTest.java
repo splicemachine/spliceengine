@@ -1,20 +1,23 @@
 package com.splicemachine.test.diff;
 
-import com.splicemachine.test.nist.NistTestUtils;
-import difflib.DiffUtils;
-import difflib.Patch;
-import org.junit.Assert;
-import org.junit.Test;
+import static com.splicemachine.test.nist.NistTestUtils.fileToLines;
+import static com.splicemachine.test.nist.NistTestUtils.readDerbyFilters;
+import static com.splicemachine.test.nist.NistTestUtils.readSpliceFilters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static com.splicemachine.test.nist.NistTestUtils.fileToLines;
-import static com.splicemachine.test.nist.NistTestUtils.readDerbyFilters;
-import static com.splicemachine.test.nist.NistTestUtils.readSpliceFilters;
+import org.junit.Assert;
+import org.junit.Test;
+
+import com.splicemachine.test.nist.NistTestUtils;
+
+import difflib.DiffUtils;
+import difflib.Patch;
 
 /**
  * Tests for file differencing.
@@ -38,7 +41,14 @@ public class DiffTest {
             totalDiffs += entry.getValue();
         }
 
-        Assert.assertEquals(expectedFailures, totalDiffs);
+        Assert.assertEquals(getErrors(reports), expectedFailures, totalDiffs);
+    }
+    
+    private static String getErrors(List<DiffReport> reports) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        DiffReport.reportCollection(reports, ps); 
+        return baos.toString("UTF-8");
     }
 
     @Test
@@ -50,10 +60,10 @@ public class DiffTest {
         List<String> spliceFileLines = fileToLines(spliceFileName, (String)null);
 
         // using diff util directly here (no filtering), so expecting diffs
-        Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
+        Patch<String> patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
         DiffReport report = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
-        PrintStream out = System.out;
+//        PrintStream out = System.out;
 //        report.print(out);
         Assert.assertTrue(report.hasDifferences());
     }
@@ -73,7 +83,7 @@ public class DiffTest {
         spliceFileLines = DiffEngine.filterOutput(spliceFileLines, readSpliceFilters());
 
         // using diff util directly here (no filtering), so expecting diffs
-        Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
+        Patch<String> patch = DiffUtils.diff(derbyFileLines, spliceFileLines);
 
         DiffReport report = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
 //        report.print(System.out);
@@ -118,7 +128,7 @@ public class DiffTest {
     @Test
     public void testDiff_dml024() throws Exception {
         // Result column ordering
-        helpDiffOutputFiles("dml024.sql", 0);
+        helpDiffOutputFiles("dml024.sql", 1);
     }
 
     @Test

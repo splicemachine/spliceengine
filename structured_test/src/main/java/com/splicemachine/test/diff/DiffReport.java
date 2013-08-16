@@ -15,7 +15,7 @@ public class DiffReport {
     public final String sqlFileName;
     public final String derbyFile;
     public final String spliceFile;
-    public final List<Delta> deltas;
+    public final List<Delta<String>> deltas;
 
     /**
      * Constructor
@@ -23,7 +23,7 @@ public class DiffReport {
      * @param spliceFile splice output file
      * @param deltas the differences between the two
      */
-    public DiffReport(String derbyFile, String spliceFile, List<Delta> deltas) {
+    public DiffReport(String derbyFile, String spliceFile, List<Delta<String>> deltas) {
         this.derbyFile = derbyFile;
         this.spliceFile = spliceFile;
         if (! deltas.isEmpty()) {
@@ -102,8 +102,8 @@ public class DiffReport {
         return failedTestMap;
     }
 
-    private void printDeltas(List<Delta> deltas, PrintStream out) {
-        for (Delta delta: deltas) {
+    private void printDeltas(List<Delta<String>> deltas, PrintStream out) {
+        for (Delta<String> delta: deltas) {
             out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
             printChunk(this.derbyFile, delta.getOriginal(), out);
             out.println("++++++++++++++++++++++++++");
@@ -112,7 +112,7 @@ public class DiffReport {
         }
     }
 
-    private static void printChunk(String testType, Chunk chunk, PrintStream out) {
+    private static void printChunk(String testType, Chunk<String> chunk, PrintStream out) {
         out.println(testType + "\nPosition " + chunk.getPosition() + ": ");
         for(Object line : chunk.getLines()) {
             out.println("  [" + line + "]");

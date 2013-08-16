@@ -53,7 +53,7 @@ public class DiffEngine {
             spliceFileLines = filterOutput(spliceFileLines, spliceFilter);
 
             // Diff the output files using a custom Equalizer
-            Patch patch = DiffUtils.diff(derbyFileLines, spliceFileLines, new NistLineEqualizer());
+            Patch<String> patch = DiffUtils.diff(derbyFileLines, spliceFileLines, new NistLineEqualizer());
 
             // Create a diff report for this SQL script output
             DiffReport diff = new DiffReport(derbyFileName, spliceFileName, patch.getDeltas());
