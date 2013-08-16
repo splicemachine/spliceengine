@@ -246,8 +246,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
                                   MultiFieldEncoder keyEncoder) throws StandardException {
-                byte[] key = BytesUtil.concatenate(currentKey,keyPostfix);
+                //TODO -sf- this might break DistinctGroupedAggregations
+                byte[] key = BytesUtil.concatenate(currentKey,SpliceUtils.getUniqueKey());
                 keyEncoder.setRawBytes(key);
+                keyEncoder.setRawBytes(keyPostfix);
             }
 
             @Override
@@ -260,7 +262,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
             @Override
             public int getFieldCount(int[] keyColumns) {
-                return 1;
+                return 2;
             }
         }, RowMarshaller.packed());
     }
@@ -561,7 +563,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private RowProviderIterator<ExecRow> createSourceIterator() {
         return new RowProviderIterator<ExecRow>(){
 
-            private Iterator<ExecRow> rolledUpRows = Collections.EMPTY_LIST.iterator();
+            private Iterator<ExecRow> rolledUpRows = Collections.<ExecRow>emptyList().iterator();
             private boolean populated;
 
             @Override

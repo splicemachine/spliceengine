@@ -233,6 +233,11 @@ public class BetterHTablePool {
 
         @Override
         public <T extends CoprocessorProtocol, R> Map<byte[], R> coprocessorExec(Class<T> protocol, byte[] startKey, byte[] endKey, Batch.Call<T, R> callable) throws IOException, Throwable {
+            if(startKey==null)
+                startKey = new byte[]{};
+            if(endKey==null)
+                endKey = new byte[]{};
+
             return table.coprocessorExec(protocol, startKey, endKey, callable);
         }
 
