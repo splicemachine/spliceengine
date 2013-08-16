@@ -379,7 +379,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             final Set<Long>[] conflictingChildren = new Set[mutations.length];
             dataStore.startLowLevelOperation(table);
             try {
-            	checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
+                checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
             } finally {
                 dataStore.closeLowLevelOperation(table);
             }
@@ -413,11 +413,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 if (isFlaggedForSITreatment(mutations[i])) {
                     Put put = (Put) mutations[i];
                     Lock lock = locks.get(hasher.toHashable(dataLib.getPutKey(put)));
-                    try {
-                        resolveChildConflicts(table, put, lock, conflictingChildren[i]);
-                    } finally {
-                        dataWriter.unLockRow(table, lock);
-                    }
+                    resolveChildConflicts(table, put, lock, conflictingChildren[i]);
                 }
             } catch (Exception ex) {
                 LOG.error("Exception while post processing batch put", ex);

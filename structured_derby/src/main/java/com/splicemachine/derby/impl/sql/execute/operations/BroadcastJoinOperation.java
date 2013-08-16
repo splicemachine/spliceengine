@@ -123,18 +123,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (rightSideMap == null)
             rightSideMap = retrieveRightSideCache();
 
-        if (broadcastIterator == null || !broadcastIterator.hasNext()) {
+        while (broadcastIterator == null || !broadcastIterator.hasNext()) {
             if ((leftRow = leftResultSet.getNextRowCore()) == null) {
                 mergedRow = null;
                 this.setCurrentRow(mergedRow);
                 return mergedRow;
             } else {
                 broadcastIterator = new BroadcastNextRowIterator(leftRow);
-                return getNextRowCore();
             }
-        } else {
-            return broadcastIterator.next();
         }
+        return broadcastIterator.next();
     }
 
     @Override
