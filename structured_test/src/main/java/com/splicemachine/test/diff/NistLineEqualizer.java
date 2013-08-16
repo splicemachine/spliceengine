@@ -54,6 +54,9 @@ public class NistLineEqualizer implements Equalizer<String> {
 
         //======================
         // ignore-order rules
+        // Ignore the order, but not the content, of a set of line
+        // between "-- splicetest: ignore-order start/stop" directives
+        // in the output files.
         //======================
         if (ignore) {
             // add lines that will be sorted then compared
@@ -135,7 +138,7 @@ public class NistLineEqualizer implements Equalizer<String> {
 
             //======================
             // ignore dashed line rule. We ignore lines with only dashes, even if
-            // different lengths.
+            // they have different lengths.
             // (last because matcher.reset(string) may be expensive)
             //======================
             if (bothLinesCompleteDashes(derbyTrimmed, spliceTrimmed)) {
@@ -202,9 +205,6 @@ public class NistLineEqualizer implements Equalizer<String> {
     }
 
     private static boolean equalsIgnoreWhitespace(String derby, String splice) {
-//		if (DiffEngine.isEmpty(derby) || DiffEngine.isEmpty(splice)) {
-//			return false;
-//		}
 		String[] derbyTokens = StringUtil.split(derby, ' ');
 		String[] spliceTokens = StringUtil.split(splice, ' ');
 		if (derbyTokens.length != spliceTokens.length) {
