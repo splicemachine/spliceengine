@@ -1,9 +1,5 @@
 package com.splicemachine.test.nist;
 
-import com.splicemachine.test.connection.DerbyEmbedConnection;
-import com.splicemachine.test.connection.SpliceNetConnection;
-import org.apache.log4j.Logger;
-
 import java.io.File;
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -13,6 +9,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import org.apache.log4j.Logger;
+
+import com.splicemachine.test.connection.SpliceNetConnection;
 
 /**
  * Test runner for Splice.

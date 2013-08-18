@@ -4,6 +4,7 @@ import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import com.splicemachine.test.diff.DiffEngine;
 import com.splicemachine.test.diff.DiffReport;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.derby.tools.ij;
@@ -247,16 +248,11 @@ public class NistTestUtils {
         Collection<DiffReport> reports = DiffEngine.diffOutput(testFiles,
                 getBaseDirectory() + TARGET_NIST_DIR, derbyOutputFilter, spliceOutputFilter);
 
-
-        // also, always add drop script to end for cleanup
-        out.println("Dropping test schema...");
-        runDrop(derbyRunner, spliceRunner);
-
         return reports;
     }
 
-    public static void runDrop(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner) throws Exception {
-        System.out.println("Dropping test schema...");
+    public static void runDrop(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner, PrintStream out) throws Exception {
+        out.println("Dropping test schema...");
         List<File> cleanup = Arrays.asList(new File(getResourceDirectory()+NIST_DIR_SLASH, DROP_SQL));
         derbyRunner.runDerby(cleanup);
         spliceRunner.runSplice(cleanup);
@@ -370,8 +366,9 @@ public class NistTestUtils {
      */
     public static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
+        BufferedReader in = null;
         try {
-            BufferedReader in = new BufferedReader(new FileReader(filePath));
+            in = new BufferedReader(new FileReader(filePath));
 
             String line = in.readLine();
             while(line != null) {
@@ -386,6 +383,14 @@ public class NistTestUtils {
             }
         } catch (IOException e) {
            Assert.fail("Unable to read: " + filePath+": "+e.getLocalizedMessage());
+        } finally {
+        	if (in != null) {
+        		try {
+					in.close();
+				} catch (IOException e) {
+					// ignore
+				}
+        	}
         }
         return lines;
     }

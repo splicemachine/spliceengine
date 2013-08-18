@@ -1,6 +1,8 @@
 package com.splicemachine.test.nist;
 
 import com.splicemachine.test.diff.DiffReport;
+
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,6 +23,8 @@ public class NistTest {
     private static List<String> derbyOutputFilter;
     private static List<String> spliceOutputFilter;
 
+    private static ByteArrayOutputStream baos;
+    private static PrintStream ps;
     private static DerbyNistRunner derbyRunner;
     private static SpliceNistRunner spliceRunner;
 
@@ -37,6 +41,10 @@ public class NistTest {
         } else {
             testFiles = NistTestUtils.createRunList(singleScript);
         }
+        
+        // for output recording
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
 
         // Read in the bug filters for output files
         derbyOutputFilter = NistTestUtils.readDerbyFilters();
@@ -45,26 +53,38 @@ public class NistTest {
         derbyRunner = new DerbyNistRunner();
         spliceRunner = new SpliceNistRunner();
     }
+    
+    @AfterClass
+    public static void afterClass() throws Exception {
+        if (! justDrop) {
+			// run drop script after test for cleanup, unless test was run just to drop schema
+			NistTestUtils.runDrop(derbyRunner, spliceRunner, ps);
+			System.out.println(baos.toString("UTF-8"));
+		}
+    }
 
     @Test(timeout=1000*60*12)  // Time out after 12 min
     public void runNistTest() throws Exception {
         if (justDrop) {
-            NistTestUtils.runDrop(derbyRunner, spliceRunner);
+            NistTestUtils.runDrop(derbyRunner, spliceRunner, ps);
+			System.out.println(baos.toString("UTF-8"));
             return;
         }
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(baos);
 
+        // run the tests
         Collection<DiffReport> reports = NistTestUtils.runTests(testFiles,
                                                                 derbyRunner, derbyOutputFilter,
                                                                 spliceRunner, spliceOutputFilter, ps);
 
+        // report test output
         Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
 
+        // write report to file
         String report = baos.toString("UTF-8");
         NistTestUtils.createLog(NistTestUtils.getBaseDirectory(), "NistTest.log", null, report);
 
-        Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs + "\n" + report,
+        // make test assertion
+        Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs.keySet() + "\n" + report,
                 reports.size(), (reports.size() - failedDiffs.size()));
     }
 }
