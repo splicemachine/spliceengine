@@ -18,6 +18,7 @@ public class BulkWrite implements Externalizable {
     private List<KVPair> mutations;
     private String txnId;
     private byte[] regionKey;
+    private long bufferSize = -1;
 
     public BulkWrite() { }
 
@@ -74,5 +75,16 @@ public class BulkWrite implements Externalizable {
                 ", regionKey=" + regionKey +
                 ", rows="+mutations.size()+
                 '}';
+    }
+
+    public long getBufferSize() {
+        if(bufferSize<0){
+            long heap = 0l;
+            for(KVPair kvPair:mutations){
+                heap+=kvPair.getSize();
+            }
+            bufferSize= heap;
+        }
+        return bufferSize;
     }
 }

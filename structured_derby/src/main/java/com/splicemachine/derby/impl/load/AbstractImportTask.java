@@ -9,6 +9,7 @@ import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -95,7 +96,7 @@ public abstract class AbstractImportTask extends ZkTask {
             BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
             int[] pkCols = importContext.getPrimaryKeys();
 
-            CallBuffer<KVPair> writeBuffer = getCallBuffer();
+            RecordingCallBuffer<KVPair> writeBuffer = getCallBuffer();
 
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
 //            int pos =0;
@@ -110,15 +111,22 @@ public abstract class AbstractImportTask extends ZkTask {
 
             entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
 
-            Long numImported;
+            long numImported;
+            long start = System.currentTimeMillis();
+            long stop;
             try{
                 numImported = importData(row,writeBuffer);
             }finally{
                 entryEncoder.close();
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
+                stop = System.currentTimeMillis();
             }
-            SpliceLogUtils.info(LOG,"imported %d records to table %s",numImported,importContext.getTableName());
+            if(LOG.isDebugEnabled()){
+                //log read stats
+                logStats(numImported,stop-start,writeBuffer);
+
+            }
         } catch (StandardException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
@@ -126,7 +134,9 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
-    protected CallBuffer<KVPair> getCallBuffer() throws Exception {
+    protected abstract void logStats(long numRecordsRead,long totalTimeTakeMs,RecordingCallBuffer<KVPair> callBuffer) throws IOException;
+
+    protected RecordingCallBuffer<KVPair> getCallBuffer() throws Exception {
         return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes(), getTaskStatus().getTransactionId());
     }
 

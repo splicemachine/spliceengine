@@ -30,4 +30,24 @@ public interface WriterStatus {
     long getMaxFlushTime();
 
     long getMinFlushTime();
+
+
+    long getMaxFlushedBufferSize();
+
+    long getTotalFlushedBufferSize();
+
+    double getAvgFlushedBufferSize();
+
+    long getMinFlushedBufferSize();
+
+
+    long getMaxFlushedBufferEntries();
+
+    long getTotalFlushedBufferEntries();
+
+    double getAvgFlushedBufferEntries();
+
+    long getMinFlushedBufferEntries();
+
+
 }

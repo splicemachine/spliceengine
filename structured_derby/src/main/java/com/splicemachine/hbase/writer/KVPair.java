@@ -27,6 +27,10 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         return new KVPair(rowKey, RowEncoder.EMPTY_BYTES,Type.DELETE);
     }
 
+    public long getSize() {
+        return rowKey.length+value.length;
+    }
+
     public enum Type{
         INSERT,
         UPDATE,

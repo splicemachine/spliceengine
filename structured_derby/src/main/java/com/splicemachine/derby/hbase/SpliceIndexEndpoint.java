@@ -25,12 +25,15 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import javax.management.*;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -45,6 +48,23 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new ConcurrentHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
     static{
         factoryMap.put(-1l,Pair.newPair(LocalWriteContextFactory.unmanagedContextFactory(),new AtomicInteger(1)));
+    }
+
+    private static ReceiverStats status = new ReceiverStats();
+    static{
+        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+        try{
+            ObjectName name = new ObjectName("com.splicemachine.writer:type=BulkReceiverStatus");
+            mbs.registerMBean(status,name);
+        } catch (MalformedObjectNameException e) {
+            LOG.error("Unable to register JMX for BulkRecieverStatus",e);
+        } catch (InstanceAlreadyExistsException e) {
+            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+        } catch (NotCompliantMBeanException e) {
+            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+        } catch (MBeanRegistrationException e) {
+            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+        }
     }
 
     private long conglomId;
@@ -97,6 +117,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     @Override
     public BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException {
+        status.totalWritesReceived.incrementAndGet();
         SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         HRegion region = rce.getRegion();
@@ -110,12 +131,10 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 //we're done, someone else will have to write this batch
                 throw new IOException(e);
             }
+            List<KVPair> pairs = bulkWrite.getMutations();
+            status.totalRowsReceived.addAndGet(pairs.size());
             for(KVPair mutation:bulkWrite.getMutations()){
-//                byte[] row = mutation.getRow();
-//                long time = uniqueChecker.check(row);
-//                if(time>0){
-//                    LOG.error("mutated row "+ BytesUtil.toHex(row)+" at time "+time);
-//                }
+                status.totalBytesReceived.addAndGet(mutation.getSize());
                 context.sendUpstream(mutation); //send all writes along the pipeline
             }
             Map<KVPair,WriteResult> resultMap = context.finish();
@@ -123,13 +142,21 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             BulkWriteResult response = new BulkWriteResult();
             List<KVPair> mutations = bulkWrite.getMutations();
             int pos=0;
+            long failed=0l;
             for(KVPair mutation:mutations){
                 WriteResult result = resultMap.get(mutation);
+                if(result.getCode()== WriteResult.Code.FAILED){
+                    failed++;
+                }
                 response.addResult(pos,result);
                 pos++;
             }
+            status.totalFailedRows.addAndGet(failed);
 
             return response;
+        }catch(IOException ioe){
+            status.totalErrorsThrown.incrementAndGet();
+            throw ioe;
         }finally{
             region.closeRegionOperation();
         }
@@ -141,18 +168,16 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         return ctxFactoryPair.getFirst().create(txnId,rce);
     }
 
-
-
     @SuppressWarnings("unchecked")
 	@Override
     public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
+        status.totalDeleteFirstAfterCalls.incrementAndGet();
+
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         final HRegion region = rce.getRegion();
         Scan scan = SpliceUtils.createScan(transactionId);
         scan.setStartRow(rowKey);
         scan.setStopRow(limit);
-//        scan.setCaching(1);
-//        scan.setBatch(1);
         //TODO -sf- make us only pull back one entry instead of everything
         EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -221,5 +246,21 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public static LocalWriteContextFactory getContextFactory(long baseConglomId) {
         Pair<LocalWriteContextFactory,AtomicInteger> ctxPair = getContextPair(baseConglomId);
         return ctxPair.getFirst();
+    }
+
+    public static class ReceiverStats implements BulkReceiverStatus{
+        final AtomicLong totalWritesReceived = new AtomicLong(0l);
+        final AtomicLong totalRowsReceived = new AtomicLong(0l);
+        final AtomicLong totalBytesReceived = new AtomicLong(0l);
+        final AtomicLong totalFailedRows = new AtomicLong(0l);
+        final AtomicLong totalErrorsThrown = new AtomicLong(0l);
+        final AtomicLong totalDeleteFirstAfterCalls = new AtomicLong(0l);
+
+        @Override public long getTotalBulkWritesReceived() { return totalWritesReceived.get(); }
+        @Override public long getTotalRowsReceived() { return totalRowsReceived.get(); }
+        @Override public long getTotalBytesReceived() { return totalBytesReceived.get(); }
+        @Override public long getTotalRowsFailed() { return totalFailedRows.get(); }
+        @Override public long getTotalErrorsThrown() { return totalErrorsThrown.get(); }
+        @Override public long getTotalDeleteFirstAfterCalls() { return totalDeleteFirstAfterCalls.get(); }
     }
 }

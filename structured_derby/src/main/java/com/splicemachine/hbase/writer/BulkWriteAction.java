@@ -63,6 +63,7 @@ final class BulkWriteAction implements Callable<Void> {
     @Override
     public Void call() throws Exception {
         statusReporter.numExecutingFlushes.incrementAndGet();
+        reportSize();
         long start = System.currentTimeMillis();
         try{
             tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
@@ -84,6 +85,34 @@ final class BulkWriteAction implements Callable<Void> {
             bulkWrite = null;
         }
         return null;
+    }
+
+    private void reportSize() {
+        boolean success;
+        long bufferEntries = bulkWrite.getMutations().size();
+        statusReporter.totalFlushEntries.addAndGet(bufferEntries);
+        do{
+            long currentMax = statusReporter.maxFlushEntries.get();
+            success = currentMax >= bufferEntries || statusReporter.maxFlushEntries.compareAndSet(currentMax, bufferEntries);
+        }while(!success);
+
+        do{
+            long currentMin = statusReporter.minFlushEntries.get();
+            success = currentMin <= bufferEntries || statusReporter.minFlushEntries.compareAndSet(currentMin, bufferEntries);
+        }while(!success);
+
+        long bufferSizeBytes = bulkWrite.getBufferSize();
+        statusReporter.totalFlushSizeBytes.addAndGet(bufferSizeBytes);
+        do{
+            long currentMax = statusReporter.maxFlushSizeBytes.get();
+            success = currentMax >= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMax, bufferEntries);
+        }while(!success);
+
+        do{
+            long currentMin = statusReporter.minFlushSizeBytes.get();
+            success = currentMin <= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMin, bufferEntries);
+        }while(!success);
+
     }
 
     private void tryWrite(int numTriesLeft,List<BulkWrite> bulkWrites) throws Exception {
@@ -192,7 +221,7 @@ final class BulkWriteAction implements Callable<Void> {
     private List<BulkWrite> getWriteBuckets(String txnId,Set<HRegionInfo> regionInfos){
         List<BulkWrite> writes = Lists.newArrayListWithCapacity(regionInfos.size());
         for(HRegionInfo info:regionInfos){
-            writes.add(new BulkWrite(txnId,info.getStartKey()));
+            writes.add(new BulkWrite(txnId, info.getStartKey()));
         }
         return writes;
     }
@@ -226,6 +255,14 @@ final class BulkWriteAction implements Callable<Void> {
 
         final AtomicLong maxFlushTime = new AtomicLong(0l);
         final AtomicLong minFlushTime = new AtomicLong(Long.MAX_VALUE);
+
+        final AtomicLong maxFlushSizeBytes = new AtomicLong(0l);
+        final AtomicLong minFlushSizeBytes = new AtomicLong(0l);
+        final AtomicLong totalFlushSizeBytes = new AtomicLong(0l);
+
+        final AtomicLong maxFlushEntries = new AtomicLong(0l);
+        final AtomicLong minFlushEntries = new AtomicLong(0l);
+        final AtomicLong totalFlushEntries = new AtomicLong(0l);
 
         public ActionStatusReporter(){}
 

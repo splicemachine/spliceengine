@@ -5,6 +5,8 @@ import com.google.common.primitives.Longs;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.*;
@@ -49,6 +51,22 @@ public class BlockImportTask extends AbstractImportTask{
         this.rce = rce;
 
         super.prepareTask(rce, zooKeeper);
+    }
+
+    @Override
+    protected void logStats(long numRecordsRead,long totalTimeTakeMs,RecordingCallBuffer<KVPair> callBuffer) throws IOException {
+        String blockNames = Arrays.toString(location.getNames());
+        SpliceLogUtils.debug(LOG,"read %d records from %s",numRecordsRead,blockNames);
+
+        //log write stats
+        long totalRowsWritten = callBuffer.getTotalElementsAdded();
+        long totalBytesWritten = callBuffer.getTotalBytesAdded();
+        long totalBulkFlushes = callBuffer.getTotalFlushes();
+        String tableName = importContext.getTableName();
+        SpliceLogUtils.debug(LOG,"wrote %d rows from block %s to table %s",totalRowsWritten,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"wrote %d bytes from block %s to table %s", totalBytesWritten,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"performed %d flushes from block %s to table %s", totalBulkFlushes,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"Total time taken to import block %s into table %s: %d ms",tableName,blockNames,totalTimeTakeMs);
     }
 
     @Override

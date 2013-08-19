@@ -84,10 +84,10 @@ public class WriteCoordinator {
         writer.stopWrites();
     }
 
-    public TransactionalCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
         monitor.outstandingBuffers.incrementAndGet();
         final BufferListener listener = new AsyncBufferListener(noopFlushHook,tableName, defaultRetryStrategy);
-        return new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
             @Override
             public void close() throws Exception {
                 listener.ensureFlushed();
@@ -95,13 +95,14 @@ public class WriteCoordinator {
                 super.close();
             }
         };
+        return new RecordingCallBuffer<KVPair>(buffer,listener);
     }
 
-    public TransactionalCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
                                                        PreFlushHook flushHook,Writer.RetryStrategy retryStrategy){
         final BufferListener listener = new AsyncBufferListener(flushHook,tableName, retryStrategy);
         monitor.outstandingBuffers.incrementAndGet();
-        return new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
             @Override
             public void close() throws Exception {
                 listener.ensureFlushed();
@@ -109,20 +110,24 @@ public class WriteCoordinator {
                 super.close();
             }
         };
+
+        return new RecordingCallBuffer<KVPair>(buffer,listener);
     }
 
-    public TransactionalCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                                   String txnId, PreFlushHook flushHook,
                                                                   Writer.RetryStrategy retryStrategy){
         monitor.outstandingBuffers.incrementAndGet();
         final BufferListener listener = new SyncBufferListener(flushHook,tableName, retryStrategy);
-        return new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> delegate = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
             }
         };
+
+        return new RecordingCallBuffer<KVPair>(delegate,listener);
     }
 
     private abstract class BufferListener implements CallBuffer.Listener<KVPair>{
@@ -228,50 +233,15 @@ public class WriteCoordinator {
             this.pauseTime = pauseTime;
         }
 
-        @Override
-        public long getMaxBufferHeapSize() {
-            return maxHeapSize;
-        }
-
-        @Override
-        public void setMaxBufferHeapSize(long newMaxHeapSize) {
-            this.maxHeapSize = newMaxHeapSize;
-        }
-
-        @Override
-        public int getMaxBufferEntries() {
-            return maxEntries;
-        }
-
-        @Override
-        public void setMaxBufferEntries(int newMaxBufferEntries) {
-            this.maxEntries = newMaxBufferEntries;
-        }
-
-        @Override
-        public int getOutstandingCallBuffers() {
-            return outstandingBuffers.get();
-        }
-
-        @Override
-        public int getMaximumRetries() {
-            return maxRetries;
-        }
-
-        @Override
-        public void setMaximumRetries(int newMaxRetries) {
-            this.maxRetries = newMaxRetries;
-        }
-
-        @Override
-        public long getPauseTime() {
-            return pauseTime;
-        }
-
-        @Override
-        public void setPauseTime(long newPauseTimeMs) {
-            this.pauseTime = newPauseTimeMs;
-        }
+        @Override public long getMaxBufferHeapSize() { return maxHeapSize; }
+        @Override public void setMaxBufferHeapSize(long newMaxHeapSize) { this.maxHeapSize = newMaxHeapSize; }
+        @Override public int getMaxBufferEntries() { return maxEntries; }
+        @Override public void setMaxBufferEntries(int newMaxBufferEntries) { this.maxEntries = newMaxBufferEntries; }
+        @Override public int getOutstandingCallBuffers() { return outstandingBuffers.get(); }
+        @Override public int getMaximumRetries() { return maxRetries; }
+        @Override public void setMaximumRetries(int newMaxRetries) { this.maxRetries = newMaxRetries; }
+        @Override public long getPauseTime() { return pauseTime; }
+        @Override public void setPauseTime(long newPauseTimeMs) { this.pauseTime = newPauseTimeMs; }
     }
 
     private final Writer.RetryStrategy defaultRetryStrategy = new Writer.RetryStrategy() {
