@@ -1,5 +1,7 @@
 package com.splicemachine.encoding;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -502,5 +504,46 @@ final class ScalarEncoding {
         }
         valueAndLength[0] = x;
         valueAndLength[1] = length;
+    }
+
+    public static void main(String...args) throws Exception{
+        byte[] data = new byte[]{ (byte)0xe1, (byte)0xE8,(byte)0xAA };
+        System.out.println(Encoding.decodeInt(data));
+        data = new byte[]{(byte)0xE1,(byte)0xE6,(byte)0xE8};
+        System.out.println(Encoding.decodeInt(data));
+        data = new byte[]{(byte)0xE1,(byte)0xBD,(byte)0xCD};
+
+//        System.out.println(Encoding.decodeInt(data));
+//        data = Bytes.toBytesBinary("\\xE1\\xBE^");
+//
+//        System.out.println(Encoding.decodeInt(data));
+//        data = Bytes.toBytesBinary("\\xE1\\xE8\\xF3");
+//
+//        System.out.println(Encoding.decodeInt(data));
+//        data = Bytes.toBytesBinary("\\xE4\\xFEr`");
+//        System.out.println(Encoding.decodeInt(data));
+//
+//        data = Bytes.toBytesBinary("\\xE4x\\xDB1");
+//        System.out.println(Encoding.decodeInt(data));
+
+        //125098
+        //\xE4\x19\x03\x13
+        data = Bytes.toBytesBinary("\\xE4\\x19\\x03\\x13");
+        System.out.println(Encoding.decodeInt(data));
+
+        data = Bytes.toBytesBinary("\\xE5\\x0E`h");
+        System.out.println(Encoding.decodeInt(data));
+
+        data = Bytes.toBytesBinary("\\xE4\\x19\\x01\\x12");
+        System.out.println(Encoding.decodeInt(data));
+
+        data = Bytes.toBytesBinary("\\xE4\\x18g\\x98");
+        System.out.println(Encoding.decodeInt(data));
+
+        data = Bytes.toBytesBinary("\\xE4\\x18\\xA1\\xD5");
+        System.out.println(Encoding.decodeInt(data));
+
+        data = Bytes.toBytesBinary("\\xE4\\xF2X\\xB5");
+        System.out.println(Encoding.decodeInt(data));
     }
 }

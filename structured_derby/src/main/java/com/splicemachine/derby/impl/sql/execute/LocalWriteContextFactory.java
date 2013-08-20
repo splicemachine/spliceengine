@@ -201,6 +201,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private void start() throws IOException,InterruptedException{
+        /*
+         * Ready to Start => switch to STARTING
+         * STARTING => continue through to block on the lock
+         * Any other state => return, because we don't need to perform this method.
+         */
         if(!state.compareAndSet(State.READY_TO_START,State.STARTING)){
             if(state.get()!=State.STARTING) return;
         }
@@ -230,6 +235,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
 
                 dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+                //Hbase scan
                 TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                 if(td!=null){
@@ -274,6 +280,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
 
         //get primary key constraint
+        //-sf- Hbase scan
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);

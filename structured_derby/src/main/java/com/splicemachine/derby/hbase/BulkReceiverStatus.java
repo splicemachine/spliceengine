@@ -20,4 +20,6 @@ public interface BulkReceiverStatus {
     public long getTotalErrorsThrown();
 
     public long getTotalDeleteFirstAfterCalls();
+
+    public void reset();
 }

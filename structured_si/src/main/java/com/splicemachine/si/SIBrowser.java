@@ -5,6 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.impl.TransactionStatus;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
@@ -28,7 +29,9 @@ public class SIBrowser extends SIConstants {
     public static void main(String[] args) throws IOException {
         HTable transactionTable = null;
         try {
-            transactionTable = new HTable(HBaseConfiguration.create(), TRANSACTION_TABLE);
+            Configuration config = HBaseConfiguration.create();
+            config.set("hbase.zookeeper.quorum","ubuntu6:2181,ubuntu7:2181,ubuntu8:2181");
+            transactionTable = new HTable(config, TRANSACTION_TABLE);
             Scan scan = new Scan();
             ResultScanner scanner = transactionTable.getScanner(scan);
             Iterator<Result> results = scanner.iterator();
@@ -74,11 +77,11 @@ public class SIBrowser extends SIConstants {
                     System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9] + " " + v[10]);
                 }
 
-                //dumpTable("conglomerates", "16");
+//                dumpTable("conglomerates", "16");
                 //dumpTable("SYCOLUMNS_INDEX2", "161");
 
                 //dumpTable("p", "SPLICE_CONGLOMERATE");
-                dumpTable("p2", "1200");
+//                dumpTable("p2", "1200");
             }
         } catch (IOException e) {
             throw e;

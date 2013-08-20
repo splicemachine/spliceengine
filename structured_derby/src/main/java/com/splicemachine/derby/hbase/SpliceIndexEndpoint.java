@@ -117,6 +117,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     @Override
     public BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException {
+        assert bulkWrite!=null;
+        assert bulkWrite.getTxnId()!=null;
+
         status.totalWritesReceived.incrementAndGet();
         SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
@@ -262,5 +265,15 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         @Override public long getTotalRowsFailed() { return totalFailedRows.get(); }
         @Override public long getTotalErrorsThrown() { return totalErrorsThrown.get(); }
         @Override public long getTotalDeleteFirstAfterCalls() { return totalDeleteFirstAfterCalls.get(); }
+
+        @Override
+        public void reset() {
+            totalFailedRows.set(0);
+            totalBytesReceived.set(0);
+            totalRowsReceived.set(0);
+            totalErrorsThrown.set(0);
+            totalDeleteFirstAfterCalls.set(0);
+            totalWritesReceived.set(0);
+        }
     }
 }

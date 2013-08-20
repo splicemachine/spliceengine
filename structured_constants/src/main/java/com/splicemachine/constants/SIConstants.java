@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * Defines the schema used by SI for the transaction table and for additional metadata on data tables.
@@ -47,7 +48,7 @@ public class SIConstants extends SpliceConstants {
     public static final int SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN = 1;
     public static final String SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN + "";
     public static final String SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN + "";
-    public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Encoding.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN);
+    public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING);
 
     public static final short SI_NEEDED_VALUE = (short) 0;
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;

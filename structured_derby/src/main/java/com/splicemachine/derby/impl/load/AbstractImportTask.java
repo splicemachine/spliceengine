@@ -4,12 +4,17 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -99,15 +104,6 @@ public abstract class AbstractImportTask extends ZkTask {
             RecordingCallBuffer<KVPair> writeBuffer = getCallBuffer();
 
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
-//            int pos =0;
-//            if(pkCols!=null){
-//                keyColumns = new int[pkCols.getNumBitsSet()];
-//                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
-//                    keyColumns[pos] = i;
-//                    pos++;
-//                }
-//            }else
-
 
             entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
 
@@ -124,8 +120,7 @@ public abstract class AbstractImportTask extends ZkTask {
             }
             if(LOG.isDebugEnabled()){
                 //log read stats
-                logStats(numImported,stop-start,writeBuffer);
-
+                logStats(numImported, stop - start, writeBuffer);
             }
         } catch (StandardException e) {
             throw new ExecutionException(e);

@@ -105,12 +105,12 @@ final class BulkWriteAction implements Callable<Void> {
         statusReporter.totalFlushSizeBytes.addAndGet(bufferSizeBytes);
         do{
             long currentMax = statusReporter.maxFlushSizeBytes.get();
-            success = currentMax >= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMax, bufferEntries);
+            success = currentMax >= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMax, bufferSizeBytes);
         }while(!success);
 
         do{
             long currentMin = statusReporter.minFlushSizeBytes.get();
-            success = currentMin <= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMin, bufferEntries);
+            success = currentMin <= bufferSizeBytes || statusReporter.maxFlushSizeBytes.compareAndSet(currentMin, bufferSizeBytes);
         }while(!success);
 
     }
@@ -278,6 +278,29 @@ final class BulkWriteAction implements Callable<Void> {
                 long currentMin = minFlushTime.get();
                 cont = currentMin <= msTaken || minFlushTime.compareAndSet(currentMin, msTaken);
             }
+        }
+
+        public void reset(){
+            numExecutingFlushes.set(0);
+            totalFlushesSubmitted.set(0);
+            failedBufferFlushes.set(0);
+            writeConflictBufferFlushes.set(0);
+            notServingRegionFlushes.set(0);
+            wrongRegionFlushes.set(0);
+            timedOutFlushes.set(0);
+
+            globalFailures.set(0);
+            partialFailures.set(0);
+            maxFlushTime.set(0);
+            minFlushTime.set(0);
+
+            maxFlushSizeBytes.set(0);
+            minFlushEntries.set(0);
+            totalFlushSizeBytes.set(0);
+
+            maxFlushEntries.set(0);
+            minFlushEntries.set(0);
+            totalFlushEntries.set(0);
         }
     }
 }

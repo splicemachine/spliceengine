@@ -49,5 +49,6 @@ public interface WriterStatus {
 
     long getMinFlushedBufferEntries();
 
+    void reset();
 
 }

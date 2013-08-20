@@ -73,6 +73,11 @@ public class AsyncWriter extends AbstractWriter {
         @Override public long getMaxFlushedBufferEntries() { return statusMonitor.maxFlushEntries.get(); }
         @Override public long getTotalFlushedBufferEntries() { return statusMonitor.totalFlushEntries.get(); }
 
+        @Override
+        public void reset() {
+            statusMonitor.reset();
+        }
+
         @Override public double getAvgFlushedBufferSize() {
             return statusMonitor.totalFlushSizeBytes.get()/(double)statusMonitor.totalFlushesSubmitted.get();
         }

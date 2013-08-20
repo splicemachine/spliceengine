@@ -143,7 +143,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-                return t instanceof NotServingRegionException ? Writer.WriteResponse.RETRY: Writer.WriteResponse.THROW_ERROR;
+                return (t instanceof NotServingRegionException || t instanceof IndexNotSetUpException)? Writer.WriteResponse.RETRY: Writer.WriteResponse.THROW_ERROR;
             }
 
             @Override

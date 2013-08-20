@@ -120,11 +120,6 @@ public class RegionWriteHandler implements WriteHandler {
                     return ctx.canRun(input);
                 }
             });
-//            if(ctx.getRegion().isClosed()||ctx.getRegion().isClosing()){
-//                for(KVPair mutation:filteredMutations){
-//                    ctx.failed(mutation,new WriteResult(KVPairResult.Code.FAILED,"NotServingRegion"));
-//                }
-//            }
 
             doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {

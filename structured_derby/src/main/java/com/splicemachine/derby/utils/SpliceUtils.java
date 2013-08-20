@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.Snowflake;
@@ -229,7 +230,9 @@ public class SpliceUtils extends SpliceUtilities {
         if (exempt != null && Bytes.toBoolean(exempt)) {
             return NA_TRANSACTION_ID;
         }
-        return getTransactor().transactionIdFromPut((Put) mutation).getTransactionIdString();
+        TransactionId transactionId = getTransactor().transactionIdFromPut((Put) mutation);
+        if(transactionId==null) return null;
+        return transactionId.getTransactionIdString();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
