@@ -28,6 +28,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
 	public static final String TABLE_NAME = "A";
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(name varchar(50),val int, CONSTRAINT FOO PRIMARY KEY(name))");
+    protected static SpliceTableWatcher doubleKeyTableWatcher = new SpliceTableWatcher("AB",spliceSchemaWatcher.schemaName,"(name varchar(50),val int,age int, CONSTRAINT AB_PK PRIMARY KEY(name,age))");
 	protected static String INSERT = String.format("insert into %s.%s (name, val) values (?,?)",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_BY_NAME = String.format("select * from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);
 	protected static String SELECT_NAME_BY_NAME = String.format("select name from %s.%s where name = ?",CLASS_NAME, TABLE_NAME);	
@@ -162,7 +163,7 @@ public class PrimaryKeyTest extends SpliceUnitTest {
         try{
             ps.execute();
         }catch(SQLException sql){
-            Assert.assertTrue("Incorrect error returned!",sql.getMessage().contains("23505"));
+            Assert.assertTrue("Incorrect error returned!",sql.getSQLState().contains("23505"));
             throw sql;
         }
 

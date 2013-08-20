@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.splicemachine.hbase.writer.KVPair;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -9,6 +10,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Representation of a ForeignKey Constraint.
@@ -86,13 +88,13 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+    public Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
+        return Collections.emptyList();
     }
 
     @Override

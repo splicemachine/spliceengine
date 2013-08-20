@@ -6,7 +6,8 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus>
+public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
+        Scan, Lock, OperationStatus, Hashable extends Comparable, Mutation, IHTable, Scanner>
         implements IFilterState<KeyValue> {
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
@@ -14,7 +15,8 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private final String tableName;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final DataStore dataStore;
-    private final FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter;
+    private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
+            Hashable, Mutation, IHTable, Scanner> simpleFilter;
     private final RowAccumulator<Data> accumulator;
     private Data qualifier = null;
     private Data family = null;
@@ -24,7 +26,8 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
     private boolean excludeRow = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
-                             FilterState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> simpleFilter,
+                             FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
+                                     OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
                              RowAccumulator<Data> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
@@ -49,7 +52,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                     switch (returnCode) {
                         case INCLUDE:
                         case INCLUDE_AND_NEXT_COL:
-                            return Filter.ReturnCode.NEXT_ROW;
+                            return Filter.ReturnCode.NEXT_COL;
                         case SKIP:
                         case NEXT_COL:
                         case NEXT_ROW:
@@ -91,7 +94,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
             case INCLUDE_AND_NEXT_COL:
                 if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
                     excludeRow = true;
-                    return Filter.ReturnCode.NEXT_ROW;
+                    return Filter.ReturnCode.NEXT_COL;
                 }
                 if (hasAccumulation) {
                     if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
@@ -103,7 +106,7 @@ public class FilterStatePacked<Data, Result, KeyValue, Put, Delete, Get, Scan, O
                     accumulated();
                 }
                 if (accumulator.isFinished()) {
-                    return Filter.ReturnCode.NEXT_ROW;
+                    return Filter.ReturnCode.NEXT_COL;
                 }
                 return Filter.ReturnCode.SKIP;
             case SKIP:

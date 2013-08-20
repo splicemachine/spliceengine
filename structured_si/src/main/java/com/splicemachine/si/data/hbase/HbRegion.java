@@ -9,7 +9,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +36,16 @@ public class HbRegion implements IHTable {
     @Override
     public Iterator<Result> scan(Scan scan) throws IOException {
         throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void startOperation() throws IOException {
+        region.startRegionOperation();
+    }
+
+    @Override
+    public void closeOperation() throws IOException {
+        region.closeRegionOperation();
     }
 
     @Override

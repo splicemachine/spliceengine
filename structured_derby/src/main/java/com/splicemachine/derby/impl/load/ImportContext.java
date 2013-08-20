@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.StringUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.Path;
 
@@ -62,7 +63,7 @@ public class ImportContext implements Externalizable{
     private String dateFormat;
     private String timeFormat;
 
-    private FormatableBitSet pkCols;
+    private int[] pkCols;
 
     private long byteOffset;
     private int bytesToRead;
@@ -76,7 +77,7 @@ public class ImportContext implements Externalizable{
                           String stripString,
                           int [] columnTypes,
                           FormatableBitSet activeCols,
-                          FormatableBitSet pkCols,
+                          int[] pkCols,
                           String timestampFormat,
                           String dateFormat,
                           String timeFormat,
@@ -155,9 +156,9 @@ public class ImportContext implements Externalizable{
 		if(activeCols!=null)
 			out.writeObject(activeCols);
         out.writeBoolean(pkCols!=null);
-        if(pkCols!=null)
-            out.writeObject(pkCols);
-		out.writeBoolean(timestampFormat!=null);
+        if(pkCols!=null){
+            ArrayUtil.writeIntArray(out,pkCols);
+        }out.writeBoolean(timestampFormat!=null);
 		if(timestampFormat!=null)
 			out.writeUTF(timestampFormat);
         out.writeLong(byteOffset);
@@ -178,9 +179,9 @@ public class ImportContext implements Externalizable{
 		}
 		if(in.readBoolean())
 			activeCols = (FormatableBitSet) in.readObject();
-        if(in.readBoolean())
-            pkCols = (FormatableBitSet)in.readObject();
-		if(in.readBoolean())
+        if(in.readBoolean()){
+            pkCols = ArrayUtil.readIntArray(in);
+        }if(in.readBoolean())
 			timestampFormat = in.readUTF();
         byteOffset = in.readLong();
         bytesToRead = in.readInt();
@@ -202,7 +203,7 @@ public class ImportContext implements Externalizable{
 				'}';
 	}
 
-    public FormatableBitSet getPrimaryKeys() {
+    public int[] getPrimaryKeys() {
         return pkCols;
     }
 
@@ -227,7 +228,7 @@ public class ImportContext implements Externalizable{
 		private FormatableBitSet activeCols;
 		private String timestampFormat;
 		private int numCols = -1;
-        private FormatableBitSet pkCols;
+        private int[] pkCols;
         private String transactionId;
         private long byteOffset;
         private int bytesToRead;
@@ -291,7 +292,7 @@ public class ImportContext implements Externalizable{
             return this;
         }
 
-        public Builder primaryKeys(FormatableBitSet pkCols) {
+        public Builder primaryKeys(int[] pkCols) {
             this.pkCols = pkCols;
             return this;
         }
@@ -337,7 +338,7 @@ public class ImportContext implements Externalizable{
             //validate that active cols contains at least the pkCols
             //otherwise, we won't be able to import the data
             if(activeCols!=null&&pkCols!=null){
-                for(int pkCol=pkCols.anySetBit();pkCol!=-1;pkCol = pkCols.anySetBit(pkCol)){
+                for(int pkCol:pkCols){
                     if(!activeCols.isSet(pkCol))
                         throw StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_FAILED1,
                                 "Missing primary key in import");

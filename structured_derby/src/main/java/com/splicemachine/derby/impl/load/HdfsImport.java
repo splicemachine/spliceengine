@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
@@ -17,6 +17,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -29,7 +30,6 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.sql.*;
 import java.util.HashMap;
@@ -316,24 +316,39 @@ public class HdfsImport extends ParallelVTI {
     private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
                                                String insertColumnList, ImportContext.Builder builder) throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
-        int numCols = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName,insertColumnList,dmd,builder);
+        Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName,insertColumnList,dmd,builder);
 
-        FormatableBitSet pkCols = getPrimaryKeys(schemaName, tableName, dmd, numCols);
-        if(pkCols.getNumBitsSet()>0){
-            builder.primaryKeys(pkCols);
+        Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd, columns.size());
+        int[] pkKeyMap = new int[columns.size()];
+        for(int i=0;i<pkKeyMap.length;i++){
+            pkKeyMap[i] = -1;
         }
+        for(String pkCol:pkCols.keySet()){
+            int colSeqNum = columns.get(pkCol);
+            int colNum = columns.get(pkCol);
+            pkKeyMap[colNum] = colSeqNum;
+        }
+        int[] primaryKeys = new int[pkCols.size()];
+        int pos = 0;
+        for(int i=0;i<pkKeyMap.length;i++){
+            int pkPos = pkKeyMap[i];
+            if(pkPos<0) continue;
+            primaryKeys[pos] = pkPos;
+            pos++;
+        }
+        if(primaryKeys.length>0)
+            builder.primaryKeys(primaryKeys);
     }
 
-    private static int getColumns(String schemaName,String tableName,
+    private static Map<String,Integer> getColumns(String schemaName,String tableName,
                                    String insertColumnList,DatabaseMetaData dmd,ImportContext.Builder builder) throws SQLException{
         ResultSet rs = null;
-        int numCols=0;
+        Map<String,Integer> columnMap = Maps.newHashMap();
         try{
             rs = dmd.getColumns(null,schemaName,tableName,null);
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
-                    numCols++;
                     String colName = rs.getString(COLNAME_POSITION);
                     int colPos = rs.getInt(COLNUM_POSITION);
                     int colType = rs.getInt(COLTYPE_POSITION);
@@ -342,40 +357,44 @@ public class HdfsImport extends ParallelVTI {
                     while(colIterator.hasNext()){
                         String insertCol = colIterator.next();
                         if(insertCol.equalsIgnoreCase(colName)){
-                            builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+                            builder = builder.column(colPos - 1, colType);
+                            columnMap.put(rs.getString(4),colPos-1);
                             colIterator.remove();
                             break;
                         }
                     }
                 }
-                builder.numColumns(numCols);
+                builder.numColumns(columnMap.size());
             }else{
                 while(rs.next()){
-                    numCols++;
-                    builder = builder.column(rs.getInt(COLNUM_POSITION)-1,rs.getInt(COLTYPE_POSITION));
+                    String colName = rs.getString(COLNAME_POSITION);
+                    int colPos = rs.getInt(COLNUM_POSITION);
+                    int colType = rs.getInt(COLTYPE_POSITION);
+                    builder = builder.column(colPos-1,colType);
+                    columnMap.put(colName,colPos-1);
                 }
 
             }
-            return numCols;
+            return columnMap;
         }finally{
             if(rs!=null)rs.close();
         }
 
     }
 
-    private static FormatableBitSet getPrimaryKeys(String schemaName, String tableName,
+    private static Map<String,Integer> getPrimaryKeys(String schemaName, String tableName,
                                         DatabaseMetaData dmd, int numCols) throws SQLException {
         //get primary key information
         ResultSet rs = null;
         try{
             rs = dmd.getPrimaryKeys(null,schemaName,tableName.toUpperCase());
-            FormatableBitSet pkCols = new FormatableBitSet(numCols);
+            Map<String,Integer> pkCols = Maps.newHashMap();
             while(rs.next()){
                 /*
                  * The column number of use is the KEY_SEQ field in the returned result,
                  * which is one-indexed. For convenience, we adjust it to be zero-indexed here.
                  */
-                pkCols.set(rs.getShort(5)-1);
+                pkCols.put(rs.getString(4), rs.getShort(5) - 1);
             }
             return pkCols;
         }finally{
@@ -456,5 +475,10 @@ public class HdfsImport extends ParallelVTI {
     @Override
     public String prettyPrint(int indentLevel) {
         return "HdfsImport";
+    }
+
+    @Override
+    public void setCurrentRowLocation(RowLocation rowLocation) {
+        //no-op
     }
 }

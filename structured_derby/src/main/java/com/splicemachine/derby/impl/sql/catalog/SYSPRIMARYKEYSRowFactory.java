@@ -13,8 +13,6 @@ import org.apache.derby.iapi.types.SQLChar;
 import org.apache.derby.impl.services.uuid.BasicUUID;
 import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
 
-import java.util.Random;
-
 /**
  * @author Scott Fines
  * Created on: 3/1/13

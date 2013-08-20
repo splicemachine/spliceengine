@@ -5,13 +5,16 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteDataOutput;
@@ -32,50 +35,48 @@ import java.util.List;
  */
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
-    private final List<Mutation> deletes = Lists.newArrayListWithExpectedSize(0);
+    private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
 
-    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes){
-        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes);
-
-
+    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns, boolean keepState){
+        super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
     }
 
     @Override
-    protected boolean updateIndex(Mutation mutation, WriteContext ctx) {
-        if(!Mutations.isDelete(mutation)) return true; //allow super class to send it along
+    protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
+        if(mutation.getType()!= KVPair.Type.DELETE) return true;
 
         delete(mutation,ctx);
         return !failed;
     }
 
     @Override
-    protected void finish(WriteContext ctx) throws Exception {
-        for(final Mutation delete:deletes){
+    protected void finish(final WriteContext ctx) throws Exception {
+        for(final KVPair delete:deletes){
             if(failed){
                 ctx.notRun(delete);
             }else{
-                final byte[] indexStop = BytesUtil.copyAndIncrement(delete.getRow());
+                final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
                 HTableInterface table = ctx.getHTable(indexConglomBytes);
                 try {
                     table.coprocessorExec(BatchProtocol.class,
-                            delete.getRow(),indexStop,new Batch.Call<BatchProtocol, MutationResult>() {
+                            delete.getRow(),indexStop,new Batch.Call<BatchProtocol, WriteResult>() {
                         @Override
-                        public MutationResult call(BatchProtocol instance) throws IOException {
+                        public WriteResult call(BatchProtocol instance) throws IOException {
                             return instance.deleteFirstAfter(
-                                    SpliceUtils.getTransactionId(delete),delete.getRow(),indexStop);
+                                    ctx.getTransactionId(),delete.getRow(),indexStop);
                         }
                     });
                 } catch (Throwable throwable) {
                     //noinspection ThrowableResultOfMethodCallIgnored
                     Throwable t = Throwables.getRootCause(throwable);
-                    ctx.failed(delete, new MutationResult(MutationResult.Code.FAILED, t.getClass().getSimpleName() + ":" + t.getMessage()));
+                    ctx.failed(delete, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
                     failed=true;
                 }
             }
         }
     }
 
-    private void delete(Mutation mutation, WriteContext ctx) {
+    private void delete(KVPair mutation, WriteContext ctx) {
         /*
          * Deleting a row involves first getting the row, then
          * constructing an index row key from the row, then issuing a
@@ -83,16 +84,9 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          */
         try {
 
-            Get get = SpliceUtils.createGet(mutation, mutation.getRow());
+            Get get = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo = null;
-            try {
-            	bdo = new ByteDataOutput();
-            	bdo.writeObject(predicateFilter);
-            	get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,bdo.toByteArray());
-            } catch (Exception e) {
-            	Closeables.closeQuietly(bdo);
-            }
+            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){
                 //already deleted? Weird, but okay, we can deal with that
@@ -100,32 +94,41 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            EntryDecoder getDecoder = new EntryDecoder();
-            getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
+            EntryDecoder getDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            try{
+                getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
 
-            EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
-            BitIndex getIndex = getDecoder.getCurrentIndex();
-            MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
-            for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
-                accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+                EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
+                BitIndex getIndex = getDecoder.getCurrentIndex();
+                MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
+                for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+                    if(descColumns.get(i))
+                        accumulate(indexKeyAccumulator,getIndex,getDescendingBuffer(getDecoder.nextAsBuffer(fieldDecoder,i)),i);
+                    else
+                        accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+                }
+
+                byte[] indexRowKey = indexKeyAccumulator.finish();
+
+                KVPair delete = KVPair.delete(indexRowKey);
+                if(keepState)
+                    indexToMainMutationMap.put(delete,mutation);
+
+                performDelete(delete,ctx);
+            }finally{
+                getDecoder.close();
             }
-
-            byte[] indexRowKey = indexKeyAccumulator.finish();
-
-            Mutation delete = Mutations.getDeleteOp(mutation,indexRowKey);
-            indexToMainMutationMap.put(delete,mutation);
-            performDelete(delete,ctx);
 
         } catch (IOException e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation, new MutationResult(MutationResult.Code.FAILED, e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 
-    protected void performDelete(final Mutation deleteOp, WriteContext ctx) throws Exception {
+    protected void performDelete(final KVPair deleteOp, WriteContext ctx) throws Exception {
         deletes.add(deleteOp);
     }
 }

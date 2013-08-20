@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access.hbase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -39,7 +40,8 @@ public class HBaseController  extends SpliceController {
             htable.put(put);
 			return 0;
 		} catch (Exception e) {
-			LOG.error(e.getMessage(),e);
+            throw Exceptions.parseException(e);
+//            LOG.error(e.getMessage(),e);
 		}finally{
             try {
                 htable.close();
@@ -47,7 +49,6 @@ public class HBaseController  extends SpliceController {
                 SpliceLogUtils.warn(LOG,"Unable to close htable");
             }
         }
-		return -1;
 	}
 
 	@Override

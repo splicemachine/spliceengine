@@ -1,7 +1,6 @@
 package com.splicemachine.encoding;
 
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 
 /**
  * Utilities for encoding various values using a sort-order preserving encoding
@@ -66,20 +65,6 @@ public final class Encoding {
     }
 
     /**
-     * Decode an ascending, sort-order-preserved encoding into a boolean. Ascending in this
-     * case means that {@code true} sorts before {@code false}.
-     *
-     * This is equivalent to calling {@link #decodeBoolean(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data ascending, sort-order-preserved encoding of a boolean.
-     * @return {@code true} if {@code data} represents {@code true} in an ascending, order-preserving
-     * encoding, false otherwise.
-     */
-    public static boolean decodeBoolean(ByteBuffer data){
-        return ScalarEncoding.toBoolean(data,false);
-    }
-
-    /**
      * Encode a boolean into an order-preserving encoding. The {@code desc} flag denotes
      * whether to sort in ascending or descending order.
      *
@@ -138,35 +123,14 @@ public final class Encoding {
     }
 
     /**
-     * Decode an order-preserving encoding into a boolean. The {@code desc} flag denotes
-     * whether the encoding was sorted in ascending or descending order.
-     *
-     * Ascending in this case means that {@code true} comes before {@code false}, while
-     * descending reverses this order.
-     *
-     * WARNING: In general, the encoding is not immune to the {@code desc} flag. This means that
-     * the {@code desc} flag <em>must</em> be set the same as when the data was encoded,
-     * or incorrect results may be returned. I.e. if {@code true} is encoded with {@code desc=true},
-     * then the resulting bytes are decoded with {@code desc=false}, the returned value may be {@code false},
-     * which is incorrect.
-     *
-     * @param data the encoded boolean data
-     * @param desc the sort-order of the encoding
-     * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
-     */
-    public static boolean decodeBoolean(ByteBuffer data,boolean desc){
-        return ScalarEncoding.toBoolean(data, desc);
-    }
-
-    /**
      * Encode a byte into an ascending,order-preserving byte encoding.
      *
      * @param value the value to be encoded
      * @return an order-preserving byte encoding.
      */
     public static byte[] encode(byte value){
-        //TODO -sf- is this the most effective way to do this?
-        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
+        return ScalarEncoding.toBytes(value,false);
+//        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
     }
 
     /**
@@ -176,7 +140,7 @@ public final class Encoding {
      * @return the decoded byte.
      */
     public static byte decodeByte(byte[] data){
-        return decodeBytes(data)[0];
+        return (byte)ScalarEncoding.toLong(data,false);
     }
 
     /**
@@ -191,7 +155,7 @@ public final class Encoding {
      * @return an order-preserving representation of {@code value}
      */
     public static byte[] encode(byte value,boolean desc){
-        return encode(new byte[]{value},desc);
+        return ScalarEncoding.toBytes(value,desc);
     }
 
     /**
@@ -205,15 +169,15 @@ public final class Encoding {
      * @return the byte represented by {@code data}
      */
     public static byte decodeByte(byte[] data,boolean desc){
-        return decodeBytes(data,desc)[0];
+        return (byte)ScalarEncoding.toLong(data,desc);
     }
 
     public static byte decodeByte(byte[] data, int offset){
-        return decodeBytes(data,offset,false)[0];
+        return (byte)ScalarEncoding.toLong(data,offset,false);
     }
 
     public static byte decodeByte(byte[] data, int offset,boolean desc){
-        return decodeBytes(data,offset,desc)[0];
+        return (byte)ScalarEncoding.toLong(data,offset, desc);
     }
 
     /**
@@ -237,18 +201,6 @@ public final class Encoding {
      * @return the short represented by {@code data}
      */
     public static short decodeShort(byte[] data){
-        return (short)ScalarEncoding.toLong(data,false);
-    }
-
-    /**
-     * Decode an ascending, order-preserving encoding into a short.
-     *
-     * Equivalent to {@link #decodeShort(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data the encoded data.
-     * @return the short represented by {@code data}
-     */
-    public static short decodeShort(ByteBuffer data){
         return (short)ScalarEncoding.toLong(data,false);
     }
 
@@ -280,21 +232,6 @@ public final class Encoding {
      * @return the short encoded by {@code data}
      */
     public static short decodeShort(byte[] data,boolean desc){
-        return (short)ScalarEncoding.toLong(data, desc);
-    }
-
-    /**
-     * Decode a short into an order-preserving encoding, with
-     * ordering determined by {@code desc}.
-     *
-     * WARNING: Encoding and decoding <em>must</em> use the same {@code desc}
-     * flag, or else incorrect results may be returned.
-     *
-     * @param data an order-preserving encoding of a short
-     * @param desc {@code true} if {@code data} was encoded in ascending order, {@code false} otherwise.
-     * @return the short encoded by {@code data}
-     */
-    public static short decodeShort(ByteBuffer data,boolean desc){
         return (short)ScalarEncoding.toLong(data, desc);
     }
 
@@ -331,17 +268,6 @@ public final class Encoding {
         return (int)ScalarEncoding.toLong(data,false);
     }
 
-    /**
-     * Decode an ascending, order-preserving encoding into an integer.
-     *
-     * Equivalent to {@link #decodeInt(byte[], boolean)}.
-     *
-     * @param data an ascending, order-preserving encoding of an int.
-     * @return the int represented by {@code data}
-     */
-    public static int decodeInt(ByteBuffer data){
-        return (int)ScalarEncoding.toLong(data,false);
-    }
 
     /**
      * Encode an integer into an order-preserving byte encoding, with {@code desc}
@@ -356,21 +282,6 @@ public final class Encoding {
      */
     public static byte[] encode(int value,boolean desc){
         return ScalarEncoding.toBytes(value,desc);
-    }
-
-    /**
-     * Decode an order-preserving byte encoding into an integer, with {@code desc} determining
-     * the order.
-     *
-     * WARNING: Encoding and Decoding values <em>must</em> be done with the same {@code desc}
-     * flag set, or else incorrect results may be returned.
-     *
-     * @param data the data to be decoded.
-     * @param desc {@code true} if {@code data} was encoded in descending order, {@code false} otherwise.
-     * @return the int represented by {@code data}
-     */
-    public static int decodeInt(ByteBuffer data,boolean desc){
-        return (int)ScalarEncoding.toLong(data,desc);
     }
 
     /**
@@ -417,18 +328,6 @@ public final class Encoding {
      * @param data an ascending, order-preserving encoding of a long.
      * @return the long represented by {@code data}.
      */
-    public static long decodeLong(ByteBuffer data){
-        return ScalarEncoding.toLong(data, false);
-    }
-
-    /**
-     * Decode an ascending, order-preserving encoding into a long.
-     *
-     * Equivalent to {@link #decodeLong(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data an ascending, order-preserving encoding of a long.
-     * @return the long represented by {@code data}.
-     */
     public static long decodeLong(byte[] data){
         return ScalarEncoding.toLong(data, false);
     }
@@ -446,22 +345,6 @@ public final class Encoding {
      */
     public static byte[] encode(long value,boolean desc){
         return ScalarEncoding.toBytes(value, desc);
-    }
-
-
-    /**
-     * Decode an order-preserving encoded byte[] into a long. The {@code desc} flag is used
-     * to determine whether the encoding is ascending or descending.
-     *
-     * WARNING: Encoding and decoding <em>must</em> be done with the same {@code desc} flag,
-     * or else incorrect answers may be returned
-     *
-     * @param data the data to decode
-     * @param desc {@code true} if {@code data} is encoded in descending order, {@code false } otherwise.
-     * @return the long represented by {@code data}
-     */
-    public static long decodeLong(ByteBuffer data,boolean desc){
-        return ScalarEncoding.toLong(data, desc);
     }
 
     /**
@@ -511,18 +394,6 @@ public final class Encoding {
         return DecimalEncoding.toFloat(data, false);
     }
 
-    /**
-     * Decode an ascending, order-preserving byte[] into a float.
-     *
-     * Equivalent to {@link #decodeFloat(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data an ascending, order-preserving encoding of a float.
-     * @return the float represented by {@code data}.
-     */
-    public static float decodeFloat(ByteBuffer data){
-        return DecimalEncoding.toFloat(data, false);
-    }
-
     public static float decodeFloat(byte[] data, int offset){
         return DecimalEncoding.toFloat(data,offset,false);
     }
@@ -557,21 +428,6 @@ public final class Encoding {
         return DecimalEncoding.toFloat(data,desc);
     }
 
-    /**
-     * Decode an order-preserving byte representation into a float. The flag {@code desc} determines
-     * whether {@code data} was encoded in ascending or descending order.
-     *
-     * WARNING: Encoding and Decoding <em>must</em> be performed with the same {@code desc} flag, or else
-     * incorrect results may be returned.
-     *
-     * @param data the data to be decoded
-     * @param desc {@code true} if  {@code data} was encoded in descending order, {@code false } otherwise.
-     * @return the float represented by {@code data}
-     */
-    public static float decodeFloat(ByteBuffer data,boolean desc){
-        return DecimalEncoding.toFloat(data,desc);
-    }
-
     public static float decodeFloat(byte[] data,int offset,boolean desc){
         return DecimalEncoding.toFloat(data, offset, desc);
     }
@@ -597,17 +453,6 @@ public final class Encoding {
      * @return the double represented by {@code data}.
      */
     public static double decodeDouble(byte[] data){
-        return DecimalEncoding.toDouble(data, false);
-    }
-    /**
-     * Decode an ascending, order-preserving byte[] into a double.
-     *
-     * Equivalent to {@link #decodeFloat(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data an ascending, order-preserving encoding of a double.
-     * @return the double represented by {@code data}.
-     */
-    public static double decodeDouble(ByteBuffer data){
         return DecimalEncoding.toDouble(data, false);
     }
 
@@ -645,22 +490,6 @@ public final class Encoding {
         return DecimalEncoding.toDouble(data, desc);
     }
 
-    /**
-     * Decode an order-preserving byte representation into a double. The flag {@code desc} determines
-     * whether {@code data} was encoded in ascending or descending order.
-     *
-     * WARNING: Encoding and Decoding <em>must</em> be performed with the same {@code desc} flag, or else
-     * incorrect results may be returned.
-     *
-     * @param data the data to be decoded
-     * @param desc {@code true} if  {@code data} was encoded in descending order, {@code false } otherwise.
-     * @return the double represented by {@code data}
-     */
-    public static double decodeDouble(ByteBuffer data,boolean desc){
-        return DecimalEncoding.toDouble(data, desc);
-    }
-
-
     public static double decodeDouble(byte[] data,int offset,boolean desc){
         return DecimalEncoding.toDouble(data,offset, desc);
     }
@@ -686,18 +515,6 @@ public final class Encoding {
      * @return the BigDecimal represented by {@code data}.
      */
     public static BigDecimal decodeBigDecimal(byte[] data){
-        return DecimalEncoding.toBigDecimal(data, false);
-    }
-
-    /**
-     * Decode an ascending, order-preserving byte[] into a BigDecimal.
-     *
-     * Equivalent to {@link #decodeFloat(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param data an ascending, order-preserving encoding of a BigDecimal.
-     * @return the BigDecimal represented by {@code data}.
-     */
-    public static BigDecimal decodeBigDecimal(ByteBuffer data){
         return DecimalEncoding.toBigDecimal(data, false);
     }
 
@@ -731,21 +548,6 @@ public final class Encoding {
         return DecimalEncoding.toBigDecimal(data, desc);
     }
 
-    /**
-     * Decode an order-preserving byte representation into a BigDecimal. The flag {@code desc} determines
-     * whether {@code data} was encoded in ascending or descending order.
-     *
-     * WARNING: Encoding and Decoding <em>must</em> be performed with the same {@code desc} flag, or else
-     * incorrect results may be returned.
-     *
-     * @param data the data to be decoded
-     * @param desc {@code true} if  {@code data} was encoded in descending order, {@code false } otherwise.
-     * @return the BigDecimal represented by {@code data}
-     */
-    public static BigDecimal decodeBigDecimal(ByteBuffer data,boolean desc){
-        return DecimalEncoding.toBigDecimal(data, desc);
-    }
-
     public static BigDecimal decodeBigDecimal(byte[] data,int offset,int length,boolean desc){
         return DecimalEncoding.toBigDecimal(data,offset,length,desc);
     }
@@ -772,18 +574,6 @@ public final class Encoding {
      */
     public static String decodeString(byte[] value){
         return StringEncoding.getStringCopy(value, 0, value.length, false);
-    }
-
-    /**
-     * Decode an ascending, order-preserving byte[] into a String.
-     *
-     * Equivalent to {@link #decodeFloat(byte[],boolean)} with {@code desc=false}.
-     *
-     * @param value an ascending, order-preserving encoding of a String.
-     * @return the String represented by {@code data}.
-     */
-    public static String decodeString(ByteBuffer value){
-        return StringEncoding.getStringCopy(value, false);
     }
 
     /**
@@ -821,21 +611,6 @@ public final class Encoding {
         return StringEncoding.getStringCopy(value,0,value.length,desc);
     }
 
-    /**
-     * Decode an order-preserving byte representation into a String. The flag {@code desc} determines
-     * whether {@code data} was encoded in ascending or descending order.
-     *
-     * WARNING: Encoding and Decoding <em>must</em> be performed with the same {@code desc} flag, or else
-     * incorrect results may be returned.
-     *
-     * @param value the data to be decoded
-     * @param desc {@code true} if  {@code data} was encoded in descending order, {@code false } otherwise.
-     * @return the String represented by {@code data}
-     */
-    public static String decodeString(ByteBuffer value,boolean desc){
-        return StringEncoding.getStringCopy(value,desc);
-    }
-
     public static String decodeString(byte[] value,int offset,int length,boolean desc){
         return StringEncoding.getStringCopy(value, offset, length, desc);
     }
@@ -857,16 +632,6 @@ public final class Encoding {
      * @return the byte[] represented by {@code encodedData}.
      */
     public static byte[] decodeBytes(byte[] encodedData){
-        return ByteEncoding.decode(encodedData,false);
-    }
-
-    /**
-     * Decode a {@code 0x00}-free byte[] into it's original format.
-     *
-     * @param encodedData the data to decode
-     * @return the byte[] represented by {@code encodedData}.
-     */
-    public static byte[] decodeBytes(ByteBuffer encodedData){
         return ByteEncoding.decode(encodedData,false);
     }
 
@@ -894,20 +659,8 @@ public final class Encoding {
         return ByteEncoding.decode(encodedData,desc);
     }
 
-    /**
-     * Decode a {@code 0x00}-free byte[] into it's original format. The flag {@code desc} is used to determine
-     * if the bytes were encoded in ascending or descending order.
-     *
-     * @param encodedData the encoded representation.
-     * @param desc {@code true} if {@code encodedData} is in descending order, {@code false} otherwise.
-     * @return the original, unencoded byte[] represented by {@code encodedData}.
-     */
-    public static byte[] decodeBytes(ByteBuffer encodedData,boolean desc){
-        return ByteEncoding.decode(encodedData,desc);
-    }
-
-    public static byte[] decodeBytes(byte[] encodedData,int offset,boolean desc){
-        return ByteEncoding.decode(encodedData,offset,desc);
+    public static byte[] decodeBytes(byte[] encodedData,int offset,int length,boolean desc){
+        return ByteEncoding.decode(encodedData,offset,length,desc);
     }
 
     public static byte[] decodeBytesUnsortd(byte[] encodedData,int offset,int length){
@@ -916,5 +669,13 @@ public final class Encoding {
 
     public static byte[] encodeBytesUnsorted(byte[] dataToEncode){
         return ByteEncoding.encodeUnsorted(dataToEncode);
+    }
+
+    public static byte[] encodedNullDouble() {
+        return DecimalEncoding.NULL_DOUBLE_BYTES;
+    }
+
+    public static byte[] encodedNullFloat() {
+        return DecimalEncoding.NULL_FLOAT_BYTES;
     }
 }

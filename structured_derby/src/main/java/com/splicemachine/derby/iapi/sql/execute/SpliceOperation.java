@@ -1,10 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
-import java.io.IOException;
 import java.util.List;
-
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -23,6 +20,8 @@ import org.apache.derby.iapi.types.RowLocation;
 public interface SpliceOperation extends NoPutResultSet {
 
     RowLocation getCurrentRowLocation();
+
+    void setCurrentRowLocation(RowLocation rowLocation);
 
     /**
 	 * 

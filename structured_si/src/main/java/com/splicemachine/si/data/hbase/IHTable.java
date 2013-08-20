@@ -8,7 +8,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -33,4 +32,6 @@ public interface IHTable {
 
     Integer lockRow(byte[] rowKey) throws IOException;
     void unLockRow(Integer lock) throws IOException;
+	void startOperation() throws IOException;
+	void closeOperation() throws IOException;	
 }

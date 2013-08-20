@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.*;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
@@ -18,9 +19,17 @@ public class EntryDecoder {
     private byte[] data;
     private boolean compressedData = false;
     private int dataOffset;
+    private MultiFieldDecoder decoder;
+    private final KryoPool kryoPool;
+
+    public EntryDecoder(KryoPool kryoPool) {
+        this.kryoPool = kryoPool;
+    }
 
     public void set(byte[] bytes){
         this.data = bytes;
+        if(decoder!=null)
+            decoder.set(data);
         rebuildBitIndex();
     }
 
@@ -105,14 +114,23 @@ public class EntryDecoder {
 //        }
     }
 
+//    public MultiFieldDecoder getEntryDecoder() throws IOException{
+//        decompressIfNeeded();
+//        MultiFieldDecoder wrap = MultiFieldDecoder.wrap(data);
+//        wrap.seek(dataOffset); //position self correctly in array
+//
+//        return wrap;
+//    }
+
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
-        MultiFieldDecoder wrap = MultiFieldDecoder.wrap(data);
-        wrap.seek(dataOffset); //position self correctly in array
+        if(decoder==null){
+            decoder = MultiFieldDecoder.wrap(data,kryoPool);
+        }
+        decoder.seek(dataOffset); //position self correctly in array
 
-        return wrap;
+        return decoder;
     }
-
 
     public void seekForward(MultiFieldDecoder decoder,int position) {
     /*
@@ -126,10 +144,9 @@ public class EntryDecoder {
             decoder.decodeNextLong(); //don't need the value, just need to seek past it
         }else if(bitIndex.isFloatType(position)){
             //floats are always 4 bytes, so skip the after delimiter
-            decoder.seek(decoder.offset() + 5);
+            decoder.skipFloat();
         }else if(bitIndex.isDoubleType(position)){
-            //doubles are always 8 bytes, so skip the after delimiter as well
-            decoder.seek(decoder.offset()+ 9);
+            decoder.skipDouble();
         }else
             decoder.skip();
     }
@@ -151,4 +168,10 @@ public class EntryDecoder {
         else
             accumulator.add(position,buffer);
     }
+
+    public void close(){
+        if(decoder!=null)
+            decoder.close();
+    }
+
 }

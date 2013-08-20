@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.Element;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -13,6 +16,7 @@ import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.Orderable;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.sql.catalog.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -23,6 +27,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -153,5 +159,42 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     
     public static void verifySetup() {
     }
-   
+    @Override
+	public SchemaDescriptor locateSchemaRow(String schemaName,  TransactionController tc) throws StandardException {
+    	/*
+    	Cache cache = SpliceDriver.driver().getCache(SpliceConstants.SYSSCHEMAS_INDEX1_ID_CACHE);
+    	Element element;
+    	if ( (element = cache.get(schemaName)) != null) {
+    		if (tc == null)
+    				tc = getTransactionCompile();
+    		tc.getActiveStateTxIdString();
+    		if (element.getVersion() >= Long.parseLong(tc.getActiveStateTxIdString())) {
+    			return (SchemaDescriptor) element.getObjectValue();
+    		}
+    	}
+    	*/
+		DataValueDescriptor		  schemaNameOrderable;
+		TabInfoImpl					  ti = coreInfo[SYSSCHEMAS_CORE_NUM];
+
+		schemaNameOrderable = new SQLVarchar(schemaName);
+
+		ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+		keyRow.setColumn(1, schemaNameOrderable);
+		
+		// XXX - TODO Cache Lookup
+		
+		SchemaDescriptor desc = (SchemaDescriptor)
+					getDescriptorViaIndex(
+						SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+						keyRow,
+						(ScanQualifier [][]) null,
+						ti,
+						(TupleDescriptor) null,
+						(List) null,
+						false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+						tc);
+		
+		return desc;
+	}
 }

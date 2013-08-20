@@ -4,6 +4,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -243,7 +244,7 @@ public class DerbyBytesUtilTest {
 
 	@Test
 	public void testIndexGeneration() throws IOException {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(2);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),2);
         byte[] testKey = encoder.encodeNext("John").encodeNext(11).build();
 
         encoder.reset();

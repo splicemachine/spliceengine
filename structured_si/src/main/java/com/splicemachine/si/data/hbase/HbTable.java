@@ -10,7 +10,6 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +38,16 @@ public class HbTable implements IHTable {
     public Iterator<Result> scan(Scan scan) throws IOException {
         final ResultScanner scanner = table.getScanner(scan);
         return scanner.iterator();
+    }
+
+    @Override
+    public void startOperation() throws IOException {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public void closeOperation() throws IOException {
+        throw new RuntimeException("not implemented");
     }
 
     @Override

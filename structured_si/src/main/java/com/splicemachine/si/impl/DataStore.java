@@ -4,8 +4,8 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -18,10 +18,10 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put extends OperationWithAttributes,
-        Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
+public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, OperationWithAttributes, Mutation, Put extends OperationWithAttributes,
+        Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus, Scanner> {
     final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final STableReader<IHTable, Result, Get, Scan> reader;
+    private final STableReader<IHTable, Result, Get, Scan, KeyValue, Scanner, Data> reader;
     private final STableWriter<IHTable, Mutation, Put, Delete, Data, Lock, OperationStatus> writer;
 
     private final String siNeededAttribute;
@@ -50,6 +50,7 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         this.dataLib = dataLib;
         this.reader = reader;
         this.writer = writer;
+
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
         this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
@@ -135,7 +136,34 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
         return delete;
     }
 
-    List<KeyValue>[] getCommitTimestampsAndTombstones(IHTable table, Data rowKey) throws IOException {
+    public Scan getCommitTimestampsAndTombstonesScan(ScanBounds<Data> scanBounds) throws IOException {
+        final List<List<Data>> columns = Arrays.asList(
+                Arrays.asList(siFamily, tombstoneQualifier),
+                Arrays.asList(siFamily, commitTimestampQualifier));
+        return dataLib.newScan(scanBounds.minKey, dataLib.increment(scanBounds.maxKey), null, columns, null);
+    }
+
+    public List<KeyValue>[] splitCommitTimestampsAndTombstones(List<KeyValue> result) {
+        if (result == null) {
+            return new List[]{null, null};
+        } else {
+            List<KeyValue> tombstones = new ArrayList<KeyValue>();
+            List<KeyValue> commitTimestamps = new ArrayList<KeyValue>();
+            for (KeyValue kv : result) {
+                if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), tombstoneQualifier)) {
+                    tombstones.add(kv);
+                } else {
+                    if (!(dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), commitTimestampQualifier))) {
+                        throw new RuntimeException("unexpected qualifier");
+                    }
+                    commitTimestamps.add(kv);
+                }
+            }
+            return new List[]{tombstones, commitTimestamps};
+        }
+    }
+
+    List<KeyValue>[] getCommitTimestampsAndTombstonesSingle(IHTable table, Data rowKey) throws IOException {
         final List<List<Data>> columns = Arrays.asList(
                 Arrays.asList(siFamily, tombstoneQualifier),
                 Arrays.asList(siFamily, commitTimestampQualifier));
@@ -267,4 +295,13 @@ public class DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes
     public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, Lock>[] mutationsAndLocks) throws IOException {
         return writer.writeBatch(table, mutationsAndLocks);
     }
+
+    public void closeLowLevelOperation(IHTable table) throws IOException {
+    	reader.closeOperation(table);
+    }
+
+    public void startLowLevelOperation(IHTable table) throws IOException {
+        reader.openOperation(table);
+    }
+
 }

@@ -159,5 +159,23 @@ abstract class LazyBitIndex implements BitIndex{
         decodeUntil(position);
         return decodedFloatFields.get(position);
     }
+
+    @Override
+    public BitSet getScalarFields() {
+        decodeAll();
+        return decodedScalarFields;
+    }
+
+    @Override
+    public BitSet getDoubleFields() {
+        decodeAll();
+        return decodedFloatFields;
+    }
+
+    @Override
+    public BitSet getFloatFlields() {
+        decodeAll();
+        return decodedDoubleFields;
+    }
 }
 

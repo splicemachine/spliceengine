@@ -1,16 +1,15 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -20,11 +19,8 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -34,7 +30,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.BitSet;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -99,31 +94,39 @@ public abstract class AbstractImportTask extends ZkTask {
             BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
             BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
             BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
-            FormatableBitSet pkCols = importContext.getPrimaryKeys();
+            int[] pkCols = importContext.getPrimaryKeys();
 
-            CallBuffer<Mutation> writeBuffer = getCallBuffer();
+            RecordingCallBuffer<KVPair> writeBuffer = getCallBuffer();
 
             keyType = pkCols==null?KeyType.SALTED: KeyType.BARE;
-            int pos =0;
-            if(pkCols!=null){
-                keyColumns = new int[pkCols.size()];
-                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
-                    keyColumns[pos] = i;
-                    pos++;
-                }
-            }else
-                keyColumns = new int[0];
+//            int pos =0;
+//            if(pkCols!=null){
+//                keyColumns = new int[pkCols.getNumBitsSet()];
+//                for(int i=pkCols.anySetBit();i!=-1;i=pkCols.anySetBit(i)){
+//                    keyColumns[pos] = i;
+//                    pos++;
+//                }
+//            }else
 
-            entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
 
-            Long numImported;
+            entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
+
+            long numImported;
+            long start = System.currentTimeMillis();
+            long stop;
             try{
                 numImported = importData(row,writeBuffer);
             }finally{
+                entryEncoder.close();
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
+                stop = System.currentTimeMillis();
             }
-            SpliceLogUtils.info(LOG,"imported %d records to table %s",numImported,importContext.getTableName());
+            if(LOG.isDebugEnabled()){
+                //log read stats
+                logStats(numImported,stop-start,writeBuffer);
+
+            }
         } catch (StandardException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
@@ -131,37 +134,28 @@ public abstract class AbstractImportTask extends ZkTask {
         }
     }
 
-    private BitSet getNonNullFields(ExecRow row) {
-        FormatableBitSet fbt = importContext.getActiveCols();
-        BitSet bitSet = new BitSet();
-        if(fbt!=null){
-            for(int i=fbt.anySetBit();i>=0;i=fbt.anySetBit(i)){
-                bitSet.set(i);
-            }
-        }else{
-            DataValueDescriptor[] rowArray = row.getRowArray();
-            for(int i=0;i<rowArray.length;i++){
-                if(rowArray[i]!=null&&!rowArray[i].isNull())
-                    bitSet.set(i);
-            }
-        }
-        return bitSet;
+    protected abstract void logStats(long numRecordsRead,long totalTimeTakeMs,RecordingCallBuffer<KVPair> callBuffer) throws IOException;
+
+    protected RecordingCallBuffer<KVPair> getCallBuffer() throws Exception {
+        return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes(), getTaskStatus().getTransactionId());
     }
 
-    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
-        return SpliceDriver.driver().getTableWriter().writeBuffer(importContext.getTableName().getBytes());
-    }
+    protected abstract long importData(ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception;
 
-    protected abstract long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception;
-
-    protected void doImportRow(String transactionId,String[] line, ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected void doImportRow(String[] line, ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
         populateRow(line, importContext.getActiveCols(), row);
 
-        entryEncoder.write(row,transactionId,writeBuffer);
+        entryEncoder.write(row,writeBuffer);
     }
 
 
     private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
+        //clear out any previous results
+        for(DataValueDescriptor dvd:row.getRowArray()){
+            if(dvd!=null)
+                dvd.setToNull();
+        }
+
         if(activeCols!=null){
             for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
                 row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string

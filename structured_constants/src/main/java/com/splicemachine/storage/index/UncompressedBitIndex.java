@@ -182,6 +182,21 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
+    public BitSet getScalarFields() {
+        return scalarFields;
+    }
+
+    @Override
+    public BitSet getDoubleFields() {
+        return doubleFields;
+    }
+
+    @Override
+    public BitSet getFloatFlields() {
+        return floatFields;
+    }
+
+    @Override
     public BitSet and(BitSet bitSet) {
         final BitSet result = (BitSet) this.bitSet.clone();
         result.and(bitSet);

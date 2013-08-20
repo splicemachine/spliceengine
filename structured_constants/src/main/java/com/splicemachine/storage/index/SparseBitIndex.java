@@ -226,6 +226,21 @@ class SparseBitIndex implements BitIndex {
         return floatFields.get(position);
     }
 
+    @Override
+    public BitSet getScalarFields() {
+        return scalarFields;
+    }
+
+    @Override
+    public BitSet getDoubleFields() {
+        return doubleFields;
+    }
+
+    @Override
+    public BitSet getFloatFlields() {
+        return floatFields;
+    }
+
     public static SparseBitIndex create(BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields) {
         BitSet cols = (BitSet)setCols.clone();
         BitSet sF = (BitSet)scalarFields.clone();

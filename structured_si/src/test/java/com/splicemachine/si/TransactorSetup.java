@@ -10,6 +10,7 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
+import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SITransactor;
@@ -65,7 +66,7 @@ public class TransactorSetup extends SIConstants {
                 commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
         transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
                 dataStore,
-                transactionStore, storeSetup.getClock(), 1500, new NoOpHasher(), listener);
+                transactionStore, storeSetup.getClock(), 1500, storeSetup.getHasher(), listener);
         if (!simple) {
             listener.setTransactor(transactor);
             hTransactor = listener;

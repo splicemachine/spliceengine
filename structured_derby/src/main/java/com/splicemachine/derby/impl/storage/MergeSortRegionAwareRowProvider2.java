@@ -2,14 +2,17 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -60,6 +63,10 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
 
     @Override
     public void close() {
+        if(rightKeyDecoder!=null)
+            rightKeyDecoder.close();
+        if(leftKeyDecoder!=null)
+            leftKeyDecoder.close();
         super.close();
         Closeables.closeQuietly(scanner);
     }
@@ -90,31 +97,48 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
         if(populated) return true;
         Result result = scanner.getNextResult();
         if(result!=null && !result.isEmpty()){
-            int ordinal = Encoding.decodeInt(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,JoinUtils.JOIN_SIDE_COLUMN));
+            /*
+             * We need to get the ordinal from the Row Key.
+             *
+             * The format of the key is
+             *
+             * data + Ordinal + 8-byte task Id + 8 byte UUID
+             *
+             * The ordinal is either 0 or 1, both of which encode to a single byte. Thus,
+             * the ordinal is the byte located at data.length-19 (don't forget the separators).
+             */
+            byte[] key = result.getRow();
+            int ordinal = Encoding.decodeInt(key,key.length-19);
+//            int ordinal = Encoding.decodeInt(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES,JoinUtils.JOIN_SIDE_COLUMN));
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 ExecRow rightRow = rightDecoder.decode(result.raw());
                 currentRow = rightRow;
                 if(rightSideRow==null){
-                    rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
                     rightKeyDecoder.seek(9);
-                    rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT, rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
+                    byte[] data = DerbyBytesUtil.slice(rightKeyDecoder,rightDecoder.getKeyColumns(),rightRow.getRowArray());
+                    rightSideRow = new JoinSideExecRow(rightRow,JoinUtils.JoinSide.RIGHT,data);
+//                    rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT, rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
                 }else{
                     rightKeyDecoder.set(result.getRow());
                     rightKeyDecoder.seek(9);
-                    rightSideRow.setHash(rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
+                    byte[] data = DerbyBytesUtil.slice(rightKeyDecoder,rightDecoder.getKeyColumns(),rightRow.getRowArray());
+                    rightSideRow.setHash(data);
                 }
                 joinSideRow = rightSideRow;
             }else{
                 ExecRow leftRow = leftDecoder.decode(result.raw());
                 currentRow = leftRow;
                 if(leftSideRow==null){
-                    leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow());
+                    leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
                     leftKeyDecoder.seek(9);
-                    leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,leftKeyDecoder.slice(leftDecoder.getKeyColumns().length));
+                    byte[] data = DerbyBytesUtil.slice(leftKeyDecoder,leftDecoder.getKeyColumns(),leftRow.getRowArray());
+                    leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,data);
                 }else{
                     leftKeyDecoder.set(result.getRow());
                     leftKeyDecoder.seek(9);
-                    leftSideRow.setHash(leftKeyDecoder.slice(leftDecoder.getKeyColumns().length));
+                    byte[] data = DerbyBytesUtil.slice(leftKeyDecoder,leftDecoder.getKeyColumns(),leftRow.getRowArray());
+                    leftSideRow.setHash(data);
                 }
                 joinSideRow = leftSideRow;
             }
@@ -127,6 +151,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
         }
         return false;
     }
+
 
     @Override
     public ExecRow next() throws StandardException {
@@ -150,7 +175,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
             decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal
@@ -165,7 +190,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
             if(data==null) return null;
             int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow());
+            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
             decoder.seek(9); //skip the prefix value
             if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
                 //copy out all the fields from the key until we reach the ordinal

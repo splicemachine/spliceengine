@@ -8,6 +8,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
+import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -22,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -51,7 +53,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected boolean failed;
 
-    protected final Map<Mutation,Mutation> indexToMainMutationMap = Maps.newHashMap();
+    protected final Map<KVPair,KVPair> indexToMainMutationMap = Maps.newHashMap();
 
     /*
      * The columns in the main table which are indexed (ordered by the position in the main table).
@@ -59,24 +61,39 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     protected final BitSet indexedColumns;
 
     /*
+     * The columns in the index table (e.g. mainColToIndexPosMap[indexedColumns.get()])
+     */
+    protected final BitSet translatedIndexColumns;
+    /*
      * Mapping between the position in the main column's data stream, and the position in the index
      * key. The length of this is the same as the number of columns in the main table, and if the
      * fields isn't in the index, then the value of this map should be -1.
      */
     protected final int[] mainColToIndexPosMap;
 
-    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes) {
+    protected final BitSet descColumns;
+    protected final boolean keepState;
+
+    protected AbstractIndexWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
         this.indexedColumns = indexedColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;
+        this.descColumns = descColumns;
+        this.keepState = keepState;
+
+        this.translatedIndexColumns = new BitSet(indexedColumns.cardinality());
+        for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
+            translatedIndexColumns.set(mainColToIndexPosMap[i]);
+        }
     }
 
+
     @Override
-    public void next(Mutation mutation, WriteContext ctx) {
+    public void next(KVPair mutation, WriteContext ctx) {
         if(failed)
             ctx.notRun(mutation);
-        else if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null)
-            ctx.sendUpstream(mutation);
+//        else if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null)
+//            ctx.sendUpstream(mutation);
         else{
             boolean sendUp = updateIndex(mutation,ctx);
             if(sendUp){
@@ -93,8 +110,8 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             SpliceLogUtils.error(LOG,e);
             if(e instanceof WriteFailedException){
                 WriteFailedException wfe = (WriteFailedException)e;
-                for(Mutation originalMutation:indexToMainMutationMap.values()){
-                    ctx.failed(originalMutation, new MutationResult(MutationResult.Code.FAILED, wfe.getMessage()));
+                for(KVPair originalMutation:indexToMainMutationMap.values()){
+                    ctx.failed(originalMutation, WriteResult.failed(wfe.getMessage()));
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate
@@ -102,64 +119,62 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         }
     }
 
-    protected abstract boolean updateIndex(Mutation mutation, WriteContext ctx);
+    protected abstract boolean updateIndex(KVPair mutation, WriteContext ctx);
 
     protected abstract void finish(WriteContext ctx) throws Exception;
 
-    protected CallBuffer<Mutation> getWriteBuffer(final WriteContext ctx) {
-        return ctx.getWriteBuffer(indexConglomBytes,new TableWriter.FlushWatcher() {
+    protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx) throws Exception {
+        WriteCoordinator.PreFlushHook flushHook = new WriteCoordinator.PreFlushHook() {
             @Override
-            public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
-                /*
-                 * If a row has failed already, there's no sense in writing it out, so
-                 * we filter out already failed items.
-                 */
-                return Lists.newArrayList(Collections2.filter(mutations, new Predicate<Mutation>() {
+            public List<KVPair> transform(List<KVPair> buffer) throws Exception {
+                return Lists.newArrayList(Collections2.filter(buffer,new Predicate<KVPair>() {
                     @Override
-                    public boolean apply(@Nullable Mutation input) {
+                    public boolean apply(@Nullable KVPair input) {
                         return ctx.canRun(input);
                     }
                 }));
             }
-
+        };
+        Writer.RetryStrategy retryStrategy = new Writer.RetryStrategy() {
             @Override
-            public Response globalError(Throwable t) throws Exception {
-                /*
-                 * When writing, you can get a NotServingRegionException before attempting the write
-                 * of any individual record, so you know if you got this error, then you can
-                 * retry the entire batch safely.
-                 */
-                return t instanceof NotServingRegionException ? Response.RETRY: Response.THROW_ERROR;
+            public int getMaximumRetries() {
+                return SpliceConstants.numRetries;
             }
 
             @Override
-            public Response partialFailure(MutationRequest request,MutationResponse response) throws Exception {
-                Map<Integer,MutationResult> failedRows = response.getFailedRows();
-                boolean canRetry=true;
-                for(Integer row:failedRows.keySet()){
-                    MutationResult result = failedRows.get(row);
-                    if(!result.isRetryable()){
+            public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+                return t instanceof NotServingRegionException ? Writer.WriteResponse.RETRY: Writer.WriteResponse.THROW_ERROR;
+            }
+
+            @Override
+            public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
+                Map<Integer,WriteResult> failedRows = result.getFailedRows();
+                boolean canRetry = true;
+                for(WriteResult writeResult: failedRows.values()){
+                    if(!writeResult.canRetry()){
                         canRetry=false;
                         break;
                     }
                 }
-                if(canRetry) return Response.RETRY;
+
+                if(canRetry) return Writer.WriteResponse.RETRY;
                 else{
-                    /*
-                     * We don't want to retry, but neither do we want to throw an exception.
-                     *
-                     * Instead, map the error messages back onto the original Mutation, and record the
-                     * error message into the context
-                     */
-                    List<Mutation> indexMutations = request.getMutations();
-                    for(Integer indexRow:failedRows.keySet()){
-                        Mutation indexMutation = indexMutations.get(indexRow);
-                        ctx.failed(indexToMainMutationMap.get(indexMutation),failedRows.get(indexRow));
+                    List<KVPair> indexMutations = request.getMutations();
+                    for(Integer row:failedRows.keySet()){
+                        KVPair kvPair = indexMutations.get(row);
+                        ctx.failed(indexToMainMutationMap.get(kvPair),failedRows.get(row));
                     }
-                    return Response.RETURN;
+                    return Writer.WriteResponse.IGNORE;
                 }
             }
-        });
+
+            @Override
+            public long getPause() {
+                return WriteCoordinator.pause;
+            }
+        };
+
+        return ctx.getWriteBuffer(indexConglomBytes,flushHook,retryStrategy);
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
@@ -171,5 +186,16 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
         else
             newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
+    }
+
+    protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
+        entry.mark();
+        byte[] data = new byte[entry.remaining()];
+        entry.get(data);
+        entry.reset();
+        for(int i=0;i<data.length;i++){
+            data[i]^=0xff;
+        }
+        return ByteBuffer.wrap(data);
     }
 }

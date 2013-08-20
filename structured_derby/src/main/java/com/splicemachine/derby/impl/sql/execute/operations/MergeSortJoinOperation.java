@@ -23,6 +23,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -187,7 +188,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         if(uniqueSequenceID!=null){
             byte[] start = new byte[uniqueSequenceID.length];
             System.arraycopy(uniqueSequenceID,0,start,0,start.length);
-            byte[] finish = BytesUtil.copyAndIncrement(start);
+            byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
             rowType = (SQLInteger) activation.getDataValueFactory().getNullInteger(null);
             if(regionScanner==null){
                 reduceScan = Scans.newScan(start,finish, getTransactionID());
@@ -239,7 +240,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",opStack);
 
         ExecRow rowDef = getExecRowDefinition();
-        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packedCompressed());
+        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packed());
 		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
@@ -259,7 +260,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     private RowEncoder getRowEncoder(final int numCols,int[] keyColumns) throws StandardException {
         int[] rowColumns;
         final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
-        final byte[] ordinalColumn = JoinUtils.JOIN_SIDE_COLUMN;
         KeyMarshall keyType = new KeyMarshall() {
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
@@ -299,7 +299,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
             }
         };
-        RowMarshall rowType = RowMarshaller.packedCompressed();
+        RowMarshall rowType = RowMarshaller.packed();
         /*
          * Because there may be duplicate entries in keyColumns, we need to make sure
          * that rowColumns deals only with the unique form.
@@ -323,14 +323,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         }
 
-        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType){
-            @Override
-            protected Put doPut(ExecRow row) throws StandardException {
-                Put put =  super.doPut(row);
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,ordinalColumn,joinSideBytes);
-                return put;
-            }
-        };
+        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType);
     }
 
     @Override
@@ -441,15 +434,33 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 			}
         }
 
-        private ExecRow getRightRowForLeft(JoinSideExecRow leftJoinRow) {
+        private ExecRow getRightRowForLeft(JoinSideExecRow leftJoinRow) throws StandardException {
             boolean matchingRights = leftJoinRow.sameHash(rightHash);
-            if (matchingRights){
+            // apply restriction
+            int rightsMax = rights != null ? rights.size() : 0;
+            List<ExecRow> filtered = new ArrayList<ExecRow>(rightsMax);
+            if (matchingRights) {
+                if (restriction == null) {
+                    filtered = rights;
+                } else {
+                    ExecRow leftRow = leftJoinRow.getRow();
+                    for (ExecRow right : rights) {
+                        ExecRow merged = JoinUtils.getMergedRow(leftRow, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+                        activation.setCurrentRow(merged, resultSetNumber());
+                        DataValueDescriptor shouldKeep = restriction.invoke();
+                        if (!shouldKeep.isNull() && shouldKeep.getBoolean()) {
+                            filtered.add(right);
+                        }
+                    }
+                }
+            }
+            if (filtered.size() > 0) {
                 if (notExistsRightSide) {
                     SpliceLogUtils.trace(LOG, "right antijoin miss for left=%s", leftJoinRow);
                     return null;
                 }
                 SpliceLogUtils.trace(LOG, "initializing iterator with rights for left=%s", leftJoinRow);
-                rightIterator = rights.iterator();
+                rightIterator = filtered.iterator();
                 return rightIterator.next();
             } else {
                 resetRightSide();

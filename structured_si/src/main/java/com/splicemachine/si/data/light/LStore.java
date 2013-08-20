@@ -4,6 +4,8 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
+import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.PushBackIterator;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -19,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
+public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValue, LScanner, Object>,
         STableWriter<LTable, LTuple, LTuple, LTuple, Object, LRowLock, OperationStatus> {
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
@@ -68,8 +70,17 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
         return runScan(table, scan);
     }
 
+    private Iterator<List<LKeyValue>> scanRegion(LTable table, LGet scan) throws IOException {
+        final Iterator<LTuple> iterator = runScan(table, scan);
+        List<List<LKeyValue>> results = new ArrayList<List<LKeyValue>>();
+        while (iterator.hasNext()) {
+            results.add(iterator.next().values);
+        }
+        return results.iterator();
+    }
+
     private Iterator runScan(LTable table, LGet get) {
-        List<LTuple> tuples = relations.get(((LTable) table).relationIdentifier);
+        List<LTuple> tuples = relations.get(table.relationIdentifier);
         if (tuples == null) {
             tuples = new ArrayList<LTuple>();
         }
@@ -161,7 +172,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
             write(table, p.getFirst());
         }
         OperationStatus[] result = new OperationStatus[puts.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             result[i] = new OperationStatus(HConstants.OperationStatusCode.SUCCESS);
         }
         return result;
@@ -360,5 +371,13 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet>,
             newRows.add(newRow);
         }
         relations.put(tableName, newRows);
+    }
+
+    @Override
+    public void closeOperation(LTable table) throws IOException {
+    }
+
+    @Override
+    public void openOperation(LTable table) throws IOException {
     }
 }

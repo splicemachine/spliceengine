@@ -1,0 +1,4 @@
+# Filters for Derby test output
+# BUG 544
+hadoop.native.lib is deprecated. Instead, use io.native.lib.available
+

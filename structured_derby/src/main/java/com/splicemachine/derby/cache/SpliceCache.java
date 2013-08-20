@@ -51,8 +51,10 @@ public class SpliceCache extends SpliceConstants {
 		config.addCacheManagerPeerProviderFactory(new SplicePeerProviderFactoryConfiguration(SpliceConstants.multicastGroupAddress,SpliceConstants.multicastGroupPort));
 		config.addCacheManagerPeerListenerFactory(new SplicePeerListenerFactoryConfiguration(port,objectPort));
 		cacheManager = new CacheManager(config);
-		Cache cache = new Cache(new SpliceCacheConfiguration(PROPERTIES_CACHE, 1000));		
-		cacheManager.addCache(cache);		
+		for (String cacheName: SYSSCHEMAS_CACHES) {
+			Cache cache = new Cache(new SpliceCacheConfiguration(cacheName, 1000));							
+			cacheManager.addCache(cache);	
+		}
 	}
 
 
@@ -60,12 +62,9 @@ public class SpliceCache extends SpliceConstants {
 		return cacheManager;
 	}
 
-
 	public void setCacheManager(CacheManager cacheManager) {
 		this.cacheManager = cacheManager;
 	}
-	
-	
 	
 }
 

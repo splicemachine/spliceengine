@@ -8,6 +8,7 @@ import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -112,4 +113,46 @@ public class TestUtils {
             }
         };
     }
+
+
+    /**
+     * Calculate and return the string duration of the given start and end times (in milliseconds)
+     * @param startMilis the starting time of the duration given by <code>System.currentTimeMillis()</code>
+     * @param stopMilis the ending time of the duration given by <code>System.currentTimeMillis()</code>
+     * @return example <code>0 hrs 04 min 41 sec 337 mil</code>
+     */
+    public static String getDuration(long startMilis, long stopMilis) {
+
+        long secondInMillis = 1000;
+        long minuteInMillis = secondInMillis * 60;
+        long hourInMillis = minuteInMillis * 60;
+
+        long diff = stopMilis - startMilis;
+        long elapsedHours = diff / hourInMillis;
+        diff = diff % hourInMillis;
+        long elapsedMinutes = diff / minuteInMillis;
+        diff = diff % minuteInMillis;
+        long elapsedSeconds = diff / secondInMillis;
+        diff = diff % secondInMillis;
+
+        return String.format("%d hrs %02d min %02d sec %03d mil", elapsedHours, elapsedMinutes, elapsedSeconds, diff);
+    }
+
+    public static int printResult(String statement, ResultSet rs, PrintStream out) throws SQLException {
+        if (rs.isClosed()) {
+            return 0;
+        }
+        int resultSetSize = 0;
+        out.println();
+        out.println(statement);
+        for (Map map : TestUtils.resultSetToMaps(rs)) {
+            out.println("--- "+(++resultSetSize));
+            for (Object entryObj : map.entrySet()) {
+                Map.Entry entry = (Map.Entry) entryObj;
+                out.println(entry.getKey() + ": " + entry.getValue());
+            }
+        }
+        return resultSetSize;
+    }
+
 }

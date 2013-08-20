@@ -11,6 +11,9 @@ import java.nio.ByteBuffer;
  */
 final class DecimalEncoding {
 
+    static final byte[] NULL_DOUBLE_BYTES = new byte[]{0,0};
+    static final byte[] NULL_FLOAT_BYTES = new byte[]{0, 0};
+
     /**
      * Serialize a BigDecimal to a byte[] in such a way as to preserve
      * the natural order of elements.
@@ -225,10 +228,10 @@ final class DecimalEncoding {
 
         int length=((dataLength-offset)*2);
         byte last;
-        if(dataOffset+length>=data.length)
+        if(dataOffset+dataLength>=data.length)
             last = data[data.length-1];
         else
-            last = data[dataOffset+length-1];
+            last = data[dataOffset+dataLength-1];
         if(desc)
             last ^= 0xff;
         if((last &0xf) ==0)
@@ -258,13 +261,24 @@ final class DecimalEncoding {
             }
         }
 
-
         int scale = (int)(exp-length+1l);
         BigInteger i = new BigInteger(sign==0?new String(chars): '-'+new String(chars));
         return new BigDecimal(i,-scale);
-
     }
 
+    /**
+     * Will generate an 8-byte, big-endian, sorted representation of the Double, in accordance
+     * with IEEE 754, except that all NaNs will be coalesced into a single "canonical" NaN.
+     *
+     * Because it is not possible to
+     *
+     * The returned byte[] will <em>never</em> encode to all zeros. This makes an 8-byte zero field
+     * available to use as a NULL indicator.
+     *
+     * @param value the double to encode
+     * @param desc whether or not to encode in descending order
+     * @return an 8-byte, big-endian, sorted encoding of the double.
+     */
     public static byte[] toBytes(double value, boolean desc){
         long l = Double.doubleToLongBits(value);
         l = (l^ ((l >> Long.SIZE-1) | Long.MIN_VALUE))+1;

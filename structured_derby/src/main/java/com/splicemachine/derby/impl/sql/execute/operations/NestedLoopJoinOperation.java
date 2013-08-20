@@ -131,43 +131,35 @@ public class NestedLoopJoinOperation extends JoinOperation {
         return next(false);
 	}
 
+    protected ExecRow leftNext() throws StandardException {
+        return leftResultSet.getNextRowCore();
+    }
+
     protected ExecRow next(boolean outerJoin) throws StandardException {
-        //		SpliceLogUtils.trace(LOG, "getNextRowCore");
         beginTime = getCurrentTimeMillis();
-        if (nestedLoopIterator == null) {
-            if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
-                mergedRow = null;
-                setCurrentRow(mergedRow);
-                return mergedRow;
-            } else {
-                leftResultSet.setCurrentRow(leftRow);
-                rowsSeenLeft++;
-                nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
-                return getNextRowCore();
+        // loop until NL iterator produces result, or until left side exhausted
+        while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext())
+                && ( (leftRow = leftNext()) != null) ){
+            if (nestedLoopIterator != null){
+                nestedLoopIterator.close();
             }
+            leftResultSet.setCurrentRow(leftRow);
+            rowsSeenLeft++;
+            nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
         }
-        if(!nestedLoopIterator.hasNext()){
-            nestedLoopIterator.close();
-
-            if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
-                mergedRow = null;
-                setCurrentRow(mergedRow);
-                return mergedRow;
-            } else {
-                rowsSeenLeft++;
-                nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
-                return getNextRowCore();
-            }
+        if (leftRow == null){
+            mergedRow = null;
+            setCurrentRow(mergedRow);
+            return mergedRow;
+        } else {
+            SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
+            ExecRow next = nestedLoopIterator.next();
+            SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
+            setCurrentRow(next);
+            nextTime += getElapsedMillis(beginTime);
+            rowsReturned++;
+            return next;
         }
-
-        SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
-        ExecRow next = nestedLoopIterator.next();
-        SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
-        setCurrentRow(next);
-        nextTime += getElapsedMillis(beginTime);
-        rowsReturned++;
-//		mergedRow=null;
-        return next;
     }
 	
 	@Override
@@ -252,7 +244,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				}
 
 				if (restriction != null) {
-					DataValueDescriptor restrictBoolean = (DataValueDescriptor) restriction.invoke(activation);
+					DataValueDescriptor restrictBoolean = restriction.invoke();
 					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
 						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
 						populated=false;

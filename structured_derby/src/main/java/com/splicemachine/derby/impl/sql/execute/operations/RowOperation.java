@@ -21,6 +21,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -31,7 +32,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	protected int rowsReturned;
 	protected boolean canCacheRow;
 	protected boolean next = false;
-	protected GeneratedMethod row;
+	protected SpliceMethod<ExecRow> row;
 	protected ExecRow		cachedRow;
     private String rowMethodName; //name of the row method for
 
@@ -50,7 +51,6 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		double 			optimizerEstimatedRowCount,
 		double 			optimizerEstimatedCost ) throws StandardException {
 		super(activation, resultSetNumber,optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.row = row;
 		this.canCacheRow = canCacheRow;
         this.rowMethodName = row.getMethodName();
         init(SpliceOperationContext.newContext(activation));
@@ -77,13 +77,8 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         super.init(context);
         next = false;
         if(row==null && rowMethodName!=null){
-            if(rowMethodName!=null){
-                try {
-                    this.row = activation.getPreparedStatement().getActivationClass().getMethod(rowMethodName);
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
-                }
-            }
+            if(rowMethodName!=null)
+                    this.row = new SpliceMethod<ExecRow>(rowMethodName,activation);
         }
     }
 
@@ -134,7 +129,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 		    return cachedRow;
 		}
 		else if (row != null) {
-		    ExecRow currentRow  = (ExecRow) row.invoke(activation);
+		    ExecRow currentRow  = row.invoke();
 		    if (canCacheRow) {
 		        cachedRow = currentRow;
 		    }

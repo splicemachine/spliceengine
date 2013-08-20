@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,14 +23,14 @@ public class EntryEncoderDecoderTest {
         BitSet scalarFields = new BitSet();
         scalarFields.set(0);
         scalarFields.set(1);
-        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3, setCols, scalarFields, null, null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));
@@ -46,7 +47,7 @@ public class EntryEncoderDecoderTest {
         BitSet scalarFields = new BitSet();
         scalarFields.set(0);
         scalarFields.set(2);
-        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -54,7 +55,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));
@@ -72,7 +73,7 @@ public class EntryEncoderDecoderTest {
         BitSet scalarFields = new BitSet();
         scalarFields.set(1);
         scalarFields.set(2);
-        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.setRawBytes(null);
@@ -80,7 +81,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.encodeNext(2);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertEquals(0,decoder.getData(0).length);
@@ -98,7 +99,7 @@ public class EntryEncoderDecoderTest {
         BitSet scalarFields = new BitSet();
         scalarFields.set(1);
         scalarFields.set(2);
-        EntryEncoder encoder = EntryEncoder.create(3,setCols,scalarFields,null,null);
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(),3,setCols,scalarFields,null,null);
 
         MultiFieldEncoder entryEncoder = encoder.getEntryEncoder();
         entryEncoder.encodeNext(1);
@@ -106,7 +107,7 @@ public class EntryEncoderDecoderTest {
         entryEncoder.setRawBytes(null);
         byte[] encode = encoder.encode();
 
-        EntryDecoder decoder = new EntryDecoder();
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(encode);
 
         Assert.assertEquals(1, Encoding.decodeInt(decoder.getData(0)));

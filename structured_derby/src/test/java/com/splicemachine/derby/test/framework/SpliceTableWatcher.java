@@ -11,7 +11,7 @@ import org.junit.runner.Description;
 
 public class SpliceTableWatcher extends TestWatcher {
 	private static final Logger LOG = Logger.getLogger(SpliceTableWatcher.class);
-	protected String tableName;
+	public String tableName;
 	protected String schemaName;
 	protected String createString;
 	public SpliceTableWatcher(String tableName,String schemaName, String createString) {
@@ -36,7 +36,7 @@ public class SpliceTableWatcher extends TestWatcher {
 			statement.execute(String.format("create table %s.%s %s",schemaName,tableName,createString));
 			connection.commit();
 		} catch (Exception e) {
-			LOG.error("Create table statement is invalid ");
+			LOG.error("Create table statement is invalid. Statement = "+ String.format("create table %s.%s %s",schemaName,tableName,createString));
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
@@ -49,19 +49,20 @@ public class SpliceTableWatcher extends TestWatcher {
 	@Override
 	protected void finished(Description description) {
 		LOG.trace("finished");
-		executeDrop(schemaName,tableName);
+//		executeDrop(schemaName,tableName);
 	}
 	
-	public static void executeDrop(String schemaName,String tableName) {
+	public static void executeDrop(String schemaName,String tableName, boolean isView) {
 		LOG.trace("executeDrop");
 		Connection connection = null;
 		Statement statement = null;
+        String tableOrView = isView ? "view" : "table";
 		try {
 			connection = SpliceNetConnection.getConnection();
 			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
 			if (rs.next()) {
 				statement = connection.createStatement();
-				statement.execute(String.format("drop table %s.%s",schemaName.toUpperCase(),tableName.toUpperCase()));
+				statement.execute(String.format("drop %s %s.%s",tableOrView,schemaName.toUpperCase(),tableName.toUpperCase()));
 				connection.commit();
 			}
 		} catch (Exception e) {
@@ -71,6 +72,10 @@ public class SpliceTableWatcher extends TestWatcher {
 			DbUtils.closeQuietly(statement);
 			DbUtils.commitAndCloseQuietly(connection);
 		}
+	}
+
+    public static void executeDrop(String schemaName,String tableName) {
+        executeDrop(schemaName, tableName, false);
 	}
 
 	public void importData(String filename) {
@@ -95,5 +100,9 @@ public class SpliceTableWatcher extends TestWatcher {
     @Override
     public String toString() {
         return schemaName+"."+tableName;
+    }
+
+    public String getSchema() {
+        return schemaName;
     }
 }

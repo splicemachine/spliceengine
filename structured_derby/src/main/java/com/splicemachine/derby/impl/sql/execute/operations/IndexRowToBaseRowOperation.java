@@ -4,14 +4,20 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.utils.ConcurrentRingBuffer;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -26,17 +32,16 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,11 +50,9 @@ import com.splicemachine.utils.SpliceLogUtils;
  * Maps between an Index Table and a data Table.
  */
 public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements CursorResultSet{
-
 	private static Logger LOG = Logger.getLogger(IndexRowToBaseRowOperation.class);
 	protected int lockMode;
 	protected int isolationLevel;
-//	protected ExecRow candidate;
 	protected FormatableBitSet accessedCols;
 	protected String resultRowAllocatorMethodName;
 	protected StaticCompiledOpenConglomInfo scoci;
@@ -57,7 +60,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected SpliceOperation source;
 	protected String indexName;
 	protected boolean forUpdate;
-	protected GeneratedMethod restriction;
+	protected SpliceMethod<DataValueDescriptor> restriction;
 	protected String restrictionMethodName;
 	protected FormatableBitSet accessedHeapCols;
 	protected FormatableBitSet heapOnlyCols;
@@ -73,7 +76,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	protected int indexColMapItem;
 	private ExecRow compactRow;
 	RowLocation baseRowLocation = null;
-//	FormatableBitSet accessFromTableCols;
 	boolean copiedFromSource = false;
 
 	/*
@@ -81,11 +83,11 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
  	 * getExecRowDefinition(). Save a little bit of performance by caching it
  	 * once created.
  	 */
-//	private ExecRow definition;
 	private HTableInterface table;
     private MultiFieldDecoder fieldDecoder;
-    private FormatableBitSet heapCols; //used during the fetch to access the correct heap columns --0-indexed
     private int[] adjustedBaseColumnMap;
+    private byte[] predicateFilterBytes;
+    private ConcurrentRingBuffer<RowAndLocation> ringBuffer;
 
 
     public IndexRowToBaseRowOperation () {
@@ -118,7 +120,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		scociItem = in.readInt();
 		conglomId = in.readLong();
@@ -135,7 +136,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeInt(scociItem);
 		out.writeLong(conglomId);
@@ -152,22 +152,19 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
-//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
 		source.init(context);
 		try {
-			GenericStorablePreparedStatement statement = context.getPreparedStatement();
 			if(restrictionMethodName !=null){
 				SpliceLogUtils.trace(LOG,"%s:restrictionMethodName=%s",indexName,restrictionMethodName);
-				restriction = statement.getActivationClass().getMethod(restrictionMethodName);
+				restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			}
-			GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
+			SpliceMethod<ExecRow> generatedMethod = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
 			final GenericPreparedStatement gp = (GenericPreparedStatement)activation.getPreparedStatement();
 			final Object[] saved = gp.getSavedObjects();
 			scoci = (StaticCompiledOpenConglomInfo)saved[scociItem];
 			TransactionController tc = activation.getTransactionController();
 			dcoci = tc.getDynamicCompiledConglomInfo(conglomId);
-
 			// the saved objects, if it exists
 			if (heapColRefItem != -1) {
 				this.accessedHeapCols = (FormatableBitSet)saved[heapColRefItem];
@@ -178,8 +175,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
             // retrieve the array of columns coming from the index
             indexCols = ((ReferencedColumnsDescriptorImpl) saved[indexColMapItem]).getReferencedColumnPositions();
-			/* Get the result row template */
-            resultRow = (ExecRow) generatedMethod.invoke(activation);
+			/* Get the result row template */           
+			resultRow = generatedMethod.invoke();
 
             compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
 
@@ -191,16 +188,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                     adjustedBaseColumnMap[pos] = baseColumnMap[i];
                     pos++;
                 }
-//                if(heapOnlyCols!=null){
-//                    adjustedBaseColumnMap = new int[heapOnlyCols.getNumBitsSet()];
-//                    this.heapCols = new FormatableBitSet(heapOnlyCols.size());
-//                    for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
-//                        adjustedBaseColumnMap[i-1] = baseColumnMap[i];
-//                    }
-//                }else{
-//                    heapCols = heapOnlyCols;
-//                    adjustedBaseColumnMap = baseColumnMap;
-//                }
 			}
 
             if (accessedHeapCols == null) {
@@ -234,7 +221,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
             SpliceLogUtils.trace(LOG,"rowArray=%s,compactRow=%s,resultRow=%s,resultSetNumber=%d",
                     Arrays.asList(rowArray),compactRow,resultRow,resultSetNumber);
         } catch (StandardException e) {
-            SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
+        	SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
         }
 
     }
@@ -273,12 +260,11 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
         ExecRow template = getExecRowDefinition();
         return RowEncoder.create(template.nColumns(),
                 null, null, null,
-                KeyType.BARE, RowMarshaller.packedCompressed());
+                KeyType.BARE, RowMarshaller.packed());
     }
 
     @Override
 	public SpliceOperation getLeftOperation() {
-//		SpliceLogUtils.trace(LOG,"getLeftOperation ",source);
 		return this.source;
 	}
 	
@@ -307,92 +293,66 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	public ExecRow getNextRowCore() throws StandardException {
 		SpliceLogUtils.trace(LOG,"<%s> getNextRowCore",indexName);
 		ExecRow sourceRow;
-		ExecRow retRow;
-		boolean restrict = false;
+		ExecRow retRow = null;
+		boolean restrict;
 		DataValueDescriptor restrictBoolean;
 
-
+        if(ringBuffer==null)
+            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(SpliceConstants.indexBufferSize,new RowAndLocation[0],new IndexFiller(SpliceConstants.indexBatchSize,source));
         do{
-            sourceRow = source.getNextRowCore();
-            SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
-            if(sourceRow==null){
-                //No Rows remaining
-                clearCurrentRow();
-                baseRowLocation= null;
-                retRow = null;
-                if(table!=null){
-                    try {
-                        table.close();
-                    } catch (IOException e) {
-                        SpliceLogUtils.warn(LOG,"Unable to close HTable");
-                    }
-                }
-                break;
-            }
-
-            //we have a row, get it
-            if(table==null)
-                table = SpliceAccessManager.getHTable(conglomId);
-            baseRowLocation = (RowLocation)sourceRow.getColumn(sourceRow.nColumns());
-            Get get =  SpliceUtils.createGet(baseRowLocation, rowArray, heapOnlyCols, getTransactionID());
-            boolean rowExists = false;
             try{
-                Result result = table.get(get);
-                SpliceLogUtils.trace(LOG,"<%s> rowArray=%s,accessedHeapCols=%s,heapOnlyCols=%s,baseColumnMap=%s",
-                        indexName,Arrays.toString(rowArray),accessedHeapCols,heapOnlyCols,Arrays.toString(baseColumnMap));
-                rowExists = result!=null && !result.isEmpty();
-                if(rowExists){
-
-                    if(fieldDecoder==null)
-                        fieldDecoder = MultiFieldDecoder.create();
-                    fieldDecoder.reset();
-                    for(KeyValue kv:result.raw()){
-                        RowMarshaller.sparsePacked().decode(kv, compactRow.getRowArray(),adjustedBaseColumnMap, fieldDecoder);
-                    }
-                }
-            }catch(IOException ioe){
-                SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
-            }
-            SpliceLogUtils.trace(LOG,"<%s>,rowArray=%s,compactRow=%s",indexName,rowArray,compactRow);
-            if(rowExists){
-                if(!copiedFromSource){
-                    copiedFromSource=true;
-                    for(int index=0;index < indexCols.length;index++){
-                        if(indexCols[index] != -1) {
-                            SpliceLogUtils.trace(LOG,"<%s> indexCol overwrite for value %d" ,indexName,indexCols[index]);
-                            compactRow.setColumn(index+1,sourceRow.getColumn(indexCols[index]+1));
+                RowAndLocation roLoc = ringBuffer.next();
+                boolean rowExists = roLoc!=null;
+                if(!rowExists){
+                    //No Rows remaining
+                    clearCurrentRow();
+                    baseRowLocation= null;
+                    retRow = null;
+                    if(table!=null){
+                        try {
+                            table.close();
+                        } catch (IOException e) {
+                            SpliceLogUtils.warn(LOG,"Unable to close HTable");
                         }
                     }
+                    break;
                 }
+                sourceRow = roLoc.getRow();
+                if(baseRowLocation==null)
+                    baseRowLocation = new HBaseRowLocation();
 
+                baseRowLocation.setValue(roLoc.location);
+
+                SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
                 SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
-                setCurrentRow(compactRow);
+                setCurrentRow(sourceRow);
                 currentRowLocation = baseRowLocation;
-
-                restrictBoolean = (DataValueDescriptor)
-                        ((restriction == null) ? null: restriction.invoke(activation));
+                restrictBoolean = ((restriction == null) ? null: restriction.invoke());
                 restrict = (restrictBoolean ==null) ||
                         ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-            }
 
-            if(!restrict || !rowExists){
-                clearCurrentRow();
-                baseRowLocation = null;
-                currentRowLocation=null;
-            }else{
-                currentRow = compactRow;
+                if(!restrict||!rowExists){
+                    clearCurrentRow();
+                    baseRowLocation=null;
+                    currentRowLocation=null;
+                }else{
+                    retRow = sourceRow;
+                    setCurrentRow(sourceRow);
+                    currentRowLocation = baseRowLocation;
+                    source.setCurrentRowLocation(baseRowLocation);
+                }
+            }catch(ExecutionException e){
+                throw Exceptions.parseException(e.getCause());
             }
-            retRow = currentRow;
-
-		}while(!restrict);
-		SpliceLogUtils.trace(LOG, "emitting row %s",retRow);
-//        setCurrentRow(retRow);
-		return retRow;
+        }while(!restrict);
+        return retRow;
 	}
 
 	@Override
 	public void close() throws StandardException {
 		SpliceLogUtils.trace(LOG, "close in IndexRowToBaseRow");
+        if(fieldDecoder!=null)
+            fieldDecoder.close();
 		beginTime = getCurrentTimeMillis();
 		source.close();
 		super.close();
@@ -464,5 +424,164 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                 .append(indent).append("indexCols:").append(Arrays.toString(indexCols))
                 .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
                 .toString();
+    }
+
+    private class IndexFiller implements ConcurrentRingBuffer.Filler<RowAndLocation>{
+        private final List<Get> batch;
+        private final int batchSize;
+        private final SpliceOperation source;
+        private HTableInterface table;
+
+        private final RowAndLocation[] rowBatch;
+        private Result[] resultBatch;
+        private int currentResultPos=-1;
+
+        private byte[] predicateFilterBytes;
+        private boolean populated = false;
+        private boolean finished = false;
+
+        private IndexFiller(int batchSize, SpliceOperation source) {
+            this.batch = Lists.newArrayListWithCapacity(batchSize);
+            this.batchSize = batchSize;
+            this.source = source;
+            this.rowBatch = new RowAndLocation[batchSize];
+        }
+
+        @Override
+        public void prepareToFill() throws ExecutionException {
+            //no-op
+        }
+
+        @Override
+        public RowAndLocation getNext(RowAndLocation old) throws ExecutionException {
+            if(currentResultPos<0 || currentResultPos>=resultBatch.length){
+                fillBatch();
+            }
+            if(currentResultPos<0 || currentResultPos>=resultBatch.length)
+               return null; //nothing to return now
+
+            //we have data to return
+            RowAndLocation next = rowBatch[currentResultPos];
+            Result nextResult = resultBatch[currentResultPos];
+            if(fieldDecoder==null)
+                fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            fieldDecoder.reset();
+
+            currentResultPos++;
+            if(old!=null){
+                try{
+                    for(KeyValue kv:nextResult.raw()){
+                        RowMarshaller.sparsePacked().decode(kv,old.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+                    }
+                } catch (StandardException e) {
+                    throw new ExecutionException(e);
+                }
+                old.location = next.location;
+                return old;
+            }else{
+                try{
+                    for(KeyValue kv:nextResult.raw()){
+                        RowMarshaller.sparsePacked().decode(kv,next.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+                    }
+                } catch (StandardException e) {
+                    throw new ExecutionException(e);
+                }
+                return new RowAndLocation(next);
+            }
+        }
+
+        private void fillBatch() throws ExecutionException {
+            if(finished) return; //nothing more to do
+            try{
+                for(int batchCount=0;batchCount<batchSize;batchCount++){
+                    ExecRow sourceRow = source.getNextRowCore();
+                    if(sourceRow==null){
+                        finished=true;
+                        break;
+                    }
+
+                    if(!populated){
+                        for(int index=0;index<indexCols.length;index++){
+                            if(indexCols[index]!=-1){
+                                compactRow.setColumn(index+1,sourceRow.getColumn(indexCols[index]+1));
+                            }
+                        }
+
+                        populated=true;
+                    }
+
+                    RowAndLocation rowLoc = rowBatch[batchCount];
+                    if(rowLoc==null){
+                        rowLoc = new RowAndLocation(compactRow.getClone(),null);
+                        rowBatch[batchCount] = rowLoc;
+                    }
+
+                    rowLoc.setLocation(sourceRow.getColumn(sourceRow.nColumns()).getBytes());
+
+                    if(predicateFilterBytes==null){
+                        BitSet fieldsToReturn = new BitSet(heapOnlyCols.getNumBitsSet());
+                        for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
+                            fieldsToReturn.set(i);
+                        }
+                        EntryPredicateFilter getPredicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
+                        predicateFilterBytes = getPredicateFilter.toBytes();
+                    }
+
+                    Get get = SpliceUtils.createGet(getTransactionID(), rowLoc.location);
+                    get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
+                    batch.add(get);
+                }
+
+                //get the results
+                if(table==null)
+                    table = SpliceAccessManager.getHTable(conglomId);
+
+                if(batch.size()>0){
+                    resultBatch= table.get(batch);
+                    batch.clear();
+                    currentResultPos=0;
+                }
+            }catch(StandardException se){
+                throw new ExecutionException(se);
+            }catch(IOException ioe){
+                throw new ExecutionException(ioe);
+            }
+        }
+
+        @Override
+        public void finishFill() throws ExecutionException {
+            //no-op
+        }
+    }
+
+    private static class RowAndLocation{
+        private ExecRow row;
+        private byte[] location;
+
+        private RowAndLocation(ExecRow row, byte[] location) {
+            this.row = row;
+            this.location = location;
+        }
+
+        private RowAndLocation(RowAndLocation rowAndLocation){
+           this.row = rowAndLocation.row.getClone();
+            this.location = rowAndLocation.location;
+        }
+
+        public ExecRow getRow() {
+            return row;
+        }
+
+        public void setRow(ExecRow row) {
+            this.row = row;
+        }
+
+        public byte[] getLocation() {
+            return location;
+        }
+
+        public void setLocation(byte[] location) {
+            this.location = location;
+        }
     }
 }

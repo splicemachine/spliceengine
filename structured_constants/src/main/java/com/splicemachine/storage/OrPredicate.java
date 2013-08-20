@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -47,7 +49,7 @@ public class OrPredicate implements Predicate {
             if(!predicate.applies(column))
                 continue;
 
-            if(predicate.match(column,data,offset,length)){
+            if(predicate.match(column, data, offset, length)){
                 matched=true;
                 return true;
             }
@@ -97,5 +99,28 @@ public class OrPredicate implements Predicate {
         for(Predicate predicate:ors){
             predicate.reset();
         }
+    }
+
+    @Override
+    public byte[] toBytes() {
+        /*
+         * Format is
+         *
+         * 1-byte type (PredicateType.AND)
+         * 4-byte length field
+         * n-byte predicates
+         */
+        byte[] listData = Predicates.toBytes(ors);
+        byte[] data  = new byte[listData.length+1];
+        data[0] = PredicateType.OR.byteValue();
+        System.arraycopy(listData,0,data,1,listData.length);
+
+        return data;
+    }
+
+    public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
+        int size = BytesUtil.bytesToInt(data,offset);
+        Pair<List<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
+        return Pair.newPair(new OrPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
 }

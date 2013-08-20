@@ -65,7 +65,7 @@ public class DeleteOperation extends DMLWriteOperation {
             }
         };
 
-        return RowEncoder.createDeleteEncoder(getTransactionID(),marshall);
+        return RowEncoder.createDeleteEncoder(marshall);
     }
 
     @Override

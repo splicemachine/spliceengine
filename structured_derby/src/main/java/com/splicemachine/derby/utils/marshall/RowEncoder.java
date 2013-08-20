@@ -2,11 +2,13 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -21,7 +23,7 @@ import java.util.BitSet;
  * Created on: 6/12/13
  */
 public class RowEncoder {
-
+    public static final byte[] EMPTY_BYTES = new byte[]{};
     protected final MultiFieldEncoder keyEncoder;
 
     protected final int[] keyColumns;
@@ -36,12 +38,12 @@ public class RowEncoder {
     protected final int[] rowColumns;
     protected MultiFieldEncoder rowEncoder;
 
-    protected RowEncoder(int[] keyColumns,
-                       boolean[] keySortOrder,
-                       int[] rowColumns,
-                       byte[] keyPrefix,
-                       KeyMarshall keyType,
-                       RowMarshall rowType){
+    public RowEncoder(int[] keyColumns,
+                      boolean[] keySortOrder,
+                      int[] rowColumns,
+                      byte[] keyPrefix,
+                      KeyMarshall keyType,
+                      RowMarshall rowType){
         this.keyColumns = keyColumns;
         this.keySortOrder = keySortOrder;
         this.keyType = keyType;
@@ -49,7 +51,7 @@ public class RowEncoder {
         this.rowColumns = rowColumns;
 
         int encodedCols = keyType.getFieldCount(keyColumns);
-        this.keyEncoder = MultiFieldEncoder.create(encodedCols);
+        this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
         if(keyType==KeyType.FIXED_PREFIX ||
                 keyType==KeyType.FIXED_PREFIX_AND_POSTFIX
                 ||keyType==KeyType.FIXED_PREFIX_UNIQUE_POSTFIX
@@ -65,8 +67,8 @@ public class RowEncoder {
             keyEncoder.mark();
         }
 
-        if(!rowType.isColumnar()){
-            rowEncoder = MultiFieldEncoder.create(rowColumns.length);
+        if(!rowType.isColumnar()&&rowColumns!=null){
+            rowEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rowColumns.length);
         }
     }
 
@@ -133,16 +135,16 @@ public class RowEncoder {
         return new RowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,rowType);
     }
 
-    public static RowEncoder createDeleteEncoder(final String txnId,KeyMarshall keyMarshall){
+    public static RowEncoder createDeleteEncoder(KeyMarshall keyMarshall){
 
-       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowMarshaller.columnar()){
+       return new RowEncoder(new int[0],null,new int[]{},null,keyMarshall,RowMarshaller.sparsePacked()){
            @Override
-           protected Put doPut(ExecRow row) throws StandardException {
+           protected KVPair doPut(ExecRow row) throws StandardException {
                //construct the row key
                keyEncoder.reset();
                keyType.encodeKey(row.getRowArray(), keyColumns, keySortOrder, keyPostfix, keyEncoder);
 
-               return SpliceUtils.createDeletePut(txnId,keyEncoder.build());
+               return new KVPair(keyEncoder.build(),EMPTY_BYTES, KVPair.Type.DELETE);
            }
        };
     }
@@ -159,24 +161,30 @@ public class RowEncoder {
         this.keyPostfix = postfix;
     }
 
-    protected Put doPut(ExecRow row) throws StandardException{
+    protected KVPair doPut(ExecRow row) throws StandardException{
         //construct the row key
         keyEncoder.reset();
         keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
-        Put put = new Put(keyEncoder.build());
+        byte[] rowKey = keyEncoder.build();
 
         if(rowEncoder!=null)
             rowEncoder.reset();
 
-        rowType.encodeRow(row.getRowArray(),rowColumns,put,rowEncoder);
+        byte[] value = rowType.encodeRow(row.getRowArray(), rowColumns, rowEncoder);
 
-        return put;
+        return new KVPair(rowKey,value);
     }
 
-    public void write(ExecRow row,String txnId,CallBuffer<Mutation> buffer) throws Exception{
-        Put element = doPut(row);
-        SpliceUtils.attachTransaction(element,txnId);
+    public void write(ExecRow row,CallBuffer<KVPair> buffer) throws Exception{
+        KVPair element = doPut(row);
         buffer.add(element);
+    }
+
+    public void close() {
+        if(rowEncoder!=null)
+            rowEncoder.close();
+        if(keyEncoder!=null)
+            keyEncoder.close();
     }
 
     private static class EntryRowEncoder extends RowEncoder{
@@ -197,16 +205,16 @@ public class RowEncoder {
                 rowCols.set(rowCol);
             }
 
-            this.entryEncoder = EntryEncoder.create(rowColumns.length,rowCols,scalarFields,floatFields,doubleFields);
+            this.entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),rowColumns.length,rowCols,scalarFields,floatFields,doubleFields);
             rowEncoder = entryEncoder.getEntryEncoder();
         }
 
         @Override
-        protected Put doPut(ExecRow row) throws StandardException {
+        protected KVPair doPut(ExecRow row) throws StandardException {
             //construct the row key
             keyEncoder.reset();
             keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
-            Put put = new Put(keyEncoder.build());
+            byte[] rowKey = keyEncoder.build();
 
             if(rowEncoder!=null)
                 rowEncoder.reset();
@@ -214,19 +222,25 @@ public class RowEncoder {
 
             //TODO -sf- more elegant way of doing this reset is needed
             BitSet setFields = DerbyBytesUtil.getNonNullFields(row.getRowArray());
-            BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
-            BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
-            BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
-            entryEncoder.reset(setFields,scalarFields,floatFields,doubleFields);
+//            BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
+//            BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
+//            BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
+            entryEncoder.reset(setFields);
             rowEncoder = entryEncoder.getEntryEncoder();
             rowType.fill(row.getRowArray(), rowColumns, rowEncoder);
 
             try {
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
+                byte[] value = entryEncoder.encode();
+                return new KVPair(rowKey,value);
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
-            return put;
+        }
+
+        @Override
+        public void close() {
+            if(entryEncoder!=null)
+                entryEncoder.close();
         }
     }
 }

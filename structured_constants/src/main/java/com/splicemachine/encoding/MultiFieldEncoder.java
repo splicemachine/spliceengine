@@ -1,6 +1,9 @@
 package com.splicemachine.encoding;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Preconditions;
+import com.splicemachine.utils.kryo.KryoPool;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -17,22 +20,36 @@ public class MultiFieldEncoder {
     private int initialPos;
     private int initalSize;
 
-    private MultiFieldEncoder(int numFields){
+    private final KryoPool kryoPool;
+    private Kryo kryo;
+
+    private MultiFieldEncoder(KryoPool kryoPool,int numFields){
         fields = new byte[numFields][];
         this.numFields = numFields;
         this.initialPos=0;
         this.initalSize=0;
+        this.kryoPool = kryoPool;
 
         //initialize ourselves
         reset();
     }
 
-    public static MultiFieldEncoder create(int numFields){
-        return new MultiFieldEncoder(numFields);
+//    public static MultiFieldEncoder create(int numFields){
+//        return new MultiFieldEncoder(KryoPool.defaultPool(),numFields);
+//    }
+
+    public static MultiFieldEncoder create(KryoPool kryoPool,int numFields){
+        return new MultiFieldEncoder(kryoPool,numFields);
     }
 
+    public void close(){
+        if(kryo!=null)
+            kryoPool.returnInstance(kryo);
+    }
+
+
     public MultiFieldEncoder encodeNext(boolean value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value,false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -41,7 +58,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(boolean value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value, desc);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -49,8 +66,20 @@ public class MultiFieldEncoder {
         return this;
     }
 
+    public MultiFieldEncoder encodeNext(byte value){
+        return encodeNext(value,false);
+    }
+
+    public MultiFieldEncoder encodeNext(byte value,boolean desc){
+        byte[] next = Encoding.encode(value,desc);
+        currentSize+=next.length;
+        fields[currentPos] = next;
+        currentPos++;
+        return this;
+    }
+
     public MultiFieldEncoder encodeNext(short value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] next = ScalarEncoding.toBytes(value, false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -59,7 +88,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(short value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[]  next = ScalarEncoding.toBytes(value, desc);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -68,7 +97,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(int value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[]  next = ScalarEncoding.toBytes(value, false);
         currentSize+=next.length;
         fields[currentPos] = next;
@@ -77,7 +106,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(int value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -87,7 +116,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(long value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -96,7 +125,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(long value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = ScalarEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -105,7 +134,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(float value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -114,7 +143,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(float value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -124,7 +153,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(double value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -133,7 +162,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(double value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -142,7 +171,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(BigDecimal value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -151,7 +180,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(BigDecimal value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = DecimalEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -160,7 +189,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(String value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = StringEncoding.toBytes(value, false);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -169,7 +198,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(String value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] bytes = StringEncoding.toBytes(value, desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
@@ -186,7 +215,7 @@ public class MultiFieldEncoder {
      * position.
      */
     public MultiFieldEncoder encodeNextUnsorted(byte[] value){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         //append a length field
         byte[] total = Encoding.encodeBytesUnsorted(value);
 
@@ -197,11 +226,20 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(byte[] value,boolean desc){
-        assert currentPos<fields.length;
+//        assert currentPos<fields.length;
         byte[] encode = ByteEncoding.encode(value, desc);
         currentSize+=encode.length;
         fields[currentPos] = encode;
         currentPos++;
+        return this;
+    }
+
+    public MultiFieldEncoder encodeNextObject(Object o){
+        if(kryo==null)
+            kryo = kryoPool.get();
+        Output output = new Output(new byte[20],-1);
+        kryo.writeClassAndObject(output,o);
+        encodeNextUnsorted(output.toBytes());
         return this;
     }
 
@@ -268,21 +306,17 @@ public class MultiFieldEncoder {
         return this;
     }
 
-    public MultiFieldEncoder setRawBuffer(ByteBuffer buffer){
-        assert currentPos < numFields;
-        byte[] bytes;
-        if(buffer==null)
-            bytes= null;
-        else{
-            bytes = new byte[buffer.remaining()];
-            buffer.get(bytes);
-        }
-        return setRawBytes(bytes);
-    }
-
     public MultiFieldEncoder encodeEmpty() {
         fields[currentPos] = null;
         currentPos++;
         return this;
+    }
+
+    public MultiFieldEncoder encodeEmptyFloat() {
+        return setRawBytes(Encoding.encodedNullFloat());
+    }
+
+    public MultiFieldEncoder encodeEmptyDouble(){
+        return setRawBytes(Encoding.encodedNullDouble());
     }
 }

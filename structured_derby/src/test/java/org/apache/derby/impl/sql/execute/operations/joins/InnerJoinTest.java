@@ -25,6 +25,7 @@ import java.sql.Statement;
 import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
+import static com.splicemachine.homeless.TestUtils.resultSetToMaps;
 
 
 public class InnerJoinTest extends SpliceUnitTest {
@@ -112,6 +113,7 @@ public class InnerJoinTest extends SpliceUnitTest {
                 }
             }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
 
     @Rule
@@ -193,16 +195,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 
         Assert.assertEquals(1, results.size());
         Assert.assertEquals(new BigDecimal(130), results.get(0).get("FOO"));
-    }
-
-    @Test
-    public void testNestedLoopLeftOuterJoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select t1.EMPNAME, t1.CITY, t2.PTYPE from STAFF t1 left outer join PROJ t2 --DERBY-PROPERTIES joinStrategy=NESTEDLOOP \n" +
-                " on t1.CITY = t2.CITY");
-
-        List<Map> results = TestUtils.resultSetToMaps(rs);
-        Assert.assertEquals(11, results.size());
-
     }
 
     @Test
@@ -326,6 +318,43 @@ public class InnerJoinTest extends SpliceUnitTest {
         Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
         Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
         Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+
+    }
+
+    @Test
+    public void testThreeTableJoinOnItemsPredicateIsExpression() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+                "from item t1, category_sub t2, category t3 " +
+                "where (t1.itm_subcat_id + 1) = (t2.sbc_id + 1) and (t2.sbc_category_id + 1) = (t3.cat_id + 1)");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(10, results.size());
+
+        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+
+        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+
+    }
+
+    @Test
+    public void testThreeTableJoinOnItemsWithCriteria() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
+                "from item t1, category_sub t2, category t3 " +
+                "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id " +
+                "and t1.itm_name = 'Seal (94)'");
+
+        List<Map> results = TestUtils.resultSetToMaps(rs);
+
+        Assert.assertEquals(1, results.size());
+
+        Assert.assertEquals("Seal (94)", results.get(0).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(0).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(0).get("SBC_DESC"));
 
     }
 
@@ -478,38 +507,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}	
 	
 	@Test
-	public void testScrollableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull(rs.getString(2));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(2));
-			}
-		}
-		Assert.assertEquals(10, j);
-	}
-
-	@Test
-	public void testSinkableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info(String.format("cc.sa=%s,count=%dd",rs.getString(1),rs.getInt(2)));
-//			Assert.assertNotNull(rs.getString(1));
-//			if (!rs.getString(1).equals("9")) {
-//				Assert.assertEquals(1l,rs.getLong(2));
-//			}
-		}
-		Assert.assertEquals(10, j);
-	}
-
-	@Test
 	public void testReturnOutOfOrderJoin() throws Exception{
 		ResultSet rs = methodWatcher.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		while(rs.next()){
@@ -553,40 +550,6 @@ public class InnerJoinTest extends SpliceUnitTest {
 	}
 
 	@Test
-	@Ignore ("Bug 325")
-	public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info("cc.si="+rs.getString(1)+",dd.si="+rs.getString(2));
-			Assert.assertNotNull(rs.getString(2));
-			if (!rs.getString(2).equals("9")) {
-				Assert.assertNotNull(rs.getString(1));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(1));
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}	
-	@Test
-	@Ignore ("Bug 325")
-	public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			} else {
-				Assert.assertNotNull(null);
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}
-	@Test
 	public void testScrollableNaturalJoin() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc natural join dd");
 		int j = 0;
@@ -620,74 +583,8 @@ public class InnerJoinTest extends SpliceUnitTest {
 		}	
 		Assert.assertEquals(9, j);
 	}	
-	@Test
-	public void testScrollableVarcharLeftOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-            String left = rs.getString(1);
-            String right = rs.getString(2);
-            System.out.printf("left=%s, right=%s%n",left,right);
-			Assert.assertNotNull("left side is null",left);
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertNotNull("right side is null",right);
-				Assert.assertEquals(left,right);
-			} else {
-				Assert.assertNull("right side is not null",rs.getString(2));
-			}
-		}	
-		Assert.assertEquals(10, j);
-	}		
 
 	@Test
-	public void testSinkableVarcharLeftOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			}
-		}	
-		Assert.assertEquals(10, j);
-	}		
-	
-	@Test
-	public void testScrollableVarcharRightOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd on cc.si = dd.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			LOG.info("c.si="+rs.getString(1)+",d.si="+rs.getString(2));
-			Assert.assertNotNull(rs.getString(2));
-			if (!rs.getString(2).equals("9")) {
-				Assert.assertNotNull(rs.getString(1));
-				Assert.assertEquals(rs.getString(1),rs.getString(2));
-			} else {
-				Assert.assertNull(rs.getString(1));
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}	
-	@Test
-	public void testSinkableVarcharRightOuterJoin() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd on cc.si = dd.si group by cc.si");
-		int j = 0;
-		while (rs.next()) {
-			j++;
-			Assert.assertNotNull(rs.getString(1));
-			if (!rs.getString(1).equals("9")) {
-				Assert.assertEquals(1l,rs.getLong(2));
-			} else {
-				Assert.assertNotNull(null);
-			}
-		}	
-		Assert.assertEquals(9, j);
-	}
-
-	@Test  
 	public void testScalarNoValues() throws Exception {		
 			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
 				, TABLE_NAME_6,TABLE_NAME_6, TABLE_NAME_7,TABLE_NAME_7));
@@ -799,7 +696,6 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Bugzilla 597")
     public void testSelfJoinWithLessThanSelection() throws Exception {
         List<Object[]> expected = Arrays.asList(
                 o("E1", "E4", "Alice", "Don"),
@@ -810,5 +706,14 @@ public class InnerJoinTest extends SpliceUnitTest {
         List results = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    @Test
+    public void testJoinOverAggregates() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select a.* from monthly_hits a join monthly_hits b " +
+                "on a.month = b.month ");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertEquals(108, results.size());
     }
 }

@@ -9,6 +9,7 @@ import java.util.Map;
  */
 public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> {
     Data newRowKey(Object[] args);
+    Data increment(Data key);
 
     Data encode(Object value);
     Object decode(Data value, Class type);

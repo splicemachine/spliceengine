@@ -1,15 +1,18 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
-import com.splicemachine.derby.impl.sql.execute.index.IndexSet;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -19,8 +22,11 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Region Observer for managing indices.
@@ -31,64 +37,44 @@ import java.io.IOException;
 public class SpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
 
-    private volatile WriteContextFactory<RegionCoprocessorEnvironment> writeContextFactory;
+    private long conglomId;
     @Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
         String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-        final long conglomId;
         try{
             conglomId = Long.parseLong(tableName);
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
-            writeContextFactory = WriteContextFactoryPool.getDefaultFactory();
+            conglomId=-1;
             return;
         }
-
-        try {
-            writeContextFactory = WriteContextFactoryPool.getContextFactory(conglomId);
-        } catch (Exception e1) {
-            throw new RuntimeException(e1);
-        }
-        SpliceDriver.Service service = new SpliceDriver.Service() {
-            @Override
-            public boolean start() {
-                //get the index set now that we know we can
-                if(writeContextFactory instanceof LocalWriteContextFactory)
-                    ((LocalWriteContextFactory) writeContextFactory).prepare();
-                //now that we know we can start, we don't care what else happens in the lifecycle
-                SpliceDriver.driver().deregisterService(this);
-                return true;
-            }
-
-            @Override
-            public boolean shutdown() {
-                //we don't care
-                return true;
-            }
-        };
-
-        //register for notifications--allow the registration to tell us if we can go ahead or not
-        SpliceDriver.driver().registerService(service);
 
         super.postOpen(e);
     }
 
     @Override
-    public void postClose(ObserverContext<RegionCoprocessorEnvironment> e, boolean abortRequested) {
-    	SpliceLogUtils.trace(LOG, "postClose");
-        try {
-            WriteContextFactoryPool.releaseContextFactory((LocalWriteContextFactory) writeContextFactory);
-        } catch (Exception e1) {
-            SpliceLogUtils.error(LOG,"Unable to close Context factory--beware of memory leaks!");
-        }
-    }
-
-    @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
     	SpliceLogUtils.trace(LOG, "prePut %s",put);
-    	mutate(e.getEnvironment(), put);
+        if(conglomId>0){
+            if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
+
+            //we can't update an index if the conglomerate id isn't positive--it's probably a temp table or something
+            byte[] row = put.getRow();
+            List<KeyValue> data = put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+            KVPair kv;
+            if(data!=null&&data.size()>0){
+                byte[] value = data.get(0).getValue();
+                if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null){
+                    kv = new KVPair(row,value, KVPair.Type.UPDATE);
+                }else
+                    kv = new KVPair(row,value);
+            }else{
+                kv = new KVPair(row, RowEncoder.EMPTY_BYTES);
+            }
+            mutate(e.getEnvironment(), kv, SpliceUtils.getTransactionId(put));
+        }
         super.prePut(e, put, edit, writeToWAL);
     }
 
@@ -96,7 +82,12 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
     	SpliceLogUtils.trace(LOG, "preDelete %s",delete);
-        mutate(e.getEnvironment(), delete);
+        if(conglomId>0){
+            if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
+                KVPair deletePair = KVPair.delete(delete.getRow());
+                mutate(e.getEnvironment(), deletePair, Bytes.toString(delete.getAttribute("si_delete_put")));
+            }
+        }
         super.preDelete(e, delete, edit, writeToWAL);
     }
 
@@ -110,22 +101,21 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     /*private helper methods*/
 
 
-    private void mutate(RegionCoprocessorEnvironment rce, Mutation mutation) throws IOException {
+    private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,String txnId) throws IOException {
     	SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
-        if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null) return;
         WriteContext context;
         try{
-            context = writeContextFactory.createPassThrough(rce);
+            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txnId,rce);
         }catch(InterruptedException e){
             throw new IOException(e);
         }
         context.sendUpstream(mutation);
-        MutationResult mutationResult = context.finish().get(mutation);
+        WriteResult mutationResult = context.finish().get(mutation);
         if(mutationResult==null) return; //we didn't actually do anything, so no worries
         switch (mutationResult.getCode()) {
             case FAILED:
-                throw new IOException(mutationResult.getErrorMsg());
+                throw new IOException(mutationResult.getErrorMessage());
             case PRIMARY_KEY_VIOLATION:
                 throw ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, mutationResult.getConstraintContext());
             case UNIQUE_VIOLATION:
@@ -135,7 +125,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             case CHECK_VIOLATION:
                 throw ConstraintViolation.create(Constraint.Type.CHECK, mutationResult.getConstraintContext());
             case WRITE_CONFLICT:
-                throw new WriteConflict(mutationResult.getErrorMsg());
+                throw new WriteConflict(mutationResult.getErrorMessage());
 		case NOT_RUN:
 		case SUCCESS:
 		default:

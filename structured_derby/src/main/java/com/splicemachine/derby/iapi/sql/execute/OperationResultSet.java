@@ -2,7 +2,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationTree2;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -14,7 +13,6 @@ import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
-
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
@@ -164,7 +162,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public boolean returnsRows() {
-        checkDelegate();
+    	if (delegate == null)
+    		return false;
         return delegate.returnsRows();
     }
 

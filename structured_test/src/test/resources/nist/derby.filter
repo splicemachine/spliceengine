@@ -1,0 +1,7 @@
+# Filters for Derby test output
+# BUG 405
+WARNING 02000:
+# BUG 414
+WARNING 01003:
+# BUG 445
+WARNING 01504:

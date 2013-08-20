@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 
 import java.io.IOException;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -105,7 +106,7 @@ public class IndexController  extends SpliceController  {
 				DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();
 				Get get = SpliceUtils.createGet(loc, oldValues, null, transID);
 				Result result = htable.get(get);
-                MultiFieldDecoder fieldDecoder = MultiFieldDecoder.create();
+                MultiFieldDecoder fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
                 for(KeyValue kv:result.raw()){
                     RowMarshaller.sparsePacked().decode(kv, oldValues, null, fieldDecoder);
                 }

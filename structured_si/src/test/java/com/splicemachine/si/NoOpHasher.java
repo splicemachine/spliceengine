@@ -5,12 +5,12 @@ import com.splicemachine.si.impl.Hasher;
 public class NoOpHasher implements Hasher {
 
     @Override
-    public Object toHashable(Object value) {
-        return value;
+    public Comparable toHashable(Object value) {
+        return (Comparable) value;
     }
 
     @Override
-    public Object fromHashable(Object value) {
+    public Object fromHashable(Comparable value) {
         return value;
     }
 }

@@ -1,22 +1,28 @@
 package com.splicemachine.derby.impl.job.index;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
-import com.splicemachine.derby.impl.sql.execute.index.WriteContextFactoryPool;
+import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.*;
-import com.splicemachine.hbase.batch.WriteContextFactory;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.tools.UniqueChecker;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -26,6 +32,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -45,7 +52,7 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class CreateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 4l;
     private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
@@ -53,10 +60,12 @@ public class CreateIndexTask extends ZkTask {
     private boolean isUnique;
     private BitSet indexedColumns;
     private BitSet nonUniqueIndexColumns;
+    private BitSet descColumns;
 
     private MultiFieldEncoder translateEncoder;
 
     private HRegion region;
+    private RegionCoprocessorEnvironment rce;
 
     public CreateIndexTask() { }
 
@@ -66,19 +75,22 @@ public class CreateIndexTask extends ZkTask {
                            int[] mainColToIndexPosMap,
                            BitSet indexedColumns,
                            boolean unique,
-                           String jobId ) {
+                           String jobId,
+                           BitSet descColumns) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexedColumns = indexedColumns;
+        this.descColumns = descColumns;
         isUnique = unique;
     }
 
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
+        this.rce = rce;
         super.prepareTask(rce, zooKeeper);
     }
 
@@ -96,6 +108,7 @@ public class CreateIndexTask extends ZkTask {
         out.writeObject(indexedColumns);
         ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
+        out.writeObject(descColumns);
     }
 
     @Override
@@ -107,13 +120,13 @@ public class CreateIndexTask extends ZkTask {
         indexedColumns = (BitSet)in.readObject();
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
+        descColumns = (BitSet)in.readObject();
     }
 
     @Override
     public boolean invalidateOnClose() {
         return true;
     }
-
     @Override
     public void execute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
@@ -130,115 +143,63 @@ public class CreateIndexTask extends ZkTask {
 
         try{
             //add index to table watcher
-            WriteContextFactory contextFactory = WriteContextFactoryPool.getContextFactory(baseConglomId);
-            contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique);
-            
+            LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
+            contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique,descColumns);
+
             //backfill the index with previously committed data
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            byte[] indexBytes = Long.toString(indexConglomId).getBytes();
-            CallBuffer<Mutation> writeBuffer =
-                    SpliceDriver.driver().getTableWriter().writeBuffer(indexBytes, new TableWriter.FlushWatcher() {
-                        @Override
-                        public List<Mutation> preFlush(List<Mutation> mutations) throws Exception {
-                            return mutations;
-                        }
-
-                        @Override
-                        public Response globalError(Throwable t) throws Exception {
-                            if(t instanceof NotServingRegionException) return Response.RETRY;
-                            else if(t instanceof WrongRegionException) return Response.RETRY;
-                            else
-                                return Response.THROW_ERROR;
-                        }
-
-                        @Override
-                        public Response partialFailure(MutationRequest request, MutationResponse response) throws Exception {
-                            for(MutationResult result : response.getFailedRows().values()){
-                                if(result.isRetryable())
-                                    return Response.RETRY;
-                            }
-                            return  Response.THROW_ERROR;
-                        }
-                    });
-
-            List < KeyValue > nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
-            boolean shouldContinue = true;
-            while(shouldContinue){
-                nextRow.clear();
-                shouldContinue  = sourceScanner.next(nextRow);
-                List<Put> indexPuts = translateResult(nextRow);
-
-                writeBuffer.addAll(indexPuts);
+            region.startRegionOperation();
+            MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
+            try{
+                List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
+                boolean shouldContinue = true;
+                WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
+                while(shouldContinue){
+                    nextRow.clear();
+                    shouldContinue  = sourceScanner.nextRaw(nextRow,null);
+                    translateResult(nextRow, indexOnlyWriteHandler);
+                }
+                Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
+                for(WriteResult result:finish.values()){
+                    if(result.getCode()== WriteResult.Code.FAILED){
+                        throw new IOException(result.getErrorMessage());
+                    }
+                }
+            }finally{
+                region.closeRegionOperation();
+                sourceScanner.close();
             }
-            writeBuffer.flushBuffer();
-            writeBuffer.close();
 
         } catch (IOException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
-            throw new ExecutionException(e);
+            throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
 
-    private List<Put> translateResult(List<KeyValue> result) throws IOException{
-        EntryAccumulator keyAccumulator;
-        if(isUnique)
-            keyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
-        else
-            keyAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,false);
-
-        EntryAccumulator rowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexColumns,true);
-
-
-        EntryDecoder decoder = new EntryDecoder();
+    private void translateResult(List<KeyValue> result,WriteContext ctx) throws IOException{
         //we know that there is only one KeyValue for each row
-        List<Put> indexPuts = Lists.newArrayListWithExpectedSize(result.size());
+        Put currentPut;
         for(KeyValue kv:result){
-            if(Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,kv.getFamily()))
-                continue; //ignore SI keyValues
-            keyAccumulator.reset();
-            rowAccumulator.reset();
+            //ignore SI CF
+            if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
-            decoder.set(kv.getValue());
-
-            BitIndex mainTableIndex = decoder.getCurrentIndex();
-
-            MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
-            for(int mainTableCol=mainTableIndex.nextSetBit(0);
-                mainTableCol>=0&&mainTableCol<=indexedColumns.length();
-                mainTableCol=mainTableIndex.nextSetBit(mainTableCol+1)){
-
-                if(indexedColumns.get(mainTableCol)){
-                    ByteBuffer buffer = decoder.nextAsBuffer(fieldDecoder,mainTableCol);
-                    accumulate(keyAccumulator,mainTableIndex,buffer,mainTableCol);
-                    accumulate(rowAccumulator,mainTableIndex,buffer,mainTableCol);
-                }
-            }
-
-            if(!isUnique){
-                keyAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(SpliceUtils.getUniqueKey()));
-            }
-            byte[] finalIndexRow = keyAccumulator.finish();
-            Put put = SpliceUtils.createPut(finalIndexRow,transactionId);
-
-            rowAccumulator.add(indexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(kv.getRow())));
-            put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,rowAccumulator.finish());
-
-            indexPuts.add(put);
+            byte[] row = kv.getRow();
+            byte[] data = kv.getValue();
+            ctx.sendUpstream(new KVPair(row,data));
         }
-        return indexPuts;
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
         if(updateIndex.isScalarType(newPos))
-            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addScalar(newPos, newBuffer);
         else if(updateIndex.isFloatType(newPos))
-            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addFloat(newPos,newBuffer);
         else if(updateIndex.isDoubleType(newPos))
-            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.addDouble(newPos,newBuffer);
         else
-            newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
+            newKeyAccumulator.add(newPos,newBuffer);
     }
 }

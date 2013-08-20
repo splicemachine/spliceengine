@@ -2,14 +2,17 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -27,8 +30,23 @@ public class FileImportTask extends AbstractImportTask{
     }
 
     @Override
+    protected void logStats(long numRecordsRead, long totalTimeTakeMs,RecordingCallBuffer<KVPair> callBuffer) throws IOException {
+        SpliceLogUtils.debug(LOG,"read %d records from file %s",numRecordsRead,importContext.getFilePath().getName());
+
+        //log write stats
+        long totalRowsWritten = callBuffer.getTotalElementsAdded();
+        long totalBytesWritten = callBuffer.getTotalBytesAdded();
+        long totalBulkFlushes = callBuffer.getTotalFlushes();
+        String tableName = importContext.getTableName();
+        SpliceLogUtils.debug(LOG,"wrote %d rows to table %s",totalRowsWritten,tableName);
+        SpliceLogUtils.debug(LOG,"wrote %d bytes to table %s", totalBytesWritten,tableName);
+        SpliceLogUtils.debug(LOG,"performed %d flushes to table %s", totalBulkFlushes,tableName);
+        SpliceLogUtils.debug(LOG,"Total time taken to import into table %s: %d ms",tableName,totalTimeTakeMs);
+    }
+
+    @Override
     protected long importData(ExecRow row,
-                              CallBuffer<Mutation> writeBuffer) throws Exception {
+                              CallBuffer<KVPair> writeBuffer) throws Exception {
         InputStream is = null;
         Reader reader = null;
         try{
@@ -44,7 +62,7 @@ public class FileImportTask extends AbstractImportTask{
             while((line = csvReader.readNext())!=null){
                 if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
 
-                doImportRow(txnId,line,row, writeBuffer);
+                doImportRow(line,row, writeBuffer);
                 numImported++;
                 reportIntermediate(numImported);
             }

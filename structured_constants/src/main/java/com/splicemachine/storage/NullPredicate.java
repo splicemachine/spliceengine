@@ -1,5 +1,9 @@
 package com.splicemachine.storage;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -10,9 +14,11 @@ import java.util.BitSet;
  * Created on: 7/8/13
  */
 public class NullPredicate implements Predicate{
-    private static final long serialVersionUID = 3l;
+    private static final long serialVersionUID = 4l;
     private boolean filterIfMissing; //when true, equivalent to filterIfMissing null
     private boolean isNullNumericalComparision;
+    private boolean isDoubleColumn;
+    private boolean isFloatColumn;
     private int column;
 
     /**
@@ -21,10 +27,13 @@ public class NullPredicate implements Predicate{
     @Deprecated
     public NullPredicate() { }
 
-    public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,int column) {
+    public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,
+                         int column,boolean isDoubleColumn,boolean isFloatColumn) {
         this.filterIfMissing = filterIfMissing;
         this.isNullNumericalComparision = isNullNumericalComparison;
         this.column = column;
+        this.isFloatColumn = isFloatColumn;
+        this.isDoubleColumn = isDoubleColumn;
     }
 
     @Override
@@ -39,11 +48,21 @@ public class NullPredicate implements Predicate{
             return false; //a numerical comparison with null will never match any columns
         }
         if(filterIfMissing){
+            if(isDoubleColumn){
+                return data!=null && length==8;
+            }else if(isFloatColumn)
+                return data!=null && length==4;
+            else
             //make sure data is NOT null---data cannot be null, and length >0
-            return data!=null && length>0;
+                return data!=null && length>0;
         }else{
-            //make sure data is null--either data itself is null, or length==0
-            return data==null ||length==0;
+            if(isDoubleColumn){
+                return data==null || length!=8;
+            }else if(isFloatColumn)
+                return data==null || length!=4;
+            else
+                //make sure data is null--either data itself is null, or length==0
+                return data==null|| length==0;
         }
     }
 
@@ -62,6 +81,8 @@ public class NullPredicate implements Predicate{
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(filterIfMissing);
         out.writeBoolean(isNullNumericalComparision);
+        out.writeBoolean(isDoubleColumn);
+        out.writeBoolean(isFloatColumn);
         out.writeInt(column);
     }
 
@@ -69,6 +90,8 @@ public class NullPredicate implements Predicate{
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         filterIfMissing = in.readBoolean();
         isNullNumericalComparision = in.readBoolean();
+        isDoubleColumn = in.readBoolean();
+        isFloatColumn = in.readBoolean();
         column = in.readInt();
     }
 
@@ -81,4 +104,35 @@ public class NullPredicate implements Predicate{
     public void reset() {
         //no-op
     }
+
+    @Override
+    public byte[] toBytes() {
+        /*
+         * Format is as follows:
+         *
+         * 1-byte filterIfMissing
+         * 1-byte isNullNumericalComparison
+         * 1-byte isDoubleColumn
+         * 1-byte isFloatColumn
+         * 4-byte column number
+         */
+        byte[] data = new byte[9];
+        data[0] = PredicateType.NULL.byteValue();
+        data[1] = filterIfMissing? (byte)0x01: 0x00;
+        data[2] = isNullNumericalComparision? (byte)0x01: 0x00;
+        data[3] = isDoubleColumn? (byte)0x01:0x00;
+        data[4] = isFloatColumn? (byte)0x01:0x00;
+        BytesUtil.intToBytes(column,data,5);
+        return data;
+    }
+
+    public static Pair<NullPredicate,Integer> fromBytes(byte[] data, int offset){
+        boolean filterIfMissing = data[offset]==0x01;
+        boolean isNullNumericalComparison = data[offset+1]==0x01;
+        boolean isDoubleColumn = data[offset+2]==0x01;
+        boolean isFloatColumn = data[offset+3]==0x01;
+        int column = BytesUtil.bytesToInt(data,offset+4);
+        return Pair.newPair(new NullPredicate(filterIfMissing,isNullNumericalComparison,column,isDoubleColumn,isFloatColumn),9);
+    }
+
 }

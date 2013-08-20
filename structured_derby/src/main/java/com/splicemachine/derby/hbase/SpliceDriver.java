@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.cache.SpliceCache;
@@ -11,10 +12,12 @@ import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.TableWriter;
 import com.splicemachine.hbase.TempCleaner;
+import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.tools.CachedResourcePool;
@@ -23,8 +26,10 @@ import com.splicemachine.tools.ResourcePool;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -67,6 +72,11 @@ public class SpliceDriver extends SIConstants {
 
     private String startNode;
     private static final SpliceDriver INSTANCE = new SpliceDriver();
+    private static final KryoPool kryoPool;
+    static{
+        kryoPool = new KryoPool(SpliceConstants.kryoPoolSize);
+        kryoPool.setKryoRegistry(new SpliceKryoRegistry());
+    }
 
     private AtomicReference<State> stateHolder = new AtomicReference<State>(State.NOT_STARTED);
 
@@ -74,7 +84,7 @@ public class SpliceDriver extends SIConstants {
 
     private volatile NetworkServerControl server;
 
-    private volatile TableWriter writerPool;
+    private volatile WriteCoordinator writerPool;
     private volatile CountDownLatch initalizationLatch = new CountDownLatch(1);
 
     private ExecutorService executor;
@@ -107,7 +117,7 @@ public class SpliceDriver extends SIConstants {
 
         try {
             snowLoader = new SnowflakeLoader();
-            writerPool = TableWriter.create(SpliceUtils.config);
+            writerPool = WriteCoordinator.create(SpliceUtils.config);
             threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
             jobScheduler = new AsyncJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
@@ -121,7 +131,7 @@ public class SpliceDriver extends SIConstants {
         return (ZkTaskMonitor)taskMonitor;
     }
 
-    public TableWriter getTableWriter() {
+    public WriteCoordinator getTableWriter() {
         return writerPool;
     }
 
@@ -174,50 +184,55 @@ public class SpliceDriver extends SIConstants {
             executor.submit(new Callable<Void>(){
                 @Override
                 public Void call() throws Exception {
+                    try{
+                        SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
 
-                    SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
+                        SpliceLogUtils.info(LOG,"Starting Cache");
+                        startCache();
 
-                    SpliceLogUtils.info(LOG,"Starting Cache");
-                    startCache();
-                    
-                    
-                    writerPool.start();
 
-                    //all we have to do is create it, it will register itself for us
-                    SpliceMetrics metrics = new SpliceMetrics();
+                        writerPool.start();
 
-                    boolean setRunning = true;
-                    SpliceLogUtils.debug(LOG, "Booting Database");
-                    setRunning = bootDatabase();
-                    //table is set up
-                    snowflake = snowLoader.load();
-                    SpliceLogUtils.debug(LOG, "Finished Booting Database");
+                        //all we have to do is create it, it will register itself for us
+                        SpliceMetrics metrics = new SpliceMetrics();
 
-                    //register JMX items --have to wait for the db to boot first
-                    registerJMX();
+                        boolean setRunning = true;
+                        SpliceLogUtils.debug(LOG, "Booting Database");
+                        setRunning = bootDatabase();
+                        //table is set up
+                        snowflake = snowLoader.load();
+                        SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
-                    if(!setRunning){
-                        abortStartup();
-                        return null;
-                    }
-                    SpliceLogUtils.debug(LOG, "Starting Services");
-                    setRunning = startServices();
-                    SpliceLogUtils.debug(LOG, "Done Starting Services");
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    }
+                        //register JMX items --have to wait for the db to boot first
+                        registerJMX();
 
-                    SpliceLogUtils.debug(LOG, "Starting Server");
-                    setRunning = startServer();
-                    SpliceLogUtils.debug(LOG, "Done Starting Server");
-                    if(!setRunning) {
-                        abortStartup();
-                        return null;
-                    } else
-                        stateHolder.set(State.RUNNING);
+                        if(!setRunning){
+                            abortStartup();
+                            return null;
+                        }
+                        SpliceLogUtils.debug(LOG, "Starting Services");
+                        setRunning = startServices();
+                        SpliceLogUtils.debug(LOG, "Done Starting Services");
+                        if(!setRunning) {
+                            abortStartup();
+                            return null;
+                        }
+
+                        SpliceLogUtils.debug(LOG, "Starting Server");
+                        setRunning = startServer();
+                        SpliceLogUtils.debug(LOG, "Done Starting Server");
+                        if(!setRunning) {
+                            abortStartup();
+                            return null;
+                        } else
+                            stateHolder.set(State.RUNNING);
                         initalizationLatch.countDown();
-                    return null;
+                        return null;
+                    }catch(Exception e){
+                        SpliceLogUtils.error(LOG,"Unable to boot Splice Machine",e);
+                        ErrorReporter.get().reportError(SpliceDriver.class,e);
+                        throw e;
+                    }
                 }
             });
         }
@@ -282,13 +297,11 @@ public class SpliceDriver extends SIConstants {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
 
-            //register TableWriter
-            ObjectName writerName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
-            mbs.registerMBean(writerPool,writerName);
+            writerPool.registerJMX(mbs);
 
-            //register TableWriter's writer pool
-            ObjectName writerPoolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
-            mbs.registerMBean(writerPool.getThreadPool(),writerPoolName);
+            //register error reporter
+            ObjectName errorReporterName = new ObjectName("com.splicemachine.error:type=ErrorReport");
+            mbs.registerMBean(ErrorReporter.get(),errorReporterName);
 
             //register TaskScheduler
             ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
@@ -392,8 +405,8 @@ public class SpliceDriver extends SIConstants {
     		return true;    	
     }
     
-    public Cache getPropertiesCache() {
-    	return cache.getCacheManager().getCache(SpliceConstants.PROPERTIES_CACHE);
+    public Cache getCache(String cacheName) {
+    	return cache.getCacheManager().getCache(cacheName);
     }
 
     public Snowflake getUUIDGenerator(){
@@ -403,4 +416,19 @@ public class SpliceDriver extends SIConstants {
     public void loadUUIDGenerator() throws IOException {
         snowflake =  snowLoader.load();
     }
+    
+    public static void setOptimizerTrace(boolean onOrOff) {
+    	SpliceLogUtils.trace(LOG, "setOptimizerTrace %s", onOrOff);
+    	OptimizerTrace.setOptimizerTrace(onOrOff);
+    }
+
+    public static void writeOptimizerTraceOutput(String filename) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "writeOptimizerTraceOutput %s", filename);
+    	OptimizerTrace.writeOptimizerTraceOutputText(filename);
+    }
+
+    public static KryoPool getKryoPool(){
+        return kryoPool;
+    }
+
 }

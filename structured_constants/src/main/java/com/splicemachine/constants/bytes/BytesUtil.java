@@ -6,12 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -68,35 +63,73 @@ public class BytesUtil {
 	 * @param array
 	 * @param index
 	 */
-	public static void incrementAtIndex(byte[] array, int index) {
-          if (array[index] == Byte.MAX_VALUE) {
-              array[index] = 0;
-              if(index > 0)
-                  incrementAtIndex(array, index - 1);
-          }
-          else {
-              array[index]++;
-          }
-      }
-	
-	public static void decrementAtIndex(byte[] array,int index) {
-		if(array[index] == Byte.MIN_VALUE){
-			array[index] = Byte.MAX_VALUE;
-			if(index >0)
-				decrementAtIndex(array,index-1);
-		}else{
-			array[index]--;
-		}
-	}
+//	public static void incrementAtIndex(byte[] array, int index) {
+//          if (array[index] == Byte.MAX_VALUE) {
+//              array[index] = 0;
+//              if(index > 0)
+//                  incrementAtIndex(array, index - 1);
+//          }
+//          else {
+//              array[index]++;
+//          }
+//      }
 
-    public static byte[] copyAndIncrement(byte[] start) {
-        if(start.length==0) return new byte[]{1};
-
-        byte[] other = new byte[start.length];
-        System.arraycopy(start,0,other,0,start.length);
-        incrementAtIndex(other,other.length-1);
-        return other;
+    public static void unsignedIncrement(byte[] array,int index){
+        if(array.length<=0) return; //nothing to do
+        if(index<0){
+            /*
+             *  looks like the array is something like [0xFF,0xFF,0xFF,...].
+             *
+             *  In normal circumstances, we could increment this via rolling bytes over--
+             *  e.g. the array becomes [1,0,0,0,...] which has 1 more byte to the left
+             *  than the input array.
+             *
+             *  However, our comparators will sort going from left to right, which means that
+             *  rolling over like that will actually place the increment BEFORE the array, instead
+             *  of after it like it should. As this violates sort-order restrictions, we are forced
+             *  to explode here
+             */
+            throw new AssertionError("Unable to increment byte[] "+ Arrays.toString(array) +", incrementing would violate sort order");
+        }
+        int value = array[index] & 0xff;
+        if(value==255){
+            array[index]=0;
+            //we've looped past the entry, so increment the next byte in the array
+            unsignedIncrement(array, index-1);
+        }else {
+            array[index]++;
+        }
     }
+	
+//	public static void decrementAtIndex(byte[] array,int index) {
+//		if(array[index] == Byte.MIN_VALUE){
+//			array[index] = Byte.MAX_VALUE;
+//			if(index >0)
+//				decrementAtIndex(array,index-1);
+//		}else{
+//			array[index]--;
+//		}
+//	}
+
+    public static void unsignedDecrement(byte[] array, int index){
+        if(index<0){
+            throw new AssertionError("Unable to decrement "+ Arrays.toString(array)+", as it would violate sort-order");
+        }
+        if(array[index]==0){
+            array[index] = (byte)0xff;
+            unsignedDecrement(array,index-1);
+        }else
+            array[index]--;
+    }
+
+//    public static byte[] copyAndIncrement(byte[] start) {
+//        if(start.length==0) return new byte[]{1};
+//
+//        byte[] other = new byte[start.length];
+//        System.arraycopy(start,0,other,0,start.length);
+//        incrementAtIndex(other,other.length-1);
+//        return other;
+//    }
 
     public static String debug(Object o) {
         byte[] bytes = (byte[]) o;
@@ -224,6 +257,7 @@ public class BytesUtil {
 
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
     public static String toHex(byte[] bytes) {
+        if(bytes==null || bytes.length<=0) return "";
         char[] hexChars = new char[bytes.length * 2];
         int v;
         for ( int j = 0; j < bytes.length; j++ ) {
@@ -241,5 +275,55 @@ public class BytesUtil {
         vals[2] = new byte[]{4,5};
 
         System.out.println(Arrays.toString(concatenate(vals,6)));
+    }
+
+    public static byte[] unsignedCopyAndIncrement(byte[] start) {
+        byte[] next = new byte[start.length];
+        System.arraycopy(start,0,next,0,next.length);
+        unsignedIncrement(next,next.length-1);
+        return next;
+    }
+
+    public static void intToBytes(int value,byte[] data,int offset) {
+        data[offset] = (byte)(value >>> 24);
+        data[offset+1] = (byte)(value >>> 16);
+        data[offset+2] = (byte)(value >>> 8);
+        data[offset+3] = (byte)(value);
+    }
+
+    public static int bytesToInt(byte[] data, int offset) {
+        int value = 0;
+        value |= (data[offset] & 0xff)<<24;
+        value |= (data[offset+1] & 0xff)<<16;
+        value |= (data[offset+2] & 0xff)<< 8;
+        value |= (data[offset+3] & 0xff);
+        return value;
+    }
+
+    public static byte[] toByteArray(BitSet bits) {
+        byte[] bytes = new byte[(bits.length()+7)/8+4];
+        intToBytes((bits.length()+7)/8,bytes,0);
+        for (int i=0; i<bits.length(); i++) {
+            if (bits.get(i)) {
+                bytes[(bytes.length-4)-i/8-1+4] |= 1<<(i%8);
+            }
+        }
+        return bytes;
+    }
+
+    public static Pair<BitSet,Integer> fromByteArray(byte[] data, int offset){
+        int numBytes = bytesToInt(data,offset);
+        BitSet bitSet = new BitSet();
+        int currentPos=0;
+        for(int i=numBytes+offset+4-1;i>=offset+4;i--){
+            byte byt = data[i];
+            //a 1 in the position indicates the field is set
+            for(int pos=0;pos<8;pos++){
+                if((byt & (1<<pos))>0)
+                    bitSet.set(currentPos);
+                currentPos++;
+            }
+        }
+        return Pair.newPair(bitSet,offset+numBytes+4);
     }
 }

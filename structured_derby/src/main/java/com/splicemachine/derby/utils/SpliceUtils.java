@@ -104,7 +104,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
-		SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
+        if(LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
 		try {
 			Get get = createGet(transID, loc.getBytes());
             get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
@@ -118,8 +119,6 @@ public class SpliceUtils extends SpliceUtilities {
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
             }
-
-
 
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -264,32 +263,32 @@ public class SpliceUtils extends SpliceUtilities {
 		return null;
 	}
 
-	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
-			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("update row " + row);
-
-		try {
-			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
-			//May need to read more HTableInteface's checkAndPut
-			Get get = createGet(transID, loc.getBytes());
-
-			Result result = htable.get(get);
-			if (result.isEmpty()) {
-				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");
-				return false;
-			}
-
-            Put put = createPut(loc.getBytes(),transID);
-            RowMarshaller.columnar().encodeRow(row, bitSetToMap(validColumns), put, null);
-			//FIXME: checkAndPut can only do one column at a time, too expensive
-			htable.put(put);
-			return true;
-		} catch (IOException ie) {
-			LOG.error(ie.getMessage(), ie);
-		}
-		return false;
-	}
+//	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
+//			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
+//		if (LOG.isTraceEnabled())
+//			LOG.trace("update row " + row);
+//
+//		try {
+//			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
+//			//May need to read more HTableInteface's checkAndPut
+//			Get get = createGet(transID, loc.getBytes());
+//
+//			Result result = htable.get(get);
+//			if (result.isEmpty()) {
+//				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");
+//				return false;
+//			}
+//
+//            Put put = createPut(loc.getBytes(),transID);
+//            RowMarshaller.sparsePacked().encodeRow(row, bitSetToMap(validColumns), put, null);
+//			//FIXME: checkAndPut can only do one column at a time, too expensive
+//			htable.put(put);
+//			return true;
+//		} catch (IOException ie) {
+//			LOG.error(ie.getMessage(), ie);
+//		}
+//		return false;
+//	}
 	
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)
@@ -395,5 +394,15 @@ public class SpliceUtils extends SpliceUtilities {
             pos++;
         }
         return validCols;
+    }
+
+    public static int[] translateToZeroIndexed(int[] oneIndexed) {
+        if(oneIndexed==null) return null;
+        if(oneIndexed.length<=0) return oneIndexed;
+        int[] zeroIndexed = new int[oneIndexed.length];
+        for(int i=0;i<oneIndexed.length;i++){
+            zeroIndexed[i] = oneIndexed[i] -1;
+        }
+        return zeroIndexed;
     }
 }

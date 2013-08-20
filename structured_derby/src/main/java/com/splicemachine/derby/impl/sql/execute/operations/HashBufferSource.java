@@ -1,18 +1,23 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 import org.datanucleus.sco.backed.Map;
 
 import java.nio.ByteBuffer;
 
 public class HashBufferSource{
 
+    private static final Logger LOG = Logger.getLogger(HashBufferSource.class);
     private byte[] keyBytes;
     private KeyMarshall hasher;
     protected MultiFieldEncoder keyEncoder;
@@ -59,21 +64,27 @@ public class HashBufferSource{
                         if(finisher != null){
                             finisher.finishAggregation(result.getSecond());
                         }
+                        return result;
                     }
                 }
             }
-            doneReadingSource = true;
+            doneReadingSource = result==null;
 
             if(finisher != null){
                 currentRows = currentRows.finishAggregates(finisher);
             }
         }
 
-        if(result == null && doneReadingSource && !currentRows.isEmpty()){
+        if(doneReadingSource && !currentRows.isEmpty()){
             ByteBuffer key = currentRows.keySet().iterator().next();
             result = new Pair(key, currentRows.remove(key));
         }
 
         return result;
+    }
+
+    public void close() {
+        if(keyEncoder!=null)
+            keyEncoder.close();
     }
 }

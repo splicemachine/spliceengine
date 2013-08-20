@@ -10,21 +10,25 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
@@ -37,15 +41,15 @@ import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
 public class SITransactor<Table, OperationWithAttributes, Mutation extends OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable,
-        Delete extends OperationWithAttributes, Lock, OperationStatus>
+        Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable extends Comparable,
+        Delete extends OperationWithAttributes, Lock, OperationStatus, Scanner>
         implements Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
 
     private final TimestampSource timestampSource;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete, Data, Lock, org.apache.hadoop.hbase.regionserver.OperationStatus> dataWriter;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock, OperationStatus> dataStore;
+    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock, OperationStatus, Scanner> dataStore;
     private final TransactionStore transactionStore;
     private final Clock clock;
     private final int transactionTimeoutMS;
@@ -351,77 +355,137 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
-        PutToRun<Mutation, Lock> putToRun = null;
-        final HashMap<Hashable, Lock> locks = new HashMap<Hashable, Lock>();
-        try {
-            // The non-batch Put path uses the batch Put mechanism to avoid code duplication.
-            putToRun = preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
-            dataWriter.write(table, (Put) putToRun.putAndLock.getFirst(), putToRun.putAndLock.getSecond());
-        } finally {
-            final Iterator<Lock> locksIterator = locks.values().iterator();
-            if (locksIterator.hasNext()) {
-                final Set<Long> conflictingChildren = (putToRun == null)
-                        ? Collections.<Long>emptySet()
-                        : putToRun.conflictingChildren;
-                postProcessBatchPutDirect(table, put, locksIterator.next(), conflictingChildren);
-            }
+        final Mutation[] mutations = (Mutation[]) Array.newInstance(put.getClass(), 1);
+        mutations[0] = put;
+        final OperationStatus[] operationStatuses = processPutBatch(table, rollForwardQueue, mutations);
+        if (!((org.apache.hadoop.hbase.regionserver.OperationStatus) operationStatuses[0]).getOperationStatusCode().equals(HConstants.OperationStatusCode.SUCCESS)) {
+            throw new RuntimeException("operation not successful: " + operationStatuses[0]);
         }
     }
 
     @Override
     public OperationStatus[] processPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Mutation[] mutations)
             throws IOException {
-        Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>();
+        if (mutations.length == 0) {
+            //short-circuit special case of empty batch
+            return dataStore.writeBatch(table, new Pair[0]);
+        }
+
+        Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
+        Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);
         try {
             final Pair<Mutation, Lock>[] mutationsAndLocks = new Pair[mutations.length];
+            obtainLocksForPutBatchAndPrepNonSIPuts(table, mutations, locks, putInBatchMap, mutationsAndLocks);
+
             final Set<Long>[] conflictingChildren = new Set[mutations.length];
-            for (int i = 0; i < mutations.length; i++) {
-                if (isFlaggedForSITreatment(mutations[i])) {
-                    Put put = (Put) mutations[i];
-                    final PutToRun<Mutation, Lock> putToRun = preProcessBatchPutDirect(table, rollForwardQueue, put, locks);
-                    mutationsAndLocks[i] = putToRun.putAndLock;
-                    conflictingChildren[i] = putToRun.conflictingChildren;
-                } else {
-                    mutationsAndLocks[i] = new Pair<Mutation, Lock>(mutations[i], null);
-                    conflictingChildren[i] = Collections.EMPTY_SET;
-                }
+            dataStore.startLowLevelOperation(table);
+            try {
+                checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
+            } finally {
+                dataStore.closeLowLevelOperation(table);
             }
+
             final OperationStatus[] status = dataStore.writeBatch(table, mutationsAndLocks);
 
-            for (int i = 0; i < mutations.length; i++) {
-                try {
-                    if (isFlaggedForSITreatment(mutations[i])) {
-                        Put put = (Put) mutations[i];
-                        postProcessBatchPutDirect(table, put, locks.get(hasher.toHashable(dataLib.getPutKey(put))), conflictingChildren[i]);
-                    }
-                } catch (Exception ex) {
-                    LOG.error("Exception while post processing batch put", ex);
-                    status[i] = dataLib.newFailStatus();
-                }
-            }
+            resolveConflictsForPutBatch(table, mutations, locks, conflictingChildren, status);
+
             return status;
         } finally {
-            for (Lock lock : locks.values()) {
-                if (lock != null) {
-                    try {
-                        dataWriter.unLockRow(table, lock);
-                    } catch (Exception ex) {
-                        LOG.error("Exception while cleaning up locks", ex);
-                        // ignore
-                    }
+            releaseLocksForPutBatch(table, locks);
+        }
+    }
+
+    private void releaseLocksForPutBatch(Table table, Map<Hashable, Lock> locks) {
+        for (Lock lock : locks.values()) {
+            if (lock != null) {
+                try {
+                    dataWriter.unLockRow(table, lock);
+                } catch (Exception ex) {
+                    LOG.error("Exception while cleaning up locks", ex);
+                    // ignore
                 }
             }
         }
     }
 
-    private PutToRun<Mutation, Lock> preProcessBatchPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, Map<Hashable, Lock> locks) throws IOException {
+    private void resolveConflictsForPutBatch(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Set<Long>[] conflictingChildren, OperationStatus[] status) {
+        for (int i = 0; i < mutations.length; i++) {
+            try {
+                if (isFlaggedForSITreatment(mutations[i])) {
+                    Put put = (Put) mutations[i];
+                    Lock lock = locks.get(hasher.toHashable(dataLib.getPutKey(put)));
+                    resolveChildConflicts(table, put, lock, conflictingChildren[i]);
+                }
+            } catch (Exception ex) {
+                LOG.error("Exception while post processing batch put", ex);
+                status[i] = dataLib.newFailStatus();
+            }
+        }
+    }
+
+    private void checkConflictsForPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks, Set<Long>[] conflictingChildren) throws IOException {
+        final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
+        for (Hashable hashableRowKey : keys) {
+            for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
+                final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
+                final ConflictResults conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
+                final PutToRun<Mutation, Lock> putToRun = getMutationLockPutToRun(table, rollForwardQueue, putInBatch.put, putInBatch.transaction, putInBatch.rowKey, locks.get(hashableRowKey), conflictResults);
+                mutationsAndLocks[putInBatch.index] = putToRun.putAndLock;
+                conflictingChildren[putInBatch.index] = putToRun.conflictingChildren;
+            }
+        }
+    }
+
+    private void obtainLocksForPutBatchAndPrepNonSIPuts(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Map<Hashable,
+            List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks) throws IOException {
+        for (int i = 0; i < mutations.length; i++) {
+            if (isFlaggedForSITreatment(mutations[i])) {
+                obtainLockForPutBatch(table, mutations[i], locks, putInBatchMap, i);
+            } else {
+                mutationsAndLocks[i] = new Pair<Mutation, Lock>(mutations[i], null);
+            }
+        }
+    }
+
+    private void obtainLockForPutBatch(Table table, Mutation mutation, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, int i) throws IOException {
+        final Put put = (Put) mutation;
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
         ensureTransactionAllowsWrites(transaction);
         final Data rowKey = dataLib.getPutKey(put);
 
-        final Lock lock = obtainLock(locks, table, rowKey);
-        final ConflictResults conflictResults = ensureNoWriteConflict(transaction, table, rowKey);
+        final Hashable hashableRowKey = obtainLock(locks, table, rowKey);
+        List<PutInBatch<Data, Put>> putsInBatch = putInBatchMap.get(hashableRowKey);
+        final PutInBatch newPutInBatch = new PutInBatch(transaction, rowKey, i, put);
+        if (putsInBatch == null) {
+            putsInBatch = new ArrayList<PutInBatch<Data, Put>>();
+            putsInBatch.add(newPutInBatch);
+            putInBatchMap.put(hashableRowKey, putsInBatch);
+        } else {
+            putsInBatch.add(newPutInBatch);
+        }
+    }
+
+    private ScanBounds<Data> findScanBounds(Map<Hashable, List<PutInBatch<Data, Put>>> putInProgressMap) {
+        Hashable hashableMin = null;
+        Hashable hashableMax = null;
+        ScanBounds<Data> scanBounds = new ScanBounds<Data>();
+        for (Map.Entry<Hashable, List<PutInBatch<Data, Put>>> entry : putInProgressMap.entrySet()) {
+            final Hashable hashableRowKey = entry.getKey();
+            final Data rowKey = entry.getValue().get(0).rowKey;
+            if (hashableMin == null || hashableRowKey.compareTo(hashableMin) < 0) {
+                hashableMin = hashableRowKey;
+                scanBounds.minKey = rowKey;
+            }
+            if (hashableMax == null || hashableRowKey.compareTo(hashableMax) > 0) {
+                hashableMax = hashableRowKey;
+                scanBounds.maxKey = rowKey;
+            }
+        }
+        return scanBounds;
+    }
+
+    private PutToRun<Mutation, Lock> getMutationLockPutToRun(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction, Data rowKey, Lock lock, ConflictResults conflictResults) throws IOException {
         final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
                 conflictResults.hasTombstone);
         dataStore.suppressIndexing(newPut);
@@ -432,22 +496,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return new PutToRun<Mutation, Lock>(new Pair<Mutation, Lock>(newPut, lock), conflictResults.childConflicts);
     }
 
-    private Lock obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
+    private Hashable obtainLock(Map<Hashable, Lock> locks, Table table, Data rowKey) throws IOException {
         final Hashable hashableRowKey = hasher.toHashable(rowKey);
         Lock lock = locks.get(hashableRowKey);
         if (lock == null) {
             lock = dataWriter.lockRow(table, rowKey);
             locks.put(hashableRowKey, lock);
         }
-        return lock;
-    }
-
-    private void postProcessBatchPutDirect(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
-        try {
-            resolveChildConflicts(table, put, lock, conflictingChildren);
-        } finally {
-            dataWriter.unLockRow(table, lock);
-        }
+        return hashableRowKey;
     }
 
 
@@ -463,9 +519,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * While we hold the lock on the row, check to make sure that no transactions have updated the row since the
      * updating transaction started.
      */
-    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction, Table table, Data rowKey)
+    private ConflictResults ensureNoWriteConflict(ImmutableTransaction updateTransaction, List<KeyValue>[] values)
             throws IOException {
-        final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstones(table, rowKey);
         final ConflictResults timestampConflicts = checkTimestampsHandleNull(updateTransaction, values[1]);
         final List<KeyValue> tombstoneValues = values[0];
         boolean hasTombstone = hasCurrentTransactionTombstone(updateTransaction.getLongTransactionId(), tombstoneValues);
@@ -653,7 +708,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                                              TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
         return new FilterStatePacked(tableName, dataLib, dataStore,
                 (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
-                new HRowAccumulator(predicateFilter, new EntryDecoder()));
+                new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
     }
 
     @Override
@@ -778,9 +833,5 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         if (transaction.isReadOnly()) {
             throw new DoNotRetryIOException("transaction is read only: " + transaction.getTransactionId().getTransactionIdString());
         }
-    }
-
-    public void cleanupLock(Table table, Lock lock) throws IOException {
-        dataWriter.unLockRow(table, lock);
     }
 }

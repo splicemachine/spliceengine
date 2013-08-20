@@ -148,7 +148,7 @@ public class BlockImportJob extends FileImportJob{
             if(end.length>0){
                 start = new byte[end.length];
                 System.arraycopy(end,0,start,0,end.length);
-                BytesUtil.decrementAtIndex(start, start.length - 1);
+                BytesUtil.unsignedDecrement(start, start.length - 1);
             }
         }
         return Pair.newPair(start, start);
@@ -198,11 +198,10 @@ public class BlockImportJob extends FileImportJob{
             int splitPoint = (int)(range*i/3 + Integer.MIN_VALUE);
             String actualSplit = Integer.toString(splitPoint);
             byte[] bits = Bytes.toBytes(actualSplit);
-            byte[] bits2 = BytesUtil.copyAndIncrement(bits);
+            byte[] bits2 = BytesUtil.unsignedCopyAndIncrement(bits);
             System.out.println(Bytes.toStringBinary(Encoding.encode(Bytes.toString(bits))));
             System.out.println(Bytes.toStringBinary(Encoding.encode(Bytes.toString(bits2))));
             System.out.println("");
         }
-
     }
 }

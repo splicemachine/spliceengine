@@ -18,13 +18,11 @@ import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -35,7 +33,6 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.Stat;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
@@ -363,7 +360,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                 endRow = new byte[nextTask.startRow.length];
                 System.arraycopy(nextTask.startRow,0,endRow,0,endRow.length);
 
-                BytesUtil.decrementAtIndex(endRow,endRow.length-1);
+                BytesUtil.unsignedDecrement(endRow,endRow.length-1);
             }else
                 endRow = HConstants.EMPTY_END_ROW;
 

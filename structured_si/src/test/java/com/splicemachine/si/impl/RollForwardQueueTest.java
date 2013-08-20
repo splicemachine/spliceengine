@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.NoOpHasher;
+import com.splicemachine.si.data.hbase.HHasher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +32,7 @@ public class RollForwardQueueTest {
                 out[0] = ((byte[]) rowList.get(0))[0];
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(10, out[0]);
@@ -48,7 +49,7 @@ public class RollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         queue.recordRow(2, new byte[] {20});
         queue.recordRow(3, new byte[] {30});
@@ -74,7 +75,7 @@ public class RollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         queue.recordRow(1, new byte[] {20});
         queue.recordRow(1, new byte[] {30});
@@ -100,7 +101,7 @@ public class RollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, VERY_LONG_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, VERY_LONG_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         queue.recordRow(1, new byte[] {20});
         Assert.assertEquals(2, queue.getCount());
@@ -123,7 +124,7 @@ public class RollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         queue.recordRow(1, new byte[] {11});
         Thread.sleep(LONG_WAIT);
@@ -151,7 +152,7 @@ public class RollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue = new RollForwardQueue(new NoOpHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
+        final RollForwardQueue queue = new RollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
         queue.recordRow(1, new byte[] {10});
         queue.recordRow(2, new byte[] {20});
         Thread.sleep(SHORT_WAIT);

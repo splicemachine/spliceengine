@@ -1,7 +1,7 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.RollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;

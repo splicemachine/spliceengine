@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
+import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
@@ -63,6 +64,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             activation = context.getActivation();//((GenericActivationHolder) statement.getActivation(lcc, false)).ac;
             topOperation.init(context);
         }catch (IOException e) {
+            ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
             SpliceLogUtils.logAndThrowRuntime(LOG, e);
         }
     }
@@ -87,6 +89,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        topOperation.generateLeftOperationStack(opStack);
 	        SpliceLogUtils.trace(LOG, "Ready to execute stack %s", opStack);
 		} catch (Exception e) {
+            ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
         }
 	}
@@ -109,9 +112,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 byte[] row = location!=null? location.getBytes():SpliceUtils.getUniqueKey();
 
                 if(rowEncoder==null)
-                    rowEncoder = MultiFieldEncoder.create(rowArray.length);
+                    rowEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rowArray.length);
                 rowEncoder.reset();
-                RowMarshaller.packedCompressed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
+                RowMarshaller.packed().encodeKeyValues(rowArray,row,null,rowEncoder,results);
 
                 //add any additional columns which were specified during the run
                 Iterator<Pair<byte[],byte[]>> addColIter = additionalColumns.iterator();
@@ -145,6 +148,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             }
             return !results.isEmpty();
         }catch(Exception e){
+            ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
             SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
             return false; //won't happen since logAndThrow will throw an exception
         }
@@ -161,11 +165,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public void close() throws IOException {
         SpliceLogUtils.trace(LOG, "close");
         boolean success = false;
+        if(rowEncoder!=null)
+            rowEncoder.close();
         try {
             try {
                 topOperation.close();
                 success = true;
             } catch (StandardException e) {
+                ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
                 SpliceLogUtils.logAndThrow(LOG, "close direct failed", Exceptions.getIOException(e));
             }finally{
                 if (regionScanner != null) {

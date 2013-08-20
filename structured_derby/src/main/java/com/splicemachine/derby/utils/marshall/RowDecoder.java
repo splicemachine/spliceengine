@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -55,12 +56,12 @@ public class RowDecoder {
         if(reversedKeyColumns!=null && reversedKeyColumns.length>0){
             //some columns are stored in the row key, so need to initialize
             //a decoder for that
-            keyDecoder = MultiFieldDecoder.create();
+            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
         }
 
         if(!rowType.isColumnar()){
             //our data is in a single column
-            rowDecoder = MultiFieldDecoder.create();
+            rowDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
         }
     }
 
@@ -126,5 +127,12 @@ public class RowDecoder {
 
     public ExecRow getTemplate() {
         return template;
+    }
+
+    public void close(){
+        if(keyDecoder!=null)
+            keyDecoder.close();
+        if(rowDecoder!=null)
+            rowDecoder.close();
     }
 }

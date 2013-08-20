@@ -15,6 +15,10 @@ public class JoinUtils {
 	
 	public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow, boolean wasRightOuterJoin,int rightNumCols, int leftNumCols, ExecRow mergedRow) {
 //		SpliceLogUtils.trace(LOG, "getMergedRow with leftRow %s,right row %s, rightOuterJoin?%b" , leftRow , rightRow,wasRightOuterJoin);
+        // if mergedRow is null, we'll get an NPE below. Return the trash passed to us.
+        if (mergedRow == null) {
+            return null;
+        }
 		int colInCtr;
 		int colOutCtr;
 		/* Reverse left and right for return of row if this was originally
@@ -26,8 +30,9 @@ public class JoinUtils {
 			tmp = leftRow;
 			leftRow = rightRow;
 			rightRow = tmp;
+            int tmpNCols = leftNumCols;
 			leftNumCols = rightNumCols;
-			rightNumCols = leftNumCols;
+			rightNumCols = tmpNCols;
 		} 
 
 		/* Merge the rows, doing just in time allocation for mergedRow.

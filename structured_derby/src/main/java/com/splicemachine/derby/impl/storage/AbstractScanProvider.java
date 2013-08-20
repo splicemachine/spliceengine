@@ -36,10 +36,16 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
     protected TaskStats.SinkAccumulator accumulator;
     private final String type;
+    private RowDecoder rowDecoder;
 
     protected AbstractScanProvider(RowDecoder decoder,String type){
         this.decoder = decoder;
         this.type = type;
+    }
+
+    protected AbstractScanProvider(AbstractScanProvider copy){
+        this.type = copy.type;
+        this.decoder = copy.decoder;
     }
 
     @Override
@@ -78,7 +84,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         return false;
 	}
 
-	protected abstract Result getResult() throws StandardException;
+	public abstract Result getResult() throws StandardException;
 
     public ExecRow getRowTemplate(){
         return decoder.getTemplate();
@@ -100,4 +106,5 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         }
         super.close();
     }
+
 }

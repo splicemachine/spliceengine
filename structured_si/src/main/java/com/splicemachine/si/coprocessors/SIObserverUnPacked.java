@@ -54,6 +54,7 @@ public class SIObserverUnPacked extends BaseRegionObserver {
         SpliceLogUtils.trace(LOG, "starting %s", SIObserverUnPacked.class);
         region = ((RegionCoprocessorEnvironment) e).getRegion();
         tableName = ((RegionCoprocessorEnvironment) e).getRegion().getTableDesc().getNameAsString();
+        Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
         RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
@@ -141,13 +142,7 @@ public class SIObserverUnPacked extends BaseRegionObserver {
         byte[] predicateAttribute = scan.getAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL);
         EntryPredicateFilter predicateFilter = null;
         if(predicateAttribute!=null){
-            ByteArrayInputStream bais = new ByteArrayInputStream(predicateAttribute);
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            try {
-                predicateFilter = (EntryPredicateFilter)ois.readObject();
-            } catch (ClassNotFoundException e1) {
-                throw new IOException(e1);
-            }
+            predicateFilter = EntryPredicateFilter.fromBytes(predicateAttribute);
         }
         return predicateFilter;
     }

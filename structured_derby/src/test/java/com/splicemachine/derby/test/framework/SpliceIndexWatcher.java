@@ -76,8 +76,47 @@ public class SpliceIndexWatcher extends TestWatcher {
 		LOG.trace("finished");
 		executeDrop(indexSchemaName,indexName);
 	}
-	
-	public static void executeDrop(String indexSchemaName,String indexName) {
+
+    /**
+     * Use this static method in cases where you want to create an index after creating/loading table.
+     * TODO: redirect starting(Description) to call this method
+     * @param connection
+     * @param schemaName
+     * @param tableName
+     * @param indexName
+     * @param definition
+     * @param unique
+     * @throws Exception
+     */
+    public static void createIndex(Connection connection, String schemaName, String tableName, String indexName, String definition, boolean unique) throws Exception {
+        PreparedStatement statement = null;
+        Statement statement2 = null;
+        ResultSet rs = null;
+        try {
+            connection = SpliceNetConnection.getConnection();
+            statement = connection.prepareStatement(SELECT_SPECIFIC_INDEX);
+            statement.setString(1, schemaName);
+            statement.setString(2, indexName);
+            rs = statement.executeQuery();
+            if (rs.next()) {
+                SpliceIndexWatcher.executeDrop(schemaName,indexName);
+            }
+            connection.commit();
+            statement2 = connection.createStatement();
+            statement2.execute(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
+                    schemaName,indexName,schemaName,tableName,definition));
+            connection.commit();
+        } catch (Exception e) {
+            throw new RuntimeException("Create index failed.", e);
+        } finally {
+            DbUtils.closeQuietly(rs);
+            DbUtils.closeQuietly(statement);
+            DbUtils.closeQuietly(statement2);
+            DbUtils.commitAndCloseQuietly(connection);
+        }
+    }
+
+    public static void executeDrop(String indexSchemaName,String indexName) {
 		LOG.trace("executeDrop");
 		Connection connection = null;
 		Statement statement = null;
@@ -96,4 +135,7 @@ public class SpliceIndexWatcher extends TestWatcher {
 		}
 	}
 
+    public void drop() {
+        executeDrop(indexSchemaName,indexName);
+    }
 }

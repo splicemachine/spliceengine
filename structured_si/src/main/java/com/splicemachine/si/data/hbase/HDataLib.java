@@ -40,6 +40,14 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     }
 
     @Override
+    public byte[] increment(byte[] key) {
+        if (key.length == 0) {
+            return key;
+        }
+        return BytesUtil.unsignedCopyAndIncrement(key);
+    }
+
+    @Override
     public byte[] getResultKey(Result result) {
         return result.getRow();
     }

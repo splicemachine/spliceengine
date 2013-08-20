@@ -96,13 +96,13 @@ final class ByteEncoding {
     }
 
     static byte[] decode(byte[] value, boolean desc){
-        return decode(value,0,desc);
+        return decode(value,0,value.length,desc);
     }
 
-    static byte[] decode(byte[] value, int offset,boolean desc){
+    static byte[] decode(byte[] value, int offset,int length,boolean desc){
         //convert back into character encoding
         StringBuilder sb = new StringBuilder();
-        for(int i=0;i<value.length;i++){
+        for(int i=0;i<length;i++){
             byte c = value[offset+i];
             if(desc)
                 c ^= 0xff;

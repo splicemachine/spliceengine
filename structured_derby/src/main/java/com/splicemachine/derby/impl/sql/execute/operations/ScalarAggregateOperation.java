@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.primitives.Bytes;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
@@ -19,17 +17,13 @@ import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
@@ -68,10 +62,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
         this.singleInputRow = singleInputRow;
-
-        ExecutionFactory factory = a.getExecutionFactory();
-        sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(a));
-        sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+//        ExecutionFactory factory = a.getExecutionFactory();
+//        sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
+//        sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
         recordConstructorTime();
     }
 
@@ -120,7 +113,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super.init(context);
 		ExecutionFactory factory = activation.getExecutionFactory();
 		try {
-			sortTemplateRow = factory.getIndexableRow((ExecRow)rowAllocator.invoke(activation));
+			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
@@ -242,7 +235,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,
                 uniqueSequenceID,
                 KeyType.PREFIX_UNIQUE_POSTFIX_ONLY,
-                RowMarshaller.packedCompressed());
+                RowMarshaller.packed());
     }
 
     @Override

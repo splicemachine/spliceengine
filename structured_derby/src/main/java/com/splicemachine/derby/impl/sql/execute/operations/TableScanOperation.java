@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -22,14 +23,12 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -156,7 +155,7 @@ public class TableScanOperation extends ScanOperation {
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.packedCompressed());
+        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.packed());
     }
 
     @Override
@@ -185,24 +184,15 @@ public class TableScanOperation extends ScanOperation {
 	public ExecRow getNextRowCore() throws StandardException {
 		beginTime = getCurrentTimeMillis();
 		try {
-			  if (!initialized.get()) {
-				  region.startRegionOperation();
-		      	  MultiVersionConsistencyControl.setThreadReadPoint(regionScanner.getMvccReadPoint());
-		      	  initialized.set(true);
-			  }			
 	        keyValues.clear();
-	        regionScanner.nextRaw(keyValues,null);
+            regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
-				if (initialized.get()) {
-					region.closeRegionOperation();
-					initialized.set(false);
-				}
 				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
                 if(rowDecoder==null)
-                    rowDecoder = MultiFieldDecoder.create();
+                    rowDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){
@@ -237,8 +227,9 @@ public class TableScanOperation extends ScanOperation {
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException {
+        if(rowDecoder!=null)
+            rowDecoder.close();
 		SpliceLogUtils.trace(LOG, "close in TableScan");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen ) {

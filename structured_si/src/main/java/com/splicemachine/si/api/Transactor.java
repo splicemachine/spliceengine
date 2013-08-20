@@ -14,7 +14,7 @@ import java.util.List;
  * The primary interface to the transaction module. This interface has the most burdensome generic signature so it is
  * only exposed in places where it is needed.
  */
-public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock>
+public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable extends Comparable, Lock>
         extends ClientTransactor<Put, Get, Scan, Mutation, Data> {
 
     /**

@@ -2,23 +2,24 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CallBuffer;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -27,12 +28,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.BitSet;
+import java.util.Collections;
 
 /**
  * @author jessiezhang
@@ -130,7 +133,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
         return new UpdateRowEncoder(finalPkColumns,null,null,null,
                 KeyType.BARE,
-                RowMarshaller.columnar(),
+                RowMarshaller.sparsePacked(),
                 modifiedPks,finalHeapList,colPositionMap);
     }
 
@@ -170,18 +173,12 @@ public class UpdateOperation extends DMLWriteOperation{
 
             //we need the index so that we can transform data without the information necessary to decode it
             EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),Collections.<Predicate>emptyList(),true);
-            ByteDataOutput bdo  = new ByteDataOutput();
-            try {
-                bdo.writeObject(predicateFilter);
-                this.filterBytes = bdo.toByteArray();
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
+            this.filterBytes = predicateFilter.toBytes();
             return filterBytes;
         }
 
         @Override
-        public void write(ExecRow nextRow, String txnId, CallBuffer<Mutation> buffer) throws Exception {
+        public void write(ExecRow nextRow, CallBuffer<KVPair> buffer) throws Exception {
             RowLocation location= (RowLocation)nextRow.getColumn(nextRow.nColumns()).getObject(); //the location to update is always at the end
 	        /*
 	         * If we have primary keys, it's possible that we have modified one of them, which will change the row
@@ -191,8 +188,8 @@ public class UpdateOperation extends DMLWriteOperation{
 	         * deal with primary keys. Otherwise, we do an update as usual
 	         */
             if(!modifiedPks){
-                Put put = SpliceUtils.createPut(location.getBytes(),txnId);
-                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
+//                Put put = SpliceUtils.createPut(location.getBytes(),((TransactionalCallBuffer)buffer).getTransactionId());
+//                put.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
 
                 //set the columns from the new row
                 EntryEncoder encoder = getNonPkEncoder(nextRow);
@@ -201,14 +198,15 @@ public class UpdateOperation extends DMLWriteOperation{
                 fieldEncoder.reset();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
                     DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
-                    if(dvd==null||dvd.isNull())
-                        fieldEncoder.encodeEmpty();
+                    //we know that derby never spits out a null field here--we hope.
+                    if(dvd.isNull())
+                        DerbyBytesUtil.encodeTypedEmpty(fieldEncoder,dvd,false,true);
                     else
-                        DerbyBytesUtil.encodeInto(fieldEncoder,dvd,false);
+                        DerbyBytesUtil.encodeInto(fieldEncoder, dvd, false);
                 }
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,encoder.encode());
+                byte[] value = encoder.encode();
 
-                buffer.add(put);
+                buffer.add(new KVPair(location.getBytes(),value, KVPair.Type.UPDATE));
             }else{
             	Result result = null;
             	HTableInterface htable = null;
@@ -225,9 +223,7 @@ public class UpdateOperation extends DMLWriteOperation{
             		remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
             		remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,getFilterBytes());
             		result = htable.get(remoteGet);
-            	} catch (Exception e) {
-            		throw e;
-            	} finally {
+            	}  finally {
             		Closeables.closeQuietly(htable);
             	}
 
@@ -235,41 +231,46 @@ public class UpdateOperation extends DMLWriteOperation{
                 keyEncoder.reset();
                 keyType.encodeKey(nextRow.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
 
-                Put put = new Put(keyEncoder.build());
-                SpliceUtils.attachTransaction(put,txnId);
+                byte[] rowKey = keyEncoder.build();
+
 
                 if(heapDecoder==null)
-                    heapDecoder = MultiFieldDecoder.create();
+                    heapDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
-                EntryDecoder getDecoder = new EntryDecoder();
+                EntryDecoder getDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
                 getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
 
-                EntryEncoder entryEncoder = EntryEncoder.create(getDecoder.getCurrentIndex());
-
-                BitIndex index = getDecoder.getCurrentIndex();
-                MultiFieldEncoder updateEncoder = entryEncoder.getEntryEncoder();
-                MultiFieldDecoder getFieldDecoder = getDecoder.getEntryDecoder();
-                for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
-                    if(finalHeapList.isSet(pos+1)){
-                        DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[pos+1]];
-                        if(dvd==null||dvd.isNull()){
-                            updateEncoder.encodeEmpty();
+                EntryEncoder entryEncoder = EntryEncoder.create(SpliceDriver.getKryoPool(),getDecoder.getCurrentIndex());
+                try{
+                    BitIndex index = getDecoder.getCurrentIndex();
+                    MultiFieldEncoder updateEncoder = entryEncoder.getEntryEncoder();
+                    MultiFieldDecoder getFieldDecoder = getDecoder.getEntryDecoder();
+                    for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
+                        if(finalHeapList.isSet(pos+1)){
+                            DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[pos+1]];
+                            if(dvd==null||dvd.isNull()){
+                                updateEncoder.encodeEmpty();
+                            }else{
+                                DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
+                            }
+                            getDecoder.seekForward(getFieldDecoder,pos);
                         }else{
-                            DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
+                            //use the index to get the correct offsets
+                            int offset = getFieldDecoder.offset();
+                            getDecoder.seekForward(getFieldDecoder,pos);
+                            int limit = getFieldDecoder.offset()-1-offset;
+                            updateEncoder.setRawBytes(getFieldDecoder.array(),offset,limit);
                         }
-                        getDecoder.seekForward(getFieldDecoder,pos);
-                    }else{
-                        //use the index to get the correct offsets
-                        int offset = getFieldDecoder.offset();
-                        getDecoder.seekForward(getFieldDecoder,pos);
-                        int limit = getFieldDecoder.offset()-1-offset;
-                        updateEncoder.setRawBytes(getFieldDecoder.array(),offset,limit);
                     }
-                }
 
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,entryEncoder.encode());
-                buffer.add(put);
-                buffer.add(Mutations.getDeleteOp(txnId,location.getBytes()));
+                    byte[] value = entryEncoder.encode();
+                    buffer.add(new KVPair(rowKey,value));
+                    buffer.add(new KVPair(location.getBytes(),EMPTY_BYTES, KVPair.Type.DELETE));
+                }finally{
+                    entryEncoder.close();
+                    if(heapDecoder!=null)
+                        heapDecoder.close();
+                }
             }
         }
 
@@ -280,19 +281,26 @@ public class UpdateOperation extends DMLWriteOperation{
                 BitSet floatFields = new BitSet();
                 BitSet doubleFields = new BitSet();
                 for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
-                    DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
-                    if(DerbyBytesUtil.isScalarType(dvd))
-                        scalarFields.set(i-1);
-                    else if(DerbyBytesUtil.isFloatType(dvd))
-                        floatFields.set(i-1);
-                    else if(DerbyBytesUtil.isDoubleType(dvd))
-                        doubleFields.set(i-1);
-
                     setColumns.set(i-1);
+                    DataValueDescriptor dvd = nextRow.getRowArray()[colPositionMap[i]];
+                    if(DerbyBytesUtil.isScalarType(dvd)){
+                        scalarFields.set(i-1);
+                    }else if(DerbyBytesUtil.isFloatType(dvd)){
+                        floatFields.set(i-1);
+                    }else if(DerbyBytesUtil.isDoubleType(dvd)){
+                        doubleFields.set(i-1);
+                    }
                 }
-                nonPkEncoder= EntryEncoder.create(nextRow.nColumns(),setColumns,scalarFields,floatFields,doubleFields);
+                nonPkEncoder= EntryEncoder.create(SpliceDriver.getKryoPool(),nextRow.nColumns(),setColumns,scalarFields,floatFields,doubleFields);
             }
             return nonPkEncoder;
+        }
+
+        @Override
+        public void close() {
+            if(nonPkEncoder!=null)
+                nonPkEncoder.close();
+            super.close();
         }
     }
 }

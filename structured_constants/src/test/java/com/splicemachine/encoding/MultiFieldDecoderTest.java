@@ -1,5 +1,6 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -14,12 +15,12 @@ import java.util.Arrays;
 public class MultiFieldDecoderTest {
     @Test
     public void testCanDecodeNullEntry() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
         encoder.encodeNext("test");
         encoder.setRawBytes(new byte[]{});
         encoder.encodeNext("test2");
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.create();
+        MultiFieldDecoder decoder = MultiFieldDecoder.create(KryoPool.defaultPool());
         decoder.set(encoder.build());
         String val = decoder.decodeNextString();
         byte[] bytes = decoder.decodeNextBytes();
@@ -32,12 +33,12 @@ public class MultiFieldDecoderTest {
 
     @Test
     public void testCanDecodeBigDecimalInMiddle() throws Exception {
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
         encoder.encodeNext("hello");
         encoder.encodeNext(BigDecimal.valueOf(25));
         encoder.encodeNext("goodbye");
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build());
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(encoder.build(),KryoPool.defaultPool());
         Assert.assertEquals("hello",decoder.decodeNextString());
         Assert.assertEquals(BigDecimal.valueOf(25),decoder.decodeNextBigDecimal());
         Assert.assertEquals("goodbye",decoder.decodeNextString());
@@ -46,11 +47,11 @@ public class MultiFieldDecoderTest {
     @Test
     public void testCanDecodeSpecialDoubleInMiddleOfTwoStrings() throws Exception {
         double v = 5.5d;
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(3);
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
         encoder.encodeNext("hello").encodeNext(v).encodeNext("goodbye");
         byte[] build = encoder.build();
 
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(build);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(build,KryoPool.defaultPool());
         String hello = decoder.decodeNextString();
         double v1 = decoder.decodeNextDouble();
         String goodbye = decoder.decodeNextString();

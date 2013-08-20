@@ -15,7 +15,9 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -30,6 +32,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
@@ -124,9 +127,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         groupByColumns = new ArrayList<Integer>();
         descAscInfo = new ArrayList<Boolean>();
         groupByDescAscInfo = new ArrayList<Boolean>();
+        final int[] keyCols = new int[order.length];
         for (int index = 0; index < order.length; index++) {
             keyColumns.add(order[index].getColumnId());
             descAscInfo.add(order[index].getIsAscending());
+            keyCols[index] = order[index].getColumnId();
         }
         
         for(SpliceGenericAggregator agg: aggregates){
@@ -152,7 +157,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         
         
-        sinkEncoder = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        sinkEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         sinkEncoder.setRawBytes(uniqueSequenceID).mark();
 //        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
@@ -163,7 +168,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
                     sinkEncoder.getEncodedBytes(0),
                     KeyType.FIXED_PREFIX,
-                    RowMarshaller.packedCompressed());
+                    RowMarshaller.packed());
+
+            //build a ScanBoundary based off the type of the entries
+            final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
+            ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
+                @Override
+                public byte[] getStartKey(Result result) {
+                    MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
+                    fieldDecoder.seek(9); //skip the prefix value
+
+                    return DerbyBytesUtil.slice(fieldDecoder,keyCols,cols);
+                }
+
+                @Override
+                public byte[] getStopKey(Result result) {
+                    byte[] start = getStartKey(result);
+                    BytesUtil.unsignedIncrement(start,start.length-1);
+                    return start;
+                }
+            };
             rowProvider = new SimpleRegionAwareRowProvider(
                     "groupedAggregateRowProvider",
                     SpliceUtils.NA_TRANSACTION_ID,
@@ -171,13 +195,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     context.getScan(),
                     SpliceConstants.TEMP_TABLE_BYTES,
                     SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    scanEncoder.getDual(sourceExecIndexRow),groupByColumns.size()); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
+                    scanEncoder.getDual(sourceExecIndexRow),
+                    boundary); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
             rowProvider.open();
             isTemp = !context.isSink() || context.getTopOperation()!=this;
         }
         hasher = KeyType.BARE;
 
-        MultiFieldEncoder mfe = MultiFieldEncoder.create(groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         boolean[] groupByDescAscArray = convertBooleans(groupByDescAscInfo);
         int[] keyColumnArray = convertIntegers(allKeyColumns);
         RowProviderIterator<ExecRow> sourceProvider = createSourceIterator();
@@ -221,8 +246,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
                                   MultiFieldEncoder keyEncoder) throws StandardException {
-                byte[] key = BytesUtil.concatenate(currentKey,keyPostfix);
+                //TODO -sf- this might break DistinctGroupedAggregations
+                byte[] key = BytesUtil.concatenate(currentKey,SpliceUtils.getUniqueKey());
                 keyEncoder.setRawBytes(key);
+                keyEncoder.setRawBytes(keyPostfix);
             }
 
             @Override
@@ -235,9 +262,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
             @Override
             public int getFieldCount(int[] keyColumns) {
-                return 1;
+                return 2;
             }
-        }, RowMarshaller.packedCompressed());
+        }, RowMarshaller.packed());
     }
 
     @Override
@@ -485,6 +512,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	@Override
 	public void	close() throws StandardException
 	{
+        if(hbs!=null)
+            hbs.close();
 		SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )
@@ -496,7 +525,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			// REVISIT: does this need to be in a finally
 			// block, to ensure that it is executed?
 		    clearCurrentRow();
-			sourceExecIndexRow = null;
 			source.close();
 
 			super.close();
@@ -535,7 +563,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private RowProviderIterator<ExecRow> createSourceIterator() {
         return new RowProviderIterator<ExecRow>(){
 
-            private Iterator<ExecRow> rolledUpRows = Collections.EMPTY_LIST.iterator();
+            private Iterator<ExecRow> rolledUpRows = Collections.<ExecRow>emptyList().iterator();
             private boolean populated;
 
             @Override

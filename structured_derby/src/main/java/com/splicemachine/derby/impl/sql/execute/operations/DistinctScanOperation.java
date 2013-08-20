@@ -9,10 +9,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
@@ -135,7 +140,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         }
 
         RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap);
-        MultiFieldEncoder mfe = MultiFieldEncoder.create(keyColumns.length + 1);
+        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1);
 
         hbs = new HashBufferSource(uniqueSequenceID, keyColumns, sourceProvider, merger, KeyType.FIXED_PREFIX, mfe);
     }
@@ -203,8 +208,11 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     @Override
     public void close() throws StandardException {
         super.close();
+        if(hbs!=null)
+            hbs.close();
         if(reduceScan!=null)
             SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+
     }
 
     @Override
@@ -235,13 +243,14 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         return RowEncoder.create(def.nColumns(), keyColumns,
                 null,
                 uniqueSequenceID,
-                keyType, RowMarshaller.packedCompressed());
+                keyType, RowMarshaller.packed());
     }
 
     @Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
-    }	
+    }
+
 
     private static RowProviderIterator<ExecRow> wrapScannerWithProvider(final RegionScanner regionScanner, final ExecRow rowTemplate, final int[] baseColumnMap){
         return new RowProviderIterator<ExecRow>() {
@@ -267,7 +276,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                             DataValueDescriptor[] rowArray = nextRow.getRowArray();
 
                             if(decoder==null)
-                                decoder = MultiFieldDecoder.create();
+                                decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
                             for(KeyValue kv:values){
                                 RowMarshaller.sparsePacked().decode(kv, rowArray, null, decoder);
@@ -278,7 +287,8 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 } catch(IOException e){
                     throw Exceptions.parseException(e);
                 }
-
+                if(nextRow==null && decoder!=null)
+                    decoder.close();
                 return nextRow != null;
             }
 

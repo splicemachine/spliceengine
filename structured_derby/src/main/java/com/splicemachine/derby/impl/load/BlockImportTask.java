@@ -1,37 +1,27 @@
 package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
-import com.google.common.base.Throwables;
 import com.google.common.primitives.Longs;
-import com.splicemachine.derby.impl.sql.execute.LocalCallBuffer;
-import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
-import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.MutationResult;
-import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.*;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.util.LineReader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -63,23 +53,29 @@ public class BlockImportTask extends AbstractImportTask{
         super.prepareTask(rce, zooKeeper);
     }
 
-//    @Override
-//    protected CallBuffer<Mutation> getCallBuffer() throws Exception {
-//        CallBuffer<Mutation> remote = super.getCallBuffer();
-//        //get the local buffer
-//
-//        return new SwitchingCallBuffer(remote,rce,isRemote,
-//                WriteContextFactoryPool.getContextFactory(importContext.getTableId()));
-//    }
+    @Override
+    protected void logStats(long numRecordsRead,long totalTimeTakeMs,RecordingCallBuffer<KVPair> callBuffer) throws IOException {
+        String blockNames = Arrays.toString(location.getNames());
+        SpliceLogUtils.debug(LOG,"read %d records from %s",numRecordsRead,blockNames);
+
+        //log write stats
+        long totalRowsWritten = callBuffer.getTotalElementsAdded();
+        long totalBytesWritten = callBuffer.getTotalBytesAdded();
+        long totalBulkFlushes = callBuffer.getTotalFlushes();
+        String tableName = importContext.getTableName();
+        SpliceLogUtils.debug(LOG,"wrote %d rows from block %s to table %s",totalRowsWritten,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"wrote %d bytes from block %s to table %s", totalBytesWritten,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"performed %d flushes from block %s to table %s", totalBulkFlushes,blockNames,tableName);
+        SpliceLogUtils.debug(LOG,"Total time taken to import block %s into table %s: %d ms",tableName,blockNames,totalTimeTakeMs);
+    }
 
     @Override
-    protected long importData(ExecRow row,CallBuffer<Mutation> writeBuffer) throws Exception {
+    protected long importData(ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
         Path path = importContext.getFilePath();
 
         FSDataInputStream is = null;
         LineReader reader = null;
         CSVParser parser = getCsvParser(importContext);
-        long numImported = 0l;
         try{
             CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
             CompressionCodec codec = codecFactory.getCodec(path);
@@ -97,27 +93,36 @@ public class BlockImportTask extends AbstractImportTask{
                 start += reader.readLine(text);
 
             long pos = start;
-            String txnId = getTaskStatus().getTransactionId();
-            while(pos<end){
-                long newSize = reader.readLine(text);
-                if(newSize==0)
-                    break; //we didn't actually read any more data
-                pos+=newSize;
-                String line = text.toString();
-                if(line==null||line.length()==0)
-                    continue; //skip empty lines
-                String[] cols = parser.parseLine(line);
-                doImportRow(txnId,cols,row,writeBuffer);
-                numImported++;
-
-                reportIntermediate(numImported);
-            }
-
-            return numImported;
+            return importData(row, writeBuffer, reader, parser, end, text, pos);
         }finally{
             if(is!=null) is.close();
             if(reader!=null)reader.close();
         }
+    }
+
+    private long importData(ExecRow row, CallBuffer<KVPair> writeBuffer, LineReader reader, CSVParser parser, long end, Text text, long pos) throws Exception {
+        String txnId = getTaskStatus().getTransactionId();
+        long numImported = 0l;
+        while(pos<end){
+            long newSize = reader.readLine(text);
+            if(newSize==0)
+                break; //we didn't actually read any more data
+            pos+=newSize;
+            String line = text.toString();
+            if(line==null||line.length()==0)
+                continue; //skip empty lines
+            String[] cols = parser.parseLine(line);
+            try{
+                doImportRow(cols,row,writeBuffer);
+            }catch(Exception e){
+                LOG.error("Failed import at line "+ line,e);
+                throw e;
+            }
+            numImported++;
+
+            reportIntermediate(numImported);
+        }
+        return numImported;
     }
 
     private CSVParser getCsvParser(ImportContext context) {
@@ -138,8 +143,6 @@ public class BlockImportTask extends AbstractImportTask{
             out.writeUTF(topologyPath);
         out.writeLong(location.getOffset());
         out.writeLong(location.getLength());
-        out.writeBoolean(location.isCorrupt());
-
         out.writeBoolean(isRemote);
     }
 
@@ -164,113 +167,7 @@ public class BlockImportTask extends AbstractImportTask{
         location.setTopologyPaths(topologyPaths);
         location.setOffset(in.readLong());
         location.setLength(in.readLong());
-        location.setCorrupt(in.readBoolean());
-
         isRemote = in.readBoolean();
-    }
-
-    /**
-     * Class which switches between writing locally and writing remotely, based on whether
-     * or not the Mutation belongs to the assigned region
-     */
-    private static class SwitchingCallBuffer implements CallBuffer<Mutation>{
-        private final CallBuffer<Mutation> remoteBuffer;
-        private final CallBuffer<Mutation> localBuffer;
-        private final HRegion region;
-        private final boolean remoteOnly;
-
-        private SwitchingCallBuffer(final CallBuffer<Mutation> remoteBuffer,
-                                    RegionCoprocessorEnvironment rce,
-                                    boolean remoteOnly,
-                                    LocalWriteContextFactory localContextFactory) throws IOException, InterruptedException {
-            this.remoteBuffer = remoteBuffer;
-            this.remoteOnly = remoteOnly;
-            this.localBuffer = LocalCallBuffer.create(localContextFactory,rce, new LocalCallBuffer.FlushListener() {
-                @Override
-                public void finished(Map<Mutation, MutationResult> results) throws Exception {
-                    for(Mutation mutation:results.keySet()){
-                        MutationResult result = results.get(mutation);
-                        switch (result.getCode()) {
-                            case FAILED:
-                                String errorCd = result.getErrorMsg();
-                                if(errorCd.contains("NotServingRegionException")){
-                                    remoteBuffer.add(mutation);
-                                }else{
-                                    Throwable e = Exceptions.fromString(result);
-                                    throw Exceptions.getIOException(e);
-                                }
-                                break;
-                            case NOT_RUN:
-                                /*
-                                 * Someone else had an error and we had to stop writing early. Either
-                                 * it's a bigger error, in which case we will explode later, or it's a
-                                 * Region closing, in which case we're shifting to remote mode. Either way, just
-                                 * stuff it on the remote buffer. In the worst case, we do one extra buffer write
-                                 * before failing the transaction because of this.
-                                 */
-                                remoteBuffer.add(mutation);
-                                break;
-                            case PRIMARY_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.PRIMARY_KEY_VIOLATION, result.getConstraintContext());
-                            case UNIQUE_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.UNIQUE_VIOLATION, result.getConstraintContext());
-                            case FOREIGN_KEY_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.FOREIGN_KEY_VIOLATION, result.getConstraintContext());
-                            case CHECK_VIOLATION:
-                                throw Constraints.constraintViolation(MutationResult.Code.CHECK_VIOLATION, result.getConstraintContext());
-                            case WRITE_CONFLICT:
-                                throw new WriteConflict(result.getErrorMsg());
-                        }
-                    }
-                }
-            });
-            this.region = rce.getRegion();
-        }
-
-        @Override
-        public void add(Mutation element) throws Exception {
-            if(remoteOnly||!region.isAvailable())
-                remoteBuffer.add(element);
-            else if(HRegion.rowIsInRange(region.getRegionInfo(),element.getRow()))
-                localBuffer.add(element);
-            else
-                remoteBuffer.add(element);
-        }
-
-        @Override
-        public void addAll(Mutation[] elements) throws Exception {
-            for(Mutation mutation:elements){
-                add(mutation);
-            }
-        }
-
-        @Override
-        public void addAll(Collection<? extends Mutation> elements) throws Exception {
-            for(Mutation mutation:elements){
-                add(mutation);
-            }
-        }
-
-        @Override
-        public void flushBuffer() throws Exception {
-            //flush local first--that way, if there are local errors, we won't waste time
-            //attempting to send data remotely
-            try{
-                localBuffer.flushBuffer();
-            }catch(Exception e){
-                Throwable t = Throwables.getRootCause(e);
-                if(t instanceof NotServingRegionException){
-                    //we underwent a split or something, so
-                }
-            }
-            remoteBuffer.flushBuffer();
-        }
-
-        @Override
-        public void close() throws Exception {
-            localBuffer.close();
-            remoteBuffer.close();
-        }
     }
 
     public static void main(String... args) throws Exception{

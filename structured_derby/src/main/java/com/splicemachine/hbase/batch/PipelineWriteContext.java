@@ -2,14 +2,13 @@ package com.splicemachine.hbase.batch;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.MutationResult;
-import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.writer.*;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.ipc.HBaseServer;
+import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -20,7 +19,7 @@ import java.util.Map;
  * Created on: 4/30/13
  */
 public class PipelineWriteContext implements WriteContext{
-    private final Map<Mutation,MutationResult> resultsMap;
+    private final Map<KVPair,WriteResult> resultsMap;
     private final RegionCoprocessorEnvironment rce;
 
     private final Map<byte[],HTableInterface> tableCache = Maps.newHashMapWithExpectedSize(0);
@@ -33,28 +32,28 @@ public class PipelineWriteContext implements WriteContext{
         public WriteNode(WriteHandler handler){ this.handler = handler; }
 
         @Override
-        public void notRun(Mutation mutation) {
+        public void notRun(KVPair mutation) {
             PipelineWriteContext.this.notRun(mutation);
         }
 
         @Override
-        public void sendUpstream(Mutation mutation) {
+        public void sendUpstream(KVPair mutation) {
             if(next!=null)
                 next.handler.next(mutation,next);
         }
 
         @Override
-        public void failed(Mutation put, MutationResult mutationResult) {
+        public void failed(KVPair put, WriteResult mutationResult) {
             PipelineWriteContext.this.failed(put,mutationResult);
         }
 
         @Override
-        public void success(Mutation put) {
+        public void success(KVPair put) {
             PipelineWriteContext.this.success(put);
         }
 
         @Override
-        public void result(Mutation put, MutationResult result) {
+        public void result(KVPair put, WriteResult result) {
             PipelineWriteContext.this.result(put,result);
         }
 
@@ -69,8 +68,8 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) {
-            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener);
+        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes, WriteCoordinator.PreFlushHook preFlushListener, Writer.RetryStrategy retryStrategy) throws Exception {
+            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener,retryStrategy);
         }
 
         @Override
@@ -79,23 +78,38 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public Map<Mutation,MutationResult> finish() throws IOException {
+        public Map<KVPair,WriteResult> finish() throws IOException {
             handler.finishWrites(this);
             return null; //ignored
         }
 
         @Override
-        public boolean canRun(Mutation input) {
+        public boolean canRun(KVPair input) {
             return PipelineWriteContext.this.canRun(input);
+        }
+
+        @Override
+        public String getTransactionId() {
+            return PipelineWriteContext.this.getTransactionId();
         }
     }
 
     private WriteNode head;
     private WriteNode tail;
+    private final boolean keepState;
+    private final boolean useAsyncWriteBuffers;
+    private final String txnId;
 
-    public PipelineWriteContext(RegionCoprocessorEnvironment rce) {
+    public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce) {
+        this(txnId,rce,true,true);
+    }
+
+    public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce,boolean keepState,boolean useAsyncWriteBuffers) {
         this.rce = rce;
         this.resultsMap = Maps.newHashMap();
+        this.keepState = keepState;
+        this.useAsyncWriteBuffers= useAsyncWriteBuffers;
+        this.txnId = txnId;
 
         head = tail =new WriteNode(null);
     }
@@ -109,28 +123,34 @@ public class PipelineWriteContext implements WriteContext{
 
 
     @Override
-    public void notRun(Mutation mutation) {
-        resultsMap.put(mutation,MutationResult.notRun());
+    public void notRun(KVPair mutation) {
+        if(keepState)
+            resultsMap.put(mutation,WriteResult.notRun());
     }
 
     @Override
-    public void sendUpstream(Mutation mutation) {
+    public void sendUpstream(KVPair mutation) {
         head.sendUpstream(mutation);
     }
 
     @Override
-    public void failed(Mutation put, MutationResult mutationResult) {
-        resultsMap.put(put, mutationResult);
+    public void failed(KVPair put, WriteResult mutationResult) {
+        if(keepState)
+            resultsMap.put(put, mutationResult);
+        else
+            throw new RuntimeException(Exceptions.fromString(mutationResult));
     }
 
     @Override
-    public void success(Mutation put) {
-        resultsMap.put(put,MutationResult.success());
+    public void success(KVPair put) {
+        if(keepState)
+            resultsMap.put(put,WriteResult.success());
     }
 
     @Override
-    public void result(Mutation put, MutationResult result) {
-        resultsMap.put(put,result);
+    public void result(KVPair put, WriteResult result) {
+        if(keepState)
+            resultsMap.put(put,result);
     }
 
     @Override
@@ -153,8 +173,10 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public CallBuffer<Mutation> getWriteBuffer(byte[] conglomBytes,TableWriter.FlushWatcher preFlushListener) {
-        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,preFlushListener);
+    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.RetryStrategy retryStrategy) throws Exception {
+        if(useAsyncWriteBuffers)
+            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txnId, preFlushListener,retryStrategy);
+        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener,retryStrategy);
     }
 
     @Override
@@ -163,7 +185,10 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public Map<Mutation,MutationResult> finish() throws IOException {
+    public Map<KVPair,WriteResult> finish() throws IOException {
+        RpcCallContext currentCall = HBaseServer.getCurrentCall();
+        if(currentCall!=null)
+            currentCall.throwExceptionIfCallerDisconnected();
         try{
             WriteNode next = head.next;
             while(next!=null){
@@ -186,8 +211,13 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public boolean canRun(Mutation input) {
-        MutationResult result = resultsMap.get(input);
-        return result == null || result.getCode() == MutationResult.Code.SUCCESS;
+    public boolean canRun(KVPair input) {
+        WriteResult result = resultsMap.get(input);
+        return result == null || result.getCode() == WriteResult.Code.SUCCESS;
+    }
+
+    @Override
+    public String getTransactionId() {
+        return txnId;
     }
 }

@@ -11,7 +11,8 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -19,6 +20,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -45,19 +47,11 @@ public class Exceptions {
         Throwable rootCause = Throwables.getRootCause(e);
         if(rootCause instanceof StandardException) return (StandardException)rootCause;
 
-        if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
+        if(rootCause instanceof RetriesExhaustedWithDetailsException){
+            return parseException((RetriesExhaustedWithDetailsException)rootCause);
+        }else if(rootCause instanceof ConstraintViolation.PrimaryKeyViolation
                 || rootCause instanceof ConstraintViolation.UniqueConstraintViolation){
             return createStandardExceptionForConstraintError(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, (ConstraintViolation.ConstraintViolationException) e);
-        }else if(rootCause instanceof LangFormatException){
-            LangFormatException lfe = (LangFormatException)rootCause;
-            return StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION,lfe.getMessage());
-        }else if (rootCause instanceof RetriesExhaustedWithDetailsException){
-            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)rootCause;
-            List<Throwable> causes = rewde.getCauses();
-            //unwrap and throw any constraint violation errors
-            for(Throwable t:causes){
-                if(t instanceof DoNotRetryIOException) return parseException(t);
-            }
         }else if(rootCause instanceof SpliceDoNotRetryIOException){
             SpliceDoNotRetryIOException spliceException = (SpliceDoNotRetryIOException)rootCause;
             String fullMessage = spliceException.getMessage();
@@ -80,11 +74,33 @@ public class Exceptions {
             return parseException((Exception)gson.fromJson(json,exceptionClass));
         }else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
-        }else if(rootCause instanceof WriteConflict){
-            return StandardException.newException(SQLState.LANG_SERIALIZABLE,rootCause.getMessage());
+        }else if(rootCause instanceof RetriesExhaustedWithDetailsException){
+            return parseException((RetriesExhaustedWithDetailsException)rootCause);
         }
 
-        return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rootCause);
+        ErrorState state = ErrorState.stateFor(rootCause);
+        return StandardException.newException(state.getSqlState(),rootCause);
+    }
+
+    public static StandardException parseException(RetriesExhaustedWithDetailsException rewde){
+        List<Throwable> causes = rewde.getCauses();
+        /*
+         * Look for any exception that can be converted into a known error type (instead of a DATA_UNEXPECTED_EXCEPTION)
+         */
+        for(Throwable t:causes){
+            if(isExpected(t))
+                return parseException(t);
+        }
+        if(causes.size()>0)
+            return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,causes.get(0));
+        else
+            return StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,rewde);
+
+    }
+
+    private static boolean isExpected(Throwable rootCause){
+        ErrorState state = ErrorState.stateFor(rootCause);
+        return state != ErrorState.DATA_UNEXPECTED_EXCEPTION;
     }
 
     public static StandardException createStandardExceptionForConstraintError(String errorCode, ConstraintViolation.ConstraintViolationException e){
@@ -143,8 +159,27 @@ public class Exceptions {
         return new DoNotRetryIOException(result.getErrorMsg());
     }
 
+    public static Throwable fromString(WriteResult result) {
+//        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
+
+        WriteResult.Code writeErrorCode = result.getCode();
+
+        if(writeErrorCode!=null){
+            if(writeErrorCode== WriteResult.Code.WRITE_CONFLICT)
+                return new WriteConflict(result.getErrorMessage());
+            else if(writeErrorCode==WriteResult.Code.FAILED)
+                return new DoNotRetryIOException(result.getErrorMessage());
+            else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
+        }
+        return new DoNotRetryIOException(result.getErrorMessage());
+    }
+
     public static boolean shouldRetry(Throwable error) {
-        return !(error instanceof StandardException||error instanceof DoNotRetryIOException);
+        if(error instanceof ConnectException){
+            //we can safely retry connection refused issued
+            return error.getMessage().contains("Connection refused");
+        }
+        return !(error instanceof StandardException) && !(error instanceof DoNotRetryIOException);
     }
 
     public static Throwable getRootCause(Throwable error) {

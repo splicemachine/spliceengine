@@ -3,21 +3,21 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.hbase.CallBuffer;
-import com.splicemachine.hbase.TableWriter;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -36,14 +36,14 @@ public class OperationSink {
         boolean mergeKeys();
     }
 
-    private final TableWriter tableWriter;
+    private final WriteCoordinator tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
 
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskId,SinkingOperation operation,TableWriter tableWriter) {
+    private OperationSink(byte[] taskId,SinkingOperation operation,WriteCoordinator tableWriter) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
@@ -55,25 +55,18 @@ public class OperationSink {
         return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter());
     }
 
-    public static OperationSink create(SinkingOperation operation,
-                                       TableWriter writer,byte[] taskId) throws IOException {
-        //TODO -sf- move this to a static initializer somewhere
-
-        return new OperationSink(taskId,operation,writer);
-    }
-
     public TaskStats sink(byte[] destinationTable) throws Exception {
         TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
-        CallBuffer<Mutation> writeBuffer;
+        CallBuffer<KVPair> writeBuffer;
         byte[] postfix = getPostfix(false);
+        RowEncoder encoder = null;
         try{
-            RowEncoder encoder = operation.getRowEncoder();
+            encoder = operation.getRowEncoder();
             encoder.setPostfix(postfix);
             String txnId = operation.getTransactionID();
-
-            writeBuffer = tableWriter.writeBuffer(destinationTable);
+            writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
 
             ExecRow row;
             do{
@@ -88,16 +81,20 @@ public class OperationSink {
 
                 start = System.nanoTime();
 
-                encoder.write(row,txnId,writeBuffer);
+                encoder.write(row,writeBuffer);
 
-                debugFailIfDesired(writeBuffer);
+//                debugFailIfDesired(writeBuffer);
 
                 stats.writeAccumulator().tick(System.nanoTime() - start);
             }while(row!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
+        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             SpliceLogUtils.logAndThrow(LOG, Exceptions.parseException(e));
+        }finally{
+            if(encoder!=null)
+                encoder.close();
         }
         return stats.finish();
     }

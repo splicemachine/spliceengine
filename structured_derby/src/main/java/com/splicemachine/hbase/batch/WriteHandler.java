@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.batch;
 
-import org.apache.hadoop.hbase.client.Mutation;
+import com.splicemachine.hbase.writer.KVPair;
 
 import java.io.IOException;
 
@@ -10,7 +10,7 @@ import java.io.IOException;
  */
 public interface WriteHandler {
 
-    void next(Mutation mutation, WriteContext ctx);
+    void next(KVPair mutation, WriteContext ctx);
 
     void finishWrites(WriteContext ctx) throws IOException;
 }

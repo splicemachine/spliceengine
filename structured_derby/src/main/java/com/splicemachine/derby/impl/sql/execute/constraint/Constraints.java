@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
-import com.splicemachine.hbase.MutationResult;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.MutationResult;
+import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Utilities relating to Constraints
@@ -25,13 +28,13 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(Mutation mutation, RegionCoprocessorEnvironment rce) throws IOException {
+        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
             return true;
         }
 
         @Override
-        public boolean validate(Collection<Mutation> mutations, RegionCoprocessorEnvironment rce) throws IOException {
-            return true;
+        public Collection<KVPair> validate(Collection<KVPair> mutations,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
+            return Collections.emptyList();
         }
 
         @Override
@@ -64,6 +67,20 @@ public class Constraints {
     }
 
     public static Exception constraintViolation(MutationResult.Code writeErrorCode, ConstraintContext constraintContext) {
+        switch (writeErrorCode) {
+            case PRIMARY_KEY_VIOLATION:
+                return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, constraintContext);
+            case UNIQUE_VIOLATION:
+                return ConstraintViolation.create(Constraint.Type.UNIQUE, constraintContext);
+            case FOREIGN_KEY_VIOLATION:
+                return ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, constraintContext);
+            case CHECK_VIOLATION:
+                return ConstraintViolation.create(Constraint.Type.CHECK, constraintContext);
+        }
+        return null;
+    }
+
+    public static Exception constraintViolation(WriteResult.Code writeErrorCode, ConstraintContext constraintContext) {
         switch (writeErrorCode) {
             case PRIMARY_KEY_VIOLATION:
                 return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, constraintContext);

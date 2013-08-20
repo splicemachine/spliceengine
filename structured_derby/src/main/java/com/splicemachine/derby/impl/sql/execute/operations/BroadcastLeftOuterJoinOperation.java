@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -14,7 +16,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
-	protected GeneratedMethod emptyRowFun;
+	protected SpliceMethod<ExecRow> emptyRowFun;
 	protected ExecRow emptyRow;
 
     {
@@ -71,17 +73,12 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null : context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+        emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
     }
 
-    protected ExecRow getEmptyRow () {
-		if (emptyRow ==null)
-			try {
-				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
-			} catch (StandardException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		return emptyRow;
+    protected ExecRow getEmptyRow () throws StandardException {
+		if (emptyRow == null)
+				return emptyRowFun.invoke();
+		return null;
 	}	
 }

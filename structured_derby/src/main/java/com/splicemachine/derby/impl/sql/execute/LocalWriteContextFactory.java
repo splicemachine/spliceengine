@@ -41,11 +41,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
     //TODO -sf- hook this into JMX
-    private static final int writeBatchSize = 200;
+    private static final int writeBatchSize = Integer.MAX_VALUE;
 
     private final long congomId;
     private final Set<IndexFactory> indexFactories = new CopyOnWriteArraySet<IndexFactory>();
-    private final List<ConstraintFactory> constraintFactories = new CopyOnWriteArrayList<ConstraintFactory>();
+    private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<ConstraintFactory>();
 
     private final ReentrantLock initializationLock = new ReentrantLock();
     /*
@@ -66,16 +66,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public WriteContext create(RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(rce);
+    public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
+        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
         //add a region handler
         pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
         return pwc;
     }
 
     @Override
-    public WriteContext createPassThrough(RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(key);
+    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG,"Index management for conglomerate %d " +
@@ -101,7 +101,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             //add index handlers
             for(IndexFactory indexFactory:indexFactories){
-                indexFactory.addTo(context);
+                indexFactory.addTo(context,true);
             }
         }
 
@@ -124,11 +124,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique) {
+    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique,BitSet descColumns) {
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique));
+                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique,descColumns));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -146,6 +146,17 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     public long getMainTableConglomerateId() {
         return congomId;
+    }
+
+    public WriteContext getIndexOnlyWriteHandler(String txnId,long indexConglomId,RegionCoprocessorEnvironment rce) {
+        for(IndexFactory factory:indexFactories){
+            if(factory.indexConglomId==indexConglomId){
+                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,false);
+                factory.addTo(pipelineWriteContext,false);
+                return pipelineWriteContext;
+            }
+        }
+        return null;
     }
 
     /*
@@ -353,6 +364,23 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         public WriteHandler create(){
             return new ConstraintHandler(localConstraint);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ConstraintFactory)) return false;
+
+            ConstraintFactory that = (ConstraintFactory) o;
+
+            if (!localConstraint.equals(that.localConstraint)) return false;
+
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            return localConstraint.hashCode();
+        }
     }
 
     private static class IndexFactory{
@@ -361,6 +389,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         private final boolean isUnique;
         private BitSet indexedColumns;
         private int[] mainColToIndexPosMap;
+        private BitSet descColumns;
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
@@ -368,15 +397,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             this.isUnique=false;
         }
 
-        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique) {
+        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,BitSet descColumns) {
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=isUnique;
             this.indexedColumns=indexedColumns;
             this.mainColToIndexPosMap=mainColToIndexPosMap;
+            this.descColumns = descColumns;
         }
 
-        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique){
+        public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,BitSet descColumns){
             BitSet indexedCols = new BitSet();
             for(int indexCol:indexColsToMainColMap){
                 indexedCols.set(indexCol-1);
@@ -387,7 +417,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 mainColToIndexPosMap[mainCol-1] = indexCol;
             }
 
-            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique);
+            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique, descColumns);
         }
 
         public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor) {
@@ -396,17 +426,25 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor,boolean isUnique) {
             int[] indexColsToMainColMap = indexDescriptor.baseColumnPositions();
-            return create(conglomerateNumber,indexColsToMainColMap,isUnique);
+
+            //get the descending columns
+            boolean[] ascending = indexDescriptor.isAscending();
+            BitSet descColumns = new BitSet();
+            for(int i=0;i<ascending.length;i++){
+                if(!ascending[i])
+                    descColumns.set(i);
+            }
+            return create(conglomerateNumber,indexColsToMainColMap,isUnique,descColumns);
         }
 
-        public void addTo(PipelineWriteContext ctx){
+        public void addTo(PipelineWriteContext ctx,boolean keepState){
 
             if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
             }else{
-                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
-                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes));
+                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
             }
         }
 

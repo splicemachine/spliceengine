@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigDecimal;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.store.access.AutoCastedQualifier;
+import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -21,12 +21,12 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
-import org.apache.derby.impl.sql.execute.SelectConstantAction;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
@@ -55,18 +55,15 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	protected SpliceConglomerate conglomerate;
 	protected long conglomId;
 	protected boolean isKeyed;
-	protected GeneratedMethod startKeyGetter;
-	protected GeneratedMethod stopKeyGetter;
+	protected SpliceMethod<ExecIndexRow> startKeyGetter;
+	protected SpliceMethod<ExecIndexRow> stopKeyGetter;
 	protected String tableName;
 	protected String indexName;
 	public boolean isConstraint;
-	public boolean forUpdate;
-	
+	public boolean forUpdate;	
 	private int colRefItem;
-	protected GeneratedMethod resultRowAllocator;
+	protected SpliceMethod<ExecRow> resultRowAllocator;
     protected ExecRow currentTemplate;
-    protected FormatableBitSet pkCols;
-    
 
     public ScanOperation () {
 		super();
@@ -87,7 +84,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		this.isolationLevel = isolationLevel;
 		this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
 		this.colRefItem = colRefItem;
-		this.scanQualifiersField = scanQualifiersField;
+		this.scanQualifiersField = scanQualifiersField;		
 		this.startKeyGetterMethodName = (startKeyGetter!= null) ? startKeyGetter.getMethodName() : null;
 		this.stopKeyGetterMethodName = (stopKeyGetter!= null) ? stopKeyGetter.getMethodName() : null;
 		this.startSearchOperator = startSearchOperator;
@@ -113,8 +110,6 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		sameStartStopPosition = in.readBoolean();
 		conglomId = in.readLong();
 		colRefItem = in.readInt();
-        if(in.readBoolean())
-            pkCols = (FormatableBitSet) in.readObject();
 	}
 
 	@Override
@@ -131,10 +126,6 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 		out.writeBoolean(sameStartStopPosition);
 		out.writeLong(conglomId);
 		out.writeInt(colRefItem);
-        out.writeBoolean(pkCols!=null);
-        if(pkCols!=null){
-            out.writeObject(pkCols);
-        }
 	}
 	
 	@Override
@@ -145,31 +136,20 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         this.accessedCols = colRefItem != -1 ? (FormatableBitSet)(statement.getSavedObject(colRefItem)) : null;
         SpliceLogUtils.trace(LOG,"<%d> colRefItem=%d,accessedCols=%s",conglomId,colRefItem,accessedCols);
         try {
-            resultRowAllocator = statement.getActivationClass()
-                    .getMethod(resultRowAllocatorMethodName);
+            resultRowAllocator = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
             this.conglomerate = (SpliceConglomerate)((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
             
             this.isKeyed = conglomerate.getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
             if (startKeyGetterMethodName != null) {
-                startKeyGetter = statement.getActivationClass().getMethod(startKeyGetterMethodName);
+                startKeyGetter = new SpliceMethod<ExecIndexRow>(startKeyGetterMethodName,activation);
             }
             if (stopKeyGetterMethodName != null) {
-                stopKeyGetter = statement.getActivationClass().getMethod(stopKeyGetterMethodName);
+                stopKeyGetter = new SpliceMethod<ExecIndexRow>(stopKeyGetterMethodName,activation);
             }
-            candidate = (ExecRow) resultRowAllocator.invoke(activation);
+            candidate = resultRowAllocator.invoke();
             currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
                     accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();
-
-            if(activation.getConstantAction() instanceof SelectConstantAction){
-                SelectConstantAction action = (SelectConstantAction) activation.getConstantAction();
-                int[] pks = action.getKeyColumns();
-                pkCols = new FormatableBitSet(pks.length);
-                for(int pk:pks){
-                    pkCols.grow(pk+1);
-                    pkCols.set(pk-1);
-                }
-            }
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();
         } catch (Exception e) {
@@ -303,7 +283,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         //TODO -sf- push in the column information so that we can do scan casting for correctness
         return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-                autoCastedQuals, conglomerate.getAscDescInfo(), pkCols,accessedCols,
+                autoCastedQuals, conglomerate.getAscDescInfo(), accessedCols,
                 getTransactionID());
     }
 
@@ -311,10 +291,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
         if (scanQualifiersField != null){
             try {
                 scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-            } catch (IllegalAccessException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            } catch (NoSuchFieldException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            } catch (Exception e) {
+            	throw StandardException.unexpectedUserException(e);
             }
             //convert types of filters against column type
             if(scanQualifiers!=null){
@@ -324,6 +302,8 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
                         Qualifier qualifier = qualifiers[qualPos];
                         int columnFormat = format_ids[qualifier.getColumnId()];
                         DataValueDescriptor dvd = qualifier.getOrderable();
+                        if (dvd==null)
+                        	continue;
                         if(dvd.getTypeFormatId()!=columnFormat){
                             //we need to convert the types to match
                             qualifier = adjustQualifier(qualifier, columnFormat);
@@ -514,7 +494,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 
     protected void populateStartAndStopPositions() throws StandardException {
         if(startKeyGetter!=null){
-            startPosition = (ExecIndexRow)startKeyGetter.invoke(activation);
+            startPosition = startKeyGetter.invoke();
             if(sameStartStopPosition){
                 /*
                  * if the stop position is the same as the start position, we are
@@ -528,7 +508,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
             }
         }
         if(stopKeyGetter!=null){
-            stopPosition = (ExecIndexRow)stopKeyGetter.invoke(activation);
+            stopPosition = stopKeyGetter.invoke();
         }
     }
 
@@ -602,7 +582,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    	 * that.  Otherwise, invoke the activation to get it.
    	 */
    	private String printPosition(int searchOperator,
-   								 GeneratedMethod positionGetter,
+   								 SpliceMethod<ExecIndexRow> positionGetter,
    								 ExecIndexRow positioner)
    	{
    		String output = "";
@@ -616,7 +596,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
    					SQLState.LANG_POSITION_NOT_AVAIL) +
                                        "\n";
    			try {
-   				positioner = (ExecIndexRow)positionGetter.invoke(activation);
+   				positioner = positionGetter.invoke();
    			} catch (StandardException e) {
    				return "\t" + MessageService.getTextMessage(
    						SQLState.LANG_UNEXPECTED_EXC_GETTING_POSITIONER,

@@ -38,8 +38,9 @@ public class SpliceConstants {
     public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
     public static final long DEFAULT_CACHE_EXPIRATION = 60;
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
-    public static final int DEFAULT_MAX_BUFFER_ENTRIES = -1;
+    public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
+    public static final int DEFAULT_HBASE_HTABLE_THREADS_CORE = 10;
     public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
@@ -48,8 +49,11 @@ public class SpliceConstants {
 	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
-    public static final int DEFAULT_STARTUP_LOCK_PERIOD=200;
+    public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
     public static final int DEFAULT_RING_BUFFER_SIZE=1000;
+    public static final int DEFAULT_INDEX_BATCH_SIZE=50;
+    public static final int DEFAULT_INDEX_BUFFER_SIZE=100;
+    public static final int DEFAULT_KRYO_POOL_SIZE=50;
 
 
 
@@ -58,7 +62,7 @@ public class SpliceConstants {
 	 *
 	 * This determines the default number of rows that will be cached on each scan returned.
 	 */
-	public static final int DEFAULT_CACHE_SIZE = 1000;
+	public static final int DEFAULT_CACHE_SIZE = 100;
 
     
     /*
@@ -85,9 +89,10 @@ public class SpliceConstants {
     private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
     private static final String CONFIG_POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
     private static final String CONFIG_WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
-    private static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
+    public static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
     private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
     private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
+    private static final String CONFIG_HBASE_HTABLE_THREADS_CORE = "hbase.htable.threads.core";
     public static final String CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
     public static final String CONFIG_HBASE_CLIENT_RETRIES_NUMBER = HConstants.HBASE_CLIENT_RETRIES_NUMBER;
     public static final String CONFIG_CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
@@ -105,6 +110,9 @@ public class SpliceConstants {
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
+    private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
+    private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
+    private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
 
     private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
@@ -129,8 +137,8 @@ public class SpliceConstants {
 	public static long tablePoolCleanerInterval;
 	public static long writeBufferSize;
 	public static int maxBufferEntries;
-	public static int maxPendingBuffers;
 	public static int maxThreads;
+    public static int coreWriteThreads;
     public static int maxTreeThreads; //max number of threads for concurrent stack execution
 	public static long threadKeepAlive;
     public static int numRetries;
@@ -144,6 +152,9 @@ public class SpliceConstants {
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
     public static int ringBufferSize;
+    public static int indexBatchSize;
+    public static int indexBufferSize;
+    public static int kryoPoolSize;
 
     /*Used to determine how many sequence numbers to reserve in a given block*/
     public static long sequenceBlockSize;
@@ -159,12 +170,15 @@ public class SpliceConstants {
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
+    public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
     public static final String PROPERTIES_CACHE = "properties";
-    
+    public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
+    public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
+    public static final String[] SYSSCHEMAS_CACHES = {SYSSCHEMAS_CACHE,SYSSCHEMAS_INDEX1_ID_CACHE};
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
@@ -250,16 +264,15 @@ public class SpliceConstants {
 		zkLeaderElection = config.get(CONFIG_LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
 		zkSpliceStartupPath = config.get(CONFIG_STARTUP_PATH,DEFAULT_STARTUP_PATH);
-        derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS,DEFAULT_DERBY_BIND_ADDRESS);
+        derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
         derbyBindPort = config.getInt(CONFIG_DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
         operationTaskPriority = config.getInt(CONFIG_OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
         importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
         tablePoolMaxSize = config.getInt(CONFIG_POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
-        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE,DEFAULT_POOL_CORE_SIZE);
+        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
         tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
         writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
         maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
-        maxPendingBuffers = config.getInt(CONFIG_WRITE_BUFFER_MAX_FLUSHES,DEFAULT_MAX_PENDING_BUFFERS);
         maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
         maxTreeThreads = config.getInt(CONFIG_MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
@@ -285,6 +298,13 @@ public class SpliceConstants {
         }
         if(maxThreads<=0)
             maxThreads = 1;
+        coreWriteThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_CORE,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        if(coreWriteThreads>maxThreads){
+            //default the core write threads to 10% of the maximum available
+            coreWriteThreads = maxThreads/10;
+        }
+        if(coreWriteThreads<0)
+            coreWriteThreads=0;
 
         threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
         numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
@@ -300,6 +320,9 @@ public class SpliceConstants {
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
         startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
+        indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
+        indexBufferSize = config.getInt(INDEX_BUFFER_SIZE,DEFAULT_INDEX_BUFFER_SIZE);
+        kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 

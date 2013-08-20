@@ -2,11 +2,9 @@ package com.splicemachine.derby.impl.job.operation;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -18,7 +16,8 @@ import java.util.List;
  */
 public class SuccessFilter extends FilterBase {
     private static final Logger LOG = Logger.getLogger(SuccessFilter.class);
-    private static final long serialVersionUID = 1l;
+    @SuppressWarnings("unused")
+	private static final long serialVersionUID = 1l;
     private List<byte[]> failedTasks;
     private boolean uniqueOp;
 

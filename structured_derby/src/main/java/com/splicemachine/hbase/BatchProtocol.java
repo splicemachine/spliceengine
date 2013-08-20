@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.splicemachine.hbase.writer.*;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 
@@ -17,10 +18,10 @@ public interface BatchProtocol extends CoprocessorProtocol {
     /**
      * Apply all the Mutations in a single, synchronous, bulk operation.
      *
-     * @param mutationsToApply the mutations to apply
+     * @param bulkWrite the mutations to apply
      * @throws IOException if something goes wrong applying the mutation
      */
-    public MutationResponse batchMutate(MutationRequest mutationsToApply) throws IOException;
+    BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException;
 
     /**
      * Delete the first row that appears after the specified rowKey, but *only* if it
@@ -32,5 +33,7 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @param rowKey the start to search
      * @throws IOException if something goes wrong
      */
-    public MutationResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
+    public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException;
+
+
 }

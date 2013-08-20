@@ -11,6 +11,7 @@ import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -139,6 +140,7 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore ("Need nulls handled")
     public void testScanForNullEntries() throws Exception{
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 is null",this.getTableReference(TABLE_NAME)));
         Assert.assertTrue("Expected 0 rows returned!",!rs.next());
@@ -158,6 +160,22 @@ public class PrimaryKeyScanTest extends SpliceUnitTest {
             results.add(String.format("pk_1: %s,pk_2: %s, val:%d",pk1,pk2,val));
         }
         Assert.assertEquals("Incorrect number of rows returned!",pk2Size,results.size());
+    }
+
+    @Test
+    public void testPkTwoQualifiedScanWithTwoQualifiers() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 = 'pk_1_1' and pk_2 = 'pk_2_1'",this.getTableReference(TABLE_NAME)));
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(rs.next()){
+            String pk1 = rs.getString(1);
+            String pk2 = rs.getString(2);
+            int val = rs.getInt(3);
+            Pair<String,String> pair = Pair.newPair(pk1,pk2);
+            Assert.assertTrue("could not find pair!",correctData.containsKey(pair));
+            Assert.assertEquals("Incorrect value for pair!",correctData.get(pair).intValue(),val);
+            results.add(String.format("pk_1: %s,pk_2: %s, val:%d",pk1,pk2,val));
+        }
+        Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
 
     @Test

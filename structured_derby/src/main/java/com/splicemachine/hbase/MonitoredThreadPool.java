@@ -29,10 +29,12 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
                 .setPriority(Thread.NORM_PRIORITY).build();
 
         int maxThreads = SpliceConstants.maxThreads;
+        int coreThreads = SpliceConstants.coreWriteThreads;
         long keepAliveSeconds = SpliceConstants.threadKeepAlive;
-        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(maxThreads,
+        ThreadPoolExecutor writerPool = new ThreadPoolExecutor(coreThreads,
                 maxThreads,keepAliveSeconds,
-                TimeUnit.SECONDS,new LinkedBlockingQueue<Runnable>(),factory);
+                TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
+                new ThreadPoolExecutor.CallerRunsPolicy());
         writerPool.allowCoreThreadTimeOut(true);
         return new MonitoredThreadPool(writerPool);
     }

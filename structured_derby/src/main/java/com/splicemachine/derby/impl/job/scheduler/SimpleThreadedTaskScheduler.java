@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.BalancedBlockingQueue;
@@ -9,7 +8,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;

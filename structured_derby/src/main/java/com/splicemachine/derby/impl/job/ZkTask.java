@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
@@ -243,7 +244,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markFailed(Throwable error) throws ExecutionException {
-
+        ErrorReporter.get().reportError(this.getClass(),error);
         switch (status.getStatus()) {
             case INVALID:
             case FAILED:
