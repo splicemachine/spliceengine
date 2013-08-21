@@ -115,6 +115,10 @@
 			</pluginRepository>
 	</pluginRepositories>
 	<repositories>
+		<repository>
+			<id>central</id>
+			<url>http://repo1.maven.org/maven2</url>
+        </repository>
 				<repository>
 					<id>cloudera</id>
 					<url>https://repository.cloudera.com/content/repositories/releases/</url>
@@ -143,10 +147,6 @@
 			<id>smartgwt</id>
 			<url>http://www.smartclient.com/maven2/</url>
 		</repository>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
-        </repository>
 
         <repository>
             <id>inciteretail</id>
