@@ -656,7 +656,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             int numBytes = in.readInt();
 
             dvdBytes = new byte[numBytes];
-            in.read(dvdBytes);
+            in.readFully(dvdBytes);
         }
     }
 

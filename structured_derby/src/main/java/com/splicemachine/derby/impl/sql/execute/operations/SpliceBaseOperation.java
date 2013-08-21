@@ -133,7 +133,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         transactionID = readNullableString(in);
         isTopResultSet = in.readBoolean();
         uniqueSequenceID = new byte[in.readInt()];
-        in.read(uniqueSequenceID);
+        in.readFully(uniqueSequenceID);
 
 		statisticsTimingOn = in.readBoolean();
 		constructorTime = in.readLong();
