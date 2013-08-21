@@ -19,7 +19,8 @@
       <include>com.splicemachine:splice_machine</include>
       <include>net.sf.opencsv:opencsv</include>
       <include>com.google.code.gson:gson</include>
-      <include>net.sf.ehcache:ehcache-core</include>     
+      <include>net.sf.ehcache:ehcache-core</include>
+      <include>com.esotericsoftware.kryo:kryo</include>
       </includes>
     </dependencySet>
   </dependencySets>
