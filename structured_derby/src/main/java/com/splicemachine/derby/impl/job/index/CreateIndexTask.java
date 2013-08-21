@@ -191,15 +191,4 @@ public class CreateIndexTask extends ZkTask {
             ctx.sendUpstream(new KVPair(row,data));
         }
     }
-
-    protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
-        if(updateIndex.isScalarType(newPos))
-            newKeyAccumulator.addScalar(newPos, newBuffer);
-        else if(updateIndex.isFloatType(newPos))
-            newKeyAccumulator.addFloat(newPos,newBuffer);
-        else if(updateIndex.isDoubleType(newPos))
-            newKeyAccumulator.addDouble(newPos,newBuffer);
-        else
-            newKeyAccumulator.add(newPos,newBuffer);
-    }
 }

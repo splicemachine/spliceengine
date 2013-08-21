@@ -101,7 +101,7 @@ public class PipelineWriteContext implements WriteContext{
     private final String txnId;
 
     public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce) {
-        this(txnId,rce,true,true);
+        this(txnId,rce,true,false);
     }
 
     public PipelineWriteContext(String txnId,RegionCoprocessorEnvironment rce,boolean keepState,boolean useAsyncWriteBuffers) {

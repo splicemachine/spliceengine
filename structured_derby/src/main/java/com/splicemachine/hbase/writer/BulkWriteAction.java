@@ -116,7 +116,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void tryWrite(int numTriesLeft,List<BulkWrite> bulkWrites) throws Exception {
-        if(numTriesLeft<=0)
+        if(numTriesLeft<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         for(BulkWrite bulkWrite:bulkWrites){
             doRetry(numTriesLeft,bulkWrite);
@@ -203,7 +203,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void retryFailedWrites(int tries, String txnId, List<KVPair> failedWrites) throws Exception {
-        if(tries<=0)
+        if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         Set<HRegionInfo> regionInfo = getRegionsFromCache(retryStrategy.getMaximumRetries());
         List<BulkWrite> newBuckets = getWriteBuckets(txnId,regionInfo);
@@ -215,7 +215,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void retry(int tries, BulkWrite bulkWrite) throws Exception {
-        retryFailedWrites(tries - 1, bulkWrite.getTxnId(), bulkWrite.getMutations());
+        retryFailedWrites(tries, bulkWrite.getTxnId(), bulkWrite.getMutations());
     }
 
     private List<BulkWrite> getWriteBuckets(String txnId,Set<HRegionInfo> regionInfos){
@@ -281,7 +281,6 @@ final class BulkWriteAction implements Callable<Void> {
         }
 
         public void reset(){
-            numExecutingFlushes.set(0);
             totalFlushesSubmitted.set(0);
             failedBufferFlushes.set(0);
             writeConflictBufferFlushes.set(0);

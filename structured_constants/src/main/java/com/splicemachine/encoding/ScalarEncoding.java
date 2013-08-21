@@ -508,10 +508,10 @@ final class ScalarEncoding {
 
     public static void main(String...args) throws Exception{
         byte[] data = new byte[]{ (byte)0xe1, (byte)0xE8,(byte)0xAA };
-        System.out.println(Encoding.decodeInt(data));
-        data = new byte[]{(byte)0xE1,(byte)0xE6,(byte)0xE8};
-        System.out.println(Encoding.decodeInt(data));
-        data = new byte[]{(byte)0xE1,(byte)0xBD,(byte)0xCD};
+//        System.out.println(Encoding.decodeInt(data));
+//        data = new byte[]{(byte)0xE1,(byte)0xE6,(byte)0xE8};
+//        System.out.println(Encoding.decodeInt(data));
+//        data = new byte[]{(byte)0xE1,(byte)0xBD,(byte)0xCD};
 
 //        System.out.println(Encoding.decodeInt(data));
 //        data = Bytes.toBytesBinary("\\xE1\\xBE^");
@@ -526,7 +526,15 @@ final class ScalarEncoding {
 //        data = Bytes.toBytesBinary("\\xE4x\\xDB1");
 //        System.out.println(Encoding.decodeInt(data));
 
-        //125098
+        //16675424
+        data = Bytes.toBytesBinary("\\xE4\\xFEr`");
+        System.out.println(Encoding.decodeInt(data));
+
+        //1623792
+        data = Bytes.toBytesBinary("\\xE4\\x18\\xC6\\xF0");
+        System.out.println(Encoding.decodeInt(data));
+
+        //1639187
         //\xE4\x19\x03\x13
         data = Bytes.toBytesBinary("\\xE4\\x19\\x03\\x13");
         System.out.println(Encoding.decodeInt(data));

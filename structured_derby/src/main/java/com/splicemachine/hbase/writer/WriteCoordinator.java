@@ -2,16 +2,21 @@ package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import javax.management.*;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -245,16 +250,19 @@ public class WriteCoordinator {
     }
 
     private final Writer.RetryStrategy defaultRetryStrategy = new Writer.RetryStrategy() {
-        @Override
-        public int getMaximumRetries() {
-            return monitor.getMaximumRetries();
-        }
+        @Override public int getMaximumRetries() { return monitor.getMaximumRetries(); }
+        @Override public long getPause() { return monitor.getPauseTime(); }
 
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-            if(Exceptions.shouldRetry(t))
+            if(t instanceof ConnectException
+                    || t instanceof WrongRegionException
+                    || t instanceof IndexNotSetUpException
+                    || t instanceof NotServingRegionException
+                    || t instanceof RegionTooBusyException)
                 return Writer.WriteResponse.RETRY;
-            return Writer.WriteResponse.THROW_ERROR;
+            else
+                return Writer.WriteResponse.THROW_ERROR;
         }
 
         @Override
@@ -266,11 +274,5 @@ public class WriteCoordinator {
             }
             return Writer.WriteResponse.RETRY;
         }
-
-        @Override
-        public long getPause() {
-            return monitor.getPauseTime();
-        }
     };
-
 }

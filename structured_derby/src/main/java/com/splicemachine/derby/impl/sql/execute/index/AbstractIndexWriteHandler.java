@@ -13,12 +13,15 @@ import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.List;
@@ -143,7 +146,13 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-                return (t instanceof NotServingRegionException || t instanceof IndexNotSetUpException)? Writer.WriteResponse.RETRY: Writer.WriteResponse.THROW_ERROR;
+                if( t instanceof ConnectException
+                 || t instanceof WrongRegionException
+                 || t instanceof NotServingRegionException
+                 || t instanceof IndexNotSetUpException
+                 || t instanceof RegionTooBusyException) return Writer.WriteResponse.RETRY;
+                else
+                    return Writer.WriteResponse.THROW_ERROR;
             }
 
             @Override

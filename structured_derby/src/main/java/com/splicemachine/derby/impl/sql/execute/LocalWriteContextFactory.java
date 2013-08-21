@@ -151,7 +151,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     public WriteContext getIndexOnlyWriteHandler(String txnId,long indexConglomId,RegionCoprocessorEnvironment rce) {
         for(IndexFactory factory:indexFactories){
             if(factory.indexConglomId==indexConglomId){
-                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,false);
+                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,true);
                 factory.addTo(pipelineWriteContext,false);
                 return pipelineWriteContext;
             }
