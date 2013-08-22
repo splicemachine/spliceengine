@@ -72,20 +72,36 @@ public class OperationSink {
             do{
 //                debugFailIfDesired(writeBuffer);
 
-                long start = System.nanoTime();
+                long start = 0l;
+
+                if(stats.readAccumulator().shouldCollectStats()){
+                    start = System.nanoTime();
+                }
+
                 //row = operation.getNextRowCore();
                 row = operation.getNextSinkRow();
                 if(row==null) continue;
 
-                stats.readAccumulator().tick(System.nanoTime()-start);
+                if(stats.readAccumulator().shouldCollectStats()){
+                    stats.readAccumulator().tick(System.nanoTime()-start);
+                }else{
+                    stats.readAccumulator().tickRecords();
+                }
 
-                start = System.nanoTime();
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    start = System.nanoTime();
+                }
 
                 encoder.write(row,writeBuffer);
 
 //                debugFailIfDesired(writeBuffer);
 
-                stats.writeAccumulator().tick(System.nanoTime() - start);
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    stats.writeAccumulator().tick(System.nanoTime() - start);
+                }else{
+                    stats.writeAccumulator().tickRecords();
+                }
+
             }while(row!=null);
             writeBuffer.flushBuffer();
             writeBuffer.close();

@@ -102,10 +102,21 @@ public class SpliceOperationRegionScanner implements RegionScanner {
         if(finished)return false;
 		try {
 			ExecRow nextRow;
-	        long start = System.nanoTime();
+	        long start = 0l;
+
+            if(stats.readAccumulator().shouldCollectStats()){
+                start = System.nanoTime();
+            }
+
 	        if ( (nextRow = topOperation.getNextRowCore()) != null) {
-	            stats.readAccumulator().tick(System.nanoTime()-start);
-	            start = System.nanoTime();
+
+                if(stats.readAccumulator().shouldCollectStats()){
+                    stats.readAccumulator().tick(System.nanoTime()-start);
+                    start = System.nanoTime();
+                }else{
+                    stats.readAccumulator().tickRecords();
+                }
+
                 //TODO -sf- can we do this better?
                 DataValueDescriptor[] rowArray = nextRow.getRowArray();
                 RowLocation location = topOperation.getCurrentRowLocation();
@@ -128,8 +139,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 }
 
 	            SpliceLogUtils.trace(LOG,"next returns results: %s",nextRow);
-	            stats.writeAccumulator().tick(System.nanoTime()-start);
-	        }else{
+
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    stats.writeAccumulator().tick(System.nanoTime()-start);
+                }else{
+                    stats.writeAccumulator().tickRecords();
+                }
+
+            }else{
                 finished=true;
                 //check for additional columns
                 if(additionalColumns.size()>0){

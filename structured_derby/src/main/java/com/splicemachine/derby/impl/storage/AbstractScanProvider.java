@@ -77,7 +77,12 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
 
-            accumulator.readAccumulator().tick(System.nanoTime()-start);
+            if(accumulator.readAccumulator().shouldCollectStats()){
+                accumulator.readAccumulator().tick(System.nanoTime()-start);
+            }else{
+                accumulator.readAccumulator().tickRecords();
+            }
+
             return true;
         }
         SpliceLogUtils.trace(LOG,"no result returned");

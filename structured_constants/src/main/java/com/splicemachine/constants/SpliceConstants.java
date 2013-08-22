@@ -217,6 +217,8 @@ public class SpliceConstants {
 	public static final String SPLICE_DB = "spliceDB";
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
+
+    public static final boolean COLLECT_STATS = false;
 	
     // Default Configuration Options
 	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";

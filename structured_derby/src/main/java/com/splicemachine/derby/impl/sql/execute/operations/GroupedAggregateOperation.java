@@ -357,8 +357,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}
             }
 			nextRow = getNextRowFromScan();
-			scanAccumulator.tick(System.nanoTime()-start);
-            start = System.nanoTime();
+
+            if(scanAccumulator.shouldCollectStats()){
+			    scanAccumulator.tick(System.nanoTime()-start);
+                start = System.nanoTime();
+            }else{
+                scanAccumulator.tickRecords();
+            }
+
 		} while (nextRow!=null);
 		
 		 ExecRow next = finalizeResults();
