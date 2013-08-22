@@ -69,6 +69,9 @@ public class OperationSink {
             writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
 
             ExecRow row;
+            long rowsRead = 0l;
+            long rowsWritten = 0l;
+
             do{
 //                debugFailIfDesired(writeBuffer);
 
@@ -85,7 +88,7 @@ public class OperationSink {
                 if(stats.readAccumulator().shouldCollectStats()){
                     stats.readAccumulator().tick(System.nanoTime()-start);
                 }else{
-                    stats.readAccumulator().tickRecords();
+                    rowsRead++;
                 }
 
                 if(stats.writeAccumulator().shouldCollectStats()){
@@ -99,10 +102,20 @@ public class OperationSink {
                 if(stats.writeAccumulator().shouldCollectStats()){
                     stats.writeAccumulator().tick(System.nanoTime() - start);
                 }else{
-                    stats.writeAccumulator().tickRecords();
+                    rowsWritten++;
                 }
 
             }while(row!=null);
+
+            if( !stats.writeAccumulator().shouldCollectStats() ){
+                stats.writeAccumulator().tickRecords(rowsWritten);
+            }
+
+            if( !stats.readAccumulator().shouldCollectStats() ){
+                stats.readAccumulator().tickRecords(rowsRead);
+            }
+
+
             writeBuffer.flushBuffer();
             writeBuffer.close();
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here

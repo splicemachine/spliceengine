@@ -340,6 +340,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             return finalizeResults();
         //TODO -sf- stash these away somewhere so we're not constantly autoboxing
         int[] groupByCols = convertIntegers(groupByColumns);
+
+        long rowsScanned = 0l;
+
 		do{
 	        resultRows[0] = nextRow;
 	        ExecRow[] rolledUpRows = resultRows;
@@ -362,11 +365,15 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 			    scanAccumulator.tick(System.nanoTime()-start);
                 start = System.nanoTime();
             }else{
-                scanAccumulator.tickRecords();
+                rowsScanned++;
             }
 
 		} while (nextRow!=null);
-		
+
+        if( !scanAccumulator.shouldCollectStats() ){
+            scanAccumulator.tickRecords(rowsScanned);
+        }
+
 		 ExecRow next = finalizeResults();
 		if (LOG.isTraceEnabled())
 			SpliceLogUtils.trace(LOG,"next aggregated row = %s",next);
