@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import java.io.Externalizable;
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -23,4 +24,6 @@ public interface Predicate extends Externalizable {
     void reset();
 
     byte[] toBytes();
+
+    List<Integer> appliesToColumns();
 }

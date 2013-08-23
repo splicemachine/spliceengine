@@ -15,7 +15,9 @@ import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -28,6 +30,7 @@ public class EntryPredicateFilter implements Externalizable{
     private List<Predicate> valuePredicates;
     private boolean returnIndex;
     private long visitedRowCount;
+    private Map<Integer, List<Predicate>> predicateMap;
 
 
     public static EntryPredicateFilter emptyPredicate(){
@@ -42,14 +45,16 @@ public class EntryPredicateFilter implements Externalizable{
 
     public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates){
         this.fieldsToReturn = fieldsToReturn;
-        this.valuePredicates = predicates;
+        this.valuePredicates = Collections.unmodifiableList(new LinkedList<Predicate>(predicates));
         this.returnIndex=false;
+        this.predicateMap = Collections.unmodifiableMap(PredicateUtils.initPredicateMap(predicates));
     }
 
     public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates,boolean returnIndex){
         this.fieldsToReturn = fieldsToReturn;
-        this.valuePredicates = predicates;
+        this.valuePredicates = Collections.unmodifiableList(new LinkedList<Predicate>(predicates));
         this.returnIndex=returnIndex;
+        this.predicateMap = Collections.unmodifiableMap(PredicateUtils.initPredicateMap(predicates));
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
@@ -90,11 +95,17 @@ public class EntryPredicateFilter implements Externalizable{
             if(offset+limit>array.length){
                 limit = array.length-offset;
             }
-            for(Predicate valuePredicate : valuePredicates){
-                if(valuePredicate.applies(encodedPos) && !valuePredicate.match(encodedPos,array, offset,limit)){
-                    return false;
+
+            List<Predicate> predicates = predicateMap.get(encodedPos);
+
+            if(predicates != null){
+                for(Predicate valuePredicate : predicates){
+                    if(valuePredicate.applies(encodedPos) && !valuePredicate.match(encodedPos,array, offset,limit)){
+                        return false;
+                    }
                 }
             }
+
             entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
         }
         return true;
@@ -148,10 +159,14 @@ public class EntryPredicateFilter implements Externalizable{
         fieldsToReturn = (BitSet)in.readObject();
         returnIndex = in.readBoolean();
         int size = in.readInt();
-        valuePredicates = Lists.newArrayListWithCapacity(size);
+
+        List<Predicate> preds = Lists.newArrayListWithCapacity(size);
         for(int i=0;i<size;i++){
-            valuePredicates.add((Predicate)in.readObject());
+            preds.add((Predicate)in.readObject());
         }
+
+        this.valuePredicates = Collections.unmodifiableList(preds);
+        this.predicateMap = Collections.unmodifiableMap(PredicateUtils.initPredicateMap(valuePredicates));
     }
 
     public EntryAccumulator newAccumulator(){

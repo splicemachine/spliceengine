@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -163,5 +165,10 @@ public class ValuePredicate implements Predicate {
             }
         }
         throw new IllegalArgumentException("Unable to find Compare op for ordinal "+ compareOrdinal);
+    }
+
+    @Override
+    public List<Integer> appliesToColumns() {
+        return Collections.singletonList(column);
     }
 }

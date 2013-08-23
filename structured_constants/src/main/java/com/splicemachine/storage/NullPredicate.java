@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -124,6 +126,11 @@ public class NullPredicate implements Predicate{
         data[4] = isFloatColumn? (byte)0x01:0x00;
         BytesUtil.intToBytes(column,data,5);
         return data;
+    }
+
+    @Override
+    public List<Integer> appliesToColumns() {
+        return Collections.singletonList(column);
     }
 
     public static Pair<NullPredicate,Integer> fromBytes(byte[] data, int offset){

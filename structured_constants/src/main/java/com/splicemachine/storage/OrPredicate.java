@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.BitSet;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -116,6 +117,18 @@ public class OrPredicate implements Predicate {
         System.arraycopy(listData,0,data,1,listData.length);
 
         return data;
+    }
+
+    @Override
+    public List<Integer> appliesToColumns() {
+
+        List<Integer> cols = new LinkedList<Integer>();
+
+        for(Predicate pred : ors){
+            cols.addAll(pred.appliesToColumns());
+        }
+
+        return cols;
     }
 
     public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {

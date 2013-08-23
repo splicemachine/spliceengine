@@ -8,7 +8,11 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -18,27 +22,35 @@ public class AndPredicate implements Predicate{
     private static final long serialVersionUID = 1l;
     private List<Predicate> ands;
 
+    private Map<Integer, List<Predicate>> predicates;
+
     @Deprecated
     public AndPredicate() { }
 
     public AndPredicate(List<Predicate> ands) {
-        this.ands = ands;
+        this.ands = Collections.unmodifiableList( new LinkedList<Predicate>(ands) );
+        this.predicates = Collections.unmodifiableMap( PredicateUtils.initPredicateMap(ands) );
+
     }
 
     @Override
     public boolean applies(int column) {
-        for(Predicate predicate:ands){
-            if(predicate.applies(column)) return true;
-        }
-
-        return false;
+        return predicates.containsKey(column);
     }
 
     @Override
     public boolean match(int column, byte[] data, int offset, int length) {
-        for(Predicate predicate:ands){
-            if(predicate.applies(column)&&!predicate.match(column,data,offset,length))
-                return false;
+
+        if(predicates != null){
+            List<Predicate> preds = predicates.get(column);
+
+            if(preds != null){
+                for(Predicate predicate : preds){
+                    if(!predicate.match(column,data,offset,length)){
+                        return false;
+                    }
+                }
+            }
         }
         return true;
     }
@@ -54,10 +66,13 @@ public class AndPredicate implements Predicate{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         int size = in.readInt();
-        ands = Lists.newArrayListWithCapacity(size);
+        List andsList = Lists.newArrayListWithCapacity(size);
         for(int i=0;i<size;i++){
-            ands.add((Predicate)in.readObject());
+            andsList.add((Predicate)in.readObject());
         }
+
+        this.ands = Collections.unmodifiableList(andsList);
+        this.predicates = Collections.unmodifiableMap(PredicateUtils.initPredicateMap(ands));
     }
 
     @Override
@@ -97,6 +112,11 @@ public class AndPredicate implements Predicate{
         data[0] = PredicateType.AND.byteValue();
         System.arraycopy(listData,0,data,1,listData.length);
         return data;
+    }
+
+    @Override
+    public List<Integer> appliesToColumns() {
+        return new LinkedList(predicates.keySet());
     }
 
     public static Pair<AndPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
