@@ -4,16 +4,13 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
@@ -70,7 +67,8 @@ public class SIObserver extends BaseRegionObserver {
                 transactor.rollForward(new HbRegion(region), transactionId, rowList);
             }
         };
-        rollForwardQueue = new RollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
+//        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
+        rollForwardQueue = RollForwardQueueMap.registerRegion(tableName,new HHasher(),action);
         RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
         super.start(e);
     }
@@ -86,6 +84,7 @@ public class SIObserver extends BaseRegionObserver {
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
+        RollForwardQueueMap.deregisterRegion(tableName);
         SpliceLogUtils.trace(LOG, "stopping %s", SIObserver.class);
         super.stop(e);
     }

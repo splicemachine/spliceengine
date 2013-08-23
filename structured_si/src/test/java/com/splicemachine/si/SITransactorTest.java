@@ -12,21 +12,10 @@ import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.RollForwardQueue;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.TransactionStatus;
-import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -70,7 +59,7 @@ public class SITransactorTest extends SIConstants {
 
     void baseSetUp() {
         transactor = transactorSetup.transactor;
-        transactorSetup.rollForwardQueue = new RollForwardQueue(
+        transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
                 storeSetup.getHasher(),
                 new RollForwardAction() {
                     @Override
@@ -84,7 +73,7 @@ public class SITransactorTest extends SIConstants {
 
     @Before
     public void setUp() {
-        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         storeSetup = new LStoreSetup();
         transactorSetup = new TransactorSetup(storeSetup, true);
         baseSetUp();

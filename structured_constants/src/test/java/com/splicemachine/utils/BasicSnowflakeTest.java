@@ -72,6 +72,7 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreadsSameSnowflake() throws Exception {
         for(int i=0;i<10;i++){
+            System.out.println("Trying iteration "+ i);
             testNoDuplicatesManyThreadsSameSnowflake();
         }
     }
@@ -79,13 +80,14 @@ public class BasicSnowflakeTest {
     @Test
     public void testRepeatedNoDuplicatesManyThreads() throws Exception {
         for(int i=0;i<10;i++){
+            System.out.println("Trying iteration "+ i);
             testNoDuplicatesManyThreads();
         }
     }
 
     @Test
     public void testNoDuplicatesManyThreads() throws Exception {
-        int numThreads=10;
+        int numThreads=5;
         final int numIterations = 200000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();

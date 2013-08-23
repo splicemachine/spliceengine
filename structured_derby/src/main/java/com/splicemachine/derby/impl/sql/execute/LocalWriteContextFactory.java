@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -21,6 +22,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.BitSet;
 import java.util.List;
@@ -70,6 +72,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
         //add a region handler
         pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
+        return pwc;
+    }
+
+    @Override
+    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce, RollForwardQueue<byte[], ByteBuffer> queue) throws IOException, InterruptedException {
+        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
+        //add a region handler
+        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize,queue));
         return pwc;
     }
 

@@ -8,6 +8,8 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -24,10 +26,12 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
 
-    public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new ConcurrentHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
+    public static ConcurrentMap<Long,Pair<LocalWriteContextFactory,AtomicInteger>> factoryMap = new NonBlockingHashMap<Long, Pair<LocalWriteContextFactory, AtomicInteger>>();
     static{
         factoryMap.put(-1l,Pair.newPair(LocalWriteContextFactory.unmanagedContextFactory(),new AtomicInteger(1)));
     }
@@ -68,6 +72,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     private long conglomId;
+
+    private RollForwardQueue<byte[],ByteBuffer> queue;
 
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -127,8 +133,10 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         region.startRegionOperation();
         try{
             WriteContext context;
+            if(queue==null)
+                queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
             try {
-                context = getWriteContext(bulkWrite.getTxnId(),rce);
+                context = getWriteContext(bulkWrite.getTxnId(),rce,queue);
             } catch (InterruptedException e) {
                 //was interrupted while trying to create a write context.
                 //we're done, someone else will have to write this batch
@@ -166,9 +174,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
 
-    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
+    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-        return ctxFactoryPair.getFirst().create(txnId,rce);
+        return ctxFactoryPair.getFirst().create(txnId,rce,queue);
     }
 
     @SuppressWarnings("unchecked")

@@ -48,14 +48,97 @@ public class Snowflake {
     private final long machineId; //only the first counterBits bits are used;
 
     public Snowflake(short machineId) {
+        /*
+         * We want to use -1l as a "non entry" flag, but to do so we have to ensure that it can never occur naturally.
+         * If -1 occurrs naturally, then we know that the counter looks like 0100 0000 0000 (e.g. 1024), and
+         * both the timestamp and the machine id are 0l; Since it is possible for someone crazy to create a machine id of 0.0.0.0,
+         * then reset all the system clocks to start counting from January 1, 1970, we have to watch out.
+         *
+         * The simplest way to do that is just to validate that we have a non-zero machine id
+         */
         this.machineId = (machineId &0x0fff); //take the first 12 bits, then shift it over appropriately
+        if(machineId==0)
+            throw new IllegalArgumentException("Cannot have a machine id with all zeros!");
     }
 
     public byte[] nextUUIDBytes(){
         return Bytes.toBytes(nextUUID());
     }
 
+    public void nextUUIDBlock(long[] uuids){
+        boolean interrupted = false;
+        try{
+            //we now have time
+            long timestamp;
+            short startCount;
+            short stopCount;
+            int numRecords = uuids.length;
+            synchronized (this) {
+                timestamp = System.currentTimeMillis();
+                if(timestamp<lastTimestamp)
+                    throw new IllegalStateException("Unable to obtain timestamp, clock moved backwards");
+
+                if(timestamp==lastTimestamp){
+                    if(counter==0)
+                        while(timestamp ==lastTimestamp)
+                            timestamp = System.currentTimeMillis();
+
+                    if(numRecords < COUNTER_MASK-counter+1){
+                        startCount = counter;
+                        counter+=numRecords;
+                        stopCount = counter;
+                        counter = (short)(counter & COUNTER_MASK);
+                    }else{
+                        numRecords = COUNTER_MASK-counter+1;
+                        startCount = counter;
+                        counter+=numRecords;
+                        stopCount = counter;
+                        counter = (short)(counter & COUNTER_MASK);
+                    }
+                }else{
+                    //grab as many as you can, then return
+                    if(numRecords < COUNTER_MASK-counter+1){
+                        startCount = counter;
+                        counter+=numRecords;
+                        stopCount = counter;
+                        counter = (short)(counter & COUNTER_MASK);
+                    }else{
+                        numRecords = COUNTER_MASK-counter+1;
+                        startCount = counter;
+                        counter+=numRecords;
+                        stopCount = counter;
+                        counter = (short)(counter & COUNTER_MASK);
+                    }
+                }
+                lastTimestamp = timestamp;
+            }
+            for(int i=startCount;i<stopCount;i++){
+                long uuid = ((long)i <<counterShift);
+                uuid |= ((timestamp & TIMESTAMP_MASK)<<timestampShift);
+                uuid |= machineId;
+                uuids[i-startCount] = uuid;
+            }
+            for(int i=stopCount;i<uuids.length;i++){
+                /*
+                 * fill in any remaining entries with -1. We can safely do this because we know that
+                 * machine ids are never all zeros, so we can't possibly have -1 as a valid snowflake number.
+                 */
+                uuids[i] = -1l;
+            }
+        }finally{
+            if(interrupted){ //reset the interrupted flag for others to use
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    public long[] nextUUIDBlock(int numRecords){
+        long[] uuids = new long[numRecords];
+        nextUUIDBlock(uuids);
+        return uuids;
+    }
+
     public long nextUUID(){
+//        return nextUUIDBlock(1)[0];
         boolean interrupted = false;
         try{
             long timestamp =0; //we know that timestamp is set, this just makes the compiler happy
@@ -125,6 +208,41 @@ public class Snowflake {
             if(interrupted){ //reset the interrupted flag for others to use
                 Thread.currentThread().interrupt();
             }
+        }
+    }
+
+    public Generator newGenerator(int blockSize){
+        return new Generator(this,blockSize);
+    }
+
+    public static class Generator{
+        private final Snowflake snowflake;
+        private long[] currentUuids;
+        private final int batchSize;
+        private int currentPosition;
+
+        private Generator(Snowflake snowflake, int batchSize) {
+            this.snowflake = snowflake;
+            this.batchSize = batchSize;
+            this.currentPosition = 0;
+            this.currentUuids = new long[batchSize];
+        }
+
+        public long next(){
+            if(currentPosition>=currentUuids.length||currentUuids[currentPosition]==-1l)
+                refill();
+            int pos = currentPosition;
+            currentPosition++;
+            return currentUuids[pos];
+        }
+
+        public byte[] nextBytes(){
+            return Bytes.toBytes(next());
+        }
+
+        private void refill(){
+            snowflake.nextUUIDBlock(currentUuids);
+            currentPosition=0;
         }
     }
 

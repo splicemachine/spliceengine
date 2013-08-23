@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.RollForwardQueue;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
 
@@ -40,8 +41,8 @@ import java.util.concurrent.TimeUnit;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class RollForwardQueue<Data, Hashable extends Comparable> {
-    static final Logger LOG = Logger.getLogger(RollForwardQueue.class);
+public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> implements RollForwardQueue<Data,Hashable> {
+    static final Logger LOG = Logger.getLogger(SynchronousRollForwardQueue.class);
 
     /**
      * The thread pool to use for running asynchronous roll-forward actions.
@@ -96,7 +97,7 @@ public class RollForwardQueue<Data, Hashable extends Comparable> {
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public RollForwardQueue(Hasher<Data, Hashable> hasher, RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
+    public SynchronousRollForwardQueue(Hasher<Data, Hashable> hasher, RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
         this.hasher = hasher;
         this.action = action;
         this.maxCount = maxCount;
@@ -106,10 +107,21 @@ public class RollForwardQueue<Data, Hashable extends Comparable> {
         reset();
     }
 
+    @Override
+    public void start() {
+        //no-op
+    }
+
+    @Override
+    public void stop() {
+        //no-op
+    }
+
     /**
      * This is the main function for users of the queue. Callers notify the queue that the given row in the underlying
      * table should be updated to reflect the final status of the given transaction.
      */
+    @Override
     public void recordRow(long transactionId, Data rowKey) {
         synchronized (this) {
             forceResetIfNeeded();

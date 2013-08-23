@@ -1,7 +1,6 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;

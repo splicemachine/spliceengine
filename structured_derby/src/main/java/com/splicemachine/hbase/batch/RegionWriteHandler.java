@@ -15,7 +15,7 @@ import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import org.apache.hadoop.hbase.KeyValue;
@@ -45,11 +45,19 @@ public class RegionWriteHandler implements WriteHandler {
     private final List<KVPair> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
+    private RollForwardQueue<byte[], ByteBuffer> queue;
 
     public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize) {
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
+    }
+
+    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize,RollForwardQueue<byte[],ByteBuffer>queue){
+        this.region = region;
+        this.writeLatch = writeLatch;
+        this.writeBatchSize = writeBatchSize;
+        this.queue = queue;
     }
 
     @Override
@@ -183,14 +191,15 @@ public class RegionWriteHandler implements WriteHandler {
     private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
         final String tableName = region.getTableDesc().getNameAsString();
-        final RollForwardQueue<byte[],ByteBuffer> rollForwardQueue = RollForwardQueueMap.lookupRollForwardQueue(tableName);
+        if(queue==null)
+            queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
         Mutation[] mutations = new Mutation[toProcess.size()];
         int i=0;
         for(KVPair pair:toProcess){
             mutations[i] = getMutation(pair,ctx);
             i++;
         }
-        return transactor.processPutBatch(new HbRegion(region), rollForwardQueue, mutations);
+        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
     }
 
 }

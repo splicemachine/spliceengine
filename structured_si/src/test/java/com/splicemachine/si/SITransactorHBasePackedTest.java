@@ -1,8 +1,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -25,7 +24,7 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     @Override
     @Before
     public void setUp() {
-        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         this.storeSetup = classStoreSetup;
         this.transactorSetup = classTransactorSetup;
         baseSetUp();

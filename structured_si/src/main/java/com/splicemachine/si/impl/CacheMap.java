@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import org.cliffc.high_scale_lib.NonBlockingHashMap;
+
 import java.lang.ref.ReferenceQueue;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +35,7 @@ public class CacheMap implements Map {
      * @return new cache object
      */
     public static Map makeCache(boolean shared, int maxSize) {
-        return new CacheMap(shared ? new ConcurrentHashMap() : new HashMap(), maxSize);
+        return new CacheMap(shared ? new NonBlockingHashMap() : new HashMap(), maxSize);
     }
 
     private CacheMap(Map delegate, int maxSize) {

@@ -15,6 +15,7 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.Snowflake;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -36,6 +37,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     private EntryAccumulator newRowAccumulator;
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
+
+    private Snowflake.Generator generator;
 
     private BitSet nonUniqueIndexedColumns;
 
@@ -131,7 +134,9 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
-        byte[] postfix = SpliceUtils.getUniqueKey();
+        if(generator==null)
+            generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(1000); //TODO -sf- make this configurable, or adjustable
+        byte[] postfix = generator.nextBytes();
         accumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(postfix));
         return accumulator.finish();
     }

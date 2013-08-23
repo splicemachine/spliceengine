@@ -3,7 +3,7 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;

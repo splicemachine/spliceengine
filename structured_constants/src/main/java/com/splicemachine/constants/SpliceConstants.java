@@ -156,6 +156,14 @@ public class SpliceConstants {
     public static int indexBufferSize;
     public static int kryoPoolSize;
 
+    public static long maxRollForwardHeapSize;
+    public static int maxRollForwardEntries;
+    public static long rollForwardTimeout;
+    public static int maxRollForwardScheduledThreads;
+    public static int maxRollForwardLoadThreads;
+    public static int maxRollForwardCoreThreads;
+    public static int maxConcurrentRollForwards;
+
     /*Used to determine how many sequence numbers to reserve in a given block*/
     public static long sequenceBlockSize;
 
@@ -233,6 +241,21 @@ public class SpliceConstants {
     public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
     private static final String CONFIG_MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
     private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 20; //probably too low
+
+    private static final String ROLL_FORWARD_HEAP_SIZE = "splice.rollForward.maxHeapSize";
+    private static final String ROLL_FORWARD_ENTRIES = "splice.rollForward.maxEntries";
+    private static final String ROLL_FORWARD_TIMEOUT = "splice.rollForward.timeout";
+    private static final String ROLL_FORWARD_MAX_SCHEDULED_THREADS = "splice.rollForward.maxScheduledThreads";
+    private static final String ROLL_FORWARD_MAX_LOAD_THREADS = "splice.rollForward.maxLoadThreads";
+    private static final String ROLL_FORWARD_LOAD_CORE_THREADS = "splice.rollForward.coreLoadThreads";
+    private static final String ROLL_FORWARD_MAX_CONCURRENT_ROLLS = "splice.rollForward.maxConcurrentRollForwards";
+    private static final long DEFAULT_ROLL_FORWARD_HEAP_SIZE = 2*1024*1024; //2 MB
+    private static final int DEFAULT_ROLL_FORWARD_ENTRIES = 1000000; //1 million
+    private static final long DEFAULT_ROLL_FORWARD_TIMEOUT = 10*1000; //10 seconds
+    private static final int DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS = 2;
+    private static final int DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS = 10;
+    private static final int DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS = 2;
+    private static final int DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS = 10; //at most 10*2MB = 20MB heap used at more for rollforwards
 
 
     public static enum TableEnv {
@@ -329,6 +352,14 @@ public class SpliceConstants {
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 
         sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
+
+        maxRollForwardHeapSize = config.getLong(ROLL_FORWARD_HEAP_SIZE,DEFAULT_ROLL_FORWARD_HEAP_SIZE);
+        maxRollForwardEntries = config.getInt(ROLL_FORWARD_ENTRIES, DEFAULT_ROLL_FORWARD_ENTRIES);
+        rollForwardTimeout = config.getLong(ROLL_FORWARD_TIMEOUT, DEFAULT_ROLL_FORWARD_TIMEOUT);
+        maxRollForwardScheduledThreads = config.getInt(ROLL_FORWARD_MAX_SCHEDULED_THREADS, DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS);
+        maxRollForwardLoadThreads = config.getInt(ROLL_FORWARD_MAX_LOAD_THREADS, DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS);
+        maxRollForwardCoreThreads = config.getInt(ROLL_FORWARD_LOAD_CORE_THREADS,DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS);
+        maxConcurrentRollForwards = config.getInt(ROLL_FORWARD_MAX_CONCURRENT_ROLLS,DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {
