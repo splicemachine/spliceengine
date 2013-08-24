@@ -427,13 +427,22 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
         for (Hashable hashableRowKey : keys) {
             for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
-                final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
-                final ConflictResults conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
+                ConflictResults conflictResults;
+                if (unsafeWrites()) {
+                    conflictResults = new ConflictResults(Collections.EMPTY_SET, Collections.EMPTY_SET, false);
+                } else {
+                    final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
+                    conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
+                }
                 final PutToRun<Mutation, Lock> putToRun = getMutationLockPutToRun(table, rollForwardQueue, putInBatch.put, putInBatch.transaction, putInBatch.rowKey, locks.get(hashableRowKey), conflictResults);
                 mutationsAndLocks[putInBatch.index] = putToRun.putAndLock;
                 conflictingChildren[putInBatch.index] = putToRun.conflictingChildren;
             }
         }
+    }
+
+    private boolean unsafeWrites() {
+        return Boolean.getBoolean("splice.unsafe.writes");
     }
 
     private void obtainLocksForPutBatchAndPrepNonSIPuts(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Map<Hashable,
