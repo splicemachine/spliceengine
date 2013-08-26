@@ -33,7 +33,6 @@ public class BlockParallelImportTask extends ParallelImportTask {
     private long pos;
     private Text text;
 
-
     public BlockParallelImportTask(String jobId,
                                       ImportContext context,
                                       BlockLocation location,

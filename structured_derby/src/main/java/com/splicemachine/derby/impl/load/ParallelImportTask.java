@@ -311,9 +311,7 @@ public abstract class ParallelImportTask extends ZkTask{
                     doImportRow(next);
                 }
             }finally{
-//                LOG.info("Time when closed occurs:"+ System.currentTimeMillis());
                 writeDestination.close(); //ensure your writes happen
-//                LOG.info("Time when close finishes:"+ System.currentTimeMillis());
                 if(LOG.isDebugEnabled()){
                     SpliceLogUtils.debug(LOG,"total time taken to populate %d rows: %d ns",numProcessed,totalPopulateTime);
                     SpliceLogUtils.debug(LOG,"average time taken to populate 1 row: %f ns",(double)totalPopulateTime/numProcessed);
@@ -345,9 +343,7 @@ public abstract class ParallelImportTask extends ZkTask{
 
             if(activeCols!=null){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                    String elem = line[pos];
-                    setColumn(row,pos,elem);
-//                    row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
+                    row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
                 }
             }else{
                 for(int pos=0;pos<line.length-1;pos++){
