@@ -263,6 +263,7 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong maxFlushEntries = new AtomicLong(0l);
         final AtomicLong minFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
+        final AtomicLong totalFlushTime = new AtomicLong(0l);
 
         public ActionStatusReporter(){}
 
@@ -278,6 +279,7 @@ final class BulkWriteAction implements Callable<Void> {
                 long currentMin = minFlushTime.get();
                 cont = currentMin <= msTaken || minFlushTime.compareAndSet(currentMin, msTaken);
             }
+            totalFlushTime.addAndGet(msTaken);
         }
 
         public void reset(){
@@ -292,6 +294,7 @@ final class BulkWriteAction implements Callable<Void> {
             partialFailures.set(0);
             maxFlushTime.set(0);
             minFlushTime.set(0);
+            totalFlushTime.set(0);
 
             maxFlushSizeBytes.set(0);
             minFlushEntries.set(0);

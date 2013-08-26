@@ -17,9 +17,11 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
     private final AtomicInteger numPendingTasks = new AtomicInteger(0);
     private final AtomicLong numFailedTasks = new AtomicLong(0l);
     private final AtomicLong totalSuccessfulTasks = new AtomicLong(0l);
+    private final CountingRejectionHandler countingRejectionHandler;
 
-    private MonitoredThreadPool(ThreadPoolExecutor writerPool){
+    private MonitoredThreadPool(ThreadPoolExecutor writerPool, CountingRejectionHandler countingRejectionHandler){
         this.writerPool = writerPool;
+        this.countingRejectionHandler = countingRejectionHandler;
     }
 
     public static MonitoredThreadPool create(){
@@ -31,12 +33,13 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         int maxThreads = SpliceConstants.maxThreads;
         int coreThreads = SpliceConstants.coreWriteThreads;
         long keepAliveSeconds = SpliceConstants.threadKeepAlive;
+        CountingRejectionHandler countingRejectionHandler = new CountingRejectionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         ThreadPoolExecutor writerPool = new ThreadPoolExecutor(coreThreads,
                 maxThreads,keepAliveSeconds,
                 TimeUnit.SECONDS,new SynchronousQueue<Runnable>(),factory,
-                new ThreadPoolExecutor.CallerRunsPolicy());
+                countingRejectionHandler);
         writerPool.allowCoreThreadTimeOut(true);
-        return new MonitoredThreadPool(writerPool);
+        return new MonitoredThreadPool(writerPool, countingRejectionHandler);
     }
 
     public void shutdown(){
@@ -108,6 +111,11 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         return writerPool.getLargestPoolSize();
     }
 
+    @Override
+    public long getTotalRejectedTasks() {
+        return countingRejectionHandler.getTotalRejected();
+    }
+
     private class WatchingCallable<V> implements Callable<V>{
         private final Callable<V> delegate;
 
@@ -129,4 +137,22 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         }
     }
 
+    private static class CountingRejectionHandler implements RejectedExecutionHandler {
+        private final RejectedExecutionHandler delegate;
+        private final AtomicLong totalRejected = new AtomicLong(0l);
+        public CountingRejectionHandler(RejectedExecutionHandler rejectedExecutionHandler) {
+            this.delegate = rejectedExecutionHandler;
+        }
+
+        @Override
+        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+            totalRejected.incrementAndGet();
+            if(delegate!=null)
+                delegate.rejectedExecution(r,executor);
+        }
+
+        public long getTotalRejected(){
+            return totalRejected.get();
+        }
+    }
 }

@@ -100,7 +100,12 @@ public class WriteCoordinator {
                 super.close();
             }
         };
-        return new RecordingCallBuffer<KVPair>(buffer,listener);
+        return new RecordingCallBuffer<KVPair>(buffer,listener){
+            @Override
+            public long getTotalFlushes() {
+                return super.getTotalFlushes()+listener.getTotalFlushes();
+            }
+        };
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
@@ -116,7 +121,12 @@ public class WriteCoordinator {
             }
         };
 
-        return new RecordingCallBuffer<KVPair>(buffer,listener);
+        return new RecordingCallBuffer<KVPair>(buffer,listener){
+            @Override
+            public long getTotalFlushes() {
+                return listener.getTotalFlushes()+super.getTotalFlushes();
+            }
+        };
     }
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
@@ -127,18 +137,25 @@ public class WriteCoordinator {
         CallBuffer<KVPair> delegate = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
             @Override
             public void close() throws Exception {
+                listener.ensureFlushed();
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
             }
         };
 
-        return new RecordingCallBuffer<KVPair>(delegate,listener);
+        return new RecordingCallBuffer<KVPair>(delegate,listener){
+            @Override
+            public long getTotalFlushes() {
+                return listener.getTotalFlushes()+super.getTotalFlushes();
+            }
+        };
     }
 
     private abstract class BufferListener implements CallBuffer.Listener<KVPair>{
         private final PreFlushHook preFlushHook;
         protected final byte[] tableName;
         protected final Writer.RetryStrategy retryStrategy;
+        private long totalFlushes = 0l;
 
         protected BufferListener(PreFlushHook preFlushHook, byte[] tableName,Writer.RetryStrategy retryStrategy) {
             this.preFlushHook = preFlushHook;
@@ -153,6 +170,7 @@ public class WriteCoordinator {
 
         @Override
         public void bufferFlushed(List<KVPair> entries, CallBuffer<KVPair> source) throws Exception {
+            totalFlushes++;
             entries = preFlushHook.transform(entries);
 
             String transactionId = ((TransactionalCallBuffer<KVPair>) source).getTransactionId();
@@ -162,6 +180,10 @@ public class WriteCoordinator {
         public abstract void ensureFlushed() throws ExecutionException, InterruptedException;
 
         protected abstract void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException;
+
+        public long getTotalFlushes() {
+            return totalFlushes;
+        }
     }
 
     private class SyncBufferListener extends BufferListener{

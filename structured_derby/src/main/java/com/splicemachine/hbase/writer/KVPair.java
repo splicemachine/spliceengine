@@ -61,6 +61,14 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         return type;
     }
 
+    public void setValue(byte[] value){
+        this.value = value;
+    }
+
+    public void setKey(byte[] key){
+        this.rowKey = key;
+    }
+
     public Put toPut(){
         Put put = new Put(rowKey);
         put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
