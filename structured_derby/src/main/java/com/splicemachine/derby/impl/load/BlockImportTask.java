@@ -103,8 +103,15 @@ public class BlockImportTask extends AbstractImportTask{
     private long importData(ExecRow row, CallBuffer<KVPair> writeBuffer, LineReader reader, CSVParser parser, long end, Text text, long pos) throws Exception {
         String txnId = getTaskStatus().getTransactionId();
         long numImported = 0l;
+        long startTime;
+        long stopTime;
+        long totalTime = 0l;
+        try{
         while(pos<end){
+            startTime = System.nanoTime();
             long newSize = reader.readLine(text);
+            stopTime = System.nanoTime();
+            totalTime+=(stopTime-startTime);
             if(newSize==0)
                 break; //we didn't actually read any more data
             pos+=newSize;
@@ -123,6 +130,12 @@ public class BlockImportTask extends AbstractImportTask{
             reportIntermediate(numImported);
         }
         return numImported;
+        }finally{
+            if(LOG.isDebugEnabled()){
+                SpliceLogUtils.debug(LOG,"Total time spent reading records: %d",totalTime);
+                SpliceLogUtils.debug(LOG,"Avg time to read a single record: %f",(double)totalTime/numImported);
+            }
+        }
     }
 
     private CSVParser getCsvParser(ImportContext context) {

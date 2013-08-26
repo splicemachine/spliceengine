@@ -34,7 +34,7 @@ public class FileImportJob extends ImportJob{
         if(!fs.exists(filePath))
             throw new IOException("File "+ filePath+" does not exist");
 
-        return Collections.singletonMap(new FileImportTask(getJobId(), context,
+        return Collections.singletonMap(new ParallelFileImportTask(getJobId(), context,
                 SpliceConstants.importTaskPriority, context.getTransactionId()), getTaskBoundary());
     }
 

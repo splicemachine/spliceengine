@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.CharBuffer;
 
 /**
  * @author Scott Fines
@@ -59,12 +60,26 @@ public class FileImportTask extends AbstractImportTask{
             CSVReader csvReader = getCsvReader(reader,importContext);
             String[] line;
             String txnId = getTaskStatus().getTransactionId();
-            while((line = csvReader.readNext())!=null){
-                if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
+            long readStart;
+            long readStop;
+            long totalTime = 0l;
+            try{
+                do{
+                    readStart = System.currentTimeMillis();
+                    line = csvReader.readNext();
+                    readStop = System.currentTimeMillis();
+                    if(line==null) continue;
+                    if(line.length==0||(line.length==1 &&line[0]==null || line[0].length()==0)) continue; //skip empty rows
 
-                doImportRow(line,row, writeBuffer);
-                numImported++;
-                reportIntermediate(numImported);
+                    doImportRow(line,row, writeBuffer);
+                    numImported++;
+                    totalTime+=(readStop-readStart);
+                }while(line!=null);
+            }finally{
+                if(LOG.isDebugEnabled()){
+                    SpliceLogUtils.debug(LOG,"Total time spent reading records: %d",totalTime);
+                    SpliceLogUtils.debug(LOG,"Average time spent reading records: %f",(double)totalTime/numImported);
+                }
             }
             return numImported;
         }finally{

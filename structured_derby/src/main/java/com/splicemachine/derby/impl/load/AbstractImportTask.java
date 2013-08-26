@@ -53,6 +53,8 @@ public abstract class AbstractImportTask extends ZkTask {
     private int[] keyColumns = null;
 
     private RowEncoder entryEncoder;
+    private long totalPopulateTime;
+    private long totalWriteTime;
 
     public AbstractImportTask() { }
 
@@ -107,7 +109,7 @@ public abstract class AbstractImportTask extends ZkTask {
 
             entryEncoder = RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
 
-            long numImported;
+            long numImported = 0l;
             long start = System.currentTimeMillis();
             long stop;
             try{
@@ -117,15 +119,20 @@ public abstract class AbstractImportTask extends ZkTask {
                 writeBuffer.flushBuffer();
                 writeBuffer.close();
                 stop = System.currentTimeMillis();
+                if(LOG.isDebugEnabled()){
+                    SpliceLogUtils.debug(LOG,"Total time taken to populate %d rows: %d ns",numImported,totalPopulateTime);
+                    SpliceLogUtils.debug(LOG,"Avg time to populate a single row: %f ns",(double)totalPopulateTime/numImported);
+                    SpliceLogUtils.debug(LOG,"Total time taken to write %d rows: %d ns",numImported,totalWriteTime);
+                    SpliceLogUtils.debug(LOG,"Avg time to write a single row: %f ns",(double)totalWriteTime/numImported);
+                    logStats(numImported, stop - start, writeBuffer);
+                }
             }
-            if(LOG.isDebugEnabled()){
-                //log read stats
-                logStats(numImported, stop - start, writeBuffer);
-            }
+
         } catch (StandardException e) {
             throw new ExecutionException(e);
         } catch (Exception e) {
             throw new ExecutionException(Exceptions.parseException(e));
+        }finally{
         }
     }
 
@@ -138,9 +145,15 @@ public abstract class AbstractImportTask extends ZkTask {
     protected abstract long importData(ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception;
 
     protected void doImportRow(String[] line, ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
+        long start = System.nanoTime();
         populateRow(line, importContext.getActiveCols(), row);
+        long stop = System.nanoTime();
+        totalPopulateTime += (stop-start);
 
+        start = System.nanoTime();
         entryEncoder.write(row,writeBuffer);
+        stop = System.nanoTime();
+        totalWriteTime += (stop-start);
     }
 
 

@@ -55,7 +55,7 @@ public class BlockImportJob extends FileImportJob{
 
         //assign one task per BlockLocation
         Iterator<ServerName> regionCycle = Iterators.cycle(regions.keySet());
-        Map<BlockImportTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMapWithExpectedSize(locations.length);
+        Map<RegionTask,Pair<byte[],byte[]>> taskMap = Maps.newHashMapWithExpectedSize(locations.length);
         String parentTxnString = getParentTransaction().getTransactionIdString();
         String jobId = getJobId();
         for(BlockLocation location:locations){
@@ -119,8 +119,8 @@ public class BlockImportJob extends FileImportJob{
         return Pair.newPair(originalTask,getTaskBoundary(info));
     }
 
-    private void putTask(Map<BlockImportTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
-        BlockImportTask task = new BlockImportTask(
+    private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
+        BlockParallelImportTask task = new BlockParallelImportTask(
                 jobId,
                 context,
                 location,
