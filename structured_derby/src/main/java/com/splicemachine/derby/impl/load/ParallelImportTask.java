@@ -311,7 +311,9 @@ public abstract class ParallelImportTask extends ZkTask{
                     doImportRow(next);
                 }
             }finally{
+//                LOG.info("Time when closed occurs:"+ System.currentTimeMillis());
                 writeDestination.close(); //ensure your writes happen
+//                LOG.info("Time when close finishes:"+ System.currentTimeMillis());
                 if(LOG.isDebugEnabled()){
                     SpliceLogUtils.debug(LOG,"total time taken to populate %d rows: %d ns",numProcessed,totalPopulateTime);
                     SpliceLogUtils.debug(LOG,"average time taken to populate 1 row: %f ns",(double)totalPopulateTime/numProcessed);

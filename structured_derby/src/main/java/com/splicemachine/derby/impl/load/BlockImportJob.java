@@ -121,6 +121,7 @@ public class BlockImportJob extends FileImportJob{
 
     private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
         BlockParallelImportTask task = new BlockParallelImportTask(
+//        BlockImportTask task = new BlockImportTask(
                 jobId,
                 context,
                 location,

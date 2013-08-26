@@ -8,7 +8,9 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.AnnotationIntrospector;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -327,18 +329,58 @@ public class InnerJoinTest extends SpliceUnitTest {
                 "from item t1, category_sub t2, category t3 " +
                 "where (t1.itm_subcat_id + 1) = (t2.sbc_id + 1) and (t2.sbc_category_id + 1) = (t3.cat_id + 1)");
 
-        List<Map> results = TestUtils.resultSetToMaps(rs);
+        List parseResults = TestUtils.resultSetToMaps(rs);
+        List<Map<String,String>> results = (List<Map<String,String>>)parseResults;
 
         Assert.assertEquals(10, results.size());
 
-        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
-        Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
-        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+        List<Map<String,String>> correctResults = Arrays.asList(
+                makeMap(Pair.newPair("ITM_NAME","50 Favorite Rooms"),Pair.newPair("CAT_NAME","MicroStrategy Books"),Pair.newPair("SBC_DESC","Art & Architecture")),
+                makeMap(Pair.newPair("ITM_NAME","Digital Filters"),Pair.newPair("CAT_NAME","MicroStrategy Books"),Pair.newPair("SBC_DESC","Science & Technology")),
+                makeMap(Pair.newPair("ITM_NAME","Don't Sweat the Small Stuff"),Pair.newPair("CAT_NAME","MicroStrategy Books"),Pair.newPair("SBC_DESC","Business")),
+                makeMap(Pair.newPair("ITM_NAME","Charlotte's Web"),Pair.newPair("CAT_NAME","MicroStrategy Movies"),Pair.newPair("SBC_DESC","Kids / Family")),
+                makeMap(Pair.newPair("ITM_NAME","Seal (94)"),Pair.newPair("CAT_NAME","MicroStrategy Music"),Pair.newPair("SBC_DESC","Alternative")),
+                makeMap(Pair.newPair("ITM_NAME","Blade"),Pair.newPair("CAT_NAME","MicroStrategy Movies"),Pair.newPair("SBC_DESC","Action")),
+                makeMap(Pair.newPair("ITM_NAME","Take My Hand"),Pair.newPair("CAT_NAME","MicroStrategy Music"),Pair.newPair("SBC_DESC","Music - Miscellaneous")),
+                makeMap(Pair.newPair("ITM_NAME","Cracked Rearview"),Pair.newPair("CAT_NAME","MicroStrategy Music"),Pair.newPair("SBC_DESC","Pop")),
+                makeMap(Pair.newPair("ITM_NAME","Waiting to Exhale: The Soundtrack"),Pair.newPair("CAT_NAME","MicroStrategy Music"),Pair.newPair("SBC_DESC","Pop")),
+                makeMap(Pair.newPair("ITM_NAME","Road Tested"),Pair.newPair("CAT_NAME","MicroStrategy Music"),Pair.newPair("SBC_DESC","Rock"))
+        );
+        Comparator<Map<String, String>> c = new Comparator<Map<String, String>>() {
+            @Override
+            public int compare(Map<String, String> o1, Map<String, String> o2) {
+                if (o1 == null) {
+                    if (o2 == null) return 0;
+                    return 1;
+                } else if (o2 == null) return -1;
 
-        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
-        Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
-        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+                return o1.get("ITM_NAME").compareTo(o2.get("ITM_NAME"));
+            }
+        };
+        Collections.sort(correctResults, c);
+        Collections.sort(results,c);
 
+        for(int i=0;i<correctResults.size();i++){
+            Map<String,String> correct = correctResults.get(i);
+            Map<String,String> actual = correctResults.get(i);
+            Assert.assertEquals(correct,actual);
+        }
+//        Assert.assertEquals("50 Favorite Rooms", results.get(0).get("ITM_NAME"));
+//        Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
+//        Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
+//
+//        Assert.assertEquals("Seal (94)", results.get(4).get("ITM_NAME"));
+//        Assert.assertEquals("MicroStrategy Music", results.get(4).get("CAT_NAME"));
+//        Assert.assertEquals("Alternative", results.get(4).get("SBC_DESC"));
+
+    }
+
+    private static Map<String,String> makeMap(Pair<String,String> ...entries){
+        Map<String,String> map = Maps.newHashMap();
+        for(Pair<String,String> entry:entries){
+            map.put(entry.getFirst(),entry.getSecond());
+        }
+        return map;
     }
 
     @Test

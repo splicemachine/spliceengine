@@ -26,11 +26,13 @@ public class BlockParallelImportTask extends ParallelImportTask {
     private InputStream stream;
     private LineReader reader;
     private CSVParser parser;
+    private FSDataInputStream is;
 
     private long start;
     private long end;
     private long pos;
     private Text text;
+
 
     public BlockParallelImportTask(String jobId,
                                       ImportContext context,
@@ -48,6 +50,8 @@ public class BlockParallelImportTask extends ParallelImportTask {
 
     @Override
     protected void finishRead() throws IOException {
+        if(is!=null)
+            is.close();
         if(stream!=null)
             stream.close();
         if(reader!=null)
@@ -59,7 +63,7 @@ public class BlockParallelImportTask extends ParallelImportTask {
     protected void setupRead() throws Exception{
         CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
         CompressionCodec codec = codecFactory.getCodec(importContext.getFilePath());
-        FSDataInputStream is = fileSystem.open(importContext.getFilePath());
+        is = fileSystem.open(importContext.getFilePath());
 
         boolean skipFirstLine = Longs.compare(location.getOffset(),0l)!=0;
         start = location.getOffset();
