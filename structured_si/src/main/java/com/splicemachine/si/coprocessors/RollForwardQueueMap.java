@@ -63,6 +63,22 @@ public class RollForwardQueueMap {
         private RollForwardQueueHolder(RollForwardQueue<byte[], ByteBuffer> queue) {
             this.queue = queue;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof RollForwardQueueHolder)) return false;
+
+            RollForwardQueueHolder that = (RollForwardQueueHolder) o;
+
+            return queue.equals(that.queue);
+
+        }
+
+        @Override
+        public int hashCode() {
+            return queue.hashCode();
+        }
     }
 
 }

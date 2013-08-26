@@ -2398,7 +2398,7 @@ public class SITransactorTest extends SIConstants {
                 Assert.assertEquals(-1, timestamp);
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
             }
-//            Assert.assertTrue("Latch timed out",latch.await(11, TimeUnit.SECONDS));
+            Assert.assertTrue("Latch timed out",latch.await(11, TimeUnit.SECONDS));
 
             Object result2 = readRaw(testRow);
             final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
