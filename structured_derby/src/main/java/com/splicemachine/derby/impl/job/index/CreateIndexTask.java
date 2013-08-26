@@ -4,47 +4,36 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.*;
-import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.MutationResult;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.*;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.tools.UniqueChecker;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -66,6 +55,9 @@ public class CreateIndexTask extends ZkTask {
 
     private HRegion region;
     private RegionCoprocessorEnvironment rce;
+
+    //performance improvement
+    private KVPair mainPair;
 
     public CreateIndexTask() { }
 
@@ -156,17 +148,18 @@ public class CreateIndexTask extends ZkTask {
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 boolean shouldContinue = true;
-                WriteContext indexOnlyWriteHandler = contextFactory.getIndexOnlyWriteHandler(getTaskStatus().getTransactionId(),indexConglomId, rce);
-                while(shouldContinue){
-                    nextRow.clear();
-                    shouldContinue  = sourceScanner.nextRaw(nextRow,null);
-                    translateResult(nextRow, indexOnlyWriteHandler);
-                }
-                Map<KVPair,WriteResult> finish = indexOnlyWriteHandler.finish();
-                for(WriteResult result:finish.values()){
-                    if(result.getCode()== WriteResult.Code.FAILED){
-                        throw new IOException(result.getErrorMessage());
+                IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
+                byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
+                CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
+                try{
+                    while(shouldContinue){
+                        nextRow.clear();
+                        shouldContinue  = sourceScanner.nextRaw(nextRow,null);
+                        translateResult(nextRow, transformer,writeBuffer);
                     }
+                }finally{
+                    writeBuffer.flushBuffer();
+                    writeBuffer.close();
                 }
             }finally{
                 region.closeRegionOperation();
@@ -180,7 +173,9 @@ public class CreateIndexTask extends ZkTask {
         }
     }
 
-    private void translateResult(List<KeyValue> result,WriteContext ctx) throws IOException{
+    private void translateResult(List<KeyValue> result,
+                                 IndexTransformer transformer,
+                                 CallBuffer<KVPair> writeBuffer) throws Exception {
         //we know that there is only one KeyValue for each row
         Put currentPut;
         for(KeyValue kv:result){
@@ -189,7 +184,11 @@ public class CreateIndexTask extends ZkTask {
 
             byte[] row = kv.getRow();
             byte[] data = kv.getValue();
-            ctx.sendUpstream(new KVPair(row,data));
+            if(mainPair==null)
+                mainPair = new KVPair();
+            mainPair.setKey(row);
+            mainPair.setValue(data);
+            writeBuffer.add(transformer.translate(mainPair));
         }
     }
 }

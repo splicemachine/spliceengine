@@ -14,17 +14,7 @@ import java.util.BitSet;
  */
 public class UniqueIndexUpsertWriteHandler extends IndexUpsertWriteHandler{
     public UniqueIndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
-        super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState);
-    }
-
-    @Override
-    protected SparseEntryAccumulator getKeyAccumulator() {
-        return new SparseEntryAccumulator(null,translatedIndexColumns,false);
-    }
-
-    @Override
-    protected byte[] getIndexRowKey(EntryAccumulator keyAccumulator) {
-        return keyAccumulator.finish();
+        super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState,true);
     }
 
     @Override

@@ -33,20 +33,33 @@ import java.util.Collections;
 public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     protected CallBuffer<KVPair> indexBuffer;
-    private EntryAccumulator newKeyAccumulator;
-    private EntryAccumulator newRowAccumulator;
+    protected IndexTransformer transformer;
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
 
-    private Snowflake.Generator generator;
 
-    private BitSet nonUniqueIndexedColumns;
+    public IndexUpsertWriteHandler(BitSet indexedColumns,
+                                   int[] mainColToIndexPos,
+                                   byte[] indexConglomBytes,
+                                   BitSet descColumns,
+                                   boolean keepState) {
+        this(indexedColumns, mainColToIndexPos, indexConglomBytes, descColumns, keepState, false);
+    }
 
-    public IndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos,byte[] indexConglomBytes,BitSet descColumns, boolean keepState) {
+    public IndexUpsertWriteHandler(BitSet indexedColumns,
+                                   int[] mainColToIndexPos,
+                                   byte[] indexConglomBytes,
+                                   BitSet descColumns,
+                                   boolean keepState,
+                                   boolean unique) {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
-        nonUniqueIndexedColumns = (BitSet)translatedIndexColumns.clone();
-        nonUniqueIndexedColumns.set(translatedIndexColumns.length());
+        BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
+        nonUniqueIndexColumn.set(translatedIndexColumns.length());
+        this.transformer = new IndexTransformer(indexedColumns,
+                translatedIndexColumns,
+                nonUniqueIndexColumn,
+                descColumns,mainColToIndexPosMap,unique);
     }
 
     @Override
@@ -75,73 +88,26 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
     private void upsert(KVPair mutation, WriteContext ctx) {
-        KVPair put = update(mutation, ctx);
+       KVPair put = update(mutation, ctx);
         if(put==null) return; //we updated the table, and the index during the update process
 
-        if(newKeyAccumulator==null)
-            newKeyAccumulator = getKeyAccumulator();
-        if(newRowAccumulator==null)
-            newRowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexedColumns,true);
-
-        newKeyAccumulator.reset();
-        newRowAccumulator.reset();
-
-        if(newPutDecoder==null)
-            newPutDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-
-        newPutDecoder.set(mutation.getValue());
-
-        BitIndex mutationIndex = newPutDecoder.getCurrentIndex();
         try{
-            MultiFieldDecoder mutationDecoder = newPutDecoder.getEntryDecoder();
-            for(int i=mutationIndex.nextSetBit(0);i>=0&&i<=indexedColumns.length();i=mutationIndex.nextSetBit(i+1)){
-                if(indexedColumns.get(i)){
-                    ByteBuffer entry = newPutDecoder.nextAsBuffer(mutationDecoder, i);
-                    if(descColumns.get(mainColToIndexPosMap[i]))
-                        accumulate(newKeyAccumulator,mutationIndex,getDescendingBuffer(entry),i);
-                    else
-                        accumulate(newKeyAccumulator,mutationIndex,entry,i);
-                    accumulate(newRowAccumulator,mutationIndex,entry,i);
-                }else{
-                    newPutDecoder.seekForward(mutationDecoder, i);
-                }
-            }
-
-            //add the row to the end of the index rob
-            newRowAccumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
-            byte[] indexRowKey = getIndexRowKey(newKeyAccumulator);
-            byte[] indexRowData = newRowAccumulator.finish();
-            KVPair indexPut = new KVPair(indexRowKey,indexRowData);
-
+            KVPair indexPair = transformer.translate(mutation);
             if(keepState)
-                indexToMainMutationMap.put(indexPut, mutation);
-
-            indexBuffer.add(indexPut);
-            ctx.sendUpstream(mutation);
-        }catch (IOException e) {
+                this.indexToMainMutationMap.put(indexPair,mutation);
+            indexBuffer.add(indexPair);
+        } catch (IOException e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         } catch (Exception e) {
             failed=true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
     }
 
 
-
-    protected SparseEntryAccumulator getKeyAccumulator() {
-        return new SparseEntryAccumulator(null,nonUniqueIndexedColumns,false);
-    }
-
-    protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
-        if(generator==null)
-            generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(1000); //TODO -sf- make this configurable, or adjustable
-        byte[] postfix = generator.nextBytes();
-        accumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(postfix));
-        return accumulator.finish();
-    }
-
     private KVPair update(KVPair mutation, WriteContext ctx) {
+        //TODO -sf- move this logic into IndexTransformer
         if(mutation.getType()!= KVPair.Type.UPDATE)
             return mutation; //not an update, nothing to do here
 
@@ -183,11 +149,8 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 return mutation;
             }
 
-            //build the new row key and row entry
-            if(newKeyAccumulator==null)
-                newKeyAccumulator = getKeyAccumulator();
-            if(newRowAccumulator==null)
-                newRowAccumulator = new SparseEntryAccumulator(null,nonUniqueIndexedColumns,true);
+            EntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
+            EntryAccumulator newRowAccumulator = transformer.getRowAccumulator();
 
             newKeyAccumulator.reset();
             newRowAccumulator.reset();
@@ -276,7 +239,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             doDelete(ctx,indexDelete);
 
             //insert the new
-            byte[] newIndexRowKey = getIndexRowKey(newKeyAccumulator);
+            byte[] newIndexRowKey = transformer.getIndexRowKey();
 
             newRowAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexValue = newRowAccumulator.finish();
