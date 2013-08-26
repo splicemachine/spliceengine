@@ -121,6 +121,11 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
         currentBuffer.add(entry);
     }
 
+    @Override
+    public int getCount() {
+        return currentSize.get();
+    }
+
     /*private helper classes and methods*/
     private void rollForward(int maxEntries,long maxHeap) {
         /*
@@ -204,6 +209,8 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
                     }
                 }catch(IOException ioe){
                     LOG.warn("Encountered error while rolling forward",ioe);
+                }catch(Exception e){
+                    LOG.warn("Encountered error while rolling forward",e);
                 }
             }
             return null;

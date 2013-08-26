@@ -67,8 +67,8 @@ public class SIObserver extends BaseRegionObserver {
                 transactor.rollForward(new HbRegion(region), transactionId, rowList);
             }
         };
-//        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
-        rollForwardQueue = RollForwardQueueMap.registerRegion(tableName,new HHasher(),action);
+        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
+//        rollForwardQueue = RollForwardQueueMap.registerRegion(tableName,new HHasher(),action);
         RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
         super.start(e);
     }

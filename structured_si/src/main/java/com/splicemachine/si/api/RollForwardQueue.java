@@ -11,4 +11,6 @@ public interface RollForwardQueue<Data, Hashable extends Comparable> {
     void stop();
 
     void recordRow(long transactionId, Data rowKey);
+
+    int getCount();
 }

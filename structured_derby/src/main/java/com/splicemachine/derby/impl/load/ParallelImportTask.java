@@ -70,7 +70,6 @@ public abstract class ParallelImportTask extends ZkTask{
             CallBuffer<String[]> processingBuffer = new ThreadingCallBuffer(importContext, row, getTaskStatus().getTransactionId());
 
             try{
-
                 setupRead();
                 long numRead=0;
                 long totalReadTime=0l;
@@ -320,7 +319,7 @@ public abstract class ParallelImportTask extends ZkTask{
                     SpliceLogUtils.debug(LOG,"average time taken to write 1 row: %f ns",(double)totalWriteTime/numProcessed);
                 }
             }
-            return null;  //To change body of implemented methods use File | Settings | File Templates.
+            return null;
         }
 
         protected void doImportRow(String[] line) throws Exception {
@@ -344,7 +343,9 @@ public abstract class ParallelImportTask extends ZkTask{
 
             if(activeCols!=null){
                 for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                    row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
+                    String elem = line[pos];
+                    setColumn(row,pos,elem);
+//                    row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
                 }
             }else{
                 for(int pos=0;pos<line.length-1;pos++){

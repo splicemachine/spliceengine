@@ -144,7 +144,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     /**
      * For testing, expose the count of items currently in queue.
      */
-    int getCount() {
+    public int getCount() {
         synchronized (this) {
             return count;
         }
