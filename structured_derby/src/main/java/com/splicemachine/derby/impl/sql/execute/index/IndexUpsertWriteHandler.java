@@ -37,9 +37,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
 
-    private Snowflake.Generator generator;
-
-    private BitSet nonUniqueIndexedColumns;
 
     public IndexUpsertWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPos,
@@ -108,19 +105,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-
-
-    protected SparseEntryAccumulator getKeyAccumulator() {
-        return new SparseEntryAccumulator(null,nonUniqueIndexedColumns,false);
-    }
-
-    protected byte[] getIndexRowKey(EntryAccumulator accumulator) {
-        if(generator==null)
-            generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(1000); //TODO -sf- make this configurable, or adjustable
-        byte[] postfix = generator.nextBytes();
-        accumulator.add(translatedIndexColumns.length(), ByteBuffer.wrap(postfix));
-        return accumulator.finish();
-    }
 
     private KVPair update(KVPair mutation, WriteContext ctx) {
         //TODO -sf- move this logic into IndexTransformer
