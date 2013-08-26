@@ -257,6 +257,14 @@ public class SpliceConstants {
     private static final int DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS = 2;
     private static final int DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS = 10; //at most 10*2MB = 20MB heap used at more for rollforwards
 
+    private static final String IMPORT_MAX_PROCESSING_THREADS = "splice.import.maxProcessingThreads";
+    private static final int DEFAULT_IMPORT_MAX_PROCESSING_THREADS = 3;
+    public static int maxImportProcessingThreads;
+
+    private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
+    private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1000;
+    public static int maxImportReadBufferSize;
+
 
     public static enum TableEnv {
     	TRANSACTION_TABLE,
@@ -360,6 +368,8 @@ public class SpliceConstants {
         maxRollForwardLoadThreads = config.getInt(ROLL_FORWARD_MAX_LOAD_THREADS, DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS);
         maxRollForwardCoreThreads = config.getInt(ROLL_FORWARD_LOAD_CORE_THREADS,DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS);
         maxConcurrentRollForwards = config.getInt(ROLL_FORWARD_MAX_CONCURRENT_ROLLS,DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS);
+        maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
+        maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

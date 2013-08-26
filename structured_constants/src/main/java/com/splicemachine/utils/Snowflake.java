@@ -224,7 +224,7 @@ public class Snowflake {
         private Generator(Snowflake snowflake, int batchSize) {
             this.snowflake = snowflake;
             this.batchSize = batchSize;
-            this.currentPosition = 0;
+            this.currentPosition = batchSize+1;
             this.currentUuids = new long[batchSize];
         }
 
