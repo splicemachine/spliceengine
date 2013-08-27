@@ -22,6 +22,10 @@ import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -29,13 +33,16 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -76,6 +83,84 @@ public class HdfsImport extends ParallelVTI {
 	private final ImportContext context;
 	private HBaseAdmin admin;
 
+	  /** 
+	   * Allows for multiple input paths separated by commas
+	   * @param dirs
+	   * @return
+	   */
+	  public static Path[] getInputPaths(String input) {
+		    String [] list = StringUtils.split(input);
+		    Path[] result = new Path[list.length];
+		    for (int i = 0; i < list.length; i++) {
+		      result[i] = new Path(StringUtils.unEscapeString(list[i]));
+		    }
+		    return result;
+	  }
+	
+	  private static final PathFilter hiddenFileFilter = new PathFilter(){
+	      public boolean accept(Path p){
+	        String name = p.getName(); 
+	        return !name.startsWith("_") && !name.startsWith("."); 
+	      }
+	    }; 
+	 
+	    private static class MultiPathFilter implements PathFilter {
+	      private List<PathFilter> filters;
+
+	      public MultiPathFilter(List<PathFilter> filters) {
+	        this.filters = filters;
+	      }
+
+	      public boolean accept(Path path) {
+	        for (PathFilter filter : filters) {
+	          if (!filter.accept(path)) {
+	            return false;
+	          }
+	        }
+	        return true;
+	      }
+	    }
+	    
+	  public static List<FileStatus> listStatus(String input) throws IOException {
+		  List<FileStatus> result = new ArrayList<FileStatus>();
+		  Path[] dirs = getInputPaths(input);
+		  if (dirs.length == 0)
+			  throw new IOException("No Path Supplied in job");
+		  List<IOException> errors = new ArrayList<IOException>();
+
+		  // creates a MultiPathFilter with the hiddenFileFilter and the
+		  // user provided one (if any).
+		  List<PathFilter> filters = new ArrayList<PathFilter>();
+		  filters.add(hiddenFileFilter);
+		  PathFilter inputFilter = new MultiPathFilter(filters);
+
+		  for (int i=0; i < dirs.length; ++i) {
+			  Path p = dirs[i];
+		      FileSystem fs = FileSystem.get(SpliceUtils.config);
+		      FileStatus[] matches = fs.globStatus(p, inputFilter);
+		      if (matches == null) {
+		    	  errors.add(new IOException("Input path does not exist: " + p));
+		      } else if (matches.length == 0) {
+		    	  errors.add(new IOException("Input Pattern " + p + " matches 0 files"));
+		      } else {
+		    	  for (FileStatus globStat: matches) {
+		    		  if (globStat.isDir()) {
+		    			  for(FileStatus stat: fs.listStatus(globStat.getPath(),inputFilter)) {
+		    				  result.add(stat);
+		    			  }          
+		    		  } else {
+		    			  result.add(globStat);
+		    		  }
+		    	  }
+		      }
+		  }
+
+		  if (!errors.isEmpty()) {
+			  throw new IOException("Input Errors" + errors);
+		  }
+		  LOG.info("Total input paths to process : " + result.size()); 
+		  return result;
+	  }
 	
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
                                          String insertColumnList, String columnIndexes,
@@ -216,30 +301,47 @@ public class HdfsImport extends ParallelVTI {
 	@Override
 	public void executeShuffle() throws StandardException {
 		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-		CompressionCodec codec = codecFactory.getCodec(context.getFilePath());
-		ImportJob importJob;
-        HTableInterface table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
-		if(codec==null ||codec instanceof SplittableCompressionCodec){
-			importJob = new BlockImportJob(table, context);
-		}else{
-			importJob = new FileImportJob(table,context);
+		List<FileStatus> files = null;
+		try {
+			files = listStatus(context.getFilePath().toString());
+		} catch (IOException e) {
+			throw Exceptions.parseException(e);
 		}
-
-        try {
-            JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-
-            jobFuture.completeAll();
-		}  catch (ExecutionException e) {
+		List<JobFuture> jobFutures = new ArrayList<JobFuture>();
+		HTableInterface table = null;
+		for (FileStatus file: files) {
+			CompressionCodec codec = codecFactory.getCodec(file.getPath());
+			ImportJob importJob;
+	        table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
+	        context.setFilePath(file.getPath());
+			if(codec==null ||codec instanceof SplittableCompressionCodec){
+				importJob = new BlockImportJob(table, context);
+			}else{
+				importJob = new FileImportJob(table,context);
+			}
+	        try {
+	            jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(importJob));
+			}  catch (ExecutionException e) {
+	            throw Exceptions.parseException(e.getCause());
+	        } 
+		}
+		try {
+			for (JobFuture jobFuture: jobFutures) {
+					jobFuture.completeAll();				
+			}
+		} catch (InterruptedException e) {
             throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
+        } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
-        } finally{
+        } // still need to cancel all other jobs ? // JL 
+		finally{
             try {
                 table.close();
             } catch (IOException e) {
                 SpliceLogUtils.warn(LOG,"Unable to close htable",e);
             }
         }
+	
     }
 
 	@Override

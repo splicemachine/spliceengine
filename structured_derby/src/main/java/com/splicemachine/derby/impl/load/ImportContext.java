@@ -103,6 +103,10 @@ public class ImportContext implements Externalizable{
 		return filePath;
 	}
 
+	public void setFilePath(Path filePath) {
+		this.filePath = filePath;
+	}
+	
 	public String getColumnDelimiter() {
 		return columnDelimiter;
 	}
