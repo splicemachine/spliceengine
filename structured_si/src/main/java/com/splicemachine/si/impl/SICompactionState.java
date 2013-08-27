@@ -70,7 +70,7 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
                 final Data commitTimestampValue = effectiveStatus.isCommitted() ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
-                result = dataLib.newKeyValue(kv.row(), kv.family(), kv.qualifier(), kv.timestamp(), commitTimestampValue);
+                result = dataLib.newKeyValue(kv.keyValue(), commitTimestampValue);
             }
         }
         return result;

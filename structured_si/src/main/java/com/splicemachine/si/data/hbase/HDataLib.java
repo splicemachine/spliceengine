@@ -81,12 +81,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     public Iterable<KeyValue> listPut(Put put) {
         return Iterables.concat(put.getFamilyMap().values());
     }
-
-    @Override
-    public KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
-        return new KeyValue(rowKey, family, qualifier, timestamp, value);
-    }
-
+    
     @Override
     public byte[] getKeyValueRow(KeyValue keyValue) {
         return keyValue.getRow();
@@ -326,11 +321,13 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     public boolean matchingFamily(KeyValue keyValue, byte[] family) {
     	return keyValue.matchingFamily(family);
     }
-
+    
     @Override
     public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
     	return keyValue.matchingQualifier(qualifier);
     }
+    
+    
 
     @Override
     public boolean matchingValue(KeyValue keyValue, byte[] value) {
@@ -338,4 +335,35 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     		 return Bytes.equals(value, 0, value.length,
     			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
     }
+
+	@Override
+	public boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other) {
+		    return keyValue.matchingFamily(other);
+	}
+	@Override
+	public boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other) {
+		    return keyValue.matchingQualifier(other);
+	}
+	@Override
+	public boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other) {
+		    return keyValue.matchingRow(other);
+	}
+
+	@Override
+    public boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other) {
+    		if (other == null) return false;
+    		 return Bytes.equals(other.getBuffer(), other.getValueOffset(), other.getValueLength(),
+    			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+    }
+
+	@Override
+	public KeyValue newKeyValue(KeyValue keyValue, byte[] value) {
+	        return new KeyValue(keyValue.getRow(), keyValue.getFamily(), keyValue.getQualifier(), keyValue.getTimestamp(), value);
+	}
+	
+    @Override
+    public KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
+        return new KeyValue(rowKey, family, qualifier, timestamp, value);
+    }
+
 }

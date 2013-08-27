@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.KeyValue;
 
+import com.splicemachine.si.data.light.LKeyValue;
+
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
  * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
@@ -35,7 +37,6 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
 
     OperationStatus newFailStatus();
 
-    KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);
     Data getKeyValueRow(KeyValue keyValue);
     Data getKeyValueFamily(KeyValue keyValue);
     Data getKeyValueQualifier(KeyValue keyValue);
@@ -62,4 +63,10 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
 	boolean matchingFamily(KeyValue keyValue, Data family);
 	boolean matchingQualifier(KeyValue keyValue, Data qualifier);
 	boolean matchingValue(KeyValue keyValue, Data value);
+	boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other);
+	boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other);
+	boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other);
+	boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other);
+	KeyValue newKeyValue(KeyValue keyValue, Data value);
+    KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);
 }

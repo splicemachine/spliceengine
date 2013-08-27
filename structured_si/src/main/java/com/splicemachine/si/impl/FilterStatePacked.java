@@ -18,10 +18,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
             Hashable, Mutation, IHTable, Scanner> simpleFilter;
     private final RowAccumulator<Data> accumulator;
-    private Data qualifier = null;
-    private Data family = null;
-    private Data rowKey = null;
-    private Long timestamp = null;
+    private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
 
@@ -81,10 +78,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
 
     private void accumulated() {
         hasAccumulation = true;
-        family = simpleFilter.keyValue.family();
-        qualifier = simpleFilter.keyValue.qualifier();
-        timestamp = simpleFilter.keyValue.timestamp();
-        rowKey = simpleFilter.keyValue.row();
+        accumulatedKeyValue = simpleFilter.keyValue.keyValue();
     }
 
     private Filter.ReturnCode accumulateUserData(KeyValue dataKeyValue) throws IOException {
@@ -97,9 +91,9 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                     return Filter.ReturnCode.NEXT_COL;
                 }
                 if (hasAccumulation) {
-                    if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
-                            !dataLib.valuesEqual(rowKey, simpleFilter.keyValue.row()) ||
-                            !dataLib.valuesEqual(qualifier, simpleFilter.keyValue.qualifier())) {
+                    if (!dataLib.matchingFamilyKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !dataLib.matchingRowKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !dataLib.matchingQualifierKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue())) {
                         throw new RuntimeException("key value mis-match");
                     }
                 } else {
@@ -123,7 +117,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         if (hasAccumulation) {
             final Data resultData = accumulator.result();
             if (resultData != null) {
-                final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
+                final KeyValue keyValue = dataLib.newKeyValue(accumulatedKeyValue, resultData);
                 return keyValue;
             } else {
                 excludeRow = true;
@@ -144,10 +138,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         simpleFilter.nextRow();
         hasAccumulation = false;
         excludeRow = false;
-        qualifier = null;
-        family = null;
-        rowKey = null;
-        timestamp = null;
+        accumulatedKeyValue = null;
     }
 
 }

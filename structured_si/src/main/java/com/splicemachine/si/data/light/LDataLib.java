@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hbase.KeyValue;
+
 public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTuple, LTuple, LGet, LGet, LRowLock, Object> {
 	
     @Override
@@ -18,7 +20,7 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
         }
         return builder.toString();
     }
-
+    
     @Override
     public Object increment(Object key) {
         if (key instanceof String) {
@@ -254,10 +256,6 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
         return values;
     }
 
-    @Override
-    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
-        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
-    }
 
     @Override
     public Object getKeyValueRow(LKeyValue keyValue) {
@@ -313,4 +311,34 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
 	public boolean matchingValue(LKeyValue keyValue, Object value) {
 		return valuesMatch(keyValue.value,value);
 	}
+
+	@Override
+	public boolean matchingFamilyKeyValue(LKeyValue keyValue, LKeyValue other) {
+		return valuesMatch(keyValue.family,other.family);
+	}
+
+	@Override
+	public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
+		return valuesMatch(keyValue.qualifier,other.qualifier);
+	}
+
+	@Override
+	public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
+		return valuesMatch(keyValue.value,other.value);
+	}
+
+	@Override
+	public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
+		return valuesMatch(keyValue.rowKey,other.rowKey);
+	}
+
+	@Override
+	public LKeyValue newKeyValue(LKeyValue keyValue, Object value) {
+		return new LKeyValue(keyValue.rowKey, keyValue.family, keyValue.qualifier, keyValue.timestamp, value);
+	}
+	
+    @Override
+    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
+        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
+    }
 }
