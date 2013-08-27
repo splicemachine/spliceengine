@@ -182,31 +182,31 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         return dataLib.valuesEqual(siAntiTombstoneValue, dataLib.getKeyValueValue(keyValue));
     }
 
-    public KeyValueType getKeyValueType(Data family, Data qualifier, Data value) {
-        final boolean isSIFamily = dataLib.valuesEqual(family, siFamily);
-        if (isSIFamily && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
+    public KeyValueType getKeyValueType(KeyValue keyValue) {
+        final boolean isSIFamily = dataLib.matchingFamily(keyValue, siFamily);
+        if (isSIFamily && dataLib.matchingQualifier(keyValue, commitTimestampQualifier)) {
             return KeyValueType.COMMIT_TIMESTAMP;
-        } else if (isSIFamily && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
-            if (dataLib.valuesEqual(value, siNull)) {
+        } else if (isSIFamily && dataLib.matchingQualifier(keyValue, tombstoneQualifier)) {
+            if (dataLib.matchingValue(keyValue, siNull)) {
                 return KeyValueType.TOMBSTONE;
-            } else if (dataLib.valuesEqual(value, siAntiTombstoneValue)) {
+            } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
                 return KeyValueType.ANTI_TOMBSTONE;
             } else {
                 return KeyValueType.OTHER;
             }
-        } else if (dataLib.valuesEqual(family, userColumnFamily)) {
+        } else if (dataLib.matchingFamily(keyValue, userColumnFamily)) {
             return KeyValueType.USER_DATA;
         } else {
             return KeyValueType.OTHER;
         }
     }
 
-    public boolean isSINull(Data value) {
-        return dataLib.valuesEqual(value, siNull);
+    public boolean isSINull(KeyValue keyValue) {
+        return dataLib.matchingValue(keyValue, siNull);
     }
 
-    public boolean isSIFail(Data value) {
-        return dataLib.valuesEqual(value, siFail);
+    public boolean isSIFail(KeyValue keyValue) {
+        return dataLib.matchingValue(keyValue, siFail);
     }
 
     public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row, Boolean knownToBeCommitted) {

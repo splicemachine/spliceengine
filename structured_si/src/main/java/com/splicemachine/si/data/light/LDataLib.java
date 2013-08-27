@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTuple, LTuple, LGet, LGet, LRowLock, Object> {
-
+	
     @Override
     public Object newRowKey(Object... args) {
         StringBuilder builder = new StringBuilder();
@@ -293,4 +293,24 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     public void addKeyValueToDelete(LTuple delete, Object family, Object qualifier, long timestamp) {
         addKeyValueToTuple(delete, family, qualifier, timestamp, null);
     }
+
+	@Override
+	public boolean matchingColumn(LKeyValue keyValue, Object family,Object qualifier) {
+		return valuesMatch(keyValue.family,family) && valuesMatch(keyValue.qualifier,qualifier);
+	}
+
+	@Override
+	public boolean matchingFamily(LKeyValue keyValue, Object family) {
+		return valuesMatch(keyValue.family,family);
+	}
+
+	@Override
+	public boolean matchingQualifier(LKeyValue keyValue, Object qualifier) {
+		return valuesMatch(keyValue.qualifier,qualifier);
+	}
+
+	@Override
+	public boolean matchingValue(LKeyValue keyValue, Object value) {
+		return valuesMatch(keyValue.value,value);
+	}
 }

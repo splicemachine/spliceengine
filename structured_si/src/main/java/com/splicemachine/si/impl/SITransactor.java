@@ -54,7 +54,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     private final TransactorListener listener;
 
     private final TransactionSource transactionSource;
-
+    
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
                         Hasher<Data, Hashable> hasher, TransactorListener listener) {
@@ -570,7 +570,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
             final Data commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
-            if (dataStore.isSINull(commitTimestampValue)) {
+            if (dataStore.isSINull(dataCommitKeyValue)) {
                 // Unknown transaction status
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 if (dataTransaction.getEffectiveStatus().isFinished()) {
@@ -588,7 +588,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                         }
                         break;
                 }
-            } else if (dataStore.isSIFail(commitTimestampValue)) {
+            } else if (dataStore.isSIFail(dataCommitKeyValue)) {
                 // Can't conflict with failed transaction.
             } else {
                 // Committed transaction

@@ -47,7 +47,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
             case OTHER:
                 return simpleFilter.filterByColumnType();
             case USER_DATA:
-                if (dataStore.isSINull(simpleFilter.keyValue.value())) {
+                if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) {
                     final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
                     switch (returnCode) {
                         case INCLUDE:

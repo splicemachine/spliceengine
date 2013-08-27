@@ -316,4 +316,26 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         }
         throw new RuntimeException("Unsupported class " + clazz.getName() + " for " + value);
     }
+    
+    @Override
+    public boolean matchingColumn(KeyValue keyValue, byte[] family, byte[] qualifier) {
+    	return keyValue.matchingColumn(family, qualifier);
+    }
+
+    @Override
+    public boolean matchingFamily(KeyValue keyValue, byte[] family) {
+    	return keyValue.matchingFamily(family);
+    }
+
+    @Override
+    public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
+    	return keyValue.matchingQualifier(qualifier);
+    }
+
+    @Override
+    public boolean matchingValue(KeyValue keyValue, byte[] value) {
+    		if (value == null) return false;
+    		 return Bytes.equals(value, 0, value.length,
+    			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+    }
 }

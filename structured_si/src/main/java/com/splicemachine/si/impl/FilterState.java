@@ -36,7 +36,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final boolean includeSIColumn;
     private final boolean includeUncommittedAsOfStart;
     private boolean ignoreDoneWithColumn;
-
+    
     private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> rowState;
     final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
     KeyValueType type;
@@ -86,7 +86,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     void setKeyValue(KeyValue dataKeyValue) {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
-        type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
+        type = dataStore.getKeyValueType(keyValue.keyValue());
     }
 
     @Override
@@ -190,9 +190,9 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
 
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
-        if (dataStore.isSINull(keyValue.value())) {
+        if (dataStore.isSINull(keyValue.keyValue())) {
             transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSIFail(keyValue.value())) {
+        } else if (dataStore.isSIFail(keyValue.keyValue())) {
             transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {

@@ -30,7 +30,7 @@ public class HbRegion implements IHTable {
 
     @Override
     public Result get(Get get) throws IOException {
-        return region.get(get, null);
+        return region.get(get);
     }
 
     @Override
@@ -53,7 +53,8 @@ public class HbRegion implements IHTable {
         region.put(put);
     }
 
-    @Override
+    @SuppressWarnings("deprecation")
+	@Override
     public void put(Put put, Integer rowLock) throws IOException {
         region.put(put, rowLock);
     }
@@ -78,7 +79,8 @@ public class HbRegion implements IHTable {
         throw new RuntimeException("not implemented");
     }
 
-    @Override
+    @SuppressWarnings("deprecation")
+	@Override
     public void delete(Delete delete, Integer rowLock) throws IOException {
         region.delete(delete, rowLock, true);
     }

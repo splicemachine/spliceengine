@@ -3,6 +3,8 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.hbase.KeyValue;
+
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
  * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
@@ -56,4 +58,8 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
 
     Delete newDelete(Data rowKey);
     void addKeyValueToDelete(Delete delete, Data family, Data qualifier, long timestamp);
+	boolean matchingColumn(KeyValue keyValue, Data family, Data qualifier);
+	boolean matchingFamily(KeyValue keyValue, Data family);
+	boolean matchingQualifier(KeyValue keyValue, Data qualifier);
+	boolean matchingValue(KeyValue keyValue, Data value);
 }
