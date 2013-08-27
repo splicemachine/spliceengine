@@ -21,6 +21,12 @@
             <artifactId>orderly</artifactId>
             <version>0.11</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <artifactId>hbase</artifactId>
+                    <groupId>org.apache.hbase</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.esotericsoftware.kryo</groupId>
