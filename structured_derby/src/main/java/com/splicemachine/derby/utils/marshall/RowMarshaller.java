@@ -87,11 +87,6 @@ public class RowMarshaller {
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
             if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
-
             byte[] data = value.getValue();
             unpack(fields, reversedKeyColumns, rowDecoder, data);
         }
@@ -126,11 +121,6 @@ public class RowMarshaller {
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
             if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
-
             byte[] data = value.getValue();
             unpack(fields, reversedKeyColumns, rowDecoder, data);
         }
@@ -205,11 +195,6 @@ public class RowMarshaller {
                            MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
             if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
-
             try {
                 byte[] data = Snappy.uncompress(value.getValue());
                 unpack(fields, reversedKeyColumns, rowDecoder, data);

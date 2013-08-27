@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -28,7 +29,7 @@ import java.util.*;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
-
+    private List<KeyValue> keyValues = new ArrayList<KeyValue>();
     private final ConstraintContext constraintContext;
     private static final Logger LOG = Logger.getLogger(UniqueConstraint.class);
 
@@ -61,14 +62,15 @@ public class UniqueConstraint implements Constraint {
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();
-        Result result = region.get(get);
-        boolean rowPresent = result!=null && !result.isEmpty();
+        keyValues.clear();
+        HRegionUtil.populateKeyValues(region, keyValues, get);
+        boolean rowPresent = keyValues!=null && !keyValues.isEmpty();
+        
 //        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
         if(rowPresent){
 //            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
-            KeyValue[] raw = result.raw();
             rowPresent=false;
-            for(KeyValue kv:raw){
+            for(KeyValue kv:keyValues){
                 if(kv.matchingFamily(SpliceConstants.DEFAULT_FAMILY_BYTES)){
                     rowPresent=true;
                     if (logger.isTraceEnabled())
