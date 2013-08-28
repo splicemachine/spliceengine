@@ -94,4 +94,8 @@ public class HbTable implements IHTable {
     public void unLockRow(Integer lock) throws IOException {
         throw new RuntimeException("not implemented");
     }
+    @Override
+    public Result volatileGet(Get get) throws IOException {
+    	throw new RuntimeException("not implemented");
+    }
 }

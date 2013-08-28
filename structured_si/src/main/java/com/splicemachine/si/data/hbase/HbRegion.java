@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -7,9 +8,11 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -98,4 +101,11 @@ public class HbRegion implements IHTable {
     public void unLockRow(Integer lock) throws IOException {
         region.releaseRowLock(lock);
     }
+    @Override
+    public Result volatileGet(Get get) throws IOException {
+    	List<KeyValue> keyValues = new ArrayList<KeyValue>();
+    	HRegionUtil.populateKeyValues(region, keyValues, get);
+    	return new Result(keyValues);
+    }
+
 }

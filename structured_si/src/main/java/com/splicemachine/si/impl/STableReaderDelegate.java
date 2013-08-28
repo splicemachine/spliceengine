@@ -47,4 +47,9 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
     public void openOperation(Table table) throws IOException {
         delegate.openOperation(table);
     }
+    
+    @Override
+    public Result volatileGet(Table table, Get get) throws IOException {
+    	return delegate.volatileGet(table, get);
+    }
 }

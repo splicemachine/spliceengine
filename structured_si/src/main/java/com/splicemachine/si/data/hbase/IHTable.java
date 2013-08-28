@@ -34,4 +34,5 @@ public interface IHTable {
     void unLockRow(Integer lock) throws IOException;
 	void startOperation() throws IOException;
 	void closeOperation() throws IOException;	
+	Result volatileGet(Get get) throws IOException;
 }

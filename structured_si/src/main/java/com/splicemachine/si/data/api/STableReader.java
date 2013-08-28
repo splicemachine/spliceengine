@@ -18,4 +18,5 @@ public interface STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data>
 
 	void openOperation(Table table) throws IOException;
 	void closeOperation(Table table) throws IOException;
+	Result volatileGet(Table table, Get get) throws IOException;
 }

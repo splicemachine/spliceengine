@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
@@ -48,5 +49,10 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     public void closeOperation(IHTable table) throws IOException {
        table.closeOperation();
     }
+    @Override
+    public Result volatileGet(IHTable table, Get get) throws IOException {
+    	return table.volatileGet(get);
+    }
+    
 
 }
