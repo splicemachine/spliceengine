@@ -23,13 +23,25 @@ public class HRegionUtil {
 	public static void populateKeyValues(HRegion hregion, List<KeyValue> keyValues, Get get) throws IOException {
 		Scan scan = new Scan(get);
 		RegionScannerImpl scanner = null;
+		RegionCoprocessorHost coprocessorHost = hregion.getCoprocessorHost();
 		try {
+			  // pre-get CP hook
+		    if (coprocessorHost != null) {
+		    	System.out.println("Calling preGet" + coprocessorHost);
+		       if (coprocessorHost.preGet(get, keyValues)) {
+		         return;
+		       }
+		    }
 			scanner = (RegionScannerImpl) hregion.instantiateRegionScanner(scan, null);
+	        MultiVersionConsistencyControl.setThreadReadPoint(scanner.getMvccReadPoint());
 			scanner.nextRaw(keyValues, SchemaMetrics.METRIC_GETSIZE);
 		} catch (IOException e) {
 			throw e;
 		} finally {
 			Closeables.close(scanner, false);
 		}
+	    if (coprocessorHost != null) {
+	        coprocessorHost.postGet(get, keyValues);
+	    }
 	}	
 }
