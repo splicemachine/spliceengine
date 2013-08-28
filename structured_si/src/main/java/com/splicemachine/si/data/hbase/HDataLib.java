@@ -324,14 +324,12 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     
     @Override
     public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
-    	if (qualifier == null) return false;
-    	return keyValue.matchingQualifier(qualifier);
+    	return qualifier==null?false:keyValue.matchingQualifier(qualifier);
     }
 
     @Override
     public boolean matchingValue(KeyValue keyValue, byte[] value) {
-    		if (value == null) return false;
-    		 return Bytes.equals(value, 0, value.length,
+    		 return value==null?false:Bytes.equals(value, 0, value.length,
     			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
     }
 
@@ -341,7 +339,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
 	}
 	@Override
 	public boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other) {
-		    return keyValue.matchingQualifier(other);
+		    return other==null?false:keyValue.matchingQualifier(other);
 	}
 	@Override
 	public boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other) {

@@ -22,7 +22,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     /**
      * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
      */
-    Data lastValidQualifier = null;
+    KeyValue lastValidQualifier = null;
 
     /**
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.

@@ -321,14 +321,14 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * so this manually does the equivalent.
      */
     private void proceedToNextColumn() {
-        rowState.lastValidQualifier = keyValue.qualifier();
+        rowState.lastValidQualifier = keyValue.keyValue();
     }
 
     /**
      * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
      */
     private boolean doneWithColumn() {
-        return dataLib.matchingQualifier(keyValue.keyValue(), rowState.lastValidQualifier);
+        return dataLib.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
     }
 
     /**
