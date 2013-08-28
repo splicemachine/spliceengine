@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.writer.WriteResult;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
@@ -49,35 +47,6 @@ public class Constraints {
      */
     public static Constraint noConstraint(){
         return EMPTY_CONSTRAINT;
-    }
-
-    public static MutationResult.Code convertType(Constraint.Type error) {
-        switch (error) {
-            case PRIMARY_KEY:
-                return MutationResult.Code.PRIMARY_KEY_VIOLATION;
-            case UNIQUE:
-                return MutationResult.Code.UNIQUE_VIOLATION;
-            case FOREIGN_KEY:
-                return MutationResult.Code.FOREIGN_KEY_VIOLATION;
-            case CHECK:
-                return MutationResult.Code.CHECK_VIOLATION;
-            default:
-                return MutationResult.Code.SUCCESS;
-        }
-    }
-
-    public static Exception constraintViolation(MutationResult.Code writeErrorCode, ConstraintContext constraintContext) {
-        switch (writeErrorCode) {
-            case PRIMARY_KEY_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, constraintContext);
-            case UNIQUE_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.UNIQUE, constraintContext);
-            case FOREIGN_KEY_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, constraintContext);
-            case CHECK_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.CHECK, constraintContext);
-        }
-        return null;
     }
 
     public static Exception constraintViolation(WriteResult.Code writeErrorCode, ConstraintContext constraintContext) {

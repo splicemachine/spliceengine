@@ -4,7 +4,7 @@ import javax.management.MXBean;
 
 /**
  * @author Scott Fines
- *         Created on: 8/14/13
+ * Created on: 8/14/13
  */
 @MXBean
 public interface WriteCoordinatorStatus {

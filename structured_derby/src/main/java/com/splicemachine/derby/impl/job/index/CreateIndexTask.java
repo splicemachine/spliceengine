@@ -13,10 +13,12 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
@@ -27,6 +29,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -58,6 +61,8 @@ public class CreateIndexTask extends ZkTask {
 
     //performance improvement
     private KVPair mainPair;
+    private long totalTransformTime = 0l;
+    private long totalWriteTime = 0l;
 
     public CreateIndexTask() { }
 
@@ -133,6 +138,8 @@ public class CreateIndexTask extends ZkTask {
         nonUniqueIndexColumns = (BitSet)indexedColumns.clone();
         nonUniqueIndexColumns.set(indexedColumns.length());
 
+        long totalReadTime = 0l;
+        long numRecordsRead = 0l;
         try{
             //add index to table watcher
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
@@ -142,7 +149,7 @@ public class CreateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-//            sourceScanner = new BufferedRegionScanner()
+//            sourceScanner = new BufferedRegionScanner(region,sourceScanner,1024);
             region.startRegionOperation();
             MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
             try{
@@ -150,16 +157,29 @@ public class CreateIndexTask extends ZkTask {
                 boolean shouldContinue = true;
                 IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
                 byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
-                CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
+                CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().pipedWriteBuffer(indexTableLocation,getTaskStatus().getTransactionId());
                 try{
                     while(shouldContinue){
                         nextRow.clear();
+                        long start = System.nanoTime();
                         shouldContinue  = sourceScanner.nextRaw(nextRow,null);
+                        long stop = System.nanoTime();
+                        totalReadTime+=(stop-start);
+                        numRecordsRead++;
                         translateResult(nextRow, transformer,writeBuffer);
                     }
                 }finally{
                     writeBuffer.flushBuffer();
                     writeBuffer.close();
+
+                    if(LOG.isDebugEnabled()){
+                        SpliceLogUtils.debug(LOG,"Total time to read %d records: %d ns",numRecordsRead,totalReadTime);
+                        SpliceLogUtils.debug(LOG,"Average time to read 1 record: %f ns",(double)totalReadTime/numRecordsRead);
+                        SpliceLogUtils.debug(LOG,"Total time to transform %d records: %d ns",numRecordsRead,totalTransformTime);
+                        SpliceLogUtils.debug(LOG, "Average time to transform 1 record: %f ns", (double) totalTransformTime / numRecordsRead);
+                        SpliceLogUtils.debug(LOG,"Total time to write %d records: %d ns",numRecordsRead,totalWriteTime);
+                        SpliceLogUtils.debug(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
+                    }
                 }
             }finally{
                 region.closeRegionOperation();
@@ -188,7 +208,14 @@ public class CreateIndexTask extends ZkTask {
                 mainPair = new KVPair();
             mainPair.setKey(row);
             mainPair.setValue(data);
-            writeBuffer.add(transformer.translate(mainPair));
+            long start = System.nanoTime();
+            KVPair pair = transformer.translate(mainPair);
+            long end = System.nanoTime();
+            totalTransformTime += (end-start);
+            start = System.nanoTime();
+            writeBuffer.add(pair);
+            end = System.nanoTime();
+            totalWriteTime+= (end-start);
         }
     }
 }

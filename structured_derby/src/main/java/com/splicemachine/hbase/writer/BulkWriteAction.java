@@ -249,19 +249,24 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong notServingRegionFlushes = new AtomicLong(0l);
         final AtomicLong wrongRegionFlushes = new AtomicLong(0l);
         final AtomicLong timedOutFlushes = new AtomicLong(0l);
+        final AtomicLong numCompletedFlushes = new AtomicLong(0l);
 
         final AtomicLong globalFailures = new AtomicLong(0l);
         final AtomicLong partialFailures = new AtomicLong(0l);
 
         final AtomicLong maxFlushTime = new AtomicLong(0l);
         final AtomicLong minFlushTime = new AtomicLong(Long.MAX_VALUE);
+        final AtomicDouble averageFlushTime = new AtomicDouble(0);
 
         final AtomicLong maxFlushSizeBytes = new AtomicLong(0l);
         final AtomicLong minFlushSizeBytes = new AtomicLong(0l);
         final AtomicLong totalFlushSizeBytes = new AtomicLong(0l);
+        final AtomicDouble averageFlushSizeBytes = new AtomicDouble(0);
 
         final AtomicLong maxFlushEntries = new AtomicLong(0l);
         final AtomicLong minFlushEntries = new AtomicLong(0l);
+        final AtomicDouble averageFlushEntries = new AtomicDouble(0);
+
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushTime = new AtomicLong(0l);
 
@@ -279,7 +284,8 @@ final class BulkWriteAction implements Callable<Void> {
                 long currentMin = minFlushTime.get();
                 cont = currentMin <= msTaken || minFlushTime.compareAndSet(currentMin, msTaken);
             }
-            totalFlushTime.addAndGet(msTaken);
+
+            //TODO -sf- make better statistics
         }
 
         public void reset(){

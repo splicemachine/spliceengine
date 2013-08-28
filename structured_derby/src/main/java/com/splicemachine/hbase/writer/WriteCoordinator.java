@@ -3,7 +3,6 @@ package com.splicemachine.hbase.writer;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
@@ -52,7 +51,7 @@ public class WriteCoordinator {
         RegionCache regionCache = RegionCache.create(SpliceConstants.cacheExpirationPeriod,SpliceConstants.cacheUpdatePeriod);
 
         int maxEntries = SpliceConstants.maxBufferEntries;
-        Writer writer = new AsyncWriter(writerPool,regionCache,connection);
+        Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,pause);
         return new WriteCoordinator(regionCache,writer,monitor);
     }
@@ -87,6 +86,13 @@ public class WriteCoordinator {
     public void shutdown(){
         regionCache.shutdown();
         writer.stopWrites();
+    }
+
+    public PipingWriteBuffer pipedWriteBuffer(byte[] tableName, String txnId){
+        monitor.outstandingBuffers.incrementAndGet();
+        //TODO -sf- add a global maxHeapSize rather than multiplying by 10
+        return new PipingWriteBuffer(tableName,txnId,writer,regionCache,defaultRetryStrategy,
+                monitor.maxHeapSize*10,monitor.maxEntries);
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){

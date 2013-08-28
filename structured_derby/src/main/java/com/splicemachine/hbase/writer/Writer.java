@@ -13,6 +13,8 @@ public interface Writer {
 
     public Future<Void> write(byte[] tableName,List<KVPair> buffer,String transactionId,RetryStrategy retryStrategy) throws ExecutionException;
 
+    public Future<Void> write(byte[] tableName,BulkWrite action,RetryStrategy retryStrategy) throws ExecutionException;
+
     void stopWrites();
 
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException,NotCompliantMBeanException,InstanceAlreadyExistsException,MBeanRegistrationException;

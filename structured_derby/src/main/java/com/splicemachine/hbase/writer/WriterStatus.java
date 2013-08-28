@@ -43,7 +43,6 @@ public interface WriterStatus {
 
     double getAvgFlushTime();
 
-
     long getMaxFlushedBufferEntries();
 
     long getTotalFlushedBufferEntries();

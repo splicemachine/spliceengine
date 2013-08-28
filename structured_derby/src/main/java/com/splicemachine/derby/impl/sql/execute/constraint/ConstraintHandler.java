@@ -28,12 +28,6 @@ public class ConstraintHandler implements WriteHandler {
 
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
-//        if(!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(),mutation.getRow())){
-//            ctx.failed(mutation,new WriteResult(MutationResult.Code.FAILED,"WrongRegion"));
-//        }else{
-//            mutations.add(mutation);
-//            ctx.sendUpstream(mutation);
-//        }
         if(failed)
             ctx.notRun(mutation);
         try {
@@ -57,37 +51,5 @@ public class ConstraintHandler implements WriteHandler {
     @Override
     public void finishWrites(final WriteContext ctx) throws IOException {
         //no-op
-//        boolean failed=false;
-//
-//        Predicate<Mutation> runPredicate = new Predicate<Mutation>() {
-//            @Override
-//            public boolean apply(@Nullable Mutation input) {
-//                return ctx.canRun(input);
-//            }
-//        };
-//        for(Mutation mutation: Collections2.filter(mutations,runPredicate)) {
-//            if(failed)
-//                ctx.notRun(mutation);
-//
-////            if(ctx.getRegion().isClosing()||ctx.getRegion().isClosed()){
-////                ctx.failed(mutation,new WriteResult(MutationResult.Code.FAILED,"NotServingRegion"));
-////            }
-//            try{
-//                if(!localConstraint.validate(mutation,ctx.getCoprocessorEnvironment())){
-//                    failed=true;
-//                    ctx.result(mutation,new WriteResult(Constraints.convertType(localConstraint.getType()),localConstraint.getConstraintContext()));
-//                }
-//            }catch(IOException ioe){
-//                failed=true;
-//                ctx.result(mutation,new WriteResult(MutationResult.Code.FAILED,ioe.getClass().getSimpleName()+":"+ioe.getMessage()));
-//            }
-//        }
-//        Collection<Mutation> failedWrites = localConstraint.validate(mutations,ctx.getCoprocessorEnvironment());
-//        if(failedWrites.size()>0){
-//            WriteResult result = new MutationResult(Constraints.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
-//            for(Mutation mutation:failedWrites){
-//                ctx.failed(mutation,result);
-//            }
-//        }
     }
 }
