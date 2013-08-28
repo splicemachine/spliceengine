@@ -319,17 +319,17 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
 
 	@Override
 	public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return valuesMatch(keyValue.qualifier,other.qualifier);
+		return other == null?false:valuesMatch(keyValue.qualifier,other.qualifier);
 	}
 
 	@Override
 	public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return valuesMatch(keyValue.value,other.value);
+		return other == null?false:valuesMatch(keyValue.value,other.value);
 	}
 
 	@Override
 	public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return valuesMatch(keyValue.rowKey,other.rowKey);
+		return other == null?false:valuesMatch(keyValue.rowKey,other.rowKey);
 	}
 
 	@Override
