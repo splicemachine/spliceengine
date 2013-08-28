@@ -1,5 +1,6 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.nio.ByteBuffer;
@@ -135,8 +136,7 @@ public class StringEncoding {
     }
 
     public static void main(String... args) throws Exception{
-        byte[] testNull = new byte[]{(byte)(0xf7)};
-        String maybeNull = new String(testNull);
-        System.out.println(maybeNull);
+//        System.out.println(Bytes.toStringBinary(Encoding.encodeBytesUnsorted(Bytes.toBytesBinary("\\x00\\x94\\x0C\\x1E\\x12qp\\x04"))));
+        System.out.println(Bytes.toStringBinary(Encoding.encode("645c405f-0140-a1fe-520e-0000025d2170")));
     }
 }

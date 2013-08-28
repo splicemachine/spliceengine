@@ -23,14 +23,45 @@ public class SpliceConstants {
 	public static final String DEFAULT_QUERY_NODE_PATH = "/queryNodePath";
 	public static final String DEFAULT_STARTUP_PATH = "/startupPath";	
 	public static final String DEFAULT_LEADER_ELECTION = "/leaderElection";	
-	
-	// Constants
-	public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";	
-	public static final int DEFAULT_DERBY_BIND_PORT = 1527;	
-	public static final int DEFAULT_OPERATION_PRIORITY = 3;
-	public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
+
+    /* Derby configuration settings */
+
+    //Derby network configuration
+    /**
+     * The IP address to bind the Derby connection to. Defaults to 0.0.0.0
+     */
+    public static final String CONFIG_DERBY_BIND_ADDRESS = "splice.server.address";
+    public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";
+
+    /**
+     * The Port to bind the Derby connection to. Defaults to 0.0.0.0
+     */
+    public static final String CONFIG_DERBY_BIND_PORT = "splice.server.port";
+    public static final int DEFAULT_DERBY_BIND_PORT = 1527;
+
+    /*Task and Job management*/
+
+    /**
+     * The priority under which to run user operation tasks. This can be any positive number, the higher
+     * the priority, the sooner operations will be executed, relative to other prioritized tasks (such
+     * as imports, TEMP cleaning, etc.)
+     */
+    public static final String CONFIG_OPERATION_PRIORITY = "splice.task.operationPriority";
+    public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
+    /**
+     * The Priority with which to assign import tasks. Setting this number higher than the
+     * operation priority will make imports run preferentially to operation tasks; setting it lower
+     * will make operations run preferentially to import tasks.
+     */
+    public static final String CONFIG_IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
+    public static final int DEFAULT_OPERATION_PRIORITY = 3;
+
+    //common SI fields
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
     public static final String SI_EXEMPT = "si-exempt";
+
+    /*Writer configuration*/
+	// Constants
     public static final int DEFAULT_POOL_MAX_SIZE = Integer.MAX_VALUE;
     public static final int DEFAULT_POOL_CORE_SIZE = 100;
     public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
@@ -80,10 +111,6 @@ public class SpliceConstants {
 	public static final String CONFIG_DERBY_PROPERTY_PATH = "splice.derby_property_node";
 	public static final String CONFIG_QUERY_NODE_PATH = "splice.query_node_path";
 	public static final String CONFIG_STARTUP_PATH = "splice.startup_path";
-	public static final String CONFIG_DERBY_BIND_ADDRESS = "splice.server.address";
-	public static final String CONFIG_DERBY_BIND_PORT = "splice.server.port";
-	public static final String CONFIG_OPERATION_PRIORITY = "splice.task.operationPriority";
-	public static final String CONFIG_IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
 	public static final String CONFIG_LEADER_ELECTION = "splice.leader_election";
     private static final String CONFIG_POOL_MAX_SIZE = "splice.table.pool.maxsize";
     private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
