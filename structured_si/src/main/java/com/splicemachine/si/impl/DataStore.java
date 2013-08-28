@@ -170,7 +170,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
                 Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         suppressIndexing(get);
-        Result result = reader.volatileGet(table, get);
+        Result result = reader.volatileGet(table, get); // Do not put this into a Result, keep in List<KeyValue>, no reason to copy
         if (result != null) {
             return new List[]{dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
                     dataLib.getResultColumn(result, siFamily, commitTimestampQualifier)};
