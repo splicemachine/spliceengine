@@ -7,11 +7,8 @@ import com.splicemachine.si.data.api.SDataLib;
  */
 public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> {
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-
     private KeyValue keyValue;
-
     private Data row;
-    private Data family;
     private Data qualifier;
     private Data value;
     private Long timestamp;
@@ -22,7 +19,6 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
 
     public void setKeyValue(KeyValue keyValue) {
         this.row = null;
-        this.family = null;
         this.qualifier = null;
         this.value = null;
         this.timestamp = null;
@@ -38,13 +34,6 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
             row = dataLib.getKeyValueRow(keyValue);
         }
         return row;
-    }
-
-    public Data family() {
-        if (family == null) {
-            family = dataLib.getKeyValueFamily(keyValue);
-        }
-        return family;
     }
 
     public Data qualifier() {
