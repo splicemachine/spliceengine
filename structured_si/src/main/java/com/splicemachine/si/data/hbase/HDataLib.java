@@ -324,10 +324,9 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     
     @Override
     public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
+    	if (qualifier == null) return false;
     	return keyValue.matchingQualifier(qualifier);
     }
-    
-    
 
     @Override
     public boolean matchingValue(KeyValue keyValue, byte[] value) {

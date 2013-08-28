@@ -328,7 +328,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
      */
     private boolean doneWithColumn() {
-        return dataLib.valuesEqual(keyValue.qualifier(), rowState.lastValidQualifier);
+        return dataLib.matchingQualifier(keyValue.keyValue(), rowState.lastValidQualifier);
     }
 
     /**

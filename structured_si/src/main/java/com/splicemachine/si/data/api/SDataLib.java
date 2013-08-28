@@ -2,10 +2,7 @@ package com.splicemachine.si.data.api;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.hadoop.hbase.KeyValue;
-
-import com.splicemachine.si.data.light.LKeyValue;
 
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
