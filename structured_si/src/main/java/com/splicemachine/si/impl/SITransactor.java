@@ -825,7 +825,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * Throw an exception if the transaction is not active.
      */
     private void ensureTransactionActive(Transaction transaction) throws IOException {
-        if (transaction.status.isFinished()) {
+        if(transaction.status==TransactionStatus.COMMITTED) return; //don't care if we've already committed
+        else if (transaction.status.isFinished()) {
             throw new DoNotRetryIOException("transaction is not ACTIVE: " +
                     transaction.getTransactionId().getTransactionIdString());
         }
