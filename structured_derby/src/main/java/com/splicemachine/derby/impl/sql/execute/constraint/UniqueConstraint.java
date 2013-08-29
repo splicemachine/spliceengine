@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -46,7 +47,7 @@ public class UniqueConstraint implements Constraint {
 
     private static Get createGet(KVPair kvPair,String txnId) throws IOException {
         Get get = SpliceUtils.createGet(txnId, kvPair.getRow());
-        get.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);
+        get.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
         get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
         return get;
@@ -56,6 +57,35 @@ public class UniqueConstraint implements Constraint {
         return Type.UNIQUE;
     }
 
+    @Override
+    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
+        if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
+        Get get = createGet(mutation,txnId);
+
+        HRegion region = rce.getRegion();
+        
+        HRegionUtil.populateKeyValues(region, keyValues, get);
+        Result result = new Result(keyValues);
+        boolean rowPresent = result!=null && !result.isEmpty();
+//        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
+        if(rowPresent){
+//            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
+            KeyValue[] raw = result.raw();
+            rowPresent=false;
+            for(KeyValue kv:raw){
+                if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)){
+                    rowPresent=true;
+                    if (logger.isTraceEnabled())
+                    	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
+                    break;
+                }
+            }
+        }
+        return !rowPresent;
+    }
+
+    
+    /*
     @Override
     public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
@@ -81,6 +111,7 @@ public class UniqueConstraint implements Constraint {
         }
         return !rowPresent;
     }
+    */
 
     @Override
     public List<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
