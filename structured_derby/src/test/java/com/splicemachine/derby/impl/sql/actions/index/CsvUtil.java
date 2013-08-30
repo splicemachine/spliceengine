@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.google.common.io.Files;
-import com.splicemachine.client.workday.OmsLogTable;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
-import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.File;
