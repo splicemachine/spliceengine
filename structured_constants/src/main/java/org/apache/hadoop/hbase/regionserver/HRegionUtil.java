@@ -71,8 +71,16 @@ public class HRegionUtil {
 	public static class MultiGetScanner {
 		RegionScannerImpl regionScanner;
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
-		public MultiGetScanner (Get get, List<KeyValue> keyValues, HRegion hregion) throws IOException {
-			regionScanner = populateKeyValuesScanner(hregion,keyValues,get);
+		public MultiGetScanner (Scan scan, List<KeyValue> keyValues, HRegion hregion) throws IOException {
+			RegionCoprocessorHost coprocessorHost = hregion.getCoprocessorHost();
+			try {
+			    if (coprocessorHost != null) {
+			       coprocessorHost.preScannerOpen(scan); // Allows SI to add filter to scan!
+			    }
+			    regionScanner = (RegionScannerImpl) hregion.instantiateRegionScanner(scan, null);
+			} catch (IOException e) {
+				throw e;
+			}
 		}
 	
 		public void populateKeyValues(byte[] row) throws IOException {
@@ -91,7 +99,7 @@ public class HRegionUtil {
 	        KeyValue kv = KeyValue.createFirstOnRow(row);
 	        // use request seek to make use of the lazy seek option. See HBASE-5520
 	        boolean result = regionScanner.storeHeap.requestSeek(kv, true, true);
-	        if (regionScanner.joinedHeap != null) {
+	        if (regionScanner.joinedHeap != null) { // We do not currently have extra scanners...
 	          result = regionScanner.joinedHeap.requestSeek(kv, true, true) || result;
 	        }
 	        return result;
