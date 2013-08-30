@@ -109,62 +109,6 @@ public class ParseDateTest {
         return row;
     }
 
-//    @Test
-//    public void testGetDurationsRaw() throws Exception {
-//        List<String> csvs = new ArrayList<String>();
-//        csvs.add(",Unmodified HBase, Modified HBase1, Modified HBase2, Modified HBase and Splice");
-//        csvs.add(csv(getLoadDuration(),"Load", false));
-//        csvs.add(csv(getIndexDuration(),"Create Index", false));
-//        csvs.add(csv(getQuery1Duration(),"Query1", false));
-//
-//        for (String csv : csvs) {
-//            System.out.println(csv);
-//        }
-//    }
-
-//    @Test
-//    public void testGetDurationsFormated() throws Exception {
-//        List<String> csvs = new ArrayList<String>();
-//        csvs.add(",Unmodified HBase, Modified HBase1, Modified HBase2, Modified HBase and Splice");
-//        csvs.add(csv(getLoadDuration(),"Load", true));
-//        csvs.add(csv(getIndexDuration(),"Create Index", true));
-//        csvs.add(csv(getQuery1Duration(),"Query1", true));
-//
-//        for (String csv : csvs) {
-//            System.out.println(csv);
-//        }
-//    }
-
-//    public List<DatePair> getLoadDuration() throws Exception {
-//        List<DatePair> pairs = new ArrayList<DatePair>();
-//        pairs.add(new DatePair("2013-08-26 18:59:46.189","2013-08-26 20:00:51.521"));
-//        pairs.add(new DatePair("2013-08-27 00:55:09.03","2013-08-27 02:14:13.654"));
-//        pairs.add(new DatePair("2013-08-27 12:50:38.797","2013-08-27 14:16:55.657"));
-//        pairs.add(new DatePair("2013-08-27 16:10:34.075","2013-08-27 17:48:41.203"));
-//
-//        return pairs;
-//    }
-//
-//    public List<DatePair> getIndexDuration() throws Exception {
-//        List<DatePair> pairs = new ArrayList<DatePair>();
-//        pairs.add(new DatePair("2013-08-26 20:00:51.868","2013-08-26 20:51:39.257"));
-//        pairs.add(new DatePair("2013-08-27 02:14:13.802","2013-08-27 03:27:36.307"));
-//        pairs.add(new DatePair("2013-08-27 14:16:55.787","2013-08-27 15:24:10.194"));
-//        pairs.add(new DatePair("2013-08-27 17:48:41.484","2013-08-27 19:01:04.738"));
-//
-//        return pairs;
-//    }
-//
-//    public List<DatePair>  getQuery1Duration() throws Exception {
-//        List<DatePair> pairs = new ArrayList<DatePair>();
-//        pairs.add(new DatePair("2013-08-26 21:36:28.946","2013-08-26 21:39:47.214"));
-//        pairs.add(new DatePair("2013-08-27 03:36:30.844","2013-08-27 03:39:06.312"));
-//        pairs.add(new DatePair("2013-08-27 15:24:10.87","2013-08-27 15:27:33.214"));
-//        pairs.add(new DatePair("2013-08-27 19:01:05.929","2013-08-27 19:02:57.022"));
-//
-//        return pairs;
-//    }
-
     private String csv(List<DatePair> testPairs, String rowHeader, boolean formatted) throws Exception {
         StringBuilder buf = new StringBuilder(rowHeader);
         for (DatePair pair : testPairs) {
@@ -172,13 +116,29 @@ public class ParseDateTest {
             long duration = pair.getDuration();
             if (duration > 0) {
                 if (formatted) {
-                    buf.append(LongRunningIndexTest.TimingReport.formatDuration(duration));
+                    buf.append(formatDuration(duration));
                 } else {
                     buf.append(duration/1000);
                 }
             }
         }
         return buf.toString();
+    }
+    
+    public static String formatDuration(long duration) {
+        long secondInMillis = 1000;
+        long minuteInMillis = secondInMillis * 60;
+        long hourInMillis = minuteInMillis * 60;
+
+        long diff = duration;
+        long elapsedHours = diff / hourInMillis;
+        diff = diff % hourInMillis;
+        long elapsedMinutes = diff / minuteInMillis;
+        diff = diff % minuteInMillis;
+        long elapsedSeconds = diff / secondInMillis;
+        diff = diff % secondInMillis;
+
+        return String.format("%d hrs %02d min %02d sec %03d mil", elapsedHours, elapsedMinutes, elapsedSeconds, diff);
     }
 
     private class DatePair implements Comparable<DatePair> {
