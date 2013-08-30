@@ -4,8 +4,6 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.impl.TransactionStatus;
-
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
@@ -29,9 +27,7 @@ public class SIBrowser extends SIConstants {
     public static void main(String[] args) throws IOException {
         HTable transactionTable = null;
         try {
-            Configuration config = HBaseConfiguration.create();
-            config.set("hbase.zookeeper.quorum","ubuntu6:2181,ubuntu7:2181,ubuntu8:2181");
-            transactionTable = new HTable(config, TRANSACTION_TABLE);
+            transactionTable = new HTable(HBaseConfiguration.create(), TRANSACTION_TABLE);
             Scan scan = new Scan();
             ResultScanner scanner = transactionTable.getScanner(scan);
             Iterator<Result> results = scanner.iterator();
