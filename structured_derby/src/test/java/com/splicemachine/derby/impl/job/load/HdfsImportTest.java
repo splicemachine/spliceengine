@@ -115,7 +115,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 			Assert.assertNotNull("j is null!", j);
 			results.add(String.format("i:%d,j:%s",i,j));
 		}
-		Assert.assertTrue("wrong row count imported!",results.size()==2);
+		Assert.assertEquals("wrong row count imported!", 2, results.size());
 		Assert.assertEquals("first row wrong","i:1,j:Hello", results.get(0));
 		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
 	}
