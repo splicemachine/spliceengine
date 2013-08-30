@@ -172,8 +172,8 @@ public class BlockImportJob extends FileImportJob{
             HRegionInfo existing = regionsToReturn.get(serverName);
             if(existing!=null){
                 //accept the tightest region
-                if(BytesUtil.emptyBeforeComparator.compare(existing.getStartKey(),info.getStartKey())==0){
-                    if(BytesUtil.emptyBeforeComparator.compare(existing.getEndKey(),info.getStartKey())<=0){
+                if(BytesUtil.startComparator.compare(existing.getStartKey(),info.getStartKey())==0){
+                    if(BytesUtil.startComparator.compare(existing.getEndKey(),info.getStartKey())<=0){
                         //existing is a tighter bound than new one, leave it be
                     }else{
                         //new one has a tighter bound, so replace it

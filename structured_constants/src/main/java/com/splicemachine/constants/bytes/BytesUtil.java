@@ -208,51 +208,93 @@ public class BytesUtil {
         }
     }
 
-    public static Comparator<byte[]> emptyBeforeComparator = new Comparator<byte[]>() {
+    /**
+     * Lexicographical byte[] comparator that places empty byte[] values before non-empty values.
+     */
+    public static Comparator<byte[]> startComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
-            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
-                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                    return 0;
-                else return -1;
-            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                return 1;
-            else return Bytes.compareTo(o1,o2);
+            return compareBytes(false, o1, o2);
         }
     };
 
-    public static Comparator<byte[]> emptyAfterComparator = new Comparator<byte[]>() {
+    /**
+     * Lexicographical byte[] comparator that places empty byte[] values after non-empty values.
+     */
+    public static Comparator<byte[]> endComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
-            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
-                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                    return 0;
-                else return 1;
-            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                return -1;
-            else return Bytes.compareTo(o1,o2);
+            return compareBytes(true, o1, o2);
         }
     };
 
-    public static Pair<byte[],byte[]> intersect(byte[] a1,byte[] a2, byte[] r1,byte[] r2){
-        if(Bytes.compareTo(r2,HConstants.EMPTY_END_ROW)!=0 &&
-                Bytes.compareTo(a1,HConstants.EMPTY_START_ROW)!=0 &&
-                Bytes.compareTo(r2,a1)<0) return null;
-        else if(Bytes.compareTo(r1,HConstants.EMPTY_END_ROW)!=0 &&
-                Bytes.compareTo(a2,HConstants.EMPTY_START_ROW)!=0 &&
-                Bytes.compareTo(r1,a2)>=0) return null;
-
-        if(emptyBeforeComparator.compare(a1,r1)<=0){
-            if(emptyAfterComparator.compare(a2,r2)<=0)
-                return Pair.newPair(r1,a2);
-            else
-                return Pair.newPair(r1,r2);
-        }else{
-            if(emptyAfterComparator.compare(a2,r2)<=0)
-                return Pair.newPair(a1,a2);
-            else
-                return Pair.newPair(a1,r2);
+    /**
+     * Parameterized lexicographical byte[] comparison.
+     *
+     * @param emptyGreater indicates whether empty byte[] are greater or less than non-empty values.
+     */
+    private static int compareBytes(boolean emptyGreater, byte[] x, byte[] y) {
+        if (empty(x)) {
+            if (empty(y)) {
+                return 0;
+            } else {
+                return emptyGreater ? 1 : -1;
+            }
+        } else if (empty(y)) {
+            return emptyGreater ? -1 : 1;
+        } else {
+            return Bytes.compareTo(x, y);
         }
+    }
+
+    /**
+     * @return whether or not the given byte[] is empty
+     */
+    private static boolean empty(byte[] x) {
+        return Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
+    }
+
+    /**
+     * @return a [start, end) pair identifying the ranges of values that are in both [start1, end1) and [start2, end2)
+     *         under lexicographic sorting of values.
+     */
+    public static Pair<byte[], byte[]> intersect(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+        if (overlap(start1, end1, start2, end2)) {
+            return Pair.newPair(
+                    max(startComparator, start1, start2),
+                    min(endComparator, end1, end2));
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return whether [start1, end1) and [start2, end2) share any values
+     */
+    private static boolean overlap(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+        return startLessThanEnd(start1, end2) && startLessThanEnd(start2, end1);
+    }
+
+    /**
+     * @return whether the given start range value is less than the end range value considering lexicographical ordering
+     *         and treating empty byte[] as -infinity in starting positions and infinity in ending positions
+     */
+    private static boolean startLessThanEnd(byte[] start1, byte[] end2) {
+        return (empty(end2) || empty(start1) || Bytes.compareTo(start1, end2) < 0);
+    }
+
+    /**
+     * @return the value that sorts lowest.
+     */
+    private static byte[] min(Comparator<byte[]> comparator, byte[] x, byte[] y) {
+        return (comparator.compare(y, x) <= 0) ? y : x;
+    }
+
+    /**
+     * @return the value that sorts highest.
+     */
+    private static byte[] max(Comparator<byte[]> comparator, byte[] x, byte[] y) {
+        return (comparator.compare(x, y) <= 0) ? y : x;
     }
 
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
