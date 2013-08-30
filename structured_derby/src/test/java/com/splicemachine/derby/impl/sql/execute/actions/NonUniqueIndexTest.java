@@ -140,23 +140,34 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test(timeout=10000)
+    @Test(timeout=15000)
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('"+name+"',"+value+")",this.getTableReference(TABLE_NAME_3)));
-    	new SpliceIndexWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,INDEX_31,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+spliceTableWatcher3+" (name,val) values (?,?)");
+        ps.setString(1, name);
+        ps.setInt(2, value);
+        int numRowsUpdated  = ps.executeUpdate();
+        Assert.assertEquals("Incorrect number of rows inserted!",1,numRowsUpdated);
+
+        new SpliceIndexWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,INDEX_31,spliceSchemaWatcher.schemaName,"(name)").starting(null);
         //now check that we can get data out for the proper key
-        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '" + name + "'",this.getTableReference(TABLE_NAME_3)));
-        List<String> results = Lists.newArrayListWithExpectedSize(1);
-        while(resultSet.next()){
-            String retName = resultSet.getString(1);
-            int val = resultSet.getInt(2);
-            Assert.assertEquals("Incorrect name returned!",name,retName);
-            Assert.assertEquals("Incorrect value returned!",value,val);
-            results.add(String.format("name:%s,value:%d",retName,val));
+        ps = methodWatcher.prepareStatement("select * from "+ spliceTableWatcher3+ " where name = ?");
+        ps.setString(1,name);
+        ResultSet resultSet = ps.executeQuery();
+        try{
+            List<String> results = Lists.newArrayListWithExpectedSize(1);
+            while(resultSet.next()){
+                String retName = resultSet.getString(1);
+                int val = resultSet.getInt(2);
+                Assert.assertEquals("Incorrect name returned!",name,retName);
+                Assert.assertEquals("Incorrect value returned!",value,val);
+                results.add(String.format("name:%s,value:%d",retName,val));
+            }
+            Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
+        }finally{
+            resultSet.close();
         }
-        Assert.assertEquals("Incorrect number of rows returned!",1,results.size());
     }
     /**
      * Tests that adding an index to an existing data set will
@@ -166,7 +177,7 @@ public class NonUniqueIndexTest extends SpliceUnitTest {
      * then perform a lookup on that same data via the index to ensure
      * that the index will find those values.
      */
-    @Test(timeout=10000)
+    @Test(timeout=15000)
     public void testCanCreateIndexFromExistingDataWithDecimalType() throws Exception{
         BigDecimal oid = BigDecimal.valueOf(2);
         String name = "sfines";

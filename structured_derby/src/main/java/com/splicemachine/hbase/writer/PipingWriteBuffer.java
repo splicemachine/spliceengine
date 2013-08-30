@@ -218,13 +218,15 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
                     futureIterator.remove();
                 }
             }
-            List<KVPair> copy = Lists.newArrayList(buffer);
-            buffer.clear();
-            //update heap size metrics
-            PipingWriteBuffer.this.currentHeapSize-=heapSize;
-            heapSize=0;
-            BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
-            writer.write(tableName,write,retryStrategy);
+            if(buffer.size()>0){
+                List<KVPair> copy = Lists.newArrayList(buffer);
+                buffer.clear();
+                //update heap size metrics
+                PipingWriteBuffer.this.currentHeapSize-=heapSize;
+                heapSize=0;
+                BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
+                outstandingRequests.add(writer.write(tableName,write,retryStrategy));
+            }
         }
 
         @Override
