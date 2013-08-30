@@ -125,7 +125,7 @@ public class CreateIndexTask extends ZkTask {
         return true;
     }
     @Override
-    public void execute() throws ExecutionException, InterruptedException {
+    public void doExecute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
         regionScan.setCaching(DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());

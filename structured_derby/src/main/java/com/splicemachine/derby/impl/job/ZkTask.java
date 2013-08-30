@@ -105,24 +105,31 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     @Override
+    public void execute() throws ExecutionException, InterruptedException {
+        //create a child transaction
+        if(parentTxnId!=null){
+            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
+            try {
+                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+                status.setTxnId(childTxnId.getTransactionIdString());
+            } catch (IOException e) {
+                throw new ExecutionException("Unable to acquire child transaction",e);
+            }
+        }
+
+        doExecute();
+    }
+
+    protected abstract void doExecute() throws ExecutionException, InterruptedException;
+
+    @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
         taskId = SpliceUtils.getUniqueKey();
         taskPath = jobId+"_"+ getTaskType()+"-"+ BytesUtil.toHex(taskId);
         this.zkManager = zooKeeper;
         try {
-            //create a child transaction
-            if(parentTxnId!=null){
-                TransactorControl transactor = HTransactorFactory.getTransactorControl();
-                TransactionId parent = transactor.transactionIdFromString(parentTxnId);
-                try {
-                    TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
-                    status.setTxnId(childTxnId.getTransactionIdString());
-                } catch (IOException e) {
-                    throw new ExecutionException("Unable to acquire child transaction",e);
-                }
-            }
-
             //create a status node
             final byte[] statusData = statusToBytes();
 

@@ -64,7 +64,7 @@ public abstract class ParallelImportTask extends ZkTask{
     }
 
     @Override
-    public void execute() throws ExecutionException, InterruptedException {
+    public void doExecute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
             CallBuffer<String[]> processingBuffer = new ThreadingCallBuffer(importContext, row, getTaskStatus().getTransactionId());
@@ -190,7 +190,7 @@ public abstract class ParallelImportTask extends ZkTask{
             processingPool = Executors.newFixedThreadPool(numProcessingThreads,processingFactory);
 
             int maxQueueSize = SpliceConstants.maxImportReadBufferSize;
-            processingQueue = new ArrayBlockingQueue<String[]>(maxQueueSize);
+            processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxQueueSize);
 
             String tableName = importContext.getTableName();
             futures = Lists.newArrayList();

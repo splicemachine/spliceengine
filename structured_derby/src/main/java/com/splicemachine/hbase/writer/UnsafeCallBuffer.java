@@ -15,17 +15,16 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     private static final int BUFFER_SIZE_CHECK=10;
     private final List<E> buffer;
     private final Listener<E> listener;
-    private final long maxHeapSize;
-    private final int maxBufferEntries;
     private long currentHeapSize;
 
-    public UnsafeCallBuffer(long maxHeapSize, int maxBufferEntries,Listener<E> listener) {
-        this.listener = listener;
-        this.maxHeapSize = maxHeapSize;
-        this.maxBufferEntries = maxBufferEntries;
+    private final BufferConfiguration bufferConfiguration;
 
-        if(maxBufferEntries>0)
-            buffer = new ArrayList<E>(maxBufferEntries);
+    public UnsafeCallBuffer(BufferConfiguration bufferConfiguration,Listener<E> listener) {
+        this.listener = listener;
+        this.bufferConfiguration = bufferConfiguration;
+
+        if(bufferConfiguration.getMaxEntries()>0)
+            buffer = new ArrayList<E>(bufferConfiguration.getMaxEntries());
         else
             buffer = new ArrayList<E>();
     }
@@ -85,7 +84,8 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     }
 
     private void checkBuffer() throws Exception {
-        if(currentHeapSize>maxHeapSize||(maxBufferEntries>0 && buffer.size()>maxBufferEntries))
+        int maxEntries = bufferConfiguration.getMaxEntries();
+        if(currentHeapSize>bufferConfiguration.getMaxHeapSize()||(maxEntries>0 && buffer.size()>maxEntries))
             flushBuffer();
     }
 }

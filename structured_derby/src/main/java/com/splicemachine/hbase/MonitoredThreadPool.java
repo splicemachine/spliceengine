@@ -51,70 +51,19 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         return this.writerPool.submit(new WatchingCallable<V>(task));
     }
 
-    @Override
-    public int getPendingTaskCount() {
-        return numPendingTasks.get();
-    }
-
-    @Override
-    public int getActiveThreadCount() {
-        return writerPool.getActiveCount();
-    }
-
-    @Override
-    public int getCurrentThreadCount() {
-        return writerPool.getPoolSize();
-    }
-
-    @Override
-    public long getTotalSubmittedTasks() {
-        return writerPool.getTaskCount();
-    }
-
-    @Override
-    public long getTotalFailedTasks() {
-        return numFailedTasks.get();
-    }
-
-    @Override
-    public long getTotalSuccessfulTasks() {
-        return totalSuccessfulTasks.get();
-    }
-
-    @Override
-    public long getTotalCompletedTasks() {
-        return writerPool.getCompletedTaskCount();
-    }
-
-    @Override
-    public int getMaxThreadCount() {
-        return writerPool.getMaximumPoolSize();
-    }
-
-    @Override
-    public void setMaxThreadCount(int newMaxThreadCount) {
-        writerPool.setCorePoolSize(newMaxThreadCount);
-    }
-
-    @Override
-    public long getThreadKeepAliveTimeMs() {
-        return writerPool.getKeepAliveTime(TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public void setThreadKeepAliveTimeMs(long timeMs) {
-        writerPool.setKeepAliveTime(timeMs,TimeUnit.MILLISECONDS);
-    }
-
-    @Override
-    public int getLargestThreadCount() {
-        return writerPool.getLargestPoolSize();
-    }
-
-    @Override
-    public long getTotalRejectedTasks() {
-        return countingRejectionHandler.getTotalRejected();
-    }
+    @Override public int getPendingTaskCount() { return numPendingTasks.get(); }
+    @Override public int getActiveThreadCount() { return writerPool.getActiveCount(); }
+    @Override public int getCurrentThreadCount() { return writerPool.getPoolSize(); }
+    @Override public long getTotalSubmittedTasks() { return writerPool.getTaskCount(); }
+    @Override public long getTotalFailedTasks() { return numFailedTasks.get(); }
+    @Override public long getTotalSuccessfulTasks() { return totalSuccessfulTasks.get(); }
+    @Override public long getTotalCompletedTasks() { return writerPool.getCompletedTaskCount(); }
+    @Override public int getMaxThreadCount() { return writerPool.getMaximumPoolSize(); }
+    @Override public void setMaxThreadCount(int newMaxThreadCount) { writerPool.setMaximumPoolSize(newMaxThreadCount); }
+    @Override public long getThreadKeepAliveTimeMs() { return writerPool.getKeepAliveTime(TimeUnit.MILLISECONDS); }
+    @Override public void setThreadKeepAliveTimeMs(long timeMs) { writerPool.setKeepAliveTime(timeMs,TimeUnit.MILLISECONDS); }
+    @Override public int getLargestThreadCount() { return writerPool.getLargestPoolSize(); }
+    @Override public long getTotalRejectedTasks() { return countingRejectionHandler.getTotalRejected(); }
 
     private class WatchingCallable<V> implements Callable<V>{
         private final Callable<V> delegate;

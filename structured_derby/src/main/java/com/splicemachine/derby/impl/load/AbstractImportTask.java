@@ -95,7 +95,7 @@ public abstract class AbstractImportTask extends ZkTask {
     }
 
     @Override
-    public void execute() throws ExecutionException, InterruptedException {
+    public void doExecute() throws ExecutionException, InterruptedException {
         try{
             ExecRow row = getExecRow(importContext);
             BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());

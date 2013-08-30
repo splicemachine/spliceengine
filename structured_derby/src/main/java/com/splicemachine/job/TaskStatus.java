@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.Row;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -44,7 +45,7 @@ public class TaskStatus implements Externalizable{
         void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
     }
     public TaskStatus(){
-       this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
+       this.listeners = new CopyOnWriteArraySet<StatusListener>();
     }
 
     public TaskStatus(Status status, Throwable error) {
@@ -171,6 +172,7 @@ public class TaskStatus implements Externalizable{
 
     public void attachListener(StatusListener listener) {
         this.listeners.add(listener);
+        listener.statusChanged(null,status.get(),this);
     }
 
     public void detachListener(StatusListener listener){

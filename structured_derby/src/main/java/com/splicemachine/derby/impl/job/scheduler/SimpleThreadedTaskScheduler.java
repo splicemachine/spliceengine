@@ -56,7 +56,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
     @Override
     public TaskFuture submit(T task) throws ExecutionException {
-        ListeningFuture future = new ListeningFuture(task,statsListener.numPending.incrementAndGet());
+        ListeningFuture future = new ListeningFuture(task,statsListener.numPending.get());
         task.getTaskStatus().attachListener(statsListener);
         future.future = executor.submit(new TaskCallable<T>(task, statsListener));
         return future;
@@ -258,15 +258,20 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
         @Override
         public void statusChanged(Status oldStatus, Status newStatus, TaskStatus taskStatus) {
-            switch (oldStatus) {
-                case PENDING:
-                    numPending.decrementAndGet();
-                    break;
-                case EXECUTING:
-                    numExecuting.decrementAndGet();
-                    break;
+            if(oldStatus!=null){
+                switch (oldStatus) {
+                    case PENDING:
+                        numPending.decrementAndGet();
+                        break;
+                    case EXECUTING:
+                        numExecuting.decrementAndGet();
+                        break;
+                }
             }
             switch (newStatus) {
+                case PENDING:
+                    numPending.incrementAndGet();
+                    return;
                 case FAILED:
                     failedCount.incrementAndGet();
                     taskStatus.detachListener(this);

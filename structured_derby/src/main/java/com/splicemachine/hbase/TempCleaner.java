@@ -165,6 +165,11 @@ public class TempCleaner {
 
         @Override
         public void execute() throws ExecutionException, InterruptedException {
+            doExecute();
+        }
+
+        @Override
+        protected void doExecute() throws ExecutionException, InterruptedException {
             List<KeyValue> keys = Lists.newArrayListWithCapacity(1);
 
             try {

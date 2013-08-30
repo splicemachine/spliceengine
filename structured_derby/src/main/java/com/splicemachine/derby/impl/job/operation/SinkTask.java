@@ -66,7 +66,7 @@ public class SinkTask extends ZkTask {
     }
 
     @Override
-    public void execute() throws ExecutionException, InterruptedException {
+    public void doExecute() throws ExecutionException, InterruptedException {
         SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         SpliceTransactionResourceImpl impl = null;
         try {

@@ -92,13 +92,23 @@ public class WriteCoordinator {
         monitor.outstandingBuffers.incrementAndGet();
         //TODO -sf- add a global maxHeapSize rather than multiplying by 10
         return new PipingWriteBuffer(tableName,txnId,writer,regionCache,defaultRetryStrategy,
-                monitor.maxHeapSize*10,monitor.maxEntries);
+                new BufferConfiguration() {
+                    @Override
+                    public long getMaxHeapSize() {
+                        return monitor.getMaxHeapSize()*10;
+                    }
+
+                    @Override
+                    public int getMaxEntries() {
+                        return monitor.getMaxEntries();
+                    }
+                });
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
         monitor.outstandingBuffers.incrementAndGet();
         final BufferListener listener = new AsyncBufferListener(noopFlushHook,tableName, defaultRetryStrategy);
-        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
             @Override
             public void close() throws Exception {
                 listener.ensureFlushed();
@@ -118,7 +128,7 @@ public class WriteCoordinator {
                                                        PreFlushHook flushHook,Writer.RetryStrategy retryStrategy){
         final BufferListener listener = new AsyncBufferListener(flushHook,tableName, retryStrategy);
         monitor.outstandingBuffers.incrementAndGet();
-        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
             @Override
             public void close() throws Exception {
                 listener.ensureFlushed();
@@ -140,7 +150,7 @@ public class WriteCoordinator {
                                                                   Writer.RetryStrategy retryStrategy){
         monitor.outstandingBuffers.incrementAndGet();
         final BufferListener listener = new SyncBufferListener(flushHook,tableName, retryStrategy);
-        CallBuffer<KVPair> delegate = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor.maxHeapSize,monitor.maxEntries,listener){
+        CallBuffer<KVPair> delegate = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
             @Override
             public void close() throws Exception {
                 listener.ensureFlushed();
@@ -251,7 +261,7 @@ public class WriteCoordinator {
         }
     }
 
-    private static class Monitor implements WriteCoordinatorStatus{
+    private static class Monitor implements WriteCoordinatorStatus,BufferConfiguration{
         private volatile long maxHeapSize;
         private volatile int maxEntries;
         private volatile int maxRetries;
@@ -275,6 +285,8 @@ public class WriteCoordinator {
         @Override public void setMaximumRetries(int newMaxRetries) { this.maxRetries = newMaxRetries; }
         @Override public long getPauseTime() { return pauseTime; }
         @Override public void setPauseTime(long newPauseTimeMs) { this.pauseTime = newPauseTimeMs; }
+        @Override public long getMaxHeapSize() { return maxHeapSize; }
+        @Override public int getMaxEntries() { return maxEntries; }
     }
 
     private final Writer.RetryStrategy defaultRetryStrategy = new Writer.RetryStrategy() {

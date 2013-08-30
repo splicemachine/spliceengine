@@ -709,6 +709,12 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
         for(int i=0;i<isAscending.length;i++){
            descColumns[i] = !isAscending[i];
         }
+        /*
+         * Backfill the index with any existing data.
+         *
+         * It's possible that the index will be created on the same node as some system tables are located.
+         * This means that there
+         */
         final long tableConglomId = td.getHeapConglomerateId();
         final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());

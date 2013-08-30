@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -41,36 +42,38 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
     private final Writer.RetryStrategy retryStrategy;
 
     private long currentHeapSize;
-    private volatile long maxHeapSize;
-    private volatile int maxEntriesPerBuffer;
+
+    private final BufferConfiguration bufferConfiguration;
 
     PipingWriteBuffer(byte[] tableName,
                               String txnId,
                               Writer writer,
                               RegionCache regionCache,
                               Writer.RetryStrategy retryStrategy,
-                              long maxHeapSize,
-                              int maxEntriesPerBuffer) {
+                              BufferConfiguration bufferConfiguration) {
         this.writer = writer;
         this.tableName = tableName;
         this.txnId = txnId;
         this.regionCache = regionCache;
         this.retryStrategy = new UpdatingRetryStrategy(retryStrategy);
         this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
-        this.maxHeapSize = maxHeapSize;
-        this.maxEntriesPerBuffer = maxEntriesPerBuffer;
+        this.bufferConfiguration = bufferConfiguration;
     }
 
     @Override
     public void add(KVPair element) throws Exception {
         rebuildIfNecessary();
-        PreMappedBuffer buffer = regionToBufferMap.floorEntry(element.getRow()).getValue();
+        Map.Entry<byte[],PreMappedBuffer> entry = regionToBufferMap.floorEntry(element.getRow());
+        if(entry==null) entry = regionToBufferMap.firstEntry();
+
+        assert entry!=null;
+        PreMappedBuffer buffer = entry.getValue();
         //the buffer will handle local flush constraints (e.g. entries are full, etc)
         buffer.add(element);
 
         //determine if global constraints require a flush
         currentHeapSize+=element.getSize();
-        if(currentHeapSize>=maxHeapSize){
+        if(currentHeapSize>=bufferConfiguration.getMaxHeapSize()){
             flushLargestBuffer();
         }
     }
@@ -94,7 +97,7 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
     }
 
     private void rebuildIfNecessary() throws Exception {
-        if(!rebuildBuffer) return; //no need to rebuild the buffer
+        if(!rebuildBuffer&&regionToBufferMap.size()>0) return; //no need to rebuild the buffer
         /*
          * We need to rebuild the buffer. It's possible that there are
          * multiple buffer flushes in flight, some of whom may fail
@@ -107,19 +110,29 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
          * until after the region map has been rebuilt.
          */
         SortedSet<HRegionInfo> regions = regionCache.getRegions(tableName);
+        if(regions.size()<=0){
+            int numTries=5;
+            while(numTries>0){
+                Thread.sleep(WriteUtils.getWaitTime(numTries,200));
+                regionCache.invalidate(tableName);
+                regions = regionCache.getRegions(tableName);
+                if(regions.size()>0) break;
+                numTries--;
+            }
+            if(regions.size()<0)
+                throw new IOException("Unable to get region information for table "+ Bytes.toString(tableName));
+        }
+
         for(HRegionInfo region:regions){
             //see if regionToBufferMap contains it. If not, add it in
             byte[] startKey = region.getStartKey();
             if(regionToBufferMap.containsKey(startKey)) continue;
 
             //we need to add it in
-            PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, maxEntriesPerBuffer);
+            PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, bufferConfiguration.getMaxEntries());
+            regionToBufferMap.put(startKey,newBuffer);
             Map.Entry<byte[],PreMappedBuffer> parentRegion = regionToBufferMap.lowerEntry(startKey);
-            if(parentRegion==null){
-                //should only happen the first time this is built (for only one region)
-                //just add it in
-                regionToBufferMap.put(startKey,newBuffer);
-            }else{
+            if(parentRegion!=null){
                 PreMappedBuffer oldBuffer = parentRegion.getValue();
                 //move entries that are slated for the old region into the new region
                 newBuffer.addAll(oldBuffer.removeAllAfter(startKey));
