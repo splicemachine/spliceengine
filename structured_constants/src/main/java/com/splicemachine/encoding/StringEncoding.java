@@ -41,7 +41,7 @@ public class StringEncoding {
         if(value.length()==0) return new byte[]{0x01};
 
         //convert to UTF-8 encoding
-        byte[] data = Bytes.toBytes(value);
+        byte[] data = value.getBytes();
         for(int i=0;i<data.length;i++){
             byte newD = (byte)(data[i] + 2);
             if(desc)
