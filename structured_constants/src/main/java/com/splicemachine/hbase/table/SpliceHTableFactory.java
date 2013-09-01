@@ -52,7 +52,8 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 
         return new ThreadPoolExecutor(1,maxThreads,keepAliveTime, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
-                new NamedThreadFactory());
+                new NamedThreadFactory(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
