@@ -177,9 +177,9 @@ public enum KeyType implements KeyMarshall{
     PREFIX_UNIQUE_POSTFIX_ONLY{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            keyEncoder.encodeNextUnsorted(keyPostfix);
+            keyEncoder.setRawBytes(keyPostfix);
             //add a uniqueness field
-            keyEncoder.encodeNextUnsorted(SpliceUtils.getUniqueKey());
+            keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
         }
 
         @Override
