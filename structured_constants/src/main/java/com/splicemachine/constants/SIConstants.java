@@ -54,7 +54,7 @@ public class SIConstants extends SpliceConstants {
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;
 
     public static final int TRANSACTION_KEEP_ALIVE_INTERVAL = 1 * 60 * 1000;
-    public static final int TRANSACTION_TIMEOUT = 100 * TRANSACTION_KEEP_ALIVE_INTERVAL;
+    public static final int TRANSACTION_TIMEOUT = 10000 * TRANSACTION_KEEP_ALIVE_INTERVAL;
     
     
     public static final String SI_TRANSACTION_ID_KEY = "A";
