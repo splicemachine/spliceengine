@@ -28,12 +28,13 @@ public class RollForwardQueueTest {
         final byte[] out = new byte[] {0};
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 out[0] = ((byte[]) rowList.get(0))[0];
+                return true;
             }
         };
         final RollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
+        queue.recordRow(1, new byte[] {10}, false);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(10, out[0]);
     }
@@ -43,19 +44,20 @@ public class RollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 for (Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
+                return true;
             }
         };
         final RollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
-        queue.recordRow(2, new byte[] {20});
-        queue.recordRow(3, new byte[] {30});
-        queue.recordRow(4, new byte[] {40});
-        queue.recordRow(5, new byte[] {50});
-        queue.recordRow(6, new byte[] {60});
+        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(2, new byte[] {20}, false);
+        queue.recordRow(3, new byte[] {30}, false);
+        queue.recordRow(4, new byte[] {40}, false);
+        queue.recordRow(5, new byte[] {50}, false);
+        queue.recordRow(6, new byte[] {60}, false);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -69,19 +71,20 @@ public class RollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 for (Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
+                return true;
             }
         };
         final RollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
-        queue.recordRow(1, new byte[] {20});
-        queue.recordRow(1, new byte[] {30});
-        queue.recordRow(1, new byte[] {40});
-        queue.recordRow(1, new byte[] {50});
-        queue.recordRow(1, new byte[] {60});
+        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(1, new byte[] {20}, false);
+        queue.recordRow(1, new byte[] {30}, false);
+        queue.recordRow(1, new byte[] {40}, false);
+        queue.recordRow(1, new byte[] {50}, false);
+        queue.recordRow(1, new byte[] {60}, false);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -95,15 +98,16 @@ public class RollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 for(Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
+                return true;
             }
         };
         final SynchronousRollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, VERY_LONG_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
-        queue.recordRow(1, new byte[] {20});
+        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(1, new byte[] {20}, false);
         Assert.assertEquals(2, queue.getCount());
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(2, queue.getCount());
@@ -118,18 +122,19 @@ public class RollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 for(Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
+                return true;
             }
         };
         final RollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
-        queue.recordRow(1, new byte[] {11});
+        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(1, new byte[] {11}, false);
         Thread.sleep(LONG_WAIT);
-        queue.recordRow(2, new byte[] {20});
-        queue.recordRow(3, new byte[] {30});
+        queue.recordRow(2, new byte[] {20}, false);
+        queue.recordRow(3, new byte[] {30}, false);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(4, out.size());
         Assert.assertTrue(out.contains((byte) 10));
@@ -143,18 +148,19 @@ public class RollForwardQueueTest {
         final byte[] out = new byte[] {0};
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public void rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List rowList) {
                 if (transactionId == 1) {
                     throw new RuntimeException("fail");
                 } else {
                     Assert.assertEquals(1, rowList.size());
                     out[0] = ((byte[]) rowList.get(0))[0];
+                    return true;
                 }
             }
         };
         final RollForwardQueue queue = new SynchronousRollForwardQueue(new HHasher(), action, 4, SHORT_DELAY, LONG_DELAY, "test");
-        queue.recordRow(1, new byte[] {10});
-        queue.recordRow(2, new byte[] {20});
+        queue.recordRow(1, new byte[] {10}, false);
+        queue.recordRow(2, new byte[] {20}, false);
         Thread.sleep(SHORT_WAIT);
         Assert.assertEquals(20, out[0]);
     }

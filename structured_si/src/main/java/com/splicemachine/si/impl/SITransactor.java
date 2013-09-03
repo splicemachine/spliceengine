@@ -494,9 +494,9 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
                 conflictResults.hasTombstone);
         dataStore.suppressIndexing(newPut);
-        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
+        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey, false);
         for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
+            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey, false);
         }
         return new PutToRun<Mutation, Lock>(new Pair<Mutation, Lock>(newPut, lock), conflictResults.childConflicts);
     }
@@ -784,9 +784,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     // Roll-forward / compaction
 
     @Override
-    public void rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
+    public Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        if (transaction.getEffectiveStatus().isFinished()) {
+        final Boolean isFinished = transaction.getEffectiveStatus().isFinished();
+        if (isFinished) {
             for (Data row : rows) {
                 try {
                     if (transaction.getEffectiveStatus().isCommitted()) {
@@ -801,6 +802,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             }
         }
         Tracer.traceTransactionRollForward(transactionId);
+        return isFinished;
     }
 
     @Override

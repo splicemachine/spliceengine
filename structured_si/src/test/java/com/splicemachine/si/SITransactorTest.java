@@ -63,10 +63,11 @@ public class SITransactorTest extends SIConstants {
                 storeSetup.getHasher(),
                 new RollForwardAction() {
                     @Override
-                    public void rollForward(long transactionId, List rowList) throws IOException {
+                    public Boolean rollForward(long transactionId, List rowList) throws IOException {
                         final STableReader reader = storeSetup.getReader();
                         Object testSTable = reader.open(storeSetup.getPersonTableName());
                         transactor.rollForward(testSTable, transactionId, rowList);
+                        return true;
                     }
                 }, 10, 100, 1000, "test");
     }

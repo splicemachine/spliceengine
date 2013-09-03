@@ -104,7 +104,7 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
     }
 
     @Override
-    public void recordRow(long transactionId, byte[] rowKey) {
+    public void recordRow(long transactionId, byte[] rowKey, Boolean knownToBeCommitted) {
         /*
          * First, we increment our counters, and determine if a rollforward event
          * should be produced. If it needs to be produced (i.e. heap or entries are exceeded),

@@ -209,9 +209,9 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         return dataLib.valuesEqual(value, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row) {
+    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row, Boolean knownToBeCommitted) {
         if (rollForwardQueue != null) {
-            rollForwardQueue.recordRow(transactionId, row);
+            rollForwardQueue.recordRow(transactionId, row, knownToBeCommitted);
         }
     }
 

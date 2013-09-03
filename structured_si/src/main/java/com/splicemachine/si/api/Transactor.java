@@ -75,7 +75,7 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
      * Attempt to update all of the data rows on the table to reflect the final status of the transaction with the given
      * transactionId.
      */
-    void rollForward(Table table, long transactionId, List<Data> rows) throws IOException;
+    Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException;
 
     /**
      * Create an object to keep track of the state of an HBase table compaction operation.

@@ -250,9 +250,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        if (rollForwardQueue != null && transaction.getEffectiveStatus().isFinished()) {
+        TransactionStatus status = transaction.getEffectiveStatus();
+        if (rollForwardQueue != null && status.isFinished()) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row());
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row(), true);
         }
     }
 

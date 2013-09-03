@@ -54,9 +54,9 @@ public class SIObserverUnPacked extends BaseRegionObserver {
         tableEnvMatch = doesTableNeedSI(region);
         RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
             @Override
-            public void rollForward(long transactionId, List<byte[]> rowList) throws IOException {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
                 Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
-                transactor.rollForward(new HbRegion(region), transactionId, rowList);
+                return transactor.rollForward(new HbRegion(region), transactionId, rowList);
             }
         };
         rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);

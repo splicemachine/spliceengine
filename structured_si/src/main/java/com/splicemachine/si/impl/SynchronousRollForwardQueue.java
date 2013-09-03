@@ -1,21 +1,14 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.api.RollForwardQueue;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Collect "roll-forward" requests for a given table. Accumulate these by transaction ID. At regular intervals
@@ -47,7 +40,8 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     /**
      * The thread pool to use for running asynchronous roll-forward actions.
      */
-    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+    public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5,
+            new ThreadFactoryBuilder().setNameFormat("synchronous-rollforward-%d").build());
 
     private final Hasher<Data, Hashable> hasher;
 
@@ -76,9 +70,10 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     private final int resetMS;
 
     /**
-     * The queue of pending roll-forward requests. It is a map from transaction ID to a set of row keys.
+     * The queue of pending roll-forward requests. It is a map from transaction ID to a pair of boolean and a
+     * set of row keys. The boolean indicates whether rows for the transaction ID are currently being enqueued.
      */
-    private Map<Long, Set<Hashable>> transactionMap = new HashMap<Long, Set<Hashable>>();
+    private Map<Long, Pair<Boolean,Set<Hashable>>> transactionMap;
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -104,6 +99,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
         this.rollForwardDelayMS = rollForwardDelayMS;
         this.resetMS = resetMS;
         this.tableName = tableName;
+        transactionMap = new HashMap<Long, Pair<Boolean,Set<Hashable>>>(maxCount * 2);
         reset();
     }
 
@@ -119,23 +115,34 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
 
     /**
      * This is the main function for users of the queue. Callers notify the queue that the given row in the underlying
-     * table should be updated to reflect the final status of the given transaction.
+     * table should be updated to reflect the final status of the given transaction. If the caller knows
+     * (through whatever context it has available) that the transaction has in fact committed, it passes along
+     * that information.
      */
     @Override
-    public void recordRow(long transactionId, Data rowKey) {
+    public void recordRow(long transactionId, Data rowKey, Boolean knownToBeCommitted) {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
-                Set<Hashable> rowSet = transactionMap.get(transactionId);
-                if (rowSet == null) {
-                    rowSet = new HashSet();
-                    transactionMap.put(transactionId, rowSet);
+                Pair<Boolean,Set<Hashable>> transPair = transactionMap.get(transactionId);
+                if (transPair == null) {
+                    transPair = new Pair<Boolean, Set<Hashable>>(true, new HashSet());
+                    transactionMap.put(transactionId, transPair);
                     scheduleRollForward(transactionId);
                 }
-                final Hashable newRow = hasher.toHashable(rowKey);
-                if (!rowSet.contains(newRow)) {
-                    rowSet.add(newRow);
-                    count = count + 1;
+                if (knownToBeCommitted){
+                    transPair.setFirst(true);
+                    if (transPair.getSecond().size() == 0){
+                        scheduleRollForward(transactionId);
+                    }
+                }
+                if (transPair.getFirst()){
+                    Set<Hashable> rowSet = transPair.getSecond();
+                    final Hashable newRow = hasher.toHashable(rowKey);
+                    if (!rowSet.contains(newRow)) {
+                        rowSet.add(newRow);
+                        count = count + 1;
+                    }
                 }
             }
         }
@@ -158,7 +165,14 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
             public void run() {
                 List<Data> rowList = takeRowList(transactionId);
                 try {
-                    action.rollForward(transactionId, rowList);
+                    Boolean transactionFinished = action.rollForward(transactionId, rowList);
+                    if (!transactionFinished){
+                        synchronized (SynchronousRollForwardQueue.this){
+                            // If we find that transaction not yet complete, stop collecting
+                            // roll-forward requests for it
+                            transactionMap.get(transactionId).setFirst(false);
+                        }
+                    }
                 } catch (WrongRegionException e) {
                     LOG.debug("WrongRegionException while rolling forward", e);
                 }  catch (IOException e) {
@@ -192,10 +206,11 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     private List<Data> takeRowList(long transactionId) {
         Set rowSet;
         synchronized (this) {
-            rowSet = transactionMap.get(transactionId);
-            if (rowSet != null) {
-                transactionMap.remove(transactionId);
+            Pair<Boolean, Set<Hashable>> pair = transactionMap.get(transactionId);
+            rowSet = pair.getSecond();
+            if (rowSet.size() > 0) {
                 count = count - rowSet.size();
+                pair.setSecond(new HashSet<Hashable>());
             }
         }
         return produceRowList(rowSet);
@@ -205,7 +220,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
     private List<Data> produceRowList(Set<Hashable> rowSet) {
-        if (rowSet == null) {
+        if (rowSet == null || rowSet.size() == 0) {
             return Collections.emptyList();
         } else {
             List<Data> result = new ArrayList<Data>(rowSet.size());
@@ -218,10 +233,10 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
 
     private void clearRowList(long transactionId) {
         synchronized (this) {
-            final Set rowSet = transactionMap.get(transactionId);
+            final Set rowSet = transactionMap.get(transactionId).getSecond();
             if (rowSet != null) {
-                transactionMap.remove(transactionId);
                 count = count - rowSet.size();
+                rowSet.clear();
             }
         }
     }
@@ -232,7 +247,9 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      */
     private void reset() {
         synchronized (this) {
-            transactionMap.clear();
+            for (Map.Entry<Long, Pair<Boolean, Set<Hashable>>> entry: transactionMap.entrySet()) {
+                entry.getValue().getSecond().clear();
+            }
             count = 0;
             scheduleReset();
         }
