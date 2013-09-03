@@ -29,5 +29,5 @@ public interface JobStats {
 
     String getJobName();
 
-    List<String> getFailedTasks();
+    List<byte[]> getFailedTasks();
 }

@@ -152,7 +152,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         @Override public String getJobName() { return "localJob"; }
 
         @Override
-        public List<String> getFailedTasks() {
+        public List<byte[]> getFailedTasks() {
             return Collections.emptyList();
         }
 

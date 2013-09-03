@@ -231,8 +231,8 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
 
         @Override
-        public List<String> getFailedTasks() {
-            List<String> failedTasks = Lists.newArrayList();
+        public List<byte[]> getFailedTasks() {
+            List<byte[]> failedTasks = Lists.newArrayList();
             for(JobStats stat:stats){
                 failedTasks.addAll(stat.getFailedTasks());
             }

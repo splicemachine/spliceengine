@@ -548,13 +548,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
     }
 
-    private static final Function<String,byte[]> taskToBytes = new Function<String, byte[]>() {
-        @Override
-        public byte[] apply(@Nullable String input) {
-            return Bytes.toBytes(input);
-        }
-    };
-
     @Override
     public final void executeShuffle() throws StandardException {
         /*
@@ -563,7 +556,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
          */
         JobStats stats = doShuffle();
         JobStatsUtils.logStats(stats);
-        failedTasks = new ArrayList<byte[]>(Lists.transform(stats.getFailedTasks(),taskToBytes));
+        failedTasks = new ArrayList<byte[]>(stats.getFailedTasks());
 	}
 
     protected JobStats doShuffle() throws StandardException {

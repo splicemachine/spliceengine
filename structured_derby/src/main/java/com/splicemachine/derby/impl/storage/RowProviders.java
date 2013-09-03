@@ -302,8 +302,8 @@ public class RowProviders {
         }
 
         @Override
-        public List<String> getFailedTasks() {
-            List<String> failedTasks = Lists.newArrayList(firstJobStats.getFailedTasks());
+        public List<byte[]> getFailedTasks() {
+            List<byte[]> failedTasks = Lists.newArrayList(firstJobStats.getFailedTasks());
             failedTasks.addAll(secondJobStats.getFailedTasks());
             return failedTasks;
         }
