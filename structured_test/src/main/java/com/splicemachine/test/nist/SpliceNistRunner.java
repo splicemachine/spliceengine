@@ -42,7 +42,7 @@ public class SpliceNistRunner extends NistTestUtils {
     public SpliceNistRunner() throws Exception {
 //        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
         executor = Executors.newSingleThreadExecutor();
-        Connection connection = SpliceNetConnection.getConnection();
+        Connection connection = getConnection();
         connection.close();
     }
 
@@ -53,20 +53,29 @@ public class SpliceNistRunner extends NistTestUtils {
      */
     public void runSplice(List<File> testFiles) throws Exception {
         Collection<Future<String>> testRuns = new ArrayList<Future<String>>(testFiles.size());
-        Connection connection = SpliceNetConnection.getConnection();
+        Connection connection = getConnection();
         for (File file: testFiles) {
             testRuns.add(executor.submit(new SpliceCallable(file, connection)));
             if (connection.isClosed()) {
                 // FIXME: this does not handle reconnect when "disconnect;"
                 // is called from a script...
                 LOG.warn("DB connection was closed. Attempting to get new...");
-                connection = SpliceNetConnection.getConnection();
+                connection = getConnection();
             }
         }
 
         for (Future<String> testRun : testRuns) {
             testRun.get();
         }
+    }
+
+    /**
+     * Get a connection to this store
+     * @return valid Connection
+     * @throws Exception if an error occurs acquiring the connection
+     */
+    public Connection getConnection() throws Exception {
+    	return SpliceNetConnection.getConnection();
     }
 
     /**

@@ -23,12 +23,10 @@ public class NistTest {
     private static List<String> derbyOutputFilter;
     private static List<String> spliceOutputFilter;
 
-    private static ByteArrayOutputStream baos;
-    private static PrintStream ps;
     private static DerbyNistRunner derbyRunner;
     private static SpliceNistRunner spliceRunner;
 
-    private static boolean justDrop;
+    private static boolean clean;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -36,15 +34,11 @@ public class NistTest {
         String singleScript = System.getProperty("script", null);
         if (singleScript == null) {
             testFiles = NistTestUtils.getTestFileList();
-        } else if (singleScript.equalsIgnoreCase(NistTestUtils.DROP_SQL)) {
-            justDrop = true;
+        } else if (singleScript.equalsIgnoreCase("clean")) {
+            clean = true;
         } else {
             testFiles = NistTestUtils.createRunList(singleScript);
         }
-        
-        // for output recording
-        baos = new ByteArrayOutputStream();
-        ps = new PrintStream(baos);
 
         // Read in the bug filters for output files
         derbyOutputFilter = NistTestUtils.readDerbyFilters();
@@ -56,17 +50,19 @@ public class NistTest {
     
     @AfterClass
     public static void afterClass() throws Exception {
-        if (! justDrop) {
+        if (! clean) {
 			// run drop script after test for cleanup, unless test was run just to drop schema
-			NistTestUtils.runDrop(derbyRunner, spliceRunner, ps);
-			System.out.println(baos.toString("UTF-8"));
+			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
 		}
     }
 
     @Test(timeout=1000*60*12)  // Time out after 12 min
     public void runNistTest() throws Exception {
-        if (justDrop) {
-            NistTestUtils.runDrop(derbyRunner, spliceRunner, ps);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+
+        if (clean) {
+            NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
 			System.out.println(baos.toString("UTF-8"));
             return;
         }

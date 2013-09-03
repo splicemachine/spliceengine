@@ -1,25 +1,40 @@
 package com.splicemachine.test.nist;
 
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
-import com.splicemachine.test.diff.DiffEngine;
-import com.splicemachine.test.diff.DiffReport;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.dbutils.DbUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.derby.tools.ij;
 import org.junit.Assert;
 
-import java.io.*;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.*;
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
+import com.splicemachine.test.diff.DiffEngine;
+import com.splicemachine.test.diff.DiffReport;
 
 /**
  * Static utility class to support various operations to run the Derby NIST SQL Scripts.
  */
 public class NistTestUtils {
-    public static final String DROP_SQL = "drop.sql";
     public static int DEFAULT_THREAD_POOL_SIZE = 4;
 
     public static final String HASH_COMMENT = "#";
@@ -251,12 +266,91 @@ public class NistTestUtils {
         return reports;
     }
 
-    public static void runDrop(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner, PrintStream out) throws Exception {
+    private static final Set<String> verbotten = 
+    		Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT");
+
+    public static void cleanup(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner, PrintStream out) throws Exception {
         out.println("Dropping test schema...");
-        List<File> cleanup = Arrays.asList(new File(getResourceDirectory()+NIST_DIR_SLASH, DROP_SQL));
-        derbyRunner.runDerby(cleanup);
-        spliceRunner.runSplice(cleanup);
+        
+        Connection derbyConnection = derbyRunner.getConnection();
+        ResultSet derbySchema = derbyConnection.getMetaData().getSchemas();
+        try {
+			executeDrop(derbyConnection, derbySchema, verbotten, out);
+		} catch (Exception e) {
+			// ignore
+		}
+        
+        Connection spliceConnection = spliceRunner.getConnection();
+        ResultSet spliceSchema = derbyConnection.getMetaData().getSchemas();
+        try {
+			executeDrop(spliceConnection, spliceSchema, verbotten, out);
+		} catch (Exception e) {
+			// ignore
+		}
     }
+    
+    private static void executeDrop(Connection connection, ResultSet schemaMetadata, Set<String> verbotten, PrintStream out) throws Exception {
+        while (schemaMetadata.next()) {
+        	String name = schemaMetadata.getString("TABLE_SCHEM");
+        	if (! verbotten.contains(name)) {
+				try {
+					executeDrop(connection, name, out);
+				} catch (Throwable e) {
+					// ignore
+				}
+			}
+        }
+
+    }
+	
+	private static void executeDrop(Connection connection, String schemaName, PrintStream out) {
+		out.println("ExecuteDrop; "+schemaName);
+		Statement statement = null;
+		try {
+			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"});
+			while (resultSet.next()) {
+				executeDrop(connection, schemaName, resultSet.getString("TABLE_NAME"), true, out);
+			}
+            resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
+			while (resultSet.next()) {
+				executeDrop(connection, schemaName, resultSet.getString("TABLE_NAME"), false, out);
+			}
+			
+			statement = connection.createStatement();
+			resultSet = connection.getMetaData().getSchemas(null, schemaName.toUpperCase());
+			while (resultSet.next()) {
+				statement.execute("drop schema " + schemaName + " RESTRICT");
+			}
+			connection.commit();
+		} catch (Exception e) {
+			out.println("error Dropping " + e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(statement);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
+	}
+
+	public static void executeDrop(Connection connection, String schemaName,String tableName, boolean isView, PrintStream out) {
+		out.println("ExecuteDrop; "+schemaName+"."+tableName);
+		Statement statement = null;
+        String tableOrView = isView ? "view" : "table";
+		try {
+			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
+			if (rs.next()) {
+				statement = connection.createStatement();
+				statement.execute(String.format("drop %s %s.%s",tableOrView,schemaName.toUpperCase(),tableName.toUpperCase()));
+				connection.commit();
+			}
+		} catch (Exception e) {
+			out.println("error Dropping " + e.getMessage());
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(statement);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
+	}
 
     /**
      * The workhorse of test execution.

@@ -1,6 +1,7 @@
 package com.splicemachine.test.nist;
 
 import com.splicemachine.test.connection.DerbyEmbedConnection;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
@@ -31,7 +32,7 @@ public class DerbyNistRunner extends NistTestUtils {
         File nistDir = new File(NistTestUtils.getBaseDirectory()+"/target/nist/");
         if (nistDir.exists())
         	FileUtils.deleteDirectory(nistDir);
-        Connection connection = DerbyEmbedConnection.getConnection();
+        Connection connection = getConnection();
         connection.close();
     }
 
@@ -42,12 +43,12 @@ public class DerbyNistRunner extends NistTestUtils {
      */
     public void runDerby(List<File> testFiles) throws Exception {
 
-        Connection connection = DerbyEmbedConnection.getConnection();
+        Connection connection = getConnection();
         for (File file: testFiles) {
             NistTestUtils.runTest(file, NistTestUtils.DERBY_OUTPUT_EXT, connection);
             if (connection.isClosed()) {
                 LOG.warn("DB connection was closed. Attempting to get new...");
-                connection = DerbyEmbedConnection.getConnection();
+                connection = getConnection();
             }
         }
         try {
@@ -58,4 +59,12 @@ public class DerbyNistRunner extends NistTestUtils {
         }
     }
 
+    /**
+     * Get a connection to this store
+     * @return valid Connection
+     * @throws Exception if an error occurs acquiring the connection
+     */
+    public Connection getConnection() throws Exception {
+    	return DerbyEmbedConnection.getConnection();
+    }
 }

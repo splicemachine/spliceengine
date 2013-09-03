@@ -18,7 +18,7 @@ public class ParseDateTest {
     @Test
     public void testParseScriptOutput() throws Exception {
         String fileDirName = "/Users/jeff/dev/AWS/results/load/";
-        List<String> csvs = createCSV(fileDirName, getFileNames(fileDirName, "load25_SI_NOPK\\d.log"));
+        List<String> csvs = createCSV(fileDirName, getFileNames(fileDirName, "load25_default_hbase_SI_PK\\d.log"));
 
         for (String csv : csvs) {
             System.out.println(csv);
@@ -28,7 +28,7 @@ public class ParseDateTest {
     @Test
     public void testParseAveScriptOutput() throws Exception {
         String fileDirName = "/Users/jeff/dev/AWS/results/load/";
-        List<String> csvs = createCSVMean(fileDirName, getFileNames(fileDirName, "load25_SI_NOPK\\d.log"));
+        List<String> csvs = createCSVMean(fileDirName, getFileNames(fileDirName, "load25_default_hbase_SI_PK\\d.log"));
 
         for (String csv : csvs) {
             System.out.println(csv);
