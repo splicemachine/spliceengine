@@ -41,7 +41,7 @@ public class SuccessFilter extends FilterBase {
     public boolean filterRowKey(byte[] buffer, int offset, int length) {
         int postfixOffset = offset+length;
         if(!uniqueOp)
-            postfixOffset -=8;
+            postfixOffset -=(8+1);
         for(byte[] failedTask:failedTasks){
             int postOffset = postfixOffset-failedTask.length;
             if(Bytes.compareTo(buffer,postOffset,failedTask.length,failedTask,0,failedTask.length)==0){
