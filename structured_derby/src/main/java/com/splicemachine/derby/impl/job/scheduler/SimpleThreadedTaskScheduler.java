@@ -124,6 +124,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
             }
 
             try{
+                SchedulerTracer.traceTaskStart();
                 SpliceLogUtils.trace(WORKER_LOG,"executing task %s",task.getTaskId());
                 try{
                     task.markStarted();

@@ -2,6 +2,7 @@ package com.splicemachine.test;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.coprocessors.SIObserver;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -13,6 +14,10 @@ import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import org.apache.hadoop.hbase.NotServingRegionException;
+
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 public class SpliceTestPlatform extends TestConstants {
 	protected MiniZooKeeperCluster miniZooKeeperCluster;
@@ -24,6 +29,16 @@ public class SpliceTestPlatform extends TestConstants {
     protected Integer masterInfoPort;
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
+
+    final Runnable randomFailures = new Runnable() {
+        @Override
+        public void run() {
+            final int x = new Random().nextInt(100);
+            if (x < 33) {
+                throw new RuntimeException(new ExecutionException("failing on purpose", new NotServingRegionException()));
+            }
+        }
+    };
 
     public SpliceTestPlatform() {
 		super();
@@ -68,12 +83,14 @@ public class SpliceTestPlatform extends TestConstants {
 	}
 	
 	public void start() throws Exception {
+        SchedulerTracer.registerTaskStart(randomFailures);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
-	public void end() throws Exception {
 
+	public void end() throws Exception {
+        SchedulerTracer.registerTaskStart(null);
 	}
 
     private void setInt(Configuration configuration, String property, Integer intProperty){
