@@ -46,7 +46,7 @@ public class ParallelFileImportTask extends ParallelImportTask{
         do{
             next =  csvReader.readNext();
             if(next==null) return null; //if reader returns null, we're done
-        }while(next.length==0||(next.length==1&&(next[0]==null||next[1].length()==0)));
+        }while(next.length==0||(next.length==1&&(next[0]==null||next[0].length()==0)));
         return next;
     }
 
