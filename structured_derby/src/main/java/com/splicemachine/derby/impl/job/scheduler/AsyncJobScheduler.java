@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedulerManagement {
     private static final Logger LOG = Logger.getLogger(AsyncJobScheduler.class);
-    private static final int DEFAULT_MAX_RESUBMISSIONS = 5;
+    private static final int DEFAULT_MAX_RESUBMISSIONS = 10;
     protected final SpliceZooKeeperManager zkManager;
     private final int maxResubmissionAttempts;
 
