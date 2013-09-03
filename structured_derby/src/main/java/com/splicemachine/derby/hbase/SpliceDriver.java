@@ -27,6 +27,8 @@ import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.JmxReporter;
 import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
@@ -55,6 +57,7 @@ public class SpliceDriver extends SIConstants {
     private static final Logger LOG = Logger.getLogger(SpliceDriver.class);
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
+    private JmxReporter metricsReporter;
 
     public static enum State{
         NOT_STARTED,
@@ -94,6 +97,7 @@ public class SpliceDriver extends SIConstants {
     private TempCleaner tempCleaner;
     private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
+    private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -279,6 +283,7 @@ public class SpliceDriver extends SIConstants {
                         service.shutdown();
                     }
 
+                    metricsReporter.shutdown();
                     SpliceLogUtils.info(LOG,"Destroying internal Engine");
                     stateHolder.set(State.SHUTDOWN);
                 }catch(Exception e){
@@ -298,6 +303,10 @@ public class SpliceDriver extends SIConstants {
         try{
 
             writerPool.registerJMX(mbs);
+
+            //registry metricsRegistry
+            metricsReporter = new JmxReporter(spliceMetricsRegistry);
+            metricsReporter.start();;
 
             //register error reporter
             ObjectName errorReporterName = new ObjectName("com.splicemachine.error:type=ErrorReport");
@@ -416,6 +425,11 @@ public class SpliceDriver extends SIConstants {
     public void loadUUIDGenerator() throws IOException {
         snowflake =  snowLoader.load();
     }
+
+    public MetricsRegistry getRegistry(){
+        return spliceMetricsRegistry;
+    }
+
     
     public static void setOptimizerTrace(boolean onOrOff) {
     	SpliceLogUtils.trace(LOG, "setOptimizerTrace %s", onOrOff);

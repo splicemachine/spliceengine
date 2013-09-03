@@ -6,15 +6,18 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.SkipScanFilter;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.ConcurrentRingBuffer;
@@ -33,9 +36,8 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -298,7 +300,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		DataValueDescriptor restrictBoolean;
 
         if(ringBuffer==null)
-            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(SpliceConstants.indexBufferSize,new RowAndLocation[0],new IndexFiller(SpliceConstants.indexBatchSize,source));
+            ringBuffer = new ConcurrentRingBuffer<RowAndLocation>(SpliceConstants.indexBufferSize,new RowAndLocation[0],
+                        new IndexFiller(SpliceConstants.indexBatchSize,source));
         do{
             try{
                 RowAndLocation roLoc = ringBuffer.next();
@@ -427,7 +430,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
     }
 
     private class IndexFiller implements ConcurrentRingBuffer.Filler<RowAndLocation>{
-        private final List<Get> batch;
+        private final List<byte[]> batch;
         private final int batchSize;
         private final SpliceOperation source;
         private HTableInterface table;
@@ -439,12 +442,16 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
         private byte[] predicateFilterBytes;
         private boolean populated = false;
         private boolean finished = false;
+        private int size = 0;
+
+        private com.yammer.metrics.core.Timer timer = SpliceDriver.driver().getRegistry().newTimer(IndexRowToBaseRowOperation.class,"fetchTime");
 
         private IndexFiller(int batchSize, SpliceOperation source) {
             this.batch = Lists.newArrayListWithCapacity(batchSize);
             this.batchSize = batchSize;
             this.source = source;
             this.rowBatch = new RowAndLocation[batchSize];
+            this.resultBatch = new Result[batchSize];
         }
 
         @Override
@@ -454,10 +461,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 
         @Override
         public RowAndLocation getNext(RowAndLocation old) throws ExecutionException {
-            if(currentResultPos<0 || currentResultPos>=resultBatch.length){
+            if(currentResultPos<0 || currentResultPos>=size){
                 fillBatch();
             }
-            if(currentResultPos<0 || currentResultPos>=resultBatch.length)
+            if(currentResultPos<0 || currentResultPos>=size)
                return null; //nothing to return now
 
             //we have data to return
@@ -527,9 +534,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                         predicateFilterBytes = getPredicateFilter.toBytes();
                     }
 
-                    Get get = SpliceUtils.createGet(getTransactionID(), rowLoc.location);
-                    get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
-                    batch.add(get);
+//                    Get get = SpliceUtils.createGet(getTransactionID(), rowLoc.location);
+//                    get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
+                    batch.add(rowLoc.location);
                 }
 
                 //get the results
@@ -537,7 +544,43 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
                     table = SpliceAccessManager.getHTable(conglomId);
 
                 if(batch.size()>0){
-                    resultBatch= table.get(batch);
+                    SkipScanFilter filter = new SkipScanFilter();
+                    filter.setFailOnMissingRow(true);
+                    filter.setRows(batch);
+                    Scan scan = SpliceUtils.createScan(getTransactionID());
+                    //get minimum and maximum entry in batch
+                    byte[] minEntry = null;
+                    byte[] maxEntry = null;
+                    for(byte[] row:batch){
+                        if(minEntry==null|| Bytes.compareTo(minEntry,row)>0)
+                            minEntry = row;
+                        if(maxEntry==null|| Bytes.compareTo(maxEntry,row)<0)
+                            maxEntry = row;
+                    }
+                    scan.setStartRow(minEntry);
+                    scan.setStopRow(BytesUtil.unsignedCopyAndIncrement(maxEntry)); //TODO -sf- do I need to copy here?
+                    scan.setFilter(filter);
+                    scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
+
+                    long start = System.nanoTime();
+                    ResultScanner resultScanner = table.getScanner(scan);
+                    try{
+                        size=0;
+                        for(int i=0;i<resultBatch.length;i++){
+                            Result result = resultScanner.next();
+                            if(result==null)break;
+
+                            resultBatch[i] = result;
+                            size++;
+                        }
+
+                        //make sure a full batch of rows came back
+                        assert resultScanner.next()==null; //make sure that ONLY a full batch returned
+                    }finally{
+                        resultScanner.close();
+                        timer.update(System.nanoTime()-start, TimeUnit.NANOSECONDS);
+                    }
+
                     batch.clear();
                     currentResultPos=0;
                 }

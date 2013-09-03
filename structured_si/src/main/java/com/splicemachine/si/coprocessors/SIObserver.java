@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionalFilter;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HbRegion;
@@ -163,7 +164,14 @@ public class SIObserver extends BaseRegionObserver {
                 includeSIColumn, includeUncommittedAsOfStart);
         Filter newFilter;
         if (currentFilter != null) {
-            newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters
+            if(currentFilter instanceof TransactionalFilter){
+                if(((TransactionalFilter) currentFilter).isBeforeSI())
+                    newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, currentFilter,siFilter); // Wrap Existing Filters
+                else
+                    newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter,currentFilter); // Wrap Existing Filters
+            }else{
+                newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter,currentFilter); // Wrap Existing Filters
+            }
         } else {
             newFilter = siFilter;
         }
