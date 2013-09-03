@@ -30,12 +30,26 @@ public class SpliceTestPlatform extends TestConstants {
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
 
-    final Runnable randomFailures = new Runnable() {
+    final Random random = new Random();
+
+    private boolean randomly(int percent) {
+        return random.nextInt(100) < percent;
+    }
+
+    final Runnable randomWrappedExecutionException = new Runnable() {
         @Override
         public void run() {
-            final int x = new Random().nextInt(100);
-            if (x < 33) {
-                throw new RuntimeException(new ExecutionException("failing on purpose", new NotServingRegionException()));
+            if (randomly(33)) {
+                throw new RuntimeException(new ExecutionException("invalidating on purpose", new NotServingRegionException()));
+            }
+        }
+    };
+
+    final Runnable randomRuntimeException = new Runnable() {
+        @Override
+        public void run() {
+            if (randomly(10)) {
+                throw new RuntimeException("failing on purpose");
             }
         }
     };
@@ -83,7 +97,8 @@ public class SpliceTestPlatform extends TestConstants {
 	}
 	
 	public void start() throws Exception {
-        SchedulerTracer.registerTaskStart(randomFailures);
+        SchedulerTracer.registerTaskStart(randomWrappedExecutionException);
+        //SchedulerTracer.registerTaskEnd(randomRuntimeException);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
@@ -91,6 +106,7 @@ public class SpliceTestPlatform extends TestConstants {
 
 	public void end() throws Exception {
         SchedulerTracer.registerTaskStart(null);
+        SchedulerTracer.registerTaskEnd(null);
 	}
 
     private void setInt(Configuration configuration, String property, Integer intProperty){
