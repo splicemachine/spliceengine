@@ -17,7 +17,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
@@ -63,13 +62,12 @@ public class UniqueConstraint implements Constraint {
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();
-        
+        if (!HRegionUtil.keyExists(region, region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
+        		return true;
         HRegionUtil.populateKeyValues(region, keyValues, get);
         Result result = new Result(keyValues);
         boolean rowPresent = result!=null && !result.isEmpty();
-//        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
         if(rowPresent){
-//            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
             KeyValue[] raw = result.raw();
             rowPresent=false;
             for(KeyValue kv:raw){
@@ -84,41 +82,12 @@ public class UniqueConstraint implements Constraint {
         return !rowPresent;
     }
 
-    
-    /*
-    @Override
-    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
-        if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
-        Get get = createGet(mutation,txnId);
-
-        HRegion region = rce.getRegion();
-        keyValues.clear();
-        HRegionUtil.populateKeyValues(region, keyValues, get);
-        boolean rowPresent = keyValues!=null && !keyValues.isEmpty();
-        
-//        SpliceLogUtils.trace(logger,rowPresent? "row exists!": "row not yet present");
-        if(rowPresent){
-//            SpliceLogUtils.trace(logger, BytesUtil.toHex(mutation.getRow()));
-            rowPresent=false;
-            for(KeyValue kv:keyValues){
-                if(kv.matchingFamily(SpliceConstants.DEFAULT_FAMILY_BYTES)){
-                    rowPresent=true;
-                    if (logger.isTraceEnabled())
-                    	SpliceLogUtils.trace(logger, "row %s,CF %s present",BytesUtil.toHex(mutation.getRow()),BytesUtil.toHex(kv.getFamily()));
-                    break;
-                }
-            }
-        }
-        return !rowPresent;
-    }
-    */
-
     @Override
     public List<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(!validate(change,txnId,rce))
+            if(HRegionUtil.keyExists(rce.getRegion(), rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce))
                 failedKvs.add(change);
         }
         return failedKvs;
@@ -133,11 +102,8 @@ public class UniqueConstraint implements Constraint {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof UniqueConstraint)) return false;
-
         UniqueConstraint that = (UniqueConstraint) o;
-
         return constraintContext.equals(that.constraintContext);
-
     }
 
     @Override
