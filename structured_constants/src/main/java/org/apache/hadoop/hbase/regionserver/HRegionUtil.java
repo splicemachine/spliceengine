@@ -1,20 +1,68 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
-
 import com.google.common.io.Closeables;
-
+/**
+ * Class for accessing protected methods in HBase.
+ * 
+ * @author johnleach
+ *
+ */
 public class HRegionUtil {
 
 	public static void startRegionOperation(HRegion region) throws IOException {
 		region.startRegionOperation();
+	}
+	/**
+	 * 
+	 * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
+	 * code is utilized via constraint checking and SI Write/Write conflict checking
+	 * 
+	 * @param region
+	 * @param store
+	 * @param key
+	 * @return
+	 * @throws IOException
+	 */
+	public static boolean keyExists(HRegion region, Store store, byte[] key) throws IOException {
+	    store.lock.readLock().lock();
+	    List<StoreFile> storeFiles;
+	    try {
+	      storeFiles = store.getStorefiles();
+	      for (StoreFile file: storeFiles) {
+	    	  if (file.createReader().generalBloomFilter.contains(key, 0, key.length, null))
+	    		  return true;
+	      }
+	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
+	      KeyValue placeHolder;
+	      if (!store.memstore.kvset.isEmpty()) {
+		      SortedSet<KeyValue> kvset = store.memstore.kvset.tailSet(kv);
+		      placeHolder = kvset.isEmpty()?null:kvset.first();
+		      if (placeHolder != null && placeHolder.matchingRow(key))
+		    	  return true;
+	      }
+	      if (!store.memstore.snapshot.isEmpty()) {
+		      SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	      
+		      placeHolder = snapshot.isEmpty()?null:snapshot.first();
+		      if (placeHolder != null && placeHolder.matchingRow(key))
+	    		  return true;
+	      }
+	      return false;  
+	    } catch (IOException ioe) {
+	    	ioe.printStackTrace();
+	    	throw ioe;
+	    }
+	    finally {
+	      store.lock.readLock().unlock();
+	    }
 	}
 	
 	public static void closeRegionOperation(HRegion region) {
@@ -42,75 +90,6 @@ public class HRegionUtil {
 	    if (coprocessorHost != null) {
 	        coprocessorHost.postGet(get, keyValues);
 	    }
-	}	
-	
-	public static RegionScannerImpl populateKeyValuesScanner(HRegion hregion, List<KeyValue> keyValues, Get get) throws IOException {
-		RegionScannerImpl scanner = null;
-		RegionCoprocessorHost coprocessorHost = hregion.getCoprocessorHost();
-		try {
-			  // pre-get CP hook
-		    if (coprocessorHost != null) {
-		       if (coprocessorHost.preGet(get, keyValues)) {
-		    	   throw new IOException("Not possible to short circuit this type of scan");
-		       }
-		    }
-			Scan scan = new Scan(get);
-		    scanner = (RegionScannerImpl) hregion.instantiateRegionScanner(scan, null);
-			scanner.nextRaw(keyValues, SchemaMetrics.METRIC_GETSIZE);
-			return scanner;
-		} catch (IOException e) {
-			throw e;
-		} finally {
-			Closeables.close(scanner, false);
-		}
-	}	
-
-	
-
-		
-	public static class MultiGetScanner {
-		RegionScannerImpl regionScanner;
-		List<KeyValue> keyValues = new ArrayList<KeyValue>();
-		public MultiGetScanner (Scan scan, List<KeyValue> keyValues, HRegion hregion) throws IOException {
-			RegionCoprocessorHost coprocessorHost = hregion.getCoprocessorHost();
-			try {
-			    if (coprocessorHost != null) {
-			       coprocessorHost.preScannerOpen(scan); // Allows SI to add filter to scan!
-			    }
-			    regionScanner = (RegionScannerImpl) hregion.instantiateRegionScanner(scan, null);
-			} catch (IOException e) {
-				throw e;
-			}
-		}
-	
-		public void populateKeyValues(byte[] row) throws IOException {
-			regionScanner.reseek(row);
-			regionScanner.nextRaw(keyValues, SchemaMetrics.METRIC_GETSIZE);
-		}		
-
-		public void close() throws IOException {
-			Closeables.close(regionScanner, false);
-		}
-		public List<KeyValue> getKeyValues() {
-			return keyValues;
-		}
-		
-		public boolean reseek(byte[] row) throws IOException {
-	        KeyValue kv = KeyValue.createFirstOnRow(row);
-	        // use request seek to make use of the lazy seek option. See HBASE-5520
-	        boolean result = regionScanner.storeHeap.requestSeek(kv, true, true);
-	        if (regionScanner.joinedHeap != null) { // We do not currently have extra scanners...
-	          result = regionScanner.joinedHeap.requestSeek(kv, true, true) || result;
-	        }
-	        return result;
-		}
-		
-		public boolean hasValues() {
-			return keyValues != null && keyValues.isEmpty();
-		}
-		
-	}
-	
-	
+	}			
 	
 }
