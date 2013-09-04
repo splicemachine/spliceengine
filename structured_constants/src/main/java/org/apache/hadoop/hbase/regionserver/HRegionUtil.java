@@ -33,12 +33,14 @@ public class HRegionUtil {
 	 * @throws IOException
 	 */
 	public static boolean keyExists(HRegion region, Store store, byte[] key) throws IOException {
+		if (key == null)
+			return false;
 	    store.lock.readLock().lock();
 	    List<StoreFile> storeFiles;
 	    try {
 	      storeFiles = store.getStorefiles();
 	      for (StoreFile file: storeFiles) {
-	    	  if (file.createReader().generalBloomFilter.contains(key, 0, key.length, null))
+	    	  if (file != null && file.createReader().generalBloomFilter != null && file.createReader().generalBloomFilter.contains(key, 0, key.length, null))
 	    		  return true;
 	      }
 	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
