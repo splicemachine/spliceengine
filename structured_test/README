@@ -1,0 +1,47 @@
+This README describes NistTest
+
+- NistTest: Run all SQL script in the src/test/resourced/nist folder with derby, splice and do script output
+            differencing.  Runs just over 5 min.
+    
+   Usage: mvn test -DNistTest [-Dnoclean] [-Dscript=<scriptName.sql>]
+   Where: noclean = do not clean the splice DB schema. Default is to remove all foreign schema before and after run.
+          script=<scriptName.sql> = run the Nist script noted (plus schema creation scripts before).
+          
+   Notes:
+    - To build, in the splicemachine/structured_test directory, run "mvn clean install -DskipTests"
+    - Note that if you just run "> mvn test", that will run NistTest (the main test) and all tests in
+            the project and Splice tests may fail because schema and tables already exist.
+
+- Structure
+   - Control files located in src/test/resources/nist
+       - skip.tests file is there for you to list tests to skip.
+       - schema.list file is there for you to list all tests that create schema. These are placed
+            at the front of the list of tests to run, because other tests depend on these schema to exist.
+       - derby.filter is the place to put errors, warnings and other output from Derby that you want
+            ignored for output file differencing.
+       - splice.filter is the same as derby.filter except it's for Splice output.
+       - The other area of test output normalization is in NistLineEqualizer. This is an implementation of the
+            Equalizer<T> interface provided by the differencing module we use.
+   - Flow
+       - To get the list and the order (yes, there is a required order) of .sql scripts to run,
+            we get the list of all .sql scripts in the src/test/resources/nist directory, remove the skipped
+            tests using the list in skip.tests, remove the schema creators using the list in schema.list, sort
+            the remainder in alpha order and add the schema creators to the front of the list.
+       - Execute the list against Derby with DerbyNistRunner, which produces target/nist/<scriptName>.derby
+       - Execute the list against Splice with SpliceNistRunner, which produces target/nist/<scriptName>.splice
+       - Difference the .derby files with the .splice files, which produces a collection of DiffReports
+       - Clean up schema created in both Derby and Splice. This is done by querying for schema from the JDBC
+            Connection and, for each schema, query for and remove the Views, Tables and finally the schema.
+            (See caveats)
+       - Print all DiffReports to a file and fail the test if any have differences
+       - Durations are given for Derby and Splice execution time
+
+- Left to do (caveats)
+   - Splice reestablish connection not working
+       - I have code in place to check if a connection gets closed and, if so, create a new one, and it works 
+            for Derby embedded connection, but not for Splice. 
+       - To work around this, I have commented the "disconnect;" directives in basetab.sql, schema1.sql and
+            schema5.sql for now.
+   - The schema cleanup does not always work. Although Views are dropped first from each schema, there are some
+       schemas that have Views that are dependent on other views. If an attempt is made to drop a view on which
+       another view is dependent, the View drop fails and then, of course, the schema drop fails.

@@ -270,50 +270,132 @@ public class NistTestUtils {
     		Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT");
 
     public static void cleanup(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner, PrintStream out) throws Exception {
-        out.println("Dropping test schema...");
         
         Connection derbyConnection = derbyRunner.getConnection();
         ResultSet derbySchema = derbyConnection.getMetaData().getSchemas();
+        out.println("Dropping Derby test schema...");
         try {
-			executeDrop(derbyConnection, derbySchema, verbotten, out);
+//			executeDrop(derbyConnection, derbySchema, verbotten, out);
+        	dropSchema(derbyConnection, derbySchema, verbotten, out);
 		} catch (Exception e) {
 			// ignore
 		}
         
         Connection spliceConnection = spliceRunner.getConnection();
         ResultSet spliceSchema = derbyConnection.getMetaData().getSchemas();
+        out.println("Dropping Splice test schema...");
         try {
-			executeDrop(spliceConnection, spliceSchema, verbotten, out);
+//			executeDrop(spliceConnection, spliceSchema, verbotten, out);
+        	dropSchema(spliceConnection, spliceSchema, verbotten, out);
 		} catch (Exception e) {
 			// ignore
 		}
     }
     
-    private static void executeDrop(Connection connection, ResultSet schemaMetadata, Set<String> verbotten, PrintStream out) throws Exception {
+    private static void dropSchema(Connection connection, ResultSet schemaMetadata, Set<String> verbotten, PrintStream out) throws Exception {
         while (schemaMetadata.next()) {
-        	String name = schemaMetadata.getString("TABLE_SCHEM");
-        	if (! verbotten.contains(name)) {
-				try {
-					executeDrop(connection, name, out);
-				} catch (Throwable e) {
-					// ignore
+        	String schemaName = schemaMetadata.getString("TABLE_SCHEM");
+        	if (! verbotten.contains(schemaName)) {
+        		out.println(" Drop Schema: "+schemaName);
+        		
+        		List<String> viewNames = getFeatureNames(connection, schemaName, "VIEW");
+        		dropFeature(connection, schemaName, viewNames, "VIEW", out);
+        		
+        		
+        		List<String> tableNames = getFeatureNames(connection, schemaName, "TABLE");
+        		dropFeature(connection, schemaName, tableNames, "TABLE", out);
+        		
+				connection.createStatement().execute("drop schema " + schemaName + " RESTRICT");
+				connection.commit();
+        		out.println(" Dropped Schema: "+schemaName);
+			}
+        }
+    }
+
+	private static void dropFeature(Connection connection, String schemaName,
+			List<String> featureNames, String tableOrView, PrintStream out) {
+		int maxTries = 5;
+		int tries = 0;
+		List<String> successfulViewsDropped = new ArrayList<String>(featureNames.size());
+		while (featureNames.size() > 0 && tries++ < maxTries) {
+			successfulViewsDropped = dropTableOrView(connection, schemaName, featureNames, tableOrView, out);
+			featureNames.removeAll(successfulViewsDropped);
+			Collections.reverse(featureNames);
+		}
+	}
+    
+    private static List<String> getFeatureNames(Connection connection,
+			String schemaName, String tableOrView) {
+    	List<String> featureNames = new ArrayList<String>();
+		try {
+			ResultSet resultSet = 
+					connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{tableOrView});
+			while (resultSet.next()) {
+				featureNames.add(resultSet.getString("TABLE_NAME"));
+			}
+		} catch (Throwable e) {
+			e.printStackTrace();
+//					throw new RuntimeException(e);
+		}
+		return featureNames;
+	}
+    
+    private static List<String> dropTableOrView(Connection connection, String schemaName, List<String> features, String tableOrView, PrintStream out) {
+    	List<String> successes = new ArrayList<String>(features.size());
+    	for (String feature : features) {
+//    		String featureName = feature;
+//    		if (featureName.contains(".")) {
+//    			featureName = featureName.replaceAll("\\.", "\\\\.");
+//    		}
+    		out.println("    Drop "+tableOrView+": "+schemaName+"."+feature);
+    		Statement statement = null;
+    		try {
+    			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), feature.toUpperCase(), null);
+    			if (rs.next()) {
+    				statement = connection.createStatement();
+    				statement.execute(String.format("drop %s %s.%s",tableOrView,schemaName.toUpperCase(),feature.toUpperCase()));
+    				connection.commit();
+    				successes.add(feature);
+    			}
+    		} catch (Exception e) {
+    			out.println("error dropping "+tableOrView+": " + e.getMessage());
+    		} finally {
+    			DbUtils.closeQuietly(statement);
+    		}
+    	}
+    	return successes;
+    }
+
+	private static void executeDrop(Connection connection, ResultSet schemaMetadata, Set<String> verbotten, PrintStream out) throws Exception {
+        while (schemaMetadata.next()) {
+        	String schemaName = schemaMetadata.getString("TABLE_SCHEM");
+        	boolean retry = true;
+        	int maxTries = 10;
+        	int tries = 0;
+        	if (! verbotten.contains(schemaName)) {
+				while (retry && tries++ < maxTries) {
+					try {
+						retry = dropSchema(connection, schemaName, out);
+					} catch (Throwable e) {
+						retry = true;
+					}
 				}
 			}
         }
-
     }
 	
-	private static void executeDrop(Connection connection, String schemaName, PrintStream out) {
-		out.println("ExecuteDrop; "+schemaName);
+	private static boolean dropSchema(Connection connection, String schemaName, PrintStream out) {
+		boolean failed = false;
+		out.println(" Drop Schema: "+schemaName);
 		Statement statement = null;
 		try {
 			ResultSet resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"VIEW"});
 			while (resultSet.next()) {
-				executeDrop(connection, schemaName, resultSet.getString("TABLE_NAME"), true, out);
+				dropTableOrView(connection, schemaName, resultSet.getString("TABLE_NAME"), true, out);
 			}
-            resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, null);
+            resultSet = connection.getMetaData().getTables(null, schemaName.toUpperCase(), null, new String[]{"TABLE"});
 			while (resultSet.next()) {
-				executeDrop(connection, schemaName, resultSet.getString("TABLE_NAME"), false, out);
+				dropTableOrView(connection, schemaName, resultSet.getString("TABLE_NAME"), false, out);
 			}
 			
 			statement = connection.createStatement();
@@ -322,20 +404,21 @@ public class NistTestUtils {
 				statement.execute("drop schema " + schemaName + " RESTRICT");
 			}
 			connection.commit();
-		} catch (Exception e) {
-			out.println("error Dropping " + e.getMessage());
-			e.printStackTrace();
-			throw new RuntimeException(e);
+		} catch (Throwable e) {
+			out.println("error dropping schema " + e.getMessage());
+			failed = true;
+//			e.printStackTrace();
+//			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(statement);
-			DbUtils.commitAndCloseQuietly(connection);
 		}
+		return failed;
 	}
 
-	public static void executeDrop(Connection connection, String schemaName,String tableName, boolean isView, PrintStream out) {
-		out.println("ExecuteDrop; "+schemaName+"."+tableName);
-		Statement statement = null;
+	private static void dropTableOrView(Connection connection, String schemaName,String tableName, boolean isView, PrintStream out) throws Exception {
         String tableOrView = isView ? "view" : "table";
+		out.println("    Drop "+tableOrView+": "+schemaName+"."+tableName);
+		Statement statement = null;
 		try {
 			ResultSet rs = connection.getMetaData().getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
 			if (rs.next()) {
@@ -344,11 +427,10 @@ public class NistTestUtils {
 				connection.commit();
 			}
 		} catch (Exception e) {
-			out.println("error Dropping " + e.getMessage());
-			throw new RuntimeException(e);
+			out.println("error dropping table or view " + e.getMessage());
+			throw e;
 		} finally {
 			DbUtils.closeQuietly(statement);
-			DbUtils.commitAndCloseQuietly(connection);
 		}
 	}
 

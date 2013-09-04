@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Run all NIST SQL scripts
+ * Run all NIST SQL scripts.  Clean schema before and after unless
+ * -Dnoclean was specified
  *
  * @author Jeff Cunningham
  *         Date: 7/22/13
@@ -26,16 +27,19 @@ public class NistTest {
     private static DerbyNistRunner derbyRunner;
     private static SpliceNistRunner spliceRunner;
 
-    private static boolean clean;
+    private static boolean clean = true;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+    	String noClean = System.getProperty("noclean", null);
+    	if (noClean != null) {
+            clean = false;
+        }
+    	
         // Gather the sql files we want to run as tests
         String singleScript = System.getProperty("script", null);
         if (singleScript == null) {
             testFiles = NistTestUtils.getTestFileList();
-        } else if (singleScript.equalsIgnoreCase("clean")) {
-            clean = true;
         } else {
             testFiles = NistTestUtils.createRunList(singleScript);
         }
@@ -46,12 +50,21 @@ public class NistTest {
 
         derbyRunner = new DerbyNistRunner();
         spliceRunner = new SpliceNistRunner();
+        
+        if (clean) {
+			// clean schema before test run for cleanup, unless noclean
+        	// system property was specified
+        	System.out.println("Cleaning before test...");
+			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
+		}
     }
     
     @AfterClass
     public static void afterClass() throws Exception {
-        if (! clean) {
-			// run drop script after test for cleanup, unless test was run just to drop schema
+        if (clean) {
+			// clean schema before test run for cleanup, unless noclean
+        	// system property was specified
+        	System.out.println("Cleaning before test...");
 			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
 		}
     }
@@ -60,12 +73,6 @@ public class NistTest {
     public void runNistTest() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
-
-        if (clean) {
-            NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
-			System.out.println(baos.toString("UTF-8"));
-            return;
-        }
 
         // run the tests
         Collection<DiffReport> reports = NistTestUtils.runTests(testFiles,

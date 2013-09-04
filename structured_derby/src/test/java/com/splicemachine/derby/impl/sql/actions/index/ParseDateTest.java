@@ -15,10 +15,13 @@ import java.util.regex.Pattern;
  */
 public class ParseDateTest {
 
+	private static final String FILEDIRNAME = "/Users/jeff/dev/AWS/results/load/";
+	private static final List<String> PHASES = Arrays.asList("Load", "Create Index", "Query1"); 
+	
     @Test
     public void testParseScriptOutput() throws Exception {
-        String fileDirName = "/Users/jeff/dev/AWS/results/load/";
-        List<String> csvs = createCSV(fileDirName, getFileNames(fileDirName, "load25_default_hbase_SI_PK\\d.log"));
+        List<String> csvs = createCSV(FILEDIRNAME, 
+        		getFileNames(FILEDIRNAME, "load25.*\\.log"), PHASES);
 
         for (String csv : csvs) {
             System.out.println(csv);
@@ -27,89 +30,31 @@ public class ParseDateTest {
 
     @Test
     public void testParseAveScriptOutput() throws Exception {
-        String fileDirName = "/Users/jeff/dev/AWS/results/load/";
-        List<String> csvs = createCSVMean(fileDirName, getFileNames(fileDirName, "load25_default_hbase_SI_PK\\d.log"));
+        List<String> csvs = createCSVMean(FILEDIRNAME, 
+        		getFileNames(FILEDIRNAME, "load25_default_hbase_NOSI_PK\\d\\.log"), PHASES);
 
         for (String csv : csvs) {
             System.out.println(csv);
         }
     }
 
-    private List<String> getFileNames(String fileDirName, String filterPattern) {
-        File fileDir = new File(fileDirName);
-        final Pattern pattern = Pattern.compile(filterPattern);
-        return Arrays.asList(fileDir.list(new FilenameFilter() {
-            public boolean accept(File directory, String fileName) {
-                return pattern.matcher(fileName).matches();
-            }
-        }));
-    }
-
-    private List<String> createCSV(String fileDir, List<String> fileNames) throws Exception {
+    public static List<String> createCSV(String fileDir, List<String> fileNames, List<String> phases) throws Exception {
         StringBuilder columnHeader = new StringBuilder();
         Map<String, List<DatePair>> filesToPairs = new TreeMap<String, List<DatePair>>();
-        String[] phases = new String[] {"Load", "Create Index", "Query1"};
         for (String fileName : fileNames) {
             columnHeader.append(',').append(getName(fileName));
-            filesToPairs.put(fileName, parseScript(fileDir + fileName, phases));
+            filesToPairs.put(fileName, parseScriptForDates(fileDir + fileName, phases));
         }
 
         List<String> csvs = new ArrayList<String>();
         csvs.add(columnHeader.toString());
-        csvs.add(csv(getSlice(fileNames, filesToPairs, 0), phases[0], false));
-        csvs.add(csv(getSlice(fileNames, filesToPairs, 1), phases[1], false));
-        csvs.add(csv(getSlice(fileNames, filesToPairs, 2), phases[2], false));
-        return csvs;
+        for (int i = 0; i < phases.size(); i++) {
+			csvs.add(csv(getSlice(fileNames, filesToPairs, i), phases.get(i), false));
+		}
+		return csvs;
     }
 
-    private List<String> createCSVMean(String fileDir, List<String> fileNames) throws Exception {
-        Map<String, List<DatePair>> filesToPairs = new TreeMap<String, List<DatePair>>();
-        String[] phases = new String[] {"Load", "Create Index", "Query1"};
-        for (String fileName : fileNames) {
-            filesToPairs.put(fileName, parseScript(fileDir + fileName, phases));
-        }
-
-        List<String> csvs = new ArrayList<String>();
-        csvs.add(getName(fileNames.get(0)));
-        csvs.add(csvMean(getSlice(fileNames, filesToPairs, 0), phases[0]));
-        csvs.add(csvMean(getSlice(fileNames, filesToPairs, 1), phases[1]));
-        csvs.add(csvMean(getSlice(fileNames, filesToPairs, 2), phases[2]));
-        return csvs;
-    }
-
-    private String csvMean(List<DatePair> testPairs, String rowHeader) throws Exception {
-        long durationMean = calcDurationMean(testPairs);
-        StringBuilder buf = new StringBuilder(rowHeader);
-        buf.append(',').append(durationMean);
-        return buf.toString();
-    }
-
-    private long calcDurationMean(List<DatePair> pairs) throws Exception {
-        int nPairs = 0;
-        long sum = 0;
-        for (DatePair pair : pairs) {
-            if (pair.phase != null) {
-                sum += pair.getDuration();
-                ++nPairs;
-            }
-        }
-        return Math.round(sum / nPairs) / 1000;
-    }
-
-    private List<DatePair> getSlice(List<String> fileNames, Map<String, List<DatePair>> filesToPairs, int index) throws ParseException {
-        List<DatePair> row = new ArrayList<DatePair>();
-        for (String fileName : fileNames) {
-            List<DatePair> value = filesToPairs.get(fileName);
-            if (! value.isEmpty() && value.size() > index) {
-                row.add(value.get(index));
-            } else {
-                row.add(new DatePair(null, null, null));
-            }
-        }
-        return row;
-    }
-
-    private String csv(List<DatePair> testPairs, String rowHeader, boolean formatted) throws Exception {
+    public static String csv(List<DatePair> testPairs, String rowHeader, boolean formatted) throws Exception {
         StringBuilder buf = new StringBuilder(rowHeader);
         for (DatePair pair : testPairs) {
             buf.append(',');
@@ -123,6 +68,80 @@ public class ParseDateTest {
             }
         }
         return buf.toString();
+    }
+
+    public static List<String> createCSVMean(String fileDir, List<String> filePaths, List<String> phases) throws Exception {
+        List<String> csvs = new ArrayList<String>();
+        Map<String, List<DatePair>> filesToPairs = new TreeMap<String, List<DatePair>>();
+        for (String filePath : filePaths) {
+            filesToPairs.put(filePath, parseScriptForDates(fileDir + filePath, phases));
+			csvs.add(getName(filePath));
+        }
+
+		for (int i = 0; i < phases.size(); i++) {
+			csvs.add(csvMean(getSlice(filePaths, filesToPairs, i), phases.get(i)));
+		}
+		return csvs;
+    }
+
+    public static String csvMean(List<DatePair> testPairs, String rowHeader) throws Exception {
+        long durationMean = calcDurationMeanInSeconds(testPairs);
+        StringBuilder buf = new StringBuilder(rowHeader);
+        buf.append(',').append(durationMean);
+        return buf.toString();
+    }
+
+    public static long calcDurationMeanInSeconds(List<DatePair> pairs) throws Exception {
+        int nPairs = 0;
+        long sum = 0;
+        for (DatePair pair : pairs) {
+            if (pair.phase != null) {
+                sum += pair.getDuration();
+                ++nPairs;
+            }
+        }
+        return Math.round(sum / nPairs) / 1000;
+    }
+
+    public static List<DatePair> getSlice(List<String> fileNames, Map<String, List<DatePair>> filesToPairs, int index) {
+        List<DatePair> row = new ArrayList<DatePair>();
+        for (String fileName : fileNames) {
+            List<DatePair> value = filesToPairs.get(fileName);
+            if (! value.isEmpty() && value.size() > index) {
+                row.add(value.get(index));
+            } else {
+					row.add(DatePair.emptyDatePair());
+            }
+        }
+        return row;
+    }
+
+    public static List<DatePair> parseScriptForDates(String filePath, List<String> phases) throws ParseException {
+        List<String> lines = CsvUtil.fileToLines(filePath, null);
+        List<DatePair> datePairs = new ArrayList<DatePair>();
+        int phase = 0;
+        String start = null;
+        for (String line : lines) {
+            if (line.startsWith("2013-")) {
+                if (start != null) {
+                    datePairs.add(new DatePair(phases.get(phase++), start, line.trim()));
+                    start = null;
+                } else {
+                    start = line.trim();
+                }
+            }
+        }
+        return datePairs;
+    }
+
+    public static List<String> getFileNames(String fileDirName, String filterPattern) {
+        File fileDir = new File(fileDirName);
+        final Pattern pattern = Pattern.compile(filterPattern);
+        return Arrays.asList(fileDir.list(new FilenameFilter() {
+            public boolean accept(File directory, String fileName) {
+                return pattern.matcher(fileName).matches();
+            }
+        }));
     }
     
     public static String formatDuration(long duration) {
@@ -141,7 +160,14 @@ public class ParseDateTest {
         return String.format("%d hrs %02d min %02d sec %03d mil", elapsedHours, elapsedMinutes, elapsedSeconds, diff);
     }
 
-    private class DatePair implements Comparable<DatePair> {
+    private static String getName(String filePath) {
+        String[] components = filePath.split("/");
+        String name = components[components.length-1];
+        int index = name.lastIndexOf(".");
+        return (index >= 0 ? name.substring(0, index) : name);
+    }
+
+    public static class DatePair implements Comparable<DatePair> {
         private final String phase;
         private final long start;
         private final long end;
@@ -157,7 +183,17 @@ public class ParseDateTest {
             }
         }
 
-        public long getDuration() {
+        public static DatePair emptyDatePair() {
+        	DatePair empty = null;
+			try {
+				empty = new DatePair(null,null,null);
+			} catch (ParseException e) {
+				// won't happen
+			}
+			return empty;
+		}
+
+		public long getDuration() {
             return end - start;
         }
 
@@ -185,31 +221,6 @@ public class ParseDateTest {
             result = 31 * result + (int) (end ^ (end >>> 32));
             return result;
         }
-    }
-
-    private List<DatePair> parseScript(String filePath, String[] phases) throws ParseException {
-        List<String> lines = CsvUtil.fileToLines(filePath, null);
-        List<DatePair> datePairs = new ArrayList<DatePair>();
-        int phase = 0;
-        String start = null;
-        for (String line : lines) {
-            if (line.startsWith("2013-")) {
-                if (start != null) {
-                    datePairs.add(new DatePair(phases[phase++], start, line.trim()));
-                    start = null;
-                } else {
-                    start = line.trim();
-                }
-            }
-        }
-        return datePairs;
-    }
-
-    private String getName(String filePath) {
-        String[] components = filePath.split("/");
-        String name = components[components.length-1];
-        int index = name.lastIndexOf(".");
-        return (index >= 0 ? name.substring(0, index) : name);
     }
 
 }
