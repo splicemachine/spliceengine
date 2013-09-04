@@ -234,7 +234,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0 && !distinct) {
                 //we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
-                reduceScan.setFilter(new SuccessFilter(failedTasks, distinct));
+                reduceScan.setFilter(new SuccessFilter(failedTasks));
             }
         } catch (IOException e) {
             throw Exceptions.parseException(e);

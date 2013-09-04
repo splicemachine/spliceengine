@@ -60,7 +60,7 @@ public enum KeyType implements KeyMarshall{
                               MultiFieldEncoder keyEncoder) throws StandardException {
             //delegate to BARE, then append the postfix
             BARE.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
-            keyEncoder.encodeNextUnsorted(keyPostfix);
+            keyEncoder.setRawBytes(keyPostfix);
         }
 
         @Override
@@ -81,10 +81,10 @@ public enum KeyType implements KeyMarshall{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
             BARE.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
-            //encode the postfix in place
-            keyEncoder.encodeNextUnsorted(keyPostfix);
             //encode random bits at the end of the postfix for uniqueness --TODO -sf- make this more compact, and make SuccessFilter deal with it
             keyEncoder.encodeNext(counter.incrementAndGet());
+            //encode the postfix in place
+            keyEncoder.setRawBytes(keyPostfix);
         }
 
         @Override
@@ -110,7 +110,7 @@ public enum KeyType implements KeyMarshall{
                               MultiFieldEncoder keyEncoder) throws StandardException {
             //the prefix is set in the constructor, so this functions
             //the same as POSTFIX_ONLY
-            FIXED_POSTFIX.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
+            FIXED_POSTFIX.encodeKey(fields, keyColumns, sortOrder, keyPostfix, keyEncoder);
         }
 
         @Override
@@ -129,7 +129,7 @@ public enum KeyType implements KeyMarshall{
     FIXED_PREFIX_UNIQUE_POSTFIX {
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            UNIQUE_POSTFIX.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
+            UNIQUE_POSTFIX.encodeKey(fields, keyColumns, sortOrder, keyPostfix, keyEncoder);
         }
 
         @Override
@@ -161,7 +161,7 @@ public enum KeyType implements KeyMarshall{
     PREFIX_FIXED_POSTFIX_ONLY{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            keyEncoder.encodeNextUnsorted(keyPostfix);
+            keyEncoder.setRawBytes(keyPostfix);
         }
 
         @Override
@@ -177,9 +177,9 @@ public enum KeyType implements KeyMarshall{
     PREFIX_UNIQUE_POSTFIX_ONLY{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            keyEncoder.setRawBytes(keyPostfix);
             //add a uniqueness field
             keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
+            keyEncoder.setRawBytes(keyPostfix);
         }
 
         @Override

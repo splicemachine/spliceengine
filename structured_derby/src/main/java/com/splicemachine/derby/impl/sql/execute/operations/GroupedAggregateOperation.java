@@ -217,7 +217,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        SuccessFilter filter = new SuccessFilter(failedTasks,false);
+        SuccessFilter filter = new SuccessFilter(failedTasks);
         reduceScan.setFilter(filter);
         SpliceUtils.setInstructions(reduceScan, activation, top);
         return new ClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);

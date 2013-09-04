@@ -94,7 +94,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
-            SuccessFilter filter = new SuccessFilter(failedTasks,false);
+            SuccessFilter filter = new SuccessFilter(failedTasks);
             reduceScan.setFilter(filter);
         } catch (IOException e) {
             throw Exceptions.parseException(e);

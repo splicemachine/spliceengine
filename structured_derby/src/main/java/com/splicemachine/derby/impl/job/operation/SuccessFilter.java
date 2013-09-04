@@ -19,7 +19,6 @@ public class SuccessFilter extends FilterBase {
     @SuppressWarnings("unused")
 	private static final long serialVersionUID = 1l;
     private List<byte[]> failedTasks;
-    private boolean uniqueOp;
 
     private boolean filterRow;
 
@@ -27,9 +26,8 @@ public class SuccessFilter extends FilterBase {
         super();
     }
 
-    public SuccessFilter(List<byte[]> failedTasks,boolean uniqueOp) {
+    public SuccessFilter(List<byte[]> failedTasks) {
         this.failedTasks = failedTasks;
-        this.uniqueOp = uniqueOp;
     }
 
     @Override
@@ -40,8 +38,6 @@ public class SuccessFilter extends FilterBase {
     @Override
     public boolean filterRowKey(byte[] buffer, int offset, int length) {
         int postfixOffset = offset+length;
-        if(!uniqueOp)
-            postfixOffset -=(8+1);
         for(byte[] failedTask:failedTasks){
             int postOffset = postfixOffset-failedTask.length;
             if(Bytes.compareTo(buffer,postOffset,failedTask.length,failedTask,0,failedTask.length)==0){
@@ -67,7 +63,6 @@ public class SuccessFilter extends FilterBase {
             out.writeInt(failedTask.length);
             out.write(failedTask);
         }
-        out.writeBoolean(uniqueOp);
     }
 
     @Override
@@ -79,6 +74,5 @@ public class SuccessFilter extends FilterBase {
             in.readFully(next);
             failedTasks.add(next);
         }
-        uniqueOp = in.readBoolean();
     }
 }

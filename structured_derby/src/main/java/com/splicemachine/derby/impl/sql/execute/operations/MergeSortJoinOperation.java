@@ -164,7 +164,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
         if(failedTasks.size()>0){
-            reduceScan.setFilter(new SuccessFilter(failedTasks,false));
+            reduceScan.setFilter(new SuccessFilter(failedTasks));
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
         return new ClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
@@ -267,10 +267,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 ((KeyMarshall)KeyType.BARE).encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
                 //add ordinal position
                 keyEncoder.setRawBytes(joinSideBytes);
-                //add the postfix
-                keyEncoder.setRawBytes(keyPostfix);
                 //add a unique id
                 keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
+                //add the postfix
+                keyEncoder.setRawBytes(keyPostfix);
             }
 
             @Override
