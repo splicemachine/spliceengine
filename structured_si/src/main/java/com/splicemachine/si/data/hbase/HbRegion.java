@@ -109,8 +109,10 @@ public class HbRegion implements IHTable {
     	List<KeyValue> keyValues = new ArrayList<KeyValue>();
     	if (!HRegionUtil.keyExists(region, region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), get.getRow()))
     			return new Result(keyValues);
-    	HRegionUtil.populateKeyValues(region, keyValues, get);
+    	return get(get);
+/*    	HRegionUtil.populateKeyValues(region, keyValues, get);
     	return new Result(keyValues);
+    	*/
     }
 
 }
