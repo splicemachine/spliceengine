@@ -11,6 +11,9 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.splicemachine.constants.SIConstants;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -104,6 +107,8 @@ public class HbRegion implements IHTable {
     @Override
     public Result volatileGet(Get get) throws IOException {
     	List<KeyValue> keyValues = new ArrayList<KeyValue>();
+    	if (!HRegionUtil.keyExists(region, region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), get.getRow()))
+    			return new Result(keyValues);
     	HRegionUtil.populateKeyValues(region, keyValues, get);
     	return new Result(keyValues);
     }
