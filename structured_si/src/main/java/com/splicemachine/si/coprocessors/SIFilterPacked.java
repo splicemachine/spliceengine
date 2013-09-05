@@ -6,6 +6,7 @@ import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -124,11 +125,10 @@ public class SIFilterPacked extends FilterBase {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        transactionIdString = in.readUTF();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeUTF(transactionIdString);
+        throw new UnsupportedOperationException("This filter should not be serialized");
     }
 }

@@ -85,6 +85,7 @@ public class SpliceOperationContext {
         if(scanner==null){
             if(region==null)return null;
 
+            Scan scan = new Scan(this.scan);
             scanner = region.getCoprocessorHost().preScannerOpen(scan);
             if (scanner == null) {
                 scanner = region.getScanner(scan);
