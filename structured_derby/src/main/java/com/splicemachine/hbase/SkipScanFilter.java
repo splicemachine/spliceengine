@@ -2,8 +2,11 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.TransactionalFilter;
+import com.yammer.metrics.core.Counter;
+import com.yammer.metrics.core.MetricName;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -15,6 +18,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Scan filter-based replacement for Multi-Get operations. Use a scan with this filter attached
@@ -27,9 +31,11 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
     private byte[][] rowsToReturn;
     private int position = -1;
     private boolean failOnMissingRow = true;
+    private boolean isDone;
 
-    private byte[][] seenRows;
     private boolean filterRow;
+
+    private Counter visitedCounter;
 
     public SkipScanFilter(){}
 
@@ -46,8 +52,14 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
     public ReturnCode filterKeyValue(KeyValue ignored) {
         if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
             return ReturnCode.INCLUDE;
-        if(position>=rowsToReturn.length) return ReturnCode.SEEK_NEXT_USING_HINT;
+        if(position>=rowsToReturn.length){
+            isDone=true;
+            return ReturnCode.NEXT_ROW;
+        }
+        if(visitedCounter==null)
+            visitedCounter = SpliceDriver.driver().getRegistry().newCounter(new MetricName("com.splicemachine.operations", "indexOp", "scanRowsVisited"));
 
+        visitedCounter.inc();
         /*
          * Imagine the situation where there is a region split, and the scan encompasses
          * two regions. In that situation, the first row we receive can be located anywhere
@@ -64,8 +76,6 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
             }while(position<rowsToReturn.length &&shouldContinue);
         }
 
-        if(seenRows==null)
-            seenRows = new byte[rowsToReturn.length][];
         /*
          * Our position is viable. We now find ourselves in one of three situations:
          *
@@ -75,11 +85,6 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
          * 3. rowsToReturn[position] > currentRow --we haven't yet found this row, skip forward until we reach it
          */
         byte[] rowToCheck = rowsToReturn[position];
-//        for(int i=0;i<seenRows.length;i++){
-//            byte[] seenRow = seenRows[i];
-//            if(seenRow==null) break;
-//            if(Bytes.equals(rowToCheck,seenRow)) return ReturnCode.INCLUDE; //include all columns that I've already matched
-//        }
         int compareState = Bytes.compareTo(rowToCheck,0,rowToCheck.length,ignored.getBuffer(),ignored.getRowOffset(),ignored.getRowLength());
         if(compareState<0){
             //this row wasn't found. Blow up if so instructed. Otherwise, skip past it
@@ -94,7 +99,6 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
             return ReturnCode.SEEK_NEXT_USING_HINT;
         }else{
             //we've found a row, whoo!
-            seenRows[position] = rowToCheck;
             position++;
             filterRow=false;
             return ReturnCode.INCLUDE;
@@ -113,9 +117,17 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
 
     @Override
     public KeyValue getNextKeyHint(KeyValue currentKV) {
-        if(position>=rowsToReturn.length) return null;
+        if(position>=rowsToReturn.length) {
+            isDone=true;
+            return null;
+        }
         //TODO -sf- remove the extra KV here
         return KeyValue.createFirstOnRow(rowsToReturn[position]);
+    }
+
+    @Override
+    public boolean filterAllRemaining() {
+        return isDone;
     }
 
     public void setRows(byte[][] rowsToReturn){
@@ -152,6 +164,9 @@ public class SkipScanFilter extends FilterBase implements TransactionalFilter {
             in.readFully(next);
             rowsToReturn[i] = next;
         }
+
+        //make sure the rows are sorted
+        Arrays.sort(rowsToReturn,Bytes.BYTES_COMPARATOR);
     }
 
     @Override

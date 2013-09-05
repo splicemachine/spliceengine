@@ -82,7 +82,7 @@ public class SpliceConstants {
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
     public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
     public static final int DEFAULT_RING_BUFFER_SIZE=1000;
-    public static final int DEFAULT_INDEX_BATCH_SIZE=500;
+    public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
     public static final int DEFAULT_INDEX_BUFFER_SIZE=1000;
     public static final int DEFAULT_KRYO_POOL_SIZE=50;
 
@@ -181,6 +181,7 @@ public class SpliceConstants {
     public static int ringBufferSize;
     public static int indexBatchSize;
     public static int indexBufferSize;
+    public static int indexLookupBlocks;
     public static int kryoPoolSize;
 
     public static long maxRollForwardHeapSize;
@@ -291,6 +292,8 @@ public class SpliceConstants {
     private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
     private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1000;
     public static int maxImportReadBufferSize;
+    private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
+    private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
 
 
     public static enum TableEnv {
@@ -367,20 +370,21 @@ public class SpliceConstants {
             coreWriteThreads=0;
 
         threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
-        numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        cacheUpdatePeriod = config.getLong(CONFIG_CACHE_UPDATE_PERIOD,DEFAULT_CACHE_UPDATE_PERIOD);
+        numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        cacheUpdatePeriod = config.getLong(CONFIG_CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
         enableRegionCache = cacheUpdatePeriod>0l;
         cacheExpirationPeriod = config.getLong(CONFIG_CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
-        compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES,DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
+        compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES, DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
         compression = config.get(CONFIG_COMPRESSION, DEFAULT_COMPRESSION);
         multicastGroupAddress = config.get(CONFIG_MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
         multicastGroupPort = config.getInt(CONFIG_MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
         rmiPort = config.getInt(CONFIG_RMI_PORT, DEFAULT_RMI_PORT);
         rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
-        dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE,DEFAULT_DUMP_CLASS_FILE);
-        startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD,DEFAULT_STARTUP_LOCK_PERIOD);
+        dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
+        startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
         indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
+        indexLookupBlocks = config.getInt(INDEX_LOOKUP_BLOCKS,DEFAULT_INDEX_LOOKUP_BLOCKS);
         indexBufferSize = config.getInt(INDEX_BUFFER_SIZE,DEFAULT_INDEX_BUFFER_SIZE);
         kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);

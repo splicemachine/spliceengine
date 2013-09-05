@@ -77,7 +77,7 @@ public class SpliceUtilities extends SIConstants {
         snapshot.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
         snapshot.setInMemory(DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        snapshot.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
+        snapshot.setBloomFilterType(BloomType.ROWCOL);
         snapshot.setTimeToLive(DEFAULT_TTL);
         return snapshot;
 	}
@@ -88,7 +88,7 @@ public class SpliceUtilities extends SIConstants {
         siFamily.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
         siFamily.setInMemory(true);
         siFamily.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        siFamily.setBloomFilterType(BloomType.ROW); //SI Column Family should use BloomFilters
+        siFamily.setBloomFilterType(BloomType.ROWCOL); //SI Column Family should use BloomFilters
         siFamily.setTimeToLive(DEFAULT_TTL);
         return siFamily;
     }

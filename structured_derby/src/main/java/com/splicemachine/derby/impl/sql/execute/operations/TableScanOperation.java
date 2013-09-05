@@ -8,10 +8,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.yammer.metrics.core.MetricName;
+import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -51,8 +54,10 @@ public class TableScanOperation extends ScanOperation {
 		protected Boolean initialValue() {
 			return false;
 		}
-		
 	};
+
+    private static final MetricName scanTime = new MetricName("com.splicemachine.operations","tableScan","scanTime");
+    private final Timer timer = SpliceDriver.driver().getRegistry().newTimer(scanTime, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
 	
 	static {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
@@ -183,6 +188,7 @@ public class TableScanOperation extends ScanOperation {
     @Override
 	public ExecRow getNextRowCore() throws StandardException {
 		beginTime = getCurrentTimeMillis();
+        long start = System.nanoTime();
 		try {
 	        keyValues.clear();
             regionScanner.next(keyValues);
@@ -215,7 +221,9 @@ public class TableScanOperation extends ScanOperation {
 			e.printStackTrace();
 			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-		}
+		}finally{
+            timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
+        }
 		setCurrentRow(currentRow);
 		nextTime += getElapsedMillis(beginTime);
 		return currentRow;
