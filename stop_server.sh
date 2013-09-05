@@ -18,6 +18,14 @@ else
  echo "splice is not running!!"
 fi
 
+if ps ax | grep -v grep | grep 'SpliceEngine-Build-Test' > /dev/null 
+then
+ echo "Test pid identified $pid"
+ pid=$(ps ax | grep -v grep | grep 'SpliceEngine-Build-Test' | gawk '{print $1}')
+ kill -9 $pid
+ sleep 60
+fi
+
 cp structured_derby/zoo.log structured_derby/logs/zoo.log.$currentDateTime
 
 cp structured_derby/server.log structured_derby/logs/server.log.$currentDateTime
