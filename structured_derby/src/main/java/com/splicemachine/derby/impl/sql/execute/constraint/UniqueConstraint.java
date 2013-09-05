@@ -64,8 +64,7 @@ public class UniqueConstraint implements Constraint {
         HRegion region = rce.getRegion();
         if (!HRegionUtil.keyExists(region, region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
         		return true;
-        HRegionUtil.populateKeyValues(region, keyValues, get);
-        Result result = new Result(keyValues);
+        Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
         if(rowPresent){
             KeyValue[] raw = result.raw();
