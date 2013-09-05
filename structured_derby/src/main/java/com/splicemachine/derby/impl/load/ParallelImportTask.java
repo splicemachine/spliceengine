@@ -181,7 +181,9 @@ public abstract class ParallelImportTask extends ZkTask{
         private final List<Future<Void>> futures;
 
         public ThreadingCallBuffer(ImportContext importContext,ExecRow template,String txnId) {
-            this.importContext = importContext;
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.trace(LOG, "ThreadingCallBuffer#init called");
+        	this.importContext = importContext;
             int numProcessingThreads = SpliceConstants.maxImportProcessingThreads;
             Path filePath = importContext.getFilePath();
             ThreadFactory processingFactory = new ThreadFactoryBuilder()
@@ -226,6 +228,9 @@ public abstract class ParallelImportTask extends ZkTask{
 
         @Override
         public void close() throws Exception {
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.trace(LOG, "ThreadingCallBuffer#close called");
+        	// ** JL Issue
             closed=true;
             //wait for all processors to complete
             try{
@@ -283,6 +288,8 @@ public abstract class ParallelImportTask extends ZkTask{
 
         @Override
         public Void call() throws Exception {
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.trace(LOG, "Processor#call");
             /*
              * We eat off the queue, process, and place them into the write destination until
              * we are out of recrods to process.
@@ -310,8 +317,15 @@ public abstract class ParallelImportTask extends ZkTask{
                     numProcessed++;
                     doImportRow(next);
                 }
-            }finally{
-                writeDestination.close(); //ensure your writes happen
+            } catch (IOException ioe) {
+            	if (LOG.isTraceEnabled())
+            		SpliceLogUtils.trace(LOG, "IOE# %s",ioe.getMessage());
+            	throw ioe;
+            }
+        	finally{
+            	if (LOG.isTraceEnabled())
+            		SpliceLogUtils.trace(LOG, "Closing Call Buffer");
+        		writeDestination.close(); //ensure your writes happen
                 if(LOG.isDebugEnabled()){
                     SpliceLogUtils.debug(LOG,"total time taken to populate %d rows: %d ns",numProcessed,totalPopulateTime);
                     SpliceLogUtils.debug(LOG,"average time taken to populate 1 row: %f ns",(double)totalPopulateTime/numProcessed);
