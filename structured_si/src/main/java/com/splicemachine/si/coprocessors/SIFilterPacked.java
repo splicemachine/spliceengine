@@ -75,6 +75,9 @@ public class SIFilterPacked extends FilterBase {
                         returnCode = ReturnCode.INCLUDE;
                     }
                     break;
+          // We are still re-seeking - TODO JL
+          //      case NEXT_COL:
+          //      	returnCode = ReturnCode.SKIP;
             }
             return returnCode;
         } catch (IOException e) {
