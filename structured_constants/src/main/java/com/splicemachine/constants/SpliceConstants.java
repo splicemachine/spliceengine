@@ -71,6 +71,8 @@ public class SpliceConstants {
     public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
     public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
+    public static final int DEFAULT_WRITE_THREADS_MAX = 20;
+    public static final int DEFAULT_WRITE_THREADS_CORE = 5;
     public static final int DEFAULT_HBASE_HTABLE_THREADS_CORE = 10;
     public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
     public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
@@ -116,6 +118,8 @@ public class SpliceConstants {
     private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
     private static final String CONFIG_POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
     private static final String CONFIG_WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
+    private static final String CONFIG_WRITE_THREADS_MAX = "splice.writer.maxThreads";
+    private static final String CONFIG_WRITE_THREADS_CORE = "splice.writer.coreThreads";
     public static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
     private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
     private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
@@ -336,7 +340,7 @@ public class SpliceConstants {
         tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
         writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
         maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
-        maxThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_MAX,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        maxThreads = config.getInt(CONFIG_WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
         maxTreeThreads = config.getInt(CONFIG_MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
         if(ipcThreads < maxThreads){
@@ -361,7 +365,7 @@ public class SpliceConstants {
         }
         if(maxThreads<=0)
             maxThreads = 1;
-        coreWriteThreads = config.getInt(CONFIG_HBASE_HTABLE_THREADS_CORE,DEFAULT_HBASE_HTABLE_THREADS_MAX);
+        coreWriteThreads = config.getInt(CONFIG_WRITE_THREADS_CORE,DEFAULT_WRITE_THREADS_CORE);
         if(coreWriteThreads>maxThreads){
             //default the core write threads to 10% of the maximum available
             coreWriteThreads = maxThreads/10;

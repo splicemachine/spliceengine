@@ -2,6 +2,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.storage.MultiScanExecRowProvider;
@@ -9,8 +10,13 @@ import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.storage.AndPredicate;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.OrPredicate;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
@@ -18,6 +24,8 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
@@ -26,11 +34,14 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 // These are for javadoc "@see" tags.
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -194,337 +205,71 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         ArrayUtil.writeArray(out,probeValues);
     }
 
-    //    /**
-//     * @see NoPutResultSet#openCore
-//     */
-//    public void openCore() throws StandardException
-//    {
-//        /* If the probe values are not already sorted then sort them now.  This
-//         * allows us to skip over duplicate probe values (otherwise we could
-//         * end up with duplicate rows in the result set).
-//         *
-//         * Note: If all of the probe values were provided as constants then we
-//         * sorted them at compile time (during preprocessing) so we don't have
-//         * to do it now. But if one or more was specified as a param then we
-//         * have to do the sort here, at execution time, because this is the
-//         * only point at which we know what values the parameters have.
-//         */
-//        if (sortRequired == RowOrdering.DONTCARE)
-//        {
-//            /* DONTCARE really means that the values are already sorted
-//             * in ascending order, and that's good enough.
-//             */
-//            probeValues = origProbeValues;
-//        }
-//        else
-//        {
-//            /* RESOLVE: For some reason sorting the probeValues array
-//             * directly leads to incorrect parameter value assignment when
-//             * executing a prepared statement multiple times.  Need to figure
-//             * out why (maybe related to DERBY-827?).  In the meantime, if
-//             * we're going to sort the values we use clones.  This is not
-//             * ideal, but it works for now.
-//             */
-//            DataValueDescriptor [] pVals =
-//                new DataValueDescriptor[origProbeValues.length];
-//
-//            for (int i = 0; i < pVals.length; i++)
-//                pVals[i] = origProbeValues[i].cloneValue(false);
-//
-//            if (sortRequired == RowOrdering.ASCENDING)
-//                java.util.Arrays.sort(pVals);
-//            else
-//            {
-//                // Sort the values in DESCENDING order.
-//                java.util.Arrays.sort(
-//                    pVals, java.util.Collections.reverseOrder());
-//            }
-//
-//            probeValues = pVals;
-//        }
-//
-//        probeValIndex = 0;
-//        super.openCore();
-//    }
-
-//    /**
-//     * @see NoPutResultSet#reopenCore
-//     */
-//    public void reopenCore() throws StandardException
-//    {
-//        reopenCore(false);
-//    }
-
-//    /**
-//     * There are two scenarios for which we reopen this kind of scan:
-//     *
-//     *   A - The first is for join processing.  In this case we have
-//     * a(nother) row from some outer table and we want to reopen this
-//     * scan to look for rows matching the new outer row.
-//     *
-//     *   B - The second is for multi-probing.  Here we want to reopen
-//     * the scan on this table to look for rows matching the next value
-//     * in the probe list.
-//     *
-//     * If we are reopening the scan for scenario A (join processing)
-//     * then we need to reset our position within the probe list.
-//     * If we are reopening the scan for scenario B then we do *not*
-//     * want to reset our position within the probe list because that
-//     * position tells us where to find the next probe value.
-//     *
-//     * That said, this method does the work of reopenCore() using
-//     * the received boolean to determine which of the two scenarios
-//     * we are in.  Note that if our current position (i.e. the value
-//     * of probeValIndex) is beyond the length of the probe list then
-//     * we know that we are reopening the scan for scenario A.  Or put
-//     * another away, we should never get here for scenario B if
-//     * probeValIndex is greater than or equal to the length of the
-//     * probe list.  The reason is that the call to reopenCore() for
-//     * scenario B will only ever happen when moreInListVals() returns
-//     * true--and in that case we know that probeValIndex will be less
-//     * than the length of the probeValues.  But the opposite is not
-//     * true: i.e. it is *not* safe to say that a probeValIndex which
-//     * is less than the length of probe list is always for scenario
-//     * B.  That's not true because it's possible that the join to
-//     * which this scan belongs is a "oneRowRightSide" join, meaning
-//     * that this, the "right" side scan, will be "interrupted" after
-//     * we return a single row for the current outer row.  If we then
-//     * come back with a new outer row we need to reset our position--
-//     * even though probeValIndex will be less than probeValues.length
-//     * in that case.  DERBY-3603.
-//     */
-//    private void reopenCore(boolean forNextProbe) throws StandardException
-//    {
-//        if (!forNextProbe)
-//            probeValIndex = 0;
-//
-//        super.reopenCore();
-//    }
-
-//    /**
-//     * Reopen the scan controller
-//     *
-//     * @exception StandardException thrown on failure to open
-//     */
-//    protected void reopenScanController() throws StandardException
-//    {
-//        // TableScanResultSet.reopenScanController() will reset rowsThisScan
-//        // because it thinks this is a completely new scan. However, we want
-//        // it to reflect the total number of rows seen in the multi-probe
-//        // scan, so we keep the original value and restore it after reopening
-//        // the controller. Instead, we reset rowsThisScan to 0 each time
-//        // initStartAndStopKey() is called on the first probe value.
-//  //      long rows = rowsThisScan;
-//  //      super.reopenScanController();
-//  //      rowsThisScan = rows;
-//    }
-
-//    /**
-//     * Initialize the start key and the stop key used in the scan. Both keys
-//     * will be set to the probe value. If no new probe value was found (the
-//     * probe list was exhausted), the flag skipNextScan will be {@code true}
-//     * when the method returns to prevent a new scan from being reopened with
-//     * a missing or incorrect probe value.
-//     */
-//    void initStartAndStopKey() throws StandardException {
-//
-//        // Make sure the fields are initialized with a placeholder.
-//        // startPosition and stopPosition will always be non-null in a
-//        // MultiProbeTableScanResultSet, and they will always be initialized
-//        // to the first value in the probe list. They will be changed to
-//        // the actual probe value later in this method.
-// //       super.initStartAndStopKey();
-//
-//        /* If we're looking for the first value in the probe list, then
-//         * reset the row scan count.  Otherwise leave it unchanged since
-//         * we're just continuing an already-opened scan.  Note that we
-//         * have to do this check *before* we call getNextProbeValue()
-//         * because that method will increment probeValIndex.
-//         */
-//   //     if (probeValIndex == 0)
-//   //         rowsThisScan = 0;
-//
-//        DataValueDescriptor[] startPositionRow = startPosition.getRowArray();
-//        DataValueDescriptor[] stopPositionRow = stopPosition.getRowArray();
-//
-//        DataValueDescriptor probeValue = getNextProbeValue();
-//
-//		/* If we have a probe value then we do the "probe" by positioning
-//		 * the scan at the first row matching the value.  The way to do
-//		 * that is to use the value as a start key, which is what will
-//		 * happen if we plug it into first column of "startPositionRow".
-//		 * So in this case startPositionRow[0] functions as a "place-holder"
-//		 * for the probe value.  The same goes for stopPositionRow[0].
-//		 *
-//		 * Note that it *is* possible for a start/stop key to contain more
-//		 * than one column (ex. if we're scanning a multi-column index). In
-//		 * that case we plug probeValue into the first column of the start
-//		 * and/or stop key and leave the rest of the key as it is.  As an
-//		 * example, assume we have the following predicates:
-//		 *
-//		 *    ... where d in (1, 20000) and b > 200 and b <= 500
-//		 *
-//		 * And assume further that we have an index defined on (d, b).
-//		 * In this case it's possible that we have TWO start predicates
-//		 * and TWO stop predicates: the IN list will give us "d = probeVal",
-//		 * which is a start predicate and a stop predicate; then "b > 200"
-//		 * may give us a second start predicate, while "b <= 500" may give
-//		 * us a second stop predicate.  So in this situation we want our
-//		 * start key to be:
-//		 *
-//		 *    (probeValue, 200)
-//		 *
-//		 * and our stop key to be:
-//		 *
-//		 *    (probeValue, 500).
-//		 *
-//		 * This will effectively limit the scan so that it only returns
-//		 * rows whose "D" column equals probeValue and whose "B" column
-//		 * falls in the range of 200 thru 500.
-//		 *
-//		 * Note: Derby currently only allows a single start/stop predicate
-//		 * per column. See PredicateList.orderUsefulPredicates().
-//		 */
-//        if (probeValue != null) {
-//            startPositionRow[0] = probeValue;
-//            if (!sameStartStopPosition) {
-//                stopPositionRow[0] = startPositionRow[0];
-//            }
-//        }
-//
-//        // If we didn't find a new probe value, the probe list is exhausted,
-//        // and we shouldn't open a new scan. skipScan() will detect this and
-//        // prevent (re)openScanController() from being called.
-//        skipNextScan = (probeValue == null);
-//    }
-
-//    /**
-//     * Check if the scan should be skipped. It should be skipped if (1)
-//     * {@link #initStartAndStopKey()} exhausted the probe list, or (2) the scan
-//     * should return no results because of nulls in the start key or stop key.
-//     * See {@link NoPutResultSetImpl#skipScan(ExecIndexRow,ExecIndexRow)} for
-//     * details about (2).
-//     *
-//     * @param startPosition the key on which to start the scan
-//     * @param stopPosition the key on which to stop the scan
-//     * @return {@code true} if scan should be skipped, {@code false} otherwise
-//     */
-//    protected boolean skipScan(
-//            ExecIndexRow startPosition, ExecIndexRow stopPosition)
-//		throws StandardException
-//    {
-//    	return false;
-//    //    return skipNextScan || super.skipScan(startPosition, stopPosition);
-//    }
-
-//    /**
-//     * Return the next row (if any) from the scan (if open).
-//     *
-//     * More specifically we do the following:
-//     *
-//     *  1 - See if we have a row to read from the current scan position.
-//     *    If so, return that row (done).
-//     *
-//     *  2 - If there are no more rows to read from the current scan
-//     *    position AND if there are more probe values to look at,
-//     *    then a) reposition the scan using the next probe value
-//     *    as the start/stop key and b) go back to step 1.  Otherwise
-//     *    proceed to step 3.
-//     *
-//     *  3 - Return null (no more rows).
-//     *
-//     * Note that step 1 is important for cases where multiple rows in this
-//     * table match a single probe value.  In such a scenario we have to
-//     * be sure that we do *not* move on to the next probe value until
-//     * we have returned all of the rows for the _current_ probe value.
-//     *
-//     * @exception StandardException thrown on failure to get next row
-//     */
-//    public ExecRow getNextRowCore() throws StandardException
-//    {
-//       // checkCancellationFlag();
-//
-//        // Step 1.
-//        ExecRow result = super.getNextRowCore();
-//
-//        // Steps 2, 1, 2, 1, 2, ...
-//        while ((result == null) && moreInListVals())
-//        {
-//            /* Repositioning the scan (if needed) is simply a matter of
-//             * reopening the core scan again. As part of that method we will
-//             * figure out what the next probe value should be (and thus
-//             * where to position the scan).
-//             */
-//            reopenCore(true);
-//            result = super.getNextRowCore();
-//        }
-//
-//        // Step 3: result will be null if there are no more rows.
-//        return result;
-//    }
-
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return new MultiProbeRowProvider(top,decoder,probeValues,Bytes.toBytes(tableName));
+    protected Scan buildScan() {
+        /*
+         * We must build the proper scan here in pieces
+         */
+        BitSet colsToReturn = new BitSet();
+        if(accessedCols!=null){
+            for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
+                colsToReturn.set(i);
+            }
+        }
+        MultiRangeFilter.Builder builder= new MultiRangeFilter.Builder();
+        List<Predicate> allScanPredicates = Lists.newArrayListWithExpectedSize(probeValues.length);
+        for(DataValueDescriptor probeValue:probeValues){
+            try{
+                populateStartAndStopPositions();
+                if(startPosition!=null)
+                    startPosition.getRowArray()[0] = probeValue; //TODO -sf- is this needed?
+                if(sameStartStopPosition||stopPosition.nColumns()>1){
+                    stopPosition.getRowArray()[0] = probeValue;
+                }
+                populateQualifiers();
+                List<Predicate> scanPredicates;
+                if(scanQualifiers!=null){
+                    scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
+                    if(accessedCols!=null){
+                        for(Qualifier[] qualifierList:scanQualifiers){
+                            for(Qualifier qualifier:qualifierList){
+                                colsToReturn.set(qualifier.getColumnId());
+                            }
+                        }
+                    }
+                }else{
+                    scanPredicates = Lists.newArrayListWithExpectedSize(0);
+                }
+
+                //get the start and stop keys for the scan
+                Pair<byte[],byte[]> startAndStopKeys =
+                        Scans.getStartAndStopKeys(startPosition.getRowArray(),startSearchOperator,stopPosition.getRowArray(),stopSearchOperator,conglomerate.getAscDescInfo());
+                builder.addRange(startAndStopKeys.getFirst(),startAndStopKeys.getSecond());
+                if(startPosition!=null && startSearchOperator != ScanController.GT){
+                    Predicate indexPredicate = Scans.generateIndexPredicate(startPosition.getRowArray(),startSearchOperator);
+                    if(indexPredicate!=null)
+                        scanPredicates.add(indexPredicate);
+                }
+                allScanPredicates.add(new AndPredicate(scanPredicates));
+            }catch(StandardException e){
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            } catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }
+        }
+
+        Predicate finalPredicate  = new OrPredicate(allScanPredicates);
+        String txnId = getTransactionID();
+        Scan scan = SpliceUtils.createScan(txnId);
+        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn,Arrays.asList(finalPredicate));
+        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
+        MultiRangeFilter filter = builder.build();
+        scan.setStartRow(filter.getMinimumStart());
+        scan.setStopRow(filter.getMaximumStop());
+        scan.setFilter(filter);
+
+        return scan;
     }
-
-    @Override
-    public RowEncoder getRowEncoder() throws StandardException {
-        ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packed());
-    }
-
-    //    /**
-//     * @see NoPutResultSet#close
-//     */
-//    public void close() throws StandardException
-//    {
-//        /* We'll let TableScanResultSet track the time it takes to close up,
-//         * so no timing here.
-//         */
-//        super.close();
-//
-//        /* Note: We can't set probeValues == null here because we may end
-//         * up reopening this scan again later, in which case we'll need the
-//         * list of probe values.
-//         */
-//    }
-
-//    /**
-//     * Figure out whether or not we can (re-)position the scan
-//     * controller based on the next value in probeValues.  This
-//     * will return false when we have exhausted the probe list
-//     * (i.e. when we've gone through all of the values).
-//     */
-//    private boolean moreInListVals()
-//    {
-//        return (probeValIndex < probeValues.length);
-//    }
-
-//    /**
-//     * Return the next non-duplicate value from the probe list.
-//     * Assumption is that the list is sorted so that duplicates
-//     * appear next to each other, and that probeValIndex is the
-//     * index of the next value. If we've exhausted the probe list
-//     * then just return null.
-//     */
-//    private DataValueDescriptor getNextProbeValue()
-//    {
-//        int ctr = probeValIndex;
-//
-//        // Skip over duplicate values.
-//        while ((ctr > 0) && (ctr < probeValues.length) &&
-//            probeValues[probeValIndex-1].equals(probeValues[ctr]))
-//        {
-//            ctr++;
-//        }
-//
-//        probeValIndex = ctr;
-//        if (probeValIndex < probeValues.length)
-//            return probeValues[probeValIndex++];
-//
-//        return null;
-//    }
 
     @Override
     public String toString() {
@@ -622,8 +367,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             //get the Scanner for this position
             populateStartAndStopPositions();
             if(startPosition!=null)
-                startPosition.getRowArray()[0] = next;
-            if(sameStartStopPosition){
+                startPosition.getRowArray()[0] = next; //TODO -sf- is this needed?
+            if(sameStartStopPosition||stopPosition.getRowArray().length>1){
                 stopPosition.getRowArray()[0] = next;
             }
             populateQualifiers();

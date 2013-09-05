@@ -38,7 +38,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class TableScanOperation extends ScanOperation {
 	private static final long serialVersionUID = 3l;
 
-	private static Logger LOG = Logger.getLogger(TableScanOperation.class);
+	protected static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
 	protected int[] indexCols;

@@ -17,7 +17,6 @@ import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -49,9 +48,9 @@ class IndexRowReader {
     private final int[] adjustedBaseColumnMap;
     private final byte[] predicateFilterBytes;
 
-    private List<Pair<byte[],Result>> currentResults;
+    private List<Pair<RowAndLocation,Result>> currentResults;
     private RowAndLocation toReturn = new RowAndLocation();
-    private List<Future<List<Pair<byte[],Result>>>> resultFutures;
+    private List<Future<List<Pair<RowAndLocation,Result>>>> resultFutures;
 
     private HTableInterface table;
     private boolean populated = false;
@@ -124,28 +123,26 @@ class IndexRowReader {
         if(currentResults ==null ||currentResults.size()<=0)
             return null; //no more data to return
 
-        Pair<byte[],Result> next = currentResults.remove(0);
+        Pair<RowAndLocation,Result> next = currentResults.remove(0);
 
         //merge the results
-        byte[] nextScannedRow = next.getFirst();
+        RowAndLocation nextScannedRow = next.getFirst();
         Result nextFetchedData = next.getSecond();
 
-
-        toReturn.rowLocation = nextScannedRow;
         if(fieldDecoder==null)
             fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
 
         fieldDecoder.reset();
         for(KeyValue kv:nextFetchedData.raw()){
-            RowMarshaller.sparsePacked().decode(kv,toReturn.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+            RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
         }
 
-        return toReturn;
+        return nextScannedRow;
     }
 
     private void getMoreData() throws StandardException {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
-        List<byte[]> sourceRows = Lists.newArrayListWithCapacity(batchSize);
+        List<RowAndLocation> sourceRows = Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
             ExecRow next = sourceOperation.getNextRowCore();
             if(next==null) break; //we are done
@@ -159,7 +156,10 @@ class IndexRowReader {
                 populated=true;
                 toReturn.row = outputTemplate;
             }
-            sourceRows.add(((RowLocation)next.getColumn(next.nColumns())).getBytes());
+            RowAndLocation rowLoc = new RowAndLocation();
+            rowLoc.row = outputTemplate.getClone();
+            rowLoc.rowLocation = next.getColumn(next.nColumns()).getBytes();
+            sourceRows.add(rowLoc);
         }
 
         //submit to the background thread
@@ -185,22 +185,23 @@ class IndexRowReader {
         byte[] rowLocation;
     }
 
-    private class Lookup implements Callable<List<Pair<byte[],Result>>> {
-        private final List<byte[]> sourceRows;
+    private class Lookup implements Callable<List<Pair<RowAndLocation,Result>>> {
+        private final List<RowAndLocation> sourceRows;
 
-        public Lookup(List<byte[]> sourceRows) {
+        public Lookup(List<RowAndLocation> sourceRows) {
             this.sourceRows = sourceRows;
             if(table==null)
                 table = SpliceAccessManager.getHTable(mainTableConglomId);
         }
 
         @Override
-        public List<Pair<byte[],Result>> call() throws Exception {
+        public List<Pair<RowAndLocation,Result>> call() throws Exception {
             long start = System.nanoTime();
             try{
                 List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
-                for(byte[] sourceRow:sourceRows){
-                    Get get = SpliceUtils.createGet(txnId, sourceRow);
+                for(RowAndLocation sourceRow:sourceRows){
+                    byte[] row = sourceRow.rowLocation;
+                    Get get = SpliceUtils.createGet(txnId, row);
                     get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
                     gets.add(get);
                 }
@@ -208,8 +209,8 @@ class IndexRowReader {
                 Result[] results = table.get(gets);
 
                 int i=0;
-                List<Pair<byte[],Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
-                for(byte[] sourceRow:sourceRows){
+                List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
+                for(RowAndLocation sourceRow:sourceRows){
                     locations.add(Pair.newPair(sourceRow,results[i]));
                     i++;
                 }

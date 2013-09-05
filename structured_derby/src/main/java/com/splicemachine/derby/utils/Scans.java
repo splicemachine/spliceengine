@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -187,7 +188,7 @@ public class Scans extends SpliceUtils {
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
     }
 
-    private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
+    public static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
                                                       int startSearchOperator,
                                                       Qualifier[][] qualifiers,
                                                       FormatableBitSet scanColumnList) throws StandardException {
@@ -226,7 +227,7 @@ public class Scans extends SpliceUtils {
         return new EntryPredicateFilter(colsToReturn,predicates);
     }
 
-    private static List<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
+    public static List<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
         /*
          * Qualifiers are set up as follows:
          *
@@ -518,4 +519,35 @@ public class Scans extends SpliceUtils {
 			throw new IOException(e);
 		}
 	}
+
+    public static Pair<byte[],byte[]> getStartAndStopKeys(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                                          DataValueDescriptor[]stopKeyValue, int stopSearchOperator,
+                                                          boolean[] sortOrder) throws IOException {
+        try{
+            boolean generateKey = true;
+            if(startKeyValue!=null && stopKeyValue!=null){
+                for(DataValueDescriptor startDesc: startKeyValue){
+                    if(startDesc ==null || startDesc.isNull()){
+                        generateKey=false;
+                        break;
+                    }
+                }
+            }
+
+            //TODO -sf- do type-casting, overflow checks, etc. to make sure that we don't miss scans
+            //TODO -sf- remove trailing null entries with Strings here
+            if(generateKey){
+                byte[] start = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder);
+                byte[] stop  = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder);
+                if(start==null)
+                    start = HConstants.EMPTY_START_ROW;
+                if(stop==null)
+                    stop = HConstants.EMPTY_END_ROW;
+                return Pair.newPair(start,stop);
+            }else
+                return Pair.newPair(null,null);
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
 }
