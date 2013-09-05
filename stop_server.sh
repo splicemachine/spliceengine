@@ -1,8 +1,6 @@
-#!/bin/bash
-
 if ps ax | grep -v grep | grep 'exec:java' > /dev/null 
 then
- pid=$(ps ax | grep -v grep | grep 'exec:java' | gawk '{print $1}')
+ pid=$(ps ax | grep -v grep | grep 'exec:java' | awk '{print $1}')
  kill -9 $pid
  sleep 60
 else
@@ -11,13 +9,17 @@ fi
 
 if ps ax | grep -v grep | grep 'exec:exec' > /dev/null 
 then
- pid=$(ps ax | grep -v grep | grep 'exec:exec' | gawk '{print $1}')
+ pid=$(ps ax | grep -v grep | grep 'exec:exec' | awk '{print $1}')
  kill -9 $pid
  sleep 60
 else
  echo "splice is not running!!"
 fi
 
-cp structured_derby/zoo.log structured_derby/logs/zoo.log.$currentDateTime
+if [ ! -d "structured_derby/logs" ]; then
+  mkdir structured_derby/logs
+fi
+currentDateTime=$(date +'%m-%d-%Y-%H_%M_%S')
+cp structured_derby/zoo.log structured_derby/logs/$currentDateTime.zoo.log
 
-cp structured_derby/server.log structured_derby/logs/server.log.$currentDateTime
+cp structured_derby/server.log structured_derby/logs/$currentDateTime.server.log
