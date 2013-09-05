@@ -140,6 +140,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                         final int tryNum) throws ExecutionException{
         final byte[] start = range.getFirst();
         byte[] stop = range.getSecond();
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG,"submit job with watcher %s",job.getJobId());
+
         try {
             table.coprocessorExec(SpliceSchedulerProtocol.class, start
                     , stop, new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
@@ -150,6 +153,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                     },new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
+                        	if (LOG.isTraceEnabled())
+                        		SpliceLogUtils.trace(LOG,"submission callback issues %s",result);
                             RegionTaskWatcher taskWatcher = new RegionTaskWatcher(watcher, row, job, task, result, table,tryNum);
                             watcher.tasksToWatch.add(taskWatcher);
                             watcher.taskChanged(taskWatcher);
@@ -323,7 +328,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         private void resubmit() throws ExecutionException{
-            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
+        	if (LOG.isDebugEnabled())
+        		SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
             //only submit so many time
             if(tryNum>=maxResubmissionAttempts){
                 ExecutionException ee = new ExecutionException(
@@ -343,6 +349,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             //rollback child transaction
             if(taskStatus.getTransactionId()!=null){
                 try {
+                	if (LOG.isTraceEnabled())
+                		SpliceLogUtils.trace(LOG,"rolling back transaction %s during resubmission",taskStatus.getTransactionId());
                     final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                     TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
                     transactor.rollback(txnId);
@@ -365,7 +373,8 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
 
             try{
                 Pair<RegionTask,Pair<byte[],byte[]>> newTaskData = job.resubmitTask(task, startRow, endRow);
-
+            	if (LOG.isTraceEnabled())
+            		SpliceLogUtils.trace(LOG,"executing submit on resubmitted job %s",job);
                 //resubmit the task
                 submit(watcher,job, newTaskData.getFirst(), newTaskData.getSecond(), table,tryNum+1);
             }catch(IOException ioe){
@@ -462,7 +471,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
     }
 
-    private class Watcher implements JobFuture{
+    private class Watcher implements JobFuture {
         private final CoprocessorJob job;
         private final NavigableSet<RegionTaskWatcher> tasksToWatch;
         private final BlockingQueue<RegionTaskWatcher> changedTasks;
