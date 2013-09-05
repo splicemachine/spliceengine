@@ -185,7 +185,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-        if(uniqueSequenceID!=null){
+        if(uniqueSequenceID!=null && !context.isOpSinking(this)){
             byte[] start = new byte[uniqueSequenceID.length];
             System.arraycopy(uniqueSequenceID,0,start,0,start.length);
             byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);

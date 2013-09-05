@@ -81,6 +81,13 @@ public class SpliceOperationContext {
         return isSink;
     }
 
+    /**
+     * Indicate whether passed operation is currently sinking rows
+     */
+    public boolean isOpSinking(SinkingOperation op){
+        return isSink && topOperation == op;
+    }
+
     public RegionScanner getScanner() throws IOException {
         if(scanner==null){
             if(region==null)return null;

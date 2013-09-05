@@ -165,7 +165,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         if(regionScanner==null){
             isTemp = true;
         } else {
-            isTemp = !context.isSink() || context.getTopOperation()!=this;
+            isTemp = !context.isOpSinking(this);
             if(isTemp){
                 RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
                         sinkEncoder.getEncodedBytes(0),
