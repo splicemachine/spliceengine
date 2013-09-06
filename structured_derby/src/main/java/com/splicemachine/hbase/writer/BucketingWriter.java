@@ -8,7 +8,6 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import javax.management.*;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -31,15 +30,15 @@ public abstract class BucketingWriter implements Writer{
         this.connection = connection;
     }
 
-    @Override
-    public final Future<Void> write(byte[] tableName, List<KVPair> buffer, String transactionId,RetryStrategy retryStrategy) throws ExecutionException {
+//    @Override
+    public final Future<Void> write(byte[] tableName, List<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
         try {
             List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
-            List<BulkWrite> bulkWrites = bucketWrites(retryStrategy.getMaximumRetries(),tableName,buffer,transactionId,errors,retryStrategy);
+            List<BulkWrite> bulkWrites = bucketWrites(writeConfiguration.getMaximumRetries(),tableName,buffer,transactionId,errors, writeConfiguration);
             CompositeFuture<Void> compositeFuture = new CompositeFuture<Void>();
             for(BulkWrite bulkWrite:bulkWrites){
                 errors.clear();
-                compositeFuture.add(write(tableName, bulkWrite,retryStrategy));
+                compositeFuture.add(write(tableName, bulkWrite, writeConfiguration));
             }
             return compositeFuture;
         } catch (Exception e) {
@@ -48,17 +47,17 @@ public abstract class BucketingWriter implements Writer{
     }
 
 
-    protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,List<KVPair> buffer,String txnId,List<Throwable> errors,RetryStrategy retryStrategy) throws Exception{
+    protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,List<KVPair> buffer,String txnId,List<Throwable> errors,WriteConfiguration writeConfiguration) throws Exception{
         if(tries<=0)
             throw getError(errors);
 
         Set<HRegionInfo> regions = regionCache.getRegions(tableName);
         if(regions.size()<=0){
             //TODO -sf- add error handling in here
-            Thread.sleep(WriteUtils.getWaitTime(retryStrategy.getMaximumRetries() - tries + 1, retryStrategy.getPause()));
+            Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries() - tries + 1, writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
             errors.add(new IOException("Unable to determine regions for table "+ Bytes.toString(tableName)));
-            return bucketWrites(tries-1,tableName,buffer,txnId,errors,retryStrategy);
+            return bucketWrites(tries-1,tableName,buffer,txnId,errors, writeConfiguration);
         }
         List<BulkWrite> buckets = Lists.newArrayListWithCapacity(regions.size());
         for(HRegionInfo info:regions){
@@ -69,9 +68,9 @@ public abstract class BucketingWriter implements Writer{
             return buckets;
         }else{
             //there were regions missing because they were splitting or something similar
-            Thread.sleep(WriteUtils.getWaitTime(retryStrategy.getMaximumRetries()-tries+1,retryStrategy.getPause()));
+            Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1, writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
-            return bucketWrites(tries-1,tableName,buffer,txnId,errors,retryStrategy);
+            return bucketWrites(tries-1,tableName,buffer,txnId,errors, writeConfiguration);
         }
     }
 

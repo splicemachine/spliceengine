@@ -16,7 +16,8 @@ import java.util.concurrent.Future;
  * A CallBuffer which pre-maps entries to a separate buffer based on which region
  * the write belongs to.
  *
- * Useful only for writing data to region-split entities.
+ * This implementation obeys any per-region bounds set in the passed in
+ * {@link BufferConfiguration} entity.
  *
  * This class is <em>not</em> Thread-safe. It's use should be restricted to a
  * single thread. If that is not possible, then external synchronization is
@@ -28,6 +29,7 @@ import java.util.concurrent.Future;
 public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private NavigableMap<byte[],PreMappedBuffer> regionToBufferMap;
     private final Writer writer;
+    private final Writer synchronousWriter;
     private final byte[] tableName;
     private final String txnId;
     private final RegionCache regionCache;
@@ -43,7 +45,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
      * a whole is not thread-safe.
      */
     private volatile boolean rebuildBuffer = true; //use to initialize the map
-    private final Writer.RetryStrategy retryStrategy;
+    private final Writer.WriteConfiguration writeConfiguration;
 
     private long currentHeapSize;
 
@@ -53,31 +55,27 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     PipingWriteBuffer(byte[] tableName,
                               String txnId,
                               Writer writer,
+                              Writer synchronousWriter,
                               RegionCache regionCache,
-                              Writer.RetryStrategy retryStrategy,
+                              Writer.WriteConfiguration writeConfiguration,
                               BufferConfiguration bufferConfiguration) {
-        this.writer = writer;
-        this.tableName = tableName;
-        this.txnId = txnId;
-        this.regionCache = regionCache;
-        this.retryStrategy = new UpdatingRetryStrategy(retryStrategy);
-        this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
-        this.bufferConfiguration = bufferConfiguration;
-        this.preFlushHook = WriteCoordinator.noOpFlushHook;
+        this(tableName, txnId, writer, synchronousWriter, regionCache, WriteCoordinator.noOpFlushHook,writeConfiguration, bufferConfiguration);
     }
 
     PipingWriteBuffer(byte[] tableName,
                       String txnId,
                       Writer writer,
+                      Writer synchronousWriter,
                       RegionCache regionCache,
                       WriteCoordinator.PreFlushHook preFlushHook,
-                      Writer.RetryStrategy retryStrategy,
+                      Writer.WriteConfiguration writeConfiguration,
                       BufferConfiguration bufferConfiguration) {
         this.writer = writer;
+        this.synchronousWriter = synchronousWriter;
         this.tableName = tableName;
         this.txnId = txnId;
         this.regionCache = regionCache;
-        this.retryStrategy = new UpdatingRetryStrategy(retryStrategy);
+        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration);
         this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
@@ -152,6 +150,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             if(regionToBufferMap.containsKey(startKey)) continue;
 
             //we need to add it in
+            Writer writeWrapper = new RegulatedWriter(writer,new RegulatedWriter.OtherWriterHandler(synchronousWriter),bufferConfiguration.getMaxEntries());
             PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, preFlushHook, bufferConfiguration.getMaxEntries());
             regionToBufferMap.put(startKey,newBuffer);
             Map.Entry<byte[],PreMappedBuffer> parentRegion = regionToBufferMap.lowerEntry(startKey);
@@ -192,35 +191,12 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             buffer.close();
     }
 
-    @Override
-    public long getTotalElementsAdded() {
-        return totalElementsAdded;
-    }
-
-    @Override
-    public long getTotalBytesAdded() {
-        return totalBytesAddes;
-    }
-
-    @Override
-    public long getTotalFlushes() {
-        return totalFlushes;
-    }
-
-    @Override
-    public double getAverageEntriesPerFlush() {
-        return ((double)totalElementsAdded)/totalFlushes;
-    }
-
-    @Override
-    public double getAverageSizePerFlush() {
-        return ((double)totalBytesAddes)/totalFlushes;
-    }
-
-    @Override
-    public CallBuffer<KVPair> unwrap() {
-        return this;
-    }
+    @Override public long getTotalElementsAdded() { return totalElementsAdded; }
+    @Override public long getTotalBytesAdded() { return totalBytesAddes; }
+    @Override public long getTotalFlushes() { return totalFlushes; }
+    @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/totalFlushes; }
+    @Override public double getAverageSizePerFlush() { return ((double)totalBytesAddes)/totalFlushes; }
+    @Override public CallBuffer<KVPair> unwrap() { return this; }
 
     private class PreMappedBuffer implements CallBuffer<KVPair> {
         private final Writer writer;
@@ -282,7 +258,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
                 copy = preFlushHook.transform(copy);
                 BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
-                outstandingRequests.add(writer.write(tableName,write,retryStrategy));
+                outstandingRequests.add(writer.write(tableName,write, writeConfiguration));
             }
         }
 
@@ -313,10 +289,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
     }
 
-    private class UpdatingRetryStrategy implements Writer.RetryStrategy{
-        private final Writer.RetryStrategy delegate;
+    private class UpdatingWriteConfiguration implements Writer.WriteConfiguration {
+        private final Writer.WriteConfiguration delegate;
 
-        private UpdatingRetryStrategy(Writer.RetryStrategy delegate) {
+        private UpdatingWriteConfiguration(Writer.WriteConfiguration delegate) {
             this.delegate = delegate;
         }
 
@@ -339,9 +315,15 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                     case WRONG_REGION:
                         PipingWriteBuffer.this.rebuildBuffer=true;
                         break;
+                    //TODO -sf- deal with RegionTooBusy
                 }
             }
             return delegate.partialFailure(result,request);
+        }
+
+        @Override
+        public void writeComplete() {
+            delegate.writeComplete();
         }
     }
 }

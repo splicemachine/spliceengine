@@ -39,7 +39,7 @@ final class BulkWriteAction implements Callable<Void> {
 
     private BulkWrite bulkWrite;
     private final List<Throwable> errors = new CopyOnWriteArrayList<Throwable>();
-    private final Writer.RetryStrategy retryStrategy;
+    private final Writer.WriteConfiguration writeConfiguration;
     private final RegionCache regionCache;
     private final HConnection connection;
     private final ActionStatusReporter statusReporter;
@@ -49,13 +49,13 @@ final class BulkWriteAction implements Callable<Void> {
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
                            RegionCache regionCache,
-                           Writer.RetryStrategy retryStrategy,
+                           Writer.WriteConfiguration writeConfiguration,
                            HConnection connection,
                            ActionStatusReporter statusReporter) {
         this.tableName = tableName;
         this.bulkWrite = bulkWrite;
         this.regionCache = regionCache;
-        this.retryStrategy = retryStrategy;
+        this.writeConfiguration = writeConfiguration;
         this.connection = connection;
         this.statusReporter = statusReporter;
     }
@@ -66,11 +66,12 @@ final class BulkWriteAction implements Callable<Void> {
         reportSize();
         long start = System.currentTimeMillis();
         try{
-            tryWrite(retryStrategy.getMaximumRetries(),Collections.singletonList(bulkWrite));
+            tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite));
         }finally{
+            //called no matter what
+            writeConfiguration.writeComplete();
             long end = System.currentTimeMillis();
-            statusReporter.updateTime(end-start);
-            statusReporter.numExecutingFlushes.decrementAndGet();
+            statusReporter.complete(end - start);
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
              * of the operation. While the Future code will attempt to clean up as much of those futures
@@ -126,7 +127,7 @@ final class BulkWriteAction implements Callable<Void> {
     private void doRetry(int tries, BulkWrite bulkWrite) throws Exception{
         Configuration configuration = SpliceConstants.config;
         NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                batchProtocolClass,tableName,bulkWrite.getRegionKey(),tries< retryStrategy.getMaximumRetries());
+                batchProtocolClass,tableName,bulkWrite.getRegionKey(),tries< writeConfiguration.getMaximumRetries());
         BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
                 protoClassArray, invoker);
         boolean thrown=false;
@@ -136,7 +137,7 @@ final class BulkWriteAction implements Callable<Void> {
             SpliceLogUtils.trace(LOG,"[%d] %s",id,response);
             Map<Integer,WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
-                Writer.WriteResponse writeResponse = retryStrategy.partialFailure(response,bulkWrite);
+                Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
                 switch (writeResponse) {
                     case THROW_ERROR:
                         thrown=true;
@@ -153,7 +154,7 @@ final class BulkWriteAction implements Callable<Void> {
             if(thrown)
                 throw e;
 
-            Writer.WriteResponse writeResponse = retryStrategy.globalError(e);
+            Writer.WriteResponse writeResponse = writeConfiguration.globalError(e);
             switch(writeResponse){
                 case THROW_ERROR:
                     throw e;
@@ -205,7 +206,7 @@ final class BulkWriteAction implements Callable<Void> {
     private void retryFailedWrites(int tries, String txnId, List<KVPair> failedWrites) throws Exception {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
-        Set<HRegionInfo> regionInfo = getRegionsFromCache(retryStrategy.getMaximumRetries());
+        Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());
         List<BulkWrite> newBuckets = getWriteBuckets(txnId,regionInfo);
         if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
             tryWrite(tries-1,newBuckets);
@@ -230,7 +231,7 @@ final class BulkWriteAction implements Callable<Void> {
         Set<HRegionInfo> values;
         do{
             numTries--;
-            Thread.sleep(WriteUtils.getWaitTime(retryStrategy.getMaximumRetries()-numTries+1,retryStrategy.getPause()));
+            Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-numTries+1, writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
             values = regionCache.getRegions(tableName);
         }while(numTries>=0 && (values==null||values.size()<=0));
@@ -309,6 +310,12 @@ final class BulkWriteAction implements Callable<Void> {
             maxFlushEntries.set(0);
             minFlushEntries.set(0);
             totalFlushEntries.set(0);
+        }
+
+        public void complete(long timeTakenMs) {
+            totalFlushTime.addAndGet(timeTakenMs);
+            numExecutingFlushes.decrementAndGet();
+
         }
     }
 }

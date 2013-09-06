@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.writer;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import javax.management.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -11,9 +13,7 @@ import java.util.concurrent.Future;
  */
 public interface Writer {
 
-    public Future<Void> write(byte[] tableName,List<KVPair> buffer,String transactionId,RetryStrategy retryStrategy) throws ExecutionException;
-
-    public Future<Void> write(byte[] tableName,BulkWrite action,RetryStrategy retryStrategy) throws ExecutionException;
+    public Future<Void> write(byte[] tableName,BulkWrite action,WriteConfiguration writeConfiguration) throws ExecutionException;
 
     void stopWrites();
 
@@ -25,7 +25,7 @@ public interface Writer {
         IGNORE
     }
 
-    public interface RetryStrategy{
+    public interface WriteConfiguration {
 
         int getMaximumRetries();
 
@@ -34,6 +34,8 @@ public interface Writer {
         WriteResponse partialFailure(BulkWriteResult result,BulkWrite request) throws ExecutionException;
 
         long getPause();
+
+        void writeComplete();
     }
 
 }

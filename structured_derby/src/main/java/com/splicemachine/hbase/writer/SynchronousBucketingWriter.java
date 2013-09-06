@@ -26,12 +26,12 @@ public class SynchronousBucketingWriter extends BucketingWriter{
     @Override
     public Future<Void> write(byte[] tableName,
                               BulkWrite bulkWrite,
-                              RetryStrategy retryStrategy) throws ExecutionException {
-        RetryStrategy countingRetryStrategy = new CountingRetryStrategy(retryStrategy,statusMonitor);
+                              WriteConfiguration writeConfiguration) throws ExecutionException {
+        WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrite,
                 regionCache,
-                countingRetryStrategy,
+                countingWriteConfiguration,
                 connection,
                 statusMonitor);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();

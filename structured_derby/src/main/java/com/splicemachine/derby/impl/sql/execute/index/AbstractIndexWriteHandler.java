@@ -5,7 +5,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.writer.*;
@@ -14,9 +13,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -138,7 +135,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 }));
             }
         };
-        Writer.RetryStrategy retryStrategy = new Writer.RetryStrategy() {
+        Writer.WriteConfiguration writeConfiguration = new Writer.WriteConfiguration() {
             @Override
             public int getMaximumRetries() {
                 return SpliceConstants.numRetries;
@@ -181,9 +178,11 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             public long getPause() {
                 return WriteCoordinator.pause;
             }
+
+            @Override public void writeComplete() { /*no-op*/ }
         };
 
-        return ctx.getWriteBuffer(indexConglomBytes,flushHook,retryStrategy);
+        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration);
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {

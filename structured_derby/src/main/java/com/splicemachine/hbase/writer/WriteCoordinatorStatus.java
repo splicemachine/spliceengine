@@ -24,4 +24,8 @@ public interface WriteCoordinatorStatus {
     long getPauseTime();
 
     void setPauseTime(long newPauseTimeMs);
+
+    int getMaxFlushesPerRegion();
+
+    void setMaxFlushesPerRegion(int newMaxFlushesPerRegion);
 }

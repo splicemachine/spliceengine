@@ -10,12 +10,12 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Created on: 9/6/13
  */
-class CountingRetryStrategy implements Writer.RetryStrategy{
-    private final Writer.RetryStrategy delegate;
+class CountingWriteConfiguration implements Writer.WriteConfiguration {
+    private final Writer.WriteConfiguration delegate;
     private final BulkWriteAction.ActionStatusReporter statusReporter;
 
-    public CountingRetryStrategy(Writer.RetryStrategy retryStrategy, BulkWriteAction.ActionStatusReporter statusMonitor) {
-        this.delegate = retryStrategy;
+    public CountingWriteConfiguration(Writer.WriteConfiguration writeConfiguration, BulkWriteAction.ActionStatusReporter statusMonitor) {
+        this.delegate = writeConfiguration;
         this.statusReporter = statusMonitor;
     }
 
@@ -75,5 +75,10 @@ class CountingRetryStrategy implements Writer.RetryStrategy{
     @Override
     public long getPause() {
         return delegate.getPause();
+    }
+
+    @Override
+    public void writeComplete() {
+        delegate.writeComplete();
     }
 }

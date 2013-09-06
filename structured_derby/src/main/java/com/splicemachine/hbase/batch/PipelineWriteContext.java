@@ -68,8 +68,8 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes, WriteCoordinator.PreFlushHook preFlushListener, Writer.RetryStrategy retryStrategy) throws Exception {
-            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener,retryStrategy);
+        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes, WriteCoordinator.PreFlushHook preFlushListener, Writer.WriteConfiguration writeConfiguration) throws Exception {
+            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener, writeConfiguration);
         }
 
         @Override
@@ -173,10 +173,10 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.RetryStrategy retryStrategy) throws Exception {
+    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.WriteConfiguration writeConfiguration) throws Exception {
         if(useAsyncWriteBuffers)
-            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txnId, preFlushListener,retryStrategy);
-        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener,retryStrategy);
+            return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txnId, preFlushListener, writeConfiguration);
+        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener, writeConfiguration);
     }
 
     @Override

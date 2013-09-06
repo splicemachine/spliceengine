@@ -1,6 +1,5 @@
 package com.splicemachine.hbase.writer;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.MonitoredThreadPool;
@@ -16,11 +15,9 @@ import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import javax.management.*;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -103,7 +100,7 @@ public class WriteCoordinator {
     public PipingWriteBuffer pipedWriteBuffer(byte[] tableName, String txnId){
         monitor.outstandingBuffers.incrementAndGet();
         //TODO -sf- add a global maxHeapSize rather than multiplying by 10
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache,defaultRetryStrategy,
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, defaultWriteConfiguration,
                 new BufferConfiguration() {
                     @Override
                     public long getMaxHeapSize() {
@@ -114,13 +111,24 @@ public class WriteCoordinator {
                     public int getMaxEntries() {
                         return monitor.getMaxEntries();
                     }
-                });
+
+                    @Override
+                    public int getMaxFlushesPerRegion() {
+                        return monitor.getMaxFlushesPerRegion();
+                    }
+                }){
+            @Override
+            public void close() throws Exception {
+                monitor.outstandingBuffers.decrementAndGet();
+                super.close();
+            }
+        };
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
         monitor.outstandingBuffers.incrementAndGet();
 
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache,defaultRetryStrategy,monitor){
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, defaultWriteConfiguration,monitor){
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
@@ -130,9 +138,9 @@ public class WriteCoordinator {
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
-                                                       PreFlushHook flushHook,Writer.RetryStrategy retryStrategy){
+                                                       PreFlushHook flushHook,Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache, flushHook, retryStrategy,monitor) {
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
@@ -143,9 +151,9 @@ public class WriteCoordinator {
 
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                                   String txnId, PreFlushHook flushHook,
-                                                                  Writer.RetryStrategy retryStrategy){
+                                                                  Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
-        return new PipingWriteBuffer(tableName,txnId,synchronousWriter,regionCache, flushHook, retryStrategy,monitor) {
+        return new PipingWriteBuffer(tableName,txnId,synchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
@@ -154,104 +162,11 @@ public class WriteCoordinator {
         };
     }
 
-    private abstract class BufferListener implements CallBuffer.Listener<KVPair>{
-        private final PreFlushHook preFlushHook;
-        protected final byte[] tableName;
-        protected final Writer.RetryStrategy retryStrategy;
-        private long totalFlushes = 0l;
-
-        protected BufferListener(PreFlushHook preFlushHook, byte[] tableName,Writer.RetryStrategy retryStrategy) {
-            this.preFlushHook = preFlushHook;
-            this.tableName = tableName;
-            this.retryStrategy = retryStrategy;
-        }
-
-        @Override
-        public long heapSize(KVPair element) {
-            return element.getRow().length+element.getValue().length+1;
-        }
-
-        @Override
-        public void bufferFlushed(List<KVPair> entries, CallBuffer<KVPair> source) throws Exception {
-            totalFlushes++;
-            entries = preFlushHook.transform(entries);
-
-            String transactionId = ((TransactionalCallBuffer<KVPair>) source).getTransactionId();
-            doWrite(entries,transactionId);
-        }
-
-        public abstract void ensureFlushed() throws ExecutionException, InterruptedException;
-
-        protected abstract void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException;
-
-        public long getTotalFlushes() {
-            return totalFlushes;
-        }
-    }
-
-    private class SyncBufferListener extends BufferListener{
-        private SyncBufferListener(PreFlushHook preFlushHook, byte[] tableName, Writer.RetryStrategy retryStrategy) {
-            super(preFlushHook, tableName, retryStrategy);
-        }
-
-        @Override
-        public void ensureFlushed() throws ExecutionException, InterruptedException {
-            //no-op
-        }
-
-        @Override
-        protected void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException {
-            Future<Void> future = asynchronousWriter.write(tableName,entries,transactionId,retryStrategy);
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                throw new ExecutionException(e);
-            }
-        }
-    }
-
-    private class AsyncBufferListener extends BufferListener{
-        private List<Future<Void>> futures = Lists.newArrayList();
-
-        private AsyncBufferListener(PreFlushHook preFlushHook, byte[] tableName, Writer.RetryStrategy retryStrategy) {
-            super(preFlushHook, tableName, retryStrategy);
-        }
-
-        @Override
-        public void ensureFlushed() throws ExecutionException, InterruptedException {
-            for(Future<Void> future:futures){
-                future.get();
-            }
-        }
-
-        @Override
-        protected void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException {
-            /*
-             * Before writing this, check the previous buffers that have been flushed. Remove any successful
-             * flushes from the list to avoid memory leaks, and throw errors on any Future that has failed for
-             * any reason.
-             */
-            Iterator<Future<Void>> futureIterator = futures.iterator();
-            while(futureIterator.hasNext()){
-                Future<Void> future = futureIterator.next();
-                if(future.isDone()){
-                    try {
-                        future.get(); //check for errors
-                    } catch (InterruptedException e) {
-                        throw new ExecutionException(e);
-                    }
-                    futureIterator.remove();
-                }
-            }
-            //submit the flush
-            futures.add(asynchronousWriter.write(tableName, entries, transactionId, retryStrategy));
-        }
-    }
-
     private static class Monitor implements WriteCoordinatorStatus,BufferConfiguration{
         private volatile long maxHeapSize;
         private volatile int maxEntries;
         private volatile int maxRetries;
+        private volatile int maxFlushesPerRegion = 5;
 
         private AtomicInteger outstandingBuffers = new AtomicInteger(0);
         private volatile long pauseTime;
@@ -274,11 +189,14 @@ public class WriteCoordinator {
         @Override public void setPauseTime(long newPauseTimeMs) { this.pauseTime = newPauseTimeMs; }
         @Override public long getMaxHeapSize() { return maxHeapSize; }
         @Override public int getMaxEntries() { return maxEntries; }
+        @Override public int getMaxFlushesPerRegion() { return maxFlushesPerRegion; }
+        @Override public void setMaxFlushesPerRegion(int newMaxFlushesPerRegion) { this.maxFlushesPerRegion = newMaxFlushesPerRegion; }
     }
 
-    private final Writer.RetryStrategy defaultRetryStrategy = new Writer.RetryStrategy() {
+    private final Writer.WriteConfiguration defaultWriteConfiguration = new Writer.WriteConfiguration() {
         @Override public int getMaximumRetries() { return monitor.getMaximumRetries(); }
         @Override public long getPause() { return monitor.getPauseTime(); }
+        @Override public void writeComplete() { /*no-op*/ }
 
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {

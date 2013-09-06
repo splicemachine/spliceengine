@@ -1,11 +1,9 @@
 package com.splicemachine.hbase.writer;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
@@ -30,12 +28,12 @@ public class AsyncBucketingWriter extends BucketingWriter {
     }
 
     @Override
-    public Future<Void> write(byte[] tableName, BulkWrite bulkWrite,RetryStrategy retryStrategy) throws ExecutionException {
-        RetryStrategy countingRetryStrategy = new CountingRetryStrategy(retryStrategy,statusMonitor);
+    public Future<Void> write(byte[] tableName, BulkWrite bulkWrite,WriteConfiguration writeConfiguration) throws ExecutionException {
+        WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrite,
                 regionCache,
-                countingRetryStrategy,
+                countingWriteConfiguration,
                 connection,
                 statusMonitor);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();

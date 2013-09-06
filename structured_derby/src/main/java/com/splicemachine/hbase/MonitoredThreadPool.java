@@ -1,5 +1,8 @@
 package com.splicemachine.hbase;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 
@@ -12,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created on: 6/3/13
  */
 public class MonitoredThreadPool implements ThreadPoolStatus {
+    private final ListeningExecutorService listeningService;
     private final ThreadPoolExecutor writerPool;
 
     private final AtomicInteger numPendingTasks = new AtomicInteger(0);
@@ -21,6 +25,7 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
 
     private MonitoredThreadPool(ThreadPoolExecutor writerPool, CountingRejectionHandler countingRejectionHandler){
         this.writerPool = writerPool;
+        this.listeningService = MoreExecutors.listeningDecorator(writerPool);
         this.countingRejectionHandler = countingRejectionHandler;
     }
 
@@ -46,9 +51,9 @@ public class MonitoredThreadPool implements ThreadPoolStatus {
         writerPool.shutdown();
     }
 
-    public <V> Future<V> submit(Callable<V> task){
+    public <V> ListenableFuture<V> submit(Callable<V> task){
         numPendingTasks.incrementAndGet();
-        return this.writerPool.submit(new WatchingCallable<V>(task));
+        return this.listeningService.submit(new WatchingCallable<V>(task));
     }
 
     @Override public int getPendingTaskCount() { return numPendingTasks.get(); }
