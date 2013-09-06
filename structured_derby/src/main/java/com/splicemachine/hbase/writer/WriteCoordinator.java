@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.log4j.Logger;
 
 import javax.management.*;
 import java.io.IOException;
@@ -206,11 +207,22 @@ public class WriteCoordinator {
 
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+            if(t instanceof RegionTooBusyException){
+                /*
+                 * We need to wait an extra 2 seconds or so, to give the server a chance to calm down
+                 */
+                try {
+                    Thread.sleep(2*getPause());
+                } catch (InterruptedException e) {
+                    //ignore the interrupt, and just continue on
+                    Logger.getLogger(WriteCoordinator.class).info("Interrupted while sleeping due to a RegionTooBusyException",e);
+                }
+                return Writer.WriteResponse.RETRY;
+            }
             if(t instanceof ConnectException
                     || t instanceof WrongRegionException
                     || t instanceof IndexNotSetUpException
-                    || t instanceof NotServingRegionException
-                    || t instanceof RegionTooBusyException)
+                    || t instanceof NotServingRegionException )
                 return Writer.WriteResponse.RETRY;
             else
                 return Writer.WriteResponse.THROW_ERROR;

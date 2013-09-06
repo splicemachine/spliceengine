@@ -143,12 +143,21 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+                if(t instanceof RegionTooBusyException){
+                    try {
+                        Thread.sleep(2*getPause());
+                    } catch (InterruptedException e) {
+                        LOG.info("Interrupted while waiting due to a RegionTooBusyException",e);
+                    }
+
+                    return Writer.WriteResponse.RETRY;
+                }
                 if( t instanceof ConnectException
                  || t instanceof WrongRegionException
                  || t instanceof NotServingRegionException
-                 || t instanceof IndexNotSetUpException
-                 || t instanceof RegionTooBusyException) return Writer.WriteResponse.RETRY;
-                else
+                 || t instanceof IndexNotSetUpException){
+                    return Writer.WriteResponse.RETRY;
+                }else
                     return Writer.WriteResponse.THROW_ERROR;
             }
 

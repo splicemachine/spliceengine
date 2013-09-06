@@ -317,7 +317,6 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                     case WRONG_REGION:
                         PipingWriteBuffer.this.rebuildBuffer=true;
                         break;
-                    //TODO -sf- deal with RegionTooBusy
                 }
             }
             return delegate.partialFailure(result,request);
