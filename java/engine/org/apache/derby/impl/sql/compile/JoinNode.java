@@ -1749,8 +1749,8 @@ public class JoinNode extends TableOperatorNode {
                         rightCol = maybeLeftCol;
                     }
 
-                    leftHashCols[i] = leftCol.getColumnNumber();
-                    rightHashCols[i] = rightCol.getColumnNumber();
+                    leftHashCols[i] = resolveColumn(leftCol.getColumnNumber(), (Optimizable) leftResultSet);
+                    rightHashCols[i] = resolveColumn(rightCol.getColumnNumber(), (Optimizable) rightResultSet);
 
                     if (leftCol.getSource().getTableColumnDescriptor() != null) {
                         leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
@@ -1853,6 +1853,29 @@ public class JoinNode extends TableOperatorNode {
 
 		return numArgs;
 
+	}
+
+	/*
+	 * Resolve the column number based on the chosen access path, taking into
+	 * account indexes
+	 */
+	private int resolveColumn(int columnNumber, Optimizable optimizable) {
+		AccessPath accessPath = ((Optimizable) optimizable).getTrulyTheBestAccessPath();
+		if (accessPath == null) {
+			return columnNumber;
+		}
+
+		ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
+		if (cd == null || !cd.isIndex()) {
+			return columnNumber;
+		}
+
+		int indexColumn = cd.getIndexDescriptor().getKeyColumnPosition(columnNumber);
+		if (indexColumn == 0) {
+			// column is not in the index key
+			return columnNumber;
+		}
+		return indexColumn;
 	}
 
     private boolean isNestedLoopOverHashableJoin(){
