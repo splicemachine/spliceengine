@@ -165,13 +165,23 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
                 Map<Integer,WriteResult> failedRows = result.getFailedRows();
                 boolean canRetry = true;
+                boolean regionTooBusy = false;
                 for(WriteResult writeResult: failedRows.values()){
                     if(!writeResult.canRetry()){
                         canRetry=false;
                         break;
-                    }
+                    }else if(writeResult.getErrorMessage().contains("RegionTooBusy"))
+                        regionTooBusy = true;
                 }
 
+                if(regionTooBusy){
+                    try{
+                        Thread.sleep(2*getPause());
+                    } catch (InterruptedException e) {
+                        LOG.info("Interrupted while waiting due to a RegionTooBusyException",e);
+                    }
+                    return Writer.WriteResponse.RETRY;
+                }
                 if(canRetry) return Writer.WriteResponse.RETRY;
                 else{
                     List<KVPair> indexMutations = request.getMutations();

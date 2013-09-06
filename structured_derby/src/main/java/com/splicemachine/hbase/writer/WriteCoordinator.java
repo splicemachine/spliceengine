@@ -231,10 +231,21 @@ public class WriteCoordinator {
         @Override
         public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
             Map<Integer,WriteResult> failedRows = result.getFailedRows();
+            boolean isRegionTooBusy = false;
             for(WriteResult writeResult:failedRows.values()){
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
+                else if(writeResult.getErrorMessage().contains("RegionTooBusy"))
+                    isRegionTooBusy = true;
             }
+            if(isRegionTooBusy){
+                try{
+                    Thread.sleep(2*getPause());
+                } catch (InterruptedException e) {
+                    Logger.getLogger(WriteCoordinator.class).info("Interrupted while sleeping due to a RegionTooBusyException",e);
+                }
+            }
+
             return Writer.WriteResponse.RETRY;
         }
     };
