@@ -12,6 +12,7 @@ public class CustomerTable extends SpliceTableWatcher {
     public static final String INDEX_NAME = "IDX_CUSTOMER";
     public static final String INDEX_DEF = "(c_w_id,c_d_id,c_last,c_first)";
     public static final String INDEX_ORDER_DEF = "(c_last,c_first,c_w_id,c_d_id)";
+    public static final String INDEX_NAME_ID_DEF = "(c_last,c_first,c_id)";
     public static final String INDEX_ORDER_DEF_ASC = "(c_last ASC,c_first,c_credit_lim)";
     public static final String INDEX_ORDER_DEF_DESC = "(c_last DESC,c_first,c_credit_lim)";
 

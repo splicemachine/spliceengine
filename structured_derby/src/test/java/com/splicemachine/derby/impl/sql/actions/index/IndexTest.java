@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.actions.index;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -34,8 +35,10 @@ import com.splicemachine.homeless.TestUtils;
  *         Date: 7/31/13
  */
 public class IndexTest extends SpliceUnitTest {
+    private static final Logger LOG = Logger.getLogger(IndexTest.class);
+
     private static final String SCHEMA_NAME = IndexTest.class.getSimpleName().toUpperCase();
-    public static final String CUSTOMER_OORDER_JOIN = "select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d from %1$s.%2$s c, %1$s.%3$s o where c.c_id = o.o_c_id";
+    public static final String CUSTOMER_ORDER_JOIN = "select %1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d from %1$s.%2$s c, %1$s.%3$s o where c.c_id = o.o_c_id";
     public static final String SELECT_UNIQUE_CUSTOMER = "select * from %s.%s c where c.c_last = 'ESEPRIANTI' and c.c_id = 2365";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
@@ -78,13 +81,41 @@ public class IndexTest extends SpliceUnitTest {
         }
     };
 
+    protected static HeaderTable headerTableWatcher = new HeaderTable(HeaderTable.TABLE_NAME,SCHEMA_NAME) {
+        @Override
+        protected void starting(Description description) {
+            super.starting(description);
+            try {
+                spliceClassWatcher.executeUpdate(String.format("INSERT INTO %s.%s VALUES" +
+                        "(0, 8888, DATE('2011-12-28'))", SCHEMA_NAME, HeaderTable.TABLE_NAME));
+            } catch (Exception e) {
+                LOG.error("Error inserting into HEADER table", e);
+            }
+        }
+    };
+
+    protected static EmailableTable emailableTableWatcher = new EmailableTable(EmailableTable.TABLE_NAME,SCHEMA_NAME){
+        @Override
+        protected void starting(Description description) {
+            super.starting(description);
+            try {
+                spliceClassWatcher.executeUpdate(String.format("INSERT INTO %s.%s VALUES" +
+                        "(8888)", SCHEMA_NAME, EmailableTable.TABLE_NAME));
+            } catch (Exception e) {
+                LOG.error("Error inserting into EMAILABLE table", e);
+            }
+        }
+    };
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(customerTableWatcher)
             .around(newOrderTableWatcher)
             .around(orderTableWatcher)
-            .around(orderLineTableWatcher);
+            .around(orderLineTableWatcher)
+            .around(headerTableWatcher)
+            .around(emailableTableWatcher);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -304,7 +335,7 @@ public class IndexTest extends SpliceUnitTest {
 
     @Test
     public void testJoinCustomerOrders() throws Exception {
-        String query = String.format(CUSTOMER_OORDER_JOIN,
+        String query = String.format(CUSTOMER_ORDER_JOIN,
                 SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
         long start = System.currentTimeMillis();
         ResultSet rs = methodWatcher.executeQuery(query);
@@ -320,7 +351,7 @@ public class IndexTest extends SpliceUnitTest {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
 
-            String query = String.format(CUSTOMER_OORDER_JOIN,
+            String query = String.format(CUSTOMER_ORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
@@ -334,13 +365,47 @@ public class IndexTest extends SpliceUnitTest {
         }
     }
 
+    public static final String HEADER_JOIN = String.format("select distinct a.customer_master_id\n" +
+                "from %s.%s a, %s.%s b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n" +
+                "where transaction_dt >= DATE('2011-12-28') and transaction_dt <=\n" +
+                "DATE('2012-03-03')\n" +
+                "and b.customer_master_id=a.customer_master_id",
+                SCHEMA_NAME, HeaderTable.TABLE_NAME, SCHEMA_NAME, EmailableTable.TABLE_NAME);
+
+    @Test
+    public void testHeaderJoinMSJ() throws Exception {
+        long start = System.currentTimeMillis();
+        ResultSet rs = methodWatcher.executeQuery(HEADER_JOIN);
+        String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+        int cnt = resultSetSize(rs);
+        System.out.println("Rows returned: "+cnt+" in "+duration);
+        Assert.assertTrue(cnt == 1);
+    }
+
+    @Test
+    public void testHeaderJoinMSJWithIndex() throws Exception {
+        try {
+            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, HeaderTable.TABLE_NAME, HeaderTable.INDEX_NAME, HeaderTable.INDEX_DEF, false);
+            long start = System.currentTimeMillis();
+            ResultSet rs = methodWatcher.executeQuery(HEADER_JOIN);
+            String duration = TestUtils.getDuration(start, System.currentTimeMillis());
+            int cnt = resultSetSize(rs);
+            System.out.println("Rows returned: "+cnt+" in "+duration);
+            Assert.assertTrue(cnt == 1);
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,HeaderTable.INDEX_NAME);
+        }
+    }
+
     @Test
     public void testJoinCustomerOrdersWithIndexNotInColumnOrder() throws Exception {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
 
-            String query = String.format(CUSTOMER_OORDER_JOIN,
+            String query = String.format(CUSTOMER_ORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(query);
