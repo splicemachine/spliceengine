@@ -306,7 +306,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 	@Override
 	public int[] getRootAccessedCols(long tableNumber) {
-		return source.getRootAccessedCols(tableNumber);
+		int[] sourceCols = source.getRootAccessedCols(tableNumber);
+		if (projectMapping == null) {
+		    return sourceCols;
+		}
+		int[] result = new int[projectMapping.length];
+		for (int i = 0; i < projectMapping.length; ++i) {
+		    result[i] = sourceCols[projectMapping[i] - 1];
+		}
+		return result;
 	}
 
     @Override
