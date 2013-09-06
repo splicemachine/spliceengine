@@ -473,7 +473,7 @@
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
                                 <argument>-Djava.awt.headless=true</argument>
-                                <argument>-Xmx2g</argument>
+                                <argument>-Xmx3g</argument>
                                 <argument>-Xms1g</argument>
                                 <argument>-XX:MaxPermSize=128M</argument>
                                 <argument>-enableassertions</argument>
