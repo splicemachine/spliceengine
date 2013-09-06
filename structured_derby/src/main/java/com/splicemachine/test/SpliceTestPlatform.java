@@ -134,6 +134,11 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setInt("hbase.hregion.memstore.block.multiplier", 4);
         configuration.setFloat("hbase.store.compaction.ratio", (float) 0.25);
         configuration.setFloat("io.hfile.bloom.error.rate", (float)0.005);
+        configuration.setInt("hbase.master.event.waiting.time", 20);
+        configuration.setInt("hbase.client.pause", 10);
+        configuration.setInt("hbase.master.lease.thread.wakefrequency", 3000);
+        configuration.setInt("hbase.server.thread.wakefrequency", 1000);
+        configuration.setInt("hbase.regionserver.msginterval", 1000);
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);        
         coprocessorBaseline(configuration);
