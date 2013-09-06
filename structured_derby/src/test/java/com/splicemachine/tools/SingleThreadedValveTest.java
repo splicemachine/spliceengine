@@ -27,7 +27,7 @@ public class SingleThreadedValveTest {
         valve.release();
 
         //make sure we can now acquire
-        Assert.assertTrue("valve does not allow through entries after release!",valve.tryAllow()>0);
+        Assert.assertTrue("valve does not allow through entries after release!",valve.tryAllow()>=0);
     }
 
     @Test

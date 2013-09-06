@@ -72,7 +72,7 @@ public class MultiThreadedValveTest {
 
         TestOpeningPolicy openingPolicy = new TestOpeningPolicy(numThreads/2);
         final Valve valve = new Valve(openingPolicy);
-        final CyclicBarrier goodBarrier = new CyclicBarrier(numThreads/2+1);
+        final CyclicBarrier goodBarrier = new CyclicBarrier(numThreads+1);
         final CountDownLatch waitBarrier = new CountDownLatch(1);
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
         for(int i=0;i<numThreads;i++){
@@ -80,9 +80,8 @@ public class MultiThreadedValveTest {
                 @Override
                 public Boolean call() throws Exception {
                     int version = valve.tryAllow();
+                    goodBarrier.await();
                     if(version==0){
-                        System.out.printf("[%s] Acquired from valve%n",Thread.currentThread().getName());
-                        goodBarrier.await();
                         System.out.printf("[%s] goodBarrier passed, returning version %d%n",
                                 Thread.currentThread().getName(), version);
                         return version==0;
@@ -102,6 +101,7 @@ public class MultiThreadedValveTest {
         goodBarrier.await();
         //now half the values are acquired --adjust upwards and then count down
         openingPolicy.initialSize.set(numThreads);
+        valve.adjustUpwards(0, Valve.OpeningPolicy.SizeSuggestion.DOUBLE);
         waitBarrier.countDown();
 
         System.out.printf("[%s] Checking permit positions%n",Thread.currentThread().getName());

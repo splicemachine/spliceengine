@@ -54,6 +54,14 @@ public class RegulatedWriter implements Writer{
         throw new UnsupportedOperationException("register underlying writer instance instead");
     }
 
+    public int getCurrentMaxFlushes() {
+        return valve.getAvailable();
+    }
+
+    public void setCurrentMaxFlushes(int oldMaxFlushes) {
+        valve.setMaxFlushes(oldMaxFlushes);
+    }
+
     public static interface WriteRejectedHandler{
 
         public Future<Void> writeRejected(byte[] tableName,BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;

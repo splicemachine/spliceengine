@@ -101,6 +101,25 @@ public class Valve {
         return maxPermits.get();
     }
 
+    public int getAvailable() {
+        return maxPermits.get();
+    }
+
+    public void setMaxFlushes(int newMax) {
+        int version = this.version.get();
+        if(!this.version.compareAndSet(version,version+1))
+            return;
+
+        int oldMax = maxPermits.get();
+        if(maxPermits.compareAndSet(oldMax,newMax)){
+            if(oldMax<newMax){
+                gate.release(newMax-oldMax);
+            }else if(oldMax > newMax){
+                gate.reducePermits(oldMax-newMax);
+            }
+        }
+    }
+
     public static interface OpeningPolicy{
         public static enum SizeSuggestion{
             INCREMENT,

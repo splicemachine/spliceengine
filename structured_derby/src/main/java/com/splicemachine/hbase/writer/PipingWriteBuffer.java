@@ -150,7 +150,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             if(regionToBufferMap.containsKey(startKey)) continue;
 
             //we need to add it in
-            Writer writeWrapper = new RegulatedWriter(writer,
+            RegulatedWriter writeWrapper = new RegulatedWriter(writer,
                     new CountingHandler(new RegulatedWriter.OtherWriterHandler(synchronousWriter)),
                     bufferConfiguration.getMaxFlushesPerRegion());
             PreMappedBuffer newBuffer = new PreMappedBuffer(writeWrapper, startKey, preFlushHook, bufferConfiguration.getMaxEntries());
@@ -158,6 +158,9 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             Map.Entry<byte[],PreMappedBuffer> parentRegion = regionToBufferMap.lowerEntry(startKey);
             if(parentRegion!=null){
                 PreMappedBuffer oldBuffer = parentRegion.getValue();
+                //use the same size as the oldBuffer as our initial starting point
+                int oldMaxFlushes = ((RegulatedWriter)oldBuffer.getWriter()).getCurrentMaxFlushes();
+                writeWrapper.setCurrentMaxFlushes(oldMaxFlushes);
                 //move entries that are slated for the old region into the new region
                 newBuffer.addAll(oldBuffer.removeAllAfter(startKey));
             }
@@ -288,6 +291,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
         public int getHeapSize() {
             return heapSize;
+        }
+
+        public Writer getWriter() {
+            return writer;
         }
     }
 
