@@ -23,4 +23,6 @@ public interface BufferConfiguration {
      * @return the maximum number of concurrent flushes that are allowed for a given region.
      */
     int getMaxFlushesPerRegion();
+
+    void writeRejected();
 }

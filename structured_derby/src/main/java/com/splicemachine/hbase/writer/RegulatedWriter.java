@@ -5,6 +5,8 @@ import com.splicemachine.tools.Valve;
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLongArray;
 
 /**
  * Writer which regulates how many concurrent writes are allowed, gating flushes as necessary (forcing flushes
@@ -19,7 +21,9 @@ public class RegulatedWriter implements Writer{
 
     private final Valve valve;
 
-    public RegulatedWriter(Writer delegate, WriteRejectedHandler writeRejectedHandler, int maxConcurrentWrites) {
+    public RegulatedWriter(Writer delegate,
+                           WriteRejectedHandler writeRejectedHandler,
+                           int maxConcurrentWrites ) {
         this.delegate = delegate;
         this.writeRejectedHandler = writeRejectedHandler;
         this.valve = new Valve(new Valve.FixedMaxOpeningPolicy(maxConcurrentWrites)); //TODO -sf- make adaptive OpeningPolicy

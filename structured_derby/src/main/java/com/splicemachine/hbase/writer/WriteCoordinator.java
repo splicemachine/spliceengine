@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Scott Fines
@@ -102,19 +103,13 @@ public class WriteCoordinator {
         //TODO -sf- add a global maxHeapSize rather than multiplying by 10
         return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, defaultWriteConfiguration,
                 new BufferConfiguration() {
-                    @Override
-                    public long getMaxHeapSize() {
-                        return monitor.getMaxHeapSize()*10;
-                    }
+                    @Override public long getMaxHeapSize() { return monitor.getMaxHeapSize()*10; }
+                    @Override public int getMaxEntries() { return monitor.getMaxEntries(); }
+                    @Override public int getMaxFlushesPerRegion() { return monitor.getMaxFlushesPerRegion(); }
 
                     @Override
-                    public int getMaxEntries() {
-                        return monitor.getMaxEntries();
-                    }
-
-                    @Override
-                    public int getMaxFlushesPerRegion() {
-                        return monitor.getMaxFlushesPerRegion();
+                    public void writeRejected() {
+                        monitor.writeRejected();
                     }
                 }){
             @Override
@@ -170,6 +165,7 @@ public class WriteCoordinator {
 
         private AtomicInteger outstandingBuffers = new AtomicInteger(0);
         private volatile long pauseTime;
+        private AtomicLong writesRejected = new AtomicLong(0l);
 
         private Monitor(long maxHeapSize, int maxEntries, int maxRetries,long pauseTime) {
             this.maxHeapSize = maxHeapSize;
@@ -191,6 +187,16 @@ public class WriteCoordinator {
         @Override public int getMaxEntries() { return maxEntries; }
         @Override public int getMaxFlushesPerRegion() { return maxFlushesPerRegion; }
         @Override public void setMaxFlushesPerRegion(int newMaxFlushesPerRegion) { this.maxFlushesPerRegion = newMaxFlushesPerRegion; }
+
+        @Override
+        public long getSynchronousFlushCount() {
+            return writesRejected.get();
+        }
+
+        @Override
+        public void writeRejected() {
+            this.writesRejected.incrementAndGet();
+        }
     }
 
     private final Writer.WriteConfiguration defaultWriteConfiguration = new Writer.WriteConfiguration() {

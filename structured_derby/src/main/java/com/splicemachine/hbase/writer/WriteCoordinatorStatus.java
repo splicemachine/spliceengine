@@ -28,4 +28,6 @@ public interface WriteCoordinatorStatus {
     int getMaxFlushesPerRegion();
 
     void setMaxFlushesPerRegion(int newMaxFlushesPerRegion);
+
+    long getSynchronousFlushCount();
 }

@@ -150,8 +150,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             if(regionToBufferMap.containsKey(startKey)) continue;
 
             //we need to add it in
-            Writer writeWrapper = new RegulatedWriter(writer,new RegulatedWriter.OtherWriterHandler(synchronousWriter),bufferConfiguration.getMaxEntries());
-            PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, preFlushHook, bufferConfiguration.getMaxEntries());
+            Writer writeWrapper = new RegulatedWriter(writer,
+                    new CountingHandler(new RegulatedWriter.OtherWriterHandler(synchronousWriter)),
+                    bufferConfiguration.getMaxFlushesPerRegion());
+            PreMappedBuffer newBuffer = new PreMappedBuffer(writeWrapper, startKey, preFlushHook, bufferConfiguration.getMaxEntries());
             regionToBufferMap.put(startKey,newBuffer);
             Map.Entry<byte[],PreMappedBuffer> parentRegion = regionToBufferMap.lowerEntry(startKey);
             if(parentRegion!=null){
@@ -324,6 +326,20 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         @Override
         public void writeComplete() {
             delegate.writeComplete();
+        }
+    }
+
+    private class CountingHandler implements RegulatedWriter.WriteRejectedHandler{
+        private final RegulatedWriter.WriteRejectedHandler otherWriterHandler;
+
+        public CountingHandler(RegulatedWriter.WriteRejectedHandler otherWriterHandler)  {
+            this.otherWriterHandler = otherWriterHandler;
+        }
+
+        @Override
+        public Future<Void> writeRejected(byte[] tableName, BulkWrite action, Writer.WriteConfiguration writeConfiguration) throws ExecutionException {
+            bufferConfiguration.writeRejected();
+            return otherWriterHandler.writeRejected(tableName,action,writeConfiguration);
         }
     }
 }
