@@ -65,7 +65,7 @@ public class Valve {
 //            }else
             if( maxPermits.compareAndSet(currentMax,nextMax)){
                 System.out.printf("[%s], set maxPermits safely%n",Thread.currentThread().getName());
-                gate.release(nextMax-currentMax);
+                gate.release(nextMax - currentMax);
                 return true;
             }else{
                 System.out.printf("[%s], did not set maxPermits%n",Thread.currentThread().getName());
@@ -142,6 +142,58 @@ public class Valve {
         @Override
         public int allowMore(int currentSize, SizeSuggestion suggestion) {
             return absoluteMax;
+        }
+    }
+
+    public static class PassiveOpeningPolicy implements OpeningPolicy{
+        private final int absoluteMax;
+
+        private AtomicInteger size;
+        public PassiveOpeningPolicy(int absoluteMax) {
+            this.absoluteMax = absoluteMax;
+            this.size = new AtomicInteger(absoluteMax);
+        }
+
+        @Override
+        public int reduceSize(int currentSize, SizeSuggestion suggestion) {
+            int currSize = size.get();
+            int newSize;
+            switch (suggestion) {
+                case DECREMENT:
+                    newSize = currSize-1;
+                    break;
+                case HALVE:
+                    newSize = currSize/2;
+                    break;
+                default:
+                    return size.get();
+            }
+            if(size.compareAndSet(currSize,newSize))
+                return newSize;
+            return currSize;
+        }
+
+        @Override
+        public int allowMore(int currentSize, SizeSuggestion suggestion) {
+            int currSize = size.get();
+            int newSize;
+            switch (suggestion) {
+                case INCREMENT:
+                    newSize = currSize+1;
+                    break;
+                case DOUBLE:
+                    newSize = currSize*2;
+                    break;
+                default:
+                    return size.get();
+            }
+            if(newSize>absoluteMax)
+                newSize=absoluteMax;
+
+            if(currSize<newSize&&size.compareAndSet(currSize,newSize))
+                return newSize;
+            else
+                return currSize;
         }
     }
 
