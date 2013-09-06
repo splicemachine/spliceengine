@@ -263,7 +263,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			}
 			if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try {
-                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null);
+                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null, null);
                     TaskStats stats = opSink.sink(getDestinationTable());
                     modifiedProvider.setRowsModified(stats.getReadStats().getTotalRecords());
                 } catch (Exception ioe) {

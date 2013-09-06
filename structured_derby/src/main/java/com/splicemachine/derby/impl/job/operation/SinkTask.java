@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
@@ -82,8 +83,7 @@ public class SinkTask extends ZkTask {
 
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
-
-            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId());
+            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId());
 
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
@@ -103,6 +103,15 @@ public class SinkTask extends ZkTask {
             if (impl != null) {
                 impl.cleanup();
             }
+        }
+    }
+
+    private String getTransactionId() {
+        final TaskStatus taskStatus = getTaskStatus();
+        if (taskStatus != null) {
+            return taskStatus.getTransactionId();
+        } else {
+            return null;
         }
     }
 

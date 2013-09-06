@@ -50,7 +50,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                OperationSink opSink = OperationSink.create((SinkingOperation) op,null);
+                OperationSink opSink = OperationSink.create((SinkingOperation) op,null,null);
                 if(op instanceof DMLWriteOperation)
                     return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
                 else

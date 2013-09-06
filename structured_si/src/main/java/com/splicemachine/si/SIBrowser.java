@@ -150,7 +150,7 @@ public class SIBrowser extends SIConstants {
                     if (Arrays.equals(SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
                             && Arrays.equals(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
                         Long timestamp = null;
-                        if (v.length > 0) {
+                        if (v.length > 1) {
                             timestamp = Bytes.toLong(v);
                         }
                         System.out.println("timestamp " + timestamp + " @ " + ts);

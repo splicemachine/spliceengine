@@ -39,20 +39,22 @@ public class OperationSink {
     private final WriteCoordinator tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
+    private final String transactionId;
 
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskId,SinkingOperation operation,WriteCoordinator tableWriter) {
+    private OperationSink(byte[] taskId,SinkingOperation operation,WriteCoordinator tableWriter, String transactionId) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
+        this.transactionId = transactionId;
     }
 
-    public static OperationSink create(SinkingOperation operation, byte[] taskId) throws IOException {
+    public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter());
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
     }
 
     public TaskStats sink(byte[] destinationTable) throws Exception {
@@ -65,7 +67,7 @@ public class OperationSink {
         try{
             encoder = operation.getRowEncoder();
             encoder.setPostfix(postfix);
-            String txnId = operation.getTransactionID();
+            String txnId = transactionId == null ? operation.getTransactionID() : transactionId;
             writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
 
             ExecRow row;
