@@ -25,12 +25,16 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  * Created on: 8/27/13
  */
-public class PipingWriteBuffer implements CallBuffer<KVPair>{
+public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private NavigableMap<byte[],PreMappedBuffer> regionToBufferMap;
     private final Writer writer;
     private final byte[] tableName;
     private final String txnId;
     private final RegionCache regionCache;
+
+    private long totalElementsAdded = 0l;
+    private long totalBytesAddes = 0l;
+    private long totalFlushes = 0l;
 
     /*
      * In the event of a Region split, we need a flag to indicate to us that the
@@ -44,6 +48,7 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
     private long currentHeapSize;
 
     private final BufferConfiguration bufferConfiguration;
+    private final WriteCoordinator.PreFlushHook preFlushHook;
 
     PipingWriteBuffer(byte[] tableName,
                               String txnId,
@@ -58,6 +63,24 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
         this.retryStrategy = new UpdatingRetryStrategy(retryStrategy);
         this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
         this.bufferConfiguration = bufferConfiguration;
+        this.preFlushHook = WriteCoordinator.noOpFlushHook;
+    }
+
+    PipingWriteBuffer(byte[] tableName,
+                      String txnId,
+                      Writer writer,
+                      RegionCache regionCache,
+                      WriteCoordinator.PreFlushHook preFlushHook,
+                      Writer.RetryStrategy retryStrategy,
+                      BufferConfiguration bufferConfiguration) {
+        this.writer = writer;
+        this.tableName = tableName;
+        this.txnId = txnId;
+        this.regionCache = regionCache;
+        this.retryStrategy = new UpdatingRetryStrategy(retryStrategy);
+        this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
+        this.bufferConfiguration = bufferConfiguration;
+        this.preFlushHook = preFlushHook;
     }
 
     @Override
@@ -129,7 +152,7 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
             if(regionToBufferMap.containsKey(startKey)) continue;
 
             //we need to add it in
-            PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, bufferConfiguration.getMaxEntries());
+            PreMappedBuffer newBuffer = new PreMappedBuffer(writer, startKey, preFlushHook, bufferConfiguration.getMaxEntries());
             regionToBufferMap.put(startKey,newBuffer);
             Map.Entry<byte[],PreMappedBuffer> parentRegion = regionToBufferMap.lowerEntry(startKey);
             if(parentRegion!=null){
@@ -169,18 +192,50 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
             buffer.close();
     }
 
+    @Override
+    public long getTotalElementsAdded() {
+        return totalElementsAdded;
+    }
+
+    @Override
+    public long getTotalBytesAdded() {
+        return totalBytesAddes;
+    }
+
+    @Override
+    public long getTotalFlushes() {
+        return totalFlushes;
+    }
+
+    @Override
+    public double getAverageEntriesPerFlush() {
+        return ((double)totalElementsAdded)/totalFlushes;
+    }
+
+    @Override
+    public double getAverageSizePerFlush() {
+        return ((double)totalBytesAddes)/totalFlushes;
+    }
+
+    @Override
+    public CallBuffer<KVPair> unwrap() {
+        return this;
+    }
+
     private class PreMappedBuffer implements CallBuffer<KVPair> {
         private final Writer writer;
         private final List<KVPair> buffer;
         private int heapSize;
         private final byte[] regionStartKey;
         private final List<Future<Void>> outstandingRequests = Lists.newArrayList();
+        private final WriteCoordinator.PreFlushHook preFlushHook;
 
         private final int maxEntries;
 
-        public PreMappedBuffer(Writer writer, byte[] regionStartKey, int maxEntries) {
+        public PreMappedBuffer(Writer writer, byte[] regionStartKey, WriteCoordinator.PreFlushHook preFlushHook, int maxEntries) {
             this.writer = writer;
             this.regionStartKey = regionStartKey;
+            this.preFlushHook = preFlushHook;
             this.maxEntries = maxEntries;
             this.buffer = Lists.newArrayListWithCapacity(maxEntries);
         }
@@ -224,6 +279,8 @@ public class PipingWriteBuffer implements CallBuffer<KVPair>{
                 //update heap size metrics
                 PipingWriteBuffer.this.currentHeapSize-=heapSize;
                 heapSize=0;
+
+                copy = preFlushHook.transform(copy);
                 BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
                 outstandingRequests.add(writer.write(tableName,write,retryStrategy));
             }

@@ -29,7 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class WriteCoordinator {
     private final RegionCache regionCache;
-    private final Writer writer;
+    private final Writer asynchronousWriter;
+    private final Writer synchronousWriter;
 
     private final Monitor monitor;
     private static final PreFlushHook noopFlushHook = new PreFlushHook() {
@@ -40,6 +41,12 @@ public class WriteCoordinator {
     };
     public static final long pause = SpliceConstants.config.getLong(HConstants.HBASE_CLIENT_PAUSE,
             HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+    public static PreFlushHook noOpFlushHook = new PreFlushHook() {
+        @Override
+        public List<KVPair> transform(List<KVPair> buffer) throws Exception {
+            return buffer;
+        }
+    };
 
     public static WriteCoordinator create(Configuration config) throws IOException {
         assert config!=null;
@@ -52,13 +59,17 @@ public class WriteCoordinator {
 
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
+        Writer syncWriter = new SynchronousBucketingWriter(regionCache,connection);
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,pause);
-        return new WriteCoordinator(regionCache,writer,monitor);
+        return new WriteCoordinator(regionCache,writer, syncWriter, monitor);
     }
 
-    private WriteCoordinator(RegionCache regionCache, Writer writer,Monitor monitor) {
+    private WriteCoordinator(RegionCache regionCache,
+                             Writer asynchronousWriter,
+                             Writer synchronousWriter, Monitor monitor) {
         this.regionCache = regionCache;
-        this.writer = writer;
+        this.asynchronousWriter = asynchronousWriter;
+        this.synchronousWriter = synchronousWriter;
         this.monitor = monitor;
     }
 
@@ -72,7 +83,8 @@ public class WriteCoordinator {
 
         regionCache.registerJMX(mbs);
 
-        writer.registerJMX(mbs);
+        asynchronousWriter.registerJMX(mbs);
+        synchronousWriter.registerJMX(mbs);
     }
 
     public interface PreFlushHook{
@@ -85,13 +97,13 @@ public class WriteCoordinator {
 
     public void shutdown(){
         regionCache.shutdown();
-        writer.stopWrites();
+        asynchronousWriter.stopWrites();
     }
 
     public PipingWriteBuffer pipedWriteBuffer(byte[] tableName, String txnId){
         monitor.outstandingBuffers.incrementAndGet();
         //TODO -sf- add a global maxHeapSize rather than multiplying by 10
-        return new PipingWriteBuffer(tableName,txnId,writer,regionCache,defaultRetryStrategy,
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache,defaultRetryStrategy,
                 new BufferConfiguration() {
                     @Override
                     public long getMaxHeapSize() {
@@ -107,40 +119,24 @@ public class WriteCoordinator {
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
         monitor.outstandingBuffers.incrementAndGet();
-        final BufferListener listener = new AsyncBufferListener(noopFlushHook,tableName, defaultRetryStrategy);
-        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
+
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache,defaultRetryStrategy,monitor){
             @Override
             public void close() throws Exception {
-                listener.ensureFlushed();
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
-            }
-        };
-        return new RecordingCallBuffer<KVPair>(buffer,listener){
-            @Override
-            public long getTotalFlushes() {
-                return super.getTotalFlushes()+listener.getTotalFlushes();
             }
         };
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
                                                        PreFlushHook flushHook,Writer.RetryStrategy retryStrategy){
-        final BufferListener listener = new AsyncBufferListener(flushHook,tableName, retryStrategy);
         monitor.outstandingBuffers.incrementAndGet();
-        CallBuffer<KVPair> buffer = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,regionCache, flushHook, retryStrategy,monitor) {
             @Override
             public void close() throws Exception {
-                listener.ensureFlushed();
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
-            }
-        };
-
-        return new RecordingCallBuffer<KVPair>(buffer,listener){
-            @Override
-            public long getTotalFlushes() {
-                return listener.getTotalFlushes()+super.getTotalFlushes();
             }
         };
     }
@@ -149,20 +145,11 @@ public class WriteCoordinator {
                                                                   String txnId, PreFlushHook flushHook,
                                                                   Writer.RetryStrategy retryStrategy){
         monitor.outstandingBuffers.incrementAndGet();
-        final BufferListener listener = new SyncBufferListener(flushHook,tableName, retryStrategy);
-        CallBuffer<KVPair> delegate = new TransactionalUnsafeCallBuffer<KVPair>(txnId,monitor,listener){
+        return new PipingWriteBuffer(tableName,txnId,synchronousWriter,regionCache, flushHook, retryStrategy,monitor) {
             @Override
             public void close() throws Exception {
-                listener.ensureFlushed();
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
-            }
-        };
-
-        return new RecordingCallBuffer<KVPair>(delegate,listener){
-            @Override
-            public long getTotalFlushes() {
-                return listener.getTotalFlushes()+super.getTotalFlushes();
             }
         };
     }
@@ -214,7 +201,7 @@ public class WriteCoordinator {
 
         @Override
         protected void doWrite(List<KVPair> entries, String transactionId) throws ExecutionException {
-            Future<Void> future = writer.write(tableName,entries,transactionId,retryStrategy);
+            Future<Void> future = asynchronousWriter.write(tableName,entries,transactionId,retryStrategy);
             try {
                 future.get();
             } catch (InterruptedException e) {
@@ -257,7 +244,7 @@ public class WriteCoordinator {
                 }
             }
             //submit the flush
-            futures.add(writer.write(tableName,entries,transactionId,retryStrategy));
+            futures.add(asynchronousWriter.write(tableName, entries, transactionId, retryStrategy));
         }
     }
 

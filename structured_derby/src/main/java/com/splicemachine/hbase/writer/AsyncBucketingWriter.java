@@ -18,7 +18,7 @@ import java.util.concurrent.Future;
 public class AsyncBucketingWriter extends BucketingWriter {
     private final MonitoredThreadPool writerPool;
     private final BulkWriteAction.ActionStatusReporter statusMonitor;
-    private final WriterMonitor monitor = new WriterMonitor();
+    private final ActionStatusMonitor monitor;
 
     public AsyncBucketingWriter(MonitoredThreadPool writerPool,
                                 RegionCache regionCache,
@@ -26,6 +26,7 @@ public class AsyncBucketingWriter extends BucketingWriter {
         super(regionCache, connection);
         this.writerPool = writerPool;
         this.statusMonitor = new BulkWriteAction.ActionStatusReporter();
+        this.monitor = new ActionStatusMonitor(statusMonitor);
     }
 
     @Override
@@ -48,119 +49,10 @@ public class AsyncBucketingWriter extends BucketingWriter {
 
     @Override
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
-        ObjectName monitorName = new ObjectName("com.splicemachine.writer:type=WriterStatus");
+        ObjectName monitorName = new ObjectName("com.splicemachine.writer.async:type=WriterStatus");
         mbs.registerMBean(monitor,monitorName);
 
-        ObjectName poolName = new ObjectName("com.splicemachine.writer:type=ThreadPoolStatus");
+        ObjectName poolName = new ObjectName("com.splicemachine.writer.async:type=ThreadPoolStatus");
         mbs.registerMBean(writerPool,poolName);
-    }
-
-    private class WriterMonitor implements WriterStatus{
-        @Override public int getExecutingBufferFlushes() { return statusMonitor.numExecutingFlushes.get(); }
-        @Override public long getTotalSubmittedFlushes() { return statusMonitor.totalFlushesSubmitted.get(); }
-        @Override public long getFailedBufferFlushes() { return statusMonitor.failedBufferFlushes.get(); }
-        @Override public long getNotServingRegionFlushes() { return statusMonitor.notServingRegionFlushes.get(); }
-        @Override public long getTimedOutFlushes() { return statusMonitor.timedOutFlushes.get(); }
-        @Override public long getGlobalErrors() { return statusMonitor.globalFailures.get(); }
-        @Override public long getPartialFailures() { return statusMonitor.partialFailures.get(); }
-        @Override public long getMaxFlushTime() { return statusMonitor.maxFlushTime.get(); }
-        @Override public long getMinFlushTime() { return statusMonitor.minFlushTime.get(); }
-        @Override public long getWrongRegionFlushes() { return statusMonitor.wrongRegionFlushes.get(); }
-        @Override public long getMaxFlushedBufferSize() { return statusMonitor.maxFlushSizeBytes.get(); }
-        @Override public long getTotalFlushedBufferSize() { return statusMonitor.totalFlushSizeBytes.get(); }
-        @Override public long getMinFlushedBufferSize() { return statusMonitor.minFlushSizeBytes.get(); }
-        @Override public long getMinFlushedBufferEntries() { return statusMonitor.minFlushEntries.get(); }
-        @Override public long getMaxFlushedBufferEntries() { return statusMonitor.maxFlushEntries.get(); }
-        @Override public long getTotalFlushedBufferEntries() { return statusMonitor.totalFlushEntries.get(); }
-        @Override public long getTotalFlushTime() { return statusMonitor.totalFlushTime.get(); }
-
-        @Override
-        public double getAvgFlushTime() {
-            long totalFlushTime = getTotalFlushTime();
-            long totalFlushes = getTotalSubmittedFlushes();
-            return (double)totalFlushTime/totalFlushes;
-        }
-
-        @Override
-        public void reset() {
-            statusMonitor.reset();
-        }
-
-        @Override public double getAvgFlushedBufferSize() {
-            return statusMonitor.totalFlushSizeBytes.get()/(double)statusMonitor.totalFlushesSubmitted.get();
-        }
-
-        @Override
-        public double getAvgFlushedBufferEntries() {
-            return statusMonitor.totalFlushEntries.get()/(double)statusMonitor.totalFlushesSubmitted.get();
-        }
-    }
-
-    private class CountingRetryStrategy implements RetryStrategy {
-        private final RetryStrategy delegate;
-        private final BulkWriteAction.ActionStatusReporter statusReporter;
-
-        public CountingRetryStrategy(RetryStrategy retryStrategy, BulkWriteAction.ActionStatusReporter statusMonitor) {
-            this.delegate = retryStrategy;
-            this.statusReporter = statusMonitor;
-        }
-
-        @Override
-        public int getMaximumRetries() {
-            return delegate.getMaximumRetries();
-        }
-
-        @Override
-        public WriteResponse globalError(Throwable t) throws ExecutionException {
-            statusReporter.globalFailures.incrementAndGet();
-            if(t instanceof HBaseClient.CallTimeoutException)
-                statusReporter.timedOutFlushes.incrementAndGet();
-            else if(t instanceof NotServingRegionException)
-                statusReporter.notServingRegionFlushes.incrementAndGet();
-            else if(t instanceof WrongRegionException)
-                statusReporter.wrongRegionFlushes.incrementAndGet();
-            return delegate.globalError(t);
-        }
-
-        @Override
-        public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-            statusReporter.partialFailures.incrementAndGet();
-            //look for timeouts, not serving regions, wrong regions, and so forth
-            boolean notServingRegion= false;
-            boolean wrongRegion = false;
-            boolean failed = false;
-            boolean writeConflict = false;
-            for(WriteResult writeResult:result.getFailedRows().values()){
-                WriteResult.Code code = writeResult.getCode();
-                switch (code) {
-                    case FAILED:
-                        failed=true;
-                        break;
-                    case WRITE_CONFLICT:
-                        writeConflict=true;
-                        break;
-                    case NOT_SERVING_REGION:
-                        notServingRegion = true;
-                        break;
-                    case WRONG_REGION:
-                        wrongRegion = true;
-                        break;
-                }
-            }
-            if(notServingRegion)
-                statusReporter.notServingRegionFlushes.incrementAndGet();
-            if(wrongRegion)
-                statusReporter.wrongRegionFlushes.incrementAndGet();
-            if(writeConflict)
-                statusReporter.writeConflictBufferFlushes.incrementAndGet();
-            if(failed)
-                statusReporter.failedBufferFlushes.incrementAndGet();
-            return delegate.partialFailure(result,request);
-        }
-
-        @Override
-        public long getPause() {
-            return delegate.getPause();
-        }
     }
 }
