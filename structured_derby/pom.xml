@@ -123,6 +123,27 @@
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
 		<plugins>
+
+            <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>buildnumber-maven-plugin</artifactId>
+            <version>1.2</version>
+            <executions>
+                <execution>
+                                        <phase>validate</phase>
+                     <goals>
+                        <goal>create</goal>
+                    </goals>
+                </execution>
+            </executions>
+            <configuration>
+                <shortRevisionLength>10</shortRevisionLength>
+                <doCheck>false</doCheck>
+                <doUpdate>false</doUpdate>
+            </configuration>
+        </plugin>    
+
+		
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
@@ -157,6 +178,12 @@
 						<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
 					</descriptors>
 					<archive>
+					 <manifestEntries>
+					 
+             			<Implementation-Version>${buildNumber}</Implementation-Version>
+              			<Release>0.5</Release>
+              			<URL>http://www.splicemachine.com</URL>
+            		</manifestEntries>
 					</archive>
 				</configuration>
 				<executions>
