@@ -69,7 +69,7 @@ public class WriteResult implements Externalizable{
     }
 
     public boolean canRetry() {
-        return code==Code.NOT_SERVING_REGION||code==Code.WRONG_REGION;
+        return code==Code.NOT_SERVING_REGION||code==Code.WRONG_REGION||(errorMessage != null && errorMessage.contains("RegionTooBusy"));
     }
 
     public static WriteResult notRun() {

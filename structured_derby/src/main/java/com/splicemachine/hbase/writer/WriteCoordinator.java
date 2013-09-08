@@ -235,7 +235,7 @@ public class WriteCoordinator {
             for(WriteResult writeResult:failedRows.values()){
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
-                else if(writeResult.getErrorMessage().contains("RegionTooBusy"))
+                else if (writeResult.getErrorMessage() != null && writeResult.getErrorMessage().contains("RegionTooBusy"))
                     isRegionTooBusy = true;
             }
             if(isRegionTooBusy){
