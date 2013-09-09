@@ -170,7 +170,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                     if(!writeResult.canRetry()){
                         canRetry=false;
                         break;
-                    }else if(writeResult.getErrorMessage().contains("RegionTooBusy"))
+                    }if(writeResult.getCode()== WriteResult.Code.REGION_TOO_BUSY)
                         regionTooBusy = true;
                 }
 

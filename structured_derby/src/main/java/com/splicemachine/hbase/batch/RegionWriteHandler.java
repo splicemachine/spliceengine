@@ -20,6 +20,7 @@ import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
@@ -139,6 +140,11 @@ public class RegionWriteHandler implements WriteHandler {
             WriteResult result = WriteResult.notServingRegion();
             for (KVPair mutation : mutations) {
                 ctx.result(mutation, result);
+            }
+        }catch(RegionTooBusyException rtbe){
+            WriteResult result = WriteResult.regionTooBusy();
+            for(KVPair mutation:mutations){
+                ctx.result(mutation,result);
             }
         }catch (IOException ioe) {
             /*

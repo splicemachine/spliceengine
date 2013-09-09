@@ -32,12 +32,7 @@ public class WriteCoordinator {
     private final Writer synchronousWriter;
 
     private final Monitor monitor;
-    private static final PreFlushHook noopFlushHook = new PreFlushHook() {
-        @Override
-        public List<KVPair> transform(List<KVPair> buffer) throws Exception {
-            return buffer;
-        }
-    };
+
     public static final long pause = SpliceConstants.config.getLong(HConstants.HBASE_CLIENT_PAUSE,
             HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
     public static PreFlushHook noOpFlushHook = new PreFlushHook() {
@@ -59,7 +54,7 @@ public class WriteCoordinator {
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
         Writer syncWriter = new SynchronousBucketingWriter(regionCache,connection);
-        Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,pause);
+        Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,pause,SpliceConstants.maxFlushesPerRegion);
         return new WriteCoordinator(regionCache,writer, syncWriter, monitor);
     }
 
@@ -74,7 +69,6 @@ public class WriteCoordinator {
 
     /**
      * Used to register this coordinator with JMX
-     * @param mbs
      */
     public void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         ObjectName coordinatorName = new ObjectName("com.splicemachine.writer:type=WriteCoordinatorStatus");
@@ -102,7 +96,7 @@ public class WriteCoordinator {
     public PipingWriteBuffer pipedWriteBuffer(byte[] tableName, String txnId){
         monitor.outstandingBuffers.incrementAndGet();
         //TODO -sf- add a global maxHeapSize rather than multiplying by 10
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, defaultWriteConfiguration,
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook, defaultWriteConfiguration,
                 new BufferConfiguration() {
                     @Override public long getMaxHeapSize() { return monitor.getMaxHeapSize()*10; }
                     @Override public int getMaxEntries() { return monitor.getMaxEntries(); }
@@ -124,7 +118,7 @@ public class WriteCoordinator {
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
         monitor.outstandingBuffers.incrementAndGet();
 
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, defaultWriteConfiguration,monitor){
+        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook,defaultWriteConfiguration,monitor){
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
@@ -162,17 +156,18 @@ public class WriteCoordinator {
         private volatile long maxHeapSize;
         private volatile int maxEntries;
         private volatile int maxRetries;
-        private volatile int maxFlushesPerRegion = 5;
+        private volatile int maxFlushesPerRegion;
 
         private AtomicInteger outstandingBuffers = new AtomicInteger(0);
         private volatile long pauseTime;
         private AtomicLong writesRejected = new AtomicLong(0l);
 
-        private Monitor(long maxHeapSize, int maxEntries, int maxRetries,long pauseTime) {
+        private Monitor(long maxHeapSize, int maxEntries, int maxRetries,long pauseTime,int maxFlushesPerRegion) {
             this.maxHeapSize = maxHeapSize;
             this.maxEntries = maxEntries;
             this.maxRetries = maxRetries;
             this.pauseTime = pauseTime;
+            this.maxFlushesPerRegion = maxFlushesPerRegion;
         }
 
         @Override public long getMaxBufferHeapSize() { return maxHeapSize; }
@@ -235,7 +230,7 @@ public class WriteCoordinator {
             for(WriteResult writeResult:failedRows.values()){
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
-                else if (writeResult.getErrorMessage() != null && writeResult.getErrorMessage().contains("RegionTooBusy"))
+                if(writeResult.getCode()== WriteResult.Code.REGION_TOO_BUSY)
                     isRegionTooBusy = true;
             }
             if(isRegionTooBusy){

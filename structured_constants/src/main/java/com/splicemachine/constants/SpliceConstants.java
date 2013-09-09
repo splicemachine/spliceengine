@@ -299,6 +299,10 @@ public class SpliceConstants {
     private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
     private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
 
+    public static int maxFlushesPerRegion;
+    public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
+    public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
+
 
     public static enum TableEnv {
     	TRANSACTION_TABLE,
@@ -405,6 +409,8 @@ public class SpliceConstants {
         maxConcurrentRollForwards = config.getInt(ROLL_FORWARD_MAX_CONCURRENT_ROLLS,DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS);
         maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
         maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
+
+        maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

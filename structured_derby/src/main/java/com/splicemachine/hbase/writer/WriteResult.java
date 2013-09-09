@@ -69,7 +69,7 @@ public class WriteResult implements Externalizable{
     }
 
     public boolean canRetry() {
-        return code==Code.NOT_SERVING_REGION||code==Code.WRONG_REGION||(errorMessage != null && errorMessage.contains("RegionTooBusy"));
+        return code.canRetry();
     }
 
     public static WriteResult notRun() {
@@ -107,6 +107,10 @@ public class WriteResult implements Externalizable{
         return new WriteResult(Code.NOT_SERVING_REGION);
     }
 
+    public static WriteResult regionTooBusy() {
+        return new WriteResult(Code.REGION_TOO_BUSY);
+    }
+
     public enum Code {
         FAILED,
         WRITE_CONFLICT,
@@ -115,8 +119,33 @@ public class WriteResult implements Externalizable{
         UNIQUE_VIOLATION,
         FOREIGN_KEY_VIOLATION,
         CHECK_VIOLATION,
-        NOT_SERVING_REGION,
-        WRONG_REGION,
-        NOT_RUN
+        NOT_SERVING_REGION{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        WRONG_REGION{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        REGION_TOO_BUSY{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        NOT_RUN{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        };
+
+        public boolean canRetry(){
+            return false;
+        }
     }
 }

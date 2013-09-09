@@ -53,16 +53,6 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final WriteCoordinator.PreFlushHook preFlushHook;
 
     PipingWriteBuffer(byte[] tableName,
-                              String txnId,
-                              Writer writer,
-                              Writer synchronousWriter,
-                              RegionCache regionCache,
-                              Writer.WriteConfiguration writeConfiguration,
-                              BufferConfiguration bufferConfiguration) {
-        this(tableName, txnId, writer, synchronousWriter, regionCache, WriteCoordinator.noOpFlushHook,writeConfiguration, bufferConfiguration);
-    }
-
-    PipingWriteBuffer(byte[] tableName,
                       String txnId,
                       Writer writer,
                       Writer synchronousWriter,
