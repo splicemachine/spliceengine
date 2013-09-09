@@ -41,7 +41,7 @@ public class SpliceTestPlatform extends TestConstants {
     final Runnable randomWrappedExecutionException = new Runnable() {
         @Override
         public void run() {
-            if (randomly(33)) {
+            if (randomly(25)) {
                 throw new RuntimeException(new ExecutionException("invalidating on purpose", new NotServingRegionException()));
             }
         }
@@ -50,7 +50,7 @@ public class SpliceTestPlatform extends TestConstants {
     final Runnable randomRuntimeException = new Runnable() {
         @Override
         public void run() {
-            if (randomly(10)) {
+            if (randomly(25)) {
                 throw new RuntimeException("failing on purpose");
             }
         }
@@ -100,7 +100,7 @@ public class SpliceTestPlatform extends TestConstants {
 	
 	public void start() throws Exception {
         SchedulerTracer.registerTaskStart(randomWrappedExecutionException);
-        //SchedulerTracer.registerTaskEnd(randomRuntimeException);
+        SchedulerTracer.registerTaskEnd(randomRuntimeException);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
