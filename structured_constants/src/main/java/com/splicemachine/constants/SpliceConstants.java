@@ -83,7 +83,7 @@ public class SpliceConstants {
 	public static final int DEFAULT_RMI_PORT = 40001;
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
     public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
-    public static final int DEFAULT_RING_BUFFER_SIZE=1000;
+    public static final int DEFAULT_RING_BUFFER_SIZE=10000;
     public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
     public static final int DEFAULT_INDEX_BUFFER_SIZE=1000;
     public static final int DEFAULT_KRYO_POOL_SIZE=50;
