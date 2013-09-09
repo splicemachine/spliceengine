@@ -31,7 +31,7 @@ public class ParseDateTest {
     @Test
     public void testParseAveScriptOutput() throws Exception {
         List<String> csvs = createCSVMean(FILEDIRNAME, 
-        		getFileNames(FILEDIRNAME, "load25_default_hbase_NOSI_PK\\d\\.log"), PHASES);
+        		getFileNames(FILEDIRNAME, "load25_default_splice0908\\d\\.log"), PHASES);
 
         for (String csv : csvs) {
             System.out.println(csv);
@@ -39,6 +39,9 @@ public class ParseDateTest {
     }
 
     public static List<String> createCSV(String fileDir, List<String> fileNames, List<String> phases) throws Exception {
+        if (fileNames.isEmpty()) {
+            throw new Exception("No file names to parse.");
+        }
         StringBuilder columnHeader = new StringBuilder();
         Map<String, List<DatePair>> filesToPairs = new TreeMap<String, List<DatePair>>();
         for (String fileName : fileNames) {
@@ -70,16 +73,19 @@ public class ParseDateTest {
         return buf.toString();
     }
 
-    public static List<String> createCSVMean(String fileDir, List<String> filePaths, List<String> phases) throws Exception {
+    public static List<String> createCSVMean(String fileDir, List<String> fileNames, List<String> phases) throws Exception {
+        if (fileNames.isEmpty()) {
+            throw new Exception("No file names to parse.");
+        }
         List<String> csvs = new ArrayList<String>();
         Map<String, List<DatePair>> filesToPairs = new TreeMap<String, List<DatePair>>();
-        for (String filePath : filePaths) {
+        for (String filePath : fileNames) {
             filesToPairs.put(filePath, parseScriptForDates(fileDir + filePath, phases));
 			csvs.add(getName(filePath));
         }
 
 		for (int i = 0; i < phases.size(); i++) {
-			csvs.add(csvMean(getSlice(filePaths, filesToPairs, i), phases.get(i)));
+			csvs.add(csvMean(getSlice(fileNames, filesToPairs, i), phases.get(i)));
 		}
 		return csvs;
     }
@@ -137,11 +143,12 @@ public class ParseDateTest {
     public static List<String> getFileNames(String fileDirName, String filterPattern) {
         File fileDir = new File(fileDirName);
         final Pattern pattern = Pattern.compile(filterPattern);
-        return Arrays.asList(fileDir.list(new FilenameFilter() {
+        List<String> files = Arrays.asList(fileDir.list(new FilenameFilter() {
             public boolean accept(File directory, String fileName) {
                 return pattern.matcher(fileName).matches();
             }
         }));
+        return files;
     }
     
     public static String formatDuration(long duration) {
