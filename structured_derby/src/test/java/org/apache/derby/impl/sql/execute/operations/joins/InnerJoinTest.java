@@ -190,6 +190,18 @@ public class InnerJoinTest extends SpliceUnitTest {
     }
 
     @Test
+    public void testMergeSortJoinOverIndexScan() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                "select c.schemaid from sys.systables c , sys.sysschemas s  --DERBY-PROPERTIES joinStrategy=SORTMERGE \n" +
+                        "where c.tablename like 'SYS%' and c.schemaid = s.schemaid");
+        int values = 0;
+        while (rs.next()) {
+            values++;
+        }
+        Assert.assertTrue("Should return some values", values > 4);
+    }
+
+    @Test
     public void testProjectionOverMergeSortJoin() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select 10*t1.GRADE as foo from STAFF t1 where t1.EMPNUM not in (select t2.EMPNUM from WORKS t2 where t1.EMPNUM = t2.EMPNUM)");
 
