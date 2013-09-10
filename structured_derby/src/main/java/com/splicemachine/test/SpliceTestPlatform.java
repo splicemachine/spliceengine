@@ -100,7 +100,7 @@ public class SpliceTestPlatform extends TestConstants {
 	
 	public void start() throws Exception {
         SchedulerTracer.registerTaskStart(randomWrappedExecutionException);
-        SchedulerTracer.registerTaskEnd(randomRuntimeException);
+        //SchedulerTracer.registerTaskEnd(randomRuntimeException);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
