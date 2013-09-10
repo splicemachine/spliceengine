@@ -37,6 +37,7 @@ public class SpliceOperationContext {
     private boolean isSink;
     private SpliceOperation topOperation;
     private SpliceOperationRegionScanner spliceRegionScanner;
+    private boolean cacheBlocks = true;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
@@ -89,10 +90,15 @@ public class SpliceOperationContext {
     }
 
     public RegionScanner getScanner() throws IOException {
+        return getScanner(cacheBlocks);
+    }
+
+    public RegionScanner getScanner(boolean enableBlockCache) throws IOException{
         if(scanner==null){
             if(region==null)return null;
 
             Scan scan = new Scan(this.scan);
+            scan.setCacheBlocks(enableBlockCache);
             scanner = region.getCoprocessorHost().preScannerOpen(scan);
             if (scanner == null) {
                 scanner = region.getScanner(scan);
@@ -146,5 +152,9 @@ public class SpliceOperationContext {
 
     public SpliceOperationRegionScanner getSpliceRegionScanner(){
         return spliceRegionScanner;
+    }
+
+    public void setCacheBlocks(boolean cacheBlocks) {
+        this.cacheBlocks = cacheBlocks;
     }
 }

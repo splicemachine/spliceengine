@@ -49,12 +49,6 @@ public class TableScanOperation extends ScanOperation {
 	private Properties scanProperties;
 	public String startPositionString;
 	public String stopPositionString;
-	protected ThreadLocal<Boolean> initialized = new ThreadLocal<Boolean>() {
-		@Override
-		protected Boolean initialValue() {
-			return false;
-		}
-	};
 
     private static final MetricName scanTime = new MetricName("com.splicemachine.operations","tableScan","scanTime");
     private final Timer timer = SpliceDriver.driver().getRegistry().newTimer(scanTime, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);

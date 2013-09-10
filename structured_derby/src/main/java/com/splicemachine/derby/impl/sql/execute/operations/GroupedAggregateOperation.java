@@ -117,6 +117,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
+        context.setCacheBlocks(false);
         super.init(context);
         ((SpliceOperation)source).init(context);
         GenericStorablePreparedStatement statement = context.getPreparedStatement();

@@ -12,6 +12,9 @@ import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.yammer.metrics.core.Meter;
+import com.yammer.metrics.core.MetricName;
+import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,26 +58,32 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         factoryMap.put(-1l,Pair.newPair(LocalWriteContextFactory.unmanagedContextFactory(),new AtomicInteger(1)));
     }
 
-    private static ReceiverStats status = new ReceiverStats();
-    static{
-        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-        try{
-            ObjectName name = new ObjectName("com.splicemachine.writer:type=BulkReceiverStatus");
-            mbs.registerMBean(status,name);
-        } catch (MalformedObjectNameException e) {
-            LOG.error("Unable to register JMX for BulkRecieverStatus",e);
-        } catch (InstanceAlreadyExistsException e) {
-            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-        } catch (NotCompliantMBeanException e) {
-            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-        } catch (MBeanRegistrationException e) {
-            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-        }
-    }
+    private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
+    private static MetricName throughputMeterName = new MetricName("com.splicemachine","receiverStats","success");
+    private static MetricName failedMeterName = new MetricName("com.splicemachine","receiverStats","failed");
+//    private static ReceiverStats status = new ReceiverStats();
+//    static{
+//        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+//        try{
+//            ObjectName name = new ObjectName("com.splicemachine.writer:type=BulkReceiverStatus");
+//            mbs.registerMBean(status,name);
+//        } catch (MalformedObjectNameException e) {
+//            LOG.error("Unable to register JMX for BulkRecieverStatus",e);
+//        } catch (InstanceAlreadyExistsException e) {
+//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+//        } catch (NotCompliantMBeanException e) {
+//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+//        } catch (MBeanRegistrationException e) {
+//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
+//        }
+//    }
 
     private long conglomId;
 
     private RollForwardQueue<byte[],ByteBuffer> queue;
+    private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
+    private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
+    private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
 
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -110,7 +120,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             };
             SpliceDriver.driver().registerService(service);
         }
+
         super.start(env);
+
     }
 
     @Override
@@ -126,11 +138,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         assert bulkWrite!=null;
         assert bulkWrite.getTxnId()!=null;
 
-        status.totalWritesReceived.incrementAndGet();
         SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         HRegion region = rce.getRegion();
         region.startRegionOperation();
+        long start = System.nanoTime();
         try{
             WriteContext context;
             if(queue==null)
@@ -142,10 +154,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 //we're done, someone else will have to write this batch
                 throw new IOException(e);
             }
-            List<KVPair> pairs = bulkWrite.getMutations();
-            status.totalRowsReceived.addAndGet(pairs.size());
             for(KVPair mutation:bulkWrite.getMutations()){
-                status.totalBytesReceived.addAndGet(mutation.getSize());
                 context.sendUpstream(mutation); //send all writes along the pipeline
             }
             Map<KVPair,WriteResult> resultMap = context.finish();
@@ -162,14 +171,13 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 response.addResult(pos,result);
                 pos++;
             }
-            status.totalFailedRows.addAndGet(failed);
 
+            throughputMeter.mark(bulkWrite.getMutations().size()-failed);
+            failedMeter.mark(failed);
             return response;
-        }catch(IOException ioe){
-            status.totalErrorsThrown.incrementAndGet();
-            throw ioe;
         }finally{
             region.closeRegionOperation();
+            timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
         }
     }
 
@@ -182,8 +190,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     @SuppressWarnings("unchecked")
 	@Override
     public WriteResult deleteFirstAfter(String transactionId, byte[] rowKey, byte[] limit) throws IOException {
-        status.totalDeleteFirstAfterCalls.incrementAndGet();
-
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         final HRegion region = rce.getRegion();
         Scan scan = SpliceUtils.createScan(transactionId);
