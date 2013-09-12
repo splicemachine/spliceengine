@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.google.common.io.Files;
+import com.splicemachine.client.workday.OmsLogTable;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -17,6 +18,18 @@ import java.util.*;
 public class CsvUtil {
 
     public static final String CSV_FILE_LOC = "/index/";
+
+    @Test
+    public void getRowsWithValueInColumn() throws Exception {
+        String dirName = getResourceDirectory() + "/workday/";
+        String sourceFile = "omslog.tiny";
+        String targetFile = "omslog.tmp1";
+        int col = findColumn("system_user_id", OmsLogTable.CREATE_STRING);
+        if (col < 0) {
+            throw new Exception("'system_user_id' does not exist in: "+OmsLogTable.CREATE_STRING);
+        }
+        writeLines(dirName, targetFile, getLinesWithValueInColumn(dirName, sourceFile, col, "39$177"));
+    }
 
     @Test
     public void makeCustomerUnique() throws Exception{
@@ -87,8 +100,8 @@ public class CsvUtil {
                 throw new RuntimeException("Index "+max(colNums)+" is greater than size - "+cols.length);
             }
             key.setLength(0);
-            for (int i=0; i<colNums.length; i++) {
-                key.append(cols[colNums[i]]).append("|");
+            for (int colNum : colNums) {
+                key.append(cols[colNum]).append("|");
             }
             if (unique.containsKey(key.toString())) {
                 System.out.println("Collision on key: "+key.toString());
@@ -96,6 +109,33 @@ public class CsvUtil {
             unique.put(key.toString(), line);
         }
         return unique.values();
+    }
+
+    private static Collection<String> getLinesWithValueInColumn(String dirName,
+                                                                String fileName,
+                                                                int col,
+                                                                String colVal) {
+        List<String> linesWithValue = new ArrayList<String>();
+        for (String line : fileToLines(dirName + fileName, "--")) {
+            String[] cols = line.split(",");
+            if (cols.length > col && cols[col].equalsIgnoreCase(colVal)) {
+                linesWithValue.add(line);
+            }
+        }
+
+        return linesWithValue;
+    }
+
+    private static int findColumn(String colName, String schemaDef) {
+        int i=0;
+        for (String col : schemaDef.split(",")) {
+            String[] parts = col.split(" ");
+            if (parts.length > 0 && ! parts[0].isEmpty() && parts[0].equalsIgnoreCase(colName)) {
+                return i;
+            }
+            ++i;
+        }
+        return -1;
     }
 
     public static void writeLines(String dirName, String fileName, Collection<String> content) throws Exception {
@@ -109,9 +149,9 @@ public class CsvUtil {
 
     private static int max(int[] nums) {
         int max = 0;
-        for (int i=0; i<nums.length; i++) {
-            if (nums[i] >= max) {
-                max = nums[i];
+        for (int num : nums) {
+            if (num >= max) {
+                max = num;
             }
         }
         return max;
@@ -148,10 +188,7 @@ public class CsvUtil {
     }
 
     private static boolean lineIsComment(String line, String commentPattern) {
-        if (commentPattern == null || commentPattern.isEmpty()) {
-            return false;
-        }
-        return line.trim().startsWith(commentPattern);
+        return !(commentPattern == null || commentPattern.isEmpty()) && line.trim().startsWith(commentPattern);
     }
 
     private static String getResourceDirectory() {

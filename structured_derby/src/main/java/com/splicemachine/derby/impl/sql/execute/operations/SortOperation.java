@@ -173,6 +173,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 nextRow = result.getSecond();
             }
         }
+        System.out.println("** Sort.getNextSinkRow()["+uniqueSequenceID+"] "+(distinct?"":"distinct nextRow: "+nextRow));
 
         setCurrentRow(nextRow);
 

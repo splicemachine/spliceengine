@@ -132,7 +132,27 @@ public class WorkdayTinyTest extends SpliceUnitTest {
         List<List<String>> noOrderByVals = serializeResultSet(rs);
         rs = methodWatcher.executeQuery(BUG_713_QUERY_16_ORDERBY);
         List<List<String>> orderByVals = serializeResultSet(rs);
-        assertValuesEqual(noOrderByVals,orderByVals);
+        assertValuesEqual(noOrderByVals, orderByVals);
+    }
+
+    @Test
+    public void tmpBug713query16() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(BUG_713_QUERY_16);
+        List<List<String>> noOrderByVals = serializeResultSet(rs);
+        System.out.println("No Order By");
+        for (List<String> row : noOrderByVals) {
+            System.out.println(row);
+        }
+    }
+
+    @Test
+    public void tmpBug713query16OrderBuy() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(BUG_713_QUERY_16_ORDERBY);
+        List<List<String>> orderByVals = serializeResultSet(rs);
+        System.out.println("Order By");
+        for (List<String> row : orderByVals) {
+            System.out.println(row);
+        }
     }
 
     @Test

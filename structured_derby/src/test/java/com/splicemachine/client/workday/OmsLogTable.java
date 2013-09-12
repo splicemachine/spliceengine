@@ -21,7 +21,7 @@ public class OmsLogTable extends SpliceTableWatcher {
     public static final String INDEX_HTTPRESP_IDX = "HTTPRESPIDX";
     public static final String INDEX_HTTPRESP_IDX_DEF = "(http_response)";      // type is integer
 
-    private static final String CREATE_STRING = "("+
+    public static final String CREATE_STRING = "("+
             "host varchar(30),"+
             "date_time timestamp,"+
             "duration integer,"+
