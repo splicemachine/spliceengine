@@ -1,35 +1,37 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import com.google.common.collect.Maps;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.datanucleus.sco.backed.Map;
 
-public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
-	private static final long serialVersionUID = -191068765821075562L;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+public class HashBuffer<K,T extends ExecRow> {
 	protected int maxCapacity;
-	protected Entry<K,T> eldestEntry;
-	protected boolean evicted;
 	protected T matchedRow = null;
+    private final HashMap<K,T> buffer;
 	
 	public HashBuffer(int maxCapacity){
-		super(0, 0.75F,true); // LRU CACHE
 		this.maxCapacity = maxCapacity;
-	}
-	
-	@Override
-	protected boolean removeEldestEntry(Entry<K, T> eldest) {
-		evicted =  size() >= this.maxCapacity;
-		if (evicted)
-			this.eldestEntry = eldest;
-		return evicted;
-	}
-	
-	public Entry<K,T> add(K key, T element){
-		put(key,element);
-		if (evicted)
-			return eldestEntry;
+        buffer = Maps.newHashMapWithExpectedSize(maxCapacity);
+    }
+
+	@SuppressWarnings("LoopStatementThatDoesntLoop")
+    public Entry<K,T> add(K key, T element){
+		buffer.put(key, element);
+        if(buffer.size()>maxCapacity){
+           //evict the first entry returned by the buffer's iterator
+            Set<Entry<K,T>> entries = buffer.entrySet();
+            //intentionally doesn't loop, this is just simpler than creating an iterator and blah blah blah
+            for(Entry<K,T> entry:entries){
+                return entry;
+            }
+        }
 		return null;
 	}
 	
@@ -43,10 +45,10 @@ public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 	
 	public HashBuffer<K,T> finishAggregates(AggregateFinisher<K,T> aggregateFinisher) throws StandardException {
 		HashBuffer<K,T> finalizedBuffer = new HashBuffer<K,T>(maxCapacity);
-		for (Entry<K,T> entry: entrySet()) {
-			finalizedBuffer.put(entry.getKey(), aggregateFinisher.finishAggregation(entry.getValue()));
+		for (Entry<K,T> entry: buffer.entrySet()) {
+			finalizedBuffer.buffer.put(entry.getKey(), aggregateFinisher.finishAggregation(entry.getValue()));
 		}
-		this.clear();
+		buffer.clear();
 		return finalizedBuffer;
 	}
 	
@@ -54,4 +56,36 @@ public class HashBuffer<K,T extends ExecRow> extends LinkedHashMap<K,T>{
 	public String toString(){
 		return "RingBuffer{maxSize="+maxCapacity+",LinkedHashMap="+super.toString()+"}";
 	}
+
+    public T get(K key) {
+        return buffer.get(key);
+    }
+
+    public int size() {
+        return buffer.size();
+    }
+
+    public Set<K> keySet(){
+        return buffer.keySet();
+    }
+
+    public T remove(K key) {
+        return buffer.remove(key);
+    }
+
+    public boolean isEmpty() {
+        return buffer.isEmpty();
+    }
+
+    public Collection<T> values() {
+        return buffer.values();
+    }
+
+    public Set<Entry<K,T>> entrySet() {
+        return buffer.entrySet();
+    }
+
+    public void clear() {
+        buffer.clear();
+    }
 }

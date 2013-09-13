@@ -116,7 +116,7 @@ public class SingleGroupGroupedAggregateOperationTest extends SpliceUnitTest {
     public void testRepeatedGroupedCount() throws Exception {
         /* Regression test for Bug 306 */
         for(int i=0;i<100;i++){
-            System.out.println(i);
+//            System.out.println(i);
             testGroupedCountOperation();
         }
     }
