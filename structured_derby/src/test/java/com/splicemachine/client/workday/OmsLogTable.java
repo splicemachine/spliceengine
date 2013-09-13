@@ -1,6 +1,8 @@
 package com.splicemachine.client.workday;
 
+import com.splicemachine.derby.impl.sql.actions.index.CsvUtil;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -81,4 +83,17 @@ public class OmsLogTable extends SpliceTableWatcher {
     public OmsLogTable(String tableName, String schemaName) {
         super(tableName,schemaName,CREATE_STRING);
     }
+
+//    @Test
+    public void getRowsWithValueInColumn() throws Exception {
+        String dirName = CsvUtil.getResourceDirectory() + "/workday/";
+        String sourceFile = "omslog.csv";
+        String targetFile = "omslog.tiny";
+        int col = CsvUtil.findColumn("system_user_id", OmsLogTable.CREATE_STRING);
+        if (col < 0) {
+            throw new Exception("'system_user_id' does not exist in: "+OmsLogTable.CREATE_STRING);
+        }
+        CsvUtil.writeLines(dirName, targetFile, CsvUtil.getLinesWithValueInColumn(dirName, sourceFile, col, "39$177"));
+    }
+
 }

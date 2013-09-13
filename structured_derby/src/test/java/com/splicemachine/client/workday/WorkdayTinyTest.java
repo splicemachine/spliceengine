@@ -4,10 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -20,6 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * Test for Workday bugs using small (relatively tiny) set of reproducing data.
+ *
  * @author Jeff Cunningham
  *         Date: 9/9/13
  */
@@ -50,9 +49,6 @@ public class WorkdayTinyTest extends SpliceUnitTest {
     // ===============================================================================
 
     private static void assertValuesEqual(List<List<String>> expectedRowVals, List<List<String>> actualRowVals) {
-        // DEBUG
-        System.out.println(printResultSet("Expected: ", expectedRowVals));
-        System.out.println(printResultSet("Actual: ", actualRowVals));
         // compare size
         // if we do this first, we don't have to worry about ArrayIndexOOB ex below
         Assert.assertEquals("Row sizes differ", expectedRowVals.size(), actualRowVals.size());
@@ -76,16 +72,16 @@ public class WorkdayTinyTest extends SpliceUnitTest {
         }
     }
 
-    private static String printResultSet(String header, List<List<String>> rowVals) {
-        StringBuilder buf = new StringBuilder(header);
-        for (List<String> rowVal : rowVals) {
-            buf.append('\n');
-            for (String val : rowVal) {
-                buf.append(val).append(',');
-            }
-        }
-        return buf.toString();
-    }
+//    private static String printResultSet(String header, List<List<String>> rowVals) {
+//        StringBuilder buf = new StringBuilder(header);
+//        for (List<String> rowVal : rowVals) {
+//            buf.append('\n');
+//            for (String val : rowVal) {
+//                buf.append(val).append(',');
+//            }
+//        }
+//        return buf.toString();
+//    }
 
     private static List<List<String>> serializeResultSet(ResultSet rs) throws SQLException {
         List<List<String>> actualRowVals = new ArrayList<List<String>>();
@@ -110,7 +106,7 @@ public class WorkdayTinyTest extends SpliceUnitTest {
             String.format("select a.swh_date from %s.%s a where a.swh_date = date('2012-07-16') {limit 5}",
                     SCHEMA_NAME, OmsLogTable.TABLE_NAME);
     private static final String BUG_712_QUERY_8 =
-            String.format("select count(*),sum(duration) as total_duration from %s.%s where" +
+            String.format("select count(*), sum(duration) as total_duration from %s.%s where" +
                     " offload_count = 0 and system_user_id='39$177'",
                     SCHEMA_NAME, OmsLogTable.TABLE_NAME);
     private static final String BUG_713_QUERY_16 =
@@ -136,26 +132,7 @@ public class WorkdayTinyTest extends SpliceUnitTest {
     }
 
     @Test
-    public void tmpBug713query16() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(BUG_713_QUERY_16);
-        List<List<String>> noOrderByVals = serializeResultSet(rs);
-        System.out.println("No Order By");
-        for (List<String> row : noOrderByVals) {
-            System.out.println(row);
-        }
-    }
-
-    @Test
-    public void tmpBug713query16OrderBuy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(BUG_713_QUERY_16_ORDERBY);
-        List<List<String>> orderByVals = serializeResultSet(rs);
-        System.out.println("Order By");
-        for (List<String> row : orderByVals) {
-            System.out.println(row);
-        }
-    }
-
-    @Test
+    @Ignore
     public void testBug712query8AllIndexes() throws Exception {
         Connection connection = methodWatcher.createConnection();
         try {
