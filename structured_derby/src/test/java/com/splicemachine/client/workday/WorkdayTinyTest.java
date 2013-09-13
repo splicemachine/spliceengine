@@ -132,7 +132,7 @@ public class WorkdayTinyTest extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
+    @Ignore("Bug 809")
     public void testBug712query8AllIndexes() throws Exception {
         Connection connection = methodWatcher.createConnection();
         try {

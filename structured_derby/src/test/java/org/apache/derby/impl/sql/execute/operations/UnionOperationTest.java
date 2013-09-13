@@ -164,6 +164,21 @@ public class UnionOperationTest extends SpliceUnitTest {
 	}
 
     @Test
+    public void testUnionNoSort() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from " + spliceTableWatcher1.toString() + " UNION select * from " + spliceTableWatcher2.toString());
+        Set<Integer> priorResults = Sets.newHashSet();
+        int i = 0 ;
+        while (rs.next()) {
+            i++;
+            int id = rs.getInt(1);
+//            System.out.println("id="+rs.getInt(1)+",person name="+rs.getString(3));
+//            Assert.assertTrue("Duplicate row found!",!priorResults.contains(id));
+            priorResults.add(id);
+        }
+        Assert.assertEquals(8, i);
+    }
+
+    @Test
     public void testUnionWithSort() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select * from " + spliceTableWatcher1.toString() + " UNION select * from " + spliceTableWatcher2.toString() + " order by 1 desc");
         Set<Integer> priorResults = Sets.newHashSet();
@@ -171,11 +186,11 @@ public class UnionOperationTest extends SpliceUnitTest {
         while (rs.next()) {
             i++;
             int id = rs.getInt(1);
-            System.out.println("id="+rs.getInt(1)+",person name="+rs.getString(3));
+//            System.out.println("id="+rs.getInt(1)+",person name="+rs.getString(3));
 //            Assert.assertTrue("Duplicate row found!",!priorResults.contains(id));
             priorResults.add(id);
         }
-        Assert.assertEquals(5, i);
+        Assert.assertEquals(8, i);
     }
 
     @Test
