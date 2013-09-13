@@ -11,12 +11,14 @@ import org.apache.hadoop.hbase.io.hfile.Compression;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.log4j.Logger;
+
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 
 public class SpliceUtilities extends SIConstants {
 	private static final Logger LOG = Logger.getLogger(SpliceUtilities.class);
+    private static byte[][] PREFIXES;
 	
 	public static HBaseAdmin getAdmin() {
 		try {
@@ -117,7 +119,10 @@ public class SpliceUtilities extends SIConstants {
             admin = getAdmin();
             if(!admin.tableExists(TEMP_TABLE_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
-                admin.createTable(td);
+                byte[][] prefixes = getAllPossibleBucketPrefixes();
+                byte[][] splitKeys = new byte[prefixes.length - 1][];
+                System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
+                admin.createTable(td, splitKeys);
                 SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
             }
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
@@ -151,7 +156,18 @@ public class SpliceUtilities extends SIConstants {
         	Closeables.closeQuietly(admin);
         }
     }
-    
+
+    static {
+        PREFIXES = new byte[16][];
+        for (int i = 0; i < 16; i++) {
+            PREFIXES[i] = new byte[] { (byte) ( i * 0x10 ) };
+        }
+    }
+
+    public static byte[][] getAllPossibleBucketPrefixes() {
+        return PREFIXES;
+    }
+
     public static void closeHTableQuietly(HTableInterface table) {
 		try {
 			if (table != null)

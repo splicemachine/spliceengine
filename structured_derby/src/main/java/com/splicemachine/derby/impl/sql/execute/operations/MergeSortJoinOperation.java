@@ -1,5 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -11,7 +30,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -19,32 +38,17 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshall;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
@@ -167,7 +171,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             reduceScan.setFilter(new SuccessFilter(failedTasks));
         }
         SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        return new DistributedClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
     @Override
@@ -279,7 +283,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                  * Some Join columns have key sets like [0,0], where the same field is encoded multiple
                  * times. We need to only decode the first instance, or else we'll get incorrect answers
                  */
-                rowDecoder.seek(9); //skip the query prefix
+                rowDecoder.seek(11); //skip the query prefix
                 int[] decodedColumns = new int[numCols];
                 for(int key:reversedKeyColumns){
                     if(key==-1) continue;
@@ -323,7 +327,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
         }
 
-        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType);
+        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType, true);
     }
 
     @Override
