@@ -95,7 +95,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     {
         ResultColumnList rcl = j.getResultColumns();
         Map<List<Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
-        Vector<ColumnReference> predCRs = ColumnUtils.collectNodes(p, ColumnReference.class);
+        List<ColumnReference> predCRs = ColumnUtils.collectNodes(p, ColumnReference.class);
         for (ColumnReference cr: predCRs){
             ResultColumn rc = cr.getSource();
             List<Integer> rsnAndCol = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());

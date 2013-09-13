@@ -4,11 +4,7 @@ import java.util.*;
 
 import javax.security.auth.login.Configuration;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
-import com.splicemachine.derby.impl.ast.ISpliceVisitor;
-import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
-import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
-import com.splicemachine.derby.impl.ast.SpliceASTWalker;
+import com.splicemachine.derby.impl.ast.*;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -75,14 +71,15 @@ public class SpliceDatabase extends BasicDatabase {
 
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(AssignRSNVisitor.class);
-        afterOptVisitors.add(JoinConditionVisitor.class);
+        afterOptVisitors.add(JoinSelector.class);
+        afterOptVisitors.add(MSJJoinConditionVisitor.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
 
         lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, afterBindVisitors, afterOptVisitors));
 
-		   return lctx;
+		return lctx;
 	   }
 
 
