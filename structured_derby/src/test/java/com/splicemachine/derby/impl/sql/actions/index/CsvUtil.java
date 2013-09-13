@@ -17,55 +17,7 @@ import java.util.*;
  */
 public class CsvUtil {
 
-    public static final String CSV_FILE_LOC = "/index/";
-
-    @Test
-    public void getRowsWithValueInColumn() throws Exception {
-        String dirName = getResourceDirectory() + "/workday/";
-        String sourceFile = "omslog.tiny";
-        String targetFile = "omslog.tmp1";
-        int col = findColumn("system_user_id", OmsLogTable.CREATE_STRING);
-        if (col < 0) {
-            throw new Exception("'system_user_id' does not exist in: "+OmsLogTable.CREATE_STRING);
-        }
-        writeLines(dirName, targetFile, getLinesWithValueInColumn(dirName, sourceFile, col, "39$177"));
-    }
-
-    @Test
-    public void makeCustomerUnique() throws Exception{
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "customer.csv";
-        String targetFile = "customer-unique.csv";
-        int[] pk = new int[] {0,1,2};
-        writeLines(dirName, targetFile, makeUnique(dirName,sourceFile,pk));
-    }
-
-    @Test
-    public void makeOrderUnique() throws Exception{
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order.csv";
-        String targetFile = "order-unique.csv";
-        int[] pk = new int[] {0,1,2};
-        writeLines(dirName, targetFile, makeUnique(dirName,sourceFile,pk));
-    }
-
-    @Test
-    public void giveOrderSomeNulls() throws Exception {
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order.csv";
-        String targetFile = "order-with-nulls.csv";
-        writeLines(dirName, targetFile, insertString(dirName, sourceFile, 5, ""));
-    }
-
-    @Test
-    public void changeOrderLineDecimalFormat() throws Exception {
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order-line.csv";
-        String targetFile = "order-line-decimal.csv";
-        writeLines(dirName, targetFile, insertString(dirName, sourceFile, 9, "5.0"));
-    }
-
-    private Collection<String> insertString(String dirName, String fileName, int colNum, String chars) {
+    public static Collection<String> insertString(String dirName, String fileName, int colNum, String chars) {
         List<String> lines = fileToLines(dirName + fileName, "--");
         List<String> outLines = new ArrayList<String>(lines.size());
 
@@ -111,7 +63,7 @@ public class CsvUtil {
         return unique.values();
     }
 
-    private static Collection<String> getLinesWithValueInColumn(String dirName,
+    public static Collection<String> getLinesWithValueInColumn(String dirName,
                                                                 String fileName,
                                                                 int col,
                                                                 String colVal) {
@@ -126,7 +78,7 @@ public class CsvUtil {
         return linesWithValue;
     }
 
-    private static int findColumn(String colName, String schemaDef) {
+    public static int findColumn(String colName, String schemaDef) {
         int i=0;
         for (String col : schemaDef.split(",")) {
             String[] parts = col.split(" ");
@@ -156,6 +108,8 @@ public class CsvUtil {
         }
         return max;
     }
+
+    // TODO - this impl blows memory, of course, when there's too many lines in the file
     private static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
         BufferedReader in = null;
@@ -191,7 +145,7 @@ public class CsvUtil {
         return !(commentPattern == null || commentPattern.isEmpty()) && line.trim().startsWith(commentPattern);
     }
 
-    private static String getResourceDirectory() {
+    public static String getResourceDirectory() {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby";

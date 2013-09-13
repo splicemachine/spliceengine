@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -32,6 +33,14 @@ public class OrderLineTable extends SpliceTableWatcher {
 
     public OrderLineTable(String tableName, String schemaName) {
         super(tableName,schemaName,CREATE_STRING);
+    }
+
+//    @Test
+    public void changeOrderLineDecimalFormat() throws Exception {
+        String dirName = CsvUtil.getResourceDirectory() + "/index/";
+        String sourceFile = "order-line.csv";
+        String targetFile = "order-line-decimal.csv";
+        CsvUtil.writeLines(dirName, targetFile, CsvUtil.insertString(dirName, sourceFile, 9, "5.0"));
     }
 
 }
