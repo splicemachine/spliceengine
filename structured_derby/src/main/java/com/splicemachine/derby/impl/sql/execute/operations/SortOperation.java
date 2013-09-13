@@ -132,13 +132,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         super.init(context);
         ((SpliceOperation) source).init(context);
 
-        FormatableArrayHolder fah = null;
-        for (Object o : activation.getPreparedStatement().getSavedObjects()) {
-            if (o instanceof FormatableArrayHolder) {
-                fah = (FormatableArrayHolder) o;
-                break;
-            }
-        }
+        FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(orderingItem);
         if (fah == null) {
             LOG.error("Unable to find column ordering for sorting!");
             throw new RuntimeException("Unable to find Column ordering for sorting!");
@@ -173,7 +167,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 nextRow = result.getSecond();
             }
         }
-        System.out.println("** Sort.getNextSinkRow()["+uniqueSequenceID+"] "+(distinct?"":"distinct nextRow: "+nextRow));
 
         setCurrentRow(nextRow);
 
