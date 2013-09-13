@@ -302,6 +302,12 @@ public class SpliceConstants {
     public static int maxFlushesPerRegion;
     public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
     public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
+    public static final String LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW = "splice.loadControl.maxFlushedPerWindow";
+    public static final long LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW=10;
+    public static long maxFlushedPerPeriod;
+
+    public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
+    public static long tempTableMaxFileSize;
 
 
     public static enum TableEnv {
@@ -411,6 +417,11 @@ public class SpliceConstants {
         maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
         maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
+
+        maxFlushedPerPeriod = config.getLong(LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW,LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW);
+
+        long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
+        tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

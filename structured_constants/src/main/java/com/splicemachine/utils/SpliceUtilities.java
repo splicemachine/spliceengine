@@ -8,8 +8,10 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.Compression;
+import org.apache.hadoop.hbase.regionserver.DelimitedKeyPrefixRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
@@ -117,6 +119,8 @@ public class SpliceUtilities extends SIConstants {
             admin = getAdmin();
             if(!admin.tableExists(TEMP_TABLE_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
+                td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
+
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
             }
