@@ -61,7 +61,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 	HashMap<Integer,List<DataValueDescriptor>> distinctValues;
 	private int numDistinctAggs = 0;
 	protected ColumnOrdering[] order;
-	private HashBuffer<ByteBuffer,ExecRow> currentAggregations = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
+	private HashBuffer<ByteBuffer,ExecRow> currentAggregations = new DelegateHashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
 	private ExecRow[] resultRows;
 	private boolean completedExecution = false;
     protected KeyMarshall hasher;

@@ -1,14 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.datanucleus.sco.backed.Map;
@@ -21,7 +18,7 @@ public class HashBufferSource{
     private byte[] keyBytes;
     private KeyMarshall hasher;
     protected MultiFieldEncoder keyEncoder;
-    private HashBuffer<ByteBuffer,ExecRow> currentRows = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
+    private HashBuffer<ByteBuffer,ExecRow> currentRows = new DelegateHashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
     private boolean doneReadingSource = false;
     private RowProviderIterator<ExecRow> sourceRows;
     private int[] keyColumnIndexes;

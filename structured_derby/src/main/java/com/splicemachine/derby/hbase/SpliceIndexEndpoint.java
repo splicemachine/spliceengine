@@ -24,6 +24,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -61,22 +62,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
     private static MetricName throughputMeterName = new MetricName("com.splicemachine","receiverStats","success");
     private static MetricName failedMeterName = new MetricName("com.splicemachine","receiverStats","failed");
-//    private static ReceiverStats status = new ReceiverStats();
-//    static{
-//        MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-//        try{
-//            ObjectName name = new ObjectName("com.splicemachine.writer:type=BulkReceiverStatus");
-//            mbs.registerMBean(status,name);
-//        } catch (MalformedObjectNameException e) {
-//            LOG.error("Unable to register JMX for BulkRecieverStatus",e);
-//        } catch (InstanceAlreadyExistsException e) {
-//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-//        } catch (NotCompliantMBeanException e) {
-//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-//        } catch (MBeanRegistrationException e) {
-//            LOG.error("Unable to register JMX for BulkRecieverStatus", e);
-//        }
-//    }
 
     private long conglomId;
 
@@ -162,7 +147,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             BulkWriteResult response = new BulkWriteResult();
             List<KVPair> mutations = bulkWrite.getMutations();
             int pos=0;
-            long failed=0l;
+            int failed=0;
             for(KVPair mutation:mutations){
                 WriteResult result = resultMap.get(mutation);
                 if(result.getCode()== WriteResult.Code.FAILED){
@@ -172,7 +157,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 pos++;
             }
 
-            throughputMeter.mark(bulkWrite.getMutations().size()-failed);
+            int numSuccessWrites = bulkWrite.getMutations().size()-failed;
+            throughputMeter.mark(numSuccessWrites);
             failedMeter.mark(failed);
             return response;
         }finally{

@@ -92,6 +92,14 @@ public class HRegionUtil {
 	    if (coprocessorHost != null) {
 	        coprocessorHost.postGet(get, keyValues);
 	    }
-	}			
+	}
+
+    public static void updateWriteRequests(HRegion region, long numWrites){
+       region.writeRequestsCount.add(numWrites);
+    }
+
+    public static void updateReadRequests(HRegion region, long numReads){
+        region.readRequestsCount.add(numReads);
+    }
 	
 }
