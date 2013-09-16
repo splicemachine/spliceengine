@@ -310,6 +310,14 @@ public class BytesUtil {
         return new String(hexChars);
     }
 
+    public static String toHex(ByteBuffer bytes) {
+        if(bytes==null || bytes.remaining()<=0) return "";
+        byte[] bits = new byte[bytes.remaining()];
+        bytes.get(bits);
+
+        return toHex(bits);
+    }
+
     public static void main(String... args) throws Exception{
         byte[][] vals = new byte[3][];
         vals[0] = new byte[]{0,1};

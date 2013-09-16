@@ -6,9 +6,11 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -33,9 +35,9 @@ public class ScanTask extends ZkTask{
     private String destinationDirectory;
     private HRegion region;
 
+    private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+
     public ScanTask() {
-        this.predicateFilter = predicateFilter;
-        this.destinationDirectory = destinationDirectory;
     }
 
     public ScanTask(String jobId,
@@ -125,7 +127,25 @@ public class ScanTask extends ZkTask{
                 continue;
             String row = BytesUtil.toHex(kv.getRow());
             long txnId = kv.getTimestamp();
-            String data = BytesUtil.toHex(kv.getValue());
+
+            byte[] value = kv.getValue();
+            //split by separator
+            decoder.set(value);
+            StringBuilder valueStr = new StringBuilder();
+            BitIndex encodedIndex = decoder.getCurrentIndex();
+            MultiFieldDecoder fieldDecoder = decoder.getEntryDecoder();
+            boolean isFirst=true;
+            for(int pos=encodedIndex.nextSetBit(0);
+                pos >=0;pos=encodedIndex.nextSetBit(pos+1)){
+                if(!isFirst)
+                    valueStr = valueStr.append(",");
+                else
+                    isFirst = false;
+
+                valueStr.append(BytesUtil.toHex(decoder.nextAsBuffer(fieldDecoder,pos)));
+            }
+            valueStr.append("\n");
+            String data = valueStr.toString();
 
             String line = String.format(outputPattern,row,txnId,data);
             writer.write(line);
