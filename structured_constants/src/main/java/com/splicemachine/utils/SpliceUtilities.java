@@ -1,5 +1,7 @@
 package com.splicemachine.utils;
 
+import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -118,12 +120,7 @@ public class SpliceUtilities extends SIConstants {
         try{
             admin = getAdmin();
             if(!admin.tableExists(TEMP_TABLE_BYTES)){
-                HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
-                byte[][] prefixes = getAllPossibleBucketPrefixes();
-                byte[][] splitKeys = new byte[prefixes.length - 1][];
-                System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
-                admin.createTable(td, splitKeys);
-                SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
+                createTempTable(admin);
             }
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
                 HTableDescriptor td = generateTransactionTable(TRANSACTION_TABLE);
@@ -155,6 +152,15 @@ public class SpliceUtilities extends SIConstants {
         }finally{
         	Closeables.closeQuietly(admin);
         }
+    }
+
+    public static void createTempTable(HBaseAdmin admin) throws IOException {
+        HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
+        byte[][] prefixes = getAllPossibleBucketPrefixes();
+        byte[][] splitKeys = new byte[prefixes.length - 1][];
+        System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
+        admin.createTable(td, splitKeys);
+        SpliceLogUtils.info(LOG, SpliceConstants.TEMP_TABLE+" created");
     }
 
     static {
