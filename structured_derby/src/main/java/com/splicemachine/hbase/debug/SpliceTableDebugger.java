@@ -121,7 +121,29 @@ public class SpliceTableDebugger extends Configured implements Tool {
                 return new ScanJob(destDir,tableName,epf);
             }
         },
-        TRANSACTION_COUNT("tcount"),
+        TRANSACTION_COUNT("tcount"){
+            @Override
+            public void printHelpMessage() {
+                System.out.println("Counts the rows by transaction id for a given table, ignoring transactions");
+                System.out.println("usage: spliceTableDebugger tcount <tableName> <destinationDirectory>");
+                System.out.println("Arguments:");
+                System.out.printf(commandPattern, "tableName", "The HBase name of the table to count");
+                System.out.printf(commandPattern,"destinationDirectory","The Destination directory to dump output to (in hdfs)");
+            }
+
+            @Override
+            public CoprocessorJob getJob(Configuration config, String[] args) throws Exception {
+                if(args.length<3){
+                    printHelpMessage();
+                    return null;
+                }
+
+                String tableName = args[1];
+                String destDir = args[2];
+
+                return new TransactionCountJob(destDir,tableName,config);
+            }
+        },
         HELP("help"){
             @Override
             public int execute(Configuration config,JobScheduler scheduler,String[] args) throws Exception {
