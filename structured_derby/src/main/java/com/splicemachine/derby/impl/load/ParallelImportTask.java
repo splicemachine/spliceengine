@@ -179,6 +179,7 @@ public abstract class ParallelImportTask extends ZkTask{
         private volatile boolean closed;
         private final ImportContext importContext;
         private final List<Future<Void>> futures;
+        private volatile Exception error;
 
         public ThreadingCallBuffer(ImportContext importContext,ExecRow template,String txnId) {
         	if (LOG.isTraceEnabled())
@@ -204,11 +205,18 @@ public abstract class ParallelImportTask extends ZkTask{
 
         @Override
         public void add(String[] element) throws Exception {
-            processingQueue.put(element);
+            boolean shouldContinue = true;
+            while(shouldContinue){
+                if(error!=null)
+                    throw error;
+                shouldContinue = !processingQueue.offer(element,200,TimeUnit.MILLISECONDS);
+            }
         }
 
         @Override
         public void addAll(String[][] elements) throws Exception {
+            if(error!=null)
+                throw error;
             for(String[] element:elements){
                 processingQueue.put(element);
             }
@@ -255,6 +263,14 @@ public abstract class ParallelImportTask extends ZkTask{
             KeyMarshall keyType = pkCols==null? KeyType.SALTED: KeyType.BARE;
 
             return RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
+        }
+
+        public void markFailed(Exception e) {
+            this.error=e;
+        }
+
+        public boolean isFailed() {
+            return error!=null;
         }
     }
 
@@ -305,24 +321,30 @@ public abstract class ParallelImportTask extends ZkTask{
              * we take for only a little while before backing off and trying again.
              */
             try{
-                while(!source.isClosed()){
+                while(!source.isClosed()&&!source.isFailed()){
                     String[] elements = queue.poll(200,TimeUnit.MILLISECONDS);
                     if(elements==null)continue; //try again
                     numProcessed++;
                     doImportRow(elements);
                 }
-                //source is closed, poll until the queue is empty
-                String[] next;
-                while((next = queue.poll())!=null){
-                    numProcessed++;
-                    doImportRow(next);
+                if(!source.isFailed()){
+                    //source is closed, poll until the queue is empty
+                    String[] next;
+                    while((next = queue.poll())!=null){
+                        numProcessed++;
+                        doImportRow(next);
+                    }
                 }
-            } catch (IOException ioe) {
-            	if (LOG.isTraceEnabled())
-            		SpliceLogUtils.trace(LOG, "IOE# %s",ioe.getMessage());
-            	throw ioe;
             }
-        	finally{
+//            catch (IOException ioe) {
+//            	if (LOG.isTraceEnabled())
+//            		SpliceLogUtils.trace(LOG, "IOE# %s",ioe.getMessage());
+//            	throw ioe;
+//            }
+            catch(Exception e){
+                source.markFailed(e);
+                throw e;
+            } finally{
             	if (LOG.isTraceEnabled())
             		SpliceLogUtils.trace(LOG, "Closing Call Buffer");
         		writeDestination.close(); //ensure your writes happen
