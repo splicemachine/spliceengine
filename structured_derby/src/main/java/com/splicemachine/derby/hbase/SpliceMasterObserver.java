@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
@@ -29,7 +30,7 @@ import com.splicemachine.utils.ZkUtils;
 public class SpliceMasterObserver extends BaseMasterObserver {
 	public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     private ExecutorService executor;
-    protected static State state;
+    protected static final AtomicReference<State> state = new AtomicReference<State>();
     public static enum State{
         NOT_STARTED,
         INITIALIZING,
@@ -41,7 +42,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 		SpliceLogUtils.debug(LOG, "Starting Splice Master Observer");
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-master-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
-        state = State.NOT_STARTED;
+        state.set(State.NOT_STARTED);
 		super.start(ctx);
 	}
 
@@ -73,12 +74,14 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 		}
 	}
 	
-	protected synchronized static void evaluateState() throws Exception {
-		switch (state) {
+	protected static void evaluateState() throws Exception {
+		switch (state.get()) {
 		case INITIALIZING:
 			throw new PleaseHoldException("Please Hold - Starting");
 		case NOT_STARTED:
-			state = State.INITIALIZING;
+            if (!state.compareAndSet(State.NOT_STARTED, State.INITIALIZING)){
+               return evaluateState();
+            }
 			return;
 		case RUNNING:
 			throw new SpliceDoNotRetryIOException("Success");
@@ -95,7 +98,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 				try {
 					if (ZkUtils.isSpliceLoaded()) {
 						SpliceLogUtils.info(LOG, "Splice Already Loaded");
-						state = State.RUNNING;
+                  state.set(State.RUNNING);
 						return null;
 					} else {
 						SpliceLogUtils.info(LOG, "Booting Splice");
@@ -109,7 +112,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 						EmbedConnectionMaker maker = new EmbedConnectionMaker();
 						connection = maker.createNew();
 						ZkUtils.spliceFinishedLoading();
-						state = State.RUNNING;
+                  state.set(State.RUNNING);
 						return null;
 					}
 				} catch (Exception e) {
