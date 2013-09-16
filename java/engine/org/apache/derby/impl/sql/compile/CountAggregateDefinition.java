@@ -61,7 +61,7 @@ public class CountAggregateDefinition
 		/*
 		** COUNT never returns NULL
 		*/
-		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.INTEGER, false);
+		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(java.sql.Types.BIGINT, false);
 	}
 
 }
