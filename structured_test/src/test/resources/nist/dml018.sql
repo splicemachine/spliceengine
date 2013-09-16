@@ -16,31 +16,37 @@ AUTOCOMMIT OFF;
 -- date_time print
 
 -- TEST:0069 HAVING COUNT with WHERE, GROUP BY!
+--splicetest: ignore-order start
      SELECT PNUM
           FROM WORKS
           WHERE PNUM > 'P1'
           GROUP BY PNUM
           HAVING COUNT(*) > 1;
+--splicetest: ignore-order stop
 -- PASS:0069 If 3 rows are selected with PNUMs = 'P2', 'P4', 'P5'?
 
 -- END TEST >>> 0069 <<< END TEST
 -- ***********************************************************
    
 -- TEST:0070 HAVING COUNT with GROUP BY!
+--splicetest: ignore-order start
      SELECT PNUM
           FROM WORKS
           GROUP BY PNUM
           HAVING COUNT(*) > 2;
+--splicetest: ignore-order stop
 -- PASS:0070 If PNUM = 'P2'?
 
 -- END TEST >>> 0070 <<< END TEST
 -- ***********************************************************
 
 -- TEST:0071 HAVING MIN, MAX with GROUP BY 3 columns!
+--splicetest: ignore-order start
      SELECT EMPNUM, PNUM, HOURS
           FROM WORKS
           GROUP BY PNUM, EMPNUM, HOURS
           HAVING MIN(HOURS) > 12 AND MAX(HOURS) < 80;
+--splicetest: ignore-order stop
 -- PASS:0071 If 7 rows are selected: EMPNUM/PNUMs are 'E1'/'P1',?
 -- PASS:0071      'E1'/'P2','E1'/'P4', 'E2'/'P1',?
 -- PASS:0071      'E3'/'P2', 'E4'/'P2', 'E4'/'P4'?
