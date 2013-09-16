@@ -215,7 +215,7 @@ public class InnerJoinTest extends SpliceUnitTest {
      public void testThreeTableJoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_id, t3.itm_id " +
                 "from order_line t1, customer t2, item t3 " +
-                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
+                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id order by t3.itm_id");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(10, results.size());
@@ -236,7 +236,8 @@ public class InnerJoinTest extends SpliceUnitTest {
     public void testThreeTableJoinExtraProjections() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name " +
                 "from order_line t1, customer t2, item t3 " +
-                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id");
+                "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id " +
+                "order by t3.itm_id");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
@@ -319,7 +320,8 @@ public class InnerJoinTest extends SpliceUnitTest {
     public void testThreeTableJoinOnItems() throws Exception{
         ResultSet rs = methodWatcher.executeQuery("select t1.itm_name, t2.sbc_desc, t3.cat_name " +
                 "from item t1, category_sub t2, category t3 " +
-                "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id");
+                "where t1.itm_subcat_id = t2.sbc_id and t2.sbc_category_id = t3.cat_id " +
+                "order by t1.itm_name");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
@@ -329,9 +331,9 @@ public class InnerJoinTest extends SpliceUnitTest {
         Assert.assertEquals("MicroStrategy Books", results.get(0).get("CAT_NAME"));
         Assert.assertEquals("Art & Architecture", results.get(0).get("SBC_DESC"));
 
-        Assert.assertEquals("Seal (94)", results.get(5).get("ITM_NAME"));
-        Assert.assertEquals("MicroStrategy Music", results.get(5).get("CAT_NAME"));
-        Assert.assertEquals("Alternative", results.get(5).get("SBC_DESC"));
+        Assert.assertEquals("Seal (94)", results.get(7).get("ITM_NAME"));
+        Assert.assertEquals("MicroStrategy Music", results.get(7).get("CAT_NAME"));
+        Assert.assertEquals("Alternative", results.get(7).get("SBC_DESC"));
 
     }
 
@@ -417,7 +419,7 @@ public class InnerJoinTest extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select t1.orl_order_id, t2.cst_last_name, t2.cst_first_name, t3.itm_name, t4.sbc_desc " +
                 "from order_line t1, customer t2, item t3, category_sub t4 " +
                 "where t1.orl_customer_id = t2.cst_id and t1.orl_item_id = t3.itm_id" +
-                "      and t3.itm_subcat_id = t4.sbc_id");
+                "      and t3.itm_subcat_id = t4.sbc_id order by t4.sbc_id");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
 
