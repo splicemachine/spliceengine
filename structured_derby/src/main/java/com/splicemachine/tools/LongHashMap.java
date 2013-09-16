@@ -95,7 +95,7 @@ public abstract class LongHashMap<T> {
         return hash & (length-1);
     }
 
-    private int hash(long key) {
+    protected int hash(long key) {
         int hashCode = (int)(key^(key>>>32));
 
         hashCode ^= (hashCode>>>20)^(hashCode>>>12);
@@ -124,7 +124,16 @@ public abstract class LongHashMap<T> {
                 int newLength = (int)(Math.ceil(growthFactor*elements.length));
 
                 elements = (LongEntry<T>[])(new LongEntry[newLength]);
-                System.arraycopy(old,0,elements,0,old.length);
+                for(LongEntry<T> element:old){
+                    int hash = hash(element.key);
+                    int i = (hash & (newLength-1));
+                    int visited=0;
+                    while(visited<newLength){
+                        if(elements[i]==null){
+                            elements[i] = element;
+                        }
+                    }
+                }
                 LongEntry<T> next = new LongEntry<T>();
                 next.empty=false;
                 next.key = key;
