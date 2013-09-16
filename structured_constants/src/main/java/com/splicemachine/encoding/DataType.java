@@ -129,4 +129,16 @@ public enum DataType{
     public String decode(byte[] bytes){
         throw new UnsupportedOperationException();
     }
+
+    private static final String helpfulFormat = "%5s\t%-20s%n";
+
+    public static void printHelpfulMessage() {
+        System.out.println("Data Types:");
+        for(DataType type:values()){
+            String typeName = type.name();
+            typeName = typeName.replaceAll("_"," ").toLowerCase();
+            String typeCode = type.typeCode;
+            System.out.printf(helpfulFormat,typeCode,typeName);
+        }
+    }
 }

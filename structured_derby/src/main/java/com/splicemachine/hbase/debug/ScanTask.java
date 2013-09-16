@@ -1,0 +1,197 @@
+package com.splicemachine.hbase.debug;
+
+import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.fs.*;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import java.io.*;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+/**
+ * @author Scott Fines
+ * Created on: 9/16/13
+ */
+public class ScanTask extends ZkTask{
+    private EntryPredicateFilter predicateFilter;
+    private String destinationDirectory;
+    private HRegion region;
+
+    public ScanTask() {
+        this.predicateFilter = predicateFilter;
+        this.destinationDirectory = destinationDirectory;
+    }
+
+    public ScanTask(String jobId,
+                    int priority,
+                    boolean readOnly,
+                    EntryPredicateFilter predicateFilter,
+                    String destinationDirectory) {
+        super(jobId, priority, null,readOnly);
+        this.predicateFilter = predicateFilter;
+        this.destinationDirectory = destinationDirectory;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        this.destinationDirectory = in.readUTF();
+        byte[] data = new byte[in.readInt()];
+        in.readFully(data);
+        this.predicateFilter = EntryPredicateFilter.fromBytes(data);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(destinationDirectory);
+        byte[] epfBytes = predicateFilter.toBytes();
+        out.writeInt(epfBytes.length);
+        out.write(epfBytes);
+    }
+
+    @Override
+    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+        this.region = rce.getRegion();
+        super.prepareTask(rce, zooKeeper);
+    }
+
+    @Override
+    protected void doExecute() throws ExecutionException, InterruptedException {
+        Scan scan = new Scan();
+        scan.setStartRow(region.getStartKey());
+        scan.setStopRow(region.getEndKey());
+        scan.setCacheBlocks(false);
+        scan.setCaching(100);
+        scan.setBatch(100);
+        scan.setFilter(new HBaseEntryPredicateFilter(predicateFilter));
+        scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+
+        FileSystem fs = region.getFilesystem();
+        OutputStreamWriter writer;
+        RegionScanner scanner;
+        try{
+            Path outputPath = new Path(destinationDirectory+"/"+region.getRegionNameAsString());
+            if(fs.exists(outputPath))
+                fs.delete(outputPath,false);
+
+            writer = new OutputStreamWriter(fs.create(outputPath));
+            scanner = region.getScanner(scan);
+            List<KeyValue> keyValues = Lists.newArrayList();
+            region.startRegionOperation();
+            try{
+                boolean shouldContinue;
+                do{
+                    keyValues.clear();
+                    shouldContinue = scanner.nextRaw(keyValues,null);
+                    if(keyValues.size()>0){
+                        writeRow(writer,keyValues);
+                    }
+                }while(shouldContinue);
+                //make sure everyone knows we succeeded
+                writer.write(String.format("FINISHED%n"));
+            }finally{
+                writer.flush();
+                writer.close();
+                scanner.close();
+                region.closeRegionOperation();
+            }
+        }catch (IOException e) {
+            throw new ExecutionException(e);
+        }
+    }
+
+    private static final String outputPattern = "%-20s\t%8d\t%s%n";
+    private void writeRow(OutputStreamWriter writer,List<KeyValue> keyValues) throws IOException {
+        for(KeyValue kv:keyValues){
+            if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+                continue;
+            String row = BytesUtil.toHex(kv.getRow());
+            long txnId = kv.getTimestamp();
+            String data = BytesUtil.toHex(kv.getValue());
+
+            String line = String.format(outputPattern,row,txnId,data);
+            writer.write(line);
+        }
+    }
+
+    @Override
+    protected String getTaskType() {
+        return "nonTransactionalScan";
+    }
+
+    @Override
+    public boolean invalidateOnClose() {
+        return true;
+    }
+
+    private class HBaseEntryPredicateFilter extends FilterBase {
+        private EntryPredicateFilter epf;
+        private EntryAccumulator accumulator;
+        private EntryDecoder decoder;
+
+        private boolean filterRow = false;
+        public HBaseEntryPredicateFilter(EntryPredicateFilter epf) {
+            this.epf = epf;
+            this.accumulator = epf.newAccumulator();
+            this.decoder = new EntryDecoder(SpliceDriver.getKryoPool());
+        }
+
+        @Override
+        public void reset() {
+            this.accumulator.reset();
+            this.filterRow = false;
+        }
+
+        @Override
+        public boolean filterRow() {
+            return filterRow;
+        }
+
+        @Override
+        public ReturnCode filterKeyValue(KeyValue ignored) {
+            if(!ignored.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY))
+                return ReturnCode.INCLUDE;
+
+            try {
+                decoder.set(ignored.getValue());
+                if(epf.match(decoder,accumulator)){
+                    return ReturnCode.INCLUDE;
+                }else{
+                    filterRow = true;
+                    return ReturnCode.NEXT_COL;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                filterRow=true;
+                return ReturnCode.NEXT_COL;
+            }
+        }
+
+        @Override
+        public void write(DataOutput out) throws IOException {
+        }
+
+        @Override
+        public void readFields(DataInput in) throws IOException {
+        }
+    }
+}

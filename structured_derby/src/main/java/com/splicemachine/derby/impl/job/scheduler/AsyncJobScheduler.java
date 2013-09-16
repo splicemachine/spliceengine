@@ -498,6 +498,11 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         @Override
+        public int getRemainingTasks() {
+            return getOutstandingCount();
+        }
+
+        @Override
         public void cleanup() throws ExecutionException {
             SpliceLogUtils.trace(LOG,"cleaning up job %s",job.getJobId());
             try {
@@ -527,6 +532,11 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             } catch (KeeperException e) {
                 throw new ExecutionException(e);
             }
+        }
+
+        @Override
+        public int getNumTasks() {
+            return tasksToWatch.size();
         }
 
         @Override
