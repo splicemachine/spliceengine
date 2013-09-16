@@ -103,6 +103,18 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
         @Override
         public Void call() throws Exception {
+            try {
+                return callDirect();
+            } catch (Exception e) {
+                WORKER_LOG.error("uncaught exception", e);
+                throw e;
+            } catch (Throwable t) {
+                WORKER_LOG.error("uncaught exception", t);
+                throw new RuntimeException(t);
+            }
+        }
+
+        private Void callDirect() throws ExecutionException {
             try{
                 switch (task.getTaskStatus().getStatus()) {
                     case INVALID:
