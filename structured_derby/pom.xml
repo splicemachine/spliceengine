@@ -395,6 +395,7 @@
 								<argument>60023</argument>
 								<argument>60024</argument>
 							</arguments>
+			
 						</configuration>
 					</plugin>
 				</plugins>
