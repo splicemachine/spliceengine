@@ -93,7 +93,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     /********************************************************************************************************************/
     /*private helper methods*/
 
-    protected JobStats doShuffle(HTableInterface table,
+    private JobStats doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
         if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
