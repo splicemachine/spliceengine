@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.google.common.base.Function;
+import com.splicemachine.si.api.TransactionStatus;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 /**

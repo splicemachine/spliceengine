@@ -3,12 +3,13 @@ package com.splicemachine.job;
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Created on: 4/3/13
  */
 public class TaskStatus implements Externalizable{
+    private static final Logger LOG = Logger.getLogger(TaskStatus.class);
     private static final long serialVersionUID = 6l;
 
     private AtomicReference<Status> status;
@@ -115,7 +117,16 @@ public class TaskStatus implements Externalizable{
         error = Exceptions.getRootCause(error);
         this.errorMessage = error.getMessage();
         this.errorCode = Exceptions.getErrorCode(error);
-        this.shouldRetry = Exceptions.shouldRetry(error);
+        if (error instanceof DoNotRetryIOException) {
+            final String message = error.getMessage();
+            if (message != null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")) {
+                this.shouldRetry = true;
+            } else {
+                this.shouldRetry = Exceptions.shouldRetry(error);
+            }
+        } else {
+            this.shouldRetry = Exceptions.shouldRetry(error);
+        }
     }
 
     public void setStats(TaskStats stats){

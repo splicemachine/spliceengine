@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionStatus;
+
 /**
  * Represents an application level transaction that spans many atomic writes to the underlying data store (i.e. HBase).
  */

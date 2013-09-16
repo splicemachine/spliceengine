@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;

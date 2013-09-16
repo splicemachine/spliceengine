@@ -3,12 +3,17 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Function;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.BalancedBlockingQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -133,9 +138,35 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                     return null;
                 }
                 task.execute();
-                SpliceLogUtils.trace(WORKER_LOG,"task %s finished executing, marking completed",task.getTaskId());
+                SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", task.getTaskId());
                 SchedulerTracer.traceTaskEnd();
-                task.markCompleted();
+                final String transactionId = task.getTaskStatus().getTransactionId();
+                if (transactionId != null) {
+                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+                    TransactionId txnId = transactor.transactionIdFromString(transactionId);
+                    SchedulerTracer.traceTaskCommit(txnId);
+                    try {
+                        transactor.commit(txnId);
+                        task.markCompleted();
+                    } catch (IOException e) {
+                        try {
+                            final TransactionStatus transactionStatus = transactor.getTransactionStatus(txnId);
+                            if (!transactionStatus.isCommitted()) {
+                                try {
+                                    task.markFailed(e);
+                                } catch (ExecutionException e2) {
+                                    // TODO: follow-up to see what happens in this case
+                                    throw new RuntimeException(e2);
+                                }
+                            }
+                        } catch (IOException e2) {
+                            // if this exception occurs then we are in doubt as to the status of the SI transaction
+                            // and we cannot proceed with this task until we resolve the status.
+                            // TODO: recheck the status?
+                            throw new RuntimeException(e2);
+                        }
+                    }
+                }
             }catch(ExecutionException ee){
                 Throwable t = ee.getCause();
                 if(t instanceof NotServingRegionException){

@@ -1,4 +1,4 @@
-package com.splicemachine.si.impl;
+package com.splicemachine.si.api;
 
 /**
  * An SI transaction passes through the following states.

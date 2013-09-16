@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;

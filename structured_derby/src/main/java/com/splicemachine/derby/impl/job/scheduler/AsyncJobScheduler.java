@@ -321,10 +321,11 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
         }
 
         private void dealWithError() throws ExecutionException{
-            if(taskStatus.shouldRetry())
+            if(taskStatus.shouldRetry()) {
                 resubmit();
-            else
+            } else {
                 throw new ExecutionException(Exceptions.getWrapperException(taskStatus.getErrorMessage(),taskStatus.getErrorCode()));
+            }
         }
 
         private void resubmit() throws ExecutionException{
@@ -589,16 +590,6 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                             found=false;
                             break;
                         case COMPLETED:
-                            try {
-                                if (changedFuture.getTransactionId() != null) {
-                                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
-                                    TransactionId txnId = transactor.transactionIdFromString(changedFuture.getTransactionId());
-                                    transactor.commit(txnId);
-                                }
-                            } catch (IOException e) {
-                                failedTasks.add(changedFuture);
-                                throw new ExecutionException(e);
-                            }
                             SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskNode());
                             TaskStats stats = changedFuture.getTaskStats();
                             if(stats!=null)

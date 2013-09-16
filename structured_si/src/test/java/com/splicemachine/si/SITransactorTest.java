@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
