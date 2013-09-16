@@ -56,6 +56,9 @@ public class RowKeyDistributorByHashPrefix extends AbstractRowKeyDistributor {
 
         @Override
         public int getPrefixLength(byte[] adjustedKey) {
+//            if (adjustedKey.length < 2) {
+//                return 0;
+//            }
             return 2;
         }
     }

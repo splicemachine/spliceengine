@@ -8,6 +8,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.HashUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
@@ -204,15 +205,14 @@ public class RowEncoder {
         if (!bucketed) {
             return;
         }
-        HashFunction hasher = Hashing.murmur3_32();
-        Hasher h = hasher.newHasher();
+        byte[][] fields = new byte[keyColumns.length + 1][];
         // 0 is the hash byte
         // 1 is the UUID
         // 2 - N are the key fields
         for (int i = 0; i <= keyColumns.length; i++) {
-            h.putBytes(keyEncoder.getEncodedBytes(i + 1)); // UUID            
+            fields[i] = keyEncoder.getEncodedBytes(i + 1); // UUID            
         }
-        this.hash[0] = (byte) (h.hash().asBytes()[0] & (byte) 0xf0);
+        this.hash[0] = HashUtils.hash(fields);
     }
 
     public void write(ExecRow row,CallBuffer<KVPair> buffer) throws Exception{

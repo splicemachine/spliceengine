@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.sql.execute.operations.DistributedScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -18,6 +20,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * RowProvider which uses an HBase client ResultScanner to
@@ -26,11 +31,12 @@ import java.io.IOException;
  * @author Scott Fines
  * Date Created: 1/17/13:1:23 PM
  */
-public class DistributedClientScanProvider extends AbstractScanProvider {
+public class DistributedClientScanProvider extends AbstractMultiScanProvider {
     private static final Logger LOG = Logger.getLogger(DistributedClientScanProvider.class);
     private final byte[] tableName;
     private HTableInterface htable;
     private final Scan scan;
+    private final RowKeyDistributorByHashPrefix keyDistributor;
 
     private ResultScanner scanner;
 
@@ -40,6 +46,7 @@ public class DistributedClientScanProvider extends AbstractScanProvider {
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;
+		this.keyDistributor = new RowKeyDistributorByHashPrefix(new RowKeyDistributorByHashPrefix.OneByteSimpleHash());
 	}
 
 	@Override
@@ -58,7 +65,7 @@ public class DistributedClientScanProvider extends AbstractScanProvider {
 		if(htable==null)
 			htable = SpliceAccessManager.getHTable(tableName);
 		try {
-			scanner = DistributedScanner.create(htable, scan, new RowKeyDistributorByHashPrefix(new RowKeyDistributorByHashPrefix.OneByteSimpleHash()));
+            scanner = DistributedScanner.create(htable, scan, keyDistributor);
 		} catch (IOException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
 		}
@@ -78,8 +85,12 @@ public class DistributedClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-	public Scan toScan() {
-		return scan;
+	public List<Scan> getScans() throws StandardException {
+	    try {
+            return Arrays.asList(keyDistributor.getDistributedScans(scan));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 	}
 
 	@Override
