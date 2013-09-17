@@ -103,6 +103,16 @@ public class RowEncoder {
                                     byte[] keyPrefix,
                                     KeyMarshall keyType,
                                     RowMarshall rowType){
+        return create(numCols, keyColumns, keySortOrder, keyPrefix, keyType, rowType, false);
+    }
+
+    public static RowEncoder create(int numCols,
+                                    int[] keyColumns,
+                                    boolean[] keySortOrder,
+                                    byte[] keyPrefix,
+                                    KeyMarshall keyType,
+                                    RowMarshall rowType,
+                                    boolean hashed){
         //get the rowColumn Positions
         //TODO -sf- can we do this without the extra int[]?
         if(keyColumns==null)
@@ -122,7 +132,7 @@ public class RowEncoder {
             }
         }
 
-        return new RowEncoder(keyColumns,keySortOrder,rowColumns,keyPrefix,keyType,rowType);
+        return new RowEncoder(keyColumns,keySortOrder,rowColumns,keyPrefix,keyType,rowType,hashed);
     }
 
     public static RowEncoder createEntryEncoder(int numCols,
