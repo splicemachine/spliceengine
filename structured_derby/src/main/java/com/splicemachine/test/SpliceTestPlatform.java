@@ -47,7 +47,7 @@ public class SpliceTestPlatform extends TestConstants {
     final Runnable randomWrappedExecutionException = new Runnable() {
         @Override
         public void run() {
-            if (randomly(25)) {
+            if (randomly(12)) {
                 throw new RuntimeException(new ExecutionException("invalidating on purpose", new NotServingRegionException()));
             }
         }
@@ -65,7 +65,7 @@ public class SpliceTestPlatform extends TestConstants {
     final Function<TransactionId, Object> randomTransactionFail = new Function<TransactionId, Object>() {
         @Override
         public Object apply(@Nullable TransactionId transactionId) {
-            if (randomly(0)) {
+            if (randomly(12)) {
                 final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                 try {
                     transactor.fail(transactionId);
