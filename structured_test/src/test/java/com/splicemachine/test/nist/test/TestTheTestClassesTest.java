@@ -1,12 +1,18 @@
 package com.splicemachine.test.nist.test;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.test.nist.DerbyNistRunner;
 import com.splicemachine.test.nist.NistTestUtils;
+import com.splicemachine.test.nist.SpliceNistRunner;
+import com.splicemachine.test.utils.DependencyTree;
+import com.splicemachine.test.utils.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.util.*;
 
 import static com.splicemachine.test.nist.NistTestUtils.*;
@@ -31,7 +37,7 @@ public class TestTheTestClassesTest {
 
     private void assertNoDuplicates(List<File> files) {
         Set<File> unique = new HashSet<File>(files);
-        Assert.assertEquals("Contains duplicates",unique.size(),files.size());
+        Assert.assertEquals("Contains duplicates", unique.size(), files.size());
     }
 
     @Test
@@ -98,7 +104,7 @@ public class TestTheTestClassesTest {
             Assert.assertTrue(aFile + " does not exist",aFile.exists());
         }
         Assert.assertTrue("schema1.sql should be first",
-                schemaFiles.get(0).equals(new File(getResourceDirectory() + NIST_DIR_SLASH+"schema1.sql")));
+                schemaFiles.get(0).equals(new File(getResourceDirectory() + NIST_DIR_SLASH + "schema1.sql")));
     }
 
     @Test
@@ -157,7 +163,7 @@ public class TestTheTestClassesTest {
         List<File> testFiles = getTestFileList();
         List<File> schemaFiles = new ArrayList<File>();
         for (String schemaFileName : getSchemaFileNames()) {
-            schemaFiles.add(new File(getResourceDirectory() + NIST_DIR_SLASH+schemaFileName));
+            schemaFiles.add(new File(getResourceDirectory() + NIST_DIR_SLASH + schemaFileName));
         }
         testFiles.removeAll(schemaFiles);
         List<File> sortedTestFiles = new ArrayList<File>(testFiles);
@@ -169,7 +175,7 @@ public class TestTheTestClassesTest {
             }
         });
 
-        Assert.assertEquals(sortedTestFiles,testFiles);
+        Assert.assertEquals(sortedTestFiles, testFiles);
     }
 
     @Test
@@ -191,5 +197,36 @@ public class TestTheTestClassesTest {
             Assert.assertTrue(aFile.getCanonicalPath()+" does not exist",aFile.exists());
         }
         assertNoDuplicates(testFiles);
+    }
+
+    @Test
+    public void testDeleteSchemaDependencies() throws Exception {
+        SpliceNistRunner spliceRunner = new SpliceNistRunner();
+//        NistTestUtils.runTests(NistTestUtils.createRunList("schema1.sql"),
+//                new DerbyNistRunner(), NistTestUtils.readDerbyFilters(),
+//                spliceRunner, NistTestUtils.readSpliceFilters(), System.out);
+
+        String schema = "FLATER";
+        Connection connection = spliceRunner.getConnection();
+        DependencyTree tree = TestUtils.getTablesAndViews(connection, schema, System.out);
+        List<DependencyTree.DependencyNode> depOrder = tree.getDependencyOrder();
+        System.out.println(depOrder.size() + " Nodes to delete");
+        for (DependencyTree.DependencyNode node : depOrder) {
+            System.out.println(node.name+" <"+node.type+"> Deps: "+tree.resolveNodeNames(node.depIDs)+
+                    " Parents: "+tree.resolveNodeNames(node.parentIDs));
+        }
+
+        TestUtils.dropTableOrView(connection, schema, depOrder, System.out);
+    }
+
+    @Test
+    public void testDeleteSchemas() throws Exception {
+        SpliceNistRunner spliceRunner = new SpliceNistRunner();
+        DerbyNistRunner derbyRunner = new DerbyNistRunner();
+        NistTestUtils.runTests(NistTestUtils.createRunList("schema1.sql"),
+                derbyRunner, NistTestUtils.readDerbyFilters(),
+                spliceRunner, NistTestUtils.readSpliceFilters(), System.out);
+
+        TestUtils.cleanup(derbyRunner, spliceRunner, System.out);
     }
 }

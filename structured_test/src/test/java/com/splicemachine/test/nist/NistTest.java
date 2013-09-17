@@ -64,7 +64,7 @@ public class NistTest {
         if (clean) {
 			// clean schema before test run for cleanup, unless noclean
         	// system property was specified
-        	System.out.println("Cleaning before test...");
+        	System.out.println("Cleaning after test...");
 			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
 		}
     }
