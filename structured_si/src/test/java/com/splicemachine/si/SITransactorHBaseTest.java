@@ -35,7 +35,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup(false);
+        classStoreSetup = HStoreSetup.create();
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
@@ -43,7 +43,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        classStoreSetup.getTestCluster().shutdownMiniCluster();
+        HStoreSetup.destroy(classStoreSetup);
     }
 
 }
