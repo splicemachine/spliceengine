@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -10,8 +11,10 @@ import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.writer.WriteUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.ByteDataInput;
@@ -346,22 +349,7 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             }while(nextTask!=null && Bytes.compareTo(nextTask.startRow,startRow)==0); //skip past all tasks that are in the same position as me
 
             watcher.tasksToWatch.remove(this);
-
-            //rollback child transaction
-            if(taskStatus.getTransactionId()!=null){
-                try {
-                	if (LOG.isTraceEnabled())
-                		SpliceLogUtils.trace(LOG,"rolling back transaction %s during resubmission",taskStatus.getTransactionId());
-                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
-                    TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
-                    transactor.rollback(txnId);
-                } catch (IOException e) {
-                    Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
-                    taskStatus.setError(error);
-                    taskStatus.setStatus(Status.FAILED);
-                    throw new ExecutionException(error);
-                }
-            }
+            rollbackChildTransaction();
 
             byte[] endRow;
             if(nextTask!=null){
@@ -380,6 +368,125 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                 submit(watcher,job, newTaskData.getFirst(), newTaskData.getSecond(), table,tryNum+1);
             }catch(IOException ioe){
                 throw new ExecutionException(ioe);
+            }
+        }
+
+        private void rollbackChildTransaction() throws ExecutionException {
+            //rollback child transaction
+            if(taskStatus.getTransactionId()!=null){
+                try {
+                	if (LOG.isTraceEnabled())
+                		SpliceLogUtils.trace(LOG, "rolling back transaction %s during resubmission", taskStatus.getTransactionId());
+                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+                    TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
+                    transactor.rollback(txnId);
+                } catch (IOException e) {
+                    Exception error = new DoNotRetryIOException("Unable to roll back child transaction",e);
+                    taskStatus.setError(error);
+                    taskStatus.setStatus(Status.FAILED);
+                    throw new ExecutionException(error);
+                }
+            }else{
+                //no child transaction has been assigned, so we don't have anything to roll back,
+                //but we want to issue a warning just in case, to make sure this isn't a programmer error
+                LOG.warn("No Child transaction has been assigned to task "+ getTaskNode());
+            }
+        }
+
+        boolean commit(int tryCount) throws ExecutionException{
+            if(taskStatus.getTransactionId()==null){
+                //there is nothing to commit, which is weird--most of the time there should be.
+                //HOWEVER, sometimes there are tasks which do not operate transactionally
+                //those tasks should just return here. Just to make sure that nothing
+                //accidentally slips through though, we assert that our task isn't transactional
+                Preconditions.checkArgument(!task.isTransactional(),"Transactional task does not have an associated transaction id");
+                return true;
+            }
+
+             /*
+              * Child transactions can't be committed by the task, because there is an inherent failure
+              * condition. If the Child transaction successfully commits, but the task is unable to
+              * report it's status to the JobScheduler, The Scheduler will attempt to resubmit that task,
+              * which would then see data from itself (resulting in extraneous PrimaryKey violations and
+              * other such errors).
+              */
+            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionId txnId = transactor.transactionIdFromString(taskStatus.getTransactionId());
+            if(tryCount<0){
+                /*
+                 * We couldn't commit this, but we could retry the entire task and maybe that one we'll be able to commit
+                 */
+                taskStatus.setStatus(Status.FAILED);
+                taskStatus.setError(new RetriesExhaustedException("Unable to commit transaction " + txnId+" after "+ maxResubmissionAttempts+" attempts"));
+                dealWithError();
+                return false;
+            }
+            try{
+                transactor.commit(txnId);
+                return true;
+            }catch(IOException ioe){
+                    /*
+                     * We failed to commit for some reason or another. This is probably bad, but we want to recover
+                     * if at all possible.
+                     *
+                     * Unfortunately, just because we got an error doesn't mean that we failed to commit. Writes
+                     * to the transaction table are atomic, but our failures are not (we could have failed before
+                     * or after the table accepted the write). Thus, we must check back with the transaction
+                     * table to determine the current state of our Transaction. If it's still active, then we
+                     * can retry the commit. If it's in the FAILED state, then this child transaction failed. We have
+                     * to treat the entire task as failed and resubmit it.
+                     *
+                     * If we try reading the transaction state for a few tries and are unable to do so, then we must
+                     * assume the entire parent transaction (and probably this machine) is completely screwed, and fail
+                     * the job.
+                     */
+                TransactionStatus txnStatus;
+                try {
+                    txnStatus = getTransactionStatus(txnId,transactor,maxResubmissionAttempts);
+                } catch (IOException e) {
+                    //we can't even read the txn information, we are really screwed, so make job fail
+                    throw new ExecutionException(new RetriesExhaustedException("Unable to obtain transaction status, assuming transaction dead",e));
+                }
+                switch (txnStatus) {
+                    case COMMITTED:
+                        //we successfully committed
+                        return true;
+                    case ACTIVE:
+                        //we can retry commit
+                        return commit(tryCount-1);
+                    case COMMITTING:
+                        //should never see this
+                        throw new ExecutionException(new IllegalStateException("Transaction "+ txnId+" is in state COMMITTING, which should never be seen here"));
+                    default:
+                            /*
+                             * We cannot retry this transaction. However, we CAN retry the entire child task
+                             */
+                        this.taskStatus.setError(ioe);
+                        this.taskStatus.setStatus(Status.FAILED);
+                        dealWithError();
+                        return false;
+                }
+            }
+        }
+
+        private TransactionStatus getTransactionStatus(TransactionId txnId,TransactorControl transactor, int tryCount) throws IOException {
+            if(tryCount<=0)
+                throw new RetriesExhaustedException("Unable to read transaction information for transaction "+ txnId);
+            try{
+                return transactor.getTransactionStatus(txnId);
+            }catch(IOException ioe){
+               //TODO -sf- make sure these are the correct retry semantics
+               if(ioe instanceof DoNotRetryIOException){
+                   throw ioe;
+               }
+                try {
+                    Thread.sleep(WriteUtils.getWaitTime(maxResubmissionAttempts-tryCount+1,1000));
+                } catch (InterruptedException e) {
+                    //interruption just means to keep going
+                    LOG.info("Interrupted while waiting to read from transaction table");
+                }
+
+                return getTransactionStatus(txnId, transactor, tryCount-1);
             }
         }
 
@@ -421,55 +528,16 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
             this.watcher = watcher;
         }
 
-        @Override
-        public int getNumTasks() {
-            return tasks.get();
-        }
-
-        @Override
-        public long getTotalTime() {
-            return System.nanoTime()-start;
-        }
-
-        @Override
-        public int getNumSubmittedTasks() {
-            return submittedTasks.get();
-        }
-
-        @Override
-        public int getNumCompletedTasks() {
-            return watcher.completedTasks.size();
-        }
-
-        @Override
-        public int getNumFailedTasks() {
-            return failedTasks.size();
-        }
-
-        @Override
-        public int getNumInvalidatedTasks() {
-            return watcher.invalidCount.get();
-        }
-
-        @Override
-        public int getNumCancelledTasks() {
-            return watcher.cancelledTasks.size();
-        }
-
-        @Override
-        public Map<String, TaskStats> getTaskStats() {
-            return taskStatsMap;
-        }
-
-        @Override
-        public String getJobName() {
-            return watcher.job.getJobId();
-        }
-
-        @Override
-        public List<byte[]> getFailedTasks() {
-            return failedTasks;
-        }
+        @Override public int getNumTasks() { return tasks.get(); }
+        @Override public long getTotalTime() { return System.nanoTime()-start; }
+        @Override public int getNumSubmittedTasks() { return submittedTasks.get(); }
+        @Override public int getNumCompletedTasks() { return watcher.completedTasks.size(); }
+        @Override public int getNumFailedTasks() { return failedTasks.size(); }
+        @Override public int getNumInvalidatedTasks() { return watcher.invalidCount.get(); }
+        @Override public int getNumCancelledTasks() { return watcher.cancelledTasks.size(); }
+        @Override public Map<String, TaskStats> getTaskStats() { return taskStatsMap; }
+        @Override public String getJobName() { return watcher.job.getJobId(); }
+        @Override public List<byte[]> getFailedTasks() { return failedTasks; }
     }
 
     private class Watcher implements JobFuture {
@@ -601,11 +669,32 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>,JobSchedu
                             break;
                         case COMPLETED:
                             SpliceLogUtils.trace(LOG,"Task %s completed successfully",changedFuture.getTaskNode());
-                            TaskStats stats = changedFuture.getTaskStats();
-                            if(stats!=null)
-                                this.stats.taskStatsMap.put(changedFuture.getTaskNode(),stats);
-                            completedTasks.add(changedFuture);
-                            return;
+                            try{
+                                /*
+                                 * Attempt to commit. Three things are possible:
+                                 *
+                                 * 1. the commit succeeds and returns true
+                                 * 2. The commit fails in a retryable fashion, and returns false
+                                 * 3. The commit fails in a non-retryable fashion (throws exception)
+                                 */
+                                if(changedFuture.commit(maxResubmissionAttempts)){
+                                   //we committed successfully, whoo!
+                                    TaskStats stats = changedFuture.getTaskStats();
+                                    if(stats!=null)
+                                        this.stats.taskStatsMap.put(changedFuture.getTaskNode(),stats);
+                                    completedTasks.add(changedFuture);
+                                    return;
+                                }else{
+                                    //we had to resubmit
+                                    SpliceLogUtils.trace(LOG,"Task %s was unable to commit, but has been resubmitted",changedFuture.getTaskNode());
+                                }
+                            }catch(Throwable t){
+                                //we cannot retry, so add this to failed tasks
+                                changedFuture.taskStatus.setError(t);
+                                changedFuture.taskStatus.setStatus(Status.FAILED);
+                                failedTasks.add(changedFuture);
+                                throw new ExecutionException(t);
+                            }
                         case CANCELLED:
                             SpliceLogUtils.trace(LOG,"Task %s is cancelled",changedFuture.getTaskNode());
                             cancelledTasks.add(changedFuture);

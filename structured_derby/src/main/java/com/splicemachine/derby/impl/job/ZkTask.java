@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
@@ -106,17 +107,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void execute() throws ExecutionException, InterruptedException {
-        //create a child transaction
-        if(parentTxnId!=null){
-            TransactorControl transactor = HTransactorFactory.getTransactorControl();
-            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
-            try {
-                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
-                status.setTxnId(childTxnId.getTransactionIdString());
-            } catch (IOException e) {
-                throw new ExecutionException("Unable to acquire child transaction",e);
-            }
-        }
+
 
         doExecute();
     }
@@ -199,9 +190,29 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             case CANCELLED:
                 return;
         }
+        //make sure our transaction is rolled back properly
+        rollbackTransaction();
         status.setStatus(Status.CANCELLED);
         if(propagate)
             updateStatus(false);
+    }
+
+    private void rollbackTransaction() throws ExecutionException {
+        String txnIdStr = getTaskStatus().getTransactionId();
+        if(txnIdStr==null) {
+            if(LOG.isDebugEnabled())
+                LOG.debug("No Transaction to roll back for task "+ getTaskType());
+            return;
+        }
+
+        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+        TransactionId txnId = txnControl.transactionIdFromString(getTaskStatus().getTransactionId());
+        try{
+            txnControl.rollback(txnId);
+        }catch(IOException e){
+            LOG.error("Unable to rollback txnId "+ txnId,e);
+            throw new ExecutionException(e);
+        }
     }
 
     private void updateStatus(final boolean cancelOnError) throws ExecutionException{
@@ -235,6 +246,17 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
+        //create a child transaction
+        if(parentTxnId!=null){
+            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
+            try {
+                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+                status.setTxnId(childTxnId.getTransactionIdString());
+            } catch (IOException e) {
+                throw new ExecutionException("Unable to acquire child transaction",e);
+            }
+        }
         setStatus(Status.EXECUTING,true);
     }
 
@@ -247,6 +269,24 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public void markCompleted() throws ExecutionException {
         setStatus(Status.COMPLETED,false);
+//        commit();
+    }
+
+    private void commit() throws ExecutionException {
+        String txnIdStr = getTaskStatus().getTransactionId();
+        if(txnIdStr==null){
+            if(LOG.isDebugEnabled())
+                LOG.debug("No Transaction to commit for task "+ getTaskType());
+            return;
+        }
+        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+        TransactionId txnId = txnControl.transactionIdFromString(txnIdStr);
+        try {
+            txnControl.commit(txnId);
+        } catch (IOException e) {
+            LOG.error("Unable to commit task "+ getTaskType()+"with txnId "+txnIdStr,e);
+            throw new ExecutionException(e);
+        }
     }
 
     @Override
@@ -302,5 +342,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public String getTaskNode() {
         return taskPath;
+    }
+
+    @Override
+    public boolean isTransactional() {
+        return true;
     }
 }
