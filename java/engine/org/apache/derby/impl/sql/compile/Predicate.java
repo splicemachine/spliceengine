@@ -903,7 +903,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 *
 	 * @return Whether or not this is a join predicate.
 	 */
-	protected boolean isJoinPredicate()
+	public boolean isJoinPredicate()
 	{
 		// If the predicate isn't a binary relational operator,
 		// then it's not a join predicate.
