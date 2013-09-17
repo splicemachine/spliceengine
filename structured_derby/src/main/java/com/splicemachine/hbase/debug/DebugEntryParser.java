@@ -9,7 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes;
  */
 public class DebugEntryParser {
 
-    public static final void main(String...args) throws Exception{
+    public static void main(String...args) throws Exception{
         if(args==null||args.length<4){
             printUsage();
             System.exit(65);
@@ -33,9 +33,13 @@ public class DebugEntryParser {
                 System.exit(65);
             }
         }
+        if(typesStr==null||dataStr==null){
+            printUsage();
+            System.exit(65);
+        }
 
         String[] types = typesStr.split(",");
-        String[] data = dataStr.split(",");
+        String[] data = dataStr.split(dataDelim);
         if(types.length<data.length){
             System.err.println("Insufficient types to read line");
             System.exit(4);
@@ -45,10 +49,9 @@ public class DebugEntryParser {
             dataTypes[i] = DataType.fromCode(types[i]);
         }
 
-        String[] decodedOutput = new String[data.length];
         StringBuilder output = new StringBuilder();
         boolean isFirst=true;
-        for(int i=0;i<decodedOutput.length;i++){
+        for(int i=0;i<data.length;i++){
             byte[] unhexlified = fromHex(data[i]);
             String decoded = dataTypes[i].decode(unhexlified);
             if(isFirst)

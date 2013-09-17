@@ -41,9 +41,14 @@ public class SpliceTableDebugger extends Configured implements Tool {
         JobScheduler<CoprocessorJob> scheduler;
         try{
             zkManager = new SpliceZooKeeperManager();
+            System.out.println("Beginning");
             scheduler = new AsyncJobScheduler(zkManager,getConf());
-            return operation.execute(getConf(),scheduler,args);
+            System.out.println("Executing");
+            int ret =  operation.execute(getConf(),scheduler,args);
+            System.out.println("Finished");
+            return ret;
         }finally{
+            System.out.println("closing");
             if(zkManager!=null)
                 zkManager.close();
         }
@@ -54,6 +59,25 @@ public class SpliceTableDebugger extends Configured implements Tool {
     }
 
     private enum Operation{
+        TRANSACTION_SUMMARY("tsummary"){
+            @Override
+            public void printHelpMessage() {
+                System.out.println("Dumps the Transaction Table information");
+                System.out.println("Usage: SpliceTableDebugger tsummary <destination directory>");
+                System.out.println("Arguments:");
+                System.out.printf(commandPattern,"destination directory","The Destination Directory to dump the transactions to");
+            }
+
+            @Override
+            public CoprocessorJob getJob(Configuration config, String[] args) throws Exception {
+                if(args.length<2){
+                    printHelpMessage();
+                    return null;
+                }
+
+                return new TransactionDumpJob(args[1],config);
+            }
+        },
         COUNT("count"){
             @Override
             public CoprocessorJob getJob(Configuration config, String[] args) throws Exception {
@@ -118,7 +142,7 @@ public class SpliceTableDebugger extends Configured implements Tool {
 
                 EntryPredicateFilter epf = new EntryPredicateFilter(cols, Collections.singletonList(predicate));
 
-                return new ScanJob(destDir,tableName,epf);
+                return new ScanJob(destDir,tableName,epf,config);
             }
         },
         TRANSACTION_COUNT("tcount"){
@@ -188,18 +212,22 @@ public class SpliceTableDebugger extends Configured implements Tool {
             CoprocessorJob job = getJob(config,args);
             if(job==null)
                 return 2; //failed to properly configure--each job will print its own error messages
-            JobFuture submit = scheduler.submit(job);
-            int numTasksToFinish = submit.getNumTasks();
-            System.out.printf("Executing job with %d tasks%n", numTasksToFinish);
-            int remaining;
-            do{
-                submit.completeNext();
-                remaining = submit.getRemainingTasks();
-                System.out.printf("%d tasks remaining%n", remaining);
-            }while(remaining>0);
-            System.out.println("FINISHED");
+            try{
+                JobFuture submit = scheduler.submit(job);
+                int numTasksToFinish = submit.getNumTasks();
+                System.out.printf("Executing job with %d tasks%n", numTasksToFinish);
+                int remaining;
+                do{
+                    submit.completeNext();
+                    remaining = submit.getRemainingTasks();
+                    System.out.printf("%d tasks remaining%n", remaining);
+                }while(remaining>0);
+                System.out.println("FINISHED");
 
-            return 0;
+                return 0;
+            }finally{
+                job.getTable().close();
+            }
         }
     }
 

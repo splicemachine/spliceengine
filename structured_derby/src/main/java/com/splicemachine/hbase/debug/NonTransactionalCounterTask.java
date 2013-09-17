@@ -2,18 +2,14 @@ package com.splicemachine.hbase.debug;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.impl.job.ZkTask;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import com.splicemachine.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -21,9 +17,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 9/16/13
  */
-public class NonTransactionalCounterTask extends ZkTask{
-    private String destinationDirectory;
-    private HRegion region;
+public class NonTransactionalCounterTask extends DebugTask{
 
     public NonTransactionalCounterTask() { }
 
@@ -31,14 +25,7 @@ public class NonTransactionalCounterTask extends ZkTask{
                                        int priority,
                                        boolean readOnly,
                                        String destinationDirectory) {
-        super(jobId, priority, null, readOnly);
-        this.destinationDirectory = destinationDirectory;
-    }
-
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
+        super(jobId, destinationDirectory);
     }
 
     @Override
@@ -50,6 +37,7 @@ public class NonTransactionalCounterTask extends ZkTask{
         scan.setCaching(100);
         scan.setBatch(100);
         scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
 
         RegionScanner scanner = null;
         long totalCount=0l;
@@ -60,6 +48,7 @@ public class NonTransactionalCounterTask extends ZkTask{
             try{
                 boolean shouldContinue;
                 do{
+                    keyValues.clear();
                     shouldContinue = scanner.nextRaw(keyValues,null);
                     if(keyValues.size()>0)
                         totalCount++;
@@ -73,18 +62,16 @@ public class NonTransactionalCounterTask extends ZkTask{
             Closeables.closeQuietly(scanner);
         }
 
-        FileSystem fs = region.getFilesystem();
-        Path outputPath = new Path(destinationDirectory,region.getRegionNameAsString());
-        OutputStream os =  null;
+        Writer writer = null;
         try{
-            os = fs.create(outputPath);
+            writer = getWriter();
             String outputText = String.format("%d%nFINISHED%n",totalCount);
-            os.write(outputText.getBytes());
-            os.flush();
+            writer.write(outputText);
+            writer.flush();
         } catch (IOException e) {
             throw new ExecutionException("Unable to write output for region "+ region.getRegionNameAsString()+". Answer is "+ totalCount,e);
         } finally{
-            Closeables.closeQuietly(os);
+            Closeables.closeQuietly(writer);
         }
     }
 
@@ -96,17 +83,5 @@ public class NonTransactionalCounterTask extends ZkTask{
     @Override
     public boolean invalidateOnClose() {
         return true;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(destinationDirectory);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        destinationDirectory = in.readUTF();
     }
 }

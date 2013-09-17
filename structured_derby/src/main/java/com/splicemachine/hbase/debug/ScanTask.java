@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryAccumulator;
@@ -12,8 +11,6 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -30,9 +27,8 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 9/16/13
  */
-public class ScanTask extends ZkTask{
+public class ScanTask extends DebugTask{
     private EntryPredicateFilter predicateFilter;
-    private String destinationDirectory;
     private HRegion region;
 
     private EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
@@ -41,19 +37,15 @@ public class ScanTask extends ZkTask{
     }
 
     public ScanTask(String jobId,
-                    int priority,
-                    boolean readOnly,
                     EntryPredicateFilter predicateFilter,
                     String destinationDirectory) {
-        super(jobId, priority, null,readOnly);
+        super(jobId, destinationDirectory);
         this.predicateFilter = predicateFilter;
-        this.destinationDirectory = destinationDirectory;
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        this.destinationDirectory = in.readUTF();
         byte[] data = new byte[in.readInt()];
         in.readFully(data);
         this.predicateFilter = EntryPredicateFilter.fromBytes(data);
@@ -62,7 +54,6 @@ public class ScanTask extends ZkTask{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeUTF(destinationDirectory);
         byte[] epfBytes = predicateFilter.toBytes();
         out.writeInt(epfBytes.length);
         out.write(epfBytes);
@@ -85,18 +76,15 @@ public class ScanTask extends ZkTask{
         scan.setFilter(new HBaseEntryPredicateFilter(predicateFilter));
         scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
 
-        FileSystem fs = region.getFilesystem();
-        OutputStreamWriter writer;
+        Writer writer;
         RegionScanner scanner;
         try{
-            Path outputPath = new Path(destinationDirectory+"/"+region.getRegionNameAsString());
-            if(fs.exists(outputPath))
-                fs.delete(outputPath,false);
 
-            writer = new OutputStreamWriter(fs.create(outputPath));
+            writer = getWriter();
             scanner = region.getScanner(scan);
             List<KeyValue> keyValues = Lists.newArrayList();
             region.startRegionOperation();
+            System.out.println("Starting scan task");
             try{
                 writer.write(String.format("%d%n",System.currentTimeMillis()));
                 boolean shouldContinue;
@@ -109,6 +97,7 @@ public class ScanTask extends ZkTask{
                 }while(shouldContinue);
                 //make sure everyone knows we succeeded
                 writer.write(String.format("FINISHED%n"));
+                System.out.println("Scan Task finished successfully");
             }finally{
                 writer.flush();
                 writer.close();
@@ -121,7 +110,7 @@ public class ScanTask extends ZkTask{
     }
 
     private static final String outputPattern = "%-20s\t%8d\t%s%n";
-    private void writeRow(OutputStreamWriter writer,List<KeyValue> keyValues) throws IOException {
+    private void writeRow(Writer writer,List<KeyValue> keyValues) throws IOException {
         for(KeyValue kv:keyValues){
             if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
                 continue;
@@ -142,7 +131,7 @@ public class ScanTask extends ZkTask{
                 else
                     isFirst = false;
 
-                valueStr.append(BytesUtil.toHex(decoder.nextAsBuffer(fieldDecoder,pos)));
+                valueStr.append(BytesUtil.toHex(decoder.nextAsBuffer(fieldDecoder, pos)));
             }
             valueStr.append("\n");
             String data = valueStr.toString();

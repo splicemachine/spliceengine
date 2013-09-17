@@ -2,19 +2,14 @@ package com.splicemachine.hbase.debug;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.tools.LongHashMap;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -24,33 +19,12 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 9/16/13
  */
-public class TransactionCountTask extends ZkTask {
-    private String destinationDirectory;
-    private HRegion region;
+public class TransactionCountTask extends DebugTask{
 
     public TransactionCountTask() { }
 
     public TransactionCountTask(String jobId, String destinationDirectory) {
-        super(jobId, 1, null, true);
-        this.destinationDirectory = destinationDirectory;
-    }
-
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        this.region = rce.getRegion();
-        super.prepareTask(rce, zooKeeper);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        this.destinationDirectory = in.readUTF();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(destinationDirectory);
+        super(jobId, destinationDirectory);
     }
 
     @Override
@@ -67,12 +41,8 @@ public class TransactionCountTask extends ZkTask {
         LongHashMap<Long> txnHashMap = LongHashMap.evictingMap(1000);
         RegionScanner scanner;
         try{
-            FileSystem fs =region.getFilesystem();
-            Path outputPath = new Path(destinationDirectory+"/"+region.getRegionNameAsString());
-            if(fs.exists(outputPath))
-                fs.delete(outputPath,false);
 
-            Writer writer = new OutputStreamWriter(fs.create(outputPath));
+            Writer writer = getWriter();
             scanner = region.getScanner(scan);
             region.startRegionOperation();
             try{
