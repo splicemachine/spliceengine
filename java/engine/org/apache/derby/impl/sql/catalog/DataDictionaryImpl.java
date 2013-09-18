@@ -4297,12 +4297,15 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		/*
 		** Partial update
 		*/
-		ti.updateRow(keyRow1, row, 
+		try {
+			ti.updateRow(keyRow1, row, 
 					 SYSSTATEMENTSRowFactory.SYSSTATEMENTS_INDEX1_ID,
 					 bArray,
 					 updCols,
 					 tc);
-
+		} catch (StandardException e) {
+			
+		}
 
 		/*
 		** If we don't need to update the parameter
