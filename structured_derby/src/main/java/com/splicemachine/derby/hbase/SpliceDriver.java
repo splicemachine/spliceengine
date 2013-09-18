@@ -322,7 +322,7 @@ public class SpliceDriver extends SIConstants {
 
             //register JobScheduler
             ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
-            mbs.registerMBean(jobScheduler,jobSchedulerName);
+            mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
             ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");
