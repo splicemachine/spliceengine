@@ -165,6 +165,7 @@ public class SpliceTestPlatform extends TestConstants {
 
         //set a random task failure rate --10% of the time
         configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.1d));
+        configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY,"true");
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);

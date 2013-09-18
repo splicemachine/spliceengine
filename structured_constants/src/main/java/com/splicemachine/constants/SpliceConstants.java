@@ -136,7 +136,7 @@ public class SpliceConstants {
     public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
-    private static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
+    public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
     public static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
