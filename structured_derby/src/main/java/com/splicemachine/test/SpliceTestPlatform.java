@@ -2,6 +2,7 @@ package com.splicemachine.test;
 
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -120,9 +121,6 @@ public class SpliceTestPlatform extends TestConstants {
 	}
 	
 	public void start() throws Exception {
-        SchedulerTracer.registerTaskStart(randomWrappedExecutionException);
-        SchedulerTracer.registerTaskEnd(randomRuntimeException);
-        SchedulerTracer.registerTaskCommit(randomTransactionFail);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
@@ -162,7 +160,11 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setInt("hbase.server.thread.wakefrequency", 1000);
         configuration.setInt("hbase.regionserver.msginterval", 1000);
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
-        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);        
+
+        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
+
+        //set a random task failure rate --10% of the time
+        configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.1d));
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);

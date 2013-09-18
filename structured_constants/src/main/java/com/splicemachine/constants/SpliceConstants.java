@@ -137,7 +137,7 @@ public class SpliceConstants {
 
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
     private static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
-    private static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
+    public static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";

@@ -224,7 +224,15 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         return tryNum;
     }
 
-    //rollback this task's transaction (if it has one)
+    /*
+     * Roll back the transaction as safely as possible.
+     *
+     * If the task is nontransactional, does nothing
+     *
+     * If forceRollback = true, then we will do a precondition check to ensure that this task HAS a transaction, and explode if it doesn't. This
+     * protects us from programmer error. However, as invalidations can result in tasks not having a child transaction, we can also be
+     * relaxed about this check.
+     */
     boolean rollback(int numTries) {
         if(!task.isTransactional()){
             //no need to roll back a nontransactional task
@@ -236,11 +244,16 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         }
 
         String tId = taskStatus.getTransactionId();
-        Preconditions.checkNotNull(tId, "Transactional task has no transaction");
+        if(tId==null){
+            //emit a warning in case
+            SpliceLogUtils.info(LOG,"Attempting to rollback a transactional task with no transaction. Task: "+ getTaskNode());
+            return true;
+        }
 
         TransactorControl txnControl = HTransactorFactory.getTransactorControl();
         TransactionId txnId = txnControl.transactionIdFromString(tId);
         try{
+            SchedulerTracer.traceTaskRollback(txnId);
             txnControl.rollback(txnId);
             return true;
         } catch (IOException e) {
@@ -296,6 +309,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         TransactorControl txnControl = HTransactorFactory.getTransactorControl();
         TransactionId txnId = txnControl.transactionIdFromString(tId);
         try{
+            SchedulerTracer.traceTaskCommit(txnId);
             txnControl.commit(txnId);
             return true;
         } catch (IOException e) {
@@ -359,7 +373,9 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         }
     }
 
-    //resubmit this task. Roll back it's transaction and then resubmit
+    /*
+     * Resubmits the task. Rolls back its child transaction, then resubmits
+     */
     private void resubmit() throws ExecutionException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());

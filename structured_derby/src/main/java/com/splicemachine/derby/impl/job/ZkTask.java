@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
- *         Created on: 5/9/13
+ * Created on: 5/9/13
  */
 public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
     private static final long serialVersionUID = 5l;
@@ -55,7 +55,6 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     /**
-     *
      * @param jobId
      * @param priority
      * @param parentTxnId the parent Transaction id, or {@code null} if
@@ -107,7 +106,23 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void execute() throws ExecutionException, InterruptedException {
-
+        /*
+         * Create the Child transaction.
+         *
+         * We do this here rather than elsewhere (like inside the JobScheduler) so
+         * that we avoid timing out the transaction when we have to sit around and
+         * wait for a long time.
+         */
+        if(parentTxnId!=null){
+            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
+            try {
+                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+                status.setTxnId(childTxnId.getTransactionIdString());
+            } catch (IOException e) {
+                throw new ExecutionException("Unable to acquire child transaction",e);
+            }
+        }
 
         doExecute();
     }
@@ -190,29 +205,9 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             case CANCELLED:
                 return;
         }
-        //make sure our transaction is rolled back properly
-        rollbackTransaction();
         status.setStatus(Status.CANCELLED);
         if(propagate)
             updateStatus(false);
-    }
-
-    private void rollbackTransaction() throws ExecutionException {
-        String txnIdStr = getTaskStatus().getTransactionId();
-        if(txnIdStr==null) {
-            if(LOG.isDebugEnabled())
-                LOG.debug("No Transaction to roll back for task "+ getTaskType());
-            return;
-        }
-
-        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
-        TransactionId txnId = txnControl.transactionIdFromString(getTaskStatus().getTransactionId());
-        try{
-            txnControl.rollback(txnId);
-        }catch(IOException e){
-            LOG.error("Unable to rollback txnId "+ txnId,e);
-            throw new ExecutionException(e);
-        }
     }
 
     private void updateStatus(final boolean cancelOnError) throws ExecutionException{
@@ -246,17 +241,6 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
-        //create a child transaction
-        if(parentTxnId!=null){
-            TransactorControl transactor = HTransactorFactory.getTransactorControl();
-            TransactionId parent = transactor.transactionIdFromString(parentTxnId);
-            try {
-                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
-                status.setTxnId(childTxnId.getTransactionIdString());
-            } catch (IOException e) {
-                throw new ExecutionException("Unable to acquire child transaction",e);
-            }
-        }
         setStatus(Status.EXECUTING,true);
     }
 

@@ -4,17 +4,12 @@ import com.google.common.base.Function;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.api.TransactorControl;
-import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.BalancedBlockingQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -100,30 +95,20 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
         @Override
         public Void call() throws Exception {
-//            try{
-                switch (task.getTaskStatus().getStatus()) {
-                    case INVALID:
-                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
-//                        cleanUpTask(task);
-                        return null;
-                    case FAILED:
-                        SpliceLogUtils.trace(WORKER_LOG,"Task %s has failed, but was not removed from the queue, removing now and skipping",task.getTaskId());
-//                        cleanUpTask(task);
-                        return null;
-                    case COMPLETED:
-                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
-//                        cleanUpTask(task);
-                        return null;
-                    case CANCELLED:
-                        SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
-//                        cleanUpTask(task);
-                        return null;
-                }
-//            }catch(ExecutionException ee){
-//                SpliceLogUtils.error(WORKER_LOG,
-//                        "task "+ task.getTaskId()+" had an unexpected error while checking status, unable to execute",ee.getCause());
-//                return null;
-//            }
+            switch (task.getTaskStatus().getStatus()) {
+                case INVALID:
+                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
+                    return null;
+                case FAILED:
+                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has failed, but was not removed from the queue, removing now and skipping", task.getTaskId());
+                    return null;
+                case COMPLETED:
+                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
+                    return null;
+                case CANCELLED:
+                    SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
+                    return null;
+            }
 
             try{
                 SchedulerTracer.traceTaskStart();
@@ -137,32 +122,14 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 task.execute();
                 SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", task.getTaskId());
                 SchedulerTracer.traceTaskEnd();
-//                final String transactionId = task.getTaskStatus().getTransactionId();
-//                if (transactionId != null) {
-//                    closeTransactionally(transactionId);
-//                }else{
-//                    //not every task is within a transaction. To avoid leaking tasks, make sure those
-//                    //also get closed
-                closeNonTransactionally();
-//                }
+                completeTask();
             }catch(ExecutionException ee){
-//                Throwable t = ee.getCause();
-//                if(t instanceof NotServingRegionException){
-//                    /*
-//                     * We were accidentally assigned this task, but we aren't responsible for it, so we need
-//                     * to invalidate it and send it back to the client to re-submit
-//                     */
-//                    SpliceLogUtils.trace(WORKER_LOG,"task %s was assigned to the incorrect region, invalidating:%s",task.getTaskId(),t.getMessage());
-//                    task.markInvalid();
-//                }
-//            else{
                     SpliceLogUtils.error(WORKER_LOG,"task "+ task.getTaskId()+" had an unexpected error",ee.getCause());
                     try{
                         task.markFailed(ee.getCause());
                     }catch(ExecutionException failEx){
                         SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
                     }
-//                }
             }catch(Throwable t){
                 SpliceLogUtils.error(WORKER_LOG, "task " + task.getTaskId() + " had an unexpected error while setting state", t);
                 try{
@@ -174,7 +141,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
             return null;
         }
 
-        private void closeNonTransactionally() throws ExecutionException{
+        private void completeTask() throws ExecutionException{
             try {
                 task.markCompleted();
             } catch (ExecutionException e) {
@@ -187,36 +154,18 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                      *
                      * It IS possible that we could FORCE the JobScheduler to obtain some information about us--
                      * we could forcibly terminate our ZooKeeper session. This would tell the JobScheduler that
-                     * this task failed, and it would then retry it. However, currently,
+                     * this task failed, and it would then retry it. However, currently, we share the same
+                     * ZooKeeper session across all tasks, so killing our session would likely kill all running
+                     * tasks simultaneously (which would be bad).
+                     *
+                     * Something to think about would be pooling up ZK connections and fixing one connection
+                     * per task thread. Then we could forcibly expire the session as a means of informing the
+                     * JobScheduler about badness happening over here. However, There are problems with this approach--
+                     * ZooKeeper only allows so many concurrent connections, for one, and for another we use ZooKeeper
+                     * to share transaction ids. What happens if we delete the node? can we still rollback the
+                     * child transactions? These are issues to think about before we do this. Still, worth a thought
                      */
                     throw ee;
-                }
-            }
-        }
-
-        private void closeTransactionally(String transactionId) throws ExecutionException {
-            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
-            TransactionId txnId = transactor.transactionIdFromString(transactionId);
-            SchedulerTracer.traceTaskCommit(txnId);
-            try {
-                transactor.commit(txnId);
-                task.markCompleted();
-            } catch (IOException e) {
-                try {
-                    final TransactionStatus transactionStatus = transactor.getTransactionStatus(txnId);
-                    if (!transactionStatus.isCommitted()) {
-                        try {
-                            task.markFailed(e);
-                        } catch (ExecutionException e2) {
-                            // TODO: follow-up to see what happens in this case
-                            throw new RuntimeException(e2);
-                        }
-                    }
-                } catch (IOException e2) {
-                    // if this exception occurs then we are in doubt as to the status of the SI transaction
-                    // and we cannot proceed with this task until we resolve the status.
-                    // TODO: recheck the status?
-                    throw new RuntimeException(e2);
                 }
             }
         }

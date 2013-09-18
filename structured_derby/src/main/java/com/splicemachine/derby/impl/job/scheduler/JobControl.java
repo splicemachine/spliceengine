@@ -106,9 +106,6 @@ class JobControl implements JobFuture {
                         completeNext(); //throw the proper error
                     }
                     break;
-                case PENDING:
-                case EXECUTING:
-                    break;
                 case FAILED:
                     try{
                         SpliceLogUtils.trace(LOG, "[%s] Task %s failed",job.getJobId(),changedFuture.getTaskNode());

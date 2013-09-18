@@ -3,18 +3,20 @@ package com.splicemachine.derby.impl.job.scheduler;
 import com.google.common.base.Function;
 import com.splicemachine.si.impl.TransactionId;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 public class SchedulerTracer {
-    private static transient Runnable fTaskStart = null;
-    private static transient Runnable fTaskEnd = null;
-    private static transient Function<TransactionId, Object> fTaskCommit = null;
+    private static volatile Callable<Void> fTaskStart = null;
+    private static volatile Callable<Void> fTaskEnd = null;
+    private static volatile Function<TransactionId, Object> fTaskCommit = null;
+    private static volatile Function<TransactionId,Object> fTaskRollback = null;
 
-    public static void registerTaskStart(Runnable f) {
+    public static void registerTaskStart(Callable<Void> f) {
         fTaskStart = f;
     }
 
-    public static void registerTaskEnd(Runnable f) {
+    public static void registerTaskEnd(Callable<Void> f) {
         fTaskEnd = f;
     }
 
@@ -25,16 +27,24 @@ public class SchedulerTracer {
     public static void traceTaskStart() throws ExecutionException {
         if (fTaskStart != null) {
             try {
-                fTaskStart.run();
-            } catch (RuntimeException e) {
-                throw (ExecutionException) e.getCause();
+                fTaskStart.call();
+            } catch (Exception e) {
+                if(e instanceof ExecutionException)
+                    throw (ExecutionException)e;
+                throw new ExecutionException(e);
             }
         }
     }
 
-    public static void traceTaskEnd() {
+    public static void traceTaskEnd() throws ExecutionException {
         if (fTaskEnd != null) {
-            fTaskEnd.run();
+            try {
+                fTaskEnd.call();
+            } catch (Exception e) {
+                if(e instanceof ExecutionException)
+                    throw (ExecutionException)e;
+                throw new ExecutionException(e);
+            }
         }
     }
 
@@ -42,5 +52,14 @@ public class SchedulerTracer {
         if (fTaskCommit != null) {
             fTaskCommit.apply(transactionId);
         }
+    }
+
+    public static void traceTaskRollback(TransactionId txnId) {
+        if(fTaskRollback !=null)
+            fTaskRollback.apply(txnId);
+    }
+
+    public static void registerTaskRollback(Function<TransactionId, Object> taskRollback) {
+        fTaskRollback = taskRollback;
     }
 }
