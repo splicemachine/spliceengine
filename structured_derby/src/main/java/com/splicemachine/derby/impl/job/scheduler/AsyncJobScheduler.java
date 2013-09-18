@@ -11,7 +11,6 @@ import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -56,7 +55,9 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>{
         return jobMetrics;
     }
 
-    /*Private helper method*/
+ /********************************************************************************************/
+    /*Private helper methods*/
+
     private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{
         JobControl control = new JobControl(job,jobPath,zkManager,maxResubmissionAttempts, jobMetrics);
         Map<? extends RegionTask, Pair<byte[], byte[]>> tasks;
@@ -82,5 +83,4 @@ public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>{
 
         return path;
     }
-
 }

@@ -36,13 +36,12 @@ class JobControl implements JobFuture {
     private final Set<RegionTaskControl> failedTasks;
     private final Set<RegionTaskControl> completedTasks;
     private final Set<RegionTaskControl> cancelledTasks;
-
-    private volatile boolean cancelled = false;
     private final JobStatsAccumulator stats;
     private final SpliceZooKeeperManager zkManager;
     private final int maxResubmissionAttempts;
     private final JobMetrics jobMetrics;
     private final String jobPath;
+    private volatile boolean cancelled = false;
 
     JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
         this.job = job;
@@ -99,7 +98,13 @@ class JobControl implements JobFuture {
                 case INVALID:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s is invalid, resubmitting",job.getJobId(),changedFuture.getTaskNode());
                     stats.invalidTaskCount.incrementAndGet();
-                    changedFuture.resubmit();
+                    if(changedFuture.rollback(maxResubmissionAttempts)){
+                        resubmit(changedFuture,changedFuture.tryNumber());
+                    }else{
+                        //we were unable to roll back, so we have to bomb out
+                        failedTasks.add(changedFuture);
+                        completeNext(); //throw the proper error
+                    }
                     break;
                 case PENDING:
                 case EXECUTING:
@@ -117,21 +122,16 @@ class JobControl implements JobFuture {
                     break;
                 case COMPLETED:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s completed successfully",job.getJobId(),changedFuture.getTaskNode());
-                    try{
-                        if(changedFuture.commit(maxResubmissionAttempts,maxResubmissionAttempts)){
-                            TaskStats taskStats = changedFuture.getTaskStats();
-                            if(taskStats!=null)
-                                this.stats.addTaskStatus(changedFuture.getTaskNode(),taskStats);
-                            completedTasks.add(changedFuture);
-                            return;
-                        }else{
-                            //our commit failed, we have to resubmit the task (if possible)
-                            SpliceLogUtils.debug(LOG,"[%s] Task %s did not successfully commit",job.getJobId(),changedFuture.getTaskNode());
-                            changedFuture.dealWithError();
-                        }
-                    }catch(ExecutionException ee){
-                        //we could not commit, and we can't retry--this is terminally bad
-                        failedTasks.add(changedFuture);
+                    if(changedFuture.commit(maxResubmissionAttempts,maxResubmissionAttempts)){
+                        TaskStats taskStats = changedFuture.getTaskStats();
+                        if(taskStats!=null)
+                            this.stats.addTaskStatus(changedFuture.getTaskNode(),taskStats);
+                        completedTasks.add(changedFuture);
+                        return;
+                    }else{
+                        //our commit failed, we have to resubmit the task (if possible)
+                        SpliceLogUtils.debug(LOG,"[%s] Task %s did not successfully commit",job.getJobId(),changedFuture.getTaskNode());
+                        changedFuture.dealWithError();
                     }
                     break;
                 case CANCELLED:
@@ -167,11 +167,6 @@ class JobControl implements JobFuture {
     }
 
     @Override
-    public JobStats getJobStats() {
-        return stats;
-    }
-
-    @Override
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
@@ -179,7 +174,7 @@ class JobControl implements JobFuture {
                 @Override
                 public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
                     try{
-                        zooKeeper.delete(CoprocessorTaskScheduler.getJobPath()+"/"+job.getJobId(),-1);
+                        zooKeeper.delete(jobPath,-1);
                     }catch(KeeperException ke){
                         if(ke.code()!= KeeperException.Code.NONODE)
                             throw ke;
@@ -203,24 +198,38 @@ class JobControl implements JobFuture {
         }
     }
 
-    @Override
-    public int getNumTasks() {
-        return tasksToWatch.size();
-    }
+    @Override public JobStats getJobStats() { return stats; }
+    @Override public int getNumTasks() { return tasksToWatch.size(); }
 
     @Override
     public int getRemainingTasks() {
         return tasksToWatch.size()-completedTasks.size()-failedTasks.size()-cancelledTasks.size();
     }
 
+/*************************************************************************************************************************/
+    /*package local operators*/
+
+    /*
+     * Notify the JobControl that an individual task has changed
+     */
     void taskChanged(RegionTaskControl taskControl){
         this.changedTasks.add(taskControl);
     }
 
-    public void markInvalid(RegionTaskControl regionTaskControl) {
+    /*
+     * Notify the JobControl that an individual task has been invalidated
+     */
+    @SuppressWarnings("UnusedParameters")
+    void markInvalid(RegionTaskControl regionTaskControl) {
         stats.invalidTaskCount.incrementAndGet();
     }
 
+    /*
+     * Resubmit a task.
+     *
+     * if tryCount >=maxResubmissionAttempts, then we cannot attempt this task any longer. An AttemptsExhaustedException
+     * will be thrown
+     */
     void resubmit(RegionTaskControl task,
                   int tryCount) throws ExecutionException {
         //only submit so many times
@@ -261,6 +270,9 @@ class JobControl implements JobFuture {
         }
     }
 
+    /*
+     * Physically submits a Task.
+     */
     void submit(final RegionTask task,
                         Pair<byte[], byte[]> range,
                         HTableInterface table,
@@ -286,10 +298,5 @@ class JobControl implements JobFuture {
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }
-    }
-
-    void fail(RegionTaskControl task) {
-        failedTasks.add(task);
-        changedTasks.add(task); //force the error to propagate
     }
 }

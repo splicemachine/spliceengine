@@ -17,6 +17,7 @@ import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -35,15 +36,14 @@ import java.util.concurrent.ExecutionException;
  */
 class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private static final Logger LOG = Logger.getLogger(RegionTaskControl.class);
-
     private final byte[] startRow;
     private final RegionTask task;
     private final JobControl jobControl;
     private final TaskFutureContext taskFutureContext;
-    private volatile TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
-    private volatile boolean refresh = true;
     private final int tryNum;
     private final SpliceZooKeeperManager zkManager;
+    private volatile TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
+    private volatile boolean refresh = true;
 
     RegionTaskControl(byte[] startRow,
                       RegionTask task,
@@ -103,7 +103,8 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                                     new org.apache.zookeeper.Watcher() {
                                         @Override
                                         public void process(WatchedEvent event) {
-                                            SpliceLogUtils.trace(LOG, "Received %s event on node %s", event.getType(), event.getPath());
+                                            SpliceLogUtils.trace(LOG, "Received %s event on node %s",
+                                                    event.getType(), event.getPath());
                                             refresh=true;
                                             jobControl.taskChanged(RegionTaskControl.this);
                                         }
@@ -181,38 +182,35 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         }
     }
 
-    @Override
-    public double getEstimatedCost() {
-        return taskFutureContext.getEstimatedCost();
-    }
+    @Override public double getEstimatedCost() { return taskFutureContext.getEstimatedCost(); }
+    @Override public byte[] getTaskId() { return taskFutureContext.getTaskId(); }
+    @Override public TaskStats getTaskStats() { return taskStatus.getStats(); }
 
-    @Override
-    public byte[] getTaskId() {
-        return taskFutureContext.getTaskId();
-    }
+/*************************************************************************************************/
+    /*Package-local operators. Mainly used by JobControl */
 
-    @Override
-    public TaskStats getTaskStats() {
-        return taskStatus.getStats();
-    }
-
+    //get the zk node for this task
     String getTaskNode() {
         return taskFutureContext.getTaskNode();
     }
 
+    //get the start row for the task
+    byte[] getStartRow() {
+        return startRow;
+    }
+
+    //convenience method for setting the state to failed
     void fail(Throwable cause) {
         taskStatus.setError(cause);
         taskStatus.setStatus(Status.FAILED);
     }
 
-    byte[] getStartRow() {
-        return startRow;
-    }
-
+    //get the underlying task instance
     RegionTask getTask() {
         return task;
     }
 
+    //deal with an error state. Retry if possible, otherwise, bomb out with a wrapper around a StandardException
     void dealWithError() throws ExecutionException{
         if(taskStatus.shouldRetry()) {
             resubmit();
@@ -221,21 +219,19 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         }
     }
 
-    void resubmit() throws ExecutionException{
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
-
-        if(rollback(tryNum))
-            jobControl.resubmit(this,tryNum);
+    //get the current number of attempts that have been made to execute this task
+    int tryNumber() {
+        return tryNum;
     }
 
-    private boolean rollback(int numTries) throws ExecutionException {
+    //rollback this task's transaction (if it has one)
+    boolean rollback(int numTries) {
         if(!task.isTransactional()){
             //no need to roll back a nontransactional task
             return true;
         }
         if(numTries<0){
-            failTotally(new RetriesExhaustedException("Unable to roll back transaction after many retries"));
+            fail(new AttemptsExhaustedException("Unable to roll back transaction after many retries"));
             return false;
         }
 
@@ -257,7 +253,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                 status = getTransactionStatus(txnId,txnControl,5);
             } catch (RetriesExhaustedException e1) {
                 LOG.error("Unable to read transaction status after 5 attempts. Something is really wrong, failing entire job",e1);
-                failTotally(e);
+                fail(new AttemptsExhaustedException(e));
                 return false;
             }
             switch (status) {
@@ -277,45 +273,20 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                     throw new IllegalStateException("Attempted to roll back a COMMITTED transaction");
                 default:
                     //we encountered an error that we can't recover from, kill the entire job
-                    failTotally(e);
+                    fail(new DoNotRetryIOException("Unable to rollback transaction",e));
                     return false;
             }
         }
     }
 
-    private void failTotally(Throwable e) {
-        taskStatus.setError(e);
-        taskStatus.setStatus(Status.FAILED);
-        jobControl.fail(this);
-    }
-
-    private TransactionStatus getTransactionStatus(TransactionId txnId,
-                                                   TransactorControl txnControl,
-                                                   int retriesLeft) throws RetriesExhaustedException {
-        if(retriesLeft<0)
-           throw new RetriesExhaustedException("Unable to obtain transaction status after 5 attempts");
-
-        try{
-            return txnControl.getTransactionStatus(txnId);
-        } catch (IOException e) {
-            LOG.error("Unable to read transaction status, retrying up to "+ retriesLeft+" more times", e);
-            try {
-                Thread.sleep(WriteUtils.getWaitTime(5-retriesLeft,1000));
-            } catch (InterruptedException e1) {
-                LOG.info("Interrupted while waiting to retry Transaction table lookup");
-            }
-            return getTransactionStatus(txnId,txnControl,retriesLeft-1);
-        }
-
-    }
-
-    public boolean commit(int maxTries,int tryCount) throws ExecutionException{
+    //commit this task's transaction (if it has one)
+    boolean commit(int maxTries,int tryCount){
         if(!task.isTransactional()){
             //no need to roll back a nontransactional task
             return true;
         }
         if(tryCount<0){
-            failTotally(new AttemptsExhaustedException("Unable to roll back transaction after "+maxTries+" retries"));
+            fail(new AttemptsExhaustedException("Unable to commit transaction after " + maxTries + " retries"));
             return false;
         }
 
@@ -363,5 +334,39 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
             }
         }
+    }
+
+/******************************************************************************************/
+    /*private helper methods*/
+
+    //get the transaction status (retrying if necessary)
+    private TransactionStatus getTransactionStatus(TransactionId txnId,
+                                                   TransactorControl txnControl,
+                                                   int retriesLeft) throws RetriesExhaustedException {
+        if(retriesLeft<0)
+            throw new RetriesExhaustedException("Unable to obtain transaction status after 5 attempts");
+
+        try{
+            return txnControl.getTransactionStatus(txnId);
+        } catch (IOException e) {
+            LOG.error("Unable to read transaction status, retrying up to "+ retriesLeft+" more times", e);
+            try {
+                Thread.sleep(WriteUtils.getWaitTime(5-retriesLeft,1000));
+            } catch (InterruptedException e1) {
+                LOG.info("Interrupted while waiting to retry Transaction table lookup");
+            }
+            return getTransactionStatus(txnId,txnControl,retriesLeft-1);
+        }
+    }
+
+    //resubmit this task. Roll back it's transaction and then resubmit
+    private void resubmit() throws ExecutionException{
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
+
+        if(rollback(tryNum))
+            jobControl.resubmit(this,tryNum);
+        else
+            throw new ExecutionException(Exceptions.getWrapperException(taskStatus.getErrorMessage(),taskStatus.getErrorCode()));
     }
 }

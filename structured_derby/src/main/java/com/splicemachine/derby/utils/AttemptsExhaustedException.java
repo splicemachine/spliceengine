@@ -14,6 +14,10 @@ public class AttemptsExhaustedException extends DoNotRetryIOException{
         super(message);
     }
 
+    public AttemptsExhaustedException(Throwable cause) {
+        super(cause.getMessage(), cause);
+    }
+
     public AttemptsExhaustedException(String message, Throwable cause) {
         super(message, cause);
     }

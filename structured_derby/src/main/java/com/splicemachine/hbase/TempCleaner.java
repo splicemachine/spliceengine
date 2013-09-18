@@ -164,6 +164,11 @@ public class TempCleaner {
         }
 
         @Override
+        public boolean isTransactional() {
+            return false;
+        }
+
+        @Override
         public void execute() throws ExecutionException, InterruptedException {
             doExecute();
         }
