@@ -31,6 +31,8 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
@@ -41,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -74,75 +77,78 @@ import java.util.concurrent.ExecutionException;
 public class HdfsImport extends ParallelVTI {
 	private static final Logger LOG = Logger.getLogger(HdfsImport.class);
 	private static final int COLTYPE_POSITION = 5;
-    private static final int COLNAME_POSITION = 4;
-    private static final PathFilter hiddenFileFilter = new PathFilter(){
-        public boolean accept(Path p){
-            String name = p.getName();
-            return !name.startsWith("_") && !name.startsWith(".");
-        }
-    };
-    private final ImportContext context;
-    private static final int COLNULLABLE_POSITION = 11;
-    private static final int COLSIZE_POSITION = 7;
-    private static final int COLNUM_POSITION = 17;
-    private HBaseAdmin admin;
+	private static final int COLNAME_POSITION = 4;
+	private static int COLNUM_POSITION = 17;
 
-    public HdfsImport(ImportContext context){
+	private long insertedRowCount=0;
+	private final ImportContext context;
+	private HBaseAdmin admin;
+
+    public HdfsImport(ImportContext context) {
         this.context = context;
     }
 
     /**
-     * Allows for multiple input paths separated by commas
-     * @param input the input path pattern
-     */
-    public static Path[] getInputPaths(String input) {
-        String [] list = StringUtils.split(input);
-        Path[] result = new Path[list.length];
-        for (int i = 0; i < list.length; i++) {
-            result[i] = new Path(StringUtils.unEscapeString(list[i]));
-        }
-        return result;
-    }
+	   * Allows for multiple input paths separated by commas
+	   * @return
+	   */
+	  public static Path[] getInputPaths(String input) {
+		    String [] list = StringUtils.split(input);
+		    Path[] result = new Path[list.length];
+		    for (int i = 0; i < list.length; i++) {
+		      result[i] = new Path(StringUtils.unEscapeString(list[i]));
+		    }
+		    return result;
+	  }
+	
+	  private static final PathFilter hiddenFileFilter = new PathFilter(){
+	      public boolean accept(Path p){
+	        String name = p.getName(); 
+	        return !name.startsWith("_") && !name.startsWith("."); 
+	      }
+	    }; 
+	 
+	  public static List<FileStatus> listStatus(String input) throws IOException {
+		  List<FileStatus> result = new ArrayList<FileStatus>();
+		  Path[] dirs = getInputPaths(input);
+		  if (dirs.length == 0)
+			  throw new IOException("No Path Supplied in job");
+		  List<Path> errors = Lists.newArrayListWithExpectedSize(0);
 
-    public static List<FileStatus> listStatus(String input) throws IOException {
-        List<FileStatus> result = new ArrayList<FileStatus>();
-        Path[] dirs = getInputPaths(input);
-        if (dirs.length == 0)
-            throw new IOException("No Path Supplied in job");
-        List<Path> errors = Lists.newArrayListWithExpectedSize(0);
+		  // creates a MultiPathFilter with the hiddenFileFilter and the
+		  // user provided one (if any).
+		  List<PathFilter> filters = new ArrayList<PathFilter>();
+		  filters.add(hiddenFileFilter);
+		  PathFilter inputFilter = new MultiPathFilter(filters);
 
-        // creates a MultiPathFilter with the hiddenFileFilter and the
-        // user provided one (if any).
-        List<PathFilter> filters = new ArrayList<PathFilter>();
-        filters.add(hiddenFileFilter);
-        PathFilter inputFilter = new MultiPathFilter(filters);
+		  for (int i=0; i < dirs.length; ++i) {
+			  Path p = dirs[i];
+		      FileSystem fs = FileSystem.get(SpliceUtils.config);
+		      FileStatus[] matches = fs.globStatus(p, inputFilter);
+		      if (matches == null) {
+		    	  errors.add(p);
+		      } else if (matches.length == 0) {
+		    	  errors.add(p);
+		      } else {
+		    	  for (FileStatus globStat: matches) {
+		    		  if (globStat.isDir()) {
+		    			  for(FileStatus stat: fs.listStatus(globStat.getPath(),inputFilter)) {
+		    				  result.add(stat);
+		    			  }          
+		    		  } else {
+		    			  result.add(globStat);
+		    		  }
+		    	  }
+		      }
+		  }
 
-        for (Path p : dirs) {
-            FileSystem fs = FileSystem.get(SpliceUtils.config);
-            FileStatus[] matches = fs.globStatus(p, inputFilter);
-            if (matches == null) {
-                errors.add(p);
-            } else if (matches.length == 0) {
-                errors.add(p);
-            } else {
-                for (FileStatus globStat : matches) {
-                    if (globStat.isDirectory()) {
-                        Collections.addAll(result, fs.listStatus(globStat.getPath(), inputFilter));
-                    } else {
-                        result.add(globStat);
-                    }
-                }
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            throw new FileNotFoundException(errors.toString());
-        }
-        LOG.info("Total input paths to process : " + result.size());
-        return result;
-    }
-
-    @SuppressWarnings("UnusedParameters")
+		  if (!errors.isEmpty()) {
+			  throw new FileNotFoundException(errors.toString());
+		  }
+		  LOG.info("Total input paths to process : " + result.size()); 
+		  return result;
+	  }
+	
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
                                          String insertColumnList,
                                          String columnIndexes,
