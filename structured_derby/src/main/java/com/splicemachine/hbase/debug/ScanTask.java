@@ -180,6 +180,12 @@ public class ScanTask extends DebugTask{
                 return ReturnCode.INCLUDE;
 
             try {
+                if(ignored.getValueLength()==0){
+                    //skip records with no data
+                    filterRow=true;
+                    return ReturnCode.NEXT_COL;
+                }
+
                 decoder.set(ignored.getValue());
                 if(epf.match(decoder,accumulator)){
                     return ReturnCode.INCLUDE;

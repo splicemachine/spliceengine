@@ -48,16 +48,17 @@ public abstract class LongHashMap<T> {
         int visited=0;
         LongEntry<T> entry = null;
         do{
-            if(elements[i]==null){
+            entry = elements[i];
+            if(entry==null){
                 //we have encountered an empty slot, insert!
                 entry = new LongEntry<T>();
                 elements[i] = entry;
-            }else if(elements[i].empty){
+            }else if(entry.empty){
                 //also empty, but we're re-using the object
                 entry = elements[i];
-            }else if(elements[i].key==key){
+            }else if(entry.key==key){
                 //same key
-                elements[i].entry = value;
+                entry.entry = value;
                 return null;
             }else{
                 //not empty, and different keys
@@ -103,7 +104,12 @@ public abstract class LongHashMap<T> {
     }
 
     public static <T> LongHashMap<T> evictingMap(int maxEntries){
-        return new LongHashMap<T>(maxEntries) {
+        //find smallest power of 2 greater than maxEntries
+        int s = 1;
+        while(s<maxEntries){
+            s <<=1;
+        }
+        return new LongHashMap<T>(s) {
             @Override
             protected LongEntry<T> outOfSpace(LongEntry<T> entry, long key, T value) {
                 LongEntry<T> toEvict = new LongEntry<T>(entry);
