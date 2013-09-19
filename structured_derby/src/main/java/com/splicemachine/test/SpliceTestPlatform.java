@@ -160,7 +160,13 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setInt("hbase.server.thread.wakefrequency", 1000);
         configuration.setInt("hbase.regionserver.msginterval", 1000);
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
-
+        String interfaceName = "lo0";
+        if (!System.getProperty("os.name").contains("Mac")) {
+        	interfaceName = "lo";
+        }
+        configuration.set("hbase.zookeeper.dns.interface", interfaceName);
+        configuration.set("hbase.regionserver.dns.interface", interfaceName);
+        configuration.set("hbase.master.dns.interface", interfaceName);
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
 
         //set a random task failure rate --10% of the time
