@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -15,7 +16,6 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
@@ -31,8 +31,6 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
@@ -43,7 +41,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -77,94 +74,75 @@ import java.util.concurrent.ExecutionException;
 public class HdfsImport extends ParallelVTI {
 	private static final Logger LOG = Logger.getLogger(HdfsImport.class);
 	private static final int COLTYPE_POSITION = 5;
-	private static final int COLNAME_POSITION = 4;
-	private static int COLNUM_POSITION = 17;
+    private static final int COLNAME_POSITION = 4;
+    private static final PathFilter hiddenFileFilter = new PathFilter(){
+        public boolean accept(Path p){
+            String name = p.getName();
+            return !name.startsWith("_") && !name.startsWith(".");
+        }
+    };
+    private final ImportContext context;
+    private HBaseAdmin admin;
 
-	private long insertedRowCount=0;
-	private final ImportContext context;
-	private HBaseAdmin admin;
+    public HdfsImport(ImportContext context){
+        this.context = context;
+    }
 
-	  /** 
-	   * Allows for multiple input paths separated by commas
-	   * @param dirs
-	   * @return
-	   */
-	  public static Path[] getInputPaths(String input) {
-		    String [] list = StringUtils.split(input);
-		    Path[] result = new Path[list.length];
-		    for (int i = 0; i < list.length; i++) {
-		      result[i] = new Path(StringUtils.unEscapeString(list[i]));
-		    }
-		    return result;
-	  }
-	
-	  private static final PathFilter hiddenFileFilter = new PathFilter(){
-	      public boolean accept(Path p){
-	        String name = p.getName(); 
-	        return !name.startsWith("_") && !name.startsWith("."); 
-	      }
-	    }; 
-	 
-	    private static class MultiPathFilter implements PathFilter {
-	      private List<PathFilter> filters;
+    /**
+     * Allows for multiple input paths separated by commas
+     * @param input the input path pattern
+     */
+    public static Path[] getInputPaths(String input) {
+        String [] list = StringUtils.split(input);
+        Path[] result = new Path[list.length];
+        for (int i = 0; i < list.length; i++) {
+            result[i] = new Path(StringUtils.unEscapeString(list[i]));
+        }
+        return result;
+    }
 
-	      public MultiPathFilter(List<PathFilter> filters) {
-	        this.filters = filters;
-	      }
+    public static List<FileStatus> listStatus(String input) throws IOException {
+        List<FileStatus> result = new ArrayList<FileStatus>();
+        Path[] dirs = getInputPaths(input);
+        if (dirs.length == 0)
+            throw new IOException("No Path Supplied in job");
+        List<Path> errors = Lists.newArrayListWithExpectedSize(0);
 
-	      public boolean accept(Path path) {
-	        for (PathFilter filter : filters) {
-	          if (!filter.accept(path)) {
-	            return false;
-	          }
-	        }
-	        return true;
-	      }
-	    }
-	    
-	  public static List<FileStatus> listStatus(String input) throws IOException {
-		  List<FileStatus> result = new ArrayList<FileStatus>();
-		  Path[] dirs = getInputPaths(input);
-		  if (dirs.length == 0)
-			  throw new IOException("No Path Supplied in job");
-		  List<Path> errors = Lists.newArrayListWithExpectedSize(0);
+        // creates a MultiPathFilter with the hiddenFileFilter and the
+        // user provided one (if any).
+        List<PathFilter> filters = new ArrayList<PathFilter>();
+        filters.add(hiddenFileFilter);
+        PathFilter inputFilter = new MultiPathFilter(filters);
 
-		  // creates a MultiPathFilter with the hiddenFileFilter and the
-		  // user provided one (if any).
-		  List<PathFilter> filters = new ArrayList<PathFilter>();
-		  filters.add(hiddenFileFilter);
-		  PathFilter inputFilter = new MultiPathFilter(filters);
+        for (Path p : dirs) {
+            FileSystem fs = FileSystem.get(SpliceUtils.config);
+            FileStatus[] matches = fs.globStatus(p, inputFilter);
+            if (matches == null) {
+                errors.add(p);
+            } else if (matches.length == 0) {
+                errors.add(p);
+            } else {
+                for (FileStatus globStat : matches) {
+                    if (globStat.isDirectory()) {
+                        Collections.addAll(result, fs.listStatus(globStat.getPath(), inputFilter));
+                    } else {
+                        result.add(globStat);
+                    }
+                }
+            }
+        }
 
-		  for (int i=0; i < dirs.length; ++i) {
-			  Path p = dirs[i];
-		      FileSystem fs = FileSystem.get(SpliceUtils.config);
-		      FileStatus[] matches = fs.globStatus(p, inputFilter);
-		      if (matches == null) {
-		    	  errors.add(p);
-		      } else if (matches.length == 0) {
-		    	  errors.add(p);
-		      } else {
-		    	  for (FileStatus globStat: matches) {
-		    		  if (globStat.isDir()) {
-		    			  for(FileStatus stat: fs.listStatus(globStat.getPath(),inputFilter)) {
-		    				  result.add(stat);
-		    			  }          
-		    		  } else {
-		    			  result.add(globStat);
-		    		  }
-		    	  }
-		      }
-		  }
+        if (!errors.isEmpty()) {
+            throw new FileNotFoundException(errors.toString());
+        }
+        LOG.info("Total input paths to process : " + result.size());
+        return result;
+    }
 
-		  if (!errors.isEmpty()) {
-			  throw new FileNotFoundException(errors.toString());
-		  }
-		  LOG.info("Total input paths to process : " + result.size()); 
-		  return result;
-	  }
-	
+    @SuppressWarnings("UnusedParameters")
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
-                                         String insertColumnList, String columnIndexes,
+                                         String insertColumnList,
+                                         String columnIndexes,
                                          String fileName, String columnDelimiter,
                                          String characterDelimiter,
                                          String timestampFormat,
@@ -198,7 +176,6 @@ public class HdfsImport extends ParallelVTI {
             }
         }
     }
-
 
     public static ResultSet importData(String transactionId, Connection connection,
                                        String schemaName,String tableName,
@@ -260,7 +237,7 @@ public class HdfsImport extends ParallelVTI {
 
 		long conglomId = getConglomid(connection,tableName,schemaName);
 		builder = builder.destinationTable(conglomId);
-        HdfsImport importer = null;
+        HdfsImport importer;
 		try {
             importer = new HdfsImport(builder.build());
 			importer.open();
@@ -274,9 +251,6 @@ public class HdfsImport extends ParallelVTI {
 		return importer;
 	}
 
-	public HdfsImport(ImportContext context){
-		this.context = context;
-	}
 
 	@Override
 	public void openCore() throws StandardException {
@@ -302,7 +276,7 @@ public class HdfsImport extends ParallelVTI {
 	@Override
 	public void executeShuffle() throws StandardException {
 		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-		List<FileStatus> files = null;
+		List<FileStatus> files;
 		try {
 			files = listStatus(context.getFilePath().toString());
 		} catch (IOException e) {
@@ -324,25 +298,21 @@ public class HdfsImport extends ParallelVTI {
 	            jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(importJob));
 			}  catch (ExecutionException e) {
 	            throw Exceptions.parseException(e.getCause());
-	        } 
+	        }
 		}
 		try {
 			for (JobFuture jobFuture: jobFutures) {
-					jobFuture.completeAll();				
+					jobFuture.completeAll();
 			}
 		} catch (InterruptedException e) {
             throw Exceptions.parseException(e.getCause());
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
-        } // still need to cancel all other jobs ? // JL 
+        } // still need to cancel all other jobs ? // JL
 		finally{
-            try {
-                table.close();
-            } catch (IOException e) {
-                SpliceLogUtils.warn(LOG,"Unable to close htable",e);
-            }
+            Closeables.closeQuietly(table);
         }
-	
+
     }
 
 	@Override
@@ -355,18 +325,20 @@ public class HdfsImport extends ParallelVTI {
 	}
 
 	/*One-line public methods*/
-	@Override public int modifiedRowCount() { return (int)insertedRowCount; }
+
+    //TODO -sf- make HdfsImport report how many rows were returned
+	@Override public int modifiedRowCount() { return 0; }
 	@Override public void open() throws StandardException { openCore(); }
 
 	/*no op methods*/
-//	@Override public TaskStats sink() { return null; }
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
     @Override public SpliceOperation getRightOperation() { return null; } //noop
     @Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
+    @Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
+    @Override public void setCurrentRowLocation(RowLocation rowLocation) { }
 
     /************************************************************************************************************/
-
 	/*private helper functions*/
 
     private static Connection getDefaultConn() throws SQLException {
@@ -421,7 +393,7 @@ public class HdfsImport extends ParallelVTI {
         DatabaseMetaData dmd = connection.getMetaData();
         Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd,builder);
 
-        Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd, columns.size());
+        Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd);
         int[] pkKeyMap = new int[columns.size()];
         Arrays.fill(pkKeyMap,-1);
         LOG.info("columns="+columns);
@@ -433,9 +405,8 @@ public class HdfsImport extends ParallelVTI {
         }
         int[] primaryKeys = new int[pkCols.size()];
         int pos = 0;
-        for(int i=0;i<pkKeyMap.length;i++){
-            int pkPos = pkKeyMap[i];
-            if(pkPos<0) continue;
+        for (int pkPos : pkKeyMap) {
+            if (pkPos < 0) continue;
             primaryKeys[pos] = pkPos;
             pos++;
         }
@@ -444,11 +415,12 @@ public class HdfsImport extends ParallelVTI {
     }
 
     private static Map<String,Integer> getColumns(String schemaName,String tableName,
-                                   String insertColumnList,DatabaseMetaData dmd,ImportContext.Builder builder) throws SQLException{
+                                                  String insertColumnList,DatabaseMetaData dmd,ImportContext.Builder builder) throws SQLException{
         ResultSet rs = null;
         Map<String,Integer> columnMap = Maps.newHashMap();
         try{
             rs = dmd.getColumns(null,schemaName,tableName,null);
+            int COLNUM_POSITION = 17;
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
@@ -486,7 +458,7 @@ public class HdfsImport extends ParallelVTI {
     }
 
     private static Map<String,Integer> getPrimaryKeys(String schemaName, String tableName,
-                                        DatabaseMetaData dmd, int numCols) throws SQLException {
+                                                      DatabaseMetaData dmd) throws SQLException {
         //get primary key information
         ResultSet rs = null;
         try{
@@ -505,83 +477,20 @@ public class HdfsImport extends ParallelVTI {
         }
     }
 
-    private static int[] pushColumnInformation(Connection connection,
-																						 String schemaName,String tableName) throws SQLException{
+    private static class MultiPathFilter implements PathFilter {
+        private List<PathFilter> filters;
 
-		/*
-		 * Gets the column information for the specified table via standard JDBC
-		 */
-		DatabaseMetaData dmd = connection.getMetaData();
+        public MultiPathFilter(List<PathFilter> filters) {
+            this.filters = filters;
+        }
 
-		//this will cause shit to break
-		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
-		Map<Integer,Integer> indexTypeMap = new HashMap<Integer,Integer>();
-		while(rs.next()){
-			int colIndex = rs.getInt(COLNUM_POSITION);
-			indexTypeMap.put(colIndex-1,rs.getInt(COLTYPE_POSITION));
-		}
-
-		return toIntArray(indexTypeMap);
-	}
-
-	private static int[] pushColumnInformation(Connection connection,
-								String schemaName,String tableName,String insertColumnList,
-								FormatableBitSet activeAccumulator) throws SQLException{
-		/*
-		 * Gets the column information for the specified table via standard JDBC
-		 */
-		DatabaseMetaData dmd = connection.getMetaData();
-
-		//this will cause shit to break
-		ResultSet rs = dmd.getColumns(null,schemaName,tableName,null);
-		Map<Integer,Integer> indexTypeMap = new HashMap<Integer,Integer>();
-		List<String> insertCols = null;
-		if(insertColumnList!=null)
-			insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
-		while(rs.next()){
-			String colName = rs.getString(COLNAME_POSITION);
-			int colIndex = rs.getInt(COLNUM_POSITION);
-			indexTypeMap.put(colIndex-1, rs.getInt(COLTYPE_POSITION));
-			LOG.trace("found column "+colName+" in position "+ colIndex);
-			if(insertColumnList!=null){
-				Iterator<String> colIter = insertCols.iterator();
-				while(colIter.hasNext()){
-					String insertCol = colIter.next();
-					if(insertCol.equalsIgnoreCase(colName)){
-						LOG.trace("column "+ colName+" requested matches, adding");
-						activeAccumulator.grow(colIndex);
-						activeAccumulator.set(colIndex-1);
-						colIter.remove();
-						break;
-					}
-				}
-			}
-		}
-
-		return toIntArray(indexTypeMap);
-	}
-
-	private static int[] toIntArray(Map<Integer, Integer> indexTypeMap) {
-		int[] retArray = new int[indexTypeMap.size()];
-		for(int i=0;i<retArray.length;i++){
-			Integer next = indexTypeMap.get(i);
-			if(next!=null)
-				retArray[i] = next;
-			else
-				retArray[i] = -1; //shouldn't happen, but you never know
-
-		}
-		return retArray;
-	}
-
-
-    @Override
-    public String prettyPrint(int indentLevel) {
-        return "HdfsImport";
-    }
-
-    @Override
-    public void setCurrentRowLocation(RowLocation rowLocation) {
-        //no-op
+        public boolean accept(Path path) {
+            for (PathFilter filter : filters) {
+                if (!filter.accept(path)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }
