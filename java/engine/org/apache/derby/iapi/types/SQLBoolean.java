@@ -185,10 +185,7 @@ public final class SQLBoolean
      * object with value set to null
      */
     public DataValueDescriptor recycle() {
-        if (immutable) {
             return new SQLBoolean();
-        }
-        return super.recycle();
     }
 
 	/*
@@ -216,20 +213,10 @@ public final class SQLBoolean
 
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
-
 		value = in.readBoolean();
 		isnull = false;
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
-
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
-
 		value = in.readBoolean();
 		isnull = false;
 	}
@@ -238,12 +225,7 @@ public final class SQLBoolean
 	 * @see Storable#restoreToNull
 	 *
 	 */
-	public void restoreToNull()
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
-
+	public void restoreToNull() {
 		value = false;
 		isnull = true;
 	}
@@ -407,9 +389,6 @@ public final class SQLBoolean
 	/** @see BooleanDataValue#setValue */
 	public void setValue(boolean theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue;
 		isnull = false;
 
@@ -417,9 +396,6 @@ public final class SQLBoolean
 
 	public void setValue(Boolean theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		if (theValue == null)
 		{
 			value = false;
@@ -436,9 +412,6 @@ public final class SQLBoolean
 	// REMIND: do we need this, or is long enough?
 	public void setValue(byte theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -448,9 +421,6 @@ public final class SQLBoolean
 	// REMIND: do we need this, or is long enough?
 	public void setValue(short theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -460,9 +430,6 @@ public final class SQLBoolean
 	// REMIND: do we need this, or is long enough?
 	public void setValue(int theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -470,9 +437,6 @@ public final class SQLBoolean
 
 	public void setValue(long theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -481,9 +445,6 @@ public final class SQLBoolean
 	// REMIND: do we need this, or is double enough?
 	public void setValue(float theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -491,9 +452,6 @@ public final class SQLBoolean
 
 	public void setValue(double theValue)
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		value = theValue != 0;
 		isnull = false;
 
@@ -501,9 +459,6 @@ public final class SQLBoolean
 
 	public void setBigDecimal(Number bigDecimal) throws StandardException
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		if (bigDecimal == null)
 		{
 			value = false;
@@ -531,9 +486,6 @@ public final class SQLBoolean
 	public void setValue(String theValue)
 		throws StandardException
 	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT( ! immutable,
-						"Attempt to set the value of an immutable SQLBoolean");
 		if (theValue == null)
 		{
 			value = false;
@@ -1094,10 +1046,6 @@ public final class SQLBoolean
 	/* Static initialization block */
 	static
 	{
-		/* Mark all the static SQLBooleans as immutable */
-		BOOLEAN_TRUE.immutable = true;
-		BOOLEAN_FALSE.immutable = true;
-		UNKNOWN.immutable = true;
 	}
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLBoolean.class);
@@ -1112,5 +1060,4 @@ public final class SQLBoolean
 	 */
 	private boolean value;
 	private boolean isnull;
-	private boolean immutable;
 }
