@@ -6,6 +6,7 @@ import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketException;
@@ -1675,7 +1676,16 @@ public enum ErrorState {
     */
     CONNECTION_NULL("XIE01.S"),
     DATA_AFTER_STOP_DELIMITER("XIE03.S"),
-    DATA_FILE_NOT_FOUND("XIE04.S"),
+    DATA_FILE_NOT_FOUND("XIE04.S"){
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            if(!(rootCause instanceof FileNotFoundException)){
+                return super.newException(rootCause);
+            }
+            FileNotFoundException fnfe = (FileNotFoundException)rootCause;
+            return StandardException.newException(getSqlState(),fnfe.getMessage());
+        }
+    },
     DATA_FILE_NULL("XIE05.S"),
     ENTITY_NAME_MISSING("XIE06.S"),
     FIELD_IS_RECORD_SEPERATOR_SUBSET("XIE07.S"),
@@ -1752,6 +1762,8 @@ public enum ErrorState {
         }
         else if(t instanceof SocketException)
             return SOCKET_EXCEPTION;
+        else if(t instanceof FileNotFoundException)
+            return DATA_FILE_NOT_FOUND;
         else if(t instanceof IOException)
             return COMMUNICATION_ERROR;
 
@@ -1768,5 +1780,9 @@ public enum ErrorState {
 
     public String getSqlState() {
         return sqlState;
+    }
+
+    public StandardException newException(Throwable rootCause) {
+        return StandardException.newException(getSqlState(),rootCause);
     }
 }

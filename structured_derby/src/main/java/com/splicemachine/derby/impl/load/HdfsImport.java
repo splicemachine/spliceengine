@@ -30,18 +30,18 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -126,7 +126,7 @@ public class HdfsImport extends ParallelVTI {
 		  Path[] dirs = getInputPaths(input);
 		  if (dirs.length == 0)
 			  throw new IOException("No Path Supplied in job");
-		  List<IOException> errors = new ArrayList<IOException>();
+		  List<Path> errors = Lists.newArrayListWithExpectedSize(0);
 
 		  // creates a MultiPathFilter with the hiddenFileFilter and the
 		  // user provided one (if any).
@@ -139,9 +139,9 @@ public class HdfsImport extends ParallelVTI {
 		      FileSystem fs = FileSystem.get(SpliceUtils.config);
 		      FileStatus[] matches = fs.globStatus(p, inputFilter);
 		      if (matches == null) {
-		    	  errors.add(new IOException("Input path does not exist: " + p));
+		    	  errors.add(p);
 		      } else if (matches.length == 0) {
-		    	  errors.add(new IOException("Input Pattern " + p + " matches 0 files"));
+		    	  errors.add(p);
 		      } else {
 		    	  for (FileStatus globStat: matches) {
 		    		  if (globStat.isDir()) {
@@ -156,7 +156,7 @@ public class HdfsImport extends ParallelVTI {
 		  }
 
 		  if (!errors.isEmpty()) {
-			  throw new IOException("Input Errors" + errors);
+			  throw new FileNotFoundException(errors.toString());
 		  }
 		  LOG.info("Total input paths to process : " + result.size()); 
 		  return result;
@@ -422,9 +422,12 @@ public class HdfsImport extends ParallelVTI {
 
         Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd, columns.size());
         int[] pkKeyMap = new int[columns.size()];
-        for(int i=0;i<pkKeyMap.length;i++){
-            pkKeyMap[i] = -1;
-        }
+        Arrays.fill(pkKeyMap,-1);
+        LOG.info("columns="+columns);
+        LOG.info("pkCols="+pkCols);
+//        for(int i=0;i<pkKeyMap.length;i++){
+//            pkKeyMap[i] = -1;
+//        }
         for(String pkCol:pkCols.keySet()){
             int colSeqNum = columns.get(pkCol);
             int colNum = columns.get(pkCol);
