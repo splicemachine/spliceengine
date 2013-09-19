@@ -9,10 +9,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
-import java.sql.Types;
+
+import java.sql.*;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +27,8 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static String TABLE_8 = "H";
 	protected static String TABLE_9 = "I";
 	protected static String TABLE_10 = "J";
-	
+    protected static String TABLE_11 = "K";
+
 	
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
@@ -44,21 +43,23 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(order_date TIMESTAMP)");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(i int, j float, k varchar(20), l TIMESTAMP)");
-	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher1)
-		.around(spliceTableWatcher2)
-		.around(spliceTableWatcher3)
-		.around(spliceTableWatcher4)
-		.around(spliceTableWatcher5)
-		.around(spliceTableWatcher6)
-		.around(spliceTableWatcher7)
-		.around(spliceTableWatcher8)
-		.around(spliceTableWatcher9)
-		.around(spliceTableWatcher10);
-		
+    protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName,"(i int not null, j float, k varchar(20))");
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
+            .around(spliceTableWatcher1)
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher5)
+            .around(spliceTableWatcher6)
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9)
+            .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11);
+
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 //    @After
@@ -207,9 +208,23 @@ public class HdfsImportTest extends SpliceUnitTest {
 		Assert.assertTrue("import failed!" + count,count==1);
 	}
 
+    @Test(expected = SQLException.class)
+    public void testCannotImportNullFieldInANonNullColumn() throws Exception {
+        String location = getResourceDirectory()+"/test_data/null_col.csv";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s',',',null,null,null,null)",
+                spliceSchemaWatcher.schemaName,TABLE_11,null,location));
+        try{
+            ps.execute();
+        }catch(SQLException se){
+            Assert.assertTrue("Incorrect error message!",se.getMessage().contains("cannot accept a NULL value."));
 
+            //make sure the error code is correct
+            Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+            throw se;
+        }
+    }
 
-	@Test
+    @Test
 	public void testHdfsImportNullColList() throws Exception{
 		testImport(spliceSchemaWatcher.schemaName,TABLE_7,getResourceDirectory()+"importTest.in",null);
 	}
