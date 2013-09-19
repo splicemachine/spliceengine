@@ -82,6 +82,7 @@ public class HdfsImport extends ParallelVTI {
         }
     };
     private final ImportContext context;
+    private static final int COLNULLABLE_POSITION = 13;
     private HBaseAdmin admin;
 
     public HdfsImport(ImportContext context){
