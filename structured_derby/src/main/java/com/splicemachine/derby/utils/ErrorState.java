@@ -1,10 +1,8 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.error.SpliceDoNotRetryIOException;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

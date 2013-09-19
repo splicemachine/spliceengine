@@ -234,9 +234,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     private byte[] statusToBytes() throws IOException {
-        ByteDataOutput bdo = new ByteDataOutput();
-        bdo.writeObject(status);
-        return bdo.toByteArray();
+        return status.toBytes();
     }
 
     @Override

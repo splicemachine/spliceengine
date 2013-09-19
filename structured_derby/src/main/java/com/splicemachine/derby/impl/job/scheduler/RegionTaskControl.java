@@ -137,8 +137,9 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                          */
                     taskStatus.setStatus(Status.INVALID);
                 }else{
-                    ByteDataInput bdi = new ByteDataInput(data);
-                    taskStatus = (TaskStatus)bdi.readObject();
+                    taskStatus = TaskStatus.fromBytes(data);
+//                    ByteDataInput bdi = new ByteDataInput(data);
+//                    taskStatus = (TaskStatus)bdi.readObject();
                 }
             } catch (InterruptedException e) {
                 throw new ExecutionException(e);
@@ -215,7 +216,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         if(taskStatus.shouldRetry()) {
             resubmit();
         } else {
-            throw new ExecutionException(Exceptions.getWrapperException(taskStatus.getErrorMessage(), taskStatus.getErrorCode()));
+            throw new ExecutionException(taskStatus.getError());
         }
     }
 
@@ -383,6 +384,6 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         if(rollback(tryNum))
             jobControl.resubmit(this,tryNum);
         else
-            throw new ExecutionException(Exceptions.getWrapperException(taskStatus.getErrorMessage(),taskStatus.getErrorCode()));
+            throw new ExecutionException(taskStatus.getError());
     }
 }

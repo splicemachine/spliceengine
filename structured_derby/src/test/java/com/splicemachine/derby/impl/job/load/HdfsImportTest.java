@@ -281,7 +281,6 @@ public class HdfsImportTest extends SpliceUnitTest {
         Assert.assertTrue("At least one row returned", count>0);
     }
 
-
     @Test
     public void testDataIsAvailable() throws Exception{
         long conglomId = 352; // TODO What is the test?

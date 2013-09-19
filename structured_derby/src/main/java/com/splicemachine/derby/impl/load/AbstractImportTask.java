@@ -141,7 +141,7 @@ public abstract class AbstractImportTask extends ZkTask {
 
     protected void doImportRow(String[] line, ExecRow row,CallBuffer<KVPair> writeBuffer) throws Exception {
         long start = System.nanoTime();
-        populateRow(line, importContext.getActiveCols(), row);
+        populateRow(line, importContext.getColumnInformation(), row);
         long stop = System.nanoTime();
         totalPopulateTime += (stop-start);
 
@@ -152,34 +152,24 @@ public abstract class AbstractImportTask extends ZkTask {
     }
 
 
-    private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
+    private void populateRow(String[] line, ColumnContext[] columnContexts, ExecRow row) throws StandardException {
         //clear out any previous results
         for(DataValueDescriptor dvd:row.getRowArray()){
             if(dvd!=null)
                 dvd.setToNull();
         }
 
-        if(activeCols!=null){
-            for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
-            }
-        }else{
-            for(int pos=0;pos<line.length-1;pos++){
-                String elem = line[pos];
-                setColumn(row, pos, elem);
-            }
-            //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
-            if(row.nColumns()==line.length){
-                String lastEntry = line[line.length-1];
-                setColumn(row, line.length-1, lastEntry);
-            }
+        int linePos=0;
+        for(ColumnContext columnContext:columnContexts){
+            String elem = line[linePos] == null || line[linePos].length()==0? null: line[linePos];
+            setColumn(row,columnContext,elem);
         }
     }
 
-    private void setColumn(ExecRow row, int pos, String elem) throws StandardException {
+    private void setColumn(ExecRow row, ColumnContext columnContext, String elem) throws StandardException {
         if(elem==null||elem.length()==0)
             elem=null;
-        DataValueDescriptor dvd = row.getColumn(pos+1);
+        DataValueDescriptor dvd = row.getColumn(columnContext.getColumnNumber()+1);
         if(elem!=null && dvd instanceof DateTimeDataValue){
             DateFormat format = null;
             if(dvd instanceof SQLTimestamp){
@@ -216,7 +206,7 @@ public abstract class AbstractImportTask extends ZkTask {
                 throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
             }
         }else
-            row.getColumn(pos+1).setValue(elem); // pass in null for null or empty string
+            row.getColumn(columnContext.getColumnNumber()+1).setValue(elem); // pass in null for null or empty string
     }
 
     protected void reportIntermediate(long numRecordsImported){
@@ -224,17 +214,11 @@ public abstract class AbstractImportTask extends ZkTask {
     }
 
     protected ExecRow getExecRow(ImportContext context) throws StandardException {
-        int[] columnTypes = context.getColumnTypes();
-        FormatableBitSet activeCols = context.getActiveCols();
-        ExecRow row = new ValueRow(columnTypes.length);
-        if(activeCols!=null){
-            for(int i=activeCols.anySetBit();i!=-1;i=activeCols.anySetBit(i)){
-                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
-            }
-        }else{
-            for(int i=0;i<columnTypes.length;i++){
-                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
-            }
+        ColumnContext[] cols = context.getColumnInformation();
+        int size = cols[cols.length-1].getColumnNumber()+1;
+        ExecRow row = new ValueRow(size);
+        for(ColumnContext col:cols){
+            row.setColumn(col.getColumnNumber()+1,getDataValueDescriptor(col.getColumnType()));
         }
         return row;
     }

@@ -82,6 +82,7 @@ public class HdfsImport extends ParallelVTI {
         }
     };
     private final ImportContext context;
+    private static final int COLNULLABLE_POSITION = 13;
     private HBaseAdmin admin;
 
     public HdfsImport(ImportContext context){
@@ -153,7 +154,7 @@ public class HdfsImport extends ParallelVTI {
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
             final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
             try {
-                importData(transactionId, conn, schemaName, tableName,
+                importData(transactionId, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
                         insertColumnList, fileName, columnDelimiter,
                         characterDelimiter, timestampFormat,dateFormat,timeFormat);
             } catch (SQLException se) {
@@ -192,9 +193,9 @@ public class HdfsImport extends ParallelVTI {
 				.colDelimiter(delimiter)
                 .transactionId(transactionId);
 
-		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
+		buildColumnInformation(connection,schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,builder);
 
-		long conglomId = getConglomid(connection,tableName,schemaName);
+		long conglomId = getConglomid(connection,tableName.toUpperCase(),schemaName.toUpperCase());
 		builder = builder.destinationTable(conglomId);
         HdfsImport importer;
 		try {
@@ -391,7 +392,7 @@ public class HdfsImport extends ParallelVTI {
     private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
                                                String insertColumnList, ImportContext.Builder builder) throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
-        Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd,builder);
+        Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
 
         Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd);
         int[] pkKeyMap = new int[columns.size()];
@@ -399,56 +400,58 @@ public class HdfsImport extends ParallelVTI {
         LOG.info("columns="+columns);
         LOG.info("pkCols="+pkCols);
         for(String pkCol:pkCols.keySet()){
-            int colSeqNum = columns.get(pkCol);
-            int colNum = columns.get(pkCol);
-            pkKeyMap[colNum] = colSeqNum;
+            columns.get(pkCol).primaryKeyPos(pkCols.get(pkCol));
         }
-        int[] primaryKeys = new int[pkCols.size()];
-        int pos = 0;
-        for (int pkPos : pkKeyMap) {
-            if (pkPos < 0) continue;
-            primaryKeys[pos] = pkPos;
-            pos++;
+
+        for(ColumnContext.Builder colBuilder:columns.values()){
+            builder.addColumn(colBuilder.build());
         }
-        if(primaryKeys.length>0)
-            builder.primaryKeys(primaryKeys);
     }
 
-    private static Map<String,Integer> getColumns(String schemaName,String tableName,
-                                                  String insertColumnList,DatabaseMetaData dmd,ImportContext.Builder builder) throws SQLException{
+    private static Map<String,ColumnContext.Builder> getColumns(String schemaName, String tableName,
+                                                                String insertColumnList, DatabaseMetaData dmd) throws SQLException{
         ResultSet rs = null;
-        Map<String,Integer> columnMap = Maps.newHashMap();
+        Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
         try{
             rs = dmd.getColumns(null,schemaName,tableName,null);
             int COLNUM_POSITION = 17;
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
+                    ColumnContext.Builder colBuilder = new ColumnContext.Builder();
                     String colName = rs.getString(COLNAME_POSITION);
+                    colBuilder.columnName(colName);
                     int colPos = rs.getInt(COLNUM_POSITION);
+                    colBuilder.columnNumber(colPos-1);
                     int colType = rs.getInt(COLTYPE_POSITION);
+                    colBuilder.columnType(colType);
+                    boolean isNullable = rs.getInt(COLNULLABLE_POSITION)!=0;
+                    colBuilder.nullable(isNullable);
                     LOG.info(String.format("colName=%s,colPos=%d,colType=%d",colName,colPos,colType));
                     Iterator<String> colIterator = insertCols.iterator();
                     while(colIterator.hasNext()){
                         String insertCol = colIterator.next();
                         if(insertCol.equalsIgnoreCase(colName)){
-                            builder = builder.column(colPos - 1, colType);
-                            columnMap.put(rs.getString(4),colPos-1);
+                            columnMap.put(rs.getString(4),colBuilder);
                             colIterator.remove();
                             break;
                         }
                     }
                 }
-                builder.numColumns(columnMap.size());
             }else{
                 while(rs.next()){
+                    ColumnContext.Builder colBuilder = new ColumnContext.Builder();
                     String colName = rs.getString(COLNAME_POSITION);
+                    colBuilder.columnName(colName);
                     int colPos = rs.getInt(COLNUM_POSITION);
+                    colBuilder.columnNumber(colPos-1);
                     int colType = rs.getInt(COLTYPE_POSITION);
-                    builder = builder.column(colPos-1,colType);
-                    columnMap.put(colName,colPos-1);
-                }
+                    colBuilder.columnType(colType);
+                    boolean isNullable = rs.getBoolean(COLNULLABLE_POSITION);
+                    colBuilder.nullable(isNullable);
 
+                    columnMap.put(colName,colBuilder);
+                }
             }
             return columnMap;
         }finally{
