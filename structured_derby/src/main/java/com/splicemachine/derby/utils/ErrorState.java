@@ -678,7 +678,12 @@ public enum ErrorState {
     LANG_LEXICAL_ERROR( "42X02"),
     LANG_AMBIGUOUS_COLUMN_NAME( "42X03"),
     LANG_COLUMN_NOT_FOUND( "42X04"),
-    LANG_TABLE_NOT_FOUND( "42X05"),
+    LANG_TABLE_NOT_FOUND( "42X05"){
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            return StandardException.newException(getSqlState(),rootCause.getMessage());
+        }
+    },
     LANG_TOO_MANY_RESULT_COLUMNS( "42X06"),
     LANG_NULL_IN_VALUES_CLAUSE( "42X07"),
     LANG_DOES_NOT_IMPLEMENT			( "42X08"),
@@ -1784,5 +1789,9 @@ public enum ErrorState {
 
     public StandardException newException(Throwable rootCause) {
         return StandardException.newException(getSqlState(),rootCause);
+    }
+
+    public StandardException newException(String message){
+        return StandardException.newException(getSqlState(),message);
     }
 }

@@ -8,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
@@ -407,7 +408,7 @@ public class HdfsImport extends ParallelVTI {
             if(rs.next()){
                 return rs.getLong(1);
             }else{
-                throw new SQLException(String.format("No Conglomerate id found for table [%s] in schema [%s] ",tableName,schemaName.toUpperCase()));
+                throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
             }
         }finally{
             if(rs!=null) rs.close();
@@ -418,16 +419,13 @@ public class HdfsImport extends ParallelVTI {
     private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
                                                String insertColumnList, ImportContext.Builder builder) throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
-        Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName,insertColumnList,dmd,builder);
+        Map<String,Integer> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd,builder);
 
         Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd, columns.size());
         int[] pkKeyMap = new int[columns.size()];
         Arrays.fill(pkKeyMap,-1);
         LOG.info("columns="+columns);
         LOG.info("pkCols="+pkCols);
-//        for(int i=0;i<pkKeyMap.length;i++){
-//            pkKeyMap[i] = -1;
-//        }
         for(String pkCol:pkCols.keySet()){
             int colSeqNum = columns.get(pkCol);
             int colNum = columns.get(pkCol);
