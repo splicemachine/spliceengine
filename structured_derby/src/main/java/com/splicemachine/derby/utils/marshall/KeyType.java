@@ -260,7 +260,7 @@ public enum KeyType implements KeyMarshall{
 			             	 fields[reversedKeyColumns[i]].setToNull();
 			                  DerbyBytesUtil.skip(rowDecoder,fields[reversedKeyColumns[i]]);
 			              }else
-			                  DerbyBytesUtil.decodeInto(rowDecoder, fields[reversedKeyColumns[i]]);
+			                  DerbyBytesUtil.decodeInto(rowDecoder, fields[reversedKeyColumns[i]],desc);
 			         }
 			     }
 			 }else{
