@@ -16,7 +16,7 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
-    public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T1",CLASS_NAME,"(c1 int, c2 int)");
+    public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
     private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationTest.class);
 
     @ClassRule
@@ -104,7 +104,7 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
     @Test()
     // Bugzilla #786
     public void testCountOfNullsAndBooleanSet() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("select (1 in (1,2)), count(c1) from t1 group by c1",spliceTableWatcher2));
+        ResultSet rs = methodWatcher.executeQuery(format("select (1 in (1,2)), count(c1) from %s group by c1",spliceTableWatcher2));
         int i =0;
         while (rs.next()) {
         	i++;
