@@ -10,6 +10,7 @@ import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -31,6 +32,12 @@ public class UnionOperationTest extends SpliceUnitTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(UnionOperationTest.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("ST_MARS",spliceSchemaWatcher.schemaName,"(empId int, empNo int, name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("ST_EARTH",spliceSchemaWatcher.schemaName,"(empId int, empNo int, name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("T1",spliceSchemaWatcher.schemaName,"(i int, s smallint, d double precision, r real, c10 char(10), " +
+			"c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("T2",spliceSchemaWatcher.schemaName,"(i int, s smallint, d double precision, r real, c10 char(10), " +
+			"c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("DUPS",spliceSchemaWatcher.schemaName,"(i int, s smallint, d double precision, r real, c10 char(10), " +
+			"c30 char(30), vc10 varchar(10), vc30 varchar(30))");
 	private static Set<Integer> t1EmpIds = Sets.newHashSet();
     private static Set<Integer> t2EmpIds = Sets.newHashSet();
 
@@ -39,6 +46,9 @@ public class UnionOperationTest extends SpliceUnitTest {
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)		
+		.around(spliceTableWatcher3)		
+		.around(spliceTableWatcher4)		
+		.around(spliceTableWatcher5)		
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
@@ -95,7 +105,14 @@ public class UnionOperationTest extends SpliceUnitTest {
                     ps.setInt(2, 1);
                     ps.setNull(3,Types.VARCHAR);
                     ps.execute();
-                    t2EmpIds.add(5);
+                    t2EmpIds.add(5);                    
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (null, null, null, null, null, null, null, null)",spliceTableWatcher3));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (1, 1, 1e1, 1e1, '11111', '11111     11', '11111','11111      11')",spliceTableWatcher3));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (2, 2, 2e1, 2e1, '22222', '22222     22', '22222','22222      22')",spliceTableWatcher3));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (null, null, null, null, null, null, null, null)",spliceTableWatcher4));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (3, 3, 3e1, 3e1, '33333', '33333     33', '33333','33333      33')",spliceTableWatcher4));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (4, 4, 4e1, 4e1, '44444', '44444     44', '44444','44444      44')",spliceTableWatcher4));
+                    spliceClassWatcher.executeUpdate(format("insert into %s select * from %s union all select * from %s",spliceTableWatcher5,spliceTableWatcher3,spliceTableWatcher4));                    
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -221,4 +238,29 @@ public class UnionOperationTest extends SpliceUnitTest {
         }
         Assert.assertEquals(5,i);
     }
+    
+    @Test
+    @Ignore("Bug 797")
+    public void testValuesFirstInUnionAll() throws Exception {
+    	ResultSet rs = methodWatcher.executeQuery(format("values (9,10) union all " +
+    			"select a.i, b.i from %s a, %s b union all select b.i, a.i from %s a, %s b",spliceTableWatcher4,spliceTableWatcher5,spliceTableWatcher4,spliceTableWatcher5));
+        int i=0;
+        while(rs.next()){
+            i++;
+            System.out.printf("empId=%d%n",rs.getInt(1));
+        }    	
+    }
+
+    @Test
+    @Ignore("Bug 797")
+    public void testValuesLastInUnionAll() throws Exception {
+    	ResultSet rs = methodWatcher.executeQuery(format(
+    			"select a.i, b.i from %s a, %s b union all select b.i, a.i from %s a, %s b union all values (9,10)",spliceTableWatcher4,spliceTableWatcher5,spliceTableWatcher4,spliceTableWatcher5));
+        int i=0;
+        while(rs.next()){
+            i++;
+            System.out.printf("empId=%d%n",rs.getInt(1));
+        }    	
+    }
+    
 }
