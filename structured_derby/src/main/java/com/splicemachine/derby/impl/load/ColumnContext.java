@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.base.Preconditions;
 import com.splicemachine.derby.utils.ErrorState;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;

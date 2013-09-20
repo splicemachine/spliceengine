@@ -48,7 +48,7 @@ public class ImportErrorTest {
     private static final String TABLE = "errorTable";
 
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
-    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date,g time, h timestamp)");
+    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5))");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schema)

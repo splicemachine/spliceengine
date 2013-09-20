@@ -82,7 +82,9 @@ public class HdfsImport extends ParallelVTI {
         }
     };
     private final ImportContext context;
-    private static final int COLNULLABLE_POSITION = 13;
+    private static final int COLNULLABLE_POSITION = 11;
+    private static final int COLSIZE_POSITION = 7;
+    private static final int COLNUM_POSITION = 17;
     private HBaseAdmin admin;
 
     public HdfsImport(ImportContext context){
@@ -414,7 +416,6 @@ public class HdfsImport extends ParallelVTI {
         Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
         try{
             rs = dmd.getColumns(null,schemaName,tableName,null);
-            int COLNUM_POSITION = 17;
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
