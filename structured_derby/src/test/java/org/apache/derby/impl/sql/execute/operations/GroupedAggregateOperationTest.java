@@ -16,25 +16,28 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
+    public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T1",CLASS_NAME,"(c1 int, c2 int)");
     private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationTest.class);
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee-2table.sql", CLASS_NAME))
             .around(spliceTableWatcher)
+            .around(spliceTableWatcher2)            
             		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
                 try {                	
                     spliceClassWatcher.setAutoCommit(true);    
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-03-01'),3)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher.toString()));
-                    spliceClassWatcher.getStatement().executeUpdate(String.format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher.toString()));
-
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-01-01'),1)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-02-01'),1)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),1)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),2)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-03-01'),3)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-04-01'),3)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (date('2012-05-01'),3)", spliceTableWatcher));
+                    spliceClassWatcher.executeUpdate(format("insert into %s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)", spliceTableWatcher2));
+                    
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
@@ -98,4 +101,14 @@ public class GroupedAggregateOperationTest extends SpliceUnitTest {
         Assert.assertEquals("Should return only rows for the group by columns",5, i);	
     }
     
+    @Test()
+    // Bugzilla #786
+    public void testCountOfNullsAndBooleanSet() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select (1 in (1,2)), count(c1) from t1 group by c1",spliceTableWatcher2));
+        int i =0;
+        while (rs.next()) {
+        	i++;
+        }
+        Assert.assertEquals("Should return only rows for the group by columns",5, i);	
+    }    
 }
