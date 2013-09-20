@@ -546,6 +546,10 @@ public enum ErrorState {
     LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION( "21000"),
     LANG_STRING_TRUNCATION( "22001"),
     LANG_CONCAT_STRING_OVERFLOW( "54006"),
+    /*
+     * Throw when an attempted insert it outside the range for the given datatype
+     * (e.g. Integer.MAX_VALUE +1 into an integer field
+     */
     LANG_OUTSIDE_RANGE_FOR_DATATYPE( "22003"),
     YEAR_EXCEEDS_MAXIMUM( "22003.S.1"),
     DECIMAL_TOO_MANY_DIGITS( "22003.S.2"),
@@ -587,7 +591,9 @@ public enum ErrorState {
     */
     INTEGRITY_VIOLATION_PREFIX("23"),
 
+    /*Attempting to insert a null value into a column with a non-null constraint */
     LANG_NULL_INTO_NON_NULL( "23502"),
+
     LANG_DUPLICATE_KEY_CONSTRAINT( "23505"),
     LANG_FK_VIOLATION( "23503"),
     LANG_CHECK_CONSTRAINT_VIOLATED( "23513"),
@@ -1789,7 +1795,7 @@ public enum ErrorState {
         return StandardException.newException(getSqlState(),rootCause);
     }
 
-    public StandardException newException(String message){
+    public StandardException newException(Object... message){
         return StandardException.newException(getSqlState(),message);
     }
 }

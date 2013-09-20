@@ -82,7 +82,9 @@ public class HdfsImport extends ParallelVTI {
         }
     };
     private final ImportContext context;
-    private static final int COLNULLABLE_POSITION = 13;
+    private static final int COLNULLABLE_POSITION = 11;
+    private static final int COLSIZE_POSITION = 7;
+    private static final int COLNUM_POSITION = 17;
     private HBaseAdmin admin;
 
     public HdfsImport(ImportContext context){
@@ -230,7 +232,7 @@ public class HdfsImport extends ParallelVTI {
                     .transactionId(transactionId);
 
 
-		buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
+            buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
         }catch(AssertionError ae){
             //the input data is bad in some way
             throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
@@ -414,20 +416,11 @@ public class HdfsImport extends ParallelVTI {
         Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
         try{
             rs = dmd.getColumns(null,schemaName,tableName,null);
-            int COLNUM_POSITION = 17;
             if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
                 List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
                 while(rs.next()){
-                    ColumnContext.Builder colBuilder = new ColumnContext.Builder();
-                    String colName = rs.getString(COLNAME_POSITION);
-                    colBuilder.columnName(colName);
-                    int colPos = rs.getInt(COLNUM_POSITION);
-                    colBuilder.columnNumber(colPos-1);
-                    int colType = rs.getInt(COLTYPE_POSITION);
-                    colBuilder.columnType(colType);
-                    boolean isNullable = rs.getInt(COLNULLABLE_POSITION)!=0;
-                    colBuilder.nullable(isNullable);
-                    LOG.info(String.format("colName=%s,colPos=%d,colType=%d",colName,colPos,colType));
+                    ColumnContext.Builder colBuilder = buildColumn(rs);
+                    String colName = colBuilder.getColumnName();
                     Iterator<String> colIterator = insertCols.iterator();
                     while(colIterator.hasNext()){
                         String insertCol = colIterator.next();
@@ -440,17 +433,9 @@ public class HdfsImport extends ParallelVTI {
                 }
             }else{
                 while(rs.next()){
-                    ColumnContext.Builder colBuilder = new ColumnContext.Builder();
-                    String colName = rs.getString(COLNAME_POSITION);
-                    colBuilder.columnName(colName);
-                    int colPos = rs.getInt(COLNUM_POSITION);
-                    colBuilder.columnNumber(colPos-1);
-                    int colType = rs.getInt(COLTYPE_POSITION);
-                    colBuilder.columnType(colType);
-                    boolean isNullable = rs.getBoolean(COLNULLABLE_POSITION);
-                    colBuilder.nullable(isNullable);
+                    ColumnContext.Builder colBuilder = buildColumn(rs);
 
-                    columnMap.put(colName,colBuilder);
+                    columnMap.put(colBuilder.getColumnName(),colBuilder);
                 }
             }
             return columnMap;
@@ -458,6 +443,23 @@ public class HdfsImport extends ParallelVTI {
             if(rs!=null)rs.close();
         }
 
+    }
+
+    private static ColumnContext.Builder buildColumn(ResultSet rs) throws SQLException {
+        ColumnContext.Builder colBuilder = new ColumnContext.Builder();
+        String colName = rs.getString(COLNAME_POSITION);
+        colBuilder.columnName(colName);
+        int colPos = rs.getInt(COLNUM_POSITION);
+        colBuilder.columnNumber(colPos-1);
+        int colType = rs.getInt(COLTYPE_POSITION);
+        colBuilder.columnType(colType);
+        boolean isNullable = rs.getInt(COLNULLABLE_POSITION)!=0;
+        colBuilder.nullable(isNullable);
+        if(colType== Types.CHAR||colType==Types.VARCHAR||colType==Types.LONGVARCHAR){
+            int colSize = rs.getInt(COLSIZE_POSITION);
+            colBuilder.length(colSize);
+        }
+        return colBuilder;
     }
 
     private static Map<String,Integer> getPrimaryKeys(String schemaName, String tableName,

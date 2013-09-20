@@ -28,6 +28,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static String TABLE_9 = "I";
 	protected static String TABLE_10 = "J";
     protected static String TABLE_11 = "K";
+    private static final String TABLE_12 = "L";
 
 	
 	
@@ -44,6 +45,7 @@ public class HdfsImportTest extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(order_date TIMESTAMP)");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(i int, j float, k varchar(20), l TIMESTAMP)");
     protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName,"(i int not null, j float, k varchar(20))");
+    protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_12,spliceSchemaWatcher.schemaName,"(i int not null,k varchar(5))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -58,9 +60,10 @@ public class HdfsImportTest extends SpliceUnitTest {
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
-            .around(spliceTableWatcher11);
+            .around(spliceTableWatcher11)
+            .around(spliceTableWatcher12);
 
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 //    @After
 //    public void tearDownTest() throws Exception{
@@ -121,13 +124,10 @@ public class HdfsImportTest extends SpliceUnitTest {
 		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
 	}
 
-
-
     @Test
 	public void testHdfsImportGzipFile() throws Exception{
 		testImport(spliceSchemaWatcher.schemaName,TABLE_6,getResourceDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
 	}
-
 
 	@Test
 	public void testImportFromSQL() throws Exception{
@@ -220,6 +220,22 @@ public class HdfsImportTest extends SpliceUnitTest {
 
             //make sure the error code is correct
             Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+            throw se;
+        }
+    }
+
+    @Test(expected = SQLException.class)
+    public void testCannotImportWithStringsLongerThanMaxColumnWidth() throws Exception {
+        String location = getResourceDirectory()+"/test_data/long_string.csv";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s','%s',null, '%s','\\t',null,null,null,null)",
+                spliceSchemaWatcher.schemaName,TABLE_12,null,location));
+        try{
+            ps.execute();
+        }catch(SQLException se){
+            Assert.assertTrue("Incorrect error message!",se.getMessage().contains("truncation error"));
+
+            //make sure the error code is correct
+            Assert.assertEquals("Incorrect sql state!","22001",se.getSQLState());
             throw se;
         }
     }
