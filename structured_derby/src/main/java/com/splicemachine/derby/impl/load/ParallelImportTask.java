@@ -388,7 +388,8 @@ public abstract class ParallelImportTask extends ZkTask{
                     Date value = format.parse(elem);
                     dvd.setValue(new Timestamp(value.getTime()));
                 }catch (ParseException p){
-                    throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+                    throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+//                    throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
                 }
             }else{
                 column.setValue(elem); // pass in null for null or empty string
