@@ -96,7 +96,15 @@ public class NormalizeOperation extends SpliceBaseOperation {
         return ((SpliceOperation)source).getMapRowProvider(top, decoder);
     }
 
-    private int computeStartColumn(boolean forUpdate,
+    
+    
+    @Override
+	public RowProvider getReduceRowProvider(SpliceOperation top,
+			RowDecoder decoder) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top, decoder);
+	}
+
+	private int computeStartColumn(boolean forUpdate,
 			ResultDescription resultDescription) {
 		int count = resultDescription.getColumnCount();
 		return forUpdate ? ((count-1)/2)+1 : 1;
@@ -281,7 +289,8 @@ public class NormalizeOperation extends SpliceBaseOperation {
 //			return totTime;
 //	}
 
-    @Override
+
+	@Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t", indentLevel);
 
