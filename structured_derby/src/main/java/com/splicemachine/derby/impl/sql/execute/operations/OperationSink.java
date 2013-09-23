@@ -83,7 +83,7 @@ public class OperationSink {
                     start = System.nanoTime();
                 }
 
-                //row = operation.getNextRowCore();
+                //row = operation.nextRow();
                 row = operation.getNextSinkRow();
                 if(row==null) continue;
 

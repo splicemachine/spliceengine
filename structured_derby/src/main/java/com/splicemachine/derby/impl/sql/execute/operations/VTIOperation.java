@@ -35,6 +35,7 @@ import org.apache.derby.vti.Restriction;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,8 +45,7 @@ import java.util.List;
 
 /**
  */
-public class VTIOperation extends SpliceBaseOperation
-	implements CursorResultSet, VTIEnvironment {
+public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment {
 	/* Run time statistics variables */
 	public int rowsReturned;
 	public String javaClassName;
@@ -148,14 +148,10 @@ public class VTIOperation extends SpliceBaseOperation
 	//
 
 
-	/**
-     * Sets state to 'open'.
-	 *
-	 * @exception StandardException thrown if activation closed.
-     */
-	public void	openCore() throws StandardException  {
-        super.openCore();
-	}
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+    }
 
     /**
      * Clone the restriction for a Restricted VTI, filling in parameter values
@@ -257,8 +253,7 @@ public class VTIOperation extends SpliceBaseOperation
 	 * @see NoPutResultSet#openCore
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public void reopenCore() throws StandardException
-	{
+	public void reopenCore() throws StandardException, IOException {
 		if (reuseablePs)
 		{
 			/* close the user ResultSet.
@@ -284,7 +279,7 @@ public class VTIOperation extends SpliceBaseOperation
 		else
 		{
 			close();
-			openCore();	
+            open();
 		}
 	}
 
@@ -294,7 +289,7 @@ public class VTIOperation extends SpliceBaseOperation
 	 *
 	 * @exception StandardException thrown on failure.
      */
-	public ExecRow	getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 

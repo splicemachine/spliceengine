@@ -79,7 +79,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     	SpliceLogUtils.trace(LOG,"instantiate without parameters");
     }
   
-    public GroupedAggregateOperation(NoPutResultSet s,
+    public GroupedAggregateOperation(SpliceOperation s,
 			boolean isInSortedOrder,
 			int	aggregateItem,
 			int	orderingItem,
@@ -276,7 +276,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
         ExecRow row = doSinkAggregation();
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getNextSinkRow %s",row);
@@ -284,10 +284,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         ExecRow row = doScanAggregation();
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getNextRowCore %s",row);
+            SpliceLogUtils.trace(LOG, "nextRow %s",row);
         return row;
     }
 
@@ -306,7 +306,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
         }};
 
-    private ExecRow doSinkAggregation() throws StandardException {
+    private ExecRow doSinkAggregation() throws StandardException, IOException {
 
         if(resultRows==null){
             resultRows = isRollup?new ExecRow[groupByColumns.size()+1]:new ExecRow[1]; // Need to fix Group By Columns
@@ -327,7 +327,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return rowResult;
     }
 
-    private ExecRow doScanAggregation() throws StandardException {
+    private ExecRow doScanAggregation() throws StandardException, IOException {
         if (completedExecution) {
             if (currentAggregations.size()>0) {
                 ByteBuffer key = currentAggregations.keySet().iterator().next();
@@ -458,18 +458,18 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
     }
 
-    protected ExecRow getNextRowFromScan() throws StandardException {
+    protected ExecRow getNextRowFromScan() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG,"getting next row from scan");
         if(rowProvider.hasNext())
             return rowProvider.next();
         else return null;
     }
 
-    private ExecRow getNextRowFromSource() throws StandardException{
+    private ExecRow getNextRowFromSource() throws StandardException, IOException {
         ExecRow sourceRow;
         ExecRow inputRow = null;
 
-        if ((sourceRow = source.getNextRowCore())!=null){
+        if ((sourceRow = source.nextRow())!=null){
             sourceExecIndexRow.execRowToExecIndexRow(sourceRow);
             inputRow = sourceExecIndexRow;
         }
@@ -515,19 +515,18 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return this.numDistinctAggs>0;
     }
 
+//    @Override
+//    public long getTimeSpent(int type)
+//    {
+//        long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//            return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//        else
+//            return totTime;
+//    }
     @Override
-    public long getTimeSpent(int type)
-    {
-        long totTime = constructorTime + openTime + nextTime + closeTime;
-
-        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-            return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-        else
-            return totTime;
-    }
-    @Override
-    public void	close() throws StandardException
-    {
+    public void	close() throws StandardException, IOException {
         if(hbs!=null)
             hbs.close();
         SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
@@ -583,7 +582,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             private boolean populated;
 
             @Override
-            public boolean hasNext() throws StandardException {
+            public boolean hasNext() throws StandardException, IOException {
 
                 if(!populated && rolledUpRows != null && !rolledUpRows.hasNext()){
                     ExecRow nextRow = getNextRowFromSource();
@@ -601,7 +600,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
 
             @Override
-            public ExecRow next() throws StandardException {
+            public ExecRow next() throws StandardException, IOException {
 
                 if(!populated){
                     hasNext();

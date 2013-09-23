@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -49,19 +48,19 @@ public class OnceOperation extends SpliceBaseOperation {
 	public int subqueryNumber;
 	public int pointOfAttachment;
 
-	private RowProvider dataProvider; // used for local calls to getNextRowCore()
+	private RowProvider dataProvider; // used for local calls to nextRow()
 
     @Deprecated
     public OnceOperation(){}
 
-	   public OnceOperation(NoPutResultSet s, Activation a, GeneratedMethod emptyRowFun,
+	   public OnceOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
 				 int cardinalityCheck, int resultSetNumber,
 				 int subqueryNumber, int pointOfAttachment,
 				 double optimizerEstimatedRowCount,
 				 double optimizerEstimatedCost) throws StandardException {
 		   super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 			SpliceLogUtils.trace(LOG, "instantiated");
-		   this.source = (SpliceOperation) s;
+		   this.source = s;
 		   this.emptyRowFunMethodName = (emptyRowFun != null)?emptyRowFun.getMethodName():null;
            this.emptyRowFun = emptyRowFun;
 		   this.cardinalityCheck = cardinalityCheck;
@@ -108,11 +107,11 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         //do our cardinality checking
         ExecRow rowToReturn = null;
 
-        ExecRow nextRow = source.getNextRowCore();
+        ExecRow nextRow = source.nextRow();
         if(nextRow!=null){
             switch (cardinalityCheck) {
                 case DO_CARDINALITY_CHECK:
@@ -124,7 +123,7 @@ public class OnceOperation extends SpliceBaseOperation {
                      * the getNextRow() for this check will wipe out the underlying
                      * row.
                      */
-                        ExecRow secondRow = source.getNextRowCore();
+                        ExecRow secondRow = source.nextRow();
                         if(secondRow!=null){
                             close();
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
@@ -136,14 +135,14 @@ public class OnceOperation extends SpliceBaseOperation {
                     //TODO -sf- I don't think that this will work unless there's a sort order on the first column..
                     nextRow = nextRow.getClone();
                     DataValueDescriptor orderable1 = nextRow.getColumn(1);
-                    ExecRow secondRow = source.getNextRowCore();
+                    ExecRow secondRow = source.nextRow();
                     while(secondRow!=null){
                         DataValueDescriptor orderable2 = secondRow.getColumn(1);
                         if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
                             close();
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                         }
-                        secondRow = source.getNextRowCore();
+                        secondRow = source.nextRow();
                     }
                     rowToReturn = nextRow;
                     break;
@@ -220,21 +219,22 @@ public class OnceOperation extends SpliceBaseOperation {
 		return operations;
 	}
 	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
     private class OnceRowProvider implements RowProvider {
@@ -261,7 +261,7 @@ public class OnceOperation extends SpliceBaseOperation {
 
 
         @Override
-        public boolean hasNext() throws StandardException {
+        public boolean hasNext() throws StandardException, IOException {
             delegateNext = delegate.hasNext();
             if(!delegateNext){
                 if(rowWithNulls==null){

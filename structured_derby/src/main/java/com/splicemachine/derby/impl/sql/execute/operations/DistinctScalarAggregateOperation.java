@@ -210,7 +210,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         super.close();
         if(reduceScan!=null)
             SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
@@ -221,12 +221,12 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder);
     }
 
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
         return aggregate(false);
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         if(finishedResults.size()>0)
             return makeCurrent(finishedResults.remove(0));
         else if(completedExecution)
@@ -235,7 +235,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return aggregate(true);
     }
 
-    private ExecRow aggregate(boolean isTemp) throws StandardException{
+    private ExecRow aggregate(boolean isTemp) throws StandardException, IOException {
         ExecIndexRow row = isTemp? getNextRowFromTemp(): getNextRowFromSource(true);
         if(row == null){
             return finalizeResults();
@@ -278,8 +278,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
     }
 
-    private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException {
-        ExecRow sourceRow = source.getNextRowCore();
+    private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException, IOException {
+        ExecRow sourceRow = source.nextRow();
         if(sourceRow==null) return null;
         sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone(): sourceRow);
         return sourceExecIndexRow;

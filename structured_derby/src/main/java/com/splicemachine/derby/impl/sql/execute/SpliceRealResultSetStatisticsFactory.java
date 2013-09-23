@@ -21,6 +21,7 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -164,6 +165,10 @@ public class SpliceRealResultSetStatisticsFactory
 		else
 			return null;
 	}
+
+    public ResultSetStatistics getResultSetStatistics(SpliceOperation operation){
+        throw new UnsupportedOperationException("Implement!");
+    }
 
 	public ResultSetStatistics getNoRowsResultSetStatistics(ResultSet rs)
 	{
@@ -336,7 +341,7 @@ public class SpliceRealResultSetStatisticsFactory
 											subqueryTrackingArray,
 											(prrs.getRestrictionMethodName() != null),
 											prrs.doesProjection(),
-											prrs.getOptimizerEstimatedRowCount(),
+											prrs.getEstimatedRowCount(),
 											prrs.getOptimizerEstimatedCost(),
 											getResultSetStatistics(prrs.getSource())
 											);

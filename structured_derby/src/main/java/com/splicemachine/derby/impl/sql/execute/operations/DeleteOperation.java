@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
@@ -28,12 +29,12 @@ public class DeleteOperation extends DMLWriteOperation {
 		super();
 	}
 
-	public DeleteOperation(NoPutResultSet source, Activation activation) throws StandardException {
+	public DeleteOperation(SpliceOperation source, Activation activation) throws StandardException {
 		super(source, activation);
 		recordConstructorTime(); 
 	}
 
-	public DeleteOperation(NoPutResultSet source, ConstantAction passedInConstantAction, Activation activation) throws StandardException {
+	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation) throws StandardException {
 		super(source, activation);
 		recordConstructorTime(); 
 	}

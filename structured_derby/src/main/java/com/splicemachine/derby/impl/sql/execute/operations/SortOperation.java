@@ -49,7 +49,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     private static final HashMerger merger = new DistinctMerger();
 
-    protected NoPutResultSet source;
+    protected SpliceOperation source;
     protected boolean distinct;
     protected int orderingItem;
     protected int[] keyColumns;
@@ -75,7 +75,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 //		SpliceLogUtils.trace(LOG, "instantiated without parameters");
     }
 
-    public SortOperation(NoPutResultSet s,
+    public SortOperation(SpliceOperation s,
                          boolean distinct,
                          int orderingItem,
                          int numColumns,
@@ -152,12 +152,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
 
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
 
         ExecRow nextRow = null;
 
         if(!distinct){
-            nextRow = source.getNextRowCore();
+            nextRow = source.nextRow();
         }else{
 
 
@@ -174,8 +174,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-        SpliceLogUtils.trace(LOG, "getNextRowCore");
+    public ExecRow nextRow() throws StandardException {
+        SpliceLogUtils.trace(LOG, "nextRow");
         sortResult = getNextRowFromScan();
         if (sortResult != null)
             setCurrentRow(sortResult);
@@ -278,12 +278,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if (source != null) source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
-    public NoPutResultSet getSource() {
+    public SpliceOperation getSource() {
         return this.source;
     }
 
@@ -292,7 +292,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "close in Sort");
         beginTime = getCurrentTimeMillis();
         if (isOpen) {
@@ -311,15 +311,15 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         isOpen = false;
     }
 
-    @Override
-    public long getTimeSpent(int type) {
-        long totTime = constructorTime + openTime + nextTime + closeTime;
-
-        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-            return totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-        else
-            return totTime;
-    }
+//    @Override
+//    public long getTimeSpent(int type) {
+//        long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//            return totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//        else
+//            return totTime;
+//    }
 
     public Properties getSortProperties() {
         if (sortProperties == null)
@@ -351,17 +351,17 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .toString();
     }
 
-    private RowProviderIterator<ExecRow> wrapOperationWithProviderIterator(final NoPutResultSet operationSource){
+    private RowProviderIterator<ExecRow> wrapOperationWithProviderIterator(final SpliceOperation operationSource){
         return new RowProviderIterator<ExecRow>() {
 
             private ExecRow nextRow;
             private boolean populated = false;
 
             @Override
-            public boolean hasNext() throws StandardException {
+            public boolean hasNext() throws StandardException, IOException {
 
                 if(!populated){
-                    nextRow = operationSource.getNextRowCore();
+                    nextRow = operationSource.nextRow();
                     populated=true;
                 }
 
@@ -369,7 +369,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             }
 
             @Override
-            public ExecRow next() throws StandardException {
+            public ExecRow next() throws StandardException, IOException {
 
                 if(!populated){
                     hasNext();

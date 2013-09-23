@@ -256,7 +256,7 @@ public class HdfsImport extends ParallelVTI {
 
 
 	@Override
-	public void openCore() throws StandardException {
+	public void open() throws StandardException {
 		try {
 			admin = new HBaseAdmin(SpliceUtils.config);
 		} catch (MasterNotRunningException e) {
@@ -331,9 +331,13 @@ public class HdfsImport extends ParallelVTI {
 
     //TODO -sf- make HdfsImport report how many rows were returned
 	@Override public int modifiedRowCount() { return 0; }
-	@Override public void open() throws StandardException { openCore(); }
 
-	/*no op methods*/
+    @Override
+    public void clearCurrentRow() {
+        //no-op
+    }
+
+    /*no op methods*/
 	@Override public ExecRow getExecRowDefinition() { return null; }
 	@Override public boolean next() { return false; }
     @Override public SpliceOperation getRightOperation() { return null; } //noop

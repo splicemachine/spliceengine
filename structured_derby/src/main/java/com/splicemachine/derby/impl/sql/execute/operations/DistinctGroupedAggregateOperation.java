@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -37,7 +38,7 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 	 *
 	 * @exception StandardException Thrown on error
 	 */
-    public DistinctGroupedAggregateOperation(NoPutResultSet s,
+    public DistinctGroupedAggregateOperation(SpliceOperation s,
 					boolean isInSortedOrder,
 					int	aggregateItem,
 					int	orderingItem,

@@ -34,7 +34,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public abstract class ScanOperation extends SpliceBaseOperation implements CursorResultSet{
+public abstract class ScanOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(ScanOperation.class);
 	private static long serialVersionUID=6l;
 
@@ -166,18 +166,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
 	public SpliceOperation getLeftOperation() {
 		return null;
 	}
-	@Override
-	public RowLocation getRowLocation() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getRowLocation %s",currentRowLocation);
-		return currentRowLocation;
-	}
 
-	@Override
-	public ExecRow getCurrentRow() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getCurrentRow %s",currentRow);
-		return currentRow;
-	}
-	
 	protected void initIsolationLevel() {
 		SpliceLogUtils.trace(LOG, "initIsolationLevel");
 	}
@@ -539,7 +528,7 @@ public abstract class ScanOperation extends SpliceBaseOperation implements Curso
     }
     
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "closing");
         super.close();
     }

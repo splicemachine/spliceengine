@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -7,6 +8,7 @@ import java.util.NoSuchElementException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
@@ -48,7 +50,7 @@ public class RowProviders {
 		return new SingletonRowProvider(row);
 	}
 
-	public static RowProvider sourceProvider(NoPutResultSet source, Logger log){
+	public static RowProvider sourceProvider(SpliceOperation source, Logger log){
 		return new SourceRowProvider(source,log);
 	}
 
@@ -74,7 +76,7 @@ public class RowProviders {
 //		@Override public Scan toScan() { return provider.toScan(); }
 		@Override public byte[] getTableName() { return provider.getTableName(); }
 		@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
-		@Override public boolean hasNext() throws StandardException { return provider.hasNext(); }
+		@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
 
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
@@ -119,12 +121,12 @@ public class RowProviders {
     }
 
 	public static class SourceRowProvider extends SingleScanRowProvider{
-		private final NoPutResultSet source;
+		private final SpliceOperation source;
 		private final Logger log;
 		//private boolean populated = false;
 		private ExecRow nextEntry;
 
-		private SourceRowProvider(NoPutResultSet source, Logger log) {
+		private SourceRowProvider(SpliceOperation source, Logger log) {
 			this.source = source;
 			this.log = log;
 		}
@@ -135,8 +137,10 @@ public class RowProviders {
 				source.open();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(log,e);
-			}
-		}
+			} catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(log,e);
+            }
+        }
 
 		@Override
 		public void close() {
@@ -144,8 +148,10 @@ public class RowProviders {
 				source.close();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(log,e);
-			}
-		}
+			} catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(log,e);
+            }
+        }
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
 		@Override public Scan toScan() { return null; }
@@ -160,11 +166,13 @@ public class RowProviders {
 		public boolean hasNext() {
 			//if(populated==true) return true;
 			try {
-				nextEntry = source.getNextRowCore();
+				nextEntry = source.nextRow();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(log,e);
-			}
-			return nextEntry!=null;
+			} catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(log,e);
+            }
+            return nextEntry!=null;
 		}
 
 		@Override
@@ -227,7 +235,7 @@ public class RowProviders {
         }
 
         @Override
-        public boolean hasNext() throws StandardException {
+        public boolean hasNext() throws StandardException, IOException {
             if(onFirst){
                 if(!firstRowProvider.hasNext()){
                     onFirst=false;
@@ -238,7 +246,7 @@ public class RowProviders {
         }
 
         @Override
-        public ExecRow next() throws StandardException {
+        public ExecRow next() throws StandardException, IOException {
             if(onFirst)
                 return firstRowProvider.next();
             else return secondRowProvider.next();

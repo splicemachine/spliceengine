@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
@@ -37,7 +38,7 @@ import com.splicemachine.derby.impl.sql.execute.IndexRow;
  * rows that needs to be deleted on dependent tables. Using the row location 
  * we got from the index , base row is fetched.
 */
-public class DependentOperation extends ScanOperation implements CursorResultSet {
+public class DependentOperation extends ScanOperation {
 
 
 	ConglomerateController heapCC;
@@ -322,7 +323,7 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	ExecRow searchRow = null; //the current row we are searching for
 
 	//this function will return an index row on dependent table 
-	public ExecRow	getNextRowCore() throws StandardException 
+	public ExecRow nextRow() throws StandardException
 	{
 		
 		if (searchRow == null) {
@@ -481,9 +482,9 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 			source.finish();
 	}
 
-	public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+	public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
 		initIsolationLevel();
 		sVector = activation.getParentResultSet(parentResultSetId);
 		int size = sVector.size();

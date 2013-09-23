@@ -33,7 +33,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
 	private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
-	protected NoPutResultSet source;
+	protected SpliceOperation source;
 	protected String rowAllocatorMethodName;
 	protected int aggregateItem;
 	protected SpliceGenericAggregator[] aggregates;	
@@ -53,7 +53,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
     	super();
     	SpliceLogUtils.trace(LOG, "instantiated");
     }
-    public GenericAggregateOperation (NoPutResultSet source,
+    public GenericAggregateOperation (SpliceOperation source,
 		int	aggregateItem,
 		Activation activation,
 		GeneratedMethod	ra,
@@ -224,12 +224,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		return row;
 	}
 
-	public void finish() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("finish");
-		source.finish();
-		super.finish();
-	}
 	@Override
 	public SpliceOperation getLeftOperation() {
 		if (LOG.isTraceEnabled())
@@ -237,12 +231,13 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		return (SpliceOperation) this.source;
 	}
 
-	@Override
+//	@Override
 	public void cleanup() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanup");
 	}
-	public NoPutResultSet getSource() {
+
+	public SpliceOperation getSource() {
 		return this.source;
 	}
 	
@@ -255,9 +250,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
     @Override

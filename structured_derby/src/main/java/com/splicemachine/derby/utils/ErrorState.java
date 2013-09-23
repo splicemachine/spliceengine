@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.NotServingRegionException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1746,7 +1747,15 @@ public enum ErrorState {
     REPLICATION_NOT_IN_SLAVE_MODE( "XRE40"),
     SLAVE_OPERATION_DENIED_WHILE_CONNECTED( "XRE41.C"),
     REPLICATION_SLAVE_SHUTDOWN_OK( "XRE42.C"),
-    REPLICATION_STOPSLAVE_NOT_INITIATED( "XRE43");
+    REPLICATION_STOPSLAVE_NOT_INITIATED( "XRE43"),
+
+    /*
+     * Splice Specific Error Messages
+     */
+    SPLICE_WRITE_RETRIES_EXHAUSTED("SE013"),
+    SPLICE_NOT_SERVING_REGION("SE014"),
+    SPLICE_OPERATION_UNSUPPORTED("SE002"),
+    SPLICE_UNEXPECTED_EXCEPTION("SE001");
 
     private final String sqlState;
 
@@ -1775,6 +1784,9 @@ public enum ErrorState {
             return DATA_FILE_NOT_FOUND;
         else if(t instanceof IOException)
             return COMMUNICATION_ERROR;
+        else if(t instanceof NotServingRegionException){
+            return SPLICE_NOT_SERVING_REGION;
+        }
 
         else return DATA_UNEXPECTED_EXCEPTION;
     }

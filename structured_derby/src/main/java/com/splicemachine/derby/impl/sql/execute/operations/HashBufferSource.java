@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.datanucleus.sco.backed.Map;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class HashBufferSource{
@@ -42,7 +43,7 @@ public class HashBufferSource{
         this.sortOrder = sortOrder;
     }
 
-    public Pair<ByteBuffer, ExecRow> getNextAggregatedRow() throws StandardException {
+    public Pair<ByteBuffer, ExecRow> getNextAggregatedRow() throws StandardException, IOException {
         Pair<ByteBuffer, ExecRow> result = null;
 
         if(!doneReadingSource){

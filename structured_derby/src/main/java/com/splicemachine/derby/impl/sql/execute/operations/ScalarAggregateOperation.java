@@ -50,7 +50,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super();
 	}
 
-    public ScalarAggregateOperation(NoPutResultSet s,
+    public ScalarAggregateOperation(SpliceOperation s,
                                     boolean isInSortedOrder,
                                     int	aggregateItem,
                                     Activation a,
@@ -83,9 +83,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
 	@Override
-	public void openCore() throws StandardException {
-        super.openCore();
-		source.openCore();
+	public void open() throws StandardException, IOException {
+        super.open();
+		source.open();
 		isOpen=true;
 	}
 	
@@ -121,23 +121,23 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         super.close();
         if(reduceScan!=null)
             SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
         return doAggregation(false);
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException, IOException {
 		return doAggregation(true);
 	}
 
-	protected ExecRow doAggregation(boolean useScan) throws StandardException{
+	protected ExecRow doAggregation(boolean useScan) throws StandardException, IOException {
         ExecRow execIndexRow;
         ExecRow aggResult = null;
 		if(useScan){
@@ -190,10 +190,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		}
 	}
 	
-	private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException{
+	private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException, IOException {
 		ExecRow sourceRow;
 		ExecIndexRow inputRow = null;
-		if((sourceRow = source.getNextRowCore())!=null){
+		if((sourceRow = source.nextRow())!=null){
 			rowsInput++;
 			sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone():sourceRow);
 			inputRow = sourceExecIndexRow;
@@ -247,16 +247,16 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return this.singleInputRow;
 	}
 	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 
     @Override
     public String prettyPrint(int indentLevel) {

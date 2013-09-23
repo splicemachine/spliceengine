@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -118,13 +117,6 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public List<SpliceOperation> getRightOperationStack() {
-        List<SpliceOperation> ops = Lists.newArrayList(secondResultSet.getSubOperations());
-        ops.add(secondResultSet);
-        return ops;
-    }
-
-    @Override
     public NoPutResultSet executeScan() throws StandardException {
         if(!isScan){
             init(SpliceOperationContext.newContext(activation));
@@ -146,10 +138,10 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        firstResultSet.openCore();
-        secondResultSet.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        firstResultSet.open();
+        secondResultSet.open();
     }
 
     @Override
@@ -214,22 +206,22 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         ExecRow row = null;
         switch (currentSource) {
             case BOTH:
                 currentSource = Source.LEFT;
             case LEFT:
-                row = firstResultSet.getNextRowCore();
+                row = firstResultSet.nextRow();
                 if(row!=null || !readBoth){
                     rowsSeenLeft++;
                     break;
                 }
 
                 currentSource=Source.RIGHT;
-                secondResultSet.openCore();
+                secondResultSet.open();
             case RIGHT:
-                row = secondResultSet.getNextRowCore();
+                row = secondResultSet.nextRow();
                 if(row==null)
                     currentSource = Source.LEFT;
                 else

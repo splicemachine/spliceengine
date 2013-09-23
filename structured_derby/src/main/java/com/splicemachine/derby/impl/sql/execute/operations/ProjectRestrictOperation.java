@@ -56,27 +56,27 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		super();
 	}
 
-	public ProjectRestrictOperation(NoPutResultSet source,
-																	Activation activation,
-																	GeneratedMethod restriction,
-																	GeneratedMethod projection,
-																	int resultSetNumber,
-																	GeneratedMethod cr,
-																	int mapRefItem,
-																	int cloneMapItem,
-																	boolean reuseResult,
-																	boolean doesProjection,
-																	double optimizerEstimatedRowCount,
-																	double optimizerEstimatedCost) throws StandardException {
-		super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-		this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
-		this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
-		this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
-		this.mapRefItem = mapRefItem;
-		this.cloneMapItem = cloneMapItem;
-		this.reuseResult = reuseResult;
-		this.doesProjection = doesProjection;
-		this.source = (SpliceOperation) source;
+    public ProjectRestrictOperation(SpliceOperation source,
+                                    Activation activation,
+                                    GeneratedMethod restriction,
+                                    GeneratedMethod projection,
+                                    int resultSetNumber,
+                                    GeneratedMethod cr,
+                                    int mapRefItem,
+                                    int cloneMapItem,
+                                    boolean reuseResult,
+                                    boolean doesProjection,
+                                    double optimizerEstimatedRowCount,
+                                    double optimizerEstimatedCost) throws StandardException {
+        super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
+        this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
+        this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
+        this.mapRefItem = mapRefItem;
+        this.cloneMapItem = cloneMapItem;
+        this.reuseResult = reuseResult;
+        this.doesProjection = doesProjection;
+        this.source = source;
 		init(SpliceOperationContext.newContext(activation));
 		SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s, isTopResultSet=%s",statisticsTimingOn,isTopResultSet);
 		recordConstructorTime();
@@ -195,12 +195,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public void cleanup() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("cleanup");
-	}
-	
-	@Override
 	public NoPutResultSet executeScan() throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
         RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(fromResults));
@@ -226,7 +220,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException, IOException {
 
         if(alwaysFalse){
             return null;
@@ -239,7 +233,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		beginTime = getCurrentTimeMillis();
 		do {
-			candidateRow = source.getNextRowCore();
+			candidateRow = source.nextRow();
 			if (candidateRow != null) {
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {
@@ -300,11 +294,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public void openCore() throws StandardException {
-        super.openCore();
-		if(source!=null) source.openCore();
-	}
-	@Override
 	public int[] getRootAccessedCols(long tableNumber) {
 		int[] sourceCols = source.getRootAccessedCols(tableNumber);
 		if (projectMapping == null) {
@@ -322,22 +311,23 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return source.isReferencingTable(tableNumber);
     }
 
-	public NoPutResultSet getSource() {
+	public SpliceOperation getSource() {
 		return this.source;
 	}
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
 
-		if (type == CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
+
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 		/* Nothing to do if open was short circuited by false constant expression */
 		if (shortCircuitOpen)

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -48,7 +49,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		super();
 	}
 
-	public UpdateOperation(NoPutResultSet source, GeneratedMethod generationClauses,
+	public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
 												 GeneratedMethod checkGM, Activation activation)
 			throws StandardException {
 		super(source, generationClauses, checkGM, activation);

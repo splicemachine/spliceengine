@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import org.apache.derby.iapi.error.StandardException;
@@ -119,7 +120,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
     	if(statementContext == null || !statementContext.onStack()){
             statementContext = activation.getLanguageConnectionContext().getStatementContext();
         }
-    	statementContext.setTopResultSet(topOperation,subqueryTrackingArray);
+    	statementContext.setTopResultSet(this,subqueryTrackingArray);
         if(subqueryTrackingArray == null)
             subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
         statementContext.setActivation(activation);
@@ -170,8 +171,12 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         }catch(RuntimeException r){
             throw Exceptions.parseException(r);
         }
-		topOperation.close();
-		closed =true;
+        try {
+            topOperation.close();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        closed =true;
 	}
 
 	@Override
@@ -307,7 +312,8 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 	@Override
 	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getNextRowCore");
+		SpliceLogUtils.trace(LOG,"nextRow");
+        try {
             if(rowProvider.hasNext()){
                 execRow = rowProvider.next();
                 SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
@@ -315,7 +321,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             }else {
                 return null;
             }
-	}
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
 	@Override
 	public int getPointOfAttachment() {

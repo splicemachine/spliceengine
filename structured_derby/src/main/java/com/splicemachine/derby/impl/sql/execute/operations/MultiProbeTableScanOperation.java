@@ -47,11 +47,11 @@ import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
- * table with a given list of values.  Repeated calls to getNextRowCore()
+ * table with a given list of values.  Repeated calls to nextRow()
  * will first return all rows matching probeValues[0], then all rows matching
  * probeValues[1], and so on (duplicate probe values are ignored).  Once all
  * matching rows for all values in probeValues have been returned, the call
- * to getNextRowCore() will return null, thereby ending the scan. The
+ * to nextRow() will return null, thereby ending the scan. The
  * expectation is that this kind of result set only ever appears beneath
  * some other top-level result set (esp. IndexRowToBaseRowResultSet), in
  * which case all result sets higher up in the result set tree will just

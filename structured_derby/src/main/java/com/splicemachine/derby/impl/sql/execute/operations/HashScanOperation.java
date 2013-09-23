@@ -207,11 +207,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 	
 	@Override
-	public void cleanup() {
-		SpliceLogUtils.trace(LOG,"cleanup");
-	}
-
-	@Override
 	public void generateLeftOperationStack(List<SpliceOperation> operations) {
 		SpliceLogUtils.trace(LOG,"generateLeftOperationStac");
 		operations.add(this);
@@ -223,23 +218,23 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
     public ExecRow getNextSinkRow() throws StandardException {
-        return getNextRowCore();
+        return nextRow();
     }
 
 	@Override
-	public ExecRow getNextRowCore() throws StandardException {
-		  SpliceLogUtils.trace(LOG, "getNextRowCore");
+	public ExecRow nextRow() throws StandardException {
+		  SpliceLogUtils.trace(LOG, "nextRow");
 		  List<KeyValue> keyValues = new ArrayList<KeyValue>();	
 		  try {
 			regionScanner.next(keyValues);
               if (!keyValues.isEmpty()) {
-                  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values %s", keyValues);
+                  SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
                       RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, null);
                   }
-                  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s", currentRow);
+                  SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);
                   currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
                   return currentRow;
@@ -267,8 +262,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in HashScan");
 		beginTime = getCurrentTimeMillis();
 		if ( isOpen )

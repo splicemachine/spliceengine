@@ -164,11 +164,6 @@ public class TableScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public void cleanup() {
-		SpliceLogUtils.trace(LOG,"cleanup");
-	}
-
-	@Override
 	public ExecRow getExecRowDefinition() {
 //		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		return currentTemplate;
@@ -180,7 +175,7 @@ public class TableScanOperation extends ScanOperation {
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException {
 		beginTime = getCurrentTimeMillis();
         long start = System.nanoTime();
 		try {
@@ -213,7 +208,7 @@ public class TableScanOperation extends ScanOperation {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during getNextRowCore",
+			SpliceLogUtils.logAndThrow(LOG, tableName+":Error during nextRow",
 																				StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
 		}finally{
             timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
@@ -229,7 +224,7 @@ public class TableScanOperation extends ScanOperation {
 	}
 	
 	@Override
-	public void	close() throws StandardException {
+	public void	close() throws StandardException, IOException {
         if(rowDecoder!=null)
             rowDecoder.close();
 		SpliceLogUtils.trace(LOG, "close in TableScan");

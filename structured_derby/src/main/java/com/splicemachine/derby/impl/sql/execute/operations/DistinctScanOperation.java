@@ -156,7 +156,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
 
         Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
         ExecRow row = null;
@@ -170,7 +170,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         try {
             regionScanner.next(keyValues);
@@ -206,7 +206,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         super.close();
         if(hbs!=null)
             hbs.close();

@@ -56,13 +56,13 @@ public class AnyOperation extends SpliceBaseOperation {
 
     public AnyOperation() { }
 
-    public AnyOperation(NoPutResultSet s, Activation a, GeneratedMethod emptyRowFun,
+    public AnyOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
 						int resultSetNumber, int subqueryNumber,
 						int pointOfAttachment,
 						double optimizerEstimatedRowCount,
 						double optimizerEstimatedCost) throws StandardException {
 		super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-        source = (SpliceOperation) s;
+        source = s;
 		this.subqueryNumber = subqueryNumber;
 		this.pointOfAttachment = pointOfAttachment;
         this.emptyRowFunName = emptyRowFun.getMethodName();
@@ -85,10 +85,10 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         // We don't think this method will get called, as we don't believe AnyOperation will get pushed out to HBase.
         // Leaving the implementation, which mimics our DelegatingRowProvider.next() below, in case we're wrong.
-        ExecRow candidateRow = source.getNextRowCore();
+        ExecRow candidateRow = source.nextRow();
         ExecRow result = candidateRow != null ? candidateRow : getRowWithNulls();
         setCurrentRow(result);
         return result;
@@ -107,9 +107,9 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        source.open();
     }
 
     @Override
@@ -159,7 +159,7 @@ public class AnyOperation extends SpliceBaseOperation {
             }
 
             @Override
-            public ExecRow next() throws StandardException {
+            public ExecRow next() throws StandardException, IOException {
                 ExecRow result = provider.hasNext() ? provider.next() : getRowWithNulls();
                 setCurrentRow(result);
                 return result;

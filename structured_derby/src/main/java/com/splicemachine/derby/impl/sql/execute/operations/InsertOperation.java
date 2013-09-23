@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -45,7 +46,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		super();
 	}
 	
-	public InsertOperation(NoPutResultSet source,
+	public InsertOperation(SpliceOperation source,
 							GeneratedMethod generationClauses, 
 							GeneratedMethod checkGM) throws StandardException{
 		super(source, generationClauses, checkGM, source.getActivation());

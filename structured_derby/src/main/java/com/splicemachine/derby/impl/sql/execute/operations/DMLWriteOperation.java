@@ -42,8 +42,8 @@ import java.util.Map;
 public abstract class DMLWriteOperation extends SpliceBaseOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
 	private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
-	protected NoPutResultSet source;
-	public NoPutResultSet savedSource;
+	protected SpliceOperation source;
+	public SpliceOperation savedSource;
 	ConstantAction constants;
 	protected long heapConglom;
 	
@@ -70,14 +70,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		init(SpliceOperationContext.newContext(activation));
 	}
 	
-	public DMLWriteOperation(NoPutResultSet source, Activation activation) throws StandardException{
+	public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
 		super(activation,-1,0d,0d);
 		this.source = source;
 		this.activation = activation;
 		init(SpliceOperationContext.newContext(activation));
 	}
 	
-	public DMLWriteOperation(NoPutResultSet source,
+	public DMLWriteOperation(SpliceOperation source,
 			GeneratedMethod generationClauses, 
 			GeneratedMethod checkGM) throws StandardException{
 		super(source.getActivation(),-1,0d,0d);
@@ -86,7 +86,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		init(SpliceOperationContext.newContext(activation));
 	}
 	
-	public DMLWriteOperation(NoPutResultSet source,
+	public DMLWriteOperation(SpliceOperation source,
 							GeneratedMethod generationClauses, 
 							GeneratedMethod checkGM,
 							Activation activation) throws StandardException{
@@ -105,7 +105,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	public void readExternal(ObjectInput in) throws IOException,
 			ClassNotFoundException {
 		super.readExternal(in);
-		source = (NoPutResultSet)in.readObject();
+		source = (SpliceOperation)in.readObject();
         if(in.readBoolean())
             pkColumns = (FormatableBitSet)in.readObject();
 	}
@@ -191,13 +191,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     }
 
     @Override
-    public void open() throws StandardException {
+    public void open() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG,"Open");
-        super.open();
+        if(source!=null)source.open();
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         modifiedProvider.close();
         super.close();
     }
@@ -209,11 +209,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		return row;
 	}
 
-	public ExecRow getNextSinkRow() throws StandardException {
-        return source.getNextRowCore();
+	public ExecRow getNextSinkRow() throws StandardException, IOException {
+        return source.nextRow();
 	}
 
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException {
         throw new UnsupportedOperationException("Write Operations do not produce rows.");
 	}
 
@@ -251,7 +251,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			SpliceLogUtils.trace(LOG, "open");
             this.isOpen = true;
 			try {
-				source.openCore();
+				source.open();
 				/* Cache query plan text for source, before it gets blown away */
 				if (activation.getLanguageConnectionContext().getRunTimeStatisticsMode())
 				{
@@ -260,8 +260,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
-			}
-			if(!getNodeTypes().contains(NodeType.REDUCE)){
+			} catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            }
+            if(!getNodeTypes().contains(NodeType.REDUCE)){
                 try {
                     OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null, null);
                     TaskStats stats = opSink.sink(getDestinationTable());
@@ -292,8 +294,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				source.close();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
-			}
-		}
+			} catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }
+        }
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
 		@Override public Scan toScan() { return null; }
@@ -318,15 +322,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			return (int)rowsSunk;
 	}
 	
-	public NoPutResultSet getSource() {
+	public SpliceOperation getSource() {
 		return this.source;
 	}
-
-    @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
-    }
 
     @Override
     public String prettyPrint(int indentLevel) {
