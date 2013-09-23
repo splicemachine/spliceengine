@@ -47,6 +47,8 @@
         <kryo.version>2.21</kryo.version>
         <mockito.version>1.9.5</mockito.version>
         <buildTime>${maven.build.timestamp}</buildTime>
+        <skip.integration.tests>true</skip.integration.tests>
+        <skip.unit.tests>${skipTests}</skip.unit.tests>
     </properties>
     <!-- Lets go with 1.6 compliance -->
 
