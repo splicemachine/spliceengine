@@ -231,6 +231,11 @@ class JobControl implements JobFuture {
                   int tryCount) throws ExecutionException {
         //only submit so many times
         if(tryCount>=maxResubmissionAttempts){
+            Throwable lastError = task.getError();
+            if(lastError!=null)
+                throw new ExecutionException(lastError);
+
+            //we don't know what went wrong, so blow up with an AttemptsExhausted
             ExecutionException ee = new ExecutionException(
                     new AttemptsExhaustedException("Unable to complete task "+ task.getTaskNode()+", it was invalidated more than "+ maxResubmissionAttempts+" times"));
             task.fail(ee.getCause());

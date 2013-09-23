@@ -264,7 +264,7 @@ public class RowCountOperation extends SpliceBaseOperation{
             final AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
             AbstractScanProvider newWrap = new AbstractScanProvider(scanProvider){
                 @Override
-                public Result getResult() throws StandardException {
+                public Result getResult() throws StandardException, IOException {
                     Result result = scanProvider.getResult();
                     if(!result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
                         return null;

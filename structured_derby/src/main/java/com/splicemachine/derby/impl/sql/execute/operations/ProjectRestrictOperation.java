@@ -326,7 +326,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //			return totTime;
 //	}
 
-	@Override
+
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
+    }
+
+    @Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 		/* Nothing to do if open was short circuited by false constant expression */

@@ -60,7 +60,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
 	@Override
-    public boolean hasNext() throws StandardException {
+    public boolean hasNext() throws StandardException,IOException {
 
         if(populated)return true;
         called++;
@@ -89,14 +89,14 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
         return false;
 	}
 
-	public abstract Result getResult() throws StandardException;
+	public abstract Result getResult() throws StandardException,IOException;
 
     public ExecRow getRowTemplate(){
         return decoder.getTemplate();
     }
 
 	@Override
-	public ExecRow next() throws StandardException{
+	public ExecRow next() throws StandardException,IOException{
 		SpliceLogUtils.trace(LOG, "next");
 		if(!hasNext()) throw new NoSuchElementException();
 		populated =false;

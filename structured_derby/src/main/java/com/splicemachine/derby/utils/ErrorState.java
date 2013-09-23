@@ -4,11 +4,16 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Scott Fines
@@ -576,7 +581,14 @@ public enum ErrorState {
     LANG_SQRT_OF_NEG_NUMBER( "22013"),
     LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION( "22014"),
     LANG_INVALID_TYPE_FOR_LOCATE_FUNCTION( "22015"),
-    LANG_FORMAT_EXCEPTION( "22018"),
+    LANG_FORMAT_EXCEPTION( "22018"){
+        @Override
+        public boolean accepts(Throwable t) {
+            if(super.accepts(t)) return true;
+
+            return t instanceof Exceptions.LangFormatException;
+        }
+    },
     LANG_INVALID_ESCAPE_CHARACTER( "22019"),
     LANG_INVALID_TRIM_CHARACTER( "22020"),
     LANG_INVALID_ESCAPE_SEQUENCE( "22025"),
@@ -595,7 +607,14 @@ public enum ErrorState {
     /*Attempting to insert a null value into a column with a non-null constraint */
     LANG_NULL_INTO_NON_NULL( "23502"),
 
-    LANG_DUPLICATE_KEY_CONSTRAINT( "23505"),
+    LANG_DUPLICATE_KEY_CONSTRAINT( "23505"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) ||
+                    t instanceof ConstraintViolation.UniqueConstraintViolation ||
+                    t instanceof ConstraintViolation.PrimaryKeyViolation;
+        }
+    },
     LANG_FK_VIOLATION( "23503"),
     LANG_CHECK_CONSTRAINT_VIOLATED( "23513"),
 
@@ -953,7 +972,12 @@ public enum ErrorState {
     LANG_INVALID_CONTEXT_ITEM_TYPE( "42Z77"),
     LANG_XMLPARSE_UNKNOWN_PARAM_TYPE( "42Z79"),
 
-    LANG_SERIALIZABLE										( "42Z80.U"),
+    LANG_SERIALIZABLE										( "42Z80.U"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof WriteConflict;
+        }
+    },
     LANG_READ_COMMITTED										( "42Z81.U"),
     LANG_EXCLUSIVE											( "42Z82.U"),
     LANG_INSTANTANEOUS_SHARE									( "42Z83.U"),
@@ -1563,8 +1587,18 @@ public enum ErrorState {
     // Use this version of SOCKET_EXCEPTION any time *except* when trying to
     // establish a connection, as the SQLState is different.  When trying
     // to establish a connection, use CONNECT_SOCKET_EXCEPTION.
-    SOCKET_EXCEPTION( "08006.C.2"),
-    COMMUNICATION_ERROR( "08006.C.3"),
+    SOCKET_EXCEPTION( "08006.C.2"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof SocketException;
+        }
+    },
+    COMMUNICATION_ERROR( "08006.C.3"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t)||t instanceof IOException;
+        }
+    },
     CONNECTION_FAILED_ON_DEFERRED_RESET( "08006.C.4"),
     NET_INSUFFICIENT_DATA( "08006.C.5"),
     NET_LOB_DATA_TOO_LARGE_FOR_JVM( "08006.C.6"),
@@ -1582,7 +1616,13 @@ public enum ErrorState {
     // a connection to the server, as the SQL State 08001 indicates failure
     // to establish a connection.  If you aren't trying to connect, just
     // use SOCKET_EXCEPTION
-    CONNECT_SOCKET_EXCEPTION( "08001.C.3"),
+    CONNECT_SOCKET_EXCEPTION( "08001.C.3"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof ConnectException;
+        }
+    },
+
     CONNECT_UNABLE_TO_OPEN_SOCKET_STREAM( "08001.C.4"),
     CONNECT_USERID_LENGTH_OUT_OF_RANGE( "08001.C.5"),
     CONNECT_PASSWORD_LENGTH_OUT_OF_RANGE( "08001.C.6"),
@@ -1695,6 +1735,11 @@ public enum ErrorState {
             FileNotFoundException fnfe = (FileNotFoundException)rootCause;
             return StandardException.newException(getSqlState(),fnfe.getMessage());
         }
+
+        @Override
+        public boolean accepts(Throwable t) {
+            return t instanceof FileNotFoundException || super.accepts(t);
+        }
     },
     DATA_FILE_NULL("XIE05.S"),
     ENTITY_NAME_MISSING("XIE06.S"),
@@ -1752,10 +1797,56 @@ public enum ErrorState {
     /*
      * Splice Specific Error Messages
      */
-    SPLICE_WRITE_RETRIES_EXHAUSTED("SE013"),
-    SPLICE_NOT_SERVING_REGION("SE014"),
+    SPLICE_WRITE_RETRIES_EXHAUSTED("SE003"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return t instanceof RetriesExhaustedException || t instanceof AttemptsExhaustedException || super.accepts(t);
+        }
+    },
+    SPLICE_REGION_OFFLINE("SE004"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return t instanceof NotServingRegionException || t instanceof WrongRegionException || super.accepts(t);
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            if(!(rootCause instanceof NotServingRegionException))
+                return super.newException(rootCause);
+            String message = rootCause.getMessage();
+
+            Matcher matcher = Pattern.compile(" (.*),").matcher(message);
+            if(!matcher.find()){
+                //try and get it for a slightly different pattern
+                //if that doesn't work, fall back on the default
+                matcher = Pattern.compile("(.*),").matcher(message);
+                if(!matcher.find())
+                    return super.newException(rootCause);
+            }
+
+            String regionName = matcher.group(1);
+            regionName = regionName.substring(0,regionName.length()-1);
+
+            return StandardException.newException(getSqlState(),regionName);
+        }
+    },SPLICE_REGION_TOO_BUSY("SE005"){
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t)|| t instanceof RegionTooBusyException;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            return StandardException.newException(getSqlState());
+        }
+    },
     SPLICE_OPERATION_UNSUPPORTED("SE002"),
-    SPLICE_UNEXPECTED_EXCEPTION("SE001");
+    SPLICE_UNEXPECTED_EXCEPTION("SE001"){
+        @Override
+        public StandardException newException(Throwable rootCause) {
+            return StandardException.newException(getSqlState(),rootCause.getMessage());
+        }
+    };
 
     private final String sqlState;
 
@@ -1764,31 +1855,22 @@ public enum ErrorState {
     }
 
     public static ErrorState stateFor(Throwable t){
-        if(t instanceof StandardException)
-            return stateFor(((StandardException)t).getSqlState());
-        else if(t instanceof WriteConflict)
-            return LANG_SERIALIZABLE;
-        else if(t instanceof ConstraintViolation.PrimaryKeyViolation||t instanceof ConstraintViolation.UniqueConstraintViolation)
+        if(LANG_DUPLICATE_KEY_CONSTRAINT.accepts(t))
             return LANG_DUPLICATE_KEY_CONSTRAINT;
-        else if(t instanceof Exceptions.LangFormatException)
-            return LANG_FORMAT_EXCEPTION;
-        else if(t instanceof ConnectException){
-            ConnectException exception = (ConnectException)t;
-            if(exception.getMessage().equalsIgnoreCase("Connection refused"))
-                return AUTH_DATABASE_CONNECTION_REFUSED; //TODO -sf- change this to a more generic, rather than an AUTH error
-            return CONNECT_SOCKET_EXCEPTION;
-        }
-        else if(t instanceof SocketException)
-            return SOCKET_EXCEPTION;
-        else if(t instanceof FileNotFoundException)
-            return DATA_FILE_NOT_FOUND;
-        else if(t instanceof IOException)
-            return COMMUNICATION_ERROR;
-        else if(t instanceof NotServingRegionException){
-            return SPLICE_NOT_SERVING_REGION;
+        //TODO -sf- ordering issues
+        for(ErrorState state:values()){
+            if(state==COMMUNICATION_ERROR)
+                continue;
+            if(state.accepts(t))
+                return state;
         }
 
-        else return DATA_UNEXPECTED_EXCEPTION;
+        //check generic IOExceptions only if we haven't found something else better first.
+
+        if(COMMUNICATION_ERROR.accepts(t))
+            return COMMUNICATION_ERROR;
+        //something unexpected happened, that's probably not good.
+        return SPLICE_UNEXPECTED_EXCEPTION;
     }
 
     public static ErrorState stateFor(String sqlState){
@@ -1809,5 +1891,19 @@ public enum ErrorState {
 
     public StandardException newException(Object... message){
         return StandardException.newException(getSqlState(),message);
+    }
+
+    public boolean accepts(Throwable t){
+        if(!(t instanceof StandardException)) return false;
+
+        StandardException se = (StandardException)t;
+        return se.getSqlState().equals(sqlState);
+    }
+
+    public static void main(String... args) throws Exception{
+        String test = "org.apache.hadoop.hbase.NotServingRegionException: SPLICE_TEMP,,1379966867836.cb48d617ab87498984680ee8e061e09c. is closing.";
+        Matcher matcher = Pattern.compile(" (.*),").matcher(test);
+        matcher.find();
+        System.out.println(matcher.group(1));
     }
 }

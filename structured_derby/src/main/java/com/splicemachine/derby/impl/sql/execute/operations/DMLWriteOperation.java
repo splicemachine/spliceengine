@@ -193,6 +193,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     @Override
     public void open() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG,"Open");
+        super.open();
         if(source!=null)source.open();
     }
 

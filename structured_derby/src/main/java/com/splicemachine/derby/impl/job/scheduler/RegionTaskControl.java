@@ -386,4 +386,8 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         else
             throw new ExecutionException(taskStatus.getError());
     }
+
+    public Throwable getError() {
+        return taskStatus.getError();
+    }
 }

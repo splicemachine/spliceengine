@@ -35,7 +35,7 @@ import java.sql.Timestamp;
  * @author Scott Fines
  * Created on: 3/28/13
  */
-public class OperationResultSet implements NoPutResultSet,HasIncrement {
+public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorResultSet,ConvertedResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
@@ -398,4 +398,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
+
+    @Override
+    public RowLocation getRowLocation() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getRowLocation();
+        return null;
+    }
+
+    @Override
+    public ExecRow getCurrentRow() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getCurrentRow();
+        return null;
+    }
+
+    @Override
+    public SpliceOperation getOperation() {
+        return topOperation;
+    }
 }
