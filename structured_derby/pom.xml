@@ -281,10 +281,10 @@
 								<phase>post-integration-test</phase>
 								<configuration>
 									<target name="StopSpliceServer">
-										<exec executable="${run.command}" dir="${basedir}" spawn="false">
+										<exec executable="${run.command}" dir="${basedir}" spawn="true">
 											<arg value="${basedir}/../${zookeeper.stop.script}" />
 										</exec>
-										<exec executable="${run.command}" dir="${basedir}" spawn="false">
+										<exec executable="${run.command}" dir="${basedir}" spawn="true">
 											<arg value="${basedir}/../${splice.stop.script}" />
 										</exec>
 									</target>
@@ -327,6 +327,7 @@
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
@@ -371,6 +372,7 @@
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
 								<argument>-Djava.awt.headless=true</argument>
+                        	    <argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
@@ -604,6 +606,7 @@
 								<argument>-Xdebug</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
