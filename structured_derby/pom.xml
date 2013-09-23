@@ -217,6 +217,55 @@
 				</executions>
 			</plugin>
 
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>############## start-splice ################</id>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <target name="StartSpliceServer">
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${zookeeper.start.script}" />
+                                        </exec>
+                                        <sleep seconds="15" />
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${splice.start.script}" />
+                                        </exec>
+                                        <sleep seconds="120" />
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        </plugin>
+
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>############## stop-splice ################</id>
+                                <phase>post-integration-test</phase>
+                                <configuration>
+                                    <target name="StopSpliceServer">
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${zookeeper.stop.script}" />
+                                        </exec>
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${splice.stop.script}" />
+                                        </exec>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
 		</plugins>
 	</build>
 
@@ -251,52 +300,6 @@
 				<splice.start.script>start-splice.sh</splice.start.script>
 				<splice.stop.script>stop-splice.sh</splice.stop.script>
 			</properties>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-antrun-plugin</artifactId>
-						<version>1.6</version>
-						<executions>
-							<execution>
-								<id>start-server</id>
-								<phase>pre-integration-test</phase>
-								<configuration>
-									<target name="StartSpliceServer">
-										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${zookeeper.start.script}" />
-										</exec>
-										<sleep seconds="15" />
-										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${splice.start.script}" />
-										</exec>
-										<sleep seconds="120" />
-									</target>
-								</configuration>
-								<goals>
-									<goal>run</goal>
-								</goals>
-							</execution>
-							<execution>
-								<id>stop-server</id>
-								<phase>post-integration-test</phase>
-								<configuration>
-									<target name="StopSpliceServer">
-										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${zookeeper.stop.script}" />
-										</exec>
-										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${splice.stop.script}" />
-										</exec>
-									</target>
-								</configuration>
-								<goals>
-									<goal>run</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-				</plugins>
-			</build>
 		</profile>
 
 		<profile>
