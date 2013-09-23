@@ -162,7 +162,7 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
         String interfaceName = "lo0";
         if (!System.getProperty("os.name").contains("Mac")) {
-        	interfaceName = "lo";
+        	interfaceName = "default";
         }
         configuration.set("hbase.zookeeper.dns.interface", interfaceName);
         configuration.set("hbase.regionserver.dns.interface", interfaceName);
