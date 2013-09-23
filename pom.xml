@@ -1,158 +1,168 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.splicemachine</groupId>
-	<version>1.0.1-SNAPSHOT</version>
-	<packaging>pom</packaging>
-	<artifactId>structured_hbase</artifactId>
-	<name>structured_hbase</name>
-	<description>Set of modules for getting hbase to function in structure</description>
-	<modules>
-		<module>structured_constants</module>
-		<module>structured_si</module>
-		<module>structured_derby</module>		
-	</modules>
-	<scm>
-		<connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
-		<developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
-	</scm>
-	<distributionManagement>
-		<repository>
-		<uniqueVersion>false</uniqueVersion>
-		<id>structured-hbase-release</id>
-		<name>Structured HBase Release</name>
-		<url>http://www.inciteretail.com/nexus/content/repositories/releases</url>
-		</repository>
-	
-		<snapshotRepository>
-		<uniqueVersion>true</uniqueVersion>
-		<id>structured-hbase-snapshot</id>
-		<name>Structured HBase Snapshot</name>
-		<url>http://www.inciteretail.com/nexus/content/repositories/snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
-	<properties>
-		<runSuite>*Test</runSuite>
-		<runClass>**/${runSuite}.class</runClass>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<junit.version>4.11</junit.version>
-		<gson.version>1.6</gson.version>
-		<maven.compiler.source>1.6</maven.compiler.source>
-		<maven.compiler.target>1.6</maven.compiler.target>
-		<maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
-		<log4j.version>1.2.15</log4j.version>
-		<derby.version>10.9.1.0.splice</derby.version>
-		<gson.version>2.2.2</gson.version>
-		<kryo.version>2.21</kryo.version>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.splicemachine</groupId>
+    <version>1.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <artifactId>structured_hbase</artifactId>
+    <name>structured_hbase</name>
+    <description>Set of modules for getting hbase to function in structure</description>
+    <modules>
+        <module>structured_constants</module>
+        <module>structured_si</module>
+        <module>structured_derby</module>
+    </modules>
+    <scm>
+        <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
+        <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
+    </scm>
+    <distributionManagement>
+        <repository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>structured-hbase-release</id>
+            <name>Structured HBase Release</name>
+            <url>http://www.inciteretail.com/nexus/content/repositories/releases</url>
+        </repository>
+
+        <snapshotRepository>
+            <uniqueVersion>true</uniqueVersion>
+            <id>structured-hbase-snapshot</id>
+            <name>Structured HBase Snapshot</name>
+            <url>http://www.inciteretail.com/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+    <properties>
+        <runSuite>*Test</runSuite>
+        <runClass>**/${runSuite}.class</runClass>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <junit.version>4.11</junit.version>
+        <gson.version>1.6</gson.version>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.jar.plugin.version>2.3.1</maven.jar.plugin.version>
+        <log4j.version>1.2.15</log4j.version>
+        <derby.version>10.9.1.0.splice</derby.version>
+        <gson.version>2.2.2</gson.version>
+        <kryo.version>2.21</kryo.version>
         <mockito.version>1.9.5</mockito.version>
         <buildTime>${maven.build.timestamp}</buildTime>
-	</properties>
-	<!-- Lets go with 1.6 compliance -->
+    </properties>
+    <!-- Lets go with 1.6 compliance -->
 
-	<build>
-	  <extensions>
-      <!-- Enabling the use of FTP -->
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-         <artifactId>wagon-ssh</artifactId>
-         <version>1.0-beta-6</version>
-      </extension>
-    </extensions>
-		<pluginManagement>
-			<plugins>
+    <build>
+        <extensions>
+            <!-- Enabling the use of FTP -->
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh</artifactId>
+                <version>1.0-beta-6</version>
+            </extension>
+        </extensions>
+        <pluginManagement>
+            <plugins>
 
-			<plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>jar</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>   
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-            <configuration>
-          		<classifier>${envClassifier}</classifier>
-          		      <archive>
-            <manifestEntries>
-              <Implementation-Version>${buildNumber}</Implementation-Version>
-              <Release>0.5</Release>
-              <URL>http://www.splicemachine.com</URL>
-            </manifestEntries>
-          </archive>
-        	</configuration>
-            <executions>
-                <execution>
-                <id>attach-sources</id>
-                    <goals>
-                        <goal>jar</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-			
-				<plugin>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>2.1</version>
-					<configuration>
-						<source>1.6</source>
-						<target>1.6</target>
-						<showWarnings>true</showWarnings>
-						<showDeprecation>true</showDeprecation>
-					</configuration>
-				</plugin>
-			
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <configuration>
+                        <classifier>${envClassifier}</classifier>
+                        <archive>
+                            <manifestEntries>
+                                <Implementation-Version>${buildNumber}</Implementation-Version>
+                                <Release>0.5</Release>
+                                <URL>http://www.splicemachine.com</URL>
+                            </manifestEntries>
+                        </archive>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
 
-			</plugins>
-		</pluginManagement>
-	</build>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>codehaus-release-repo</id>
-			<name>Codehaus Release Repo</name>
-			<url>http://repository.codehaus.org</url>
-		</pluginRepository>
-			<pluginRepository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-			</pluginRepository>
-	</pluginRepositories>
-	<repositories>
-		<repository>
-			<id>central</id>
-			<url>http://repo1.maven.org/maven2</url>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>2.1</version>
+                    <configuration>
+                        <source>1.6</source>
+                        <target>1.6</target>
+                        <showWarnings>true</showWarnings>
+                        <showDeprecation>true</showDeprecation>
+                    </configuration>
+                </plugin>
+
+
+            </plugins>
+        </pluginManagement>
+    </build>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>codehaus-release-repo</id>
+            <name>Codehaus Release Repo</name>
+            <url>http://repository.codehaus.org</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/content/repositories/releases/</url>
+        </pluginRepository>
+    </pluginRepositories>
+    <repositories>
+        <repository>
+            <id>central</id>
+            <url>http://repo1.maven.org/maven2</url>
         </repository>
-				<repository>
-					<id>cloudera</id>
-					<url>https://repository.cloudera.com/content/repositories/releases/</url>
-				</repository>				
-  				<repository>
-      				<id>mapr-releases</id>
-      				<name>MapR Releases</name>
-      				<url>http://repository.mapr.com/maven/</url>
-      				<snapshots><enabled>false</enabled></snapshots>
-      				<releases><enabled>true</enabled></releases>
-    			</repository>				
-    			<repository>
-      				<id>HDPReleases</id>
-      				<name>HDP Releases</name>
-      				<releases><enabled>true</enabled></releases>
-      				<snapshots><enabled>false</enabled></snapshots>
-      				<url>http://repo.hortonworks.com/content/repositories/releases</url>
-      				<layout>default</layout>
-    			</repository>
-		<repository>
-			<id>protostuff-repo</id>
-			<name>protostuff-repo</name>
-			<url>http://protostuff.googlecode.com/svn/repos/maven2</url>
-		</repository>
-		<repository>
-			<id>smartgwt</id>
-			<url>http://www.smartclient.com/maven2/</url>
-		</repository>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>mapr-releases</id>
+            <name>MapR Releases</name>
+            <url>http://repository.mapr.com/maven/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>HDPReleases</id>
+            <name>HDP Releases</name>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <url>http://repo.hortonworks.com/content/repositories/releases</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>protostuff-repo</id>
+            <name>protostuff-repo</name>
+            <url>http://protostuff.googlecode.com/svn/repos/maven2</url>
+        </repository>
+        <repository>
+            <id>smartgwt</id>
+            <url>http://www.smartclient.com/maven2/</url>
+        </repository>
 
         <repository>
             <id>inciteretail</id>
@@ -161,91 +171,104 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-		<repository>
-			<id>gson-repo</id>
-			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-		</repository>
-	</repositories>
-	<profiles>
-	
-		<profile>
-			<id>cloudera-cdh4.3.0</id>
-			<activation>
-		    	<activeByDefault>true</activeByDefault>
-    		</activation>			
-			<properties>
-  				<envClassifier>cloudera-cdh4.3.0</envClassifier>
-			</properties>
-		</profile>
-		<profile>
-			<id>hdp1.3</id>
-			<properties>
-  				<envClassifier>hdp1.3</envClassifier>
-			</properties>
-		</profile>
-			<profile>
-			<id>apache-hbase-0.94.5</id>
-						<properties>
-  				  				<envClassifier>apache-hbase-0.94.5</envClassifier>
-			</properties>
-		</profile>
+        <repository>
+            <id>gson-repo</id>
+            <url>http://google-gson.googlecode.com/svn/mavenrepo</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+    <profiles>
 
-	<profile>
-	<id>mapr-0.94.5</id>
-	
-						<properties>
-  				  				<envClassifier>mapr-0.94.5</envClassifier>
-			</properties>
-		</profile>
-		<profile>
-    <id>downloadSources</id>
-        <activation>
-      		<activeByDefault>true</activeByDefault>
-    	</activation>
-    <properties>
-        <downloadSources>true</downloadSources>
-        <downloadJavadocs>true</downloadJavadocs>           
-    </properties>
-</profile>
         <profile>
-            <id>clover</id>
+            <id>cloudera-cdh4.3.0</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <envClassifier>cloudera-cdh4.3.0</envClassifier>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp1.3</id>
+            <properties>
+                <envClassifier>hdp1.3</envClassifier>
+            </properties>
+        </profile>
+        <profile>
+            <id>apache-hbase-0.94.5</id>
+            <properties>
+                <envClassifier>apache-hbase-0.94.5</envClassifier>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>mapr-0.94.5</id>
+
+            <properties>
+                <envClassifier>mapr-0.94.5</envClassifier>
+            </properties>
+        </profile>
+        <profile>
+            <id>downloadSources</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <downloadSources>true</downloadSources>
+                <downloadJavadocs>true</downloadJavadocs>
+            </properties>
+        </profile>
+        <profile>
+            <!-- Jenkins by default defines a property BUILD_NUMBER which is used to enable the profile. -->
+            <id>jenkins</id>
+            <activation>
+                <property>
+                    <name>env.BUILD_NUMBER</name>
+                </property>
+            </activation>
             <build>
-                <plugins>
-                    <plugin>
-                        <groupId>com.atlassian.maven.plugins</groupId>
-                        <artifactId>maven-clover2-plugin</artifactId>
-                        <version>2.5.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>setup</goal>
-                                    <goal>optimize</goal>
-                                    <goal>snapshot</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.codehaus.mojo</groupId>
+                            <artifactId>cobertura-maven-plugin</artifactId>
+                            <version>2.2</version>
+                            <configuration>
+                                <formats>
+                                    <format>xml</format>
+                                    <format>html</format>
+                                </formats>
+                            </configuration>
+                            <executions>
+                                <execution>
+                                    <phase>package</phase>
+                                    <goals>
+                                        <goal>cobertura</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
             </build>
         </profile>
-		</profiles>
-						
-	<dependencies>
-		<dependency>
-			<groupId>commons-dbutils</groupId>
-			<artifactId>commons-dbutils</artifactId>
-			<version>1.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.lucene</groupId>
-			<artifactId>lucene-core</artifactId>
-			<version>4.3.1</version>
-		</dependency>
-	</dependencies>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>commons-dbutils</groupId>
+            <artifactId>commons-dbutils</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>4.3.1</version>
+        </dependency>
+    </dependencies>
 </project>
