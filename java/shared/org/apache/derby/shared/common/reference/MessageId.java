@@ -243,5 +243,7 @@ public interface MessageId {
      */
     String SPLICE_GENERIC_EXCEPTION                      = "SE001";
     String SPLICE_UNSUPPORTED_OPERATION                  = "SE002";
+		String SPLICE_WRITE_ATTEMPTS_FAILED									 = "SE003";
+	  String SPLICE_NOT_SERVING_REGION									   = "SE004";
 
 }
