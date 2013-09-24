@@ -24,9 +24,9 @@ import java.sql.Types;
  * @author Scott Fines
  * Created on: 9/20/13
  */
-public class ImportErrorTest {
+public class ImportErrorIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = ImportErrorTest.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = ImportErrorIT.class.getSimpleName().toUpperCase();
     /*
      * a Single table used to test all the different errors:
      *
