@@ -161,10 +161,10 @@
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
-                        <include>${runClass}</include>
+                        <include>**/*Test.java</include>
                     </includes>
 			        <excludes>
-			            <exclude>**/IT*.java</exclude>
+			            <exclude>**/*IT.java</exclude>
 			        </excludes>
 				</configuration>
 			</plugin>
@@ -177,10 +177,10 @@
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
-                        <include>**/IT*.java</include>
+                        <include>**/*IT.java</include>
                     </includes>
                     <excludes>
-                        <exclude>**/Test.java</exclude>
+                        <exclude>**/*Test.java</exclude>
                     </excludes>
 				</configuration>
 				<executions>

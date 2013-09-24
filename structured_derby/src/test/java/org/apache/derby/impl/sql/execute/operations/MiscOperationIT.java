@@ -1,26 +1,23 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import org.junit.Assert;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class MiscOperationIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	private static Logger LOG = Logger.getLogger(MiscOperationIT.class);
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(MiscOperationIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",MiscOperationIT.class.getSimpleName(),"(numint, addr varchar(50), zip char(5))"); 
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",MiscOperationIT.class.getSimpleName(),"(num int, addr varchar(50), zip char(5))");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -35,9 +32,9 @@ public class MiscOperationIT extends SpliceUnitTest {
 				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A values(200, '200: 908 Glade Ct.', '94509')"); 
 				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A values(300, '300: my addr', '34166')"); 
 				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A values(400, '400: 182 Second St.', '94114')"); 
-				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A(num) values(500)"); 
+				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A (num) values(500)");
 				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A values(600, 'new addr', '34166')"); 
-				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A(num) values(700)"); 
+				s.execute("insert into "+ MiscOperationIT.class.getSimpleName()+ ".A (num) values(700)");
 				spliceClassWatcher.commit();
 				} catch (Exception e) {
 					throw new RuntimeException(e);

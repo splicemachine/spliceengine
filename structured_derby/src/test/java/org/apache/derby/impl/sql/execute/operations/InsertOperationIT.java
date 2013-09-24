@@ -1,5 +1,18 @@
 package org.apache.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,37 +21,24 @@ import java.sql.Blob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import org.apache.log4j.Logger;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.util.*;
 
 public class InsertOperationIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	private static final Logger LOG = Logger.getLogger(InsertOperationIT.class);
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(InsertOperationIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("T",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("S",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("A",InsertOperationIT.class.getSimpleName(),"(namevarchar(40), count int)"); 
-	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("G",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("E",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("J",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("L",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationIT.class.getSimpleName(),"(namevarchar(40))"); 
-	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationIT.class.getSimpleName(),"(namevarchar(40),count int)"); 
-	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(namevarchar(32) not null primary key, doc blob(16M))"); 
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("T",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("S",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("A",InsertOperationIT.class.getSimpleName(),"(name varchar(40), count int)");
+	protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("G",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("E",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("J",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("L",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
+	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationIT.class.getSimpleName(),"(name varchar(40),count int)");
+	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(16M))");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -10,15 +11,12 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.SQLException;
 
 public class LockTableConstantOperationIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(LockTableConstantOperationIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",LockTableConstantOperationIT.class.getSimpleName(),"(namevarchar(40) NOT NULL, val int)"); 
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",LockTableConstantOperationIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

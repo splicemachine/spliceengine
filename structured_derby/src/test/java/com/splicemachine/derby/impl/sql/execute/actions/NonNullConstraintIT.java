@@ -20,7 +20,7 @@ import java.sql.SQLException;
 public class NonNullConstraintIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(NonNullConstraintIT.class.getSimpleName());	
-	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",NonNullConstraintIT.class.getSimpleName(),"(namevarchar(40) NOT NULL, val int)"); 
+	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",NonNullConstraintIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
