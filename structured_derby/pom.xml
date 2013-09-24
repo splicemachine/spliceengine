@@ -223,23 +223,23 @@
 	</build>
 
 	<profiles>
-		<profile>
-			<!-- If we are running in Jenkins use cobertura. -->
-			<id>jenkins</id>
-			<activation>
-				<property>
-					<name>env.BUILD_NUMBER</name>
-				</property>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<groupId>org.codehaus.mojo</groupId>
-						<artifactId>cobertura-maven-plugin</artifactId>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
+<!-- 		<profile> -->
+<!-- 			 If we are running in Jenkins use cobertura. -->
+<!-- 			<id>jenkins</id> -->
+<!-- 			<activation> -->
+<!-- 				<property> -->
+<!-- 					<name>env.BUILD_NUMBER</name> -->
+<!-- 				</property> -->
+<!-- 			</activation> -->
+<!-- 			<build> -->
+<!-- 				<plugins> -->
+<!-- 					<plugin> -->
+<!-- 						<groupId>org.codehaus.mojo</groupId> -->
+<!-- 						<artifactId>cobertura-maven-plugin</artifactId> -->
+<!-- 					</plugin> -->
+<!-- 				</plugins> -->
+<!-- 			</build> -->
+<!-- 		</profile> -->
 
         <profile>
             <id>integration-tests</id>
