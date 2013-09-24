@@ -172,8 +172,7 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 				<version>2.12.2</version>
 				<configuration>
-					<!-- Skips integration tests if the value of skip.integration.tests 
-						property is true -->
+				    <skipTests>${skip.integration.tests}</skipTests>
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
@@ -245,9 +244,8 @@
         <profile>
             <id>integration-tests</id>
             <properties>
-                <!-- Only integration tests are run. -->
+                <!-- enable failsafe integration tests -->
                 <skip.integration.tests>false</skip.integration.tests>
-                <skip.unit.tests>true</skip.unit.tests>
                 <run.command>/bin/sh</run.command>
                 <zookeeper.start.script>start-zookeeper.sh</zookeeper.start.script>
                 <zookeeper.stop.script>stop-zookeeper.sh</zookeeper.stop.script>
@@ -677,8 +675,6 @@
 			</activation>
 			<properties>
 				<log4j.location>${basedir}/src/main/resources/trace-log4j.properties</log4j.location>
-				<!-- Only unit tests are run by default. -->
-				<skip.integration.tests>true</skip.integration.tests>
 			</properties>
 		</profile>
 

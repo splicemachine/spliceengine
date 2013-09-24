@@ -61,8 +61,11 @@
                     <argLine>-Xms256M -Xmx512M</argLine>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <includes>
-                        <include>${runClass}</include>
+                        <include>**/*Test.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>

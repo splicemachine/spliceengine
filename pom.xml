@@ -32,8 +32,6 @@
         </snapshotRepository>
     </distributionManagement>
     <properties>
-        <runSuite>*Test</runSuite>
-        <runClass>**/${runSuite}.class</runClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <junit.version>4.11</junit.version>
@@ -48,7 +46,6 @@
         <mockito.version>1.9.5</mockito.version>
         <buildTime>${maven.build.timestamp}</buildTime>
         <skip.integration.tests>true</skip.integration.tests>
-        <skip.unit.tests>${skipTests}</skip.unit.tests>
     </properties>
     <!-- Lets go with 1.6 compliance -->
 
