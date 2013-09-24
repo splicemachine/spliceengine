@@ -1,6 +1,6 @@
 package com.splicemachine.test.suites;
 
-import org.apache.derby.impl.sql.execute.operations.CallStatementOperationTest;
+import org.apache.derby.impl.sql.execute.operations.CallStatementOperationIT;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -12,6 +12,6 @@ import org.junit.runners.Suite;
 @RunWith(Categories.class)
 @Categories.ExcludeCategory(OperationCategories.Transactional.class)
 @Suite.SuiteClasses({
-        CallStatementOperationTest.class
+        CallStatementOperationIT.class
 })
 public class RemoteSuite { }
