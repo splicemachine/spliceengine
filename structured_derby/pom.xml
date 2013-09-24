@@ -157,13 +157,15 @@
                 </dependencies>
 				<configuration>
 					<!-- Skips unit tests if the value of skip.unit.tests property is true -->
-					<skipTests>${skipTests}</skipTests>
 					<!-- <parallel>classes</parallel> <threadCount>5</threadCount> <perCoreThreadCount>false</perCoreThreadCount> -->
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>${runClass}</include>
-					</includes>
+                    <includes>
+                        <include>${runClass}</include>
+                    </includes>
+			        <excludes>
+			            <exclude>**/IT*.java</exclude>
+			        </excludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -172,12 +174,14 @@
 				<configuration>
 					<!-- Skips integration tests if the value of skip.integration.tests 
 						property is true -->
-					<skipTests>${skip.integration.tests}</skipTests>
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>${runClass}</include>
-					</includes>
+                    <includes>
+                        <include>**/IT*.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/Test.java</exclude>
+                    </excludes>
 				</configuration>
 				<executions>
 					<execution>
