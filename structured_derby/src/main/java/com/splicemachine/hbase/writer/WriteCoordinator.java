@@ -2,6 +2,7 @@ package com.splicemachine.hbase.writer;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
+import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
@@ -49,7 +50,7 @@ public class WriteCoordinator {
 
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         //TODO -sf- make region caching optional
-        RegionCache regionCache = RegionCache.create(SpliceConstants.cacheExpirationPeriod,SpliceConstants.cacheUpdatePeriod);
+        RegionCache regionCache = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
 
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);

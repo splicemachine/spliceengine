@@ -155,7 +155,7 @@ public class CreateIndexTask extends ZkTask {
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 boolean shouldContinue = true;
-                IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
+                IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique,100);
                 byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
                 CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().pipedWriteBuffer(indexTableLocation,getTaskStatus().getTransactionId());
                 try{

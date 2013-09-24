@@ -25,9 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.BitSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,7 +57,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     protected final AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
     public void prepare(){
-        state.compareAndSet(State.WAITING_TO_START,State.READY_TO_START);
+        state.compareAndSet(State.WAITING_TO_START, State.READY_TO_START);
     }
 
     public LocalWriteContextFactory(long congomId) {
@@ -69,22 +67,23 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
+        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce,100);
         //add a region handler
         pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
         return pwc;
     }
 
     @Override
-    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce, RollForwardQueue<byte[], ByteBuffer> queue) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
+    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
+                               RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce,expectedWrites);
         //add a region handler
         pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize,queue));
         return pwc;
     }
 
     @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
+    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(txnId,key);
         switch (state.get()) {
             case READY_TO_START:
@@ -111,7 +110,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             //add index handlers
             for(IndexFactory indexFactory:indexFactories){
-                indexFactory.addTo(context,true);
+                indexFactory.addTo(context,true,expectedWrites);
             }
         }
 
@@ -152,21 +151,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 state.set(State.NOT_MANAGED);
             }
         };
-    }
-
-    public long getMainTableConglomerateId() {
-        return congomId;
-    }
-
-    public WriteContext getIndexOnlyWriteHandler(String txnId,long indexConglomId,RegionCoprocessorEnvironment rce) {
-        for(IndexFactory factory:indexFactories){
-            if(factory.indexConglomId==indexConglomId){
-                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,true);
-                factory.addTo(pipelineWriteContext,false);
-                return pipelineWriteContext;
-            }
-        }
-        return null;
     }
 
     /*
@@ -389,9 +373,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             ConstraintFactory that = (ConstraintFactory) o;
 
-            if (!localConstraint.equals(that.localConstraint)) return false;
-
-            return true;
+            return localConstraint.equals(that.localConstraint);
         }
 
         @Override
@@ -454,14 +436,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             return create(conglomerateNumber,indexColsToMainColMap,isUnique,descColumns);
         }
 
-        public void addTo(PipelineWriteContext ctx,boolean keepState){
+        public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites){
 
             if(isUnique){
                 ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,expectedWrites));
             }else{
                 ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,false,expectedWrites));
             }
         }
 

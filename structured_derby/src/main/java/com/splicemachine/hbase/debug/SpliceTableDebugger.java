@@ -59,6 +59,32 @@ public class SpliceTableDebugger extends Configured implements Tool {
     }
 
     private enum Operation{
+        COLUMN_DUMP("cdump"){
+            @Override
+            public void printHelpMessage() {
+                System.out.println("Dumps a column for all rows in the table");
+                System.out.println("Usage: SpliceTableDebugger cdump <tableName> <columnNumber> <destination directory>");
+                System.out.println("Arguments:");
+                System.out.printf(commandPattern, "tableName", "The HBase name of the table to count");
+                System.out.printf(commandPattern,"columnNumber", "The column number (indexed from 0) of the column of interest");
+                System.out.printf(commandPattern,"destinationDirectory","The Destination directory to dump output to (in hdfs)");
+            }
+
+            @Override
+            public CoprocessorJob getJob(Configuration config, String[] args) throws Exception {
+                if(args.length<4){
+                    printHelpMessage();
+                    return null;
+                }
+
+                String tableName = args[1];
+                int colNum = Integer.parseInt(args[2]);
+                String destDir = args[3];
+
+
+                return new ColumnDumpJob(destDir,tableName,colNum,config);
+            }
+        },
         TRANSACTION_SUMMARY("tsummary"){
             @Override
             public void printHelpMessage() {

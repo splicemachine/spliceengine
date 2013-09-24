@@ -42,16 +42,9 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                                    int[] mainColToIndexPos,
                                    byte[] indexConglomBytes,
                                    BitSet descColumns,
-                                   boolean keepState) {
-        this(indexedColumns, mainColToIndexPos, indexConglomBytes, descColumns, keepState, false);
-    }
-
-    public IndexUpsertWriteHandler(BitSet indexedColumns,
-                                   int[] mainColToIndexPos,
-                                   byte[] indexConglomBytes,
-                                   BitSet descColumns,
                                    boolean keepState,
-                                   boolean unique) {
+                                   boolean unique,
+                                   int expectedWrites) {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
         BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
@@ -59,7 +52,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         this.transformer = new IndexTransformer(indexedColumns,
                 translatedIndexColumns,
                 nonUniqueIndexColumn,
-                descColumns,mainColToIndexPosMap,unique);
+                descColumns,mainColToIndexPosMap,unique,expectedWrites);
     }
 
     @Override

@@ -2,6 +2,8 @@ package com.splicemachine.utils;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.util.Arrays;
+
 /**
  * An algorithm for generating compact UUIDs efficiently.
  *
@@ -82,49 +84,30 @@ public class Snowflake {
                     if(counter==0)
                         while(timestamp ==lastTimestamp)
                             timestamp = System.currentTimeMillis();
-
-                    if(numRecords < COUNTER_MASK-counter+1){
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }else{
-                        numRecords = COUNTER_MASK-counter+1;
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }
-                }else{
-                    //grab as many as you can, then return
-                    if(numRecords < COUNTER_MASK-counter+1){
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }else{
-                        numRecords = COUNTER_MASK-counter+1;
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }
                 }
+
+                if(numRecords> COUNTER_MASK-counter+1){
+                    numRecords = COUNTER_MASK-counter+1;
+                }
+                startCount = counter;
+                counter+=numRecords;
+                stopCount = counter;
+                counter = (short)(counter & COUNTER_MASK);
                 lastTimestamp = timestamp;
             }
-            for(int i=startCount;i<stopCount;i++){
+            int pos =0;
+            for(int i=startCount;i<stopCount;i++,pos++){
                 long uuid = ((long)i <<counterShift);
                 uuid |= ((timestamp & TIMESTAMP_MASK)<<timestampShift);
                 uuid |= machineId;
-                uuids[i-startCount] = uuid;
+                uuids[pos] = uuid;
             }
-            for(int i=stopCount;i<uuids.length;i++){
-                /*
-                 * fill in any remaining entries with -1. We can safely do this because we know that
-                 * machine ids are never all zeros, so we can't possibly have -1 as a valid snowflake number.
-                 */
-                uuids[i] = -1l;
-            }
+            /*
+             * fill in any remaining entries with -1. We can safely do this because we know that
+             * machine ids are never all zeros, so we can't possibly have -1 as a valid snowflake number.
+             */
+            if(pos<uuids.length)
+                Arrays.fill(uuids,stopCount-startCount,uuids.length,-1l);
         }finally{
             if(interrupted){ //reset the interrupted flag for others to use
                 Thread.currentThread().interrupt();
@@ -212,7 +195,16 @@ public class Snowflake {
     }
 
     public Generator newGenerator(int blockSize){
-        return new Generator(this,blockSize);
+        /*
+         * For correctness, we need to make sure that the Generator's block
+         * size is a power of 2. So, find the smallest power of 2 large enough
+         * to hold the block size in
+         */
+        int s = 1;
+        while(s<blockSize){
+            s<<=1;
+        }
+        return new Generator(this,s);
     }
 
     public static class Generator{

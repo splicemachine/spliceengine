@@ -34,12 +34,13 @@ public class IndexTransformer {
     private final int[] mainColToIndexPosMap;
     private final BitSet descColumns;
     private Snowflake.Generator generator;
-    private static final int blockSize = 100;
+    private final int blockSize;
 
     public static IndexTransformer newTransformer(BitSet indexedColumns,
                             int[] mainColToIndexPosMap,
                             BitSet descColumns,
-                            boolean unique) {
+                            boolean unique,
+                            int blockSize) {
 
 
         BitSet translatedIndexedColumns = new BitSet(indexedColumns.cardinality());
@@ -54,7 +55,8 @@ public class IndexTransformer {
                 nonUniqueIndexedColumns,
                 descColumns,
                 mainColToIndexPosMap,
-                unique);
+                unique,
+                blockSize);
     }
 
     public IndexTransformer(BitSet indexedColumns,
@@ -62,13 +64,15 @@ public class IndexTransformer {
                             BitSet nonUniqueIndexedColumns,
                             BitSet descColumns,
                             int[] mainColToIndexPosMap,
-                            boolean isUnique){
+                            boolean isUnique,
+                            int blockSize){
         this.indexedColumns = indexedColumns;
         this.translatedIndexedColumns = translatedIndexedColumns;
         this.nonUniqueIndexedColumns = nonUniqueIndexedColumns;
         this.descColumns = descColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.isUnique = isUnique;
+        this.blockSize = blockSize;
     }
 
     public KVPair translate(KVPair mutation) throws IOException {

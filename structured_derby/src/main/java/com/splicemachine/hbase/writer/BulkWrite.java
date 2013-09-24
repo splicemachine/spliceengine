@@ -1,12 +1,14 @@
 package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -15,7 +17,7 @@ import java.util.List;
 public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
 
-    private List<KVPair> mutations;
+    private Set<KVPair> mutations;
     private String txnId;
     private byte[] regionKey;
     private long bufferSize = -1;
@@ -23,7 +25,7 @@ public class BulkWrite implements Externalizable {
     public BulkWrite() { }
 
     public BulkWrite(List<KVPair> mutations, String txnId,byte[] regionKey) {
-        this.mutations = mutations;
+        this.mutations = Sets.newHashSet(mutations);
         this.txnId = txnId;
         this.regionKey = regionKey;
     }
@@ -31,11 +33,11 @@ public class BulkWrite implements Externalizable {
     public BulkWrite(String txnId, byte[] regionKey){
         this.txnId = txnId;
         this.regionKey = regionKey;
-        this.mutations = Lists.newArrayList();
+        this.mutations = Sets.newHashSet();
     }
 
     public List<KVPair> getMutations() {
-        return mutations;
+        return Lists.newArrayList(mutations);
     }
 
     public String getTxnId() {
@@ -62,7 +64,7 @@ public class BulkWrite implements Externalizable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         txnId = in.readUTF();
         int size = in.readInt();
-        mutations = Lists.newArrayListWithCapacity(size);
+        mutations = Sets.newHashSetWithExpectedSize(size);
         for(int i=0;i<size;i++){
             mutations.add((KVPair)in.readObject());
         }

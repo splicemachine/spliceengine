@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -27,6 +28,7 @@ import java.util.concurrent.Future;
  * Created on: 8/27/13
  */
 public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
+    private static final Logger LOG = Logger.getLogger(PipingWriteBuffer.class);
     private NavigableMap<byte[],PreMappedBuffer> regionToBufferMap;
     private final Writer writer;
     private final Writer synchronousWriter;
@@ -248,6 +250,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 List<KVPair> copy = Lists.newArrayList(buffer);
                 buffer.clear();
                 //update heap size metrics
+                if(LOG.isTraceEnabled())
+                    LOG.trace("flushing "+ copy.size()+" entries");
                 PipingWriteBuffer.this.currentHeapSize-=heapSize;
                 heapSize=0;
 

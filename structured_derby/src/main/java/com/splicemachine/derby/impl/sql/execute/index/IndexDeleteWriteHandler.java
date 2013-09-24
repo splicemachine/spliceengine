@@ -37,7 +37,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
 
-    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns, boolean keepState){
+    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns, boolean keepState ){
         super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
     }
 

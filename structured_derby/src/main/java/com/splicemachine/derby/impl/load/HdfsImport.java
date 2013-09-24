@@ -156,6 +156,10 @@ public class HdfsImport extends ParallelVTI {
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
             final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
             try {
+                if(schemaName==null)
+                    schemaName = "APP";
+                if(tableName==null)
+                    throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
                 importData(transactionId, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
                         insertColumnList, fileName, columnDelimiter,
                         characterDelimiter, timestampFormat,dateFormat,timeFormat);

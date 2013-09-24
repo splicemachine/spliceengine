@@ -1,5 +1,6 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.math.BigDecimal;
@@ -16,7 +17,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Boolean.toString(Encoding.decodeBoolean(bytes));
         }
     },
@@ -28,7 +29,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Long.toString(Encoding.decodeLong(bytes));
         }
     },
@@ -40,7 +41,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Float.toString(Encoding.decodeFloat(bytes));
         }
     },
@@ -52,7 +53,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Double.toString(Encoding.decodeDouble(bytes));
         }
     },
@@ -64,7 +65,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Encoding.decodeBigDecimal(bytes).toString();
         }
     },
@@ -76,7 +77,7 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             return Encoding.decodeString(bytes);
         }
     },
@@ -89,8 +90,11 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
-            return Bytes.toStringBinary(Encoding.decodeBytes(bytes),0,bytes.length);
+        public String decode(byte[] bytes, boolean printRawHex) {
+            byte[] decoded = Encoding.decodeBytes(bytes);
+            if(printRawHex)
+                return BytesUtil.toHex(decoded);
+            return Bytes.toStringBinary(decoded,0,decoded.length);
         }
     },
     UNSORTED_BYTES("u"){
@@ -101,8 +105,11 @@ public enum DataType{
         }
 
         @Override
-        public String decode(byte[] bytes) {
+        public String decode(byte[] bytes, boolean printRawHex) {
             byte[] decoded = Encoding.decodeBytesUnsortd(bytes,0,bytes.length);
+            if(printRawHex)
+                return BytesUtil.toHex(decoded);
+
             return Bytes.toStringBinary(decoded, 0, decoded.length);
         }
     } ;
@@ -127,6 +134,10 @@ public enum DataType{
     }
 
     public String decode(byte[] bytes){
+        return decode(bytes,false);
+    }
+
+    public String decode(byte[] bytes, boolean printRawHex){
         throw new UnsupportedOperationException();
     }
 

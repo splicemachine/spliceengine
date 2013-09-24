@@ -14,7 +14,9 @@ import java.util.BitSet;
 public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
 
     private CallBuffer<KVPair> indexBuffer;
-    public UniqueIndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
+    public UniqueIndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,
+                                         BitSet descColumns,
+                                         boolean keepState) {
         super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState);
     }
 

@@ -131,6 +131,8 @@ public class RegionWriteHandler implements WriteHandler {
                 }
             });
 
+            if(LOG.isTraceEnabled())
+                LOG.trace("Writing "+ filteredMutations.size()+" rows to table " + region.getTableDesc().getNameAsString());
             doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {
             WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
