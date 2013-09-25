@@ -156,7 +156,6 @@
                     </dependency>
                 </dependencies>
 				<configuration>
-					<!-- Skips unit tests if the value of skip.unit.tests property is true -->
 					<!-- <parallel>classes</parallel> <threadCount>5</threadCount> <perCoreThreadCount>false</perCoreThreadCount> -->
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -246,6 +245,11 @@
             <properties>
                 <!-- enable failsafe integration tests -->
                 <skip.integration.tests>false</skip.integration.tests>
+                
+                <!-- skip server start/stop if server already running -->
+                <server.start.skip>skipServerStart</server.start.skip>
+                
+                <!-- ant task start/stop server args -->
                 <run.command>/bin/sh</run.command>
                 <zookeeper.start.script>start-zookeeper.sh</zookeeper.start.script>
                 <zookeeper.stop.script>stop-zookeeper.sh</zookeeper.stop.script>
@@ -262,7 +266,7 @@
                                 <id>############## start-splice ################</id>
                                 <phase>pre-integration-test</phase>
                                 <configuration>
-                                    <target name="StartSpliceServer">
+                                    <target name="StartSpliceServer" unless="${server.start.skip}">
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${zookeeper.start.script}" />
                                         </exec>
@@ -270,7 +274,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                         </exec>
-                                        <sleep seconds="120" />
+                                        <sleep seconds="90" />
                                     </target>
                                 </configuration>
                                 <goals>
@@ -281,7 +285,7 @@
                                 <id>############## stop-splice ################</id>
                                 <phase>post-integration-test</phase>
                                 <configuration>
-                                    <target name="StopSpliceServer">
+                                    <target name="StopSpliceServer" unless="${server.start.skip}">
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${zookeeper.stop.script}" />
                                         </exec>
