@@ -54,7 +54,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final BufferConfiguration bufferConfiguration;
     private final WriteCoordinator.PreFlushHook preFlushHook;
 
-    PipingWriteBuffer(byte[] tableName,
+    public PipingWriteBuffer(byte[] tableName,
                       String txnId,
                       Writer writer,
                       Writer synchronousWriter,
@@ -210,7 +210,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             this.regionStartKey = regionStartKey;
             this.preFlushHook = preFlushHook;
             this.maxEntries = maxEntries;
-            this.buffer = Lists.newArrayListWithCapacity(maxEntries);
+            if(maxEntries<0)
+                this.buffer = Lists.newArrayList();
+            else
+                this.buffer = Lists.newArrayListWithCapacity(maxEntries);
         }
 
         @Override

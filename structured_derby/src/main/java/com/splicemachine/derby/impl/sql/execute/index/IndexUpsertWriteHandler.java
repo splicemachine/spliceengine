@@ -36,6 +36,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     protected IndexTransformer transformer;
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
+    private final int expectedWrites;
 
 
     public IndexUpsertWriteHandler(BitSet indexedColumns,
@@ -47,6 +48,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                                    int expectedWrites) {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
+        this.expectedWrites = expectedWrites;
         BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         this.transformer = new IndexTransformer(indexedColumns,
@@ -67,7 +69,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
         if(indexBuffer==null){
             try{
-                indexBuffer = getWriteBuffer(ctx);
+                indexBuffer = getWriteBuffer(ctx,expectedWrites);
             }catch(Exception e){
                 ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
                 failed=true;
@@ -98,6 +100,9 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
+    void setGenerator(Snowflake.Generator generator){
+        transformer.setGenerator(generator);
+    }
 
     private KVPair update(KVPair mutation, WriteContext ctx) {
         //TODO -sf- move this logic into IndexTransformer

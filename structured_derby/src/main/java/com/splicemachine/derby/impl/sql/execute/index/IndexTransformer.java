@@ -133,6 +133,10 @@ public class IndexTransformer {
         }
     }
 
+    void setGenerator(Snowflake.Generator generator){
+        this.generator = generator;
+    }
+
     protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
         entry.mark();
         byte[] data = new byte[entry.remaining()];

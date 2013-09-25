@@ -55,7 +55,10 @@ public class RegionWriteHandler implements WriteHandler {
         this.writeBatchSize = writeBatchSize;
     }
 
-    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize,RollForwardQueue<byte[],ByteBuffer>queue){
+    public RegionWriteHandler(HRegion region,
+                              ResettableCountDownLatch writeLatch,
+                              int writeBatchSize,
+                              RollForwardQueue<byte[],ByteBuffer>queue){
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
@@ -68,10 +71,12 @@ public class RegionWriteHandler implements WriteHandler {
          * Write-wise, we are at the end of the line, so make sure that we don't run through
          * another write-pipeline when the Region actually does it's writing
          */
-        if (HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(), kvPair.getRow())) {
-            mutations.add(kvPair);
-        } else {
+        if(region.isClosing()||region.isClosed())
+            ctx.failed(kvPair,WriteResult.notServingRegion());
+        else if (!HRegion.rowIsInRange(region.getRegionInfo(), kvPair.getRow())) {
             ctx.failed(kvPair, WriteResult.wrongRegion());
+        } else {
+            mutations.add(kvPair);
         }
     }
 

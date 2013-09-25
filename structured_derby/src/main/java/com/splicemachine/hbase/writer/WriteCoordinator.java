@@ -153,6 +153,27 @@ public class WriteCoordinator {
         };
     }
 
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
+                                                              String txnId,
+                                                              PreFlushHook flushHook,
+                                                              Writer.WriteConfiguration writeConfiguration,
+                                                              final int maxEntries){
+        BufferConfiguration config = new BufferConfiguration() {
+            @Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
+            @Override public int getMaxEntries() { return maxEntries; }
+            @Override public int getMaxFlushesPerRegion() { return monitor.getMaxFlushesPerRegion(); }
+            @Override public void writeRejected() { monitor.writeRejected(); }
+        };
+        monitor.outstandingBuffers.incrementAndGet();
+        return new PipingWriteBuffer(tableName,txnId,asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,config) {
+            @Override
+            public void close() throws Exception {
+                monitor.outstandingBuffers.decrementAndGet();
+                super.close();
+            }
+        };
+    }
+
     private static class Monitor implements WriteCoordinatorStatus,BufferConfiguration{
         private volatile long maxHeapSize;
         private volatile int maxEntries;
