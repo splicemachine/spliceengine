@@ -147,6 +147,7 @@ public class FromBaseTable extends FromTable
 
 	private FormatableBitSet referencedCols;
 	private ResultColumnList templateColumns;
+    private boolean resultColumnsCompacted = false;
 
 	/* A 0-based array of column names for this table used
 	 * for optimizer trace.
@@ -2919,9 +2920,12 @@ public class FromBaseTable extends FromTable
 			/* Template must reflect full row.
 			 * Compact RCL down to partial row.
 			 */
-			templateColumns = resultColumns;
-			referencedCols = resultColumns.getReferencedFormatableBitSet(cursorTargetTable, isSysstatements, false);
-			resultColumns = resultColumns.compactColumns(cursorTargetTable, isSysstatements);
+            if (!resultColumnsCompacted){
+                templateColumns = resultColumns;
+                referencedCols = resultColumns.getReferencedFormatableBitSet(cursorTargetTable, isSysstatements, false);
+                resultColumns = resultColumns.compactColumns(cursorTargetTable, isSysstatements);
+                resultColumnsCompacted = true;
+            }
 			return this;
 		}
 		
