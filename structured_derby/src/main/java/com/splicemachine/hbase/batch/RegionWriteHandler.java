@@ -77,6 +77,7 @@ public class RegionWriteHandler implements WriteHandler {
             ctx.failed(kvPair, WriteResult.wrongRegion());
         } else {
             mutations.add(kvPair);
+            ctx.sendUpstream(kvPair);
         }
     }
 

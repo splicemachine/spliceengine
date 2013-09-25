@@ -67,28 +67,26 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce,100);
-        //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
-        return pwc;
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, null));
+        addIndexInformation(1000, context);
+        return context;
     }
 
     @Override
     public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
                                RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce,expectedWrites);
-        //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize,queue));
-        return pwc;
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
+        addIndexInformation(expectedWrites, context);
+        return context;
     }
 
-    @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+    private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         switch (state.get()) {
             case READY_TO_START:
-                SpliceLogUtils.trace(LOG,"Index management for conglomerate %d " +
-                        "has not completed, attempting to start now",congomId);
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
+                        "has not completed, attempting to start now", congomId);
                 start();
                 break;
             case STARTING:
@@ -102,7 +100,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 throw new IOException("management for conglomerate "+ congomId+" is shutdown");
         }
         //only add constraints and indices when we are in a RUNNING state
-        if(state.get()==State.RUNNING){
+        if(state.get()== State.RUNNING){
             //add Constraint checks before anything else
             for(ConstraintFactory constraintFactory:constraintFactories){
                 context.addLast(constraintFactory.create());
@@ -113,6 +111,12 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 indexFactory.addTo(context,true,expectedWrites);
             }
         }
+    }
+
+    @Override
+    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+        addIndexInformation(expectedWrites, context);
 
         return context;
     }
