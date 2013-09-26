@@ -92,8 +92,6 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     public void next(KVPair mutation, WriteContext ctx) {
         if(failed)
             ctx.notRun(mutation);
-//        else if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null)
-//            ctx.sendUpstream(mutation);
         else{
             boolean sendUp = updateIndex(mutation,ctx);
             if(sendUp){

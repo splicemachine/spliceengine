@@ -129,30 +129,30 @@ public class RegionWriteHandler implements WriteHandler {
             throw new IOException(e);
         }
         //write all the puts first, since they are more likely
+        Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
+            @Override
+            public boolean apply(@Nullable KVPair input) {
+                return ctx.canRun(input);
+            }
+        });
         try {
-            Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
-                @Override
-                public boolean apply(@Nullable KVPair input) {
-                    return ctx.canRun(input);
-                }
-            });
 
             if(LOG.isTraceEnabled())
                 LOG.trace("Writing "+ filteredMutations.size()+" rows to table " + region.getTableDesc().getNameAsString());
             doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {
             WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }catch(NotServingRegionException nsre){
             WriteResult result = WriteResult.notServingRegion();
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }catch(RegionTooBusyException rtbe){
             WriteResult result = WriteResult.regionTooBusy();
-            for(KVPair mutation:mutations){
+            for(KVPair mutation:filteredMutations){
                 ctx.result(mutation,result);
             }
         }catch (IOException ioe) {
@@ -166,7 +166,7 @@ public class RegionWriteHandler implements WriteHandler {
              * all the puts failed and can be safely retried.
              */
             WriteResult result = WriteResult.failed(ioe.getClass().getSimpleName() + ":" + ioe.getMessage());
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }
