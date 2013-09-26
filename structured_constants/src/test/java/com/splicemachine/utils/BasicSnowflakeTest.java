@@ -2,6 +2,7 @@ package com.splicemachine.utils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,9 +26,9 @@ public class BasicSnowflakeTest {
 
     @Test
     public void testNoDuplicateUUIDsInASingleThread() throws Exception {
-        Set<Long> uuidSet = Sets.newHashSet();
+        Set<Long> uuidSet = Sets.newTreeSet();
         Snowflake snowflake = new Snowflake((short)(1<<7));
-        for(int i=0;i<1000;i++){
+        for(int i=0;i<1000000;i++){
             long uuid = snowflake.nextUUID();
             Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
             uuidSet.add(uuid);
@@ -35,9 +36,20 @@ public class BasicSnowflakeTest {
     }
 
     @Test
+    public void testNoDuplicateUUIDsInASingleThreadBytes() throws Exception {
+        Set<byte[]> uuidSet = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
+        Snowflake snowflake = new Snowflake((short)(1<<7));
+        for(int i=0;i<10000000;i++){
+            byte[] uuid = snowflake.nextUUIDBytes();
+            Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
+            uuidSet.add(uuid);
+        }
+    }
+
+    @Test
     public void testNoDuplicatesManyThreadsSameSnowflake() throws Exception {
-        int numThreads=10;
-        final int numIterations = 160000;
+        int numThreads=3;
+        final int numIterations = 100000;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final ConcurrentMap<Long,Boolean> existing = new ConcurrentHashMap<Long, Boolean>();
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
