@@ -16,15 +16,15 @@ import java.util.*;
  * MergeSort joins. During optimization, Derby pushes down the predicates to FromBaseTable
  * nodes, assuming that a table on one side of the join will have access to the "current
  * row" of a table on the other side at query execution time, an assumption which we know
- * to be incorrect for us.
+ * to be incorrect for MSJ. This visitor reverses
  *
  * User: pjt
  * Date: 7/8/13
  */
 
-public class JoinConditionVisitor extends AbstractSpliceVisitor {
+public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
 
-    private static Logger LOG = Logger.getLogger(JoinConditionVisitor.class);
+    private static Logger LOG = Logger.getLogger(MSJJoinConditionVisitor.class);
 
     public static boolean isMSJ(AccessPath ap){
         return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
@@ -51,6 +51,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     @Override
+    public ProjectRestrictNode visit(ProjectRestrictNode pr) throws StandardException {
+        return pullPredsFromPR(pr);
+    }
+
+    @Override
     public JoinNode visit(JoinNode j) throws StandardException {
         return addPredsToJoin(j);
     }
@@ -58,6 +63,20 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     @Override
     public JoinNode visit(HalfOuterJoinNode j) throws StandardException {
         return addPredsToJoin(j);
+    }
+
+    public ProjectRestrictNode pullPredsFromPR(ProjectRestrictNode pr) throws StandardException {
+        if (isMSJ(pr.getTrulyTheBestAccessPath()) &&
+                pr.restrictionList != null) {
+            for (int i = pr.restrictionList.size() - 1; i >= 0; i--) {
+                OptimizablePredicate p = pr.restrictionList.getOptPredicate(i);
+                if (!predicateIsEvalable(p, pr)) {
+                    pulledPreds.add(p);
+                    pr.restrictionList.removeOptPredicate(i);
+                }
+            }
+        }
+        return pr;
     }
 
     public FromBaseTable pullPredsFromTable(FromBaseTable t) throws StandardException {
@@ -90,6 +109,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return j;
     }
 
+    /**
+     * Rewrites column references in a Predicate to point to ResultColumns from the passed join node.
+     */
     public Predicate updatePredColRefsToJoin(Predicate p, JoinNode j)
             throws StandardException
     {
