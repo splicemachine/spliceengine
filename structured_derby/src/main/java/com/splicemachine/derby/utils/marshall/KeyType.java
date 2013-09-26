@@ -49,37 +49,6 @@ public enum KeyType implements KeyMarshall{
         }
     },
     /**
-     * Prepends a hash of the key fields and a fixed (non-unique) Prefix to the row key,
-     * but does nothing for a postfix.
-     */
-    HASHED_PREFIX {
-        @Override
-        public void encodeKey(DataValueDescriptor[] fields,
-                              int[] keyColumns,
-                              boolean[] sortOrder,
-                              byte[] keyPostfix,
-                              MultiFieldEncoder keyEncoder) throws StandardException {
-            //the prefix will have already been set in the constructor,
-            //so we just delegate to BARE
-            BARE.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
-        }
-
-        @Override
-        public void decode(DataValueDescriptor[] fields,
-                           int[] reversedKeyColumns,
-                           boolean[] sortOrder,
-                           MultiFieldDecoder rowDecoder) throws StandardException {
-            //throw away the first bytes--treat them as a string
-            rowDecoder.seek(11);
-            BARE.decode(fields,reversedKeyColumns,sortOrder,rowDecoder);
-        }
-
-        @Override
-        public int getFieldCount(int[] keyColumns) {
-            return BARE.getFieldCount(keyColumns)+1;
-        }
-    },
-    /**
      * Appends a postfix to the row key, but does nothing with a prefix.
      */
     FIXED_POSTFIX {
@@ -166,22 +135,6 @@ public enum KeyType implements KeyMarshall{
         @Override
         public void decode(DataValueDescriptor[] fields, int[] reversedKeyColumns, boolean[] sortOrder,MultiFieldDecoder rowDecoder) throws StandardException {
             FIXED_PREFIX.decode(fields, reversedKeyColumns, sortOrder,rowDecoder);
-        }
-
-        @Override
-        public int getFieldCount(int[] keyColumns) {
-            return UNIQUE_POSTFIX.getFieldCount(keyColumns)+1;
-        }
-    },
-    HASHED_PREFIX_UNIQUE_POSTFIX {
-        @Override
-        public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            UNIQUE_POSTFIX.encodeKey(fields, keyColumns, sortOrder, keyPostfix, keyEncoder);
-        }
-
-        @Override
-        public void decode(DataValueDescriptor[] fields, int[] reversedKeyColumns, boolean[] sortOrder,MultiFieldDecoder rowDecoder) throws StandardException {
-            HASHED_PREFIX.decode(fields, reversedKeyColumns, sortOrder,rowDecoder);
         }
 
         @Override

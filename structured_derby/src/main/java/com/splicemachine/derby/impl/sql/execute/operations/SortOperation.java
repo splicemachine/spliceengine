@@ -12,7 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -20,7 +20,6 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -246,7 +245,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         }
         if(top!=this)
             SpliceUtils.setInstructions(reduceScan,getActivation(),top);
-		return new DistributedClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+		return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
 	}
 
 
@@ -261,11 +260,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
     public RowEncoder getRowEncoder() throws StandardException {
         ExecRow def = getExecRowDefinition();
-        KeyType keyType = distinct? KeyType.HASHED_PREFIX: KeyType.HASHED_PREFIX_UNIQUE_POSTFIX;
+        KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
         return RowEncoder.create(def.nColumns(), keyColumns,
                 descColumns,
                 uniqueSequenceID,
-                keyType, RowMarshaller.packed(), true);
+                keyType, RowMarshaller.packed());
     }
 
     @Override

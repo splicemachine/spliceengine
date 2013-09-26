@@ -38,10 +38,6 @@ public class HashBufferSource{
         this(sinkRowPrefix, keyColumnIndexes, sourceRows, merger, hasher, keyEncoder, null, null);
     }
 
-    public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows, HashMerger merger, KeyMarshall hasher, MultiFieldEncoder keyEncoder, boolean bucketed) throws StandardException {
-        this(sinkRowPrefix, keyColumnIndexes, keyColumnIndexes, sourceRows, merger, hasher, keyEncoder, null, null, bucketed);
-    }
-
     public HashBufferSource(byte[] sinkRowPrefix, int[] keyColumnIndexes, RowProviderIterator<ExecRow> sourceRows, HashMerger merger, KeyMarshall hasher, MultiFieldEncoder keyEncoder, boolean[] sortOrder, AggregateFinisher finisher) throws StandardException {
         this(sinkRowPrefix, keyColumnIndexes, keyColumnIndexes, sourceRows, merger, hasher, keyEncoder, sortOrder, finisher, false);
     }
