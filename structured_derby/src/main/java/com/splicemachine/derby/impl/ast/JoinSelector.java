@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.*;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -122,21 +120,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             rightLeaves);
     }
 
-    public static boolean containsClass(List<?> list, Class clazz){
-        boolean found = false;
-        for (Object o: list){
-            if (clazz.isInstance(o)){
-                found = true;
-                break;
-            }
-        }
-        return found;
-    }
-
-    public static boolean rightColIsPK(JoinNode j, FromBaseTable fbt, List<Predicate> equiPreds){
-        return false;
-    }
-
     public static List<ResultSetNode> getSelfAndChildren(ResultSetNode rsn) throws StandardException {
         return ColumnUtils.collectNodes(rsn, ResultSetNode.class);
     }
@@ -144,6 +127,10 @@ public class JoinSelector extends AbstractSpliceVisitor {
     public static Set binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class, UnionNode.class, IntersectOrExceptNode.class);
     public static Set leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
+    /**
+     * If rsn subtree contains a node with 2 children, return the node above
+     * it, else return the leaf node
+     */
     public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
         List<ResultSetNode> rsns = getSelfAndChildren(rsn);
         for (List<ResultSetNode> pair: Iterables.paddedPartition(rsns, 2)){
@@ -175,7 +162,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
     public static List<Predicate> preds(ResultSetNode t) throws StandardException {
         PredicateList pl = t instanceof FromBaseTable ?
-                                copyPreds((FromBaseTable)t) : copyPreds((ProjectRestrictNode)t);
+                                getPreds((FromBaseTable) t) : getPreds((ProjectRestrictNode) t);
         List<Predicate> preds = new ArrayList<Predicate>(pl.size());
         for (int i = 0, s = pl.size(); i < s; i++){
             OptimizablePredicate p = pl.getOptPredicate(i);
@@ -184,7 +171,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return preds;
     }
 
-    public static PredicateList copyPreds(FromBaseTable t) throws StandardException {
+    public static PredicateList getPreds(FromBaseTable t) throws StandardException {
         PredicateList pl = new PredicateList();
         t.pullOptPredicates(pl);
         for (int i = 0, s = pl.size(); i < s; i++){
@@ -194,14 +181,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return pl;
     }
 
-    public static PredicateList copyPreds(ProjectRestrictNode pr) throws StandardException {
-        PredicateList pl = new PredicateList();
-        pr.pullOptPredicates(pl);
-        for (int i = 0, s = pl.size(); i < s; i++){
-            OptimizablePredicate p = pl.getOptPredicate(i);
-            pr.pushOptPredicate(p);
-        }
-        return pl;
+    public static PredicateList getPreds(ProjectRestrictNode pr) throws StandardException {
+        return pr.restrictionList;
     }
 
     public static boolean isEquijoin(List<Predicate> preds) throws StandardException {
@@ -221,6 +202,19 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
     public static JoinStrategy strategy(JoinNode j){
         return ap(j).getJoinStrategy();
+    }
+
+    public static boolean containsClass(List<?> list, Class clazz){
+        for (Object o: list){
+            if (clazz.isInstance(o)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean rightColIsPK(JoinNode j, FromBaseTable fbt, List<Predicate> equiPreds){
+        return false;
     }
 
     public static Iterable classNames(List l) {
