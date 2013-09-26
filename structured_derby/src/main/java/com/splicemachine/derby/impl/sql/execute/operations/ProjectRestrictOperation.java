@@ -300,10 +300,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		    return sourceCols;
 		}
 		int[] result = new int[projectMapping.length];
-		for (int i = 0; i < projectMapping.length; ++i) {
-		    result[i] = sourceCols[projectMapping[i] - 1];
-		}
-		return result;
+        for (int i = 0; i < projectMapping.length; ++i) {
+            if (projectMapping[i] > 0) {
+                result[i] = sourceCols[projectMapping[i] - 1];
+            }
+        }
+        return result;
 	}
 
     @Override
