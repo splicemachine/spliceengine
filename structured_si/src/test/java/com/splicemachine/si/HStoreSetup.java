@@ -53,6 +53,30 @@ public class HStoreSetup implements StoreSetup {
 
     HBaseTestingUtility testCluster;
 
+    private static boolean useSingleton;
+    private static HStoreSetup singleton;
+
+    public synchronized static void setUseSingleton(boolean useSingletonValue) {
+        useSingleton = useSingletonValue;
+    }
+
+    public synchronized static HStoreSetup create() {
+        if (useSingleton) {
+            if (singleton == null) {
+                singleton = new HStoreSetup(false);
+            }
+            return singleton;
+        } else {
+            return new HStoreSetup(false);
+        }
+    }
+
+    public synchronized static void destroy(HStoreSetup setup) throws Exception {
+        if (!useSingleton) {
+            setup.getTestCluster().shutdownMiniCluster();
+        }
+    }
+
     public HStoreSetup(boolean usePacked) {
         setupHBaseHarness(usePacked);
     }

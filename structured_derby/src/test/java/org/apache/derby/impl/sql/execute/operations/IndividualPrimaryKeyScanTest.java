@@ -1,14 +1,23 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Tests designed to exercise some particular aspect of Primary Keys over a large(ish) data set--in this case,
@@ -20,7 +29,7 @@ import java.sql.ResultSet;
  */
 @Ignore("Ignored because it takes forever and doesn't usually help much, but is nifty in some cases")
 public class IndividualPrimaryKeyScanTest {
-    private static Logger LOG = Logger.getLogger(PrimaryKeyScanTest.class);
+    private static Logger LOG = Logger.getLogger(PrimaryKeyScanIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = IndividualPrimaryKeyScanTest.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME = "item";

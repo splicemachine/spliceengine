@@ -1,20 +1,16 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.StringUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.fs.Path;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Context information for how to import a File into Splice.
@@ -39,20 +35,10 @@ public class ImportContext implements Externalizable{
 	 * properly serialized. This is the stripString to use
 	 */
 	private String stripString;
-	/*
-	 * The types of each column, as java.sql.Types ints.
-	 */
-	private int[] columnTypes;
 	//the conglom id
 	private long tableId;
 
-	/*
-	 * It's possible to only import certain columns out of the file.
-	 * This bitset indicates which columns to use. If it's null, then all
-	 * columns will be imported
-	 */
-	private FormatableBitSet activeCols;
-
+    private ColumnContext[] columnInformation;
 	/*
 	 * Not everyone formats their timestamps the same way. This is so that
 	 * we can be told how to format them. null can be specified if your timestamps
@@ -62,8 +48,6 @@ public class ImportContext implements Externalizable{
 	private String timestampFormat;
     private String dateFormat;
     private String timeFormat;
-
-    private int[] pkCols;
 
     private long byteOffset;
     private int bytesToRead;
@@ -75,9 +59,7 @@ public class ImportContext implements Externalizable{
                           long destTableId,
                           String columnDelimiter,
                           String stripString,
-                          int [] columnTypes,
-                          FormatableBitSet activeCols,
-                          int[] pkCols,
+                          ColumnContext[] columnInformation,
                           String timestampFormat,
                           String dateFormat,
                           String timeFormat,
@@ -87,15 +69,13 @@ public class ImportContext implements Externalizable{
 		this.filePath = filePath;
 		this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
 		this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
-		this.columnTypes = columnTypes;
 		this.tableId = destTableId;
-		this.activeCols = activeCols;
 		this.timestampFormat = timestampFormat;
         this.timeFormat = timeFormat;
         this.dateFormat = dateFormat;
-        this.pkCols = pkCols;
         this.byteOffset = byteOffset;
         this.bytesToRead = bytesToRead;
+        this.columnInformation = columnInformation;
 
 	}
 
@@ -115,10 +95,6 @@ public class ImportContext implements Externalizable{
 		return stripString;
 	}
 
-	public int[] getColumnTypes() {
-		return columnTypes;
-	}
-
 	public long getTableId() {
 		return tableId;
 	}
@@ -126,10 +102,6 @@ public class ImportContext implements Externalizable{
     public String getTableName(){
         return Long.toString(tableId);
     }
-
-	public FormatableBitSet getActiveCols() {
-		return activeCols;
-	}
 
 	public String getTimestampFormat() {
 		return timestampFormat;
@@ -152,17 +124,11 @@ public class ImportContext implements Externalizable{
 		out.writeBoolean(stripString!=null);
 		if(stripString!=null)
 			out.writeUTF(stripString);
-		out.writeInt(columnTypes.length);
-		for(int colType:columnTypes){
-			out.writeInt(colType);
-		}
-		out.writeBoolean(activeCols!=null);
-		if(activeCols!=null)
-			out.writeObject(activeCols);
-        out.writeBoolean(pkCols!=null);
-        if(pkCols!=null){
-            ArrayUtil.writeIntArray(out,pkCols);
-        }out.writeBoolean(timestampFormat!=null);
+        out.writeInt(columnInformation.length);
+        for(ColumnContext context:columnInformation){
+            out.writeObject(context);
+        }
+        out.writeBoolean(timestampFormat!=null);
 		if(timestampFormat!=null)
 			out.writeUTF(timestampFormat);
         out.writeLong(byteOffset);
@@ -177,15 +143,11 @@ public class ImportContext implements Externalizable{
 		columnDelimiter = in.readUTF();
 		if(in.readBoolean())
 			stripString = in.readUTF();
-		columnTypes = new int[in.readInt()];
-		for(int i=0;i<columnTypes.length;i++){
-			columnTypes[i] = in.readInt();
-		}
-		if(in.readBoolean())
-			activeCols = (FormatableBitSet) in.readObject();
-        if(in.readBoolean()){
-            pkCols = ArrayUtil.readIntArray(in);
-        }if(in.readBoolean())
+        columnInformation = new ColumnContext[in.readInt()];
+        for(int i=0;i<columnInformation.length;i++){
+            columnInformation[i] = (ColumnContext)in.readObject();
+        }
+        if(in.readBoolean())
 			timestampFormat = in.readUTF();
         byteOffset = in.readLong();
         bytesToRead = in.readInt();
@@ -198,18 +160,12 @@ public class ImportContext implements Externalizable{
 				", filePath=" + filePath +
 				", columnDelimiter='" + columnDelimiter + '\'' +
 				", stripString='" + stripString + '\'' +
-				", columnTypes=" + Arrays.toString(columnTypes) +
-				", tableId=" + tableId +
-				", activeCols=" + activeCols +
 				", timestampFormat='" + timestampFormat + '\'' +
                 ", byteOffset=" + byteOffset +
                 ", bytesToRead=" + bytesToRead +
+                ", columns="+ Arrays.toString(columnInformation) +
 				'}';
 	}
-
-    public int[] getPrimaryKeys() {
-        return pkCols;
-    }
 
     public String getTransactionId() {
         return transactionId;
@@ -223,22 +179,47 @@ public class ImportContext implements Externalizable{
         return timeFormat;
     }
 
+    public ColumnContext[] getColumnInformation() {
+        return columnInformation;
+    }
+
+    public int[] getPrimaryKeys() {
+        int[] pkCols = new int[columnInformation.length];
+        Arrays.fill(pkCols,-1);
+        int setFields =0;
+        for(ColumnContext columnContext:columnInformation){
+            if(columnContext.isPkColumn()){
+                setFields++;
+                pkCols[columnContext.getPkPosition()] = columnContext.getColumnNumber();
+            }
+        }
+
+        int[] finalPks = new int[setFields];
+        System.arraycopy(pkCols,0,finalPks,0,finalPks.length);
+
+        return finalPks;
+    }
+
     public static class Builder{
 		private Path filePath;
 		private Long tableId;
 		private String columnDelimiter;
 		private String stripString;
 		Map<Integer,Integer> indexToTypeMap = new HashMap<Integer, Integer>();
-		private FormatableBitSet activeCols;
 		private String timestampFormat;
-		private int numCols = -1;
-        private int[] pkCols;
         private String transactionId;
         private long byteOffset;
         private int bytesToRead;
 
         private String timeFormat;
         private String dateFormat;
+
+        private List<ColumnContext> columnInformation = Lists.newArrayList();
+
+        public Builder addColumn(ColumnContext columnContext){
+            this.columnInformation.add(columnContext);
+            return this;
+        }
 
         public Builder path(Path filePath) {
 			this.filePath = filePath;
@@ -271,11 +252,6 @@ public class ImportContext implements Externalizable{
 			return this;
 		}
 
-		public Builder numColumns(int numCols){
-			this.numCols = numCols;
-			return this;
-		}
-
 		public Builder column(int position, int type){
 			indexToTypeMap.put(position,type);
 			return this;
@@ -293,11 +269,6 @@ public class ImportContext implements Externalizable{
 
         public Builder dateFormat(String dateFormat){
             this.dateFormat = dateFormat;
-            return this;
-        }
-
-        public Builder primaryKeys(int[] pkCols) {
-            this.pkCols = pkCols;
             return this;
         }
 
@@ -322,36 +293,24 @@ public class ImportContext implements Externalizable{
 			Preconditions.checkNotNull(columnDelimiter,"No column Delimiter specified");
             Preconditions.checkNotNull(transactionId,"No transactionId specified");
 
-			int[] colTypes = numCols>0?new int[numCols]:new int[indexToTypeMap.size()];
 
-			FormatableBitSet setBits = new FormatableBitSet(colTypes.length);
-			boolean isSparse = false;
-			for(int i=0;i<colTypes.length;i++){
-				Integer next = indexToTypeMap.get(i);
-				if(next!=null){
-					colTypes[i] = next;
-					setBits.set(i);
-				}else{
-					isSparse=true;
-				}
-			}
-			if(isSparse){
-				activeCols = setBits;
-			}
+            ColumnContext[] context = new ColumnContext[columnInformation.size()];
+            Collections.sort(columnInformation,new Comparator<ColumnContext>() {
+                @Override
+                public int compare(ColumnContext o1, ColumnContext o2) {
+                    if(o1==null){
+                        if(o2==null) return 0;
+                        return -1;
+                    }else if(o2==null)
+                        return 1;
 
-            //validate that active cols contains at least the pkCols
-            //otherwise, we won't be able to import the data
-            if(activeCols!=null&&pkCols!=null){
-                for(int pkCol:pkCols){
-                    if(!activeCols.isSet(pkCol))
-                        throw StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_FAILED1,
-                                "Missing primary key in import");
+                    return o1.getColumnNumber()-o2.getColumnNumber();
                 }
-            }
-
+            });
+            columnInformation.toArray(context);
             return new ImportContext(transactionId, filePath,tableId,
                     columnDelimiter,stripString,
-                    colTypes,activeCols,pkCols,
+                    context,
                     timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead);
         }
     }

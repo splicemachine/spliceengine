@@ -6,6 +6,8 @@ import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 
+import java.io.IOException;
+
 /**
  * When no row is returned from the actual operation, this provides a default value ONCE.
  *
@@ -24,7 +26,7 @@ public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
     }
 
     @Override
-    public boolean hasNext() throws StandardException {
+    public boolean hasNext() throws StandardException, IOException {
         boolean hasNext = super.hasNext();
         if(hasNext){
             defaultReturned =true;

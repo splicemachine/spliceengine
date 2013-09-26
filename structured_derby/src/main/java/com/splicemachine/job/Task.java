@@ -32,4 +32,9 @@ public interface Task {
     void cleanup() throws ExecutionException;
 
     int getPriority();
+
+    /**
+     * @return true if this task should be treated as transactional
+     */
+    boolean isTransactional();
 }

@@ -10,8 +10,10 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.Compression;
+import org.apache.hadoop.hbase.regionserver.DelimitedKeyPrefixRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.google.common.io.Closeables;
@@ -156,6 +158,7 @@ public class SpliceUtilities extends SIConstants {
 
     public static void createTempTable(HBaseAdmin admin) throws IOException {
         HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
+        td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
         byte[][] prefixes = getAllPossibleBucketPrefixes();
         byte[][] splitKeys = new byte[prefixes.length - 1][];
         System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);

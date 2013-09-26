@@ -1,9 +1,14 @@
 package com.splicemachine.test;
 
+import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -18,6 +23,8 @@ import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import org.apache.hadoop.hbase.NotServingRegionException;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 
@@ -41,7 +48,7 @@ public class SpliceTestPlatform extends TestConstants {
     final Runnable randomWrappedExecutionException = new Runnable() {
         @Override
         public void run() {
-            if (randomly(25)) {
+            if (randomly(12)) {
                 throw new RuntimeException(new ExecutionException("invalidating on purpose", new NotServingRegionException()));
             }
         }
@@ -50,9 +57,24 @@ public class SpliceTestPlatform extends TestConstants {
     final Runnable randomRuntimeException = new Runnable() {
         @Override
         public void run() {
-            if (randomly(25)) {
+            if (randomly(0)) {
                 throw new RuntimeException("failing on purpose");
             }
+        }
+    };
+
+    final Function<TransactionId, Object> randomTransactionFail = new Function<TransactionId, Object>() {
+        @Override
+        public Object apply(@Nullable TransactionId transactionId) {
+            if (randomly(12)) {
+                final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+                try {
+                    transactor.fail(transactionId);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return null;
         }
     };
 
@@ -99,8 +121,6 @@ public class SpliceTestPlatform extends TestConstants {
 	}
 	
 	public void start() throws Exception {
-        SchedulerTracer.registerTaskStart(randomWrappedExecutionException);
-        //SchedulerTracer.registerTaskEnd(randomRuntimeException);
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
@@ -140,7 +160,18 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setInt("hbase.server.thread.wakefrequency", 1000);
         configuration.setInt("hbase.regionserver.msginterval", 1000);
         configuration.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy");
-        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);        
+        String interfaceName = "lo0";
+        if (!System.getProperty("os.name").contains("Mac")) {
+        	interfaceName = "default";
+        }
+        configuration.set("hbase.zookeeper.dns.interface", interfaceName);
+        configuration.set("hbase.regionserver.dns.interface", interfaceName);
+        configuration.set("hbase.master.dns.interface", interfaceName);
+        configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
+
+        //set a random task failure rate --10% of the time
+        configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.1d));
+        configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY,"true");
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);

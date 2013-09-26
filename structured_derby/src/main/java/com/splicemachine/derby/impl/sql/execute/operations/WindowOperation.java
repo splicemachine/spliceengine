@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -80,11 +82,9 @@ public class WindowOperation extends SpliceBaseOperation {
      *
      * @exception StandardException thrown if cursor finished.
      */
-    public void openCore() throws StandardException {
-        super.openCore();
-        /* Call into the source openCore() */
-        if(source!=null) source.openCore();
-        rownumber = 0;
+    public void open() throws StandardException,IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
     /**
@@ -94,7 +94,11 @@ public class WindowOperation extends SpliceBaseOperation {
      */
     public void reopenCore() throws StandardException {
         /* Reopen the source */
-        source.reopenCore();
+        try {
+            source.open();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
         rownumber = 0;
     }
 
@@ -109,7 +113,7 @@ public class WindowOperation extends SpliceBaseOperation {
      *
      * @return the next row in the result
      */
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         ExecRow sourceRow = null;
         ExecRow retval = null;
         boolean restrict = false;
@@ -124,7 +128,7 @@ public class WindowOperation extends SpliceBaseOperation {
         ExecRow tmpRow = null;
 
         do {
-            sourceRow = source.getNextRowCore();
+            sourceRow = source.nextRow();
             if (sourceRow != null) {
                 this.rownumber++;
                 tmpRow = getAllocatedRow();
@@ -158,7 +162,7 @@ public class WindowOperation extends SpliceBaseOperation {
      *
      * @exception StandardException thrown on error
      */
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
     	beginTime = getCurrentTimeMillis();
 
     	if (isOpen) {
@@ -245,16 +249,16 @@ public class WindowOperation extends SpliceBaseOperation {
         return source.isReferencingTable(tableNumber);
     }
 	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 
     @Override
     public String prettyPrint(int indentLevel) {

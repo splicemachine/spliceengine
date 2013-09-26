@@ -3,7 +3,7 @@ package com.splicemachine.si;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.si.impl.TransactionStatus;
+import com.splicemachine.si.api.TransactionStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;

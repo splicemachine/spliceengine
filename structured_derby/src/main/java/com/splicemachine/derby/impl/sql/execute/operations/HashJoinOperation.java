@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -30,9 +31,9 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	public HashJoinOperation() {
 		super();
 	}
-	public HashJoinOperation(NoPutResultSet leftResultSet,
+	public HashJoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
+			   SpliceOperation rightResultSet,
 			   int rightNumCols,
 			   Activation activation,
 			   GeneratedMethod restriction,
@@ -50,21 +51,21 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	}
 	
 	@Override
-	public ExecRow getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore");
+	public ExecRow nextRow() throws StandardException, IOException {
+		SpliceLogUtils.trace(LOG, "nextRow");
 		beginTime = getCurrentTimeMillis();
 		if (nestedLoopIterator == null || !nestedLoopIterator.hasNext()) {
-			if ( (leftRow = leftResultSet.getNextRowCore()) == null) {
+			if ( (leftRow = leftResultSet.nextRow()) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
 				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow);
-				getNextRowCore();
+				nextRow();
 			}
 		}
-		SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");		
+		SpliceLogUtils.trace(LOG, "nextRow loop iterate next ");
 		nextTime += getElapsedMillis(beginTime);
 		rowsReturned++;
 		return nestedLoopIterator.next();

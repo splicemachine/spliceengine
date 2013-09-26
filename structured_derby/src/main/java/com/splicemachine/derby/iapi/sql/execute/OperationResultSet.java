@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -13,6 +14,8 @@ import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
@@ -32,12 +35,12 @@ import java.sql.Timestamp;
  * @author Scott Fines
  * Created on: 3/28/13
  */
-public class OperationResultSet implements NoPutResultSet,HasIncrement {
+public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorResultSet,ConvertedResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
     private final OperationTree operationTree;
-    private final SpliceOperation topOperation;
+    private SpliceOperation topOperation;
     private NoPutResultSet delegate;
     private boolean closed = false;
 
@@ -52,9 +55,15 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
     public SpliceOperation getTopOperation() {
         return topOperation;
     }
+
+    public void setTopOperation(SpliceOperation newTop){
+        this.topOperation = newTop;
+    }
+
     @Override
     public void markAsTopResultSet() {
         SpliceLogUtils.trace(LOG, "markAsTopResultSet");
+        topOperation.markAsTopResultSet();
 //        checkDelegate();
 //        delegate.markAsTopResultSet();
     }
@@ -64,7 +73,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
-        topOperation.openCore();
+        try {
+            topOperation.open();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
 
         delegate = operationTree.executeTree(topOperation);
 //        operationTree.traverse(topOperation);
@@ -385,4 +398,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
+
+    @Override
+    public RowLocation getRowLocation() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getRowLocation();
+        return null;
+    }
+
+    @Override
+    public ExecRow getCurrentRow() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getCurrentRow();
+        return null;
+    }
+
+    @Override
+    public SpliceOperation getOperation() {
+        return topOperation;
+    }
 }

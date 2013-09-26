@@ -1,5 +1,7 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
+import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -204,8 +206,8 @@ public class SpliceObserverInstructions implements Externalizable {
 
                         final Object fieldValue = field.get(activation);
                         SpliceOperation op;
-                        if (fieldValue instanceof OperationResultSet) {
-                            op = ((OperationResultSet) fieldValue).getTopOperation();
+                        if (fieldValue instanceof ConvertedResultSet) {
+                            op = ((ConvertedResultSet) fieldValue).getOperation();
                         } else {
                             op = (SpliceOperation) fieldValue;
                         }
@@ -220,36 +222,6 @@ public class SpliceObserverInstructions implements Externalizable {
                     SpliceLogUtils.logAndThrowRuntime(LOG,e);
                 }
             }
-
-//		/*
-//		 * Serialize out any non-null result rows that are currently stored in the activation.
-//		 *
-//		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
-//		 */
-//            int rowPos=1;
-//            Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
-//            boolean shouldContinue=true;
-//            while(shouldContinue){
-//                try{
-//                    ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
-//                    if(row!=null){
-//                        rowMap.put(rowPos,row);
-//                    }
-//                    rowPos++;
-//                }catch(IndexOutOfBoundsException ie){
-//                    //we've reached the end of the row group in activation, so stop
-//                    shouldContinue=false;
-//                }
-//            }
-//            ExecRow[] currentRows = new ExecRow[rowPos];
-//            for(Integer rowPosition:rowMap.keySet()){
-//                ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
-//                if(row instanceof ExecIndexRow)
-//                    currentRows[rowPosition] = new SerializingIndexRow(row);
-//                else
-//                    currentRows[rowPosition] =  row;
-//            }
-//            SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
 
         /*
          * Serialize out all the pieces of the StatementContext so that it can be recreated on the
@@ -316,7 +288,8 @@ public class SpliceObserverInstructions implements Externalizable {
                     SpliceOperation op = ops.get(setOps.get(setField));
                     Field fieldToSet = activation.getClass().getDeclaredField(setField);
                     if(!fieldToSet.isAccessible())fieldToSet.setAccessible(true);
-                    fieldToSet.set(activation, op);
+                    ConversionResultSet crs = new ConversionResultSet(op,activation);
+                    fieldToSet.set(activation, crs);
                 }
 
 
@@ -327,11 +300,11 @@ public class SpliceObserverInstructions implements Externalizable {
                 activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
                         statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
                 return activation;
-            }catch (NoSuchFieldException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
             } catch (IllegalAccessException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            } catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            } catch (NoSuchFieldException e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG,e);
             }
             return null;

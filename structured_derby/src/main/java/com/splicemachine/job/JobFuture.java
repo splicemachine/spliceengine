@@ -71,4 +71,8 @@ public interface JobFuture {
     JobStats getJobStats();
 
     void cleanup() throws ExecutionException;
+
+    int getNumTasks();
+
+    int getRemainingTasks();
 }

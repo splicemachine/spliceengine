@@ -12,19 +12,26 @@ import java.util.*;
  */
 public class ColumnUtils {
 
-    public static <N> Vector<N> collectNodes(Visitable node, Class<N> clazz)
+    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
             throws StandardException
     {
         CollectNodesVisitor v = new CollectNodesVisitor(clazz);
         node.accept(v);
-        return (Vector<N>)v.getList();
+        return (List<N>)v.getList();
     }
 
+    /**
+     * For a given ResultColumnList, return a map from
+     *  [resultSetNumber, virtualColumnId] => ResultColumn
+     * where there is one entry for each ResultColumn in down the chain of reference to
+     * its source column on a table. This allows translation from a column reference at
+     * any node below into the ResultColumn projected from the passed ResultColumnList.
+     */
     public static Map<List<Integer>, ResultColumn> rsnChainMap(ResultColumnList rcl)
             throws StandardException
     {
         Map<List<Integer>, ResultColumn> chain = new HashMap<List<Integer>, ResultColumn>();
-        Vector<ResultColumn> cols = collectNodes(rcl, ResultColumn.class);
+        List<ResultColumn> cols = collectNodes(rcl, ResultColumn.class);
 
         for (ResultColumn rc: cols){
             List<Integer> top = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
@@ -37,6 +44,11 @@ public class ColumnUtils {
         return chain;
     }
 
+    /**
+     * For a given ResultColumn, return a list of integer pairs [resultSetNumber, virtualColumnId]
+     * for its source column, and its source's source column, and so on down to the bottom: a source
+     * column on a table.
+     */
     public static List<List<Integer>> rsnChain(ResultColumn rc)
             throws StandardException
     {

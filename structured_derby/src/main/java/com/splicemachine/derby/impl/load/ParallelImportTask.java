@@ -6,6 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
@@ -15,7 +16,6 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
@@ -97,6 +97,8 @@ public abstract class ParallelImportTask extends ZkTask{
                     }
                 }
             }catch(Exception e){
+                if(e instanceof ExecutionException)
+                    throw (ExecutionException)e;
                 throw new ExecutionException(e);
             }
         } catch (StandardException e) {
@@ -151,23 +153,20 @@ public abstract class ParallelImportTask extends ZkTask{
     }
 
     protected ExecRow getExecRow(ImportContext context) throws StandardException {
-        int[] columnTypes = context.getColumnTypes();
-        FormatableBitSet activeCols = context.getActiveCols();
-        ExecRow row = new ValueRow(columnTypes.length);
-        if(activeCols!=null){
-            for(int i=activeCols.anySetBit();i!=-1;i=activeCols.anySetBit(i)){
-                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
-            }
-        }else{
-            for(int i=0;i<columnTypes.length;i++){
-                row.setColumn(i+1,getDataValueDescriptor(columnTypes[i]));
-            }
+        ColumnContext[] cols = context.getColumnInformation();
+        int size = cols[cols.length-1].getColumnNumber()+1;
+        ExecRow row = new ValueRow(size);
+        for(ColumnContext col:cols){
+            DataValueDescriptor dataValueDescriptor = getDataValueDescriptor(col);
+            row.setColumn(col.getColumnNumber()+1, dataValueDescriptor);
         }
         return row;
     }
 
-    private DataValueDescriptor getDataValueDescriptor(int columnType) throws StandardException {
-        DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnType);
+    private DataValueDescriptor getDataValueDescriptor(ColumnContext columnContext) throws StandardException {
+        DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnContext.getColumnType());
+        if(!columnContext.isNullable())
+            td = td.getNullabilityType(false);
         return td.getNull();
     }
 
@@ -179,6 +178,7 @@ public abstract class ParallelImportTask extends ZkTask{
         private volatile boolean closed;
         private final ImportContext importContext;
         private final List<Future<Void>> futures;
+        private volatile Exception error;
 
         public ThreadingCallBuffer(ImportContext importContext,ExecRow template,String txnId) {
         	if (LOG.isTraceEnabled())
@@ -204,11 +204,18 @@ public abstract class ParallelImportTask extends ZkTask{
 
         @Override
         public void add(String[] element) throws Exception {
-            processingQueue.put(element);
+            boolean shouldContinue = true;
+            while(shouldContinue){
+                if(error!=null)
+                    throw error;
+                shouldContinue = !processingQueue.offer(element,200,TimeUnit.MILLISECONDS);
+            }
         }
 
         @Override
         public void addAll(String[][] elements) throws Exception {
+            if(error!=null)
+                throw error;
             for(String[] element:elements){
                 processingQueue.put(element);
             }
@@ -252,9 +259,17 @@ public abstract class ParallelImportTask extends ZkTask{
             BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
             int[] pkCols = importContext.getPrimaryKeys();
 
-            KeyMarshall keyType = pkCols==null? KeyType.SALTED: KeyType.BARE;
+            KeyMarshall keyType = pkCols==null||pkCols.length==0? KeyType.SALTED: KeyType.BARE;
 
             return RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
+        }
+
+        public void markFailed(Exception e) {
+            this.error=e;
+        }
+
+        public boolean isFailed() {
+            return error!=null;
         }
     }
 
@@ -263,7 +278,6 @@ public abstract class ParallelImportTask extends ZkTask{
         private final BlockingQueue<String[]> queue;
         private final CallBuffer<KVPair> writeDestination;
         private final ThreadingCallBuffer source;
-        private final FormatableBitSet activeCols;
         private final RowEncoder entryEncoder;
 
         private DateFormat dateFormat;
@@ -282,7 +296,6 @@ public abstract class ParallelImportTask extends ZkTask{
             this.queue = queue;
             this.writeDestination = writeDestination;
             this.source = source;
-            this.activeCols = source.importContext.getActiveCols();
             this.entryEncoder = source.newEntryEncoder(row);
         }
 
@@ -305,24 +318,25 @@ public abstract class ParallelImportTask extends ZkTask{
              * we take for only a little while before backing off and trying again.
              */
             try{
-                while(!source.isClosed()){
+                while(!source.isClosed()&&!source.isFailed()){
                     String[] elements = queue.poll(200,TimeUnit.MILLISECONDS);
                     if(elements==null)continue; //try again
                     numProcessed++;
                     doImportRow(elements);
                 }
-                //source is closed, poll until the queue is empty
-                String[] next;
-                while((next = queue.poll())!=null){
-                    numProcessed++;
-                    doImportRow(next);
+                if(!source.isFailed()){
+                    //source is closed, poll until the queue is empty
+                    String[] next;
+                    while((next = queue.poll())!=null){
+                        numProcessed++;
+                        doImportRow(next);
+                    }
                 }
-            } catch (IOException ioe) {
-            	if (LOG.isTraceEnabled())
-            		SpliceLogUtils.trace(LOG, "IOE# %s",ioe.getMessage());
-            	throw ioe;
             }
-        	finally{
+            catch(Exception e){
+                source.markFailed(e);
+                throw e;
+            } finally{
             	if (LOG.isTraceEnabled())
             		SpliceLogUtils.trace(LOG, "Closing Call Buffer");
         		writeDestination.close(); //ensure your writes happen
@@ -338,7 +352,7 @@ public abstract class ParallelImportTask extends ZkTask{
 
         protected void doImportRow(String[] line) throws Exception {
             long start = System.nanoTime();
-            populateRow(line, activeCols, row);
+            populateRow(line, importContext.getColumnInformation(),row);
             long stop = System.nanoTime();
             totalPopulateTime += (stop-start);
 
@@ -348,71 +362,71 @@ public abstract class ParallelImportTask extends ZkTask{
             totalWriteTime += (stop-start);
         }
 
-        private void populateRow(String[] line, FormatableBitSet activeCols, ExecRow row) throws StandardException {
+        private void populateRow(String[] line, ColumnContext[] columnContexts,ExecRow row) throws StandardException {
             //clear out any previous results
             for(DataValueDescriptor dvd:row.getRowArray()){
                 if(dvd!=null)
                     dvd.setToNull();
             }
 
-            if(activeCols!=null){
-                for(int pos=0,activePos=activeCols.anySetBit();pos<line.length;pos++,activePos=activeCols.anySetBit(activePos)){
-                    row.getColumn(activePos+1).setValue(line[pos] == null || line[pos].length() == 0 ? null : line[pos]);  // pass in null for null or empty string
-                }
-            }else{
-                for(int pos=0;pos<line.length-1;pos++){
-                    String elem = line[pos];
-                    setColumn(row, pos, elem);
-                }
-                //the last entry in the line array can be an empty string, which correlates to the row's nColumns() = line.length-1
-                if(row.nColumns()==line.length){
-                    String lastEntry = line[line.length-1];
-                    setColumn(row, line.length-1, lastEntry);
-                }
+            int pos=0;
+            for(ColumnContext context:columnContexts){
+                String value = line[pos]==null||line[pos].length()==0?null: line[pos];
+                setColumn(row, context, value);
+                pos++;
             }
         }
 
-        private void setColumn(ExecRow row, int pos, String elem) throws StandardException {
+        private void setColumn(ExecRow row, ColumnContext columnContext, String elem) throws StandardException {
             if(elem==null||elem.length()==0)
                 elem=null;
-            DataValueDescriptor dvd = row.getColumn(pos+1);
+            DataValueDescriptor column = row.getColumn(columnContext.getColumnNumber() + 1);
+            DataValueDescriptor dvd = column;
             if(elem!=null && dvd instanceof DateTimeDataValue){
-                DateFormat format;
-                if(dvd instanceof SQLTimestamp){
-                    if(timestampFormat==null){
-                        String tsFormat = source.importContext.getTimestampFormat();
-                        if(tsFormat ==null)
-                            tsFormat = "yyyy-MM-dd hh:mm:ss"; //iso format
-                        timestampFormat = new SimpleDateFormat(tsFormat);
-                    }
-                    format = timestampFormat;
-                }else if(dvd instanceof SQLDate){
-                    if(dateFormat==null){
-                        String dFormat = source.importContext.getDateFormat();
-                        if(dFormat==null)
-                            dFormat = "yyyy-MM-dd";
-                        dateFormat = new SimpleDateFormat(dFormat);
-                    }
-                    format = dateFormat;
-                }else if(dvd instanceof SQLTime){
-                    if(timeFormat==null){
-                        String tFormat = source.importContext.getTimeFormat();
-                        if(tFormat==null)
-                            tFormat = "hh:mm:ss";
-                        timeFormat = new SimpleDateFormat(tFormat);
-                    }
-                    format = timeFormat;
-                }else{
-                    throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
-                }
+                DateFormat format = getDateFormat(dvd);
                 try{
                     Date value = format.parse(elem);
                     dvd.setValue(new Timestamp(value.getTime()));
                 }catch (ParseException p){
-                    throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+                    throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
+//                    throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
                 }
-            }else
-                row.getColumn(pos+1).setValue(elem); // pass in null for null or empty string
+            }else{
+                column.setValue(elem); // pass in null for null or empty string
+                columnContext.validate(column);
+            }
+        }
+
+        private DateFormat getDateFormat(DataValueDescriptor dvd) throws StandardException {
+            DateFormat format;
+            if(dvd instanceof SQLTimestamp){
+                if(timestampFormat==null){
+                    String tsFormat = source.importContext.getTimestampFormat();
+                    if(tsFormat ==null)
+                        tsFormat = "yyyy-MM-dd hh:mm:ss"; //iso format
+                    timestampFormat = new SimpleDateFormat(tsFormat);
+                }
+                format = timestampFormat;
+            }else if(dvd instanceof SQLDate){
+                if(dateFormat==null){
+                    String dFormat = source.importContext.getDateFormat();
+                    if(dFormat==null)
+                        dFormat = "yyyy-MM-dd";
+                    dateFormat = new SimpleDateFormat(dFormat);
+                }
+                format = dateFormat;
+            }else if(dvd instanceof SQLTime){
+                if(timeFormat==null){
+                    String tFormat = source.importContext.getTimeFormat();
+                    if(tFormat==null)
+                        tFormat = "hh:mm:ss";
+                    timeFormat = new SimpleDateFormat(tFormat);
+                }
+                format = timeFormat;
+            }else{
+                throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
+            }
+            return format;
         }
     }
 }

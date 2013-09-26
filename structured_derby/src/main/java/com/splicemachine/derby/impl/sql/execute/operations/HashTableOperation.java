@@ -24,7 +24,7 @@ import java.util.Properties;
  * Builds a hash table on the underlying result set tree.
  *
  */
-public class HashTableOperation extends SpliceBaseOperation implements CursorResultSet {
+public class HashTableOperation extends SpliceBaseOperation  {
 	/* Run time statistics variables */
 	public long restrictionTime;
 	public long projectionTime;
@@ -33,7 +33,7 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 
     // set in constructor and not altered during
     // life of object.
-    public NoPutResultSet source;
+    public SpliceOperation source;
     public GeneratedMethod singleTableRestriction;
 	public Qualifier[][] nextQualifiers;
     private GeneratedMethod projection;
@@ -61,7 +61,7 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
     //
     // class interface
     //
-    public HashTableOperation(NoPutResultSet s,
+    public HashTableOperation(SpliceOperation s,
 					Activation a,
 					GeneratedMethod str,
 					String equijoinQualifiers,
@@ -137,30 +137,20 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 
-	@Override
-	public RowLocation getRowLocation() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
-	@Override
-	public ExecRow getCurrentRow() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 
     @Override
     public String prettyPrint(int indentLevel) {

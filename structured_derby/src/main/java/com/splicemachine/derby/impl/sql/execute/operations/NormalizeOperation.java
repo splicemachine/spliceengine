@@ -29,7 +29,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class NormalizeOperation extends SpliceBaseOperation {
 	private static final long serialVersionUID = 2l;
 	private static final Logger LOG = Logger.getLogger(NormalizeOperation.class);
-	protected NoPutResultSet source;
+	protected SpliceOperation source;
 	private ExecRow normalizedRow;
 	private int numCols;
 	private int startCol;
@@ -47,7 +47,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG,"instantiating without parameters");
 	}
 	
-	public NormalizeOperation(NoPutResultSet source,
+	public NormalizeOperation(SpliceOperation source,
 							 Activation activaation,
 							 int resultSetNumber,
 							 int erdNumber,
@@ -96,7 +96,15 @@ public class NormalizeOperation extends SpliceBaseOperation {
         return ((SpliceOperation)source).getMapRowProvider(top, decoder);
     }
 
-    private int computeStartColumn(boolean forUpdate,
+    
+    
+    @Override
+	public RowProvider getReduceRowProvider(SpliceOperation top,
+			RowDecoder decoder) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top, decoder);
+	}
+
+	private int computeStartColumn(boolean forUpdate,
 			ResultDescription resultDescription) {
 		int count = resultDescription.getColumnCount();
 		return forUpdate ? ((count-1)/2)+1 : 1;
@@ -138,11 +146,11 @@ public class NormalizeOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException, IOException {
 		ExecRow sourceRow = null;
 		ExecRow result = null;
 		
-		sourceRow = source.getNextRowCore();
+		sourceRow = source.nextRow();
 		if(sourceRow!=null){
 			result = normalizeRow(sourceRow,true);
 		}
@@ -260,28 +268,29 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		return "NormalizeOperation {source="+source+"}";
 	}
 
-	@Override
-	public void openCore() throws StandardException {
-        super.openCore();
-		if(source!=null) source.openCore();
-	}
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null) source.open();
+    }
 
-	public NoPutResultSet getSource() {
+    public SpliceOperation getSource() {
 		return this.source;
 	}
 	
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
+
+
 	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
-
-    @Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t", indentLevel);
 

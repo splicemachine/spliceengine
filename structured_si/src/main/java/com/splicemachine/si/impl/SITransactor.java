@@ -15,6 +15,8 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,11 +28,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
-import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
-import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
-import static com.splicemachine.si.impl.TransactionStatus.ERROR;
-import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
+import static com.splicemachine.si.api.TransactionStatus.ACTIVE;
+import static com.splicemachine.si.api.TransactionStatus.COMMITTED;
+import static com.splicemachine.si.api.TransactionStatus.COMMITTING;
+import static com.splicemachine.si.api.TransactionStatus.ERROR;
+import static com.splicemachine.si.api.TransactionStatus.ROLLED_BACK;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
@@ -222,6 +224,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     private void failDirect(long transactionId) throws IOException {
         transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
+    }
+
+    @Override
+    public TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException {
+        return transactionStore.getTransaction(transactionId).status;
     }
 
     private boolean isIndependentReadOnly(TransactionId transactionId) {

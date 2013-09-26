@@ -30,7 +30,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -86,9 +85,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		super();
 	}
 	
-	public MergeSortJoinOperation(NoPutResultSet leftResultSet,
+	public MergeSortJoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
+			   SpliceOperation rightResultSet,
 			   int rightNumCols,
 			   int leftHashKeyItem,
 			   int rightHashKeyItem,
@@ -132,7 +131,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
         if (resultSetToRead == null) {
             switch (joinSide) {
                 case RIGHT:
@@ -143,16 +142,16 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     break;
             }
         }
-        return resultSetToRead.getNextRowCore();
+        return resultSetToRead.nextRow();
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException {
         return next(false);
     }
 
     protected ExecRow next(boolean outer) throws StandardException {
-        SpliceLogUtils.trace(LOG, "getNextRowCore");
+        SpliceLogUtils.trace(LOG, "nextRow");
         beginTime = getCurrentTimeMillis();
         if (mergeSortIterator == null)
             mergeSortIterator = new MergeSortNextRowIterator(outer);
@@ -489,8 +488,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		throw new RuntimeException("Should only be called on outer joins");
 	}
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in MergeSortJoin");
 		beginTime = getCurrentTimeMillis();
 

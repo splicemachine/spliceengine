@@ -32,7 +32,6 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -137,9 +136,9 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        source.open();
     }
 
     @Override
@@ -161,7 +160,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         ExecRow row;
         if(firstTime){
             firstTime=false;
@@ -173,7 +172,7 @@ public class RowCountOperation extends SpliceBaseOperation{
             row =null;
         }else{
             do{
-                row = source.getNextRowCore();
+                row = source.nextRow();
                 if(row!=null){
                     if(rowsSkipped<offset){
                         rowsSkipped++;
@@ -265,7 +264,7 @@ public class RowCountOperation extends SpliceBaseOperation{
             final AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
             AbstractScanProvider newWrap = new AbstractScanProvider(scanProvider){
                 @Override
-                public Result getResult() throws StandardException {
+                public Result getResult() throws StandardException, IOException {
                     Result result = scanProvider.getResult();
                     if(!result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
                         return null;
@@ -607,12 +606,12 @@ public class RowCountOperation extends SpliceBaseOperation{
         }
 
         @Override
-        public boolean hasNext() throws StandardException {
+        public boolean hasNext() throws StandardException, IOException {
             return currentRowCount<fetchLimit && provider.hasNext();
         }
 
         @Override
-        public ExecRow next() throws StandardException {
+        public ExecRow next() throws StandardException, IOException {
             currentRowCount++;
             return provider.next();
         }

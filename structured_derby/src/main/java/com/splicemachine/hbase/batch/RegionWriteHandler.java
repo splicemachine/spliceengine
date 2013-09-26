@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -164,8 +165,10 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private void doWrite(WriteContext ctx, Collection<KVPair> toProcess) throws IOException {
-        final OperationStatus[] status = SIObserver.doesTableNeedSI(region) ? doSIWrite(toProcess,ctx) : doNonSIWrite(toProcess,ctx);
+        boolean siTable = SIObserver.doesTableNeedSI(region);
+        final OperationStatus[] status = siTable ? doSIWrite(toProcess,ctx) : doNonSIWrite(toProcess,ctx);
         int i=0;
+        int failed=0;
         for(KVPair mutation:toProcess){
             OperationStatus stat = status[i];
             switch (stat.getOperationStatusCode()) {
@@ -174,6 +177,7 @@ public class RegionWriteHandler implements WriteHandler {
                     break;
                 case BAD_FAMILY:
                 case FAILURE:
+                    failed++;
                     ctx.failed(mutation,WriteResult.failed(stat.getExceptionMsg()));
                     break;
                 default:
@@ -182,6 +186,9 @@ public class RegionWriteHandler implements WriteHandler {
             }
             i++;
         }
+        int success = i-failed;
+        if(!siTable)
+            HRegionUtil.updateWriteRequests(region,success);
     }
 
     private OperationStatus[] doNonSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {

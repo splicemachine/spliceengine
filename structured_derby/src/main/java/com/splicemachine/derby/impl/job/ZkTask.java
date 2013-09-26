@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
@@ -33,7 +34,7 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
- *         Created on: 5/9/13
+ * Created on: 5/9/13
  */
 public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
     private static final long serialVersionUID = 5l;
@@ -54,7 +55,6 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     /**
-     *
      * @param jobId
      * @param priority
      * @param parentTxnId the parent Transaction id, or {@code null} if
@@ -106,7 +106,13 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void execute() throws ExecutionException, InterruptedException {
-        //create a child transaction
+        /*
+         * Create the Child transaction.
+         *
+         * We do this here rather than elsewhere (like inside the JobScheduler) so
+         * that we avoid timing out the transaction when we have to sit around and
+         * wait for a long time.
+         */
         if(parentTxnId!=null){
             TransactorControl transactor = HTransactorFactory.getTransactorControl();
             TransactionId parent = transactor.transactionIdFromString(parentTxnId);
@@ -228,9 +234,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     }
 
     private byte[] statusToBytes() throws IOException {
-        ByteDataOutput bdo = new ByteDataOutput();
-        bdo.writeObject(status);
-        return bdo.toByteArray();
+        return status.toBytes();
     }
 
     @Override
@@ -247,6 +251,24 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public void markCompleted() throws ExecutionException {
         setStatus(Status.COMPLETED,false);
+//        commit();
+    }
+
+    private void commit() throws ExecutionException {
+        String txnIdStr = getTaskStatus().getTransactionId();
+        if(txnIdStr==null){
+            if(LOG.isDebugEnabled())
+                LOG.debug("No Transaction to commit for task "+ getTaskType());
+            return;
+        }
+        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+        TransactionId txnId = txnControl.transactionIdFromString(txnIdStr);
+        try {
+            txnControl.commit(txnId);
+        } catch (IOException e) {
+            LOG.error("Unable to commit task "+ getTaskType()+"with txnId "+txnIdStr,e);
+            throw new ExecutionException(e);
+        }
     }
 
     @Override
@@ -302,5 +324,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public String getTaskNode() {
         return taskPath;
+    }
+
+    @Override
+    public boolean isTransactional() {
+        return true;
     }
 }

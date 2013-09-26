@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 public class JtaXAResourceHBaseTest extends JtaXAResourceTest {
     @BeforeClass
     public static void setUp() {
-        storeSetup = new HStoreSetup(false);
+        storeSetup = HStoreSetup.create();
         transactorSetup = new TransactorSetup(storeSetup, false);
         HTransactorFactory.setTransactor(transactorSetup.hTransactor);
         baseSetUp();
@@ -17,7 +17,7 @@ public class JtaXAResourceHBaseTest extends JtaXAResourceTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        storeSetup.getTestCluster().shutdownMiniCluster();
+        HStoreSetup.destroy((HStoreSetup) storeSetup);
     }
 
 }

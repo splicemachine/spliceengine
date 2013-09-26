@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -9,7 +8,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
@@ -26,18 +24,14 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +47,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     private int[] keyColumns;
 
 //    private RingBuffer<ExecIndexRow> currentAggregations = new RingBuffer<ExecIndexRow>(1000); //TODO -sf- make configurable
-    private HashBuffer<ByteBuffer,ExecIndexRow> currentAggregations = new HashBuffer<ByteBuffer, ExecIndexRow>(SpliceConstants.ringBufferSize);
+    private HashBuffer<ByteBuffer,ExecIndexRow> currentAggregations = new DelegateHashBuffer<ByteBuffer, ExecIndexRow>(SpliceConstants.ringBufferSize);
     private KeyType keyHasher = KeyType.FIXED_PREFIX;
     private List<Pair<ByteBuffer,ExecRow>> finishedResults = Lists.newArrayList();
     private boolean isTemp;
@@ -216,7 +210,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         super.close();
         if(reduceScan!=null)
             SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
@@ -227,12 +221,12 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder);
     }
 
-    public ExecRow getNextSinkRow() throws StandardException {
+    public ExecRow getNextSinkRow() throws StandardException, IOException {
         return aggregate(false);
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         if(finishedResults.size()>0)
             return makeCurrent(finishedResults.remove(0));
         else if(completedExecution)
@@ -241,7 +235,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return aggregate(true);
     }
 
-    private ExecRow aggregate(boolean isTemp) throws StandardException{
+    private ExecRow aggregate(boolean isTemp) throws StandardException, IOException {
         ExecIndexRow row = isTemp? getNextRowFromTemp(): getNextRowFromSource(true);
         if(row == null){
             return finalizeResults();
@@ -284,8 +278,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
     }
 
-    private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException {
-        ExecRow sourceRow = source.getNextRowCore();
+    private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException, IOException {
+        ExecRow sourceRow = source.nextRow();
         if(sourceRow==null) return null;
         sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone(): sourceRow);
         return sourceExecIndexRow;

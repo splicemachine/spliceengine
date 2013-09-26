@@ -57,7 +57,7 @@ public class WriteUtils {
         return true;
     }
 
-    static long getWaitTime(int tryNum,long pause) {
+    public static long getWaitTime(int tryNum,long pause) {
         long retryWait;
         if(tryNum>= HConstants.RETRY_BACKOFF.length)
             retryWait = HConstants.RETRY_BACKOFF[HConstants.RETRY_BACKOFF.length-1];

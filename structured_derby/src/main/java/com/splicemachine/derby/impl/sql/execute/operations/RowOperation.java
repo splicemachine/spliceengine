@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -26,7 +27,7 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
-public class RowOperation extends SpliceBaseOperation implements CursorResultSet{
+public class RowOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(RowOperation.class);
 	protected int rowsReturned;
@@ -104,14 +105,18 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         }
 	}
 	
-	public void	openCore() throws StandardException  {
-        super.openCore();
-		SpliceLogUtils.trace(LOG, "openCore");
+	public void	open() throws StandardException  {
+        try {
+            super.open();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        SpliceLogUtils.trace(LOG, "openCore");
 	   	next = false;
 	}
 	
-	public ExecRow	getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore, next=%s, cachedRow=%s",next,cachedRow);
+	public ExecRow nextRow() throws StandardException {
+		SpliceLogUtils.trace(LOG, "nextRow, next=%s, cachedRow=%s",next,cachedRow);
 		currentRow = null;
 		if (!next) {
 			next = true;
@@ -219,8 +224,7 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"close in RowOp");
 	    
 		beginTime = getCurrentTimeMillis();

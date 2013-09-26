@@ -44,6 +44,7 @@ public interface TransactorControl {
     void commit(TransactionId transactionId) throws IOException;
     void rollback(TransactionId transactionId) throws IOException;
     void fail(TransactionId transactionId) throws IOException;
+    TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException;
 
     TransactionId transactionIdFromString(String transactionId);
 }

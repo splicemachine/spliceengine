@@ -1,15 +1,13 @@
 package com.splicemachine.test.suites;
 
-import org.apache.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperationTest;
-import org.apache.derby.impl.sql.execute.operations.DistinctScalarAggregateOperationTest;
-import org.apache.derby.impl.sql.execute.operations.MultiGroupGroupedAggregateOperationTest;
-import org.apache.derby.impl.sql.execute.operations.ScalarAggregateOperationTest;
-import org.apache.derby.impl.sql.execute.operations.SingleGroupGroupedAggregateOperationTest;
+import org.apache.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperationIT;
+import org.apache.derby.impl.sql.execute.operations.DistinctScalarAggregateOperationIT;
+import org.apache.derby.impl.sql.execute.operations.MultiGroupGroupedAggregateOperationIT;
+import org.apache.derby.impl.sql.execute.operations.ScalarAggregateOperationIT;
+import org.apache.derby.impl.sql.execute.operations.SingleGroupGroupedAggregateOperationIT;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-
-import com.splicemachine.test.suites.OperationCategories.Transactional;
 
 /**
  * @author Scott Fines
@@ -18,10 +16,10 @@ import com.splicemachine.test.suites.OperationCategories.Transactional;
 @RunWith(Categories.class)
 @Categories.ExcludeCategory(OperationCategories.Transactional.class)
 @Suite.SuiteClasses({
-        DistinctGroupedAggregateOperationTest.class,
-        DistinctScalarAggregateOperationTest.class,
-        SingleGroupGroupedAggregateOperationTest.class,
-        MultiGroupGroupedAggregateOperationTest.class,
-        ScalarAggregateOperationTest.class
+		DistinctGroupedAggregateOperationIT.class,
+        DistinctScalarAggregateOperationIT.class,
+        SingleGroupGroupedAggregateOperationIT.class,
+        MultiGroupGroupedAggregateOperationIT.class,
+        ScalarAggregateOperationIT.class
 })
 public class AggregationSuite { }

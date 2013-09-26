@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -30,6 +31,23 @@ public class OrderTable extends SpliceTableWatcher {
 
     public OrderTable(String tableName, String schemaName) {
         super(tableName,schemaName,CREATE_STRING);
+    }
+
+//    @Test
+    public void makeOrderUnique() throws Exception{
+        String dirName = CsvUtil.getResourceDirectory() + "/index/";
+        String sourceFile = "order.csv";
+        String targetFile = "order-unique.csv";
+        int[] pk = new int[] {0,1,2};
+        CsvUtil.writeLines(dirName, targetFile, CsvUtil.makeUnique(dirName,sourceFile,pk));
+    }
+
+//    @Test
+    public void giveOrderSomeNulls() throws Exception {
+        String dirName = CsvUtil.getResourceDirectory() + "/index/";
+        String sourceFile = "order.csv";
+        String targetFile = "order-with-nulls.csv";
+        CsvUtil.writeLines(dirName, targetFile, CsvUtil.insertString(dirName, sourceFile, 5, ""));
     }
 
 }

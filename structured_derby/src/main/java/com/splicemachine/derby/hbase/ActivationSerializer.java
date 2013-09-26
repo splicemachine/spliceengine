@@ -2,6 +2,9 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
+import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -62,6 +65,7 @@ public class ActivationSerializer {
 
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
+//        factories.add(new OperationFieldFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
@@ -194,7 +198,7 @@ public class ActivationSerializer {
 
     private static FieldStorage getFieldStorage(Object o, Class<?> type) {
         for(FieldStorageFactory factory:factories){
-            if(factory.isType(type)){
+            if(factory.isType(o, type)){
                 return factory.create(o,type);
             }
         }
@@ -209,7 +213,57 @@ public class ActivationSerializer {
     private static interface FieldStorageFactory<F extends FieldStorage> {
         F create(Object objectToStore, @SuppressWarnings("rawtypes") Class type);
 
-        boolean isType(Class type);
+        boolean isType(Object instance, Class type);
+    }
+
+    public static class OperationFieldFactory implements FieldStorageFactory<OperationFieldStorage>{
+
+        @Override
+        public OperationFieldStorage create(Object objectToStore, @SuppressWarnings("rawtypes") Class type) {
+            if(objectToStore instanceof ConvertedResultSet){
+                return new OperationFieldStorage(((ConvertedResultSet)objectToStore).getOperation());
+            }
+            return new OperationFieldStorage((SpliceOperation)objectToStore);
+        }
+
+        @Override
+        public boolean isType(Object instance, Class type) {
+            if (ConvertedResultSet.class.isAssignableFrom(type)
+                    || SpliceOperation.class.isAssignableFrom(type)) return true;
+            if(instance instanceof ConvertedResultSet) return true;
+            return false;
+        }
+    }
+
+    public static class OperationFieldStorage implements FieldStorage{
+        private static final long serialVersionUID = 1l;
+
+        private SpliceOperation operation;
+
+        @Deprecated
+        public OperationFieldStorage() {
+        }
+
+        public OperationFieldStorage(SpliceOperation operation) {
+            this.operation = operation;
+        }
+
+        @Override
+        public Object getValue(Activation context) throws StandardException {
+            ConversionResultSet crs = new ConversionResultSet(operation);
+            crs.setActivation(context);
+            return crs;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeObject(operation);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            this.operation = (SpliceOperation)in.readObject();
+        }
     }
 
     public static class ArrayFieldStorage implements FieldStorage{
@@ -279,7 +333,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return type.isArray();
         }
     }
@@ -293,7 +347,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return DataValueDescriptor.class.isAssignableFrom(type);
         }
 
@@ -349,7 +403,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return ExecRow.class.isAssignableFrom(type);
         }
     }
@@ -404,7 +458,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return Serializable.class.isAssignableFrom(type);
         }
     }

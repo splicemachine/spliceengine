@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.base.Function;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.SpliceKryoRegistry;
@@ -8,10 +9,12 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceController;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -21,9 +24,12 @@ import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.tools.ResourcePool;
+import com.splicemachine.tools.ThreadLocalRandom;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -36,12 +42,14 @@ import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import javax.management.*;
 
 import java.io.IOException;
@@ -50,6 +58,7 @@ import java.net.InetAddress;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -195,9 +204,9 @@ public class SpliceDriver extends SIConstants {
                     try{
                         SpliceLogUtils.info(LOG,"Booting the SpliceDriver");
 
+                        registerDebugTools();
                         SpliceLogUtils.info(LOG,"Starting Cache");
                         startCache();
-
 
                         writerPool.start();
 
@@ -244,6 +253,41 @@ public class SpliceDriver extends SIConstants {
                 }
             });
         }
+    }
+
+    //registers configured debug and/or testing tools
+    private void registerDebugTools() {
+        if(!SpliceConstants.debugFailTasksRandomly) return; //nothing to do
+
+        final double testTaskFailureRate = SpliceConstants.debugTaskFailureRate;
+        if(testTaskFailureRate<=0||testTaskFailureRate>1)
+            return; //don't fail anything if the rate is out of our range
+
+        final Random random = new Random(System.currentTimeMillis());
+        SchedulerTracer.registerTaskStart(new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                if(random.nextDouble()<testTaskFailureRate)
+                    throw new Exception("Intentional task invalidation");
+                return null;
+            }
+        });
+        Function<TransactionId,Object> transactionFailer = new Function<TransactionId, Object>() {
+            @Override
+            public Object apply(@Nullable TransactionId input) {
+                if(random.nextDouble()>=testTaskFailureRate) return null;
+
+                TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+                try{
+                    txnControl.fail(input);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return null;
+            }
+        };
+        SchedulerTracer.registerTaskCommit(transactionFailer);
+        SchedulerTracer.registerTaskRollback(transactionFailer);
     }
 
     private boolean bootDatabase() throws Exception {
@@ -326,7 +370,7 @@ public class SpliceDriver extends SIConstants {
 
             //register JobScheduler
             ObjectName jobSchedulerName = new ObjectName("com.splicemachine.job:type=JobSchedulerManagement");
-            mbs.registerMBean(jobScheduler,jobSchedulerName);
+            mbs.registerMBean(jobScheduler.getJobMetrics(),jobSchedulerName);
 
             //register transaction stuff
             ObjectName transactorName = new ObjectName("com.splicemachine.txn:type=TransactorStatus");

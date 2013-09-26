@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -10,14 +8,20 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.*;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -30,7 +34,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import javax.annotation.Nullable;
+
 import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -39,7 +43,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
+public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
     private static final long serialVersionUID = 4l;
 	private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
 	/* Run time statistics variables */
@@ -73,7 +77,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected ExecRow currentRow;
 	protected RowLocation currentRowLocation;
 	protected List<SpliceOperation> leftOperationStack;
-	protected List<SpliceOperation> rightOperationStack;
 
 	protected boolean executed = false;
 	protected DataValueDescriptor[] sequence;
@@ -126,7 +129,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG, "readExternal");
 		optimizerEstimatedCost = in.readDouble();
 		optimizerEstimatedRowCount = in.readDouble();
 		resultSetNumber = in.readInt();
@@ -145,9 +147,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		rowsSeen = in.readInt();
 		rowsFiltered = in.readInt();
         failedTasks = (List<byte[]>)in.readObject();
-//        if(in.readBoolean()){
-//            operationParams = (ParameterValueSet)in.readObject();
-//        }
 	}
 
 	@Override
@@ -177,88 +176,21 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public boolean needsRowLocation() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	@Override
 	public SpliceOperation getLeftOperation() {
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
 	}
 
-	@Override
-	public void rowLocation(RowLocation rl) throws StandardException {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public boolean returnsRows() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	@Override
+    @Override
 	public int modifiedRowCount() {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 	
 	@Override
-	public ResultDescription getResultDescription() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	
-	@Override
 	public Activation getActivation() {
 		return activation;
 	}
-	@Override
-	public void open() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public ExecRow getAbsoluteRow(int row) throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getRelativeRow(int row) throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow setBeforeFirstRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getFirstRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getNextRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getPreviousRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getLastRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow setAfterLastRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 	@Override
 	public void clearCurrentRow() {
         activation.clearCurrentRow(resultSetNumber);
@@ -266,17 +198,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public boolean checkRowPosition(int isType) throws StandardException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public int getRowNumber() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public void close() throws StandardException {
+	public void close() throws StandardException,IOException {
 		if (!isOpen)
 			return;
 
@@ -289,107 +211,38 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	}
 	
-	@Override
-	public void cleanUp() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public boolean isClosed() {
-		return false;
-	}
-	@Override
-	public void finish() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
+
+//	@Override
+//	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
+//		if (subqueryTrackingArray == null)
+//			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
+//		return subqueryTrackingArray;
+//	}
 	
-	@Override
-	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-		if (subqueryTrackingArray == null)
-			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
-		return subqueryTrackingArray;
-	}
-	
-	@Override
-	public ResultSet getAutoGeneratedKeysResultset() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public String getCursorName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
+//	@Override
 	public void addWarning(SQLWarning w) {
-		// TODO Auto-generated method stub
-		
+        activation.addWarning(w);
 	}
-	@Override
+
+//	@Override
 	public SQLWarning getWarnings() {
-		// TODO Auto-generated method stub
-		return null;
+        return activation.getWarnings();
 	}
-	@Override
-	public DataValueDescriptor[] getNextRowFromRowSource()
-			throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public boolean needsToClone() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public FormatableBitSet getValidColumns() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public void closeRowSource() {
-		// TODO Auto-generated method stub
-		
-	}
+
 	@Override
 	public void markAsTopResultSet() {
 		this.isTopResultSet = true;		
 	}
 	@Override
-	public void openCore() throws StandardException {
+	public void open() throws StandardException, IOException {
         this.uniqueSequenceID = SpliceUtils.getUniqueKey();
         init(SpliceOperationContext.newContext(activation));
 	}
-	@Override
-	public void reopenCore() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public int getPointOfAttachment() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public int getScanIsolationLevel() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public void setTargetResultSet(TargetResultSet trs) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void setNeedsRowLocation(boolean needsRowLocation) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
+//	@Override
 	public double getEstimatedRowCount() {
 		return this.optimizerEstimatedRowCount;
 	}
+
 	@Override
 	public int resultSetNumber() {
 		return this.resultSetNumber;
@@ -399,40 +252,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		activation.setCurrentRow(row, resultSetNumber);
 		currentRow = row;
 	}
-	@Override
-	public boolean requiresRelocking() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public boolean isForUpdate() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public void updateRow(ExecRow row, RowChanger rowChanger)
-			throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void markRowAsDeleted() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void positionScanAtRowLocation(RowLocation rLoc)
-			throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
 
     protected ExecRow getCompactRow(LanguageConnectionContext lcc,
                                     ExecRow candidate,
                                     FormatableBitSet accessedCols,
                                     boolean isKeyed) throws StandardException {
         int	numCandidateCols = candidate.nColumns();
-		ExecRow compactRow = null;
+		ExecRow compactRow;
 		if (accessedCols == null) {
 			compactRow =  candidate;
 			baseColumnMap = new int[numCandidateCols];
@@ -544,11 +370,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     @Override
-    public void cleanup() {
-        throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
-    }
-
-    @Override
     public final void executeShuffle() throws StandardException {
         /*
          * Marked final so that subclasses don't accidentally screw up their error-handling of the
@@ -620,13 +441,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		operations.add(this);				
 	}
 
-	public List<SpliceOperation> getRightOperationStack(){
-		if(rightOperationStack==null){
-			rightOperationStack = new LinkedList<SpliceOperation>();
-			generateRightOperationStack(true,rightOperationStack);
-		}
-		return rightOperationStack;
-	}
 	@Override
 	public SpliceOperation getRightOperation() {
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
@@ -659,32 +473,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return getTimeSpent(ResultSet.ENTIRE_RESULTSET_TREE);
 	}
 
-	/**
-	 * Get the Timestamp for the beginning of execution.
-	 *
-	 * @return Timestamp		The Timestamp for the beginning of execution.
-	 */
-	public Timestamp getBeginExecutionTimestamp()
-	{
-		if (startExecutionTime == 0)
-			return null;
-		else
-			return new Timestamp(startExecutionTime);
-	}
-
-	/**
-	 * Get the Timestamp for the end of execution.
-	 *
-	 * @return Timestamp		The Timestamp for the end of execution.
-	 */
-	public Timestamp getEndExecutionTimestamp()
-	{
-		if (endExecutionTime == 0)
-			return null;
-		else
-			return new Timestamp(endExecutionTime);
-	}
-	
 	protected final long getCurrentTimeMillis()
 	{
 		if (statisticsTimingOn)
@@ -728,7 +516,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                         ": " + qual.getColumnId() + "\n";
                     
                 int operator = qual.getOperator();
-                String opString = null;
+                String opString;
                 switch (operator)
                 {
                   case Orderable.ORDER_OP_EQUALS:
@@ -783,10 +571,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected Transaction getTrans() {
         return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-    }
-
-    public void setChildTransactionID(String childTransactionID) {
-        this.childTransactionID = childTransactionID;
     }
 
     public void clearChildTransactionID() {

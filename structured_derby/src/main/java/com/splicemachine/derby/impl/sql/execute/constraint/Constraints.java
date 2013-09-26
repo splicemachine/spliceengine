@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -51,10 +52,9 @@ public class Constraints {
 
     public static Exception constraintViolation(WriteResult.Code writeErrorCode, ConstraintContext constraintContext) {
         switch (writeErrorCode) {
-            case PRIMARY_KEY_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.PRIMARY_KEY, constraintContext);
             case UNIQUE_VIOLATION:
-                return ConstraintViolation.create(Constraint.Type.UNIQUE, constraintContext);
+            case PRIMARY_KEY_VIOLATION:
+                return ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.newException(constraintContext.getConstraintName(),constraintContext.getTableName());
             case FOREIGN_KEY_VIOLATION:
                 return ConstraintViolation.create(Constraint.Type.FOREIGN_KEY, constraintContext);
             case CHECK_VIOLATION:

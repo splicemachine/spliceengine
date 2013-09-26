@@ -248,25 +248,33 @@ public enum KeyType implements KeyMarshall{
                 }
             }
         }
-
+        
         @Override
         public void decode(DataValueDescriptor[] fields, int[] reversedKeyColumns,
-                           boolean[] sortOrder,MultiFieldDecoder rowDecoder) throws StandardException {
-            if(sortOrder!=null){
-            	for (int i = 0; i<reversedKeyColumns.length; i++) {
-                    boolean desc = !sortOrder[i];
-                    if (reversedKeyColumns[i] != -1) {
-                        DerbyBytesUtil.decodeInto(rowDecoder, fields[reversedKeyColumns[i]],desc);
-                    }
-                }
-            }else{
-                for (int rowSpot : reversedKeyColumns) {
-                    if (rowSpot != -1) {
-                        DerbyBytesUtil.decodeInto(rowDecoder, fields[rowSpot]);
-                    }
-                }
-            }
-        }
+                boolean[] sortOrder,MultiFieldDecoder rowDecoder) throws StandardException {
+			 if(sortOrder!=null){
+			 	for (int i = 0; i<reversedKeyColumns.length; i++) {
+			         boolean desc = !sortOrder[i];
+			         if (reversedKeyColumns[i] != -1) {
+			              if (DerbyBytesUtil.isNextFieldNull(rowDecoder,fields[reversedKeyColumns[i]])) {
+			             	 fields[reversedKeyColumns[i]].setToNull();
+			                  DerbyBytesUtil.skip(rowDecoder,fields[reversedKeyColumns[i]]);
+			              }else
+			                  DerbyBytesUtil.decodeInto(rowDecoder, fields[reversedKeyColumns[i]],desc);
+			         }
+			     }
+			 }else{
+			     for (int rowSpot : reversedKeyColumns) {
+			         if (rowSpot != -1) {
+			             if (DerbyBytesUtil.isNextFieldNull(rowDecoder,fields[rowSpot])) {
+			            	 fields[rowSpot].setToNull();
+			                 DerbyBytesUtil.skip(rowDecoder,fields[rowSpot]);
+			             }else
+			                 DerbyBytesUtil.decodeInto(rowDecoder, fields[rowSpot]);
+			         }
+			     }
+			 }
+}
 
         @Override
         public int getFieldCount(int[] keyColumns) {

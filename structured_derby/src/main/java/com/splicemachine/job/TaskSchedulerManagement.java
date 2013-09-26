@@ -27,10 +27,6 @@ public interface TaskSchedulerManagement {
 
     int getNumRunningTasks();
 
-    int getHighestWorkerLoad();
-
-    int getLowestWorkerLoad();
-
     void setMaxWorkers(int maxWorkers);
 
 }

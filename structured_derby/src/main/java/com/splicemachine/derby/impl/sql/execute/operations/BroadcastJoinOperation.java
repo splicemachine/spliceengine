@@ -79,9 +79,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         super();
     }
 
-    public BroadcastJoinOperation(NoPutResultSet leftResultSet,
+    public BroadcastJoinOperation(SpliceOperation leftResultSet,
                                   int leftNumCols,
-                                  NoPutResultSet rightResultSet,
+                                  SpliceOperation rightResultSet,
                                   int rightNumCols,
                                   int leftHashKeyItem,
                                   int rightHashKeyItem,
@@ -119,13 +119,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-        SpliceLogUtils.trace(LOG, "getNextRowCore");
+    public ExecRow nextRow() throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG, "nextRow");
         if (rightSideMap == null)
             rightSideMap = retrieveRightSideCache();
 
         while (broadcastIterator == null || !broadcastIterator.hasNext()) {
-            if ((leftRow = leftResultSet.getNextRowCore()) == null) {
+            if ((leftRow = leftResultSet.nextRow()) == null) {
                 mergedRow = null;
                 this.setCurrentRow(mergedRow);
                 return mergedRow;

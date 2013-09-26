@@ -39,9 +39,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		super();
 	}
 	
-	public NestedLoopJoinOperation(NoPutResultSet leftResultSet,
+	public NestedLoopJoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
+			   SpliceOperation rightResultSet,
 			   int rightNumCols,
 			   Activation activation,
 			   GeneratedMethod restriction,
@@ -127,15 +127,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	}
 
 	@Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow() throws StandardException, IOException {
         return next(false);
 	}
 
-    protected ExecRow leftNext() throws StandardException {
-        return leftResultSet.getNextRowCore();
+    protected ExecRow leftNext() throws StandardException, IOException {
+        return leftResultSet.nextRow();
     }
 
-    protected ExecRow next(boolean outerJoin) throws StandardException {
+    protected ExecRow next(boolean outerJoin) throws StandardException, IOException {
         beginTime = getCurrentTimeMillis();
         // loop until NL iterator produces result, or until left side exhausted
         while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext())
@@ -152,9 +152,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
             setCurrentRow(mergedRow);
             return mergedRow;
         } else {
-            SpliceLogUtils.trace(LOG, "getNextRowCore loop iterate next ");
+            SpliceLogUtils.trace(LOG, "nextRow loop iterate next ");
             ExecRow next = nestedLoopIterator.next();
-            SpliceLogUtils.trace(LOG,"getNextRowCore returning %s",next);
+            SpliceLogUtils.trace(LOG,"nextRow returning %s",next);
             setCurrentRow(next);
             nextTime += getElapsedMillis(beginTime);
             rowsReturned++;
@@ -163,8 +163,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 	
 	@Override
-	public void	close() throws StandardException
-	{ 
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in NestdLoopJoin");
 		beginTime = getCurrentTimeMillis();
 		clearCurrentRow();
@@ -295,16 +294,16 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		}
 	}
 	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - leftResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE) 
-							- rightResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//			return	totTime - leftResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE)
+//							- rightResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 	
 }

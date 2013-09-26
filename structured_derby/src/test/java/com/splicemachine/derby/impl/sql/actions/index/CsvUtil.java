@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.google.common.io.Files;
+import com.splicemachine.client.workday.OmsLogTable;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -16,43 +17,7 @@ import java.util.*;
  */
 public class CsvUtil {
 
-    public static final String CSV_FILE_LOC = "/index/";
-
-    @Test
-    public void makeCustomerUnique() throws Exception{
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "customer.csv";
-        String targetFile = "customer-unique.csv";
-        int[] pk = new int[] {0,1,2};
-        writeLines(dirName, targetFile, makeUnique(dirName,sourceFile,pk));
-    }
-
-    @Test
-    public void makeOrderUnique() throws Exception{
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order.csv";
-        String targetFile = "order-unique.csv";
-        int[] pk = new int[] {0,1,2};
-        writeLines(dirName, targetFile, makeUnique(dirName,sourceFile,pk));
-    }
-
-    @Test
-    public void giveOrderSomeNulls() throws Exception {
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order.csv";
-        String targetFile = "order-with-nulls.csv";
-        writeLines(dirName, targetFile, insertString(dirName, sourceFile, 5, ""));
-    }
-
-    @Test
-    public void changeOrderLineDecimalFormat() throws Exception {
-        String dirName = getResourceDirectory() + CSV_FILE_LOC;
-        String sourceFile = "order-line.csv";
-        String targetFile = "order-line-decimal.csv";
-        writeLines(dirName, targetFile, insertString(dirName, sourceFile, 9, "5.0"));
-    }
-
-    private Collection<String> insertString(String dirName, String fileName, int colNum, String chars) {
+    public static Collection<String> insertString(String dirName, String fileName, int colNum, String chars) {
         List<String> lines = fileToLines(dirName + fileName, "--");
         List<String> outLines = new ArrayList<String>(lines.size());
 
@@ -87,8 +52,8 @@ public class CsvUtil {
                 throw new RuntimeException("Index "+max(colNums)+" is greater than size - "+cols.length);
             }
             key.setLength(0);
-            for (int i=0; i<colNums.length; i++) {
-                key.append(cols[colNums[i]]).append("|");
+            for (int colNum : colNums) {
+                key.append(cols[colNum]).append("|");
             }
             if (unique.containsKey(key.toString())) {
                 System.out.println("Collision on key: "+key.toString());
@@ -96,6 +61,33 @@ public class CsvUtil {
             unique.put(key.toString(), line);
         }
         return unique.values();
+    }
+
+    public static Collection<String> getLinesWithValueInColumn(String dirName,
+                                                                String fileName,
+                                                                int col,
+                                                                String colVal) {
+        List<String> linesWithValue = new ArrayList<String>();
+        for (String line : fileToLines(dirName + fileName, "--")) {
+            String[] cols = line.split(",");
+            if (cols.length > col && cols[col].equalsIgnoreCase(colVal)) {
+                linesWithValue.add(line);
+            }
+        }
+
+        return linesWithValue;
+    }
+
+    public static int findColumn(String colName, String schemaDef) {
+        int i=0;
+        for (String col : schemaDef.split(",")) {
+            String[] parts = col.split(" ");
+            if (parts.length > 0 && ! parts[0].isEmpty() && parts[0].equalsIgnoreCase(colName)) {
+                return i;
+            }
+            ++i;
+        }
+        return -1;
     }
 
     public static void writeLines(String dirName, String fileName, Collection<String> content) throws Exception {
@@ -109,13 +101,15 @@ public class CsvUtil {
 
     private static int max(int[] nums) {
         int max = 0;
-        for (int i=0; i<nums.length; i++) {
-            if (nums[i] >= max) {
-                max = nums[i];
+        for (int num : nums) {
+            if (num >= max) {
+                max = num;
             }
         }
         return max;
     }
+
+    // TODO - this impl blows memory, of course, when there's too many lines in the file
     private static List<String> fileToLines(String filePath, String commentPattern) {
         List<String> lines = new LinkedList<String>();
         BufferedReader in = null;
@@ -148,13 +142,10 @@ public class CsvUtil {
     }
 
     private static boolean lineIsComment(String line, String commentPattern) {
-        if (commentPattern == null || commentPattern.isEmpty()) {
-            return false;
-        }
-        return line.trim().startsWith(commentPattern);
+        return !(commentPattern == null || commentPattern.isEmpty()) && line.trim().startsWith(commentPattern);
     }
 
-    private static String getResourceDirectory() {
+    public static String getResourceDirectory() {
         String userDir = System.getProperty("user.dir");
         if(!userDir.endsWith("structured_derby"))
             userDir = userDir+"/structured_derby";

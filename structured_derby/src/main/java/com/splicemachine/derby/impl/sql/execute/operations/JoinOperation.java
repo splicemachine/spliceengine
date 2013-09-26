@@ -53,9 +53,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		super();
 	}
 	
-	public JoinOperation(NoPutResultSet leftResultSet,
+	public JoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
+			   SpliceOperation rightResultSet,
 			   int rightNumCols,
 			   Activation activation,
 			   GeneratedMethod restriction,
@@ -72,9 +72,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		this.notExistsRightSide = notExistsRightSide;
 		this.userSuppliedOptimizerOverrides = userSuppliedOptimizerOverrides;
 		this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
-		this.leftResultSet = (SpliceOperation) leftResultSet;
+		this.leftResultSet = leftResultSet;
 		this.leftResultSetNumber = leftResultSet.resultSetNumber();
-		this.rightResultSet = (SpliceOperation) rightResultSet;
+		this.rightResultSet = rightResultSet;
 		recordConstructorTime();
 	}
 	
@@ -157,11 +157,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         return keyColumns;
 	}
 
-	@Override
-	public void cleanup() {
-		SpliceLogUtils.trace(LOG, "cleanup");
-	}
-
 	public SpliceOperation getRightResultSet() {
 		return rightResultSet;
 	}
@@ -208,8 +203,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
 	}
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in Join");
 		if ( isOpen )
 	    {
@@ -224,10 +218,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        leftResultSet.openCore();
-        rightResultSet.openCore();
+    public void open() throws StandardException,IOException {
+        super.open();
+        leftResultSet.open();
+        rightResultSet.open();
     }
 
     @Override

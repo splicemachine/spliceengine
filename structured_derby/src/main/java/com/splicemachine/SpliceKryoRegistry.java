@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.catalog.types.*;
@@ -67,6 +68,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LazyDataValueDescriptor.class,new ExternalizableSerializer());
         instance.register(LazyNumberDataValueDescriptor.class,new ExternalizableSerializer());
         instance.register(LazyStringDataValueDescriptor.class,new ExternalizableSerializer());
+        instance.register(TaskStatus.class,new ExternalizableSerializer());
 
 
         instance.register(ContainerKey.class,new Serializer<ContainerKey>() {

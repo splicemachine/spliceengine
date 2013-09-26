@@ -41,13 +41,8 @@ public class ClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-    public Result getResult() throws StandardException {
-		try {
-			return scanner.next();
-		} catch (IOException e) {
-            SpliceLogUtils.logAndThrow(LOG,"Unable to getResult",Exceptions.parseException(e));
-            return null;//won't happen
-		}
+    public Result getResult() throws StandardException, IOException {
+        return scanner.next();
 	}
 
 	@Override

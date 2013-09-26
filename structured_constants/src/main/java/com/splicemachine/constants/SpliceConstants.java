@@ -136,8 +136,8 @@ public class SpliceConstants {
     public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
     private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
-    private static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
-    private static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
+    public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
+    public static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
 
     private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
@@ -302,6 +302,12 @@ public class SpliceConstants {
     public static int maxFlushesPerRegion;
     public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
     public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
+    public static final String LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW = "splice.loadControl.maxFlushedPerWindow";
+    public static final long LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW=10;
+    public static long maxFlushedPerPeriod;
+
+    public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
+    public static long tempTableMaxFileSize;
 
 
     public static enum TableEnv {
@@ -411,6 +417,11 @@ public class SpliceConstants {
         maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
         maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
+
+        maxFlushedPerPeriod = config.getLong(LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW,LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW);
+
+        long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
+        tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

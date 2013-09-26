@@ -14,9 +14,11 @@
 -- date_time print
 
 -- TEST:0074 GROUP BY col with SELECT col., SUM!
+--splicetest: ignore-order start
      SELECT PNUM, SUM(HOURS)                 
           FROM WORKS                              
           GROUP BY PNUM;
+--splicetest: ignore-order stop
 -- PASS:0074 If 6 rows are selected?
 -- PASS:0074 If PNUMs: 'P1', 'P2', 'P3', 'P4', 'P5', 'P6'?
 -- PASS:0074 If SUM(HOURS) for 'P2' is 140 ?

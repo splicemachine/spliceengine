@@ -18,6 +18,7 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class Exceptions {
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
-        return StandardException.newException(state.getSqlState(),rootCause);
+        return state.newException(rootCause);
     }
 
     public static StandardException parseException(RetriesExhaustedWithDetailsException rewde){

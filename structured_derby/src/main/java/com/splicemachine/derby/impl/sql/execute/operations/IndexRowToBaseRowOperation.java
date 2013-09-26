@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Maps between an Index Table and a data Table.
  */
-public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements CursorResultSet{
+public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 	private static Logger LOG = Logger.getLogger(IndexRowToBaseRowOperation.class);
 	protected int lockMode;
 	protected int isolationLevel;
@@ -89,7 +89,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 
 	public IndexRowToBaseRowOperation(long conglomId, int scociItem,
-			Activation activation, NoPutResultSet source,
+			Activation activation, SpliceOperation source,
 			GeneratedMethod resultRowAllocator, int resultSetNumber,
 			String indexName, int heapColRefItem, int allColRefItem,
 			int heapOnlyColRefItem, int indexColMapItem,
@@ -98,7 +98,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
 		SpliceLogUtils.trace(LOG,"instantiate with parameters");
 		this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
-		this.source = (SpliceOperation) source;
+		this.source = source;
 		this.indexName = indexName;
 		this.forUpdate = forUpdate;
 		this.scociItem = scociItem;
@@ -263,16 +263,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 	
 	@Override
-	public RowLocation getRowLocation() throws StandardException {
-		return currentRowLocation;
-	}
-
-	@Override
-	public ExecRow getCurrentRow() throws StandardException {
-		return currentRow;
-	}
-
-	@Override
 	public List<NodeType> getNodeTypes() {
 		return Collections.singletonList(NodeType.SCAN);
 	}
@@ -284,10 +274,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow() throws StandardException, IOException {
         long start = System.nanoTime();
         try{
-            SpliceLogUtils.trace(LOG,"<%s> getNextRowCore",indexName);
+            SpliceLogUtils.trace(LOG,"<%s> nextRow",indexName);
             ExecRow sourceRow;
             ExecRow retRow = null;
             boolean restrict;
@@ -346,7 +336,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
     }
 
 	@Override
-	public void close() throws StandardException {
+	public void close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in IndexRowToBaseRow");
 		beginTime = getCurrentTimeMillis();
 		source.close();
@@ -381,17 +371,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 		return this.source;
 	}
 	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
 
-		if (type == CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
-	
 	@Override
 	public String toString() {
 		return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d,resultSetNumber=%d}",
@@ -399,9 +379,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation implements C
 	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();;
     }
 
     @Override

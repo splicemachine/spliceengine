@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
@@ -108,7 +107,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 start = System.nanoTime();
             }
 
-	        if ( (nextRow = topOperation.getNextRowCore()) != null) {
+	        if ( (nextRow = topOperation.nextRow()) != null) {
 
                 if(stats.readAccumulator().shouldCollectStats()){
                     stats.readAccumulator().tick(System.nanoTime()-start);

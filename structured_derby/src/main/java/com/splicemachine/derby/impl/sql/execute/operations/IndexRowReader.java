@@ -116,7 +116,7 @@ class IndexRowReader {
         lookupService.shutdownNow();
     }
 
-    public RowAndLocation next() throws StandardException {
+    public RowAndLocation next() throws StandardException, IOException {
         if(currentResults==null||currentResults.size()<=0)
             getMoreData();
 
@@ -140,11 +140,11 @@ class IndexRowReader {
         return nextScannedRow;
     }
 
-    private void getMoreData() throws StandardException {
+    private void getMoreData() throws StandardException, IOException {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
         List<RowAndLocation> sourceRows = Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
-            ExecRow next = sourceOperation.getNextRowCore();
+            ExecRow next = sourceOperation.nextRow();
             if(next==null) break; //we are done
 
             if(!populated){

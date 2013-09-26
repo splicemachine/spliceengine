@@ -29,7 +29,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup(false);
+        classStoreSetup = HStoreSetup.create();
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         classTransactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
@@ -37,7 +37,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        classStoreSetup.getTestCluster().shutdownMiniCluster();
+        HStoreSetup.destroy((HStoreSetup) classStoreSetup);
     }
 
 }

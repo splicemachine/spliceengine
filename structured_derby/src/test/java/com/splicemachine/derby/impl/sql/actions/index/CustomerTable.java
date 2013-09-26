@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -45,4 +46,15 @@ public class CustomerTable extends SpliceTableWatcher {
     public CustomerTable(String tableName, String schemaName) {
         super(tableName,schemaName,CREATE_STRING);
     }
+
+
+//    @Test
+    public void makeCustomerUnique() throws Exception{
+        String dirName = CsvUtil.getResourceDirectory() + "/index/";
+        String sourceFile = "customer.csv";
+        String targetFile = "customer-unique.csv";
+        int[] pk = new int[] {0,1,2};
+        CsvUtil.writeLines(dirName, targetFile, CsvUtil.makeUnique(dirName,sourceFile,pk));
+    }
+
 }
