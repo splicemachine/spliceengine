@@ -403,7 +403,7 @@ public abstract class ParallelImportTask extends ZkTask{
                 if(timestampFormat==null){
                     String tsFormat = source.importContext.getTimestampFormat();
                     if(tsFormat ==null)
-                        tsFormat = "yyyy-MM-dd hh:mm:ss"; //iso format
+                        tsFormat = "yyyy-MM-dd HH:mm:ss"; //iso format
                     timestampFormat = new SimpleDateFormat(tsFormat);
                 }
                 format = timestampFormat;
