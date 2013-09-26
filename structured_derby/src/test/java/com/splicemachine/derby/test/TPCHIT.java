@@ -173,6 +173,7 @@ public class TPCHIT extends SpliceUnitTest {
 	}
 
 	@Test
+    @Ignore("Bugzilla 829: Not resilient in face of random task failure")
 	public void sql9() throws Exception {
 		Assert.assertTrue(runScript(new File(getSQLFile("9.sql")),methodWatcher.getOrCreateConnection()));
 	}
