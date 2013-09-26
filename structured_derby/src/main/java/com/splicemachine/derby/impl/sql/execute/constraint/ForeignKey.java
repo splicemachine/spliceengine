@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Representation of a ForeignKey Constraint.
@@ -88,12 +89,12 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
+    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priors) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
+    public Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priors) throws IOException {
         return Collections.emptyList();
     }
 

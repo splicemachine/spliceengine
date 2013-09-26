@@ -2,7 +2,6 @@ package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.AtomicDouble;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.BatchProtocol;
@@ -45,6 +44,7 @@ final class BulkWriteAction implements Callable<Void> {
     private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
+
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -134,7 +134,7 @@ final class BulkWriteAction implements Callable<Void> {
         try{
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
             BulkWriteResult response = instance.bulkWrite(bulkWrite);
-            SpliceLogUtils.trace(LOG,"[%d] %s",id,response);
+            SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
             Map<Integer,WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
@@ -250,44 +250,24 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong notServingRegionFlushes = new AtomicLong(0l);
         final AtomicLong wrongRegionFlushes = new AtomicLong(0l);
         final AtomicLong timedOutFlushes = new AtomicLong(0l);
-        final AtomicLong numCompletedFlushes = new AtomicLong(0l);
 
         final AtomicLong globalFailures = new AtomicLong(0l);
         final AtomicLong partialFailures = new AtomicLong(0l);
 
         final AtomicLong maxFlushTime = new AtomicLong(0l);
         final AtomicLong minFlushTime = new AtomicLong(Long.MAX_VALUE);
-        final AtomicDouble averageFlushTime = new AtomicDouble(0);
 
         final AtomicLong maxFlushSizeBytes = new AtomicLong(0l);
         final AtomicLong minFlushSizeBytes = new AtomicLong(0l);
         final AtomicLong totalFlushSizeBytes = new AtomicLong(0l);
-        final AtomicDouble averageFlushSizeBytes = new AtomicDouble(0);
 
         final AtomicLong maxFlushEntries = new AtomicLong(0l);
         final AtomicLong minFlushEntries = new AtomicLong(0l);
-        final AtomicDouble averageFlushEntries = new AtomicDouble(0);
 
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushTime = new AtomicLong(0l);
 
         public ActionStatusReporter(){}
-
-        public void updateTime(long msTaken) {
-            boolean cont = false;
-            while(!cont){
-                long currentMax = maxFlushTime.get();
-                cont = currentMax >= msTaken || maxFlushTime.compareAndSet(currentMax, msTaken);
-            }
-
-            cont=false;
-            while(!cont){
-                long currentMin = minFlushTime.get();
-                cont = currentMin <= msTaken || minFlushTime.compareAndSet(currentMin, msTaken);
-            }
-
-            //TODO -sf- make better statistics
-        }
 
         public void reset(){
             totalFlushesSubmitted.set(0);

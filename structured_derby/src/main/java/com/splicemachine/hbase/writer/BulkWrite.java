@@ -17,7 +17,7 @@ import java.util.Set;
 public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
 
-    private Set<KVPair> mutations;
+    private List<KVPair> mutations;
     private String txnId;
     private byte[] regionKey;
     private long bufferSize = -1;
@@ -25,7 +25,7 @@ public class BulkWrite implements Externalizable {
     public BulkWrite() { }
 
     public BulkWrite(List<KVPair> mutations, String txnId,byte[] regionKey) {
-        this.mutations = Sets.newHashSet(mutations);
+        this.mutations = Lists.newArrayList(mutations);
         this.txnId = txnId;
         this.regionKey = regionKey;
     }
@@ -33,7 +33,7 @@ public class BulkWrite implements Externalizable {
     public BulkWrite(String txnId, byte[] regionKey){
         this.txnId = txnId;
         this.regionKey = regionKey;
-        this.mutations = Sets.newHashSet();
+        this.mutations = Lists.newArrayList();
     }
 
     public List<KVPair> getMutations() {
@@ -64,7 +64,7 @@ public class BulkWrite implements Externalizable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         txnId = in.readUTF();
         int size = in.readInt();
-        mutations = Sets.newHashSetWithExpectedSize(size);
+        mutations = Lists.newArrayListWithExpectedSize(size);
         for(int i=0;i<size;i++){
             mutations.add((KVPair)in.readObject());
         }

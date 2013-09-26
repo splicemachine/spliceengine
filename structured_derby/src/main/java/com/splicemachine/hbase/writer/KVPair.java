@@ -110,7 +110,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
 
         KVPair kvPair = (KVPair) o;
 
-        return Arrays.equals(rowKey, kvPair.rowKey) && type == kvPair.type;
+        return type == kvPair.type && Bytes.equals(rowKey,kvPair.rowKey);
 
     }
 
