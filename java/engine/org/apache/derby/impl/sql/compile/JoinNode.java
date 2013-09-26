@@ -33,7 +33,9 @@ import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.io.FormatableLongHolder;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.*;
+import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -1752,14 +1754,16 @@ public class JoinNode extends TableOperatorNode {
                     leftHashCols[i] = resolveColumn(leftCol.getColumnNumber(), (Optimizable) leftResultSet);
                     rightHashCols[i] = resolveColumn(rightCol.getColumnNumber(), (Optimizable) rightResultSet);
 
-                    if (leftCol.getSource().getTableColumnDescriptor() != null) {
-                        leftTableName = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
-                        leftTableNumber = leftCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    TableDescriptor ltd = getTDforColumnRef(leftCol);
+                    if (ltd != null){
+                        leftTableName = ltd.getName();
+                        leftTableNumber = ltd.getHeapConglomerateId();
                     }
 
-                    if (rightCol.getSource().getTableColumnDescriptor() != null) {
-                        rightTableName = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getName();
-                        rightTableNumber = rightCol.getSource().getTableColumnDescriptor().getTableDescriptor().getHeapConglomerateId();
+                    TableDescriptor rtd = getTDforColumnRef(rightCol);
+                    if (rtd != null){
+                        rightTableName = rtd.getName();
+                        rightTableNumber = rtd.getHeapConglomerateId();
                     }
                 }
 
@@ -1877,6 +1881,30 @@ public class JoinNode extends TableOperatorNode {
 		}
 		return indexColumn;
 	}
+
+    /*
+     * Return the TableDescriptor for the table containing the column in ref, 
+     * or null if not possible
+     */
+    private TableDescriptor getTDforColumnRef(ColumnReference ref) throws StandardException {
+        ResultColumn source = ref.getSource();
+        ColumnDescriptor cd = source.getTableColumnDescriptor();
+        if (cd != null){
+            return cd.getTableDescriptor();
+        }
+        String tableName = source.getTableName() != null ?
+                            source.getTableName() : source.getSourceTableName();
+        String schemaName = source.getSchemaName() != null ?
+                                source.getSchemaName() : source.getSourceSchemaName();
+        if (tableName == null || schemaName == null){
+            return null;
+        }
+        SchemaDescriptor sd = ref.getSchemaDescriptor(schemaName);
+        if (sd == null){
+            return null;
+        }
+        return ref.getTableDescriptor(tableName, sd);
+    }
 
     private boolean isNestedLoopOverHashableJoin(){
 
