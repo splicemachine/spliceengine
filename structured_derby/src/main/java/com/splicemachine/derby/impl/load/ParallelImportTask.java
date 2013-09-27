@@ -6,22 +6,18 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -30,13 +26,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -77,7 +68,6 @@ public abstract class ParallelImportTask extends ZkTask{
                 long totalReadTime=0l;
                 try{
                     String[] nextRow;
-
                     do{
                         long start = System.nanoTime();
                         nextRow = nextRow();
@@ -276,16 +266,12 @@ public abstract class ParallelImportTask extends ZkTask{
     }
 
     private class Processor implements Callable<Void>{
-        private final ExecRow row;
         private final BlockingQueue<String[]> queue;
         private final CallBuffer<KVPair> writeDestination;
         private final ThreadingCallBuffer source;
         private final RowEncoder entryEncoder;
 
-        private DateFormat dateFormat;
-        private DateFormat timestampFormat;
-        private DateFormat timeFormat;
-
+        private RowParser importProcessor;
         private int numProcessed;
         private long totalPopulateTime;
         private long totalWriteTime;
@@ -294,11 +280,16 @@ public abstract class ParallelImportTask extends ZkTask{
                           BlockingQueue<String[]> queue,
                           CallBuffer<KVPair> writeDestination,
                           ThreadingCallBuffer source){
-            this.row = row;
+//            this.row = row;
             this.queue = queue;
             this.writeDestination = writeDestination;
             this.source = source;
             this.entryEncoder = source.newEntryEncoder(row);
+
+            this.importProcessor = new RowParser(row,
+                    importContext.getDateFormat(),
+                    importContext.getTimeFormat(),
+                    importContext.getTimestampFormat());
         }
 
         @Override
@@ -354,81 +345,14 @@ public abstract class ParallelImportTask extends ZkTask{
 
         protected void doImportRow(String[] line) throws Exception {
             long start = System.nanoTime();
-            populateRow(line, importContext.getColumnInformation(),row);
+            ExecRow newRow = importProcessor.process(line,importContext.getColumnInformation());
             long stop = System.nanoTime();
             totalPopulateTime += (stop-start);
 
             start = System.nanoTime();
-            entryEncoder.write(row,writeDestination);
+            entryEncoder.write(newRow,writeDestination);
             stop = System.nanoTime();
             totalWriteTime += (stop-start);
-        }
-
-        private void populateRow(String[] line, ColumnContext[] columnContexts,ExecRow row) throws StandardException {
-            //clear out any previous results
-            for(DataValueDescriptor dvd:row.getRowArray()){
-                if(dvd!=null)
-                    dvd.setToNull();
-            }
-
-            int pos=0;
-            for(ColumnContext context:columnContexts){
-                String value = line[pos]==null||line[pos].length()==0?null: line[pos];
-                setColumn(row, context, value);
-                pos++;
-            }
-        }
-
-        private void setColumn(ExecRow row, ColumnContext columnContext, String elem) throws StandardException {
-            if(elem==null||elem.length()==0)
-                elem=null;
-            DataValueDescriptor column = row.getColumn(columnContext.getColumnNumber() + 1);
-            DataValueDescriptor dvd = column;
-            if(elem!=null && dvd instanceof DateTimeDataValue){
-                DateFormat format = getDateFormat(dvd);
-                try{
-                    Date value = format.parse(elem);
-                    dvd.setValue(new Timestamp(value.getTime()));
-                }catch (ParseException p){
-                    throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
-//                    throw StandardException.newException(SQLState.LANG_DATE_SYNTAX_EXCEPTION);
-                }
-            }else{
-                column.setValue(elem); // pass in null for null or empty string
-                columnContext.validate(column);
-            }
-        }
-
-        private DateFormat getDateFormat(DataValueDescriptor dvd) throws StandardException {
-            DateFormat format;
-            if(dvd instanceof SQLTimestamp){
-                if(timestampFormat==null){
-                    String tsFormat = source.importContext.getTimestampFormat();
-                    if(tsFormat ==null)
-                        tsFormat = "yyyy-MM-dd HH:mm:ss"; //iso format
-                    timestampFormat = new SimpleDateFormat(tsFormat);
-                }
-                format = timestampFormat;
-            }else if(dvd instanceof SQLDate){
-                if(dateFormat==null){
-                    String dFormat = source.importContext.getDateFormat();
-                    if(dFormat==null)
-                        dFormat = "yyyy-MM-dd";
-                    dateFormat = new SimpleDateFormat(dFormat);
-                }
-                format = dateFormat;
-            }else if(dvd instanceof SQLTime){
-                if(timeFormat==null){
-                    String tFormat = source.importContext.getTimeFormat();
-                    if(tFormat==null)
-                        tFormat = "hh:mm:ss";
-                    timeFormat = new SimpleDateFormat(tFormat);
-                }
-                format = timeFormat;
-            }else{
-                throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
-            }
-            return format;
         }
     }
 }
