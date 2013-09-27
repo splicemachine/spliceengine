@@ -28,7 +28,7 @@ public class BasicSnowflakeTest {
     public void testNoDuplicateUUIDsInASingleThread() throws Exception {
         Set<Long> uuidSet = Sets.newTreeSet();
         Snowflake snowflake = new Snowflake((short)(1<<7));
-        for(int i=0;i<1000000;i++){
+        for(int i=0;i<100000;i++){
             long uuid = snowflake.nextUUID();
             Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
             uuidSet.add(uuid);
@@ -39,7 +39,7 @@ public class BasicSnowflakeTest {
     public void testNoDuplicateUUIDsInASingleThreadBytes() throws Exception {
         Set<byte[]> uuidSet = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
         Snowflake snowflake = new Snowflake((short)(1<<7));
-        for(int i=0;i<10000000;i++){
+        for(int i=0;i<1000000;i++){
             byte[] uuid = snowflake.nextUUIDBytes();
             Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
             uuidSet.add(uuid);
