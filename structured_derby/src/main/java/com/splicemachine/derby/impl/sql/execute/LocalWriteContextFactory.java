@@ -237,7 +237,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                 if(td!=null){
-                    startDirect(dataDictionary,td);
+                    startDirect(dataDictionary,td,conglomerateDescriptor);
                 }
                 transactor.commit(txnId);
                 state.set(State.RUNNING);
@@ -268,7 +268,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
     }
 
-    private void startDirect(DataDictionary dataDictionary,TableDescriptor td) throws StandardException,IOException{
+    private void startDirect(DataDictionary dataDictionary,TableDescriptor td,ConglomerateDescriptor cd) throws StandardException,IOException{
         indexFactories.clear();
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
@@ -312,6 +312,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     indexFactories.add(buildIndex(conglomDesc,constraintDescriptors));
                 }
             }
+        }
+
+        //check ourself for any additional constraints, but only if it's not present already
+        if(!congloms.contains(cd)&&cd.isIndex()){
+            //if we have a constraint, use it
+            addIndexConstraint(td,cd);
+            indexFactories.clear();
         }
     }
 

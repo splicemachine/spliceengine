@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
@@ -203,8 +204,9 @@ public class UniqueIndexIT extends SpliceUnitTest {
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_5),name,value));
         try{
             methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_5),name,value));
-            Assert.assertTrue("Unqiueness Constraint Violated!",false);
+            Assert.fail("Uniqueness constraint violated");
         }catch(SQLException se){
+            Assert.assertEquals(ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),se.getSQLState());
         }
         indexWatcher.finished(null);
 

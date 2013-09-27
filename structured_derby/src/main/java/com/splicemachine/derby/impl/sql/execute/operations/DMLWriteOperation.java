@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -8,9 +9,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -21,6 +26,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -265,22 +271,130 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 SpliceLogUtils.logAndThrowRuntime(LOG,e);
             }
             if(!getNodeTypes().contains(NodeType.REDUCE)){
+                /*
+                 * We are executing the operation directly, because there's no need
+                 * to submit a parallel task
+                 *
+                 * Transactional Information:
+                 *
+                 * When we execute a statement like this, we have a situation. Our root
+                 * transaction is the transaction for the overall transaction (not a
+                 * statement specific one). This means that, if anything happens here,
+                 * we need to rollback the overall transaction.
+                 *
+                 * However, there are two problems with this. Firstly, if auto-commit
+                 * is off, then a user may choose to commit that global transaction
+                 * no matter what we do, which could result in data corruption. Secondly,
+                 * if we automatically rollback the global transaction, then we risk
+                 * rolling back many statements which were executed in parallel. This
+                 * is clearly very bad in both cases, so we can't rollback the
+                 * global transaction.
+                 *
+                 * Instead, we create a child transaction, which we can roll back
+                 * safely.
+                 */
+                TransactionId parentTxnId = HTransactorFactory.getTransactor().transactionIdFromString(getTransactionID());
+                TransactionId childTransactionId;
+                try{
+                    childTransactionId = HTransactorFactory.getTransactor().beginChildTransaction(parentTxnId,true);
+                }catch(IOException ioe){
+                    LOG.error(ioe);
+                    throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
+                }
+
                 try {
-                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null, null);
+                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null, childTransactionId.getTransactionIdString());
                     TaskStats stats = opSink.sink(getDestinationTable());
                     modifiedProvider.setRowsModified(stats.getReadStats().getTotalRecords());
-                } catch (Exception ioe) {
-                    if(Exceptions.shouldLogStackTrace(ioe)){
-                        SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
-                    }else
-                        throw new RuntimeException(ioe);
+
+                    //commit the transaction
+                    commitTransactionSafely(childTransactionId,0);
+                } catch(Exception se){
+                    if(se instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)se).getSqlState())){
+                        //bad news, we couldn't commit the transaction. Nothing we can do there,
+                        //just propagate
+                        throw new RuntimeException(se);
+                    }
+                    //we encountered some other kind of error. Try and roll back the Transaction
+                    try {
+                        rollback(childTransactionId,0);
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                    throw new RuntimeException(se);
                 } finally {
                     clearChildTransactionID();
                 }
 			}
 		}
 
-		@Override
+        private void rollback(TransactionId txnId, int numTries) throws StandardException {
+            if(numTries> SpliceConstants.numRetries)
+                throw ErrorState.XACT_ROLLBACK_EXCEPTION.newException();
+            try{
+                HTransactorFactory.getTransactor().rollback(txnId);
+            }catch (IOException e) {
+                TransactionStatus status = getTransactionStatusSafely(txnId,0);
+                switch (status) {
+                    case ACTIVE:
+                        //we can retry
+                        rollback(txnId, numTries+1);
+                        return;
+                    case COMMITTING:
+                        throw new IllegalStateException("Seen a transaction state of COMMITTING");
+                    case ROLLED_BACK:
+                        //whoo, we succeeded
+                        return;
+                    default:
+                        throw ErrorState.XACT_ROLLBACK_EXCEPTION.newException();
+                }
+            }
+        }
+
+        private void commitTransactionSafely(TransactionId txnId, int numTries) throws StandardException{
+            /*
+             * We attempt to commit the transaction safely.
+             *
+             * If we fail to commit, then we must check our transaction state, and retry commit if necessary
+             */
+            //we're out of tries, give up
+            if(numTries> SpliceConstants.numRetries)
+                throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
+
+            try{
+                HTransactorFactory.getTransactor().commit(txnId);
+            } catch (IOException e) {
+                TransactionStatus status = getTransactionStatusSafely(txnId,0);
+                switch (status) {
+                    case COMMITTED:
+                        //whoo, success!
+                        return;
+                    case ACTIVE:
+                        //cool, we can retry the commit
+                        commitTransactionSafely(txnId, numTries+1);
+                        return;
+                    case COMMITTING:
+                        throw new IllegalStateException("Seen a committing transaction state!");
+                    default:
+                        //we can't retry, that's bad
+                        throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
+                }
+            }
+        }
+
+        private TransactionStatus getTransactionStatusSafely(TransactionId txnId, int numTries) throws StandardException{
+            if(numTries> SpliceConstants.numRetries)
+                throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
+            try{
+                return HTransactorFactory.getTransactor().getTransactionStatus(txnId);
+            }catch(IOException ioe){
+                LOG.error(ioe);
+                //try again
+                return getTransactionStatusSafely(txnId, numTries+1);
+            }
+        }
+
+        @Override
 		public void close() {
 			SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
             if (! this.isOpen)
