@@ -248,7 +248,8 @@ public class ImportContext implements Externalizable{
 		}
 
 		public Builder stripCharacters(String stripString) {
-			this.stripString = stripString;
+			String stripStr = (stripString == null ? null : StringUtils.parseControlCharacters(stripString));
+			this.stripString = stripStr;
 			return this;
 		}
 

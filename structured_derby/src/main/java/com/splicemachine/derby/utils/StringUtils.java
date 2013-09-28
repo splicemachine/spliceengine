@@ -106,7 +106,7 @@ public class StringUtils {
         switch(letter){
             case 't': return '\t';
             case 'n': return '\n';
-            case 'r': return '\r';
+            case '0': return '\0';
             default:
                 return letter; //can't parse it
         }
