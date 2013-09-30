@@ -37,9 +37,8 @@ public class BlockParallelImportTask extends ParallelImportTask {
                                       ImportContext context,
                                       BlockLocation location,
                                       int priority,
-                                      String parentTxnId,
-                                      boolean readOnly) {
-        super(jobId, context,priority, parentTxnId, readOnly);
+                                      String parentTxnId ) {
+        super(jobId, context,priority, parentTxnId);
         this.location = location;
     }
 

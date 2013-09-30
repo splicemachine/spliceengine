@@ -26,8 +26,9 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
- *         Created on: 4/5/13
+ * Created on: 4/5/13
  */
+@Deprecated
 public class BlockImportTask extends AbstractImportTask{
     private static final long serialVersionUID = 2l;
     private BlockLocation location;

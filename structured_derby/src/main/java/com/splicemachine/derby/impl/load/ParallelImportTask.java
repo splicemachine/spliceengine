@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -35,25 +36,36 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Created on: 8/26/13
  */
-public abstract class ParallelImportTask extends ZkTask{
-    private static final long serialVersionUID = 1l;
+public class ParallelImportTask extends ZkTask{
+    private static final long serialVersionUID = 2l;
     private final Logger LOG;
 
     protected ImportContext importContext;
     protected FileSystem fileSystem;
+    protected ImportReader reader;
 
-    protected ParallelImportTask() {
+    public ParallelImportTask() {
         this.LOG = Logger.getLogger(this.getClass());
     }
 
     protected ParallelImportTask(String jobId,
                                  ImportContext importContext,
                                  int priority,
-                                 String parentTxnId,
-                                 boolean readOnly) {
-        super(jobId, priority, parentTxnId, readOnly);
+                                 String parentTxnId ) {
+        super(jobId, priority, parentTxnId, false);
         this.importContext = importContext;
         this.LOG = Logger.getLogger(this.getClass());
+    }
+
+    public ParallelImportTask(String jobId,
+                              ImportContext importContext,
+                              ImportReader reader,
+                              int priority,
+                              String parentTxnId ){
+        super(jobId,priority,parentTxnId,false);
+        this.importContext = importContext;
+        this.LOG = Logger.getLogger(this.getClass());
+        this.reader = reader;
     }
 
     @Override
@@ -63,14 +75,14 @@ public abstract class ParallelImportTask extends ZkTask{
             CallBuffer<String[]> processingBuffer = new ThreadingCallBuffer(importContext, row, getTaskStatus().getTransactionId());
 
             try{
-                setupRead();
+                reader.setup(fileSystem,importContext);
                 long numRead=0;
                 long totalReadTime=0l;
                 try{
                     String[] nextRow;
                     do{
                         long start = System.nanoTime();
-                        nextRow = nextRow();
+                        nextRow = reader.nextRow();
                         long stop = System.nanoTime();
                         totalReadTime+=(stop-start);
                         numRead++;
@@ -81,7 +93,7 @@ public abstract class ParallelImportTask extends ZkTask{
                 } catch (Exception e) {
                     throw new ExecutionException(e);
                 } finally{
-                    finishRead();
+                    Closeables.closeQuietly(reader);
                     processingBuffer.close();
                     if(LOG.isDebugEnabled()){
                         SpliceLogUtils.debug(LOG,"Total time taken to read %d records: %d ns",numRead,totalReadTime);
@@ -98,20 +110,22 @@ public abstract class ParallelImportTask extends ZkTask{
         }
     }
 
-    protected abstract void finishRead() throws IOException;
+    protected void finishRead() throws IOException{}
 
-    protected abstract String[] nextRow() throws Exception;
+    protected String[] nextRow() throws Exception{return null;}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         importContext = (ImportContext)in.readObject();
+        reader = (ImportReader)in.readObject();
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(importContext);
+        out.writeObject(reader);
     }
 
     @Override
@@ -162,7 +176,7 @@ public abstract class ParallelImportTask extends ZkTask{
         return td.getNull();
     }
 
-    protected abstract void setupRead() throws Exception;
+    protected void setupRead() throws Exception{};
 
     private class ThreadingCallBuffer implements CallBuffer<String[]> {
         private final ExecutorService processingPool;

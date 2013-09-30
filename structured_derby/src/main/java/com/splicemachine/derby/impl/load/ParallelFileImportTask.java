@@ -25,7 +25,7 @@ public class ParallelFileImportTask extends ParallelImportTask{
                                   ImportContext importContext,
                                   int priority,
                                   String parentTxnId) {
-        super(jobId, importContext, priority, parentTxnId,false);
+        super(jobId, importContext, priority, parentTxnId);
     }
 
     @Override

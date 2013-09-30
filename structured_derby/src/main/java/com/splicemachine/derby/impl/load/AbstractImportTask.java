@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 4/5/13
  */
+@Deprecated
 public abstract class AbstractImportTask extends ZkTask {
     private static final long serialVersionUID = 1l;
     protected ImportContext importContext;

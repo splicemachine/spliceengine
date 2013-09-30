@@ -88,8 +88,19 @@ public class ImportContext implements Externalizable{
 	}
 	
 	public String getColumnDelimiter() {
-		return columnDelimiter;
+		String delim = columnDelimiter;
+        if(delim==null||delim.length()<=0)
+            delim = ",";
+        return delim;
 	}
+
+    public String getQuoteChar(){
+        String stripStr = getStripString();
+        if(stripStr==null||stripStr.length()<=0)
+            stripStr = "\"";
+        return stripStr;
+    }
+
 
 	public String getStripString() {
 		return stripString;
