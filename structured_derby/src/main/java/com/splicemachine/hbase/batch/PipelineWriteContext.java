@@ -68,8 +68,11 @@ public class PipelineWriteContext implements WriteContext{
         }
 
         @Override
-        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes, WriteCoordinator.PreFlushHook preFlushListener, Writer.WriteConfiguration writeConfiguration) throws Exception {
-            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener, writeConfiguration);
+        public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+                                                 WriteCoordinator.PreFlushHook preFlushListener,
+                                                 Writer.WriteConfiguration writeConfiguration,
+                                                 int maxEntries) throws Exception {
+            return PipelineWriteContext.this.getWriteBuffer(conglomBytes,preFlushListener, writeConfiguration,maxEntries);
         }
 
         @Override
@@ -173,10 +176,12 @@ public class PipelineWriteContext implements WriteContext{
     }
 
     @Override
-    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.WriteConfiguration writeConfiguration) throws Exception {
+    public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+                                             WriteCoordinator.PreFlushHook preFlushListener,
+                                             Writer.WriteConfiguration writeConfiguration, int maxSize) throws Exception {
         if(useAsyncWriteBuffers)
             return SpliceDriver.driver().getTableWriter().writeBuffer(conglomBytes,txnId, preFlushListener, writeConfiguration);
-        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener, writeConfiguration);
+        return SpliceDriver.driver().getTableWriter().synchronousWriteBuffer(conglomBytes,txnId,preFlushListener, writeConfiguration,maxSize);
     }
 
     @Override

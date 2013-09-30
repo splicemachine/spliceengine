@@ -16,7 +16,7 @@ import java.util.Collections;
  * @author P Trolard
  *         Date: 25/09/2013
  */
-public class JoinSelectorUT {
+public class JoinSelectorTest {
     public static ResultSetNode fbt     = new FromBaseTable();
     public static ResultSetNode rows    = new RowResultSetNode();
     public static Predicate pred        = new Predicate();
@@ -24,11 +24,19 @@ public class JoinSelectorUT {
     public static JoinInfo infoEqui = new JoinInfo(JoinSelector.NLJ, false, false, true, false, false,
                                             Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
 
-
     @Test
     public void basicEquiJoinTest() throws Exception {
         Assert.assertEquals(JoinSelector.MSJ, JoinSelector.chooseStrategy(infoEqui));
     }
+
+    public static JoinInfo infoNonEqui = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
+                                                Collections.singletonList(pred), Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));
+
+    @Test
+    public void basicNonEquiJoinTest() throws Exception {
+        Assert.assertEquals(JoinSelector.NLJ, JoinSelector.chooseStrategy(infoNonEqui));
+    }
+
 
     public static JoinInfo infoCross = new JoinInfo(JoinSelector.NLJ, false, false, false, false, false,
                                             Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.singletonList(fbt));

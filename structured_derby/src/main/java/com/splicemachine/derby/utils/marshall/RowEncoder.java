@@ -1,28 +1,20 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.IOException;
+import java.util.BitSet;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import com.google.common.base.Preconditions;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.HashUtils;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryEncoder;
-
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.MurmurHash;
-
-import java.io.IOException;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -142,22 +134,6 @@ public class RowEncoder {
         }
 
         return new EntryRowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,scalarFields,floatFields,doubleFields);
-    }
-
-    public static RowEncoder createDoubleWritingEncoder(int numCols,
-                                                        int[] keyColumns,
-                                                        boolean[] keySortOrder,
-                                                        byte[] keyPrefix,
-                                                        KeyMarshall keyType,
-                                                        RowMarshall rowType){
-        if(keyColumns==null)
-            keyColumns = new int[0];
-
-        int[] rowCols = new int[numCols];
-        for(int rowPos=0;rowPos<numCols;rowPos++){
-            rowCols[rowPos] = rowPos;
-        }
-        return new RowEncoder(keyColumns,keySortOrder,rowCols,keyPrefix,keyType,rowType);
     }
 
     public static RowEncoder createDeleteEncoder(KeyMarshall keyMarshall){

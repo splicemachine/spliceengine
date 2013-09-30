@@ -6,8 +6,11 @@ import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.writer.*;
 import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.writer.BulkWriteResult;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -17,7 +20,6 @@ import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -25,7 +27,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -33,17 +34,13 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
-import javax.management.*;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -134,7 +131,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             if(queue==null)
                 queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
             try {
-                context = getWriteContext(bulkWrite.getTxnId(),rce,queue);
+                context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
             } catch (InterruptedException e) {
                 //was interrupted while trying to create a write context.
                 //we're done, someone else will have to write this batch
@@ -169,9 +166,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
 
-    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue) throws IOException, InterruptedException {
+    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue,int writeSize) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
-        return ctxFactoryPair.getFirst().create(txnId,rce,queue);
+        return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
     }
 
     @SuppressWarnings("unchecked")
@@ -252,29 +249,4 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         return ctxPair.getFirst();
     }
 
-    public static class ReceiverStats implements BulkReceiverStatus{
-        final AtomicLong totalWritesReceived = new AtomicLong(0l);
-        final AtomicLong totalRowsReceived = new AtomicLong(0l);
-        final AtomicLong totalBytesReceived = new AtomicLong(0l);
-        final AtomicLong totalFailedRows = new AtomicLong(0l);
-        final AtomicLong totalErrorsThrown = new AtomicLong(0l);
-        final AtomicLong totalDeleteFirstAfterCalls = new AtomicLong(0l);
-
-        @Override public long getTotalBulkWritesReceived() { return totalWritesReceived.get(); }
-        @Override public long getTotalRowsReceived() { return totalRowsReceived.get(); }
-        @Override public long getTotalBytesReceived() { return totalBytesReceived.get(); }
-        @Override public long getTotalRowsFailed() { return totalFailedRows.get(); }
-        @Override public long getTotalErrorsThrown() { return totalErrorsThrown.get(); }
-        @Override public long getTotalDeleteFirstAfterCalls() { return totalDeleteFirstAfterCalls.get(); }
-
-        @Override
-        public void reset() {
-            totalFailedRows.set(0);
-            totalBytesReceived.set(0);
-            totalRowsReceived.set(0);
-            totalErrorsThrown.set(0);
-            totalDeleteFirstAfterCalls.set(0);
-            totalWritesReceived.set(0);
-        }
-    }
 }

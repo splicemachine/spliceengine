@@ -27,7 +27,10 @@ public interface WriteContext {
 
     HTableInterface getHTable(byte[] indexConglomBytes);
 
-    CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,WriteCoordinator.PreFlushHook preFlushListener,Writer.WriteConfiguration writeConfiguration) throws Exception;
+    CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
+                                      WriteCoordinator.PreFlushHook preFlushListener,
+                                      Writer.WriteConfiguration writeConfiguration,
+                                      int expectedSize) throws Exception;
 
     RegionCoprocessorEnvironment getCoprocessorEnvironment();
 

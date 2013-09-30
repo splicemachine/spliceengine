@@ -104,7 +104,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         //we've already done our write path, so just pass it through
         WriteContext context;
         try{
-            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txnId,rce);
+            context = SpliceIndexEndpoint.factoryMap.get(conglomId).getFirst().createPassThrough(txnId,rce,1);
         }catch(InterruptedException e){
             throw new IOException(e);
         }

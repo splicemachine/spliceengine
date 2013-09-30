@@ -3,6 +3,7 @@ package com.splicemachine.encoding;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -527,31 +528,7 @@ final class ScalarEncoding {
 //        System.out.println(Encoding.decodeInt(data));
 
         //16675424
-        data = Bytes.toBytesBinary("\\xE4\\xFEr`");
-        System.out.println(Encoding.decodeInt(data));
-
-        //1623792
-        data = Bytes.toBytesBinary("\\xE4\\x18\\xC6\\xF0");
-        System.out.println(Encoding.decodeInt(data));
-
-        //1639187
-        //\xE4\x19\x03\x13
-        data = Bytes.toBytesBinary("\\xE4\\x19\\x03\\x13");
-        System.out.println(Encoding.decodeInt(data));
-
-        data = Bytes.toBytesBinary("\\xE5\\x0E`h");
-        System.out.println(Encoding.decodeInt(data));
-
-        data = Bytes.toBytesBinary("\\xE4\\x19\\x01\\x12");
-        System.out.println(Encoding.decodeInt(data));
-
-        data = Bytes.toBytesBinary("\\xE4\\x18g\\x98");
-        System.out.println(Encoding.decodeInt(data));
-
-        data = Bytes.toBytesBinary("\\xE4\\x18\\xA1\\xD5");
-        System.out.println(Encoding.decodeInt(data));
-
-        data = Bytes.toBytesBinary("\\xE4\\xF2X\\xB5");
-        System.out.println(Encoding.decodeInt(data));
+        data = Bytes.toBytesBinary("\\xAB\\x95\\x82\\xD0\\xCA\\x8B\\xC9\\xA0\\x80\\xC0");
+        System.out.println(Bytes.toStringBinary(Encoding.decodeBytesUnsortd(data, 0, data.length)));
     }
 }

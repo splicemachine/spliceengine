@@ -1,0 +1,563 @@
+package com.splicemachine.derby.impl.sql.execute.index;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MockRegion;
+import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.batch.PipelineWriteContext;
+import com.splicemachine.hbase.batch.RegionWriteHandler;
+import com.splicemachine.hbase.writer.*;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.utils.Snowflake;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import java.io.IOException;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+
+/**
+ * @author Scott Fines
+ * Created on: 9/25/13
+ */
+public class IndexedPipelineTest {
+
+    @Test
+    public void testClosingBeforeFinishWritesNoData() throws Exception {
+        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
+
+        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
+        when(rce.getRegion()).thenReturn(testRegion);
+
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+
+        //get a fake PipingWriteBuffer
+        final String txnId = "1";
+        final List<KVPair> indexedRows = Lists.newArrayList();
+        final Writer fakeWriter = mockSuccessWriter(indexedRows);
+
+        final RegionCache fakeCache = mockRegionCache();
+
+        Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+        when(config.getMaximumRetries()).thenReturn(3);
+
+        BitSet indexedColumns = new BitSet(1);
+        indexedColumns.set(0);
+        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+                .thenAnswer(new Answer<PipingWriteBuffer>() {
+                    @Override
+                    public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
+                        Object[] args = invocation.getArguments();
+                        byte[] indexName = (byte[]) args[0];
+                        WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
+                        Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
+                        int expectedSize = (Integer) args[3];
+
+                        final BufferConfiguration bufferConfig = mock(BufferConfiguration.class);
+                        when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
+                        when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
+
+                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                    }
+                });
+
+
+        BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
+
+
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        testCtx.addLast(regionHandler);
+        testCtx.addLast(writeHandler);
+
+        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+        List<KVPair> mainTablePairs = Lists.newArrayList();
+        for(int i=0;i<11;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            mainTablePairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+
+        //make sure nothing has been written yet
+        Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+
+        Map<KVPair, WriteResult> finishedResults = testCtx.finish();
+
+        //make sure nothing got through
+        Assert.assertEquals("Incorrect number of writes have made it to the main table!",0,mainTableWrites.size());
+        Assert.assertEquals("Incorrect number of writes have made it to the index table!", 0, indexedRows.size());
+
+        //make sure everything reports NOT_SERVING_REGION
+        for(WriteResult result:finishedResults.values()){
+            Assert.assertEquals("Incorrect return code!", WriteResult.Code.NOT_SERVING_REGION, result.getCode());
+        }
+    }
+    @Test
+    public void testClosingInMiddleOfWritesWritesNoData() throws Exception {
+        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
+
+        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
+        when(rce.getRegion()).thenReturn(testRegion);
+
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+
+        //get a fake PipingWriteBuffer
+        final String txnId = "1";
+        final List<KVPair> indexedRows = Lists.newArrayList();
+        final Writer fakeWriter = mockSuccessWriter(indexedRows);
+
+        final RegionCache fakeCache = mockRegionCache();
+
+        Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+        when(config.getMaximumRetries()).thenReturn(3);
+
+        BitSet indexedColumns = new BitSet(1);
+        indexedColumns.set(0);
+        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+                .thenAnswer(new Answer<PipingWriteBuffer>() {
+                    @Override
+                    public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
+                        Object[] args = invocation.getArguments();
+                        byte[] indexName = (byte[]) args[0];
+                        WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
+                        Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
+                        int expectedSize = (Integer) args[3];
+
+                        final BufferConfiguration bufferConfig = mock(BufferConfiguration.class);
+                        when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
+                        when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
+
+                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                    }
+                });
+
+
+        BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
+
+
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        testCtx.addLast(regionHandler);
+        testCtx.addLast(writeHandler);
+
+        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+        List<KVPair> mainTablePairs = Lists.newArrayList();
+        for(int i=0;i<10;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            mainTablePairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //close the region
+        when(testRegion.isClosing()).thenReturn(true);
+        List<KVPair> failedPairs = Lists.newArrayList();
+        for(int i=10;i<20;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            failedPairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //make sure nothing has been written yet
+        Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+
+        Map<KVPair, WriteResult> finishedResults = testCtx.finish();
+
+        //make sure nothing got through
+        Assert.assertEquals("Incorrect number of writes have made it to the main table!",0,mainTableWrites.size());
+        Assert.assertEquals("Incorrect number of writes have made it to the index table!", 0, indexedRows.size());
+
+        //make sure everything reports NOT_SERVING_REGION
+        for(WriteResult result:finishedResults.values()){
+            Assert.assertEquals("Incorrect return code!", WriteResult.Code.NOT_SERVING_REGION, result.getCode());
+        }
+    }
+
+
+    @Test
+    public void testWrongRegionRowsDoNotGetWritten() throws Exception {
+        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
+        when(testRegion.getRegionInfo().getEndKey()).thenReturn(Encoding.encode(10));
+
+        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
+        when(rce.getRegion()).thenReturn(testRegion);
+
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+
+        //get a fake PipingWriteBuffer
+        final String txnId = "1";
+        final List<KVPair> indexedRows = Lists.newArrayList();
+        final Writer fakeWriter = mockSuccessWriter(indexedRows);
+
+        final RegionCache fakeCache = mockRegionCache();
+
+        Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+        when(config.getMaximumRetries()).thenReturn(3);
+
+        BitSet indexedColumns = new BitSet(1);
+        indexedColumns.set(0);
+        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+                .thenAnswer(new Answer<PipingWriteBuffer>() {
+                    @Override
+                    public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
+                        Object[] args = invocation.getArguments();
+                        byte[] indexName = (byte[]) args[0];
+                        WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
+                        Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
+                        int expectedSize = (Integer) args[3];
+
+                        final BufferConfiguration bufferConfig = mock(BufferConfiguration.class);
+                        when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
+                        when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
+
+                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                    }
+                });
+
+
+        BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
+
+
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        testCtx.addLast(regionHandler);
+        testCtx.addLast(writeHandler);
+
+        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+        List<KVPair> mainTablePairs = Lists.newArrayList();
+        for(int i=0;i<10;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            mainTablePairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //close the region
+        List<KVPair> failedPairs = Lists.newArrayList();
+        for(int i=10;i<20;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            failedPairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //make sure nothing has been written yet
+        Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+
+        Map<KVPair, WriteResult> finishedResults = testCtx.finish();
+
+        //make sure nothing got through
+        Assert.assertEquals("Incorrect number of writes have made it to the main table!",mainTablePairs.size(),mainTableWrites.size());
+        Assert.assertEquals("Incorrect number of writes have made it to the index table!", mainTablePairs.size(), indexedRows.size());
+
+        assertMainAndIndexRowsMatch(mainTableWrites,indexedRows,mainTablePairs,finishedResults,writeHandler.transformer);
+        //make sure everything in failed reports WRONG_REGION
+        for(KVPair pair:failedPairs){
+            Assert.assertEquals("Incorrect status!", WriteResult.Code.WRONG_REGION,finishedResults.get(pair).getCode());
+        }
+    }
+
+    @Test
+    public void testClosingRegionBeforeWritingDoesNotWriteAnywhere() throws Exception {
+        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
+        when(testRegion.isClosed()).thenReturn(true);
+
+        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
+        when(rce.getRegion()).thenReturn(testRegion);
+
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+
+        //get a fake PipingWriteBuffer
+        final String txnId = "1";
+        final List<KVPair> indexedRows = Lists.newArrayList();
+        final Writer fakeWriter = mockSuccessWriter(indexedRows);
+
+        final RegionCache fakeCache = mockRegionCache();
+
+        Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+        when(config.getMaximumRetries()).thenReturn(3);
+
+        BitSet indexedColumns = new BitSet(1);
+        indexedColumns.set(0);
+        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+                .thenAnswer(new Answer<PipingWriteBuffer>() {
+                    @Override
+                    public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
+                        Object[] args = invocation.getArguments();
+                        byte[] indexName = (byte[]) args[0];
+                        WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
+                        Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
+                        int expectedSize = (Integer)args[3];
+
+                        final BufferConfiguration bufferConfig = mock(BufferConfiguration.class);
+                        when(bufferConfig.getMaxEntries()).thenReturn(expectedSize);
+                        when(bufferConfig.getMaxHeapSize()).thenReturn(2*1024*1024l);
+
+                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                    }
+                });
+
+
+        BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
+
+
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        testCtx.addLast(regionHandler);
+        testCtx.addLast(writeHandler);
+
+        List<KVPair> mainTablePairs = Lists.newArrayList();
+        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+        for(int i=0;i<11;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            mainTablePairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //make sure nothing has been written yet
+        Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+
+        Map<KVPair, WriteResult> finishedResults = testCtx.finish();
+
+        //make sure nothing got through
+        Assert.assertEquals("Incorrect number of writes have made it to the main table!",0,mainTableWrites.size());
+        Assert.assertEquals("Incorrect number of writes have made it to the index table!", 0, indexedRows.size());
+
+        //make sure everything reports NOT_SERVING_REGION
+        for(WriteResult result:finishedResults.values()){
+            Assert.assertEquals("Incorrect return code!", WriteResult.Code.NOT_SERVING_REGION,result.getCode());
+        }
+    }
+
+    @Test
+    public void testBulkWriteUpdatesBothIndexAndRegion() throws Exception {
+        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
+
+
+        RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
+        when(rce.getRegion()).thenReturn(testRegion);
+
+        PipelineWriteContext testCtx = spy(new PipelineWriteContext("1",rce));
+
+        //get a fake PipingWriteBuffer
+        final String txnId = "1";
+        final List<KVPair> indexedRows = Lists.newArrayList();
+        final Writer fakeWriter = mockSuccessWriter(indexedRows);
+
+        final RegionCache fakeCache = mockRegionCache();
+
+        Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+        when(config.getMaximumRetries()).thenReturn(3);
+
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+                .thenAnswer(new Answer<PipingWriteBuffer>() {
+                    @Override
+                    public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
+                        Object[] args = invocation.getArguments();
+                        byte[] indexName = (byte[]) args[0];
+                        WriteCoordinator.PreFlushHook preFlushHook = (WriteCoordinator.PreFlushHook) args[1];
+                        Writer.WriteConfiguration configuration = (Writer.WriteConfiguration) args[2];
+                        int expectedSize = (Integer) args[3];
+
+                        final BufferConfiguration bufferConfig = mock(BufferConfiguration.class);
+                        when(bufferConfig.getMaxEntries()).thenReturn(expectedSize + 10);
+                        when(bufferConfig.getMaxHeapSize()).thenReturn(2 * 1024 * 1024l);
+
+                        return new PipingWriteBuffer(indexName, txnId, fakeWriter, fakeWriter, fakeCache, preFlushHook, configuration, bufferConfig);
+                    }
+                });
+
+        BitSet indexedColumns = new BitSet(1);
+        indexedColumns.set(0);
+        IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+
+        BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
+
+
+        RegionWriteHandler regionHandler = new RegionWriteHandler(testRegion,new ResettableCountDownLatch(0),100);
+        testCtx.addLast(regionHandler);
+        testCtx.addLast(writeHandler);
+
+        List<KVPair> mainTablePairs = Lists.newArrayList();
+        EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
+        MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
+        for(int i=0;i<11;i++){
+            fieldEncoder.reset();
+            fieldEncoder.encodeNext(i);
+            byte[] row = encoder.encode();
+
+            KVPair next = new KVPair(Encoding.encode(i),row);
+            mainTablePairs.add(next);
+            testCtx.sendUpstream(next);
+        }
+
+        //make sure nothing has been written yet
+        Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+
+        Map<KVPair, WriteResult> finishedResults = testCtx.finish();
+
+        //make sure the same number of rows are present in both cases
+        Assert.assertEquals("Incorrect number of writes have made it to the main table!",mainTablePairs.size(),mainTableWrites.size());
+        Assert.assertEquals("Incorrect number of writes have made it to the index table!", mainTablePairs.size(), indexedRows.size());
+        /*
+         * Need to check 3 things for every main table row:
+         *
+         * 1. result = SUCCESS
+         * 2. row in main table
+         * 3. transformed row in index
+         *
+         * 3 is hard to do--we basically have to compare the first N bytes of every row key, instead of
+         * just doing a direct equality
+         */
+        IndexTransformer transformer = writeHandler.transformer;
+        assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
+    }
+
+    private Writer mockSuccessWriter(final List<KVPair> indexedRows) throws ExecutionException {
+        Writer fakeWriter = mock(Writer.class);
+        when(fakeWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
+                .then(new Answer<Future<Void>>() {
+                    @Override
+                    public Future<Void> answer(InvocationOnMock invocation) throws Throwable {
+                        BulkWrite write = (BulkWrite) invocation.getArguments()[1];
+                        indexedRows.addAll(write.getMutations());
+
+                        @SuppressWarnings("unchecked") Future<Void> future = mock(Future.class);
+                        when(future.get()).thenReturn(null);
+                        return future;
+                    }
+                });
+        return fakeWriter;
+    }
+
+    private RegionCache mockRegionCache() throws ExecutionException {
+        SortedSet<HRegionInfo> indexRegionInfos = Sets.newTreeSet();
+        HRegionInfo indexRegionInfo = mock(HRegionInfo.class);
+        when(indexRegionInfo.getStartKey()).thenReturn(HConstants.EMPTY_START_ROW);
+        indexRegionInfos.add(indexRegionInfo);
+
+        RegionCache fakeCache = mock(RegionCache.class);
+        when(fakeCache.getRegions(any(byte[].class))).thenReturn(indexRegionInfos);
+        return fakeCache;
+    }
+
+    private IndexUpsertWriteHandler getIndexWriteHandler(BitSet indexedColumns) {
+        int[] mainColToIndexPos = new int[]{0};
+        BitSet descColumns = new BitSet(1);
+        boolean keepState = true;
+        boolean unique = false;
+        int expectedWrites = 10;
+        byte[] indexConglomBytes = Bytes.toBytes("1184");
+
+        Snowflake snowflake = new Snowflake((short)1);
+        Snowflake.Generator generator = snowflake.newGenerator(100);
+
+        IndexUpsertWriteHandler writeHandler = new IndexUpsertWriteHandler(indexedColumns,
+                mainColToIndexPos,
+                indexConglomBytes,
+                descColumns,
+                keepState,unique,
+                expectedWrites);
+
+        writeHandler.setGenerator(generator);
+        return writeHandler;
+    }
+
+    private void assertMainAndIndexRowsMatch(List<Mutation> mainTableWrites,
+                                             List<KVPair> indexedRows,
+                                             List<KVPair> mainTablePairs,
+                                             Map<KVPair, WriteResult> finishedResults,
+                                             IndexTransformer transformer) throws IOException {
+        for(KVPair mainTablePair:mainTablePairs){
+            Assert.assertEquals("Incorrect result code!", WriteResult.Code.SUCCESS, finishedResults.get(mainTablePair).getCode());
+            boolean found = false;
+            for(Mutation finalMutation:mainTableWrites){
+                found = Bytes.equals(finalMutation.getRow(), mainTablePair.getRow());
+                if(found)
+                    break;
+            }
+            Assert.assertTrue("Row was not found in main table!", found);
+
+            KVPair transformedRow = transformer.translate(mainTablePair);
+            byte[] indexRow = transformedRow.getRow();
+            int zeroIndex = 0;
+            for(int i=0;i<indexRow.length;i++){
+                if(indexRow[i]==0){
+                    zeroIndex=i;
+                    break;
+                }
+            }
+            int numMatches = 0;
+            for(KVPair finalMutation:indexedRows){
+                byte[] mutationRow = finalMutation.getRow();
+                found=true;
+                for(int i=0;i<zeroIndex&&i<mutationRow.length;i++){
+                    if(indexRow[i]!=mutationRow[i]){
+                        found=false;
+                        break;
+                    }
+                }
+                if(found)
+                    numMatches++;
+            }
+            Assert.assertEquals("Row was not found in index table!",1,numMatches);
+        }
+    }
+}

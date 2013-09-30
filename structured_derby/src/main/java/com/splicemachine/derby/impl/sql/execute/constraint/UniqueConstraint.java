@@ -57,8 +57,11 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
+    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
+        //if prior visited values has it, it's in the same batch mutation, so fail it
+        if(priorValues.contains(mutation))
+            return false;
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();
@@ -82,11 +85,11 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public List<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
+    public List<KVPair> validate(Collection<KVPair> mutations, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(HRegionUtil.keyExists(rce.getRegion(), rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce))
+            if(HRegionUtil.keyExists(rce.getRegion(), rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
                 failedKvs.add(change);
         }
         return failedKvs;

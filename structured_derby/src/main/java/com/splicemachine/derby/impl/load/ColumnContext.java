@@ -91,7 +91,7 @@ public class ColumnContext implements Externalizable {
     public void validate(DataValueDescriptor column) throws StandardException {
         if(!isNullable && column.isNull())
            throw ErrorState.LANG_NULL_INTO_NON_NULL.newException(colName);
-        else if(length>0){
+        else if(length>0 && column instanceof StringDataValue){
            //must be a string data type
             StringDataValue sdv = (StringDataValue)column;
             if(sdv.getLength()>length)

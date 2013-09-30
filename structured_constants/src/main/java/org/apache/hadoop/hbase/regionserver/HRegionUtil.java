@@ -10,6 +10,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
 import com.google.common.io.Closeables;
+import org.cliffc.high_scale_lib.Counter;
+
 /**
  * Class for accessing protected methods in HBase.
  * 
@@ -95,7 +97,10 @@ public class HRegionUtil {
 	}
 
     public static void updateWriteRequests(HRegion region, long numWrites){
-       region.writeRequestsCount.add(numWrites);
+
+        Counter writeRequestsCount = region.writeRequestsCount;
+        if(writeRequestsCount!=null)
+            writeRequestsCount.add(numWrites);
     }
 
     public static void updateReadRequests(HRegion region, long numReads){

@@ -14,15 +14,20 @@ import java.util.BitSet;
 public class UniqueIndexDeleteWriteHandler extends IndexDeleteWriteHandler{
 
     private CallBuffer<KVPair> indexBuffer;
-    public UniqueIndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
+    private final int expectedSize;
+
+    public UniqueIndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,
+                                         BitSet descColumns,
+                                         boolean keepState,int expectedSize) {
         super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState);
+        this.expectedSize = expectedSize;
     }
 
     @Override
     protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
         if(indexBuffer==null){
             try {
-                indexBuffer = getWriteBuffer(ctx);
+                indexBuffer = getWriteBuffer(ctx,expectedSize);
             } catch (Exception e) {
                 ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
                 failed=true;

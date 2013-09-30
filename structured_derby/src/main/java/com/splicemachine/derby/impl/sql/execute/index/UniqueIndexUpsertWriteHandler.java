@@ -13,8 +13,8 @@ import java.util.BitSet;
  * Created on: 5/1/13
  */
 public class UniqueIndexUpsertWriteHandler extends IndexUpsertWriteHandler{
-    public UniqueIndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState) {
-        super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState,true);
+    public UniqueIndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns,boolean keepState, int expectedWrites) {
+        super(indexedColumns,mainColToIndexPosMap, indexConglomBytes,descColumns,keepState,true,expectedWrites);
     }
 
     @Override

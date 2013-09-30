@@ -241,6 +241,24 @@ public class HdfsImportIT extends SpliceUnitTest {
             results.add(String.format("%d\t%s\t%d",id,name,stateId));
         }
     }
+    
+    @Test
+    public void testImportTabDelimitedNullSeparator() throws Exception{
+        String location = getResourceDirectory()+"lu_cust_city_tab.txt";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
+                "'%s','\t','\0',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_8,location));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_8));
+        List<String>results = Lists.newArrayList();
+        while(rs.next()){
+            int id = rs.getInt(1);
+            String name = rs.getString(2);
+            int stateId = rs.getInt(3);
+            results.add(String.format("%d\t%s\t%d",id,name,stateId));
+        }
+    }
+
 	
 	@Test
 	public void testCallScript() throws Exception{

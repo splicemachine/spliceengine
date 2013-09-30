@@ -92,8 +92,6 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     public void next(KVPair mutation, WriteContext ctx) {
         if(failed)
             ctx.notRun(mutation);
-//        else if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null)
-//            ctx.sendUpstream(mutation);
         else{
             boolean sendUp = updateIndex(mutation,ctx);
             if(sendUp){
@@ -123,14 +121,15 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected abstract void finish(WriteContext ctx) throws Exception;
 
-    protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx) throws Exception {
+    protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
         WriteCoordinator.PreFlushHook flushHook = new WriteCoordinator.PreFlushHook() {
             @Override
             public List<KVPair> transform(List<KVPair> buffer) throws Exception {
                 return Lists.newArrayList(Collections2.filter(buffer,new Predicate<KVPair>() {
                     @Override
                     public boolean apply(@Nullable KVPair input) {
-                        return ctx.canRun(input);
+                        KVPair mainInput = indexToMainMutationMap.get(input);
+                        return ctx.canRun(mainInput);
                     }
                 }));
             }
@@ -201,7 +200,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             @Override public void writeComplete() { /*no-op*/ }
         };
 
-        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration);
+        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize+10); //make sure we don't flush before we can
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {

@@ -26,4 +26,4 @@ if [ ! -d "logs" ]; then
   mkdir logs
 fi
 currentDateTime=$(date +'%m-%d-%Y-%H_%M_%S')
-cp zoo.log logs/$currentDateTime.server.log
+cp server.log logs/$currentDateTime.server.log

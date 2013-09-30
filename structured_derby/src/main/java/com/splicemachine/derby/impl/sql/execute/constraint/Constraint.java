@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A Constraint on a Table.
@@ -63,7 +64,7 @@ public interface Constraint {
      *
      * @throws IOException if something goes wrong during the validation.
      */
-    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce) throws IOException;
+    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException;
 
     /**
      * Validate that the constraint is satisfied on all the mutations.
@@ -74,7 +75,7 @@ public interface Constraint {
      * @throws IOException if something goes wrong during the validation
      */
     Collection<KVPair> validate(Collection<KVPair> mutations, String txnId,
-                     RegionCoprocessorEnvironment rce) throws IOException;
+                     RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException;
 
     ConstraintContext getConstraintContext();
 

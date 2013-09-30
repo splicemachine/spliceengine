@@ -55,7 +55,10 @@ public class RegionWriteHandler implements WriteHandler {
         this.writeBatchSize = writeBatchSize;
     }
 
-    public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize,RollForwardQueue<byte[],ByteBuffer>queue){
+    public RegionWriteHandler(HRegion region,
+                              ResettableCountDownLatch writeLatch,
+                              int writeBatchSize,
+                              RollForwardQueue<byte[],ByteBuffer>queue){
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
@@ -68,10 +71,13 @@ public class RegionWriteHandler implements WriteHandler {
          * Write-wise, we are at the end of the line, so make sure that we don't run through
          * another write-pipeline when the Region actually does it's writing
          */
-        if (HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(), kvPair.getRow())) {
-            mutations.add(kvPair);
-        } else {
+        if(region.isClosing()||region.isClosed())
+            ctx.failed(kvPair,WriteResult.notServingRegion());
+        else if (!HRegion.rowIsInRange(region.getRegionInfo(), kvPair.getRow())) {
             ctx.failed(kvPair, WriteResult.wrongRegion());
+        } else {
+            mutations.add(kvPair);
+            ctx.sendUpstream(kvPair);
         }
     }
 
@@ -123,28 +129,30 @@ public class RegionWriteHandler implements WriteHandler {
             throw new IOException(e);
         }
         //write all the puts first, since they are more likely
+        Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
+            @Override
+            public boolean apply(@Nullable KVPair input) {
+                return ctx.canRun(input);
+            }
+        });
         try {
-            Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
-                @Override
-                public boolean apply(@Nullable KVPair input) {
-                    return ctx.canRun(input);
-                }
-            });
 
+            if(LOG.isTraceEnabled())
+                LOG.trace("Writing "+ filteredMutations.size()+" rows to table " + region.getTableDesc().getNameAsString());
             doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {
             WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }catch(NotServingRegionException nsre){
             WriteResult result = WriteResult.notServingRegion();
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }catch(RegionTooBusyException rtbe){
             WriteResult result = WriteResult.regionTooBusy();
-            for(KVPair mutation:mutations){
+            for(KVPair mutation:filteredMutations){
                 ctx.result(mutation,result);
             }
         }catch (IOException ioe) {
@@ -158,7 +166,7 @@ public class RegionWriteHandler implements WriteHandler {
              * all the puts failed and can be safely retried.
              */
             WriteResult result = WriteResult.failed(ioe.getClass().getSimpleName() + ":" + ioe.getMessage());
-            for (KVPair mutation : mutations) {
+            for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
         }

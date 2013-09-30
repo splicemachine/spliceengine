@@ -1,12 +1,14 @@
 package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -23,7 +25,7 @@ public class BulkWrite implements Externalizable {
     public BulkWrite() { }
 
     public BulkWrite(List<KVPair> mutations, String txnId,byte[] regionKey) {
-        this.mutations = mutations;
+        this.mutations = Lists.newArrayList(mutations);
         this.txnId = txnId;
         this.regionKey = regionKey;
     }
@@ -35,7 +37,7 @@ public class BulkWrite implements Externalizable {
     }
 
     public List<KVPair> getMutations() {
-        return mutations;
+        return Lists.newArrayList(mutations);
     }
 
     public String getTxnId() {
@@ -62,7 +64,7 @@ public class BulkWrite implements Externalizable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         txnId = in.readUTF();
         int size = in.readInt();
-        mutations = Lists.newArrayListWithCapacity(size);
+        mutations = Lists.newArrayListWithExpectedSize(size);
         for(int i=0;i<size;i++){
             mutations.add((KVPair)in.readObject());
         }

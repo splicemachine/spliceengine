@@ -25,9 +25,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.BitSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,7 +57,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     protected final AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
     public void prepare(){
-        state.compareAndSet(State.WAITING_TO_START,State.READY_TO_START);
+        state.compareAndSet(State.WAITING_TO_START, State.READY_TO_START);
     }
 
     public LocalWriteContextFactory(long congomId) {
@@ -69,27 +67,26 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
-        //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
-        return pwc;
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, null));
+        addIndexInformation(1000, context);
+        return context;
     }
 
     @Override
-    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce, RollForwardQueue<byte[], ByteBuffer> queue) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
-        //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize,queue));
-        return pwc;
+    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
+                               RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
+        addIndexInformation(expectedWrites, context);
+        return context;
     }
 
-    @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+    private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         switch (state.get()) {
             case READY_TO_START:
-                SpliceLogUtils.trace(LOG,"Index management for conglomerate %d " +
-                        "has not completed, attempting to start now",congomId);
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
+                        "has not completed, attempting to start now", congomId);
                 start();
                 break;
             case STARTING:
@@ -103,7 +100,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 throw new IOException("management for conglomerate "+ congomId+" is shutdown");
         }
         //only add constraints and indices when we are in a RUNNING state
-        if(state.get()==State.RUNNING){
+        if(state.get()== State.RUNNING){
             //add Constraint checks before anything else
             for(ConstraintFactory constraintFactory:constraintFactories){
                 context.addLast(constraintFactory.create());
@@ -111,9 +108,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             //add index handlers
             for(IndexFactory indexFactory:indexFactories){
-                indexFactory.addTo(context,true);
+                indexFactory.addTo(context,true,expectedWrites);
             }
         }
+    }
+
+    @Override
+    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+        addIndexInformation(expectedWrites, context);
 
         return context;
     }
@@ -152,21 +155,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 state.set(State.NOT_MANAGED);
             }
         };
-    }
-
-    public long getMainTableConglomerateId() {
-        return congomId;
-    }
-
-    public WriteContext getIndexOnlyWriteHandler(String txnId,long indexConglomId,RegionCoprocessorEnvironment rce) {
-        for(IndexFactory factory:indexFactories){
-            if(factory.indexConglomId==indexConglomId){
-                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,true);
-                factory.addTo(pipelineWriteContext,false);
-                return pipelineWriteContext;
-            }
-        }
-        return null;
     }
 
     /*
@@ -249,7 +237,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
                 if(td!=null){
-                    startDirect(dataDictionary,td);
+                    startDirect(dataDictionary,td,conglomerateDescriptor);
                 }
                 transactor.commit(txnId);
                 state.set(State.RUNNING);
@@ -280,7 +268,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
     }
 
-    private void startDirect(DataDictionary dataDictionary,TableDescriptor td) throws StandardException,IOException{
+    private void startDirect(DataDictionary dataDictionary,TableDescriptor td,ConglomerateDescriptor cd) throws StandardException,IOException{
         indexFactories.clear();
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
@@ -324,6 +312,13 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                     indexFactories.add(buildIndex(conglomDesc,constraintDescriptors));
                 }
             }
+        }
+
+        //check ourself for any additional constraints, but only if it's not present already
+        if(!congloms.contains(cd)&&cd.isIndex()){
+            //if we have a constraint, use it
+            addIndexConstraint(td,cd);
+            indexFactories.clear();
         }
     }
 
@@ -389,9 +384,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             ConstraintFactory that = (ConstraintFactory) o;
 
-            if (!localConstraint.equals(that.localConstraint)) return false;
-
-            return true;
+            return localConstraint.equals(that.localConstraint);
         }
 
         @Override
@@ -454,14 +447,14 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             return create(conglomerateNumber,indexColsToMainColMap,isUnique,descColumns);
         }
 
-        public void addTo(PipelineWriteContext ctx,boolean keepState){
+        public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites){
 
             if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,expectedWrites));
+                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,expectedWrites));
             }else{
                 ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,false,expectedWrites));
             }
         }
 

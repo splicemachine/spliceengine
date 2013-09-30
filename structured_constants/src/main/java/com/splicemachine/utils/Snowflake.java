@@ -2,6 +2,8 @@ package com.splicemachine.utils;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+import java.util.Arrays;
+
 /**
  * An algorithm for generating compact UUIDs efficiently.
  *
@@ -66,82 +68,46 @@ public class Snowflake {
     }
 
     public void nextUUIDBlock(long[] uuids){
-        boolean interrupted = false;
-        try{
-            //we now have time
-            long timestamp;
-            short startCount;
-            short stopCount;
-            int numRecords = uuids.length;
-            synchronized (this) {
-                timestamp = System.currentTimeMillis();
-                if(timestamp<lastTimestamp)
-                    throw new IllegalStateException("Unable to obtain timestamp, clock moved backwards");
+        //we now have time
+        long timestamp;
+        short startCount;
+        short stopCount;
+        int numRecords = uuids.length;
+        synchronized (this) {
+            timestamp = System.currentTimeMillis();
+            if(timestamp<lastTimestamp)
+                throw new IllegalStateException("Unable to obtain timestamp, clock moved backwards");
 
-                if(timestamp==lastTimestamp){
-                    if(counter==0)
-                        while(timestamp ==lastTimestamp)
-                            timestamp = System.currentTimeMillis();
+            if(timestamp==lastTimestamp){
+                if(counter==0)
+                    while(timestamp ==lastTimestamp)
+                        timestamp = System.currentTimeMillis();
+            }
 
-                    if(numRecords < COUNTER_MASK-counter+1){
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }else{
-                        numRecords = COUNTER_MASK-counter+1;
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }
-                }else{
-                    //grab as many as you can, then return
-                    if(numRecords < COUNTER_MASK-counter+1){
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }else{
-                        numRecords = COUNTER_MASK-counter+1;
-                        startCount = counter;
-                        counter+=numRecords;
-                        stopCount = counter;
-                        counter = (short)(counter & COUNTER_MASK);
-                    }
-                }
-                lastTimestamp = timestamp;
+            if(numRecords> COUNTER_MASK-counter+1){
+                numRecords = COUNTER_MASK-counter+1;
             }
-            for(int i=startCount;i<stopCount;i++){
-                long uuid = ((long)i <<counterShift);
-                uuid |= ((timestamp & TIMESTAMP_MASK)<<timestampShift);
-                uuid |= machineId;
-                uuids[i-startCount] = uuid;
-            }
-            for(int i=stopCount;i<uuids.length;i++){
-                /*
-                 * fill in any remaining entries with -1. We can safely do this because we know that
-                 * machine ids are never all zeros, so we can't possibly have -1 as a valid snowflake number.
-                 */
-                uuids[i] = -1l;
-            }
-        }finally{
-            if(interrupted){ //reset the interrupted flag for others to use
-                Thread.currentThread().interrupt();
-            }
+            startCount = counter;
+            counter+=numRecords;
+            stopCount = counter;
+            counter = (short)(counter & COUNTER_MASK);
+            lastTimestamp = timestamp;
         }
-    }
-    public long[] nextUUIDBlock(int numRecords){
-        long[] uuids = new long[numRecords];
-        nextUUIDBlock(uuids);
-        return uuids;
+        int pos =0;
+        //noinspection ConstantConditions
+        for(int i=startCount;i<stopCount;i++,pos++){
+            uuids[pos] = buildUUID(timestamp,i);
+        }
+            /*
+             * fill in any remaining entries with -1. We can safely do this because we know that
+             * machine ids are never all zeros, so we can't possibly have -1 as a valid snowflake number.
+             */
+        if(pos<uuids.length)
+            Arrays.fill(uuids,stopCount-startCount,uuids.length,-1l);
     }
 
     public long nextUUID(){
-//        return nextUUIDBlock(1)[0];
-        boolean interrupted = false;
-        try{
-            long timestamp =0; //we know that timestamp is set, this just makes the compiler happy
+        long timestamp;
             /*
              * Get the timestamp to use.
              *
@@ -158,72 +124,67 @@ public class Snowflake {
              * long--we don't want to wait more than about 20ms before exploding. Thus, we retry 10 times, waiting
              * 2 ms in between each run.
              */
-            int numTries=10;
-            boolean timeSet=false;
-            short count = counter;
-            while(!timeSet &&numTries>0){
+        int numTries=10;
+        short count;
                 /*
                  * When the counter goes over 11 bits, it needs to be reset. If that happens before the
                  * millisecond count can roll over, then we must block ALL threads until the millisecond clock
                  * can roll over (or we'll get duplicate UUIDs). Thus, we have to synchronize here, instead
                  * of using a non-blocking algorithm.
                  */
-                synchronized (this){
-                    timestamp= System.currentTimeMillis();
-                    if(timestamp < lastTimestamp){
-                       interrupted = waitMs(); //everyone has to wait until the timestamps line up
-                       numTries--;
-                    }else if(timestamp == lastTimestamp){
-                        counter++;
-                        counter = (short)(counter & COUNTER_MASK);
-                        if(counter==0){
-                            //rolled over
-                            interrupted = waitMs();
-                        }else{
-                            count = counter;
-                            timeSet=true;
-                        }
-                    }else{
-                        lastTimestamp=timestamp;
-                        timeSet=true;
-                        counter++;
-                        counter = (short)(counter & COUNTER_MASK);
-                        count = counter;
-                    }
-                }
+        synchronized (this){
+            timestamp = System.currentTimeMillis();
+            if(timestamp<lastTimestamp)
+                throw new IllegalStateException("Unable to obtain timestamp, clock moved backwards");
+
+            if(timestamp==lastTimestamp){
+                if(counter==0)
+                    while(timestamp ==lastTimestamp)
+                        timestamp = System.currentTimeMillis();
             }
 
-            if(numTries<0)
-                throw new IllegalStateException("Unable to acquire a UUID after 10 tries, check System clock");
-
-            //we now have time
-
-            long uuid = (long)count <<counterShift;
-
-            uuid |= ((timestamp & TIMESTAMP_MASK)<<timestampShift);
-            uuid |= machineId;
-
-            return uuid;
-        }finally{
-            if(interrupted){ //reset the interrupted flag for others to use
-                Thread.currentThread().interrupt();
-            }
+            count = counter;
+            counter++;
+            counter = (short)(counter & COUNTER_MASK);
+            lastTimestamp = timestamp;
         }
+
+        if(numTries<0)
+            throw new IllegalStateException("Unable to acquire a UUID after 10 tries, check System clock");
+
+        //we now have time
+
+        return buildUUID(timestamp, count);
+    }
+
+    private long buildUUID(long timestamp, long count) {
+        long uuid = count <<counterShift;
+
+        uuid |= ((timestamp & TIMESTAMP_MASK)<<timestampShift);
+        uuid |= machineId;
+        return uuid;
     }
 
     public Generator newGenerator(int blockSize){
-        return new Generator(this,blockSize);
+        /*
+         * For correctness, we need to make sure that the Generator's block
+         * size is a power of 2. So, find the smallest power of 2 large enough
+         * to hold the block size in
+         */
+        int s = 1;
+        while(s<blockSize){
+            s<<=1;
+        }
+        return new Generator(this,s);
     }
 
     public static class Generator{
         private final Snowflake snowflake;
         private long[] currentUuids;
-        private final int batchSize;
         private int currentPosition;
 
         private Generator(Snowflake snowflake, int batchSize) {
             this.snowflake = snowflake;
-            this.batchSize = batchSize;
             this.currentPosition = batchSize+1;
             this.currentUuids = new long[batchSize];
         }
@@ -244,15 +205,6 @@ public class Snowflake {
             snowflake.nextUUIDBlock(currentUuids);
             currentPosition=0;
         }
-    }
-
-    private boolean waitMs() {
-        try{
-            Thread.sleep(1);
-        } catch (InterruptedException e) {
-            return true;
-        }
-        return false;
     }
 
     public static void main(String... args) throws Exception{

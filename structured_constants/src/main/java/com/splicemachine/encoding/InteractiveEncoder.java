@@ -1,7 +1,6 @@
 package com.splicemachine.encoding;
 
 import java.io.Console;
-import java.math.BigDecimal;
 
 /**
  * @author Scott Fines

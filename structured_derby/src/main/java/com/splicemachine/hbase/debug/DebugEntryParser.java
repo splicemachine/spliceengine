@@ -20,6 +20,7 @@ public class DebugEntryParser {
 
         String dataDelim = ",";
         String typesStr = null;
+        boolean outputRawHex = false;
         for(int i=0;i<args.length;i++){
             if("-t".equals(args[i])){
                 i++;
@@ -27,6 +28,9 @@ public class DebugEntryParser {
             }else if("-d".equals(args[i])){
                 i++;
                 dataDelim = args[i];
+            }else if("-h".equals(args[i])){
+                i++;
+                outputRawHex = true;
             }else{
                 System.err.println("Unknown argument: "+ args[i]);
                 System.exit(65);
@@ -53,7 +57,7 @@ public class DebugEntryParser {
             boolean isFirst=true;
             for(int i=0;i<dataTypes.length;i++){
                 byte[] unhexlified = fromHex(data[i]);
-                String decoded = dataTypes[i].decode(unhexlified);
+                String decoded = dataTypes[i].decode(unhexlified,outputRawHex);
                 if(isFirst)
                     isFirst=false;
                 else

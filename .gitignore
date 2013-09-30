@@ -16,3 +16,13 @@
 *.swp
 *.log
 **/logs
+*.pdf
+*.aux
+*.out
+*.log
+rebuildAll.sh
+rebuild.sh
+out
+temp
+redeployDerby.sh
+.DS*

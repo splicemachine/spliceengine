@@ -6,6 +6,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -27,6 +28,7 @@ import java.util.concurrent.Future;
  * Created on: 8/27/13
  */
 public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
+    private static final Logger LOG = Logger.getLogger(PipingWriteBuffer.class);
     private NavigableMap<byte[],PreMappedBuffer> regionToBufferMap;
     private final Writer writer;
     private final Writer synchronousWriter;
@@ -52,7 +54,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final BufferConfiguration bufferConfiguration;
     private final WriteCoordinator.PreFlushHook preFlushHook;
 
-    PipingWriteBuffer(byte[] tableName,
+    public PipingWriteBuffer(byte[] tableName,
                       String txnId,
                       Writer writer,
                       Writer synchronousWriter,
@@ -208,7 +210,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             this.regionStartKey = regionStartKey;
             this.preFlushHook = preFlushHook;
             this.maxEntries = maxEntries;
-            this.buffer = Lists.newArrayListWithCapacity(maxEntries);
+            if(maxEntries<0)
+                this.buffer = Lists.newArrayList();
+            else
+                this.buffer = Lists.newArrayListWithCapacity(maxEntries);
         }
 
         @Override
@@ -248,6 +253,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 List<KVPair> copy = Lists.newArrayList(buffer);
                 buffer.clear();
                 //update heap size metrics
+                if(LOG.isTraceEnabled())
+                    LOG.trace("flushing "+ copy.size()+" entries");
                 PipingWriteBuffer.this.currentHeapSize-=heapSize;
                 heapSize=0;
 

@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Utilities relating to Constraints
@@ -27,12 +28,12 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce) throws IOException {
+        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
             return true;
         }
 
         @Override
-        public Collection<KVPair> validate(Collection<KVPair> mutations,String txnId, RegionCoprocessorEnvironment rce) throws IOException {
+        public Collection<KVPair> validate(Collection<KVPair> mutations,String txnId, RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
             return Collections.emptyList();
         }
 

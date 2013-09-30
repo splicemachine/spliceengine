@@ -2,6 +2,7 @@ package com.splicemachine.hbase.writer;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
+import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
@@ -49,7 +50,7 @@ public class WriteCoordinator {
 
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         //TODO -sf- make region caching optional
-        RegionCache regionCache = RegionCache.create(SpliceConstants.cacheExpirationPeriod,SpliceConstants.cacheUpdatePeriod);
+        RegionCache regionCache = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
 
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
@@ -144,6 +145,27 @@ public class WriteCoordinator {
                                                                   Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txnId,synchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
+            @Override
+            public void close() throws Exception {
+                monitor.outstandingBuffers.decrementAndGet();
+                super.close();
+            }
+        };
+    }
+
+    public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
+                                                              String txnId,
+                                                              PreFlushHook flushHook,
+                                                              Writer.WriteConfiguration writeConfiguration,
+                                                              final int maxEntries){
+        BufferConfiguration config = new BufferConfiguration() {
+            @Override public long getMaxHeapSize() { return Long.MAX_VALUE; }
+            @Override public int getMaxEntries() { return maxEntries; }
+            @Override public int getMaxFlushesPerRegion() { return monitor.getMaxFlushesPerRegion(); }
+            @Override public void writeRejected() { monitor.writeRejected(); }
+        };
+        monitor.outstandingBuffers.incrementAndGet();
+        return new PipingWriteBuffer(tableName,txnId,asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,config) {
             @Override
             public void close() throws Exception {
                 monitor.outstandingBuffers.decrementAndGet();
