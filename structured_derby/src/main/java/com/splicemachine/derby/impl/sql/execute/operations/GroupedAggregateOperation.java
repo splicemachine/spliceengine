@@ -183,20 +183,20 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                         new KeyMarshall() {
                             @Override
                             public int getFieldCount(int[] keyColumns) {
-                                return KeyType.BARE.getFieldCount(keyColumns) + 1;
+                                return ((KeyMarshall)KeyType.BARE).getFieldCount(keyColumns) + 1;
                             }
                             
                             @Override
                             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix,
                                     MultiFieldEncoder keyEncoder) throws StandardException {
-                                KeyType.BARE.encodeKey(columns, keyColumns, sortOrder, keyPostfix, keyEncoder);
+                                ((KeyMarshall)KeyType.BARE).encodeKey(columns, keyColumns, sortOrder, keyPostfix, keyEncoder);
                             }
                             
                             @Override
                             public void decode(DataValueDescriptor[] data, int[] reversedKeyColumns, boolean[] sortOrder,
                                     MultiFieldDecoder rowDecoder) throws StandardException {
                                 rowDecoder.seek(11);
-                                KeyType.BARE.decode(data, reversedKeyColumns, sortOrder, rowDecoder);
+                                ((KeyMarshall)KeyType.BARE).decode(data, reversedKeyColumns, sortOrder, rowDecoder);
                             }
                         }, RowMarshaller.packed());
 
