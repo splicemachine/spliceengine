@@ -8,6 +8,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -35,7 +36,7 @@ public class OperationSink {
         boolean mergeKeys();
     }
 
-    private final WriteCoordinator tableWriter;
+    private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
     private final String transactionId;
@@ -43,7 +44,8 @@ public class OperationSink {
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskId,SinkingOperation operation,WriteCoordinator tableWriter, String transactionId) {
+    private OperationSink(byte[] taskId,SinkingOperation operation,
+                          CallBufferFactory<KVPair> tableWriter, String transactionId) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;

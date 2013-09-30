@@ -105,7 +105,7 @@ public class SpliceMetrics implements Updater {
             totalCompletedJobs.pushMetric(this.jobMetrics);
 
             /*get TableWriter statistics*/
-            WriteCoordinator writer = SpliceDriver.driver().getTableWriter();
+//             writer = SpliceDriver.driver().getTableWriter();
 //            maxBufferHeapSizeWriter.set(writer.getMaxBufferHeapSize());
 //            maxBufferEntriesWriter.set(writer.getMaxBufferEntries());
 //            maxFlushesPerBufferWriter.set(writer.getMaxFlushesPerBuffer());

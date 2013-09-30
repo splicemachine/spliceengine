@@ -35,7 +35,7 @@ public class FileImportJob extends ImportJob{
             throw new IOException("File "+ filePath+" does not exist");
 
         ImportReader reader = new FileImportReader();
-        ParallelImportTask task = new ParallelImportTask(getJobId(), context,reader,
+        ImportTask task = new ImportTask(getJobId(), context,reader,
                 SpliceConstants.importTaskPriority, context.getTransactionId());
         return Collections.singletonMap(task, getTaskBoundary());
     }

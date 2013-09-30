@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  * Created on: 8/8/13
  */
-public class WriteCoordinator {
+public class WriteCoordinator implements CallBufferFactory<KVPair> {
     private final RegionCache regionCache;
     private final Writer asynchronousWriter;
     private final Writer synchronousWriter;
@@ -94,29 +94,8 @@ public class WriteCoordinator {
         asynchronousWriter.stopWrites();
     }
 
-    public PipingWriteBuffer pipedWriteBuffer(byte[] tableName, String txnId){
-        monitor.outstandingBuffers.incrementAndGet();
-        //TODO -sf- add a global maxHeapSize rather than multiplying by 10
-        return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook, defaultWriteConfiguration,
-                new BufferConfiguration() {
-                    @Override public long getMaxHeapSize() { return monitor.getMaxHeapSize()*10; }
-                    @Override public int getMaxEntries() { return monitor.getMaxEntries(); }
-                    @Override public int getMaxFlushesPerRegion() { return monitor.getMaxFlushesPerRegion(); }
-
-                    @Override
-                    public void writeRejected() {
-                        monitor.writeRejected();
-                    }
-                }){
-            @Override
-            public void close() throws Exception {
-                monitor.outstandingBuffers.decrementAndGet();
-                super.close();
-            }
-        };
-    }
-
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId){
+    @Override
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId){
         monitor.outstandingBuffers.incrementAndGet();
 
         return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache,noOpFlushHook,defaultWriteConfiguration,monitor){
@@ -128,8 +107,9 @@ public class WriteCoordinator {
         };
     }
 
-    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName,String txnId,
-                                                       PreFlushHook flushHook,Writer.WriteConfiguration writeConfiguration){
+    @Override
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
+                                                   PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txnId, asynchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
             @Override
@@ -140,9 +120,10 @@ public class WriteCoordinator {
         };
     }
 
+    @Override
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
-                                                                  String txnId, PreFlushHook flushHook,
-                                                                  Writer.WriteConfiguration writeConfiguration){
+                                                              String txnId, PreFlushHook flushHook,
+                                                              Writer.WriteConfiguration writeConfiguration){
         monitor.outstandingBuffers.incrementAndGet();
         return new PipingWriteBuffer(tableName,txnId,synchronousWriter,synchronousWriter,regionCache, flushHook, writeConfiguration,monitor) {
             @Override
@@ -153,6 +134,7 @@ public class WriteCoordinator {
         };
     }
 
+    @Override
     public RecordingCallBuffer<KVPair> synchronousWriteBuffer(byte[] tableName,
                                                               String txnId,
                                                               PreFlushHook flushHook,

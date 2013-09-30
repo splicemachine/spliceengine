@@ -120,7 +120,7 @@ public class BlockImportJob extends FileImportJob{
 
     private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
         ImportReader reader = new BlockImportReader(location);
-        ParallelImportTask task = new ParallelImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,parentTxnString);
+        ImportTask task = new ImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,parentTxnString);
         Pair<byte[], byte[]> regionBounds = getTaskBoundary(next);
         taskMap.put(task,regionBounds);
     }
