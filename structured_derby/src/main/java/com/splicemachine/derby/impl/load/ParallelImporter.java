@@ -8,11 +8,17 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
@@ -116,9 +122,13 @@ public class ParallelImporter implements Importer{
         BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
         int[] pkCols = importContext.getPrimaryKeys();
 
-        KeyMarshall keyType = pkCols==null||pkCols.length==0? KeyType.SALTED: KeyType.BARE;
+        KeyMarshall keyType = pkCols==null||pkCols.length==0? getSaltedKeyMarshall(): KeyType.BARE;
 
         return RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
+    }
+
+    protected KeyMarshall getSaltedKeyMarshall(){
+        return new SaltedKeyMarshall();
     }
 
     private class Processor implements Callable<Void>{

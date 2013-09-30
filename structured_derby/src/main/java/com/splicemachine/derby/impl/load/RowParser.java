@@ -54,7 +54,7 @@ public class RowParser {
 
         int pos=0;
         for(ColumnContext context:columnContexts){
-            String value = line[pos]==null||line[pos].length()==0?null: line[pos];
+            String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
             setColumn(context, value);
             pos++;
         }
@@ -99,6 +99,12 @@ public class RowParser {
             case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
             case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
             case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+                elem = elem.trim();
+                if(elem.length()<=0){
+                    column.setToNull();
+                    break;
+                }
+
                 DateFormat format = getDateFormat(column);
                 try{
                     Date value = format.parse(elem);

@@ -180,6 +180,19 @@ public class BitIndexing {
             return indexToUse;
     }
 
+    public static BitIndex wrap(byte[] bytes,int offset,int length){
+        byte headerByte = bytes[offset];
+        if((headerByte & 0x80) != 0){
+            if((headerByte & 0x40)!=0){
+                return BitIndexing.compressedBitMap(bytes,offset,length);
+            }else{
+                return BitIndexing.uncompressedBitMap(bytes,offset,length);
+            }
+        }else{
+            return BitIndexing.sparseBitMap(bytes,offset,length);
+        }
+    }
+
     public static void main(String...args) throws Exception{
         BitSet t = new BitSet(30);
         t.set(1);
