@@ -18,7 +18,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -493,13 +493,11 @@ public class RowCountOperation extends SpliceBaseOperation{
         };
         private void splitScansAroundRegionBarriers() throws ExecutionException,IOException{
             //get the region set for this table
-            final Integer tableNameKey = Bytes.mapKey(tableName);
             List<HRegionInfo> regionInfos;
-            if(table instanceof HTable)
-                regionInfos = Lists.newArrayList(((HTable)table).getRegionLocations().keySet());
-            else if(table instanceof BetterHTablePool.ReturningHTable){
-                regionInfos = Lists.newArrayList(((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations().keySet());
-            }else{
+            final HTable hTable = SpliceHTableUtil.toHTable(table);
+            if(hTable != null) {
+                regionInfos = Lists.newArrayList(hTable.getRegionLocations().keySet());
+            } else {
                 throw new ExecutionException(new UnsupportedOperationException("Unknown Table type, unable to get Region information. Table type is "+table.getClass()));
             }
 

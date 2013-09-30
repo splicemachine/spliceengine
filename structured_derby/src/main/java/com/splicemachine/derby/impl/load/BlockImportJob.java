@@ -7,7 +7,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.hbase.table.BetterHTablePool;
+import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.Task;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -105,11 +105,10 @@ public class BlockImportJob extends FileImportJob{
         //get regions within range
 
         List<HRegionLocation> regionsInRange;
-        if(table instanceof HTable)
-            regionsInRange = ((HTable)table).getRegionsInRange(taskStartKey,taskEndKey);
-        else if(table instanceof BetterHTablePool.ReturningHTable){
-            regionsInRange = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionsInRange(taskStartKey,taskEndKey);
-        }else{
+        final HTable hTable = SpliceHTableUtil.toHTable(table);
+        if(hTable != null) {
+            regionsInRange = hTable.getRegionsInRange(taskStartKey,taskEndKey);
+        } else {
             throw new IOException("Unexpected Table type: " + table.getClass());
         }
 
@@ -157,11 +156,10 @@ public class BlockImportJob extends FileImportJob{
 
     private Map<ServerName,HRegionInfo> getRegionLocations() throws IOException{
         NavigableMap<HRegionInfo,ServerName> regionLocations;
-        if(table instanceof HTable)
-            regionLocations = ((HTable)table).getRegionLocations();
-        else if(table instanceof BetterHTablePool.ReturningHTable){
-            regionLocations = ((BetterHTablePool.ReturningHTable)table).getDelegate().getRegionLocations();
-        }else{
+        final HTable hTable = SpliceHTableUtil.toHTable(table);
+        if(hTable != null) {
+            regionLocations = hTable.getRegionLocations();
+        } else {
             throw new IOException("Unexpected Table type: " + table.getClass());
         }
 
