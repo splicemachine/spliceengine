@@ -64,8 +64,9 @@ public class RowEncoder {
         int encodedCols = keyType.getFieldCount(keyColumns);
         if (bucketed) {
             this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols + 1);
-            this.hash = new byte[1];
-            keyEncoder.setRawBytes(this.hash);
+            this.hash = new byte[1]; // one-byte hash prefix
+            keyEncoder.setRawBytes(this.hash); // we set it as first field, we rely on being able to update it later
+                                               // it has to be stored as a reference to this.hash
         } else {
             this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
         }
