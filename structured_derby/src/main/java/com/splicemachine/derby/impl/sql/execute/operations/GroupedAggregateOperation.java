@@ -11,18 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.storage.RowProviderIterator;
-import com.splicemachine.derby.iapi.storage.ScanBoundary;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.job.JobStats;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -35,17 +24,38 @@ import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.datanucleus.sco.backed.Map;
+
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.iapi.storage.ScanBoundary;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
+import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.derby.stats.TimingStats;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.HashUtils;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.datanucleus.sco.backed.Map;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
@@ -170,8 +180,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             if(isTemp){
                 RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
                         sinkEncoder.getEncodedBytes(0),
-                        KeyType.FIXED_PREFIX,
-                        RowMarshaller.packed());
+                        new KeyMarshall() {
+                            @Override
+                            public int getFieldCount(int[] keyColumns) {
+                                return KeyType.BARE.getFieldCount(keyColumns) + 1;
+                            }
+                            
+                            @Override
+                            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix,
+                                    MultiFieldEncoder keyEncoder) throws StandardException {
+                                KeyType.BARE.encodeKey(columns, keyColumns, sortOrder, keyPostfix, keyEncoder);
+                            }
+                            
+                            @Override
+                            public void decode(DataValueDescriptor[] data, int[] reversedKeyColumns, boolean[] sortOrder,
+                                    MultiFieldDecoder rowDecoder) throws StandardException {
+                                rowDecoder.seek(11);
+                                KeyType.BARE.decode(data, reversedKeyColumns, sortOrder, rowDecoder);
+                            }
+                        }, RowMarshaller.packed());
 
                 //build a ScanBoundary based off the type of the entries
                 final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
@@ -179,7 +206,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     @Override
                     public byte[] getStartKey(Result result) {
                         MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-                        fieldDecoder.seek(9); //skip the prefix value
+                        fieldDecoder.seek(11); //skip the prefix value
 
                         return DerbyBytesUtil.slice(fieldDecoder,keyCols,cols);
                     }
@@ -205,12 +232,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         hasher = KeyType.BARE;
 
-        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+2);
         boolean[] groupByDescAscArray = convertBooleans(groupByDescAscInfo);
         int[] keyColumnArray = convertIntegers(allKeyColumns);
         RowProviderIterator<ExecRow> sourceProvider = createSourceIterator();
 
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumnArray, sourceProvider, merger, KeyType.BARE, mfe, groupByDescAscArray, aggregateFinisher);
+        hbs = new HashBufferSource(uniqueSequenceID, keyColumnArray, convertIntegers(groupByColumns), sourceProvider, merger, KeyType.BARE, mfe, groupByDescAscArray, aggregateFinisher, true);
     }
 
     @Override
@@ -223,7 +250,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         SuccessFilter filter = new SuccessFilter(failedTasks);
         reduceScan.setFilter(filter);
         SpliceUtils.setInstructions(reduceScan, activation, top);
-        return new ClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
     }
 
     @Override
@@ -249,8 +276,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                   boolean[] sortOrder,
                                   byte[] keyPostfix,
                                   MultiFieldEncoder keyEncoder) throws StandardException {
+//                byte[] hash = new byte [] { HashUtils.hash(new byte[][] { currentKey }), (byte) 0 };
                 //TODO -sf- this might break DistinctGroupedAggregations
-                byte[] key = BytesUtil.concatenate(currentKey,SpliceUtils.getUniqueKey());
+                byte[] key = BytesUtil.concatenate(currentKey, SpliceUtils.getUniqueKey());
                 keyEncoder.setRawBytes(key);
                 keyEncoder.setRawBytes(keyPostfix);
             }
@@ -260,6 +288,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                int[] reversedKeyColumns,
                                boolean[] sortOrder,
                                MultiFieldDecoder rowDecoder) throws StandardException {
+                rowDecoder.seek(2); // seek past the hash
                 hasher.decode(columns, reversedKeyColumns, sortOrder, rowDecoder);
             }
 

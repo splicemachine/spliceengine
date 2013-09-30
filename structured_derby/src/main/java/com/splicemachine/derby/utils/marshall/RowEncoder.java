@@ -1,18 +1,20 @@
 package com.splicemachine.derby.utils.marshall;
 
+import java.io.IOException;
+import java.util.BitSet;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import com.google.common.base.Preconditions;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.HashUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryEncoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-
-import java.io.IOException;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -33,6 +35,8 @@ public class RowEncoder {
     /*map of columns which are NOT contained in the key*/
     protected final int[] rowColumns;
     protected MultiFieldEncoder rowEncoder;
+    private byte[] hash;
+    private boolean bucketed;
 
     public RowEncoder(int[] keyColumns,
                       boolean[] keySortOrder,
@@ -40,14 +44,32 @@ public class RowEncoder {
                       byte[] keyPrefix,
                       KeyMarshall keyType,
                       RowMarshall rowType){
+        this(keyColumns, keySortOrder, rowColumns, keyPrefix, keyType, rowType, false);
+    };
+
+    public RowEncoder(int[] keyColumns,
+                      boolean[] keySortOrder,
+                      int[] rowColumns,
+                      byte[] keyPrefix,
+                      KeyMarshall keyType,
+                      RowMarshall rowType,
+                      boolean bucketed){
         this.keyColumns = keyColumns;
         this.keySortOrder = keySortOrder;
         this.keyType = keyType;
         this.rowType = rowType;
         this.rowColumns = rowColumns;
+        this.bucketed = bucketed;
 
         int encodedCols = keyType.getFieldCount(keyColumns);
-        this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
+        if (bucketed) {
+            this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols + 1);
+            this.hash = new byte[1]; // one-byte hash prefix
+            keyEncoder.setRawBytes(this.hash); // we set it as first field, we rely on being able to update it later
+                                               // it has to be stored as a reference to this.hash
+        } else {
+            this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
+        }
         if(keyType==KeyType.FIXED_PREFIX ||
                 keyType==KeyType.FIXED_PREFIX_AND_POSTFIX
                 ||keyType==KeyType.FIXED_PREFIX_UNIQUE_POSTFIX
@@ -145,6 +167,7 @@ public class RowEncoder {
         //construct the row key
         keyEncoder.reset();
         keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
+        updateHash();
         byte[] rowKey = keyEncoder.build();
 
         if(rowEncoder!=null)
@@ -153,6 +176,20 @@ public class RowEncoder {
         byte[] value = rowType.encodeRow(row.getRowArray(), rowColumns, rowEncoder);
 
         return new KVPair(rowKey,value);
+    }
+
+    private void updateHash() {
+        if (!bucketed) {
+            return;
+        }
+        byte[][] fields = new byte[keyColumns.length + 1][];
+        // 0 is the hash byte
+        // 1 is the UUID
+        // 2 - N are the key fields
+        for (int i = 0; i <= keyColumns.length; i++) {
+            fields[i] = keyEncoder.getEncodedBytes(i + 1); // UUID            
+        }
+        this.hash[0] = HashUtils.hash(fields);
     }
 
     public void write(ExecRow row,CallBuffer<KVPair> buffer) throws Exception{

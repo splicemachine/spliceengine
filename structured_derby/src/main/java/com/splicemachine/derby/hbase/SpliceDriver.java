@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceController;
@@ -35,7 +36,9 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
+
 import net.sf.ehcache.Cache;
+
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -48,6 +51,7 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import javax.management.*;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -391,7 +395,10 @@ public class SpliceDriver extends SIConstants {
             admin = new HBaseAdmin(SpliceUtils.config);
             if(!admin.tableExists(TEMP_TABLE_BYTES)){
                 HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(TEMP_TABLE);
-                admin.createTable(td);
+                byte[][] prefixes = new RowKeyDistributorByHashPrefix.OneByteSimpleHash().getAllPossiblePrefixes();
+                byte[][] splitKeys = new byte[prefixes.length - 2][];
+                System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
+                admin.createTable(td, splitKeys);
                 SpliceLogUtils.info(LOG, TEMP_TABLE+" created");
             }
             if (!admin.tableExists(TRANSACTION_TABLE_BYTES)) {

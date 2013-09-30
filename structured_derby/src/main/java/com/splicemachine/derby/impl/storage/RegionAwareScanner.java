@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
@@ -30,6 +31,15 @@ import java.util.List;
 /**
  * RowProvider which uses Key-matching to ensure safe execution
  * in the face of multiple RowProviders being used in Parallel.
+ *
+ * It handles cases were part of the rows needed for an aggregation /
+ * merge sort are on different sides of a split. One alternative would
+ * be to make sure splits always happen on the right places (aggregation
+ * boundaries...) but this has problems of its own:
+ *  - regions could get very big if the aggregation cardinality is low
+ *  (group by <field with few values>)
+ *  - region splitter would need to know where splits can happen
+ *  - it could create uneven splits 
  *
  * @author Scott Fines
  *         Created: 1/17/13 2:49 PM
@@ -246,8 +256,9 @@ public class RegionAwareScanner implements Closeable {
     }
     private void handleStartOfRegion() throws IOException {
         byte[] scanStart = scan.getStartRow();
+        byte[] scanStop = scan.getStopRow();
         //deal with the start of the region
-        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0){
+        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0||BytesUtil.intersect(scanStart, scanStop, regionStart, regionFinish) == null){
             //cool, no remoteStarts!
             localStart = scanStart;
             lookBehindExhausted=true;

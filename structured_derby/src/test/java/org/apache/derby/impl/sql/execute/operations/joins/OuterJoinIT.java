@@ -293,7 +293,7 @@ public class OuterJoinIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery("select a.empnum from staff a left outer join staff b " +
                 "on a.empnum < b.empnum and a.grade = b.grade " +
-                "where b.grade is null");
+                "where b.grade is null order by a.empnum");
         List results = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), results.toArray());

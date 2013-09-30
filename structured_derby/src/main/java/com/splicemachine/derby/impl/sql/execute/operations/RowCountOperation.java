@@ -190,7 +190,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
                     setCurrentRow(row);
                     return row;
-                }else{
+                }else if (rowsSkipped > 0) {
                     spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL,Bytes.toBytes(rowsSkipped));
                 }
             }while(row!=null);

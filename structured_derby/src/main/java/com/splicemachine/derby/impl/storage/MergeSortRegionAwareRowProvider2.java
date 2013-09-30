@@ -115,13 +115,13 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 currentRow = rightRow;
                 if(rightSideRow==null){
                     rightKeyDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
-                    rightKeyDecoder.seek(9);
+                    rightKeyDecoder.seek(11);
                     byte[] data = DerbyBytesUtil.slice(rightKeyDecoder,rightDecoder.getKeyColumns(),rightRow.getRowArray());
                     rightSideRow = new JoinSideExecRow(rightRow,JoinUtils.JoinSide.RIGHT,data);
 //                    rightSideRow = new JoinSideExecRow(rightRow, JoinUtils.JoinSide.RIGHT, rightKeyDecoder.slice(rightDecoder.getKeyColumns().length));
                 }else{
                     rightKeyDecoder.set(result.getRow());
-                    rightKeyDecoder.seek(9);
+                    rightKeyDecoder.seek(11);
                     byte[] data = DerbyBytesUtil.slice(rightKeyDecoder,rightDecoder.getKeyColumns(),rightRow.getRowArray());
                     rightSideRow.setHash(data);
                 }
@@ -131,12 +131,12 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
                 currentRow = leftRow;
                 if(leftSideRow==null){
                     leftKeyDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-                    leftKeyDecoder.seek(9);
+                    leftKeyDecoder.seek(11);
                     byte[] data = DerbyBytesUtil.slice(leftKeyDecoder,leftDecoder.getKeyColumns(),leftRow.getRowArray());
                     leftSideRow = new JoinSideExecRow(leftRow, JoinUtils.JoinSide.LEFT,data);
                 }else{
                     leftKeyDecoder.set(result.getRow());
-                    leftKeyDecoder.seek(9);
+                    leftKeyDecoder.seek(11);
                     byte[] data = DerbyBytesUtil.slice(leftKeyDecoder,leftDecoder.getKeyColumns(),leftRow.getRowArray());
                     leftSideRow.setHash(data);
                 }

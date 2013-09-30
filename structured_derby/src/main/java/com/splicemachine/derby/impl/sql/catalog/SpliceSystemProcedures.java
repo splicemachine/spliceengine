@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
+import com.splicemachine.derby.impl.storage.TempSplit;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -68,6 +70,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .catalog("tableName")
                             .integer("numSplits").build();
                     procedures.add(splitProc2);
+
+                    /*
+                     * Procedure to split TEMP table into 16 evenly distributed buckets
+                     */
+                    Procedure splitTemp = Procedure.newBuilder().name("SYSCS_SPLIT_TEMP")
+                            .numOutputParams(0).numResultSets(0).ownerClass(TempSplit.class.getCanonicalName()).build();
+                    procedures.add(splitTemp);
                 }
             }
         }
