@@ -200,7 +200,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public String toString() {
-		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
+		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",operationInformation.getResultSetNumber(),leftResultSet,rightResultSet);
 	}
 	@Override
 	public void	close() throws StandardException, IOException {
@@ -250,7 +250,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         String indent = "\n"+Strings.repeat("\t",indentLevel);
 
         return new StringBuilder()
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("resultSetNumber:").append(operationInformation.getResultSetNumber())
                 .append(indent).append("leftNumCols:").append(leftNumCols).append(",")
                 .append(indent).append("leftResultSetNumber:").append(leftResultSetNumber)
                 .append(indent).append("leftResultSet:").append(leftResultSet.prettyPrint(indentLevel+1))

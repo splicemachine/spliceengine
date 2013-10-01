@@ -260,7 +260,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
         return new StringBuilder("Aggregate:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("resultSetNumber:").append(operationInformation.getResultSetNumber())
                 .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
                 .toString();
     }

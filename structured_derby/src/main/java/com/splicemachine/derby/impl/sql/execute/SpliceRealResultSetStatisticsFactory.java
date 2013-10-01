@@ -342,7 +342,7 @@ public class SpliceRealResultSetStatisticsFactory
 											(prrs.getRestrictionMethodName() != null),
 											prrs.doesProjection(),
 											prrs.getEstimatedRowCount(),
-											prrs.getOptimizerEstimatedCost(),
+											prrs.getEstimatedCost(),
 											getResultSetStatistics(prrs.getSource())
 											);
 		}
@@ -359,8 +359,8 @@ public class SpliceRealResultSetStatisticsFactory
 				rcrs.nextTime,
 				rcrs.closeTime,
 				rcrs.getResultSetNumber(),
-				rcrs.getOptimizerEstimatedRowCount(),
-				rcrs.getOptimizerEstimatedCost(),
+				rcrs.getEstimatedRowCount(),
+				rcrs.getEstimatedCost(),
 				getResultSetStatistics(rcrs.getSource()) );
 		}
 		else if (rs instanceof SortOperation)
@@ -381,8 +381,8 @@ public class SpliceRealResultSetStatisticsFactory
 											srs.needsDistinct(),
 											false,//srs.isInSortedOrder,
 											srs.getSortProperties(),
-											srs.getOptimizerEstimatedRowCount(),
-											srs.getOptimizerEstimatedCost(),
+											srs.getEstimatedRowCount(),
+											srs.getEstimatedCost(),
 											getResultSetStatistics(srs.getSource())
 										);
 		}
@@ -400,8 +400,8 @@ public class SpliceRealResultSetStatisticsFactory
 											dsars.closeTime,
 											dsars.getResultSetNumber(),
 											(int)dsars.getRowsInput(),
-											dsars.getOptimizerEstimatedRowCount(),
-											dsars.getOptimizerEstimatedCost(),
+											dsars.getEstimatedRowCount(),
+											dsars.getEstimatedCost(),
 											getResultSetStatistics(dsars.getSource())
 										);
 		}
@@ -420,8 +420,8 @@ public class SpliceRealResultSetStatisticsFactory
 											sars.getResultSetNumber(),
 											sars.isSingleInputRow(),
 											(int)sars.getRowsInput(),
-											sars.getOptimizerEstimatedRowCount(),
-											sars.getOptimizerEstimatedCost(),
+											sars.getEstimatedRowCount(),
+											sars.getEstimatedCost(),
 											getResultSetStatistics(sars.getSource())
 										);
 		}
@@ -442,8 +442,8 @@ public class SpliceRealResultSetStatisticsFactory
 											gars.hasDistinctAggregate(),
 											gars.isInSortedOrder(),
 											gars.getSortProperties(),
-											gars.getOptimizerEstimatedRowCount(),
-											gars.getOptimizerEstimatedCost(),
+											gars.getEstimatedRowCount(),
+											gars.getEstimatedCost(),
 											getResultSetStatistics(gars.getSource())
 										);
 		}
@@ -558,8 +558,8 @@ public class SpliceRealResultSetStatisticsFactory
                     lockRequestString,
                     tsrs.rowsPerRead,
                     false,//tsrs.coarserLock,
-                    tsrs.getOptimizerEstimatedRowCount(),
-                    tsrs.getOptimizerEstimatedCost());
+                    tsrs.getEstimatedRowCount(),
+                    tsrs.getEstimatedCost());
 		}
 
 		/*else if (rs instanceof LastIndexKeyResultSet )
@@ -618,8 +618,8 @@ public class SpliceRealResultSetStatisticsFactory
 											lrs.indexName,
 											isolationLevel,
 											lockRequestString,
-											lrs.getOptimizerEstimatedRowCount(),
-											lrs.getOptimizerEstimatedCost());
+											lrs.getEstimatedRowCount(),
+											lrs.getEstimatedCost());
 		}*/
 		else if (rs instanceof HashLeftOuterJoinOperation)
 		{
@@ -638,8 +638,8 @@ public class SpliceRealResultSetStatisticsFactory
 											hlojrs.getRightNumCols(),
 											hlojrs.rowsReturned,
 											hlojrs.restrictionTime,
-											hlojrs.getOptimizerEstimatedRowCount(),
-											hlojrs.getOptimizerEstimatedCost(),
+											hlojrs.getEstimatedRowCount(),
+											hlojrs.getEstimatedCost(),
 											hlojrs.getUserSuppliedOptimizerOverrides(),
 											getResultSetStatistics(hlojrs.getLeftResultSet()),
 											getResultSetStatistics(hlojrs.getRightResultSet()),
@@ -663,8 +663,8 @@ public class SpliceRealResultSetStatisticsFactory
 											nllojrs.getRightNumCols(),
 											nllojrs.rowsReturned,
 											nllojrs.restrictionTime,
-											nllojrs.getOptimizerEstimatedRowCount(),
-											nllojrs.getOptimizerEstimatedCost(),
+											nllojrs.getEstimatedRowCount(),
+											nllojrs.getEstimatedCost(),
 											nllojrs.getUserSuppliedOptimizerOverrides(),
 											getResultSetStatistics(nllojrs.getLeftResultSet()),
 											getResultSetStatistics(nllojrs.getRightResultSet()),
@@ -688,8 +688,8 @@ public class SpliceRealResultSetStatisticsFactory
 											hjrs.rowsReturned,
 											hjrs.restrictionTime,
 											hjrs.isOneRowRightSide(),
-											hjrs.getOptimizerEstimatedRowCount(),
-											hjrs.getOptimizerEstimatedCost(),
+											hjrs.getEstimatedRowCount(),
+											hjrs.getEstimatedCost(),
 											hjrs.getUserSuppliedOptimizerOverrides(),
 											getResultSetStatistics(hjrs.getLeftResultSet()),
 											getResultSetStatistics(hjrs.getRightResultSet())
@@ -713,8 +713,8 @@ public class SpliceRealResultSetStatisticsFactory
 											nljrs.rowsReturned,
 											nljrs.restrictionTime,
 											nljrs.isOneRowRightSide(),
-											nljrs.getOptimizerEstimatedRowCount(),
-											nljrs.getOptimizerEstimatedCost(),
+											nljrs.getEstimatedRowCount(),
+											nljrs.getEstimatedCost(),
 											nljrs.getUserSuppliedOptimizerOverrides(),
 											getResultSetStatistics(nljrs.getLeftResultSet()),
 											getResultSetStatistics(nljrs.getRightResultSet())
@@ -738,8 +738,8 @@ public class SpliceRealResultSetStatisticsFactory
 					msjrs.rowsReturned,
 					msjrs.restrictionTime,
 					msjrs.isOneRowRightSide(),
-					msjrs.getOptimizerEstimatedRowCount(),
-					msjrs.getOptimizerEstimatedCost(),
+					msjrs.getEstimatedRowCount(),
+					msjrs.getEstimatedCost(),
 					msjrs.getUserSuppliedOptimizerOverrides(),
 					getResultSetStatistics(msjrs.getLeftResultSet()),
 					getResultSetStatistics(msjrs.getRightResultSet())
@@ -762,8 +762,8 @@ public class SpliceRealResultSetStatisticsFactory
 					mslojrs.getRightNumCols(),
 					mslojrs.rowsReturned,
 					mslojrs.restrictionTime,
-					mslojrs.getOptimizerEstimatedRowCount(),
-					mslojrs.getOptimizerEstimatedCost(),
+					mslojrs.getEstimatedRowCount(),
+					mslojrs.getEstimatedCost(),
 					mslojrs.getUserSuppliedOptimizerOverrides(),
 					getResultSetStatistics(mslojrs.getLeftResultSet()),
 					getResultSetStatistics(mslojrs.getRightResultSet()),
@@ -784,8 +784,8 @@ public class SpliceRealResultSetStatisticsFactory
 											irtbrrs.getResultSetNumber(),
 											irtbrrs.getIndexName(),
 											irtbrrs.getAccessedHeapCols(),
-											irtbrrs.getOptimizerEstimatedRowCount(),
-											irtbrrs.getOptimizerEstimatedCost(),
+											irtbrrs.getEstimatedRowCount(),
+											irtbrrs.getEstimatedCost(),
 											getResultSetStatistics(irtbrrs.getSource())
 											);
 		}
@@ -803,8 +803,8 @@ public class SpliceRealResultSetStatisticsFactory
 											rrs.closeTime,
 											rrs.getResultSetNumber(),
 											rrs.getRowsReturned(),
-											rrs.getOptimizerEstimatedRowCount(),
-											rrs.getOptimizerEstimatedCost());
+											rrs.getEstimatedRowCount(),
+											rrs.getEstimatedCost());
 		}
 		else if (rs instanceof WindowOperation)
 		{
@@ -819,8 +819,8 @@ public class SpliceRealResultSetStatisticsFactory
 											wrs.nextTime,
 											wrs.closeTime,
 											wrs.getResultSetNumber(),
-											wrs.getOptimizerEstimatedRowCount(),
-											wrs.getOptimizerEstimatedCost(),
+											wrs.getEstimatedRowCount(),
+											wrs.getEstimatedCost(),
 											getResultSetStatistics(wrs.source)
 											);
 		}
@@ -841,8 +841,8 @@ public class SpliceRealResultSetStatisticsFactory
 											srs.getRowsSeenLeft(),
 											srs.getRowsSeenRight(),
 											srs.getRowsReturned(),
-											srs.getOptimizerEstimatedRowCount(),
-											srs.getOptimizerEstimatedCost(),
+											srs.getEstimatedRowCount(),
+											srs.getEstimatedCost(),
 											getResultSetStatistics(srs.getLeftSourceInput()),
 											getResultSetStatistics(srs.getRightSourceInput())
 											);
@@ -863,8 +863,8 @@ public class SpliceRealResultSetStatisticsFactory
 											urs.rowsSeenLeft,
 											urs.rowsSeenRight,
 											urs.rowsReturned,
-											urs.getOptimizerEstimatedRowCount(),
-											urs.getOptimizerEstimatedCost(),
+											urs.getEstimatedRowCount(),
+											urs.getEstimatedCost(),
 											getResultSetStatistics(urs.firstResultSet),
 											getResultSetStatistics(urs.secondResultSet)
 											);
@@ -884,8 +884,8 @@ public class SpliceRealResultSetStatisticsFactory
 											ars.getResultSetNumber(),
 											ars.subqueryNumber,
 											ars.pointOfAttachment,
-											ars.getOptimizerEstimatedRowCount(),
-											ars.getOptimizerEstimatedCost(),
+											ars.getEstimatedRowCount(),
+											ars.getEstimatedCost(),
 											getResultSetStatistics(ars.source)
 											);
 		}
@@ -904,8 +904,8 @@ public class SpliceRealResultSetStatisticsFactory
 											ors.getResultSetNumber(),
 											ors.subqueryNumber,
 											ors.pointOfAttachment,
-											ors.getOptimizerEstimatedRowCount(),
-											ors.getOptimizerEstimatedCost(),
+											ors.getEstimatedRowCount(),
+											ors.getEstimatedCost(),
 											getResultSetStatistics(ors.source)
 											);
 		}
@@ -922,8 +922,8 @@ public class SpliceRealResultSetStatisticsFactory
 											nrs.nextTime,
 											nrs.closeTime,
 											nrs.getResultSetNumber(),
-											nrs.getOptimizerEstimatedRowCount(),
-											nrs.getOptimizerEstimatedCost(),
+											nrs.getEstimatedRowCount(),
+											nrs.getEstimatedCost(),
 											getResultSetStatistics(nrs.getSource())
 											);
 		}
@@ -942,8 +942,8 @@ public class SpliceRealResultSetStatisticsFactory
 											mrs.createTCTime,
 											mrs.fetchTCTime,
 											mrs.getResultSetNumber(),
-											mrs.getOptimizerEstimatedRowCount(),
-											mrs.getOptimizerEstimatedCost(),
+											mrs.getEstimatedRowCount(),
+											mrs.getEstimatedCost(),
 											getResultSetStatistics(mrs.source)
 											);
 		}*/
@@ -962,8 +962,8 @@ public class SpliceRealResultSetStatisticsFactory
 											0,//sirs.numFromHashTable,
 											0,//sirs.numToHashTable,
 											sirs.getResultSetNumber(),
-											sirs.getOptimizerEstimatedRowCount(),
-											sirs.getOptimizerEstimatedCost(),
+											sirs.getEstimatedRowCount(),
+											sirs.getEstimatedCost(),
 											getResultSetStatistics(sirs.getSource())
 											);
 		}
@@ -1090,8 +1090,8 @@ public class SpliceRealResultSetStatisticsFactory
 											stopPosition,
 											isolationLevel,
 											lockString,
-											hsrs.getOptimizerEstimatedRowCount(),
-											hsrs.getOptimizerEstimatedCost()
+											hsrs.getEstimatedRowCount(),
+											hsrs.getEstimatedCost()
 											);
 			}
 			else
@@ -1117,8 +1117,8 @@ public class SpliceRealResultSetStatisticsFactory
 											stopPosition,
 											isolationLevel,
 											lockString,
-											hsrs.getOptimizerEstimatedRowCount(),
-											hsrs.getOptimizerEstimatedCost()
+											hsrs.getEstimatedRowCount(),
+											hsrs.getEstimatedCost()
 											);
 			}
 		}
@@ -1161,8 +1161,8 @@ public class SpliceRealResultSetStatisticsFactory
                     HashScanOperation.printQualifiers(
                         htrs.nextQualifiers),
                     htrs.scanProperties,
-                    htrs.getOptimizerEstimatedRowCount(),
-                    htrs.getOptimizerEstimatedCost(),
+                    htrs.getEstimatedRowCount(),
+                    htrs.getEstimatedCost(),
                     subqueryTrackingArray,
                     getResultSetStatistics(htrs.source)
                     );
@@ -1181,8 +1181,8 @@ public class SpliceRealResultSetStatisticsFactory
 										vtirs.closeTime,
 										vtirs.getResultSetNumber(),
 										vtirs.javaClassName,
-										vtirs.getOptimizerEstimatedRowCount(),
-										vtirs.getOptimizerEstimatedCost()
+										vtirs.getEstimatedRowCount(),
+										vtirs.getEstimatedCost()
 										);
 		}
 
@@ -1302,8 +1302,8 @@ public class SpliceRealResultSetStatisticsFactory
                     lockRequestString,
                     dsrs.rowsPerRead,
                     dsrs.coarserLock,
-                    dsrs.getOptimizerEstimatedRowCount(),
-                    dsrs.getOptimizerEstimatedCost());
+                    dsrs.getEstimatedRowCount(),
+                    dsrs.getEstimatedCost());
 		}
 		else
 		{

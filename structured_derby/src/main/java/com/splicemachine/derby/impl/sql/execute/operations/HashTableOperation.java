@@ -54,6 +54,7 @@ public class HashTableOperation extends SpliceBaseOperation  {
 	private ExecRow nextCandidate;
 	private ExecRow projRow;
 	private BackingStoreHashtable ht;
+    public NoPutResultSet[] subqueryTrackingArray;
 
     //
     // class interface

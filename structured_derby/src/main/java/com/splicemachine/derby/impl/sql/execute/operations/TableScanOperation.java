@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
@@ -26,13 +28,12 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class TableScanOperation extends ScanOperation {
 	private static final long serialVersionUID = 3l;
@@ -56,13 +57,19 @@ public class TableScanOperation extends ScanOperation {
 		nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
 	}
 
-    private boolean shouldContinue = true;
-    private MultiFieldDecoder rowDecoder;
+    private EntryDecoder rowDecoder;
 
 
     public TableScanOperation() {
 		super();
 	}
+
+    public TableScanOperation(ScanInformation scanInformation,
+                              OperationInformation operationInformation,
+                              int lockMode,
+                              int isolationLevel) throws StandardException {
+        super(scanInformation,operationInformation,lockMode,isolationLevel);
+    }
 
     public  TableScanOperation(long conglomId,
                                StaticCompiledOpenConglomInfo scoci,
@@ -95,10 +102,10 @@ public class TableScanOperation extends ScanOperation {
         this.forUpdate = forUpdate;
         this.isConstraint = isConstraint;
         this.rowsPerRead = rowsPerRead;
-        this.tableName = Long.toString(conglomId);
+        this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexColItem = indexColItem;
         this.indexName = indexName;
-        runTimeStatisticsOn = (activation != null && activation.getLanguageConnectionContext().getRunTimeStatisticsMode());
+        runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
         SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime(); 
@@ -126,7 +133,7 @@ public class TableScanOperation extends ScanOperation {
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
-	    keyValues = new ArrayList<KeyValue>(currentRow.nColumns());
+	    keyValues = new ArrayList<KeyValue>(1);
 	}
 
 	@Override
@@ -158,13 +165,11 @@ public class TableScanOperation extends ScanOperation {
 
     @Override
 	public List<NodeType> getNodeTypes() {
-//		SpliceLogUtils.trace(LOG,"getNodeTypes");
 		return nodeTypes;
 	}
 
 	@Override
 	public ExecRow getExecRowDefinition() {
-//		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		return currentTemplate;
 	}
 
@@ -186,7 +191,8 @@ public class TableScanOperation extends ScanOperation {
 				currentRowLocation = null;
 			} else {
                 if(rowDecoder==null)
-                    rowDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                    rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+                currentRow.resetRowArray();
                 DataValueDescriptor[] fields = currentRow.getRowArray();
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){

@@ -306,7 +306,7 @@ public class DependentOperation extends ScanOperation {
         ExecRow candidate = scanInformation.getResultRow();
         FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
 		if (currentRow == null) {
-			currentRow = getCompactRow(activation.getLanguageConnectionContext(),candidate, accessedCols, isKeyed);
+			currentRow = operationInformation.compactRow(candidate, accessedCols, isKeyed);
 		} 
 
 		baseRowLocation = (RowLocation) indexRow.getColumn(indexRow.getRowArray().length);

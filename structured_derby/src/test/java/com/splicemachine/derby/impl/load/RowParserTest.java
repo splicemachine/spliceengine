@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.test.ImportDataType;
+import com.splicemachine.derby.utils.test.TestingDataType;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.junit.Assert;
@@ -26,21 +26,21 @@ public class RowParserTest {
     public static Collection<Object[]> data() {
         Collection<Object[]> dataTypes = Lists.newArrayList();
 
-        for(ImportDataType dataType:ImportDataType.values()){
+        for(TestingDataType dataType: TestingDataType.values()){
             dataTypes.add(new Object[]{Arrays.asList(dataType)});
         }
 
         //do combinations of 2
 
-        for(ImportDataType dataType:ImportDataType.values()){
-            for(ImportDataType secondPosType:ImportDataType.values()){
+//        dataTypes.add(new Object[]{Arrays.asList(TestingDataType.BOOLEAN,TestingDataType.BOOLEAN)});
+        for(TestingDataType dataType: TestingDataType.values()){
+            for(TestingDataType secondPosType: TestingDataType.values()){
                 dataTypes.add(new Object[]{Arrays.asList(dataType,secondPosType)});
             }
         }
-//
-        for(ImportDataType dataType:ImportDataType.values()){
-            for(ImportDataType secondPosType:ImportDataType.values()){
-                for(ImportDataType thirdPosType:ImportDataType.values()){
+        for(TestingDataType dataType: TestingDataType.values()){
+            for(TestingDataType secondPosType: TestingDataType.values()){
+                for(TestingDataType thirdPosType: TestingDataType.values()){
                     dataTypes.add(new Object[]{Arrays.asList(dataType,secondPosType,thirdPosType)});
                 }
             }
@@ -49,14 +49,15 @@ public class RowParserTest {
         return dataTypes;
     }
 
-    private final List<ImportDataType> dataTypes;
+    private final List<TestingDataType> dataTypes;
 
-    public RowParserTest(List<ImportDataType> dataTypes) {
+    public RowParserTest(List<TestingDataType> dataTypes) {
         this.dataTypes = dataTypes;
     }
 
     @Test
     public void testProperlyParsesType() throws Exception {
+        System.out.println(dataTypes);
         Random random = new Random(0l);
 
         final ExecRow row = getExecRow();
@@ -65,7 +66,7 @@ public class RowParserTest {
 
         final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
         for(int i=0;i<columnCtxs.length;i++){
-            ImportDataType dataType = dataTypes.get(i);
+            TestingDataType dataType = dataTypes.get(i);
             ColumnContext ctx = new ColumnContext.Builder()
                     .columnNumber(i)
                     .columnType(dataType.getJdbcType())
@@ -77,10 +78,10 @@ public class RowParserTest {
         for(int i=0;i<10;i++){
             int colPos=1;
             String[] line = new String[dataTypes.size()];
-            for(ImportDataType importDataType:dataTypes){
-                Object o = importDataType.newObject(random);
-                importDataType.setNext(row.getColumn(colPos),o);
-                line[colPos-1] = importDataType.toString(o);
+            for(TestingDataType testingDataType :dataTypes){
+                Object o = testingDataType.newObject(random);
+                testingDataType.setNext(row.getColumn(colPos),o);
+                line[colPos-1] = testingDataType.toString(o);
                 colPos++;
             }
             correctRows.add(row.getClone());
@@ -130,6 +131,7 @@ public class RowParserTest {
          * Tests that we can parse an empty string as null in the first element
          * of the string[] and still get a correct array
          */
+        System.out.println(dataTypes);
         Random random = new Random(0l);
 
         final ExecRow row = getExecRow();
@@ -138,8 +140,10 @@ public class RowParserTest {
 
         final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
         for(int i=0;i<columnCtxs.length;i++){
-            ImportDataType dataType = dataTypes.get(i);
-            ColumnContext ctx = new ColumnContext.Builder().columnType(dataType.getJdbcType()).nullable(true).build();
+            TestingDataType dataType = dataTypes.get(i);
+            ColumnContext ctx = new ColumnContext.Builder()
+                    .columnType(dataType.getJdbcType())
+                    .nullable(true).columnNumber(i).build();
             columnCtxs[i] = ctx;
         }
         final List<String[]> rows = Lists.newArrayListWithCapacity(10);
@@ -147,11 +151,11 @@ public class RowParserTest {
         for(int i=0;i<10;i++){
             int colPos=1;
             String[] line = new String[dataTypes.size()];
-            for(ImportDataType importDataType:dataTypes){
+            for(TestingDataType testingDataType :dataTypes){
                 if(colPos!=1){
-                    Object o = importDataType.newObject(random);
-                    importDataType.setNext(row.getColumn(colPos),o);
-                    line[colPos-1] = importDataType.toString(o);
+                    Object o = testingDataType.newObject(random);
+                    testingDataType.setNext(row.getColumn(colPos),o);
+                    line[colPos-1] = testingDataType.toString(o);
                 }else{
                     row.getColumn(colPos).setToNull();
                     line[colPos-1] = "";
@@ -181,8 +185,8 @@ public class RowParserTest {
          * Tests that we can parse a whitespace string as null in the first element
          * of the string[] and still get a correct array (if the type is NOT VARCHAR or CHAR)
          */
-        if(ImportDataType.VARCHAR.equals(dataTypes.get(0))||
-                ImportDataType.CHAR.equals(dataTypes.get(0)))
+        if(TestingDataType.VARCHAR.equals(dataTypes.get(0))||
+                TestingDataType.CHAR.equals(dataTypes.get(0)))
             return;
 
         Random random = new Random(0l);
@@ -193,8 +197,10 @@ public class RowParserTest {
 
         final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
         for(int i=0;i<columnCtxs.length;i++){
-            ImportDataType dataType = dataTypes.get(i);
-            ColumnContext ctx = new ColumnContext.Builder().columnType(dataType.getJdbcType()).nullable(true).build();
+            TestingDataType dataType = dataTypes.get(i);
+            ColumnContext ctx = new ColumnContext.Builder()
+                    .columnType(dataType.getJdbcType())
+                    .nullable(true).columnNumber(i).build();
             columnCtxs[i] = ctx;
         }
         final List<String[]> rows = Lists.newArrayListWithCapacity(10);
@@ -202,11 +208,11 @@ public class RowParserTest {
         for(int i=0;i<10;i++){
             int colPos=1;
             String[] line = new String[dataTypes.size()];
-            for(ImportDataType importDataType:dataTypes){
+            for(TestingDataType testingDataType :dataTypes){
                 if(colPos!=1){
-                    Object o = importDataType.newObject(random);
-                    importDataType.setNext(row.getColumn(colPos),o);
-                    line[colPos-1] = importDataType.toString(o);
+                    Object o = testingDataType.newObject(random);
+                    testingDataType.setNext(row.getColumn(colPos),o);
+                    line[colPos-1] = testingDataType.toString(o);
                 }else{
                     row.getColumn(colPos).setToNull();
                     line[colPos-1] = " ";
@@ -245,7 +251,7 @@ public class RowParserTest {
 
         final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
         for(int i=0;i<columnCtxs.length;i++){
-            ImportDataType dataType = dataTypes.get(i);
+            TestingDataType dataType = dataTypes.get(i);
             if(i==0){
             columnCtxs[i] = new ColumnContext.Builder()
                     .columnType(dataType.getJdbcType())
@@ -261,11 +267,11 @@ public class RowParserTest {
         for(int i=0;i<10;i++){
             int colPos=1;
             String[] line = new String[dataTypes.size()];
-            for(ImportDataType importDataType:dataTypes){
+            for(TestingDataType testingDataType :dataTypes){
                 if(colPos!=1){
-                    Object o = importDataType.newObject(random);
-                    importDataType.setNext(row.getColumn(colPos),o);
-                    line[colPos-1] = importDataType.toString(o);
+                    Object o = testingDataType.newObject(random);
+                    testingDataType.setNext(row.getColumn(colPos),o);
+                    line[colPos-1] = testingDataType.toString(o);
                 }else{
                     row.getColumn(colPos).setToNull();
                     line[colPos-1] = "";

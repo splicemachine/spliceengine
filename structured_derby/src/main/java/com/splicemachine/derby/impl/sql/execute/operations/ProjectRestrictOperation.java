@@ -53,7 +53,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	static {
 		nodeTypes = Collections.singletonList(NodeType.MAP);
 	}
-	public ProjectRestrictOperation() {
+
+    public NoPutResultSet[] subqueryTrackingArray;
+
+    public ProjectRestrictOperation() {
 		super();
 	}
 

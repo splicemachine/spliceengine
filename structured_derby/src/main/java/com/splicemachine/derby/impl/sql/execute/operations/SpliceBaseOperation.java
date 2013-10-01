@@ -58,11 +58,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public long closeTime;
 	protected boolean statisticsTimingOn;
 	protected HRegion region;
-	protected double optimizerEstimatedRowCount;
-	protected double optimizerEstimatedCost;
-	
+
 	protected Activation activation;
-	protected int resultSetNumber;
     private String transactionID;
 
     /**
@@ -84,7 +81,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	protected boolean isOpen = true;
 	RegionStats regionStats;
-	public NoPutResultSet[]	subqueryTrackingArray;
 
     /*
      * Used to indicate rows which should be excluded from TEMP because their backing operation task
@@ -93,33 +89,36 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      */
     protected List<byte[]> failedTasks = Collections.emptyList();
 
-	/*
-	 * Defines a mapping between any FormattableBitSet's column entries
-	 * and a compactRow. This is only used in conjuction with getCompactRow.
-	 */
-	protected int[] baseColumnMap;
+    protected int resultSetNumber;
+    protected OperationInformation operationInformation;
 
     public SpliceBaseOperation() {
 		super();
 	}
 
-	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
+    public SpliceBaseOperation(OperationInformation information) throws StandardException {
+        this.operationInformation = information;
+        this.resultSetNumber = operationInformation.getResultSetNumber();
+        sequence = new DataValueDescriptor[1];
+        sequence[0] = information.getSequenceField(uniqueSequenceID);
+    }
+
+	public SpliceBaseOperation(Activation activation,
+                               int resultSetNumber,
+                               double optimizerEstimatedRowCount,
+                               double optimizerEstimatedCost) throws StandardException {
 		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();		
-		this.optimizerEstimatedCost = optimizerEstimatedCost;
-		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
+		    beginTime = startExecutionTime = getCurrentTimeMillis();
+        this.operationInformation = new DerbyOperationInformation(optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 		this.activation = activation;
-		this.resultSetNumber = resultSetNumber;
+        this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
-		sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
+		sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
 			return;
 		}
-		//TODO: need to getStatementContext from somewhere
-		if (subqueryTrackingArray == null)
-			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 	}
 	
 	public ExecutionFactory getExecutionFactory(){
@@ -128,9 +127,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		optimizerEstimatedCost = in.readDouble();
-		optimizerEstimatedRowCount = in.readDouble();
-		resultSetNumber = in.readInt();
+        this.operationInformation = (OperationInformation)in.readObject();
         transactionID = readNullableString(in);
         isTopResultSet = in.readBoolean();
         uniqueSequenceID = new byte[in.readInt()];
@@ -151,9 +148,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
-		out.writeDouble(optimizerEstimatedCost);
-		out.writeDouble(optimizerEstimatedRowCount);		
-		out.writeInt(resultSetNumber);
+        out.writeObject(operationInformation);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
         out.writeInt(uniqueSequenceID.length);
@@ -168,10 +163,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeInt(rowsSeen);
 		out.writeInt(rowsFiltered);
         out.writeObject(failedTasks);
-//		out.writeBoolean(operationParams!=null);
-//		if(operationParams!=null){
-//			out.writeObject(operationParams);
-//		}
 	}
 
 	@Override
@@ -181,7 +172,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
 	public int modifiedRowCount() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 	
@@ -192,7 +182,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void clearCurrentRow() {
-        activation.clearCurrentRow(resultSetNumber);
+        activation.clearCurrentRow(operationInformation.getResultSetNumber());
         currentRow=null;
 	}
 
@@ -239,61 +229,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 //	@Override
 	public double getEstimatedRowCount() {
-		return this.optimizerEstimatedRowCount;
+		return operationInformation.getEstimatedRowCount();
 	}
 
 	@Override
 	public int resultSetNumber() {
-		return this.resultSetNumber;
+		return operationInformation.getResultSetNumber();
 	}
 	@Override
 	public void setCurrentRow(ExecRow row) {
-		activation.setCurrentRow(row, resultSetNumber);
+        operationInformation.setCurrentRow(row);
 		currentRow = row;
 	}
 
-    protected ExecRow getCompactRow(LanguageConnectionContext lcc,
-                                    ExecRow candidate,
-                                    FormatableBitSet accessedCols,
-                                    boolean isKeyed) throws StandardException {
-        int	numCandidateCols = candidate.nColumns();
-		ExecRow compactRow;
-		if (accessedCols == null) {
-			compactRow =  candidate;
-			baseColumnMap = new int[numCandidateCols];
-			for (int i = 0; i < baseColumnMap.length; i++)
-				baseColumnMap[i] = i;
-		}
-		else {
-			int numCols = accessedCols.getNumBitsSet();
-			baseColumnMap = new int[numCandidateCols];
-
-            ExecutionFactory ex = lcc.getLanguageConnectionFactory().getExecutionFactory();
-            if (isKeyed) {
-                compactRow = ex.getIndexableRow(numCols);
-            }
-            else {
-                compactRow = ex.getValueRow(numCols);
-            }
-            int position = 0;
-			for (int i = accessedCols.anySetBit();i != -1; i = accessedCols.anySetBit(i)) {
-				// Stop looking if there are columns beyond the columns
-				// in the candidate row. This can happen due to the
-				// otherCols bit map.
-				if (i >= numCandidateCols)
-					break;
-				DataValueDescriptor sc = candidate.getColumn(i+1);
-				if (sc != null) {
-					compactRow.setColumn(position + 1,sc);
-				}
-				baseColumnMap[i] = position;
-				position++;
-			}
-		}
-
-		return compactRow;
-	}
-	
 	public static void writeNullableString(String value, DataOutput out) throws IOException {
 		if (value != null) {
 			out.writeBoolean(true);
@@ -312,8 +260,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		this.activation = context.getActivation();
+        this.operationInformation.initialize(context);
+        this.resultSetNumber = operationInformation.getResultSetNumber();
 		sequence = new DataValueDescriptor[1];
-        sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
+        sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		try {
 			this.regionScanner = context.getScanner();
 			this.region = context.getRegion();
@@ -455,19 +405,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 //    public boolean isReferencingTable(long tableNumber) {
 //        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
 //    }
-	
-	public double getOptimizerEstimatedRowCount() {
-		return this.optimizerEstimatedRowCount;
-	}
-	
-	public double getOptimizerEstimatedCost() {
-		return this.optimizerEstimatedCost;
-	}
-	
-	public int getResultSetNumber() {
-		return this.resultSetNumber;
-	}
-	
+
 	public long getExecuteTime()
 	{
 		return getTimeSpent(ResultSet.ENTIRE_RESULTSET_TREE);
@@ -595,5 +533,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     @Override
     public void setCurrentRowLocation(RowLocation rowLocation) {
         currentRowLocation = rowLocation;
+    }
+
+    public int getResultSetNumber() {
+        return resultSetNumber;
+    }
+
+    public double getEstimatedCost() {
+        return operationInformation.getEstimatedCost();
     }
 }

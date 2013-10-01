@@ -78,6 +78,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     private SpliceOperationRegionScanner spliceScanner;
 
     private long rowsSkipped;
+    private NoPutResultSet[] subqueryTrackingArray;
 
     public RowCountOperation() {
     }
@@ -183,7 +184,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                         if(!isTopResultSet){
                             StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
                             if(sc!=null)
-                                subqueryTrackingArray = sc.getSubqueryTrackingArray();
+                                subqueryTrackingArray = operationInformation.getSubqueryTrackingArray();
                         }
                     }
 
@@ -257,7 +258,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                         top,
                         scanProvider.toScan(),
                         offset,
-                        baseColumnMap,
+                        operationInformation.getBaseColumnMap(),
                         scanProvider.getTableName(),
                         spliceRuntimeContext);
             }

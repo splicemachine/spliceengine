@@ -21,44 +21,47 @@ public class EntryDecoder {
     private int dataOffset;
     private MultiFieldDecoder decoder;
     private final KryoPool kryoPool;
+    private int offset;
+    private int length;
 
     public EntryDecoder(KryoPool kryoPool) {
         this.kryoPool = kryoPool;
     }
 
     public void set(byte[] bytes){
+        set(bytes,0,bytes.length);
+    }
+
+    public void set(byte[] bytes, int offset,int length){
         this.data = bytes;
-        if(decoder!=null)
-            decoder.set(data);
+        this.length = length;
+        this.offset = offset;
+
         rebuildBitIndex();
+        if(decoder!=null)
+            decoder.set(bytes,offset+dataOffset, length-dataOffset);
     }
 
     private void rebuildBitIndex() {
-        //build a new bitIndex from the data
-        byte headerByte = data[0];
-//        if((headerByte & 0x10)!=0){
-//            bitIndex = AllFullBitIndex.INSTANCE;
-//            compressedData = (headerByte & 0x20) !=0;
-//            dataOffset=2;
-//            return;
-//        }
         //find separator byte
         dataOffset = 0;
-        for(int i=0;i<data.length;i++){
+        for(int i=offset;i<offset+length;i++){
             if(data[i]==0x00){
-                dataOffset = i;
+                dataOffset = i-offset;
                 break;
             }
         }
+        //build a new bitIndex from the data
+        byte headerByte = data[offset];
         if((headerByte & 0x80) !=0){
            if((headerByte & 0x40)!=0){
-               bitIndex = BitIndexing.compressedBitMap(data, 0, dataOffset);
+               bitIndex = BitIndexing.compressedBitMap(data, offset, dataOffset);
            }else{
-               bitIndex = BitIndexing.uncompressedBitMap(data, 0, dataOffset);
+               bitIndex = BitIndexing.uncompressedBitMap(data, offset, dataOffset);
            }
         }else{
             //sparse index
-            bitIndex = BitIndexing.sparseBitMap(data, 0, dataOffset);
+            bitIndex = BitIndexing.sparseBitMap(data, offset, dataOffset);
         }
 
         dataOffset++;
@@ -81,7 +84,7 @@ public class EntryDecoder {
         int fieldsToSkip =bitIndex.cardinality(position);
         int fieldSkipped=0;
         int start;
-        for(start = dataOffset;start<data.length&&fieldSkipped<fieldsToSkip;start++){
+        for(start = dataOffset;start<length&&fieldSkipped<fieldsToSkip;start++){
             if(data[start]==0x00){
                 fieldSkipped++;
             }
@@ -89,14 +92,14 @@ public class EntryDecoder {
 
         //seek until we hit the next terminator
         int stop;
-        for(stop = start;stop<data.length;stop++){
+        for(stop = start;stop<length;stop++){
             if(data[stop]==0x00){
                 break;
             }
         }
 
-        if(stop>data.length)
-            stop = data.length;
+        if(stop>length)
+            stop = length;
         int length = stop-start;
         byte[] retData = new byte[length];
         System.arraycopy(data,start,retData,0,length);
@@ -106,8 +109,8 @@ public class EntryDecoder {
     private void decompressIfNeeded() throws IOException {
 //        if(compressedData){
 //            //uncompress the data, then flag it off so we don't keep uncompressing
-//            byte[] uncompressed = new byte[Snappy.uncompressedLength(data, dataOffset, data.length - dataOffset)];
-//            Snappy.uncompress(data,dataOffset,data.length-dataOffset,uncompressed,0);
+//            byte[] uncompressed = new byte[Snappy.uncompressedLength(data, dataOffset, length - dataOffset)];
+//            Snappy.uncompress(data,dataOffset,length-dataOffset,uncompressed,0);
 //            data = uncompressed;
 //            compressedData=false;
 //            dataOffset=0;
@@ -127,8 +130,7 @@ public class EntryDecoder {
         if(decoder==null){
             decoder = MultiFieldDecoder.wrap(data,kryoPool);
         }
-        decoder.seek(dataOffset); //position self correctly in array
-
+        decoder.seek(offset+dataOffset);
         return decoder;
     }
 

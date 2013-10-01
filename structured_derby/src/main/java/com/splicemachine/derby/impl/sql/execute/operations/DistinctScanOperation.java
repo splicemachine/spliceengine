@@ -140,7 +140,8 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
 
-        RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap);
+        RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner,
+                getExecRowDefinition(),operationInformation.getBaseColumnMap());
         MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1);
 
         hbs = new HashBufferSource(uniqueSequenceID, keyColumns, sourceProvider, merger, KeyType.FIXED_PREFIX, mfe);

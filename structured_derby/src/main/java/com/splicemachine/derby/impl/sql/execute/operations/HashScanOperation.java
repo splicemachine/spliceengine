@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -70,8 +71,10 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		nodeTypes.add(NodeType.MAP);
 		nodeTypes.add(NodeType.REDUCE);		
 	}
-	
-	public HashScanOperation() {
+
+    private int[] baseColumnMap;
+
+    public HashScanOperation() {
 		super();
 		SpliceLogUtils.trace(LOG, "instantiated");
 	}
@@ -139,13 +142,11 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
-//        GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
         ExecRow candidate = scanInformation.getResultRow();//(ExecRow) generatedMethod.invoke(activation);
         FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
         FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-        LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-        currentRow = getCompactRow(lcc,candidate, scanInformation.getAccessedColumns(), false);
+        currentRow = operationInformation.compactRow(candidate, scanInformation.getAccessedColumns(), false);
+        baseColumnMap = operationInformation.getBaseColumnMap();
         keyColumns = new int[fihArray.length];
         for (int index = 0; index < fihArray.length; index++) {
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(), fihArray[index].getInt());
@@ -233,7 +234,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
-                      RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, null);
+                      RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
                   }
                   SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);

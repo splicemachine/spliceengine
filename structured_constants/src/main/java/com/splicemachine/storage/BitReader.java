@@ -69,7 +69,7 @@ public class BitReader {
     public boolean hasNext(){
         if(byteAndBitOffset[0]<length-1)
             return true;
-        else if(byteAndBitOffset[0]>=length)
+        else if(byteAndBitOffset[0]>=initialOffset+length)
             return false;
         else{
             return byteAndBitOffset[1]<9;

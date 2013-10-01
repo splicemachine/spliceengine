@@ -171,8 +171,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 			/* Get the result row template */           
 			resultRow = generatedMethod.invoke();
 
-            compactRow = getCompactRow(activation.getLanguageConnectionContext(),resultRow, accessedAllCols, false);
+            compactRow = operationInformation.compactRow(resultRow, accessedAllCols, false);
 
+            int[] baseColumnMap = operationInformation.getBaseColumnMap();
 			if(heapOnlyColRefItem!=-1){
 				this.heapOnlyCols = (FormatableBitSet)saved[heapOnlyColRefItem];
                 adjustedBaseColumnMap = new int[heapOnlyCols.getNumBitsSet()];

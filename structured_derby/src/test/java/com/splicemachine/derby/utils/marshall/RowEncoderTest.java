@@ -2,7 +2,7 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.test.ImportDataType;
+import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
@@ -44,12 +44,12 @@ public class RowEncoderTest {
         Random random = new Random(0l);
 
         //do single-entry rows
-        for(ImportDataType type:ImportDataType.values()){
+        for(TestingDataType type: TestingDataType.values()){
             DataValueDescriptor dvd = type.getDataValueDescriptor();
             //set a null entry
             dvd.setToNull();
             data.add(new Object[]{
-                    new ImportDataType[]{type},
+                    new TestingDataType[]{type},
                     new DataValueDescriptor[]{dvd}
             });
 
@@ -58,23 +58,23 @@ public class RowEncoderTest {
                 dvd = type.getDataValueDescriptor();
                 type.setNext(dvd,type.newObject(random));
                 data.add(new Object[]{
-                        new ImportDataType[]{type},
+                        new TestingDataType[]{type},
                         new DataValueDescriptor[]{dvd}
                 });
             }
         }
 
         //do two-entry rows
-        for(ImportDataType firstType:ImportDataType.values()){
+        for(TestingDataType firstType: TestingDataType.values()){
             DataValueDescriptor firstDvd = firstType.getDataValueDescriptor();
             DataValueDescriptor[] dvds = new DataValueDescriptor[2];
-            ImportDataType [] dts = new ImportDataType[2];
+            TestingDataType[] dts = new TestingDataType[2];
             //set a null entry
             firstDvd.setToNull();
             dvds[0] = firstDvd;
             dts[0] = firstType;
 
-            for(ImportDataType secondType:ImportDataType.values()){
+            for(TestingDataType secondType: TestingDataType.values()){
                 //set a null entry
                 DataValueDescriptor secondDvd = secondType.getDataValueDescriptor();
                 secondDvd.setToNull();
@@ -96,7 +96,7 @@ public class RowEncoderTest {
                 firstDvd = firstType.getDataValueDescriptor();
                 firstType.setNext(firstDvd,firstType.newObject(random));
                 dvds[0] = firstDvd;
-                for(ImportDataType secondType:ImportDataType.values()){
+                for(TestingDataType secondType: TestingDataType.values()){
                     //set a null entry
                     DataValueDescriptor secondDvd = secondType.getDataValueDescriptor();
                     secondDvd.setToNull();
@@ -117,10 +117,10 @@ public class RowEncoderTest {
         return data;
     }
 
-    private final ImportDataType[] dataTypes;
+    private final TestingDataType[] dataTypes;
     private final DataValueDescriptor[] row;
 
-    public RowEncoderTest(ImportDataType[] dataTypes, DataValueDescriptor[] row) {
+    public RowEncoderTest(TestingDataType[] dataTypes, DataValueDescriptor[] row) {
         this.dataTypes = dataTypes;
         this.row = row;
     }
@@ -171,7 +171,7 @@ public class RowEncoderTest {
         BitIndex wrappedIndex = BitIndexing.wrap(value,0,indexOffset);
 
         for(int i=0;i<dataTypes.length;i++){
-            ImportDataType dt = dataTypes[i];
+            TestingDataType dt = dataTypes[i];
             if(row[i].isNull()){
                 Assert.assertFalse("Index is not correct!", wrappedIndex.isSet(i));
                 decoder.skip();
@@ -183,10 +183,10 @@ public class RowEncoderTest {
             if(dt.isScalarType()){
                 Assert.assertTrue("Index type is incorrect!",wrappedIndex.isScalarType(i));
             }
-            if(dt.equals(ImportDataType.REAL)){
+            if(dt.equals(TestingDataType.REAL)){
                 Assert.assertTrue("Index type is incorrect!",wrappedIndex.isFloatType(i));
             }
-            if(dt.equals(ImportDataType.DOUBLE)){
+            if(dt.equals(TestingDataType.DOUBLE)){
                 Assert.assertTrue("Index type is incorrect!",wrappedIndex.isDoubleType(i));
             }
 
@@ -235,25 +235,25 @@ public class RowEncoderTest {
 
     }
 
-    private static BitSet getFloatFields(ImportDataType[] dataTypes){
+    private static BitSet getFloatFields(TestingDataType[] dataTypes){
         BitSet bitSet = new BitSet(dataTypes.length);
         for(int i=0;i<dataTypes.length;i++){
-            if(ImportDataType.REAL.equals(dataTypes[i]))
+            if(TestingDataType.REAL.equals(dataTypes[i]))
                 bitSet.set(i);
         }
         return bitSet;
     }
 
-    private static BitSet getDoubleFields(ImportDataType[] dataTypes){
+    private static BitSet getDoubleFields(TestingDataType[] dataTypes){
         BitSet bitSet = new BitSet(dataTypes.length);
         for(int i=0;i<dataTypes.length;i++){
-            if(ImportDataType.DOUBLE.equals(dataTypes[i]))
+            if(TestingDataType.DOUBLE.equals(dataTypes[i]))
                 bitSet.set(i);
         }
         return bitSet;
     }
 
-    private static BitSet getScalarFields(ImportDataType[] dataTypes) {
+    private static BitSet getScalarFields(TestingDataType[] dataTypes) {
         BitSet bitSet = new BitSet(dataTypes.length);
         for(int i=0;i<dataTypes.length;i++){
             switch (dataTypes[i]) {

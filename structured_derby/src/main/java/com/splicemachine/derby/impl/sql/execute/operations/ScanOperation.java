@@ -65,7 +65,17 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 );
 	}
 
-	@Override
+    public ScanOperation(ScanInformation scanInformation,
+                         OperationInformation operationInformation,
+                         int lockMode,
+                         int isolationLevel) throws StandardException {
+        super(operationInformation);
+        this.lockMode = lockMode;
+        this.isolationLevel = isolationLevel;
+        this.scanInformation = scanInformation;
+    }
+
+    @Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 		lockMode = in.readInt();
@@ -91,8 +101,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
             boolean isKeyed = scanInformation.isKeyed();
             //TODO -sf- remove this call to getLanguageConnectionContext()
-            currentRow = getCompactRow(context.getLanguageConnectionContext(), candidate,
-                    accessedCols, isKeyed);
+            currentRow = operationInformation.compactRow(candidate, accessedCols, isKeyed);
             currentTemplate = currentRow.getClone();
             if (currentRowLocation == null)
             	currentRowLocation = new HBaseRowLocation();
@@ -227,7 +236,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
     @Override
 	public int[] getRootAccessedCols(long tableNumber) {
-        return baseColumnMap;
+        return operationInformation.getBaseColumnMap();
 	}
 
     @Override
