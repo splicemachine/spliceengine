@@ -28,17 +28,20 @@ import java.sql.Timestamp;
 public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Externalizable,ConvertedResultSet {
     private SpliceOperation topOperation;
     private Activation activation;
+    private SpliceRuntimeContext spliceRuntimeContext;
 
     public ConversionResultSet() {
     }
 
     public ConversionResultSet(SpliceOperation topOperation) {
         this.topOperation = topOperation;
+        this.spliceRuntimeContext = new SpliceRuntimeContext();
     }
 
     public ConversionResultSet(SpliceOperation topOperation, Activation activation) {
         this.topOperation = topOperation;
         this.activation = activation;
+        this.spliceRuntimeContext = new SpliceRuntimeContext();
     }
 
     @Override
@@ -73,7 +76,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
     @Override
     public ExecRow getNextRowCore() throws StandardException {
         try {
-            return topOperation.nextRow();
+            return topOperation.nextRow(spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

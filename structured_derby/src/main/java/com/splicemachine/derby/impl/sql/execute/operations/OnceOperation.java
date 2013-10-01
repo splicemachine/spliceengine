@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
@@ -107,11 +108,11 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //do our cardinality checking
         ExecRow rowToReturn = null;
 
-        ExecRow nextRow = source.nextRow();
+        ExecRow nextRow = source.nextRow(spliceRuntimeContext);
         if(nextRow!=null){
             switch (cardinalityCheck) {
                 case DO_CARDINALITY_CHECK:
@@ -123,7 +124,7 @@ public class OnceOperation extends SpliceBaseOperation {
                      * the getNextRow() for this check will wipe out the underlying
                      * row.
                      */
-                        ExecRow secondRow = source.nextRow();
+                        ExecRow secondRow = source.nextRow(spliceRuntimeContext);
                         if(secondRow!=null){
                             close();
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
@@ -135,14 +136,14 @@ public class OnceOperation extends SpliceBaseOperation {
                     //TODO -sf- I don't think that this will work unless there's a sort order on the first column..
                     nextRow = nextRow.getClone();
                     DataValueDescriptor orderable1 = nextRow.getColumn(1);
-                    ExecRow secondRow = source.nextRow();
+                    ExecRow secondRow = source.nextRow(spliceRuntimeContext);
                     while(secondRow!=null){
                         DataValueDescriptor orderable2 = secondRow.getColumn(1);
                         if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
                             close();
                             throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
                         }
-                        secondRow = source.nextRow();
+                        secondRow = source.nextRow(spliceRuntimeContext);
                     }
                     rowToReturn = nextRow;
                     break;
@@ -174,7 +175,8 @@ public class OnceOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider = getReduceRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		RowProvider provider = getReduceRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
@@ -194,15 +196,15 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
-        return source.getMapRowProvider(top,rowDecoder);
+        return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getReduceRowProvider");
-        return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder));
+        return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext));
 	}
 
     @Override
@@ -278,6 +280,11 @@ public class OnceOperation extends SpliceBaseOperation {
         public ExecRow next() throws StandardException {
             return rowToReturn;
         }
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return delegate.getSpliceRuntimeContext();
+		}
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -34,10 +35,8 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.sql.SQLWarning;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -329,7 +328,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow row = getExecRowDefinition();
         return RowEncoder.create(row.nColumns(),
                 null,null,null,
@@ -349,7 +348,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
@@ -365,7 +364,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
     }
 
@@ -382,10 +381,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
         return rowProvider.shuffleRows(soi);
     }
 

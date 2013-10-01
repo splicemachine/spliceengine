@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -38,14 +39,16 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
     private final String type;
     private RowDecoder rowDecoder;
 
-    protected AbstractMultiScanProvider(RowDecoder decoder,String type){
+    protected AbstractMultiScanProvider(RowDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
         this.decoder = decoder;
         this.type = type;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     protected AbstractMultiScanProvider(AbstractMultiScanProvider copy){
         this.type = copy.type;
         this.decoder = copy.decoder;
+        this.spliceRuntimeContext = copy.spliceRuntimeContext;
     }
 
     @Override

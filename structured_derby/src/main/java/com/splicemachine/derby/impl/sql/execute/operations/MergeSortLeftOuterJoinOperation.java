@@ -3,14 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -70,8 +69,8 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	}
 	
 	@Override
-	public ExecRow nextRow() throws StandardException {
-        return next(true);
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return next(true, spliceRuntimeContext);
 	}
 	
 	@Override

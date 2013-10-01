@@ -4,18 +4,15 @@ import com.google.common.base.Strings;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -137,7 +134,7 @@ public class HashTableOperation extends SpliceBaseOperation  {
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 

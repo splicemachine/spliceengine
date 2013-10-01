@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationProtocol;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -24,10 +25,9 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -39,12 +39,14 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
-
+    protected SpliceRuntimeContext spliceRuntimeContext;
+    
     private boolean shuffled = false;
     @Override
     public JobStats shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
         shuffled = true;
         List<Scan> scans = getScans();
+        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
         LinkedList<JobFuture> jobs = Lists.newLinkedList();
         LinkedList<JobFuture> completedJobs = Lists.newLinkedList();
@@ -217,10 +219,10 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
 
         @Override
-        public Map<String, TaskStats> getTaskStats() {
-            Map<String,TaskStats> allTaskStats = new HashMap<String,TaskStats>();
+        public List<TaskStats> getTaskStats() {
+            List<TaskStats> allTaskStats = new ArrayList<TaskStats>();
             for(JobStats stat:stats){
-                allTaskStats.putAll(stat.getTaskStats());
+                allTaskStats.addAll(stat.getTaskStats());
             }
             return allTaskStats;
         }

@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -108,6 +109,11 @@ public class MiscOperation extends NoRowsOperation
 		@Override
 		public String toString(){
 			return "MiscRowProvider";
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
 		}
 	};
 

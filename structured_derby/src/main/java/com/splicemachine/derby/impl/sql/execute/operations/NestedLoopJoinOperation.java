@@ -19,6 +19,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -93,26 +94,20 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(operationStack);
-//		SpliceOperation regionOperation = operationStack.get(0);
-//		RowProvider provider;
-//		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-//			provider = regionOperation.getReduceRowProvider(this,getExecRowDefinition());
-//		} else {
-//			provider = regionOperation.getMapRowProvider(this,getExecRowDefinition());
-//		}
-		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         //push the computation to the left side of the join
         //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
-        return leftResultSet.getMapRowProvider(top, rowDecoder);
+        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, rowDecoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
@@ -127,19 +122,19 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	}
 
 	@Override
-	public ExecRow nextRow() throws StandardException, IOException {
-        return next(false);
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        return next(false, spliceRuntimeContext);
 	}
 
-    protected ExecRow leftNext() throws StandardException, IOException {
-        return leftResultSet.nextRow();
+    protected ExecRow leftNext(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        return leftResultSet.nextRow(spliceRuntimeContext);
     }
 
-    protected ExecRow next(boolean outerJoin) throws StandardException, IOException {
+    protected ExecRow next(boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         beginTime = getCurrentTimeMillis();
         // loop until NL iterator produces result, or until left side exhausted
         while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext())
-                && ( (leftRow = leftNext()) != null) ){
+                && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
             if (nestedLoopIterator != null){
                 nestedLoopIterator.close();
             }

@@ -2,10 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SpliceConstants;
+import com.google.common.io.Closeables;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
@@ -16,6 +19,7 @@ import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -30,14 +34,12 @@ import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -52,17 +54,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	public SpliceOperation savedSource;
 	ConstantAction constants;
 	protected long heapConglom;
-	
 	protected DataDictionary dd;
 	protected TableDescriptor td;
-	
 	protected boolean autoIncrementGenerated;
-	
 	protected static List<NodeType> parallelNodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
 	protected static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
-	
 	private boolean isScan = true;
-
+	private ModifiedRowProvider modifiedProvider;
     protected FormatableBitSet pkColumns;
     protected int[] pkCols;
 	
@@ -169,30 +167,31 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 * nodetype, this should be executed in parallel, so *don't* attempt to
 		 * insert here.
 		 */
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+		modifiedProvider = new ModifiedRowProvider(rowProvider,SpliceObserverInstructions.create(activation,this,new SpliceRuntimeContext()));
+        //modifiedProvider.setRowsModified(rowsSunk);
 		return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    	return ((SpliceOperation)source).getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return ((SpliceOperation)source).getReduceRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {    	
+    	return ((SpliceOperation)source).getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
-        JobStats jobStats = super.doShuffle();
-
-        Map<String,TaskStats> taskStats = jobStats.getTaskStats();
+    	JobStats jobStats = super.doShuffle();
         long rowsModified = 0;
-        for(String taskId:taskStats.keySet()){
-            TaskStats stats = taskStats.get(taskId);
+        for(TaskStats stats:jobStats.getTaskStats()){
             rowsModified+=stats.getWriteStats().getTotalRecords();
         }
-        modifiedProvider.addRowsModified(rowsModified);
+        this.rowsSunk = rowsModified;
         return jobStats;
     }
 
@@ -205,7 +204,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     @Override
     public void close() throws StandardException, IOException {
-        modifiedProvider.close();
+    	if (modifiedProvider != null)
+    		modifiedProvider.close();
         super.close();
     }
 
@@ -216,11 +216,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		return row;
 	}
 
-	public ExecRow getNextSinkRow() throws StandardException, IOException {
-        return source.nextRow();
+	public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+		return source.nextRow(spliceRuntimeContext);
 	}
 
-	public ExecRow nextRow() throws StandardException {
+    @Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException("Write Operations do not produce rows.");
 	}
 
@@ -234,11 +235,32 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         return fbt;
     }
 
-    private final ModifiedRowProvider modifiedProvider = new ModifiedRowProvider();
 
     private class ModifiedRowProvider extends SingleScanRowProvider{
         private volatile boolean isOpen;
 		private long rowsModified=0;
+		private RowProvider rowProvider;
+		private SpliceOperation operation;
+		private SpliceObserverInstructions spliceObserverInstructions;
+		
+		
+		
+		@Override
+		public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+			JobStats jobStats = rowProvider.shuffleRows(instructions);
+			long i = 0;
+        	for (TaskStats stat: jobStats.getTaskStats()) {
+        		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
+        	}
+        	rowsModified = i;
+			return jobStats;
+		}
+
+		public ModifiedRowProvider(RowProvider rowProvider, SpliceObserverInstructions spliceObserverInstructions) {
+			this.rowProvider = rowProvider;
+			this.spliceObserverInstructions = spliceObserverInstructions;
+		}
+
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }
@@ -258,7 +280,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			SpliceLogUtils.trace(LOG, "open");
             this.isOpen = true;
 			try {
-				source.open();
+				if (rowProvider != null)
+					rowProvider.open();
+				else 
+					source.open();
 				/* Cache query plan text for source, before it gets blown away */
 				if (activation.getLanguageConnectionContext().getRunTimeStatisticsMode())
 				{
@@ -303,17 +328,20 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 }
 
                 try {
-                    OperationSink opSink = OperationSink.create(DMLWriteOperation.this, null, childTransactionId.getTransactionIdString());
-                    TaskStats stats = opSink.sink(getDestinationTable());
-                    modifiedProvider.setRowsModified(stats.getReadStats().getTotalRecords());
-
-                    //commit the transaction
+                	spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
+                	JobStats stats = rowProvider.shuffleRows(spliceObserverInstructions);
+                	long i = 0;
+                	for (TaskStats stat: stats.getTaskStats()) {
+                		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
+                	}
+                    //modifiedProvider.setRowsModified(stats.get.getTotalRecords());
+                    modifiedProvider.setRowsModified(i);
                     commitTransactionSafely(childTransactionId,0);
-                } catch(Exception se){
-                    if(se instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)se).getSqlState())){
+                } catch (Exception ioe) {
+                	if(ioe instanceof StandardException && ErrorState.XACT_COMMIT_EXCEPTION.getSqlState().equals(((StandardException)ioe).getSqlState())){
                         //bad news, we couldn't commit the transaction. Nothing we can do there,
                         //just propagate
-                        throw new RuntimeException(se);
+                        throw new RuntimeException(ioe);
                     }
                     //we encountered some other kind of error. Try and roll back the Transaction
                     try {
@@ -321,7 +349,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                     } catch (StandardException e) {
                         throw new RuntimeException(e);
                     }
-                    throw new RuntimeException(se);
+                    throw new RuntimeException(ioe);
                 } finally {
                     clearChildTransactionID();
                 }
@@ -396,6 +424,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
         @Override
 		public void close() {
+			rowsModified = 0;
 			SpliceLogUtils.trace(LOG, "close in modifiedProvider for Delete/Insert/Update");
             if (! this.isOpen)
 				return;
@@ -403,10 +432,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                     !activation.getLanguageConnectionContext().getStatementContext().getStatementWasInvalidated())
 				endExecutionTime = getCurrentTimeMillis();
 
-            this.rowsModified = 0;
             this.isOpen = false;
             try {
-				source.close();
+				if (rowProvider != null)
+					rowProvider.close();
+				else 
+					source.close();
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			} catch (IOException e) {
@@ -426,6 +457,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public String toString(){
 			return "ModifiedRowProvider";
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return spliceRuntimeContext;
 		}
 	};
 	

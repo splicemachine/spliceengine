@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
@@ -156,8 +157,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException, IOException {
-
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
         ExecRow row = null;
 
@@ -170,7 +170,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         try {
             regionScanner.next(keyValues);
@@ -181,7 +181,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         if(keyValues.isEmpty()) return null;
 
         if(rowDecoder==null)
-            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
+            rowDecoder = getRowEncoder(new SpliceRuntimeContext()).getDual(getExecRowDefinition(),true);
         return rowDecoder.decode(keyValues);
     }
 
@@ -196,10 +196,10 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
+            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder,spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -216,27 +216,29 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getMapRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         Scan scan = buildScan();
-        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(conglomId)),scan,null);
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(conglomId)),scan,null,spliceRuntimeContext);
 
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,spliceRuntimeContext);
         return provider.shuffleRows(soi);
     }
 
     @Override
     public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
+    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
         ExecRow def = getExecRowDefinition();
         KeyType keyType = KeyType.FIXED_PREFIX;

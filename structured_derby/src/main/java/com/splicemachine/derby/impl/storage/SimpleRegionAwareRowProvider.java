@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -28,8 +29,9 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
                                         byte[] tableName,
                                         byte[] columnFamily,
                                         RowDecoder decoder,
-                                        ScanBoundary boundary){
-        super(decoder, type);
+                                        ScanBoundary boundary,
+                                        SpliceRuntimeContext spliceRuntimeContext){
+        super(decoder, type, spliceRuntimeContext);
         this.table = tableName;
         this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName, boundary);
     }

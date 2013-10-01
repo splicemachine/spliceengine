@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -21,7 +22,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.DynamicCompiledOpenConglomInfo;
@@ -31,7 +31,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericPreparedStatement;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -228,29 +227,30 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         SpliceOperation regionOperation = operationStack.get(0);
         SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
         RowProvider provider;
-        RowDecoder decoder = getRowEncoder().getDual(getExecRowDefinition());
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowDecoder decoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition());
         if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
             SpliceLogUtils.trace(LOG,"Scanning temp tables");
-			provider = regionOperation.getReduceRowProvider(this,decoder);
+			provider = regionOperation.getReduceRowProvider(this,decoder,spliceRuntimeContext);
 		}else {
 			SpliceLogUtils.trace(LOG,"scanning Map table");
-			provider = regionOperation.getMapRowProvider(this,decoder);
+			provider = regionOperation.getMapRowProvider(this,decoder,spliceRuntimeContext);
 		}
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return source.getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return source.getReduceRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow template = getExecRowDefinition();
         return RowEncoder.create(template.nColumns(),
                 null, null, null,
@@ -274,7 +274,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 	}
 
     @Override
-    public ExecRow nextRow() throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         long start = System.nanoTime();
         try{
             SpliceLogUtils.trace(LOG,"<%s> nextRow",indexName);

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
@@ -45,10 +46,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
     private SpliceOperationContext context;
-
     private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
     private boolean finished = false;
     private MultiFieldEncoder rowEncoder;
+    private SpliceRuntimeContext spliceRuntimeContext;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context) throws StandardException {
@@ -80,7 +81,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi);
 	        activation = soi.getActivation(impl.getLcc());
-	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
+	        spliceRuntimeContext = soi.getSpliceRuntimeContext();
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
             context.setSpliceRegionScanner(this);
 
 	        topOperation.init(context);
@@ -107,7 +109,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 start = System.nanoTime();
             }
 
-	        if ( (nextRow = topOperation.nextRow()) != null) {
+	        if ( (nextRow = topOperation.nextRow(spliceRuntimeContext)) != null) {
 
                 if(stats.readAccumulator().shouldCollectStats()){
                     stats.readAccumulator().tick(System.nanoTime()-start);

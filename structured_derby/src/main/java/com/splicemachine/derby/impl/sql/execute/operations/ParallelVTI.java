@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
@@ -98,7 +99,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException();
     }
 
@@ -109,7 +110,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
     @Override
-	public ExecRow nextRow() throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new UnsupportedOperationException();
 	}
 
@@ -132,12 +133,12 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 
 	/*Actual SpliceBaseOperations to be implemented*/
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) {
+	public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) {
+	public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) {
 		throw new UnsupportedOperationException();
 	}
 

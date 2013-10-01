@@ -3,13 +3,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -70,30 +69,30 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 	}
 	
 	@Override
-	public ExecRow nextRow() throws StandardException, IOException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "nextRow");
 		if (nestedLoopIterator == null) {
-			if ( (leftRow = leftResultSet.nextRow()) == null) {
+			if ( (leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
 				nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash);
 				rowsSeenLeft++;
-				return nextRow();
+				return nextRow(spliceRuntimeContext);
 			}
 		}
 		if(!nestedLoopIterator.hasNext()){
 			nestedLoopIterator.close();
 
-			if ( (leftRow = leftResultSet.nextRow()) == null) {
+			if ( (leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
 				nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash);
 				rowsSeenLeft++;
-				return nextRow();
+				return nextRow(spliceRuntimeContext);
 			}
 		}
 

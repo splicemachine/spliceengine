@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.math.BigDecimal;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.store.access.AutoCastedQualifier;
-import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -18,7 +17,6 @@ import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import org.apache.hadoop.hbase.client.Scan;
@@ -26,6 +24,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -160,7 +159,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     @Override
     public NoPutResultSet executeScan() throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
-        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext));
     }
 	@Override
 	public SpliceOperation getLeftOperation() {

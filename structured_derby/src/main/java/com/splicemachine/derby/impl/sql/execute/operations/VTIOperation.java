@@ -2,17 +2,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.loader.ClassInspector;
-import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-import org.apache.derby.iapi.services.stream.InfoStreams;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ParameterValueSet; 
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -26,15 +21,11 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
-import org.apache.derby.vti.DeferModification;
 import org.apache.derby.vti.IFastPath;
 import org.apache.derby.vti.VTIEnvironment;
-import org.apache.derby.vti.RestrictedVTI;
 import org.apache.derby.vti.Restriction;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -289,7 +280,8 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	 *
 	 * @exception StandardException thrown on failure.
      */
-	public ExecRow nextRow() throws StandardException {
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 

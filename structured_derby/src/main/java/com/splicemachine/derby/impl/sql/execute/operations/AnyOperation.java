@@ -9,6 +9,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -85,10 +86,10 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         // We don't think this method will get called, as we don't believe AnyOperation will get pushed out to HBase.
         // Leaving the implementation, which mimics our DelegatingRowProvider.next() below, in case we're wrong.
-        ExecRow candidateRow = source.nextRow();
+        ExecRow candidateRow = source.nextRow(spliceRuntimeContext);
         ExecRow result = candidateRow != null ? candidateRow : getRowWithNulls();
         setCurrentRow(result);
         return result;
@@ -129,7 +130,8 @@ public class AnyOperation extends SpliceBaseOperation {
 
     @Override
     public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(source,getRowEncoder().getDual(getExecRowDefinition()));
+    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = getReduceRowProvider(source,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
@@ -145,13 +147,13 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return source.getMapRowProvider(top,decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getMapRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder)) {
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext)) {
             @Override
             public boolean hasNext() throws StandardException {
                 // AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())
@@ -164,6 +166,11 @@ public class AnyOperation extends SpliceBaseOperation {
                 setCurrentRow(result);
                 return result;
             }
+
+			@Override
+			public SpliceRuntimeContext getSpliceRuntimeContext() {
+				return provider.getSpliceRuntimeContext();
+			}
         };
     }
 

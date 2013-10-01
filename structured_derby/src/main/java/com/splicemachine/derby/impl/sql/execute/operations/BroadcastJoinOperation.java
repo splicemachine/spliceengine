@@ -9,6 +9,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -119,13 +120,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException, IOException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "nextRow");
         if (rightSideMap == null)
             rightSideMap = retrieveRightSideCache();
 
         while (broadcastIterator == null || !broadcastIterator.hasNext()) {
-            if ((leftRow = leftResultSet.nextRow()) == null) {
+            if ((leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
                 mergedRow = null;
                 this.setCurrentRow(mergedRow);
                 return mergedRow;
@@ -137,13 +138,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return leftResultSet.getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
 
@@ -169,11 +170,12 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
-        RowDecoder decoder = getRowEncoder().getDual(getExecRowDefinition());
+    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowDecoder decoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition());
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, decoder);
+            provider = regionOperation.getReduceRowProvider(this, decoder, spliceRuntimeContext);
         } else {
-            provider = regionOperation.getMapRowProvider(this, decoder);
+            provider = regionOperation.getMapRowProvider(this, decoder, spliceRuntimeContext);
         }
         return new SpliceNoPutResultSet(activation, this, provider);
     }

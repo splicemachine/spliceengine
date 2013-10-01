@@ -144,7 +144,7 @@ class IndexRowReader {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
         List<RowAndLocation> sourceRows = Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
-            ExecRow next = sourceOperation.nextRow();
+            ExecRow next = sourceOperation.nextRow(null);
             if(next==null) break; //we are done
 
             if(!populated){

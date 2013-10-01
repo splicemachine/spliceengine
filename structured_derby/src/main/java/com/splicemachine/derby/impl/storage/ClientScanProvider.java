@@ -1,13 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -33,8 +30,8 @@ public class ClientScanProvider extends AbstractScanProvider {
     private ResultScanner scanner;
 
 
-	public ClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder) {
-		super(decoder, type);
+	public ClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;
@@ -79,4 +76,5 @@ public class ClientScanProvider extends AbstractScanProvider {
 	public byte[] getTableName() {
 		return tableName;
 	}
+
 }

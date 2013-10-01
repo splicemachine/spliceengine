@@ -9,14 +9,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -30,6 +28,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -136,23 +135,23 @@ public class TableScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan();
-		SpliceUtils.setInstructions(scan, activation, top);
-		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder);
+		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
+		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getMapRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow row = getExecRowDefinition();
         return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.packed());
     }
@@ -175,7 +174,7 @@ public class TableScanOperation extends ScanOperation {
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException,IOException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
 		beginTime = getCurrentTimeMillis();
         long start = System.nanoTime();
         try{

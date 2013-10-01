@@ -25,6 +25,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.RowLocation;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
 
 /**
@@ -323,7 +324,8 @@ public class DependentOperation extends ScanOperation {
 	ExecRow searchRow = null; //the current row we are searching for
 
 	//this function will return an index row on dependent table 
-	public ExecRow nextRow() throws StandardException
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException
 	{
 		
 		if (searchRow == null) {

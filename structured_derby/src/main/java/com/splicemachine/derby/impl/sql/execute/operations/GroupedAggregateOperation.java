@@ -17,7 +17,6 @@ import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
@@ -33,11 +32,13 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.stats.Accumulator;
@@ -170,7 +171,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         
         sinkEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
         sinkEncoder.setRawBytes(uniqueSequenceID).mark();
-//        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
     	allKeyColumns.addAll(nonGroupByUniqueColumns);
         if(regionScanner==null){
@@ -218,6 +218,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                         return start;
                     }
                 };
+                SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
                 rowProvider = new SimpleRegionAwareRowProvider(
                         "groupedAggregateRowProvider",
                         SpliceUtils.NA_TRANSACTION_ID,
@@ -226,22 +227,24 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                         SpliceConstants.TEMP_TABLE_BYTES,
                         SpliceConstants.DEFAULT_FAMILY_BYTES,
                         scanEncoder.getDual(sourceExecIndexRow),
-                        boundary); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
+                        boundary,
+                        spliceRuntimeContext); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
                 rowProvider.open();
             }
         }
         hasher = KeyType.BARE;
+    }
 
+    private void createHashBufferSource(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+2);
         boolean[] groupByDescAscArray = convertBooleans(groupByDescAscInfo);
         int[] keyColumnArray = convertIntegers(allKeyColumns);
-        RowProviderIterator<ExecRow> sourceProvider = createSourceIterator();
-
+        RowProviderIterator<ExecRow> sourceProvider = new SourceIterator(spliceRuntimeContext);
         hbs = new HashBufferSource(uniqueSequenceID, keyColumnArray, convertIntegers(groupByColumns), sourceProvider, merger, KeyType.BARE, mfe, groupByDescAscArray, aggregateFinisher, true);
     }
-
+    
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
@@ -249,26 +252,27 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         SuccessFilter filter = new SuccessFilter(failedTasks);
         reduceScan.setFilter(filter);
-        SpliceUtils.setInstructions(reduceScan, activation, top);
-        return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
+        return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getReduceRowProvider(top,decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
         return rowProvider.shuffleRows(soi);
     }
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(), convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo), null, new KeyMarshall() {
             @Override
             public void encodeKey(DataValueDescriptor[] columns,
@@ -305,16 +309,16 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException, IOException {
-        ExecRow row = doSinkAggregation();
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        ExecRow row = doSinkAggregation(spliceRuntimeContext);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getNextSinkRow %s",row);
         return row;
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException, IOException {
-        ExecRow row = doScanAggregation();
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        ExecRow row = doScanAggregation(spliceRuntimeContext);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "nextRow %s",row);
         return row;
@@ -335,11 +339,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
         }};
 
-    private ExecRow doSinkAggregation() throws StandardException, IOException {
+    private ExecRow doSinkAggregation(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if(resultRows==null){
             resultRows = isRollup?new ExecRow[groupByColumns.size()+1]:new ExecRow[1]; // Need to fix Group By Columns
         }
+        if (hbs == null)
+        	createHashBufferSource(spliceRuntimeContext);
 
         Pair<ByteBuffer,ExecRow> nextRow = hbs.getNextAggregatedRow();
         ExecRow rowResult = null;
@@ -356,7 +362,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return rowResult;
     }
 
-    private ExecRow doScanAggregation() throws StandardException, IOException {
+    private ExecRow doScanAggregation(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if (completedExecution) {
             if (currentAggregations.size()>0) {
                 ByteBuffer key = currentAggregations.keySet().iterator().next();
@@ -494,11 +500,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         else return null;
     }
 
-    private ExecRow getNextRowFromSource() throws StandardException, IOException {
+    private ExecRow getNextRowFromSource(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         ExecRow sourceRow;
         ExecRow inputRow = null;
 
-        if ((sourceRow = source.nextRow())!=null){
+        if ((sourceRow = source.nextRow(spliceRuntimeContext))!=null){
             sourceExecIndexRow.execRowToExecIndexRow(sourceRow);
             inputRow = sourceExecIndexRow;
         }
@@ -604,49 +610,49 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return ret;
     }
 
-    private RowProviderIterator<ExecRow> createSourceIterator() {
-        return new RowProviderIterator<ExecRow>(){
+    public class SourceIterator implements RowProviderIterator<ExecRow> {
+    	protected SpliceRuntimeContext spliceRuntimeContext;
+    	public SourceIterator(SpliceRuntimeContext spliceRuntimeContext) {
+    		this.spliceRuntimeContext = spliceRuntimeContext;
+    	}
+    	   private Iterator<ExecRow> rolledUpRows = Collections.<ExecRow>emptyList().iterator();
+           private boolean populated;
 
-            private Iterator<ExecRow> rolledUpRows = Collections.<ExecRow>emptyList().iterator();
-            private boolean populated;
+           @Override
+           public boolean hasNext() throws StandardException, IOException {
 
-            @Override
-            public boolean hasNext() throws StandardException, IOException {
+               if(!populated && rolledUpRows != null && !rolledUpRows.hasNext()){
+                   ExecRow nextRow = getNextRowFromSource(spliceRuntimeContext);
 
-                if(!populated && rolledUpRows != null && !rolledUpRows.hasNext()){
-                    ExecRow nextRow = getNextRowFromSource();
+                   if(nextRow != null){
+                       rolledUpRows = Arrays.asList(getRolledUpRows(nextRow)).iterator();
+                       populated = true;
+                   }else{
+                       rolledUpRows = null;
+                       populated = true;
+                   }
+               }
 
-                    if(nextRow != null){
-                        rolledUpRows = Arrays.asList(getRolledUpRows(nextRow)).iterator();
-                        populated = true;
-                    }else{
-                        rolledUpRows = null;
-                        populated = true;
-                    }
-                }
+               return rolledUpRows != null && rolledUpRows.hasNext();
+           }
 
-                return rolledUpRows != null && rolledUpRows.hasNext();
-            }
+           @Override
+           public ExecRow next() throws StandardException, IOException {
 
-            @Override
-            public ExecRow next() throws StandardException, IOException {
+               if(!populated){
+                   hasNext();
+               }
 
-                if(!populated){
-                    hasNext();
-                }
+               ExecRow nextRow = null;
 
-                ExecRow nextRow = null;
+               if( rolledUpRows != null){
+                   nextRow = rolledUpRows.next();
+                   populated = false;
+                   initializeVectorAggregation(nextRow);
+               }
 
-                if( rolledUpRows != null){
-                    nextRow = rolledUpRows.next();
-                    populated = false;
-                    initializeVectorAggregation(nextRow);
-                }
-
-                return nextRow;
-            }
-        };
+               return nextRow;
+           }    	
     }
-
 
 }

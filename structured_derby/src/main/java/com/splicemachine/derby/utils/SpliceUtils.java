@@ -7,6 +7,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.si.api.ClientTransactor;
@@ -30,16 +31,14 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-
 import java.io.*;
 import java.util.BitSet;
 import java.util.Collections;
 
 /**
- * Utility methods
- * @author jessiezhang
- * @author johnleach
- * @author scottfines
+ * 
+ * Splice Utility Methods
+ * 
  */
 
 public class SpliceUtils extends SpliceUtilities {
@@ -325,8 +324,8 @@ public class SpliceUtils extends SpliceUtilities {
         return Long.toString(SpliceDriver.driver().getUUIDGenerator().nextUUID());
     }
 
-	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
+	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
+        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
         return generateInstructions(instructions);
     }
 
@@ -344,8 +343,8 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
-		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
+    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext){
+		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation,spliceRuntimeContext));
 	}
 
     public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){

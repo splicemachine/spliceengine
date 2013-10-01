@@ -1,26 +1,20 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DistributedScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,8 +35,8 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
     private ResultScanner scanner;
 
 
-	public DistributedClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder) {
-		super(decoder, type);
+	public DistributedClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;
@@ -97,4 +91,9 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 	public byte[] getTableName() {
 		return tableName;
 	}
+	@Override
+	public SpliceRuntimeContext getSpliceRuntimeContext() {
+		return spliceRuntimeContext;
+	}
+
 }

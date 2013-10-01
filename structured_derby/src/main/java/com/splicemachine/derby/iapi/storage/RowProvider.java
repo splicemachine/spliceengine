@@ -1,6 +1,7 @@
 package com.splicemachine.derby.iapi.storage;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -53,4 +54,10 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 	 * if it's a scan).
 	 */
 	int getModifiedRowCount();
+	
+	/**
+	 * Retrieve the runtime context.
+	 * @return
+	 */
+	SpliceRuntimeContext getSpliceRuntimeContext();
 }

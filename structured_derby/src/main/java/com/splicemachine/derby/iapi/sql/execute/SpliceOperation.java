@@ -55,19 +55,19 @@ public interface SpliceOperation  {
 
     public void setCurrentRow(ExecRow row);
 
-    public ExecRow nextRow() throws StandardException,IOException;
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
 
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 	
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
     /**
      * Encoder for writing ExecRows into HBase (temp table or other location).
@@ -75,7 +75,7 @@ public interface SpliceOperation  {
      * @return
      * @throws StandardException
      */
-    public RowEncoder getRowEncoder() throws StandardException;
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

@@ -5,7 +5,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import org.apache.derby.iapi.error.StandardException;
@@ -17,9 +16,9 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -172,6 +171,11 @@ public class CallStatementOperation extends NoRowsOperation {
 		@Override
 		public String toString(){
 			return "CallableRowProvider";
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
 		}
 	};
 

@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -197,30 +198,31 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(fromResults));
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(fromResults),spliceRuntimeContext);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return source.getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return source.getReduceRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow template = getExecRowDefinition();
         return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packed());
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException, IOException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if(alwaysFalse){
             return null;
@@ -233,7 +235,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		beginTime = getCurrentTimeMillis();
 		do {
-			candidateRow = source.nextRow();
+			candidateRow = source.nextRow(spliceRuntimeContext);
 			if (candidateRow != null) {
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {

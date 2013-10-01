@@ -20,9 +20,9 @@ public interface SinkingOperation {
     /**
      * Get next ExecRow to sink to an intermediate table as prep for computing result rows
      */
-    ExecRow getNextSinkRow() throws StandardException, IOException;
+    ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException;
 
     String getTransactionID();
 
-    RowEncoder getRowEncoder() throws StandardException;
+    RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 }

@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
@@ -32,7 +33,6 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -128,6 +128,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
+    	hbs = null;
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         ((SpliceOperation) source).init(context);
@@ -146,47 +147,48 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             keyColumns[i] = order[i].getColumnId();
             descColumns[i] = order[i].getIsAscending();
         }
-        
+//        hbs = new HashBufferSource(uniqueSequenceID, columns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),columns.length + 1));
+        SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
+    }
+    
+    private void createHashBufferSource(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         int columns[] = new int[getExecRowDefinition().nColumns()];
         for (int i = 0; i < columns.length; ++i) {
             columns[i] = i;
         }
-        hbs = new HashBufferSource(uniqueSequenceID, columns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),columns.length + 1));
-
-        SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
+    	hbs = new HashBufferSource(uniqueSequenceID, columns, new WrapOperationWithProviderIterator(source,spliceRuntimeContext), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1));
     }
 
-    public ExecRow getNextSinkRow() throws StandardException, IOException {
-
+    @Override
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {    	
         ExecRow nextRow = null;
 
         if(!distinct){
-            nextRow = source.nextRow();
-        }else{
-
-
+            nextRow = source.nextRow(spliceRuntimeContext);
+        }else{ 
+        	if (hbs == null) {
+        		createHashBufferSource(spliceRuntimeContext);
+        	}
             Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
-
             if(result != null){
                 nextRow = result.getSecond();
             }
         }
-
         setCurrentRow(nextRow);
 
         return nextRow;
     }
 
     @Override
-    public ExecRow nextRow() throws StandardException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "nextRow");
-        sortResult = getNextRowFromScan();
+        sortResult = getNextRowFromScan(spliceRuntimeContext);
         if (sortResult != null)
             setCurrentRow(sortResult);
         return sortResult;
     }
 
-    private ExecRow getNextRowFromScan() throws StandardException {
+    private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         try {
             regionScanner.next(keyValues);
@@ -197,7 +199,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         if(keyValues.isEmpty()) return null;
 
         if(rowDecoder==null)
-            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
+            rowDecoder = getRowEncoder(new SpliceRuntimeContext()).getDual(getExecRowDefinition(),true);
         return rowDecoder.decode(keyValues);
     }
 
@@ -227,7 +229,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0 && !distinct) {
@@ -238,21 +240,22 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             throw Exceptions.parseException(e);
         }
         if(top!=this)
-            SpliceUtils.setInstructions(reduceScan,getActivation(),top);
-		return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+            SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
+		return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 	}
 
 
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
 		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow def = getExecRowDefinition();
         KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
         return RowEncoder.create(def.nColumns(), keyColumns,
@@ -262,17 +265,17 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
-        return getReduceRowProvider(top, rowDecoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
-
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
         nextTime += System.currentTimeMillis() - start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, spliceRuntimeContext);
         return rowProvider.shuffleRows(soi);
     }
 
@@ -354,18 +357,22 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .append(indent).append("source:").append(((SpliceOperation) source).prettyPrint(indentLevel + 1))
                 .toString();
     }
+    
+    public class WrapOperationWithProviderIterator implements RowProviderIterator<ExecRow> {
+        private ExecRow nextRow;
+        private boolean populated = false;
+        protected SpliceOperation operationSource;
+        protected SpliceRuntimeContext spliceRuntimeContext;
 
-    private RowProviderIterator<ExecRow> wrapOperationWithProviderIterator(final SpliceOperation operationSource){
-        return new RowProviderIterator<ExecRow>() {
-
-            private ExecRow nextRow;
-            private boolean populated = false;
+    	public WrapOperationWithProviderIterator(SpliceOperation operationSource, SpliceRuntimeContext spliceRuntimeContext) {
+    		this.operationSource = operationSource;
+    		this.spliceRuntimeContext = spliceRuntimeContext;
+    	}
 
             @Override
             public boolean hasNext() throws StandardException, IOException {
-
                 if(!populated){
-                    nextRow = operationSource.nextRow();
+                    nextRow = operationSource.nextRow(spliceRuntimeContext); 
                     populated=true;
                 }
 
@@ -385,6 +392,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
                 return nextRow;
             }
-        };
-    }
+
+    	}    
 }

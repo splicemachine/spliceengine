@@ -11,6 +11,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
 public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	protected int sourceRowWidth;
@@ -93,21 +94,11 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		return nodeTypes;
 	}
 	@Override
-	public ExecRow nextRow() throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext ) throws StandardException {
 		throw new RuntimeException("Not Implemented");
 	}
 
 	public NoPutResultSet getSource() {
 		return this.source;
 	}
-//	@Override
-//	public long getTimeSpent(int type)
-//	{
-//		long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//		else
-//			return totTime;
-//	}
 }

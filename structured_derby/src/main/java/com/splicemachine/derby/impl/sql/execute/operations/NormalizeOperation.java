@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class NormalizeOperation extends SpliceBaseOperation {
@@ -92,16 +93,16 @@ public class NormalizeOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top, decoder,spliceRuntimeContext);
     }
 
     
     
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,
-			RowDecoder decoder) throws StandardException {
-        return ((SpliceOperation)source).getReduceRowProvider(top, decoder);
+			RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return ((SpliceOperation)source).getReduceRowProvider(top, decoder,spliceRuntimeContext);
 	}
 
 	private int computeStartColumn(boolean forUpdate,
@@ -146,11 +147,11 @@ public class NormalizeOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException, IOException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		ExecRow sourceRow = null;
 		ExecRow result = null;
 		
-		sourceRow = source.nextRow();
+		sourceRow = source.nextRow(spliceRuntimeContext);
 		if(sourceRow!=null){
 			result = normalizeRow(sourceRow,true);
 		}

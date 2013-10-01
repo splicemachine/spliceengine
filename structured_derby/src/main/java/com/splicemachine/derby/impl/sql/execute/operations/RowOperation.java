@@ -21,6 +21,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -105,6 +106,7 @@ public class RowOperation extends SpliceBaseOperation {
         }
 	}
 	
+	@Override
 	public void	open() throws StandardException  {
         try {
             super.open();
@@ -115,7 +117,8 @@ public class RowOperation extends SpliceBaseOperation {
 	   	next = false;
 	}
 	
-	public ExecRow nextRow() throws StandardException {
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "nextRow, next=%s, cachedRow=%s",next,cachedRow);
 		currentRow = null;
 		if (!next) {
@@ -192,19 +195,20 @@ public class RowOperation extends SpliceBaseOperation {
 	@Override
 	public NoPutResultSet executeScan() throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
-		return RowProviders.sourceProvider(top, LOG);
+		return RowProviders.sourceProvider(top, LOG, spliceRuntimeContext);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException {
-        return getMapRowProvider(top,rowDecoder);
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 	}
 
 	@Override
@@ -270,4 +274,5 @@ public class RowOperation extends SpliceBaseOperation {
     public boolean isReferencingTable(long tableNumber) {
         return false;
     }
+
 }

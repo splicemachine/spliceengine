@@ -1,15 +1,12 @@
 package com.splicemachine.derby.impl.ast;
 
-import junit.framework.Assert;
-import org.apache.derby.iapi.error.StandardException;
+import org.junit.Assert;
 import org.apache.derby.impl.sql.compile.FromBaseTable;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.derby.impl.sql.compile.ResultSetNode;
 import org.apache.derby.impl.sql.compile.RowResultSetNode;
 import org.junit.Test;
-
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 /**

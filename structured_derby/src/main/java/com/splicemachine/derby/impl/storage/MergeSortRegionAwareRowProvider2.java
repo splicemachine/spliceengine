@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -200,4 +201,5 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
             }
         }
     }
+
 }

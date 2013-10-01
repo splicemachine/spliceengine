@@ -1,9 +1,7 @@
 package com.splicemachine.job;
 
 import com.splicemachine.derby.stats.TaskStats;
-
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -25,7 +23,7 @@ public interface JobStats {
 
     int getNumCancelledTasks();
 
-    Map<String,TaskStats> getTaskStats();
+    List<TaskStats> getTaskStats();
 
     String getJobName();
 

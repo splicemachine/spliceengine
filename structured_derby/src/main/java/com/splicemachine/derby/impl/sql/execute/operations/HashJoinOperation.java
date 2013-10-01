@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class HashJoinOperation extends NestedLoopJoinOperation {
@@ -51,18 +52,18 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 	}
 	
 	@Override
-	public ExecRow nextRow() throws StandardException, IOException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "nextRow");
 		beginTime = getCurrentTimeMillis();
 		if (nestedLoopIterator == null || !nestedLoopIterator.hasNext()) {
-			if ( (leftRow = leftResultSet.nextRow()) == null) {
+			if ( (leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
 				mergedRow = null;
 				setCurrentRow(mergedRow);
 				return mergedRow;
 			} else {
 				rowsSeenLeft++;
 				nestedLoopIterator = new NestedLoopIterator(leftRow);
-				nextRow();
+				nextRow(spliceRuntimeContext);
 			}
 		}
 		SpliceLogUtils.trace(LOG, "nextRow loop iterate next ");
@@ -128,23 +129,24 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		SpliceOperation regionOperation = operationStack.get(0);
 		final RowProvider rowProvider;
 		final ExecRow template = getExecRowDefinition();
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder().getDual(template));
+			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(template),spliceRuntimeContext);
 		} else {
-			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder().getDual(template));
+			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(template),spliceRuntimeContext);
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         //TODO -sf- is this right?
-        return getRightResultSet().getMapRowProvider(top, decoder);
+        return getRightResultSet().getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getLeftOperation().getReduceRowProvider(top,decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getLeftOperation().getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override

@@ -68,7 +68,7 @@ public class SinkTask extends ZkTask {
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
+    	SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         SpliceTransactionResourceImpl impl = null;
         try {
             impl = new SpliceTransactionResourceImpl();
@@ -78,18 +78,19 @@ public class SinkTask extends ZkTask {
             impl.marshallTransaction(instructions);
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceOperationContext opContext = new SpliceOperationContext(region,
-                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation());
+                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext());
             //init the operation stack
 
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
             OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId());
 
+            
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
-                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable());
+                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(),instructions.getSpliceRuntimeContext());
             else
-                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES);
+                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES,instructions.getSpliceRuntimeContext());
             status.setStats(stats);
 
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());

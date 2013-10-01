@@ -2,8 +2,8 @@ package com.splicemachine.derby.hbase;
 
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
-import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
@@ -22,7 +22,6 @@ import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -48,6 +47,7 @@ public class SpliceObserverInstructions implements Externalizable {
     private ActivationContext activationContext;
     protected SchemaDescriptor defaultSchemaDescriptor;
     protected String sessionUserName;
+    protected SpliceRuntimeContext spliceRuntimeContext;
 
     // propagate transactionId to all co-processors running operations for this SQL statement
     private String transactionId;
@@ -58,7 +58,8 @@ public class SpliceObserverInstructions implements Externalizable {
 	}
 
 	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,
-                                      ActivationContext activationContext, String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) {
+                                      ActivationContext activationContext, String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
+                                      SpliceRuntimeContext spliceRuntimeContext) {
 		SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 		this.statement = statement;
 		this.topOperation = topOperation;
@@ -66,6 +67,7 @@ public class SpliceObserverInstructions implements Externalizable {
         this.transactionId = transactionId;
         this.sessionUserName = sessionUserName;
         this.defaultSchemaDescriptor = defaultSchemaDescriptor;
+        this.spliceRuntimeContext = spliceRuntimeContext;
 	}
 
     public String getTransactionId() {
@@ -81,6 +83,7 @@ public class SpliceObserverInstructions implements Externalizable {
         this.transactionId = in.readUTF();
         this.sessionUserName = in.readUTF();
         this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
+        this.spliceRuntimeContext = (SpliceRuntimeContext) in .readObject();
 	}
 
 	@Override
@@ -92,7 +95,18 @@ public class SpliceObserverInstructions implements Externalizable {
         out.writeUTF(transactionId);
         out.writeUTF(sessionUserName);
         out.writeObject(defaultSchemaDescriptor);
+        out.writeObject(spliceRuntimeContext);
 	}
+	
+	
+	public SpliceRuntimeContext getSpliceRuntimeContext() {
+		return spliceRuntimeContext;
+	}
+
+	public void setSpliceRuntimeContext(SpliceRuntimeContext spliceRuntimeContext) {
+		this.spliceRuntimeContext = spliceRuntimeContext;
+	}
+
 	/**
 	 * Retrieve the GenericStorablePreparedStatement: This contains the byte code for the activation.
 	 *
@@ -126,13 +140,14 @@ public class SpliceObserverInstructions implements Externalizable {
     }
 
     public static SpliceObserverInstructions create(Activation activation,
-                                                    SpliceOperation topOperation) {
+                                                    SpliceOperation topOperation,
+                                                    SpliceRuntimeContext spliceRuntimeContext) {
         ActivationContext activationContext = ActivationContext.create(activation,topOperation);
         final String transactionID = getTransactionId(activation);
 
         return new SpliceObserverInstructions(
 				(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-				topOperation,activationContext, transactionID, activation.getLanguageConnectionContext().getSessionUserId(), activation.getLanguageConnectionContext().getDefaultSchema() );
+				topOperation,activationContext, transactionID, activation.getLanguageConnectionContext().getSessionUserId(), activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
 	}
 
     private static String getTransactionId(Activation activation) {
@@ -276,7 +291,6 @@ public class SpliceObserverInstructions implements Externalizable {
         }
 
         public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {
-
             try{
                 ActivationSerializer.readInto(new ByteDataInput(activationData),activation);
 			/*
@@ -326,5 +340,10 @@ public class SpliceObserverInstructions implements Externalizable {
 
 	public void setSessionUserName(String sessionUserName) {
 		this.sessionUserName = sessionUserName;
+	}
+
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
 	}    
+	
 }

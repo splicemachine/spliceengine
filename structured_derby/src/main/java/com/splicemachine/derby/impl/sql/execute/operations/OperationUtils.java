@@ -4,6 +4,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -43,13 +44,14 @@ public class OperationUtils {
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
 		RowProvider provider;
-        RowDecoder decoder = operation.getRowEncoder().getDual(operation.getExecRowDefinition());
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+		RowDecoder decoder = operation.getRowEncoder(spliceRuntimeContext).getDual(operation.getExecRowDefinition());
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
 			SpliceLogUtils.trace(log,"scanning Temp Table");
-			provider = regionOperation.getReduceRowProvider(operation,decoder);
+			provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext);
 		} else {
 			SpliceLogUtils.trace(log,"scanning Map Table");
-			provider = regionOperation.getMapRowProvider(operation,decoder);
+			provider = regionOperation.getMapRowProvider(operation,decoder,spliceRuntimeContext);
 		}
 		return new SpliceNoPutResultSet(operation.getActivation(),operation, provider);
 	}

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -7,6 +8,7 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
@@ -24,6 +26,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,24 +41,25 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SingleScanRowProvider  implements RowProvider {
 
-
+	protected SpliceRuntimeContext spliceRuntimeContext;
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
     private boolean shuffled = false;
 
     @Override
-    public JobStats shuffleRows(SpliceObserverInstructions instructions ) throws StandardException {
-        shuffled=true;
+    public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+    	shuffled=true;
         Scan scan = toScan();
+        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         if(scan==null){
             //operate locally
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                OperationSink opSink = OperationSink.create((SinkingOperation) op,null,null);
+                OperationSink opSink = OperationSink.create((SinkingOperation) op,null,instructions.getTransactionId());
                 if(op instanceof DMLWriteOperation)
-                    return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
+                    return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext));
                 else
-                    return new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES));
+                    return new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES, spliceRuntimeContext));
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
@@ -72,6 +77,10 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         }
     }
 
+	@Override
+	public SpliceRuntimeContext getSpliceRuntimeContext() {
+		return spliceRuntimeContext;
+	}
 
     /**
      * @return a scan representation of the row provider, or {@code null} if the operation
@@ -96,9 +105,9 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     private JobStats doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         //TODO -sf- attach statistics
-        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
-            SpliceUtils.setInstructions(scan,instructions);
-
+        //if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+        SpliceUtils.setInstructions(scan,instructions);
+        
         //get transactional stuff from scan
 
         //determine if top operation writes data
@@ -157,8 +166,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         }
 
         @Override
-        public Map<String, TaskStats> getTaskStats() {
-            return Collections.singletonMap("localTask",stats);
+        public List<TaskStats> getTaskStats() {
+            return Arrays.asList(stats);
         }
     }
 }

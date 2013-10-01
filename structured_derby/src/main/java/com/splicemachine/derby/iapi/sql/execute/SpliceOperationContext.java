@@ -38,12 +38,14 @@ public class SpliceOperationContext {
     private SpliceOperation topOperation;
     private SpliceOperationRegionScanner spliceRegionScanner;
     private boolean cacheBlocks = true;
+    private SpliceRuntimeContext spliceRuntimeContext;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation){
+                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
+                                  SpliceRuntimeContext spliceRuntimeContext){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
@@ -51,6 +53,7 @@ public class SpliceOperationContext {
         this.lcc = lcc;
         this.isSink = isSink;
         this.topOperation = topOperation;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -59,7 +62,8 @@ public class SpliceOperationContext {
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
-                                  boolean isSink,SpliceOperation topOperation ){
+                                  boolean isSink,SpliceOperation topOperation,
+                                  SpliceRuntimeContext spliceRuntimeContext){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching());
@@ -68,6 +72,7 @@ public class SpliceOperationContext {
         this.lcc = lcc;
         this.isSink=isSink;
         this.topOperation = topOperation;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     public void setSpliceRegionScanner(SpliceOperationRegionScanner sors){
@@ -139,7 +144,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false,null);
+                null,false,null, new SpliceRuntimeContext());
     }
 
     public SpliceOperation getTopOperation() {

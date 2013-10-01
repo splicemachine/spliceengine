@@ -28,8 +28,10 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -63,11 +65,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	protected ExecRow rightTemplate;
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
-
-    private SpliceOperation resultSetToRead;
-
-    protected enum JoinSide {RIGHT,LEFT}
-	protected JoinSide joinSide;
 	protected MergeSortRegionAwareRowProvider2 serverProvider;
 	protected SQLInteger rowType;
 	protected byte[] priorHash;
@@ -105,7 +102,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.leftHashKeyItem = leftHashKeyItem;
 				this.rightHashKeyItem = rightHashKeyItem;
-				this.joinSide = JoinSide.LEFT;
                 init(SpliceOperationContext.newContext(activation));
                 recordConstructorTime(); 
 	}
@@ -116,7 +112,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		super.readExternal(in);
 		leftHashKeyItem = in.readInt();
 		rightHashKeyItem = in.readInt();
-		joinSide = JoinSide.values()[in.readInt()];
 		emptyRightRowsReturned = in.readInt();
 	}
 
@@ -126,32 +121,24 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		super.writeExternal(out);
 		out.writeInt(leftHashKeyItem);
 		out.writeInt(rightHashKeyItem);
-		out.writeInt(joinSide.ordinal());
 		out.writeInt(emptyRightRowsReturned);
 	}
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException, IOException {
-        if (resultSetToRead == null) {
-            switch (joinSide) {
-                case RIGHT:
-                    resultSetToRead = rightResultSet;
-                    break;
-                case LEFT:
-                    resultSetToRead = leftResultSet;
-                    break;
-            }
-        }
-        return resultSetToRead.nextRow();
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    	ExecRow nextSink;
+    	if (spliceRuntimeContext.isLeft(resultSetNumber))
+    		return leftResultSet.nextRow(spliceRuntimeContext);
+    	return rightResultSet.nextRow(spliceRuntimeContext);
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException {
-        return next(false);
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return next(false,spliceRuntimeContext);
     }
 
-    protected ExecRow next(boolean outer) throws StandardException {
-        SpliceLogUtils.trace(LOG, "nextRow");
+    protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    	SpliceLogUtils.trace(LOG, "nextRow");
         beginTime = getCurrentTimeMillis();
         if (mergeSortIterator == null)
             mergeSortIterator = new MergeSortNextRowIterator(outer);
@@ -166,17 +153,17 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         if(failedTasks.size()>0){
             reduceScan.setFilter(new SuccessFilter(failedTasks));
         }
-        SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new DistributedClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+        return new DistributedClientScanProvider("mergeSortJoin",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder,spliceRuntimeContext);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getReduceRowProvider(top,decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override
@@ -199,11 +186,14 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }else{
                 //get left-side decoder
 
+            	SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+            	SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+            	
                 serverProvider = new MergeSortRegionAwareRowProvider2(getTransactionID(),context.getRegion(),
                         context.getScan(),
                         SpliceConstants.TEMP_TABLE_BYTES,
-                        getRowEncoder(leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
-                        getRowEncoder(rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
+                        getRowEncoder(left,leftNumCols,leftHashKeys).getDual(leftResultSet.getExecRowDefinition()),
+                        getRowEncoder(right,rightNumCols,rightHashKeys).getDual(rightResultSet.getExecRowDefinition()));
                 serverProvider.open();
             }
         }
@@ -214,19 +204,13 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected JobStats doShuffle() throws StandardException {
         SpliceLogUtils.trace(LOG, "executeShuffle");
         long start = System.currentTimeMillis();
-        JoinSide oldSide = joinSide;
-
+        SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+        SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
         ExecRow template = getExecRowDefinition();
-        joinSide = JoinSide.LEFT;
-        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, getRowEncoder().getDual(template));
-
-        joinSide = JoinSide.RIGHT;
-        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, getRowEncoder().getDual(template));
-
+        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, getRowEncoder(spliceLRuntimeContext).getDual(template),spliceLRuntimeContext);
+        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, getRowEncoder(spliceRRuntimeContext).getDual(template),spliceRRuntimeContext);
         RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-
-        joinSide = oldSide;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
         JobStats stats = combined.shuffleRows(soi);
         nextTime+=System.currentTimeMillis()-start;
         return stats;
@@ -245,25 +229,21 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         ExecRow rowDef = getExecRowDefinition();
         RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packed());
-		RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()));
+		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()),spliceRuntimeContext);
 		return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
-        switch(joinSide){
-            case LEFT:
-                return getRowEncoder(leftNumCols,leftHashKeys);
-            case RIGHT:
-                return getRowEncoder(rightNumCols,rightHashKeys);
-            default:
-                throw new IllegalArgumentException("Incorrect Join side specified!");
-        }
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    	if (spliceRuntimeContext.isLeft(resultSetNumber))
+                return getRowEncoder(spliceRuntimeContext,leftNumCols,leftHashKeys);
+    	return getRowEncoder(spliceRuntimeContext,rightNumCols,rightHashKeys);
     }
 
-    private RowEncoder getRowEncoder(final int numCols,int[] keyColumns) throws StandardException {
+    private RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext, final int numCols,int[] keyColumns) throws StandardException {
         int[] rowColumns;
-        final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
+        final byte[] joinSideBytes = Encoding.encode(spliceRuntimeContext.isLeft(resultSetNumber)?JoinSide.LEFT.ordinal():JoinSide.RIGHT.ordinal());
         KeyMarshall keyType = new KeyMarshall() {
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,

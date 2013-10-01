@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
@@ -21,8 +20,8 @@ public class ProvidesDefaultClientScanProvider extends ClientScanProvider{
     public ProvidesDefaultClientScanProvider(String type,
                                              byte[] tableName,
                                              Scan scan,
-                                             RowDecoder decoder) {
-        super(type,tableName, scan,decoder);
+                                             RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+        super(type,tableName, scan,decoder, spliceRuntimeContext);
     }
 
     @Override

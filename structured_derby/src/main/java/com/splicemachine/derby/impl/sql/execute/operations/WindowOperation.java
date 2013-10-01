@@ -17,6 +17,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class WindowOperation extends SpliceBaseOperation {
@@ -113,7 +114,8 @@ public class WindowOperation extends SpliceBaseOperation {
      *
      * @return the next row in the result
      */
-    public ExecRow nextRow() throws StandardException, IOException {
+    @Override
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         ExecRow sourceRow = null;
         ExecRow retval = null;
         boolean restrict = false;
@@ -128,7 +130,7 @@ public class WindowOperation extends SpliceBaseOperation {
         ExecRow tmpRow = null;
 
         do {
-            sourceRow = source.nextRow();
+            sourceRow = source.nextRow(spliceRuntimeContext);
             if (sourceRow != null) {
                 this.rownumber++;
                 tmpRow = getAllocatedRow();

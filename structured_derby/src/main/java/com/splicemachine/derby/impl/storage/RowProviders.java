@@ -1,24 +1,27 @@
 package com.splicemachine.derby.impl.storage;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.kenai.jffi.Array;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.commons.collections.MultiMap;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -42,16 +45,26 @@ public class RowProviders {
 		@Override public byte[] getTableName() { return null; }
 
 		@Override public int getModifiedRowCount() { return 0; }
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
+		}
+		@Override
+		public String toString() {
+			return "EmptyProvider { } ";
+		}
+		
+		
 	};
 
 	private RowProviders(){}
 	
-	public static RowProvider singletonProvider(ExecRow row){
-		return new SingletonRowProvider(row);
+	public static RowProvider singletonProvider(ExecRow row, SpliceRuntimeContext spliceRuntimeContext){
+		return new SingletonRowProvider(row,spliceRuntimeContext);
 	}
 
-	public static RowProvider sourceProvider(SpliceOperation source, Logger log){
-		return new SourceRowProvider(source,log);
+	public static RowProvider sourceProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext){
+		return new SourceRowProvider(source, log, spliceRuntimeContext);
 	}
 
     public static RowProvider combine(RowProvider first,RowProvider second){
@@ -88,14 +101,20 @@ public class RowProviders {
 			return provider.getCurrentRowLocation();
 		}
 
+		@Override
+		public String toString() {
+			return String.format("DelegatingRowProvider { provider=%s } ",provider);
+		}
+
 	}
 
 	private static class SingletonRowProvider extends SingleScanRowProvider{
 		private final ExecRow row;
 		private boolean emitted = false;
 		
-		SingletonRowProvider(ExecRow row){
+		SingletonRowProvider(ExecRow row, SpliceRuntimeContext spliceRuntimeContext){
 			this.row = row;
+			this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
         @Override public void open() { emitted = false; }
@@ -118,6 +137,15 @@ public class RowProviders {
 			return 0;
 		}
 
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return spliceRuntimeContext;
+		}
+		@Override
+		public String toString() {
+			return String.format("SingletonRowProvider { row=%s } ",row);
+		}
+
     }
 
 	public static class SourceRowProvider extends SingleScanRowProvider{
@@ -126,9 +154,10 @@ public class RowProviders {
 		//private boolean populated = false;
 		private ExecRow nextEntry;
 
-		private SourceRowProvider(SpliceOperation source, Logger log) {
+		private SourceRowProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext) {
 			this.source = source;
 			this.log = log;
+			this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
 		@Override
@@ -166,7 +195,7 @@ public class RowProviders {
 		public boolean hasNext() {
 			//if(populated==true) return true;
 			try {
-				nextEntry = source.nextRow();
+				nextEntry = source.nextRow(spliceRuntimeContext);
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(log,e);
 			} catch (IOException e) {
@@ -181,6 +210,16 @@ public class RowProviders {
 			//populated=false;
 			return nextEntry;
 		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return spliceRuntimeContext;
+		}
+		@Override
+		public String toString() {
+			return String.format("SourceRowProvider { source=%s } ",source);
+		}
+
 	}
 
     private static class CombinedRowProvider implements RowProvider{
@@ -218,7 +257,7 @@ public class RowProviders {
 
         @Override
         public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            JobStats firstStats = firstRowProvider.shuffleRows(instructions);
+        	JobStats firstStats = firstRowProvider.shuffleRows(instructions);
             JobStats secondStats = secondRowProvider.shuffleRows(instructions);
             return new CombinedJobStats(firstStats,secondStats);
         }
@@ -251,6 +290,16 @@ public class RowProviders {
                 return firstRowProvider.next();
             else return secondRowProvider.next();
         }
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
+		}
+		@Override
+		public String toString() {
+			return String.format("CombinedRowProvider { firstRowProvider=%s, secondRowProvider=%s } ",firstRowProvider, secondRowProvider);
+		}
+
     }
 
     private static class CombinedJobStats implements JobStats{
@@ -298,10 +347,11 @@ public class RowProviders {
         }
 
         @Override
-        public Map<String, TaskStats> getTaskStats() {
-            Map<String,TaskStats> taskStats = Maps.newHashMap(firstJobStats.getTaskStats());
-            taskStats.putAll(secondJobStats.getTaskStats());
-            return taskStats;
+        public List<TaskStats> getTaskStats() {       
+        	List<TaskStats> taskStats = new ArrayList<TaskStats>();
+        	taskStats.addAll(firstJobStats.getTaskStats());
+        	taskStats.addAll(secondJobStats.getTaskStats());
+        	return taskStats;
         }
 
         @Override

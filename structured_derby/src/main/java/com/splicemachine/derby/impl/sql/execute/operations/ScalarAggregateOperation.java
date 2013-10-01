@@ -4,6 +4,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
@@ -16,7 +17,6 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
@@ -90,7 +90,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
@@ -99,13 +99,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        SpliceUtils.setInstructions(reduceScan,activation,top);
-        return new ProvidesDefaultClientScanProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder);
+        SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+        return new ProvidesDefaultClientScanProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder, spliceRuntimeContext);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder, spliceRuntimeContext);
     }
 
     @Override
@@ -128,27 +128,27 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException, IOException {
-        return doAggregation(false);
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        return doAggregation(false, spliceRuntimeContext);
     }
 
     @Override
-	public ExecRow nextRow() throws StandardException, IOException {
-		return doAggregation(true);
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+		return doAggregation(true,spliceRuntimeContext);
 	}
 
-	protected ExecRow doAggregation(boolean useScan) throws StandardException, IOException {
+	protected ExecRow doAggregation(boolean useScan, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         ExecRow execIndexRow;
         ExecRow aggResult = null;
 		if(useScan){
             do{
-                execIndexRow = getNextRowFromScan(false);
+                execIndexRow = getNextRowFromScan(false, spliceRuntimeContext);
                 if(execIndexRow==null)continue;
                 aggResult = aggregate(execIndexRow,aggResult,false,true);
             }while(execIndexRow!=null);
 		}else{
             do{
-                execIndexRow = getNextRowFromSource(false);
+                execIndexRow = getNextRowFromSource(false, spliceRuntimeContext);
                 if(execIndexRow==null) continue;
                 aggResult = aggregate(execIndexRow,aggResult,true,false);
             }while(execIndexRow!=null && countOfRows <= 0);
@@ -174,9 +174,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return aggResult;
 	}
 	
-	protected ExecIndexRow getNextRowFromScan(boolean doClone) throws StandardException {
+	protected ExecIndexRow getNextRowFromScan(boolean doClone, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         if(scanDecoder==null)
-            scanDecoder = getRowEncoder().getDual(sourceExecIndexRow,true);
+            scanDecoder = getRowEncoder(new SpliceRuntimeContext()).getDual(sourceExecIndexRow,true);
 		List<KeyValue> keyValues = new ArrayList<KeyValue>();
 		try{
 			regionScanner.next(keyValues);
@@ -190,10 +190,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		}
 	}
 	
-	private ExecIndexRow getNextRowFromSource(boolean doClone) throws StandardException, IOException {
+	private ExecIndexRow getNextRowFromSource(boolean doClone, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		ExecRow sourceRow;
 		ExecIndexRow inputRow = null;
-		if((sourceRow = source.nextRow())!=null){
+		if((sourceRow = source.nextRow(spliceRuntimeContext))!=null){
 			rowsInput++;
 			sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone():sourceRow);
 			inputRow = sourceExecIndexRow;
@@ -231,7 +231,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	}
 
     @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,
                 uniqueSequenceID,
                 KeyType.PREFIX_UNIQUE_POSTFIX_ONLY,
@@ -247,17 +247,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		return this.singleInputRow;
 	}
 	
-//	@Override
-//	public long getTimeSpent(int type)
-//	{
-//		long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//		else
-//			return totTime;
-//	}
-
     @Override
     public String prettyPrint(int indentLevel) {
         return "Scalar"+super.prettyPrint(indentLevel);

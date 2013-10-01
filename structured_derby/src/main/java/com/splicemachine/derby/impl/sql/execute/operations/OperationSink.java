@@ -3,8 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
@@ -15,7 +15,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
@@ -57,15 +56,15 @@ public class OperationSink {
         return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
     }
 
-    public TaskStats sink(byte[] destinationTable) throws Exception {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
+    public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
+    	TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
         CallBuffer<KVPair> writeBuffer;
         byte[] postfix = getPostfix(false);
         RowEncoder encoder = null;
         try{
-            encoder = operation.getRowEncoder();
+            encoder = operation.getRowEncoder(spliceRuntimeContext);
             encoder.setPostfix(postfix);
             String txnId = transactionId == null ? operation.getTransactionID() : transactionId;
             writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
@@ -75,16 +74,11 @@ public class OperationSink {
             long rowsWritten = 0l;
 
             do{
-//                debugFailIfDesired(writeBuffer);
-
                 long start = 0l;
-
                 if(stats.readAccumulator().shouldCollectStats()){
                     start = System.nanoTime();
                 }
-
-                //row = operation.nextRow();
-                row = operation.getNextSinkRow();
+                row = operation.getNextSinkRow(spliceRuntimeContext);
                 if(row==null) continue;
 
                 if(stats.readAccumulator().shouldCollectStats()){
