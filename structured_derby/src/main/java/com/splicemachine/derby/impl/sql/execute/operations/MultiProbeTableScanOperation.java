@@ -102,7 +102,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
      * Constructor.  Just save off the relevant probing state and pass
      * everything else up to TableScanResultSet.
      * 
-     * @see ResultSetFactory#getMultiProbeTableScanResultSet
      * @exception StandardException thrown on failure to open
      */
     public MultiProbeTableScanOperation(long conglomId,
@@ -163,14 +162,26 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         if (SanityManager.DEBUG)
         {
             SanityManager.ASSERT(
-                (probingVals != null) && (probingVals.length > 0),
-                "No probe values found for multi-probe scan.");
+                    (probingVals != null) && (probingVals.length > 0),
+                    "No probe values found for multi-probe scan.");
         }
-        this.probeValues = probingVals;
         this.sortRequired = sortRequired;
         if(this.sortRequired!=RowOrdering.DONTCARE)
             sortProbeValues();
-        recordConstructorTime(); 
+        this.scanInformation = new MultiProbeDerbyScanInformation(
+                resultRowAllocator.getMethodName(),
+                startKeyGetter==null?null:startKeyGetter.getMethodName(),
+                stopKeyGetter==null?null:stopKeyGetter.getMethodName(),
+                qualifiersField==null?null:qualifiersField,
+                conglomId,
+                colRefItem,
+                sameStartStopPosition,
+                startSearchOperator,
+                stopSearchOperator,
+                probingVals
+        );
+//        this.probeValues = probingVals;
+        recordConstructorTime();
     }
 
     private void sortProbeValues() {
@@ -198,229 +209,77 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         ArrayUtil.writeArray(out,probeValues);
     }
 
-    @Override
-    protected Scan buildScan() {
-        /*
-         * We must build the proper scan here in pieces
-         */
-        BitSet colsToReturn = new BitSet();
-        if(accessedCols!=null){
-            for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
-                colsToReturn.set(i);
-            }
-        }
-        MultiRangeFilter.Builder builder= new MultiRangeFilter.Builder();
-        List<Predicate> allScanPredicates = Lists.newArrayListWithExpectedSize(probeValues.length);
-        for(DataValueDescriptor probeValue:probeValues){
-            try{
-                populateStartAndStopPositions();
-                if(startPosition!=null)
-                    startPosition.getRowArray()[0] = probeValue; //TODO -sf- is this needed?
-                if(sameStartStopPosition||stopPosition.nColumns()>1){
-                    stopPosition.getRowArray()[0] = probeValue;
-                }
-                populateQualifiers();
-                List<Predicate> scanPredicates;
-                if(scanQualifiers!=null){
-                    scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
-                    if(accessedCols!=null){
-                        for(Qualifier[] qualifierList:scanQualifiers){
-                            for(Qualifier qualifier:qualifierList){
-                                colsToReturn.set(qualifier.getColumnId());
-                            }
-                        }
-                    }
-                }else{
-                    scanPredicates = Lists.newArrayListWithExpectedSize(0);
-                }
-
-                //get the start and stop keys for the scan
-                Pair<byte[],byte[]> startAndStopKeys =
-                        Scans.getStartAndStopKeys(startPosition.getRowArray(),startSearchOperator,stopPosition.getRowArray(),stopSearchOperator,conglomerate.getAscDescInfo());
-                builder.addRange(startAndStopKeys.getFirst(),startAndStopKeys.getSecond());
-                if(startPosition!=null && startSearchOperator != ScanController.GT){
-                    Predicate indexPredicate = Scans.generateIndexPredicate(startPosition.getRowArray(),startSearchOperator);
-                    if(indexPredicate!=null)
-                        scanPredicates.add(indexPredicate);
-                }
-                allScanPredicates.add(new AndPredicate(scanPredicates));
-            }catch(StandardException e){
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            } catch (IOException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            }
-        }
-
-        Predicate finalPredicate  = new OrPredicate(allScanPredicates);
-        String txnId = getTransactionID();
-        Scan scan = SpliceUtils.createScan(txnId);
-        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn,Arrays.asList(finalPredicate));
-        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
-        MultiRangeFilter filter = builder.build();
-        scan.setStartRow(filter.getMinimumStart());
-        scan.setStopRow(filter.getMaximumStop());
-        scan.setFilter(filter);
-
-        return scan;
-    }
+//    @Override
+//    protected Scan buildScan() {
+//        return scanInformation.getScan(getTransactionID());
+//        /*
+//         * We must build the proper scan here in pieces
+//         */
+//        BitSet colsToReturn = new BitSet();
+//        FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
+//        if(accessedCols!=null){
+//            for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
+//                colsToReturn.set(i);
+//            }
+//        }
+//        MultiRangeFilter.Builder builder= new MultiRangeFilter.Builder();
+//        List<Predicate> allScanPredicates = Lists.newArrayListWithExpectedSize(probeValues.length);
+//        for(DataValueDescriptor probeValue:probeValues){
+//            try{
+//
+//                populateStartAndStopPositions();
+//                if(startPosition!=null)
+//                    startPosition.getRowArray()[0] = probeValue; //TODO -sf- is this needed?
+//                if(sameStartStopPosition||stopPosition.nColumns()>1){
+//                    stopPosition.getRowArray()[0] = probeValue;
+//                }
+//                populateQualifiers();
+//                List<Predicate> scanPredicates;
+//                if(scanQualifiers!=null){
+//                    scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
+//                    if(accessedCols!=null){
+//                        for(Qualifier[] qualifierList:scanQualifiers){
+//                            for(Qualifier qualifier:qualifierList){
+//                                colsToReturn.set(qualifier.getColumnId());
+//                            }
+//                        }
+//                    }
+//                }else{
+//                    scanPredicates = Lists.newArrayListWithExpectedSize(0);
+//                }
+//
+//                //get the start and stop keys for the scan
+//                Pair<byte[],byte[]> startAndStopKeys =
+//                        Scans.getStartAndStopKeys(startPosition.getRowArray(),startSearchOperator,stopPosition.getRowArray(),stopSearchOperator,conglomerate.getAscDescInfo());
+//                builder.addRange(startAndStopKeys.getFirst(),startAndStopKeys.getSecond());
+//                if(startPosition!=null && startSearchOperator != ScanController.GT){
+//                    Predicate indexPredicate = Scans.generateIndexPredicate(startPosition.getRowArray(),startSearchOperator);
+//                    if(indexPredicate!=null)
+//                        scanPredicates.add(indexPredicate);
+//                }
+//                allScanPredicates.add(new AndPredicate(scanPredicates));
+//            }catch(StandardException e){
+//                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+//            } catch (IOException e) {
+//                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+//            }
+//        }
+//
+//        Predicate finalPredicate  = new OrPredicate(allScanPredicates);
+//        String txnId = getTransactionID();
+//        Scan scan = SpliceUtils.createScan(txnId);
+//        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn,Arrays.asList(finalPredicate));
+//        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
+//        MultiRangeFilter filter = builder.build();
+//        scan.setStartRow(filter.getMinimumStart());
+//        scan.setStopRow(filter.getMaximumStop());
+//        scan.setFilter(filter);
+//
+//        return scan;
+//    }
 
     @Override
     public String toString() {
         return "MultiProbe"+super.toString();
-    }
-
-    private class MultiProbeRowProvider extends MultiScanExecRowProvider {
-        private final DataValueDescriptor[] probeValues;
-        private final byte[] tableName;
-        private final SpliceOperation top;
-
-        private HTableInterface table;
-
-        private int currentProbePosition = -1;
-        private ResultScanner currentScanner;
-        private Scan currentScan;
-
-        private boolean open = false;
-
-        private MultiProbeRowProvider(SpliceOperation top,
-                                      RowDecoder rowDecoder,
-                                      DataValueDescriptor[] probeValues,
-                                      byte[] tableName) {
-            super(rowDecoder);
-            this.probeValues = probeValues;
-            this.tableName = tableName;
-            this.top = top;
-        }
-
-        @Override
-        protected Result getResult() throws IOException {
-            Result next = currentScanner.next();
-            while(next==null){
-                try {
-                    nextProbePosition();
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrow(LOG,new IOException(e));
-                }
-
-                // If there are no more rows to probe for, then we're done
-                if(currentProbePosition >= probeValues.length) break;
-
-                next = currentScanner.next();
-            }
-            return next;
-        }
-
-        @Override
-        public void open() {
-            if(table==null)
-                table = SpliceAccessManager.getHTable(tableName);
-            try {
-                nextProbePosition();
-            } catch (StandardException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            } catch (IOException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            }
-        }
-
-        @Override
-        public void close() {
-        	SpliceLogUtils.trace(LOG, "close in MultiProbeRowProvider");
-        	if (!isOpen) 
-        		return;
-            if(currentScanner!=null)currentScanner.close();
-            try {
-                table.close();
-                isOpen = false;
-            } catch (IOException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG,e);
-            }
-        }
-
-        @Override
-        public byte[] getTableName() {
-            return tableName;
-        }
-
-        private void nextProbePosition() throws StandardException, IOException {
-            if(currentScanner!=null){
-                currentScanner.close(); //close the exhausted scanner, we don't need it anymore
-                currentScanner = null;
-            }
-            currentProbePosition++;
-            if(currentProbePosition >= probeValues.length) return; //we're out of rows, just return
-
-            DataValueDescriptor next = probeValues[currentProbePosition];
-            currentProbePosition++;
-            //skip all the descriptors that match next
-            while(currentProbePosition<probeValues.length &&next.equals(probeValues[currentProbePosition])){
-                currentProbePosition++;
-            }
-            currentProbePosition = currentProbePosition-1;
-            //get the Scanner for this position
-            populateStartAndStopPositions();
-            if(startPosition!=null)
-                startPosition.getRowArray()[0] = next; //TODO -sf- is this needed?
-            if(sameStartStopPosition||stopPosition.getRowArray().length>1){
-                stopPosition.getRowArray()[0] = next;
-            }
-            populateQualifiers();
-            currentScan = getScan();
-            SpliceUtils.setInstructions(currentScan,activation,top, new SpliceRuntimeContext());
-            currentScanner = table.getScanner(currentScan);
-        }
-
-        @Override
-        public List<Scan> getScans() throws StandardException{
-            //get the old state so that we can return to it when we're finished
-            int oldProbePosition = currentProbePosition;
-            Scan oldScan = currentScan;
-            ExecIndexRow oldStartPosition = startPosition;
-            ExecIndexRow oldStopPosition = stopPosition;
-
-            List<Scan> scans = Lists.newArrayListWithExpectedSize(probeValues.length-oldProbePosition);
-            currentProbePosition++;
-            if(currentProbePosition >= probeValues.length) return scans; //we're out of rows, just return
-
-            while(currentProbePosition < probeValues.length){
-                int probePosition = currentProbePosition;
-                scans.add(getNextScan());
-                if(probePosition==currentProbePosition)currentProbePosition++;
-            }
-            //reset to old state
-            currentProbePosition = oldProbePosition;
-            currentScan = oldScan;
-            startPosition = oldStartPosition;
-            stopPosition = oldStopPosition;
-
-            populateQualifiers();
-
-            return scans;
-        }
-
-        private Scan getNextScan() throws StandardException {
-            DataValueDescriptor next = probeValues[currentProbePosition];
-            currentProbePosition++;
-            //skip all the descriptors that match next
-            while(currentProbePosition<probeValues.length &&next.equals(probeValues[currentProbePosition])){
-                currentProbePosition++;
-            }
-            currentProbePosition = currentProbePosition-1;
-            //get the Scanner for this position
-            populateStartAndStopPositions();
-            if(startPosition!=null)
-                startPosition.getRowArray()[0] = next;
-            if(sameStartStopPosition){
-                stopPosition.getRowArray()[0] = next;
-            }
-            populateQualifiers();
-            return getScan();
-        }
-
-		@Override
-		public SpliceRuntimeContext getSpliceRuntimeContext() {
-			// TODO Auto-generated method stub
-			return null;
-		}
     }
 }

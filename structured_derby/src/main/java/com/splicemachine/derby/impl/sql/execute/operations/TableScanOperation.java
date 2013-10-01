@@ -215,8 +215,13 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public String toString() {
-		return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,isKeyed,resultSetNumber);
-	}
+        try {
+            return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,scanInformation.isKeyed(),resultSetNumber);
+        } catch (StandardException e) {
+            LOG.error(e); //shouldn't happen
+            return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s}", tableName, "UNKNOWN", resultSetNumber);
+        }
+    }
 	
 	@Override
 	public void	close() throws StandardException, IOException {
@@ -235,12 +240,9 @@ public class TableScanOperation extends ScanOperation {
 					stopPositionString = printStopPosition();
 				}
 	        	
-                if (forUpdate && isKeyed) {
+                if (forUpdate && scanInformation.isKeyed()) {
                     activation.clearIndexScanInfo();
                 }
-
-			startPosition = null;
-			stopPosition = null;
 
 			super.close();
 
@@ -263,8 +265,12 @@ public class TableScanOperation extends ScanOperation {
 		scanProperties.setProperty("numRowsVisited", "0");
 		scanProperties.setProperty("numRowsQualified", "0"); 
 		scanProperties.setProperty("numColumnsFetched", "0");//FIXME: need to loop through accessedCols to figure out
-		scanProperties.setProperty("columnsFetchedBitSet", ""+getAccessedCols());
-		//treeHeight
+        try {
+            scanProperties.setProperty("columnsFetchedBitSet", ""+scanInformation.getAccessedColumns());
+        } catch (StandardException e) {
+            SpliceLogUtils.logAndThrowRuntime(LOG,e);
+        }
+        //treeHeight
 		
 		return scanProperties;
 	}

@@ -140,15 +140,15 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
         GenericStorablePreparedStatement statement = context.getPreparedStatement();
-        GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
-        ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
+//        GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
+        ExecRow candidate = scanInformation.getResultRow();//(ExecRow) generatedMethod.invoke(activation);
         FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
         FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
         LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-        currentRow = getCompactRow(lcc,candidate, accessedCols, false);
+        currentRow = getCompactRow(lcc,candidate, scanInformation.getAccessedColumns(), false);
         keyColumns = new int[fihArray.length];
         for (int index = 0; index < fihArray.length; index++) {
-            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
+            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(), fihArray[index].getInt());
         }
     }
 
@@ -284,9 +284,6 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				startPositionString = printStartPosition();
 				stopPositionString = printStopPosition();
 			}
-
-			startPosition = null;
-			stopPosition = null;
 
 			super.close();
 	    }

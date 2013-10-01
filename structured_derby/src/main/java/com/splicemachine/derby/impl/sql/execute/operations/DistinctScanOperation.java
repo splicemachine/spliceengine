@@ -137,7 +137,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
         keyColumns = new int[fihArray.length];
         for(int index=0;index<fihArray.length;index++){
-            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
+            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
 
         RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap);
@@ -224,7 +224,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     protected JobStats doShuffle() throws StandardException {
         Scan scan = buildScan();
         SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(conglomId)),scan,null,spliceRuntimeContext);
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,spliceRuntimeContext);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,spliceRuntimeContext);
         return provider.shuffleRows(soi);

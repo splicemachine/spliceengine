@@ -302,7 +302,9 @@ public class DependentOperation extends ScanOperation {
 	  @return The base row row or null.
 	  @exception StandardException Ooops
 	  */
-	private ExecRow fetchBaseRow() throws StandardException { 
+	private ExecRow fetchBaseRow() throws StandardException {
+        ExecRow candidate = scanInformation.getResultRow();
+        FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
 		if (currentRow == null) {
 			currentRow = getCompactRow(activation.getLanguageConnectionContext(),candidate, accessedCols, isKeyed);
 		} 
