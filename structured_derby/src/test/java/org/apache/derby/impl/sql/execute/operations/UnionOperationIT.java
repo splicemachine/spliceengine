@@ -234,32 +234,27 @@ public class UnionOperationIT extends SpliceUnitTest {
         int i=0;
         while(rs.next()){
             i++;
-            System.out.printf("empId=%d%n",rs.getInt(1));
         }
         Assert.assertEquals(5,i);
     }
     
     @Test
-    @Ignore("Bug 797")
     public void testValuesFirstInUnionAll() throws Exception {
     	ResultSet rs = methodWatcher.executeQuery(format("values (9,10) union all " +
     			"select a.i, b.i from %s a, %s b union all select b.i, a.i from %s a, %s b",spliceTableWatcher4,spliceTableWatcher5,spliceTableWatcher4,spliceTableWatcher5));
         int i=0;
         while(rs.next()){
             i++;
-            System.out.printf("empId=%d%n",rs.getInt(1));
         }    	
     }
 
     @Test
-    @Ignore("Bug 797")
     public void testValuesLastInUnionAll() throws Exception {
     	ResultSet rs = methodWatcher.executeQuery(format(
     			"select a.i, b.i from %s a, %s b union all select b.i, a.i from %s a, %s b union all values (9,10)",spliceTableWatcher4,spliceTableWatcher5,spliceTableWatcher4,spliceTableWatcher5));
         int i=0;
         while(rs.next()){
             i++;
-            System.out.printf("empId=%d%n",rs.getInt(1));
         }    	
     }
     
