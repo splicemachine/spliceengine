@@ -165,8 +165,11 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     }
 
     private Put buildBasePut(long transactionId) {
-        Data rowKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
-        return dataLib.newPut(rowKey);
+        return dataLib.newPut(transactionIdToRowKeyObject(transactionId));
+    }
+
+    private Data transactionIdToRowKeyObject(long transactionId) {
+        return dataLib.newRowKey(transactionIdToRowKey(transactionId));
     }
 
     private void addFieldToPut(Put put, Data qualifier, Object value) {
@@ -316,7 +319,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         if (transactionId == Transaction.ROOT_ID) {
             return Transaction.rootTransaction;
         }
-        Data tupleKey = dataLib.newRowKey(new Object[]{transactionIdToRowKey(transactionId)});
+        Data tupleKey = transactionIdToRowKeyObject(transactionId);
         Table transactionTable = reader.open(transactionSchema.tableName);
         try {
             Get get = dataLib.newGet(tupleKey, null, null, null);
@@ -490,10 +493,8 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @param id
      * @return
      */
-    private long transactionIdToRowKey(long id) {
-        byte[] result = Bytes.toBytes(id);
-        ArrayUtils.reverse(result);
-        return Bytes.toLong(result);
+    private Object[] transactionIdToRowKey(long id) {
+        return new Object[] {(short) (id % 16), id};
     }
 
     /**

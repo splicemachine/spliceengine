@@ -8,19 +8,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hbase.KeyValue;
-
 public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTuple, LTuple, LGet, LGet, LRowLock, Object> {
-	
+
     @Override
     public Object newRowKey(Object... args) {
         StringBuilder builder = new StringBuilder();
         for (Object a : args) {
-            builder.append(a);
+            Object toAppend = a;
+            if (a instanceof Short) {
+                toAppend = String.format("%1$06d", a);
+            } else if (a instanceof Long) {
+                toAppend = String.format("%1$020d", a);
+            }
+            builder.append(toAppend);
         }
         return builder.toString();
     }
-    
+
     @Override
     public Object increment(Object key) {
         if (key instanceof String) {
@@ -292,51 +296,51 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
         addKeyValueToTuple(delete, family, qualifier, timestamp, null);
     }
 
-	@Override
-	public boolean matchingColumn(LKeyValue keyValue, Object family,Object qualifier) {
-		return valuesMatch(keyValue.family,family) && valuesMatch(keyValue.qualifier,qualifier);
-	}
+    @Override
+    public boolean matchingColumn(LKeyValue keyValue, Object family, Object qualifier) {
+        return valuesMatch(keyValue.family, family) && valuesMatch(keyValue.qualifier, qualifier);
+    }
 
-	@Override
-	public boolean matchingFamily(LKeyValue keyValue, Object family) {
-		return valuesMatch(keyValue.family,family);
-	}
+    @Override
+    public boolean matchingFamily(LKeyValue keyValue, Object family) {
+        return valuesMatch(keyValue.family, family);
+    }
 
-	@Override
-	public boolean matchingQualifier(LKeyValue keyValue, Object qualifier) {
-		return valuesMatch(keyValue.qualifier,qualifier);
-	}
+    @Override
+    public boolean matchingQualifier(LKeyValue keyValue, Object qualifier) {
+        return valuesMatch(keyValue.qualifier, qualifier);
+    }
 
-	@Override
-	public boolean matchingValue(LKeyValue keyValue, Object value) {
-		return valuesMatch(keyValue.value,value);
-	}
+    @Override
+    public boolean matchingValue(LKeyValue keyValue, Object value) {
+        return valuesMatch(keyValue.value, value);
+    }
 
-	@Override
-	public boolean matchingFamilyKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return valuesMatch(keyValue.family,other.family);
-	}
+    @Override
+    public boolean matchingFamilyKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return valuesMatch(keyValue.family, other.family);
+    }
 
-	@Override
-	public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return other == null?false:valuesMatch(keyValue.qualifier,other.qualifier);
-	}
+    @Override
+    public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.qualifier, other.qualifier);
+    }
 
-	@Override
-	public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return other == null?false:valuesMatch(keyValue.value,other.value);
-	}
+    @Override
+    public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.value, other.value);
+    }
 
-	@Override
-	public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
-		return other == null?false:valuesMatch(keyValue.rowKey,other.rowKey);
-	}
+    @Override
+    public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.rowKey, other.rowKey);
+    }
 
-	@Override
-	public LKeyValue newKeyValue(LKeyValue keyValue, Object value) {
-		return new LKeyValue(keyValue.rowKey, keyValue.family, keyValue.qualifier, keyValue.timestamp, value);
-	}
-	
+    @Override
+    public LKeyValue newKeyValue(LKeyValue keyValue, Object value) {
+        return new LKeyValue(keyValue.rowKey, keyValue.family, keyValue.qualifier, keyValue.timestamp, value);
+    }
+
     @Override
     public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
         return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
