@@ -1,4 +1,4 @@
-package com.splicemachine.test.nist;
+package com.splicemachine.test.runner;
 
 import java.io.File;
 import java.sql.Connection;
@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.test.connection.SpliceNetConnection;
+import com.splicemachine.test.utils.TestUtils;
 
 /**
  * Test runner for Splice.
@@ -21,25 +22,28 @@ import com.splicemachine.test.connection.SpliceNetConnection;
  * </p>
  * <p>
  *     This class was originally written to be a multi-threaded test engine.<br/>
- *     It started {@link NistTestUtils#DEFAULT_THREAD_POOL_SIZE} <code>Callable&lt;V&gt;</code>
+ *     It started {@link TestUtils#DEFAULT_THREAD_POOL_SIZE} <code>Callable&lt;V&gt;</code>
  *     instances, each with a SQL script to run, and executed them against Splice.<br/>
  *     But since the SQL scripts are interdependent (some expect schema, tables created
  *     by others) and since multi-threaded clients execute in an indeterminate order,
  *     some SQL scripts were executing before schema was created for them.<br/>
  *     This runner is now executed in single-threaded mode.
  * </p>
- * @see DerbyNistRunner
+ * @see DerbyRunner
  */
-public class SpliceNistRunner extends NistTestUtils {
-    private static final Logger LOG = Logger.getLogger(SpliceNistRunner.class);
+public class SpliceRunner {
+    private static final Logger LOG = Logger.getLogger(SpliceRunner.class);
 
+    private final String outputDirectory;
     private final ExecutorService executor;
 
     /**
      * Constructor. Initializes.
+     * @param outputDirectory directory in which to place test output
      * @throws Exception
      */
-    public SpliceNistRunner() throws Exception {
+    public SpliceRunner(String outputDirectory) throws Exception {
+    	this.outputDirectory = outputDirectory;
 //        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
         executor = Executors.newSingleThreadExecutor();
         Connection connection = getConnection();
@@ -48,14 +52,14 @@ public class SpliceNistRunner extends NistTestUtils {
 
     /**
      * Run the given set of tests.
-     * @param testFiles the SQL scrips to run
+     * @param testFiles the SQL scripts to run
      * @throws Exception any failure
      */
     public void runSplice(List<File> testFiles) throws Exception {
         Collection<Future<String>> testRuns = new ArrayList<Future<String>>(testFiles.size());
         Connection connection = getConnection();
         for (File file: testFiles) {
-            testRuns.add(executor.submit(new SpliceCallable(file, connection)));
+            testRuns.add(executor.submit(new SpliceCallable(file, outputDirectory, connection)));
             if (connection.isClosed()) {
                 // FIXME: this does not handle reconnect when "disconnect;"
                 // is called from a script...
@@ -84,16 +88,18 @@ public class SpliceNistRunner extends NistTestUtils {
      */
     public static class SpliceCallable implements Callable<String> {
 		private final File file;
+		private final String outputDirectory;
         private final Connection connection;
 
-		public SpliceCallable(File file, Connection connection) {
+		public SpliceCallable(File file, String outputDirectory, Connection connection) {
 			this.file = file;
+			this.outputDirectory = outputDirectory;
             this.connection = connection;
 		}
 
 		@Override
 		public String call() throws Exception {
-			runTest(file,SPLICE_OUTPUT_EXT, connection);
+			TestUtils.runTest(file,TestUtils.SPLICE_OUTPUT_EXT, outputDirectory, connection);
 			return file.getName();
 		}
 

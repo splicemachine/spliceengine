@@ -6,10 +6,8 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
-
 /**
- * Static helper class to get an embedded connection to Splice
+ * Static helper class to get an client connection to Splice
  */
 public class SpliceNetConnection {
 	private static final Logger LOG = Logger.getLogger(SpliceNetConnection.class);
@@ -21,7 +19,6 @@ public class SpliceNetConnection {
 	protected static boolean loaded;
 
     protected static synchronized void loadDriver() throws Exception{
-        SpliceLogUtils.trace(LOG, "Loading the JDBC Driver");
         try {
             Class.forName(driver).newInstance();
         } catch (ClassNotFoundException e) {

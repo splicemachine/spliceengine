@@ -1,24 +1,78 @@
 package com.splicemachine.test.utils;
 
-import com.google.common.collect.Sets;
-import com.splicemachine.test.nist.DerbyNistRunner;
-import com.splicemachine.test.nist.SpliceNistRunner;
-import org.apache.commons.dbutils.DbUtils;
-
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.derby.tools.ij;
+import org.junit.Assert;
+
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
+import com.splicemachine.test.runner.DerbyRunner;
+import com.splicemachine.test.runner.SpliceRunner;
 
 /**
  * @author Jeff Cunningham
  *         Date: 9/16/13
  */
 public class TestUtils {
+
+	/**
+	 * File filter to use when determining types of files to be included in a list.
+	 */
+	public static class SpliceIOFileFilter implements IOFileFilter {
+		private final List<String> inclusions;
+		private final List<String> exclusions;
+		public SpliceIOFileFilter(List<String> inclusions, List<String> exclusions) {
+			this.inclusions = inclusions;
+			this.exclusions = exclusions;
+		}
+	
+		@Override
+		public boolean accept(File file) {
+			if (inclusions != null) {
+				if (inclusions.contains(file.getName()))
+					return true;
+				else
+					return false;
+			}
+			if (exclusions != null) {
+				if (exclusions.contains(file.getName()))
+					return false;
+			}
+			return true;
+		}
+	
+		@Override
+		public boolean accept(File dir, String name) {
+			// only accepting files
+			return false;
+		}
+		
+	}
+
+	public static int DEFAULT_THREAD_POOL_SIZE = 4;
+
+	public static final String DERBY_OUTPUT_EXT = ".derby";
+	public static final String SPLICE_OUTPUT_EXT = ".splice";
+	public static final String SQL_FILE_EXT = ".sql";
 
     private static final String ALL_TABLES_QUERY = "SELECT SYS.SYSSCHEMAS.SCHEMANAME, SYS.SYSTABLES.TABLETYPE," +
             " SYS.SYSTABLES.TABLENAME, SYS.SYSTABLES.TABLEID FROM SYS.SYSTABLES INNER JOIN SYS.SYSSCHEMAS" +
@@ -32,8 +86,8 @@ public class TestUtils {
 
     private static final Set<String> verbotten =
             Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT");
-
-    public static void cleanup(DerbyNistRunner derbyRunner, SpliceNistRunner spliceRunner, PrintStream out) throws Exception {
+    
+    public static void cleanup(DerbyRunner derbyRunner, SpliceRunner spliceRunner, PrintStream out) throws Exception {
         // TODO: Still not quite working.  See Derby's JDBC.dropSchema(DatabaseMetaData dmd, String schema)
         Connection derbyConnection = derbyRunner.getConnection();
         derbyConnection.setAutoCommit(false);
@@ -157,4 +211,212 @@ public class TestUtils {
         }
         return successes;
     }
+
+	/**
+	 * The workhorse of test execution.
+	 * <p>
+	 *     This method, called by the test runners, executes a single script against a
+	 *     database connection using Derby's ij execution framework.
+	 * </p>
+	 * @param file the SQL script file to run
+	 * @param outputFileExtension the output file extension indicating the type of test runner executing
+	 *             the test - one of {@link TestUtils#DERBY_OUTPUT_EXT} or {@link TestUtils#SPLICE_OUTPUT_EXT}.<br/>
+	 *                            ij will write test output to a file with the SQL script base name and
+	 *                            this extension.
+	 * @param outputDirectory the directory in which to place the output file.
+	 * @param connection the connection to execute the script against. This will either be an
+	 *                   embedded derby connection or a networked splice connection.
+	 * @throws Exception thrown upon any error condition. The file input, output as well as the connection
+	 * is closed.
+	 */
+	public static void runTest(File file, String outputFileExtension, String outputDirectory, Connection connection) throws Exception {
+	    FileInputStream fis = null;
+	    FileOutputStream fop = null;
+	    try {
+	        fis = new FileInputStream(file);
+	        File targetFile = new File(TestUtils.getBaseDirectory()+ outputDirectory + 
+	        		file.getName().replace(TestUtils.SQL_FILE_EXT, outputFileExtension));
+	        Files.createParentDirs(targetFile);
+	        if (targetFile.exists())
+	            targetFile.delete();
+	        targetFile.createNewFile();
+	        fop = new FileOutputStream(targetFile);
+	        ij.runScript(connection, fis,"UTF-8",fop,"UTF-8");
+	        fop.flush();
+	    } catch (Exception e) {
+	        try {
+	            connection.close();
+	        } catch (SQLException e1) {
+	            // ignore
+	        }
+	        throw e;
+	    } finally {
+	        Closeables.closeQuietly(fop);
+	        Closeables.closeQuietly(fis);
+	    }
+	}
+
+	/**
+	 * Calculate and return the string duration of the given start and end times (in milliseconds)
+	 * @param startMilis the starting time of the duration given by <code>System.currentTimeMillis()</code>
+	 * @param stopMilis the ending time of the duration given by <code>System.currentTimeMillis()</code>
+	 * @return example <code>0 hrs 04 min 41 sec 337 mil</code>
+	 */
+	public static String getDuration(long startMilis, long stopMilis) {
+	
+	    long secondInMillis = 1000;
+	    long minuteInMillis = secondInMillis * 60;
+	    long hourInMillis = minuteInMillis * 60;
+	
+	    long diff = stopMilis - startMilis;
+	    long elapsedHours = diff / hourInMillis;
+	    diff = diff % hourInMillis;
+	    long elapsedMinutes = diff / minuteInMillis;
+	    diff = diff % minuteInMillis;
+	    long elapsedSeconds = diff / secondInMillis;
+	    diff = diff % secondInMillis;
+	
+	    return String.format("%d hrs %02d min %02d sec %03d mil", elapsedHours, elapsedMinutes, elapsedSeconds, diff);
+	}
+
+	/**
+	 * Get the resource directory (&lt;projectBaseDirectory&gt;/src/test/resources)
+	 * for this project (structured_test)
+	 * @return the full path of the project resource directory
+	 */
+	public static String getResourceDirectory() {
+		return TestUtils.getBaseDirectory()+"/src/test/resources";
+	}
+
+	/**
+	 * Get the base directory of this (structure_test) project
+	 * @return the full path of the project base directory
+	 */
+	public static String getBaseDirectory() {
+		String userDir = System.getProperty("user.dir");
+	    if(!userDir.endsWith("structured_test"))
+	    	userDir = userDir+"/structured_test";
+	    return userDir;
+	}
+
+	/**
+	 * Returns <code>true</code> if a the given string starts with the
+	 * <code>commentPattern</code>
+	 *
+	 * @param line the string to consider with leading whitespace ignored
+	 * @param commentPattern the comment pattern to employ
+	 * @return <code>true</code> if and only if the line begins with
+	 * the <code>commentPattern</code>
+	 */
+	private static boolean lineIsComment(String line, String commentPattern) {
+	    if (commentPattern == null || commentPattern.isEmpty()) {
+	        return false;
+	    }
+	    return line.trim().startsWith(commentPattern);
+	}
+
+	/**
+	 * Read files into a list of Strings optionally ignoring comment lines.
+	 *
+	 * @param filePath the full path of the file to read.
+	 * @param commentPattern the optional beginning line comment to
+	 *                       ignore.
+	 * @return the list of lines from the file with any comment lines optionally
+	 * absent.
+	 * @see lineIsComment
+	 */
+	public static List<String> fileToLines(String filePath, String commentPattern) {
+	    List<String> lines = new LinkedList<String>();
+	    BufferedReader in = null;
+	    try {
+	        in = new BufferedReader(new FileReader(filePath));
+	
+	        String line = in.readLine();
+	        while(line != null) {
+	            if (commentPattern != null) {
+	                if (! lineIsComment(line, commentPattern)) {
+	                lines.add(line);
+	                }
+	            } else {
+	                lines.add(line);
+	            }
+	            line = in.readLine();
+	        }
+	    } catch (IOException e) {
+	       Assert.fail("Unable to read: " + filePath+": "+e.getLocalizedMessage());
+	    } finally {
+	    	if (in != null) {
+	    		try {
+					in.close();
+				} catch (IOException e) {
+					// ignore
+				}
+	    	}
+	    }
+	    return lines;
+	}
+
+	/**
+	 * Write the given <code>content</code> to the given <code>logName</code>
+	 * to be created in the given <code>dirName</code>.
+	 * @param dirName full path to the directory in which to create the log.
+	 * @param logName the name of the log file.
+	 * @param discriminator a file discriminator to append to <code>logName</code>
+	 *                      when writing multiple copies of the same file. Ignored
+	 *                      if <code>null</code>.
+	 * @param content the content of which to write to the file.
+	 * @param append if <code>true</code>, append to the file, else delete it.
+	 * @throws Exception any failure.
+	 */
+	public static void createLog(String dirName, String logName, String discriminator, String content, boolean append) throws Exception {
+	    File targetFile = new File(dirName,logName+(discriminator != null ? discriminator : ""));
+	    Files.createParentDirs(targetFile);
+	    if (! append) {
+			if (targetFile.exists())
+				targetFile.delete();
+			targetFile.createNewFile();
+		}
+		FileUtils.writeStringToFile(targetFile, content, append);
+	}
+
+	/**
+	 * Execute a set of SQL scripts in Derby and Splice.
+	 * @param testFiles the suite of SQL scripts to run
+	 * @param derbyRunner the Derby test runner
+	 * @param spliceRunner the Splice test runner
+	 * @param out the location to which to print the output.
+	 * @throws Exception any failure
+	 */
+	public static void runTests(List<File> testFiles,
+	                                              DerbyRunner derbyRunner,
+	                                              SpliceRunner spliceRunner,
+	                                              PrintStream out) throws Exception {
+	    out.println("Starting...");
+	    // print to stdout also for user feedback...
+	    System.out.println("Starting...");
+	
+	    // run derby
+	    out.println("Derby...");
+	    System.out.println("Derby...");
+	
+	    out.println("    Running "+testFiles.size()+" tests...");
+	    System.out.println("    Running "+testFiles.size()+" tests...");
+	    long start = System.currentTimeMillis();
+	    derbyRunner.runDerby(testFiles);
+	    String derbyDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
+	    out.println(derbyDone);
+	    System.out.println(derbyDone);
+	
+	    // run splice
+	    out.println("Splice...");
+	    System.out.println("Splice...");
+	
+	    out.println("    Running "+testFiles.size()+" tests...");
+	    System.out.println("    Running "+testFiles.size()+" tests...");
+	    start = System.currentTimeMillis();
+	    spliceRunner.runSplice(testFiles);
+	    String spliceDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
+	    out.println(spliceDone);
+	    System.out.println(spliceDone);
+	}
 }

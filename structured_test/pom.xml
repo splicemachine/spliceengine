@@ -61,42 +61,42 @@
 	</build>
 	<profiles>
 		<profile>
-	<id>apache-derby</id>
-	        <activation>
-      		<activeByDefault>true</activeByDefault>
-    	</activation>
-    	<dependencies>
-		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derby</artifactId>
-			<version>10.9.1.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derbyclient</artifactId>
-			<version>10.9.1.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.derby</groupId>
-			<artifactId>derbytools</artifactId>
-			<version>10.9.1.0</version>
-		</dependency>				
-    	</dependencies>
-   		</profile>
+			<id>apache-derby</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.apache.derby</groupId>
+					<artifactId>derby</artifactId>
+					<version>10.9.1.0</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.derby</groupId>
+					<artifactId>derbyclient</artifactId>
+					<version>10.9.1.0</version>
+				</dependency>
+				<dependency>
+					<groupId>org.apache.derby</groupId>
+					<artifactId>derbytools</artifactId>
+					<version>10.9.1.0</version>
+				</dependency>
+			</dependencies>
+		</profile>
 
 		<profile>
-	<id>splice-derby</id>
+			<id>splice-derby</id>
 
-    	<dependencies>
-		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_machine</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
-						          		<classifier>${envClassifier}</classifier>
-		</dependency>
-    	</dependencies>
-   		</profile>
-	
-	
+			<dependencies>
+				<dependency>
+					<groupId>com.splicemachine</groupId>
+					<artifactId>splice_machine</artifactId>
+					<version>1.0.1-SNAPSHOT</version>
+					<classifier>${envClassifier}</classifier>
+				</dependency>
+			</dependencies>
+		</profile>
+
+
 	</profiles>
 </project>

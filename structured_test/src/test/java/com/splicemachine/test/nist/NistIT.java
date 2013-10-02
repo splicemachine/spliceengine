@@ -1,6 +1,10 @@
 package com.splicemachine.test.nist;
 
+import com.splicemachine.test.diff.DiffEngine;
 import com.splicemachine.test.diff.DiffReport;
+import com.splicemachine.test.runner.DerbyRunner;
+import com.splicemachine.test.runner.SpliceRunner;
+import com.splicemachine.test.utils.TestUtils;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -19,13 +23,13 @@ import java.util.Map;
  * @author Jeff Cunningham
  *         Date: 7/22/13
  */
-public class NistTest {
+public class NistIT {
     private static List<File> testFiles;
     private static List<String> derbyOutputFilter;
     private static List<String> spliceOutputFilter;
 
-    private static DerbyNistRunner derbyRunner;
-    private static SpliceNistRunner spliceRunner;
+    private static DerbyRunner derbyRunner;
+    private static SpliceRunner spliceRunner;
 
     private static boolean clean = true;
 
@@ -48,14 +52,22 @@ public class NistTest {
         derbyOutputFilter = NistTestUtils.readDerbyFilters();
         spliceOutputFilter = NistTestUtils.readSpliceFilters();
 
-        derbyRunner = new DerbyNistRunner();
-        spliceRunner = new SpliceNistRunner();
+        derbyRunner = new DerbyRunner(NistTestUtils.TARGET_NIST_DIR);
+        spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
         
         if (clean) {
 			// clean schema before test run for cleanup, unless noclean
         	// system property was specified
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
         	System.out.println("Cleaning before test...");
-			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
+        	ps.println("Cleaning before test...");
+
+			NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
+			
+	        // write report to file
+	        String report = baos.toString("UTF-8");
+	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true);
 		}
     }
     
@@ -64,8 +76,16 @@ public class NistTest {
         if (clean) {
 			// clean schema before test run for cleanup, unless noclean
         	// system property was specified
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
         	System.out.println("Cleaning after test...");
-			NistTestUtils.cleanup(derbyRunner, spliceRunner, System.out);
+        	ps.println("Cleaning after test...");
+
+        	NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
+			
+	        // write report to file
+	        String report = baos.toString("UTF-8");
+	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true);
 		}
     }
 
@@ -75,16 +95,19 @@ public class NistTest {
         PrintStream ps = new PrintStream(baos);
 
         // run the tests
-        Collection<DiffReport> reports = NistTestUtils.runTests(testFiles,
-                                                                derbyRunner, derbyOutputFilter,
-                                                                spliceRunner, spliceOutputFilter, ps);
+        TestUtils.runTests(testFiles, derbyRunner, spliceRunner, ps);
+
+        // diff output and assert no differences in each report
+        DiffEngine theDiffer = new DiffEngine(TestUtils.getBaseDirectory()+NistTestUtils.TARGET_NIST_DIR, 
+        		derbyOutputFilter, spliceOutputFilter);
+        Collection<DiffReport> reports = theDiffer.diffOutput(testFiles);
 
         // report test output
         Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
 
         // write report to file
         String report = baos.toString("UTF-8");
-        NistTestUtils.createLog(NistTestUtils.getBaseDirectory(), "NistTest.log", null, report);
+        TestUtils.createLog(TestUtils.getBaseDirectory(), "NistIT.log", null, report, false);
 
         // make test assertion
         Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs.keySet() + "\n" + report,

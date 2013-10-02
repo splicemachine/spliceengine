@@ -12,10 +12,10 @@ import java.util.regex.Pattern;
 
 /**
  * An implementation of {@link difflib.myers.Equalizer} that performs custom
- * comparison of lines in derby / splice NIST output that we'd like to massage.
+ * comparison of lines in derby / splice test output that we'd like to massage.
  */
-public class NistLineEqualizer implements Equalizer<String> {
-    private static final Logger LOG = Logger.getLogger(NistLineEqualizer.class);
+public class LineEqualizer implements Equalizer<String> {
+    private static final Logger LOG = Logger.getLogger(LineEqualizer.class);
 
     // Regex pattern denoting full line of only dashes ('-')
     private static Pattern dashedLinePattern = Pattern.compile("-+");
