@@ -26,6 +26,7 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
+    
     private static Logger LOG = Logger.getLogger(GroupedAggregateOperationIT.class);
 
     @ClassRule
@@ -120,4 +121,16 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Should return only rows for the group by columns",5, i);	
     }    
+
+    @Test()
+    // Bugzilla #787
+    public void testNoExplicitAggregationFunctions() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select c1+10, c2, c1*1, c1, c2*5 from %s group by c1, c2",spliceTableWatcher2));
+        int i =0;
+        while (rs.next()) {
+        	i++;
+        }
+        Assert.assertEquals("Should return 5 rows",5, i);	
+    }    
+
 }
