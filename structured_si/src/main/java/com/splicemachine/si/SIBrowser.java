@@ -38,6 +38,7 @@ public class SIBrowser extends SIConstants {
             Result toFind = null;
             while (results.hasNext()) {
                 Result r = results.next();
+                final String rowKey = bytesToString(r.getRow());
                 final long id = getLong(r, Bytes.toBytes(TRANSACTION_ID_COLUMN));
                 Long globalCommit = getLong(r, Bytes.toBytes(TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN));
                 final long beginTimestamp = getLong(r, Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN));
@@ -53,7 +54,7 @@ public class SIBrowser extends SIConstants {
                 Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
                 String keepAliveValue = getTimestampString(r, Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN));
 
-                x.put(id, new Object[]{beginTimestamp, parent, writes, startTimestamp, status, statusTimestamp, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter});
+                x.put(id, new Object[]{beginTimestamp, parent, writes, startTimestamp, status, statusTimestamp, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter, rowKey});
                 if (idToFind != null && beginTimestamp == idToFind) {
                     toFind = r;
                 }
@@ -70,17 +71,17 @@ public class SIBrowser extends SIConstants {
             } else {
                 final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
                 Collections.sort(list);
-                System.out.println("transaction beginTimestamp parent writesAllowed startClockTime status statusClockTime commitTimestamp globalCommitTimestamp keepAliveClockTime dependent readUncommitted readCommitted counter");
+                System.out.println("transaction\tbeginTimestamp\tparent\twritesAllowed\tstartClockTime\tstatus\tstatusClockTime\tcommitTimestamp\tglobalCommitTimestamp\tkeepAliveClockTime\tdependent\treadUncommitted\treadCommitted\tcounter\trowKey");
                 for (Long k : list) {
                     Object[] v = (Object[]) x.get(k);
-                    System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9] + " " + v[10] + " " + v[11] + " " + v[12]);
+                    System.out.println(k + "\t" + v[0] + "\t" + v[1] + "\t" + v[2] + "\t" + v[3] + "\t" + v[4] + "\t" + v[5] + "\t" + v[6] + "\t" + v[7] + "\t" + v[8] + "\t" + v[9] + "\t" + v[10] + "\t" + v[11] + "\t" + v[12] + "\t" + v[13]);
                 }
 
 //                dumpTable("conglomerates", "16");
                 //dumpTable("SYCOLUMNS_INDEX2", "161");
 
                 //dumpTable("p", "SPLICE_CONGLOMERATE");
-//                dumpTable("p2", "1200");
+                //dumpTable("p2", "1200");
             }
         } catch (IOException e) {
             throw e;
@@ -159,6 +160,9 @@ public class SIBrowser extends SIConstants {
             while (results.hasNext()) {
                 Result r = results.next();
                 final byte[] row = r.getRow();
+                i++;
+                System.out.println(i + " " + bytesToString(row));
+
                 final List<KeyValue> list = r.list();
                 for (KeyValue kv : list) {
                     final byte[] f = kv.getFamily();
@@ -174,29 +178,36 @@ public class SIBrowser extends SIConstants {
                         }
                         System.out.println("timestamp " + timestamp + " @ " + ts);
                     } else {
-                        String v2 = Bytes.toString(v);
-                        char qualifier = (char) q[0];
-                        String byteValue = "" + v.length + "[";
-                        for (byte b : v) {
-                            if (b >= 32 && b <= 122) {
-                                char c = (char) b;
-                                byteValue += c;
-                            } else {
-                                byteValue += b;
-                                byteValue += " ";
-                            }
-                        }
-                        byteValue += "]";
-                        System.out.println(Bytes.toString(row) + " " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
+                        String byteValue = bytesToString(v);
+                        System.out.println(bytesToString(row) + " " + family + "." + bytesToString(q) + "@ " + ts + " = " + byteValue);
                     }
                 }
-                i++;
-                System.out.println(i + " " + row + " " + BytesUtil.debug(row));
             }
         } catch (IOException e) {
             throw e;
         } finally {
             Closeables.closeQuietly(cTable);
         }
+    }
+
+    public static String bytesToString (byte[] bytes) {
+        if (bytes == null) {
+            return "<null>";
+        } else {
+            return bytesToString(bytes, 0, bytes.length);
+        }
+    }
+
+    public static String bytesToString (byte[] bytes, int offset, int length) {
+        if (bytes == null) {
+            return "<null>";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ ");
+        for (int i = offset; i<offset + length; i++) {
+            sb.append(String.format("%02X ", bytes[i]));
+        }
+        sb.append("] ");
+        return sb.toString();
     }
 }
