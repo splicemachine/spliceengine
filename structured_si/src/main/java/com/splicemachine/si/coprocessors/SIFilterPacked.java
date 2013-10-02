@@ -35,7 +35,6 @@ public class SIFilterPacked extends FilterBase {
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
     private boolean includeSIColumn;
-    private boolean includeUncommittedAsOfStart;
 
     // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
     private Boolean extraKeyValueIncluded = null;
@@ -47,14 +46,13 @@ public class SIFilterPacked extends FilterBase {
 
     public SIFilterPacked(String tableName, Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
                           TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
-                          boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                          boolean includeSIColumn) throws IOException {
         this.tableName = tableName;
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
-        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
     }
 
     @Override
@@ -88,7 +86,7 @@ public class SIFilterPacked extends FilterBase {
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
             filterState = transactor.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactor.transactionIdFromString(transactionIdString), includeSIColumn, includeUncommittedAsOfStart);
+                    transactor.transactionIdFromString(transactionIdString), includeSIColumn);
         }
     }
 

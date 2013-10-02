@@ -121,7 +121,7 @@ public class SIObserverUnPacked extends BaseRegionObserver {
 
         EntryPredicateFilter predicateFilter = getEntryPredicateFilter(get);
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
-                transactor.isGetIncludeSIColumn(get), false,predicateFilter);
+                transactor.isGetIncludeSIColumn(get));
         get.setFilter(newFilter);
     }
 
@@ -130,7 +130,7 @@ public class SIObserverUnPacked extends BaseRegionObserver {
 
         EntryPredicateFilter predicateFilter = getEntryPredicateFilter(scan);
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(),
-                transactor.isScanIncludeSIColumn(scan), transactor.isScanIncludeUncommittedAsOfStart(scan),predicateFilter);
+                transactor.isScanIncludeSIColumn(scan));
         scan.setFilter(newFilter);
     }
 
@@ -144,9 +144,9 @@ public class SIObserverUnPacked extends BaseRegionObserver {
     }
 
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
-                                Filter currentFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart,EntryPredicateFilter predicateFilter) throws IOException {
+                                Filter currentFilter, boolean includeSIColumn) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
-        final SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn, includeUncommittedAsOfStart);
+        final SIFilter siFilter = new SIFilter(transactor, transactionId, rollForwardQueue, includeSIColumn);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters

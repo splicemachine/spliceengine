@@ -181,7 +181,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Scan attachTransaction(Scan op, String transactionId, boolean includeSI) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeScan(transactionId, op, includeSI, false);
+            getTransactor().initializeScan(transactionId, op, includeSI);
         }
         return op;
     }

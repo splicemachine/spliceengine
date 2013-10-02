@@ -28,8 +28,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     private final String siNeededAttribute;
     private final Data siNeededValue;
     private final Data includeSIColumnValue;
-    private final String includeUncommittedAsOfStartAttribute;
-    private final Data includeUncommittedAsOfStartValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
 
@@ -44,8 +42,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
 
     public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus>
                              dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
-                     Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
+                     Object siNeededValue, Object includeSIColumnValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
                      Object siNull, Object siAntiTombstoneValue, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
@@ -55,8 +52,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
         this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
-        this.includeUncommittedAsOfStartAttribute = includeUncommittedAsOfStartAttribute;
-        this.includeUncommittedAsOfStartValue = dataLib.encode(includeUncommittedAsOfStartValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
@@ -78,14 +73,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
 
     boolean isIncludeSIColumn(OperationWithAttributes operation) {
         return dataLib.valuesEqual(dataLib.getAttribute(operation, siNeededAttribute), includeSIColumnValue);
-    }
-
-    void setIncludeUncommittedAsOfStart(OperationWithAttributes operation) {
-        dataLib.addAttribute(operation, includeUncommittedAsOfStartAttribute, includeUncommittedAsOfStartValue);
-    }
-
-    boolean isScanIncludeUncommittedAsOfStart(OperationWithAttributes operation) {
-        return dataLib.valuesEqual(dataLib.getAttribute(operation, includeUncommittedAsOfStartAttribute), includeUncommittedAsOfStartValue);
     }
 
     void setDeletePutAttribute(Put operation) {

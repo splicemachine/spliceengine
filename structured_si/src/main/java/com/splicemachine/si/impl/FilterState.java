@@ -35,9 +35,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
-    private final boolean includeUncommittedAsOfStart;
     private boolean ignoreDoneWithColumn;
-    
+
     private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> rowState;
     final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
     KeyValueType type;
@@ -45,7 +44,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final TransactionSource transactionSource;
 
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
+                RollForwardQueue rollForwardQueue, boolean includeSIColumn,
                 ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
@@ -59,7 +58,6 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
         this.includeSIColumn = includeSIColumn;
-        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
         this.myTransaction = myTransaction;
 
         transactionCache = CacheMap.makeCache(false);
@@ -264,13 +262,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      */
     private Filter.ReturnCode processTombstone() throws IOException {
         log("processTombstone");
-        if (rowState.setTombstoneTimestamp(keyValue.timestamp()) && includeUncommittedAsOfStart
-                && !rowState.isSiTombstoneIncluded() && keyValue.timestamp() < myTransaction.getTransactionId().getId()) {
-            rowState.setSiTombstoneIncluded();
-            return INCLUDE;
-        } else {
-            return SKIP;
-        }
+        rowState.setTombstoneTimestamp(keyValue.timestamp());
+        return SKIP;
     }
 
     private Filter.ReturnCode processAntiTombstone() throws IOException {
@@ -301,20 +294,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
             proceedToNextColumn();
             return INCLUDE;
         } else {
-            if (includeUncommittedAsOfStart) {
-                if (isUncommittedAsOfStart()) {
-                    return INCLUDE;
-                } else {
-                    return SKIP;
-                }
-            } else {
-                return SKIP;
-            }
+            return SKIP;
         }
-    }
-
-    private boolean isUncommittedAsOfStart() throws IOException {
-        return myTransaction.startedWhileOtherActive(loadTransaction(), transactionSource);
     }
 
     /**

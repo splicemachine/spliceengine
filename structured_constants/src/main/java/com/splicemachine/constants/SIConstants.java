@@ -59,7 +59,6 @@ public class SIConstants extends SpliceConstants {
     
     public static final String SI_TRANSACTION_ID_KEY = "A";
     public static final String SI_NEEDED = "B";
-    public static final String SI_UNCOMMITTED = "C";
     public static final String SI_DELETE_PUT = "D";
 
     public static final String SI_ANTI_TOMBSTONE_VALUE = "Z";

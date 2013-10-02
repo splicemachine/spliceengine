@@ -72,12 +72,9 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     /**
      * Record that a tombstone marker was encountered on the current row.
      */
-    public boolean setTombstoneTimestamp(long tombstoneTimestamp) {
-        if (antiTombstoneTimestamps.contains(tombstoneTimestamp)) {
-            return false;
-        } else {
+    public void setTombstoneTimestamp(long tombstoneTimestamp) {
+        if (!antiTombstoneTimestamps.contains(tombstoneTimestamp)) {
             this.tombstoneTimestamps.add(tombstoneTimestamp);
-            return true;
         }
     }
 

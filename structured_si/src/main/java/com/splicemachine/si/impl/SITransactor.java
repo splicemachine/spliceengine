@@ -15,8 +15,6 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -261,12 +259,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
-        initializeOperation(transactionId, get, true, false);
+        initializeOperation(transactionId, get, true);
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
-        initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
+        initializeOperation(transactionId, scan, includeSIColumn);
     }
 
     @Override
@@ -276,13 +274,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     private void initializeOperation(String transactionId, OperationWithAttributes operation) {
-        initializeOperation(transactionId, operation, false, false);
+        initializeOperation(transactionId, operation, false);
     }
 
-    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn,
-                                     boolean includeUncommittedAsOfStart) {
-        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn,
-                includeUncommittedAsOfStart, operation);
+    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn) {
+        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn, operation);
     }
 
     @Override
@@ -295,7 +291,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private Put createDeletePutDirect(long transactionId, Data rowKey) {
         final Put deletePut = dataLib.newPut(rowKey);
-        flagForSITreatment(transactionId, false, false, deletePut);
+        flagForSITreatment(transactionId, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -312,11 +308,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * later when the operation comes through for processing we will know how to handle it.
      */
     private void flagForSITreatment(long transactionId, boolean includeSIColumn,
-                                    boolean includeUncommittedAsOfStart, OperationWithAttributes operation) {
+                                    OperationWithAttributes operation) {
         dataStore.setSINeededAttribute(operation, includeSIColumn);
-        if (includeUncommittedAsOfStart) {
-            dataStore.setIncludeUncommittedAsOfStart(operation);
-        }
         dataStore.setTransactionId(transactionId, operation);
     }
 
@@ -698,28 +691,23 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
-        return dataStore.isScanIncludeUncommittedAsOfStart(scan);
-    }
-
-    @Override
     public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-        return newFilterState(null, transactionId, false, false);
+        return newFilterState(null, transactionId, false);
     }
 
     @Override
     public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
-                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart)
+                                       boolean includeSIColumn)
             throws IOException {
         return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
-                includeUncommittedAsOfStart, transactionStore.getImmutableTransaction(transactionId));
+                transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
     public IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
-                                             TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                                             TransactionId transactionId, boolean includeSIColumn) throws IOException {
         return new FilterStatePacked(tableName, dataLib, dataStore,
-                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
+                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn),
                 new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
     }
 

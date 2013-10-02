@@ -133,7 +133,7 @@ public class SIObserver extends BaseRegionObserver {
 
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromGet(get), get.getFilter(),
                 getPredicateFilter(get),
-                transactor.isGetIncludeSIColumn(get), false);
+                transactor.isGetIncludeSIColumn(get));
         get.setFilter(newFilter);
     }
 
@@ -142,7 +142,7 @@ public class SIObserver extends BaseRegionObserver {
 
         final Filter newFilter = makeSIFilter(e, transactor.transactionIdFromScan(scan), scan.getFilter(),
                 getPredicateFilter(scan),
-                transactor.isScanIncludeSIColumn(scan), transactor.isScanIncludeUncommittedAsOfStart(scan));
+                transactor.isScanIncludeSIColumn(scan));
         scan.setFilter(newFilter);
     }
 
@@ -158,10 +158,10 @@ public class SIObserver extends BaseRegionObserver {
     }
 
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
-                                Filter currentFilter, EntryPredicateFilter predicateFilter, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                                Filter currentFilter, EntryPredicateFilter predicateFilter, boolean includeSIColumn) throws IOException {
         final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
         final SIFilterPacked siFilter = new SIFilterPacked(tableName, transactor, transactionId, rollForwardQueue, predicateFilter,
-                includeSIColumn, includeUncommittedAsOfStart);
+                includeSIColumn);
         Filter newFilter;
         if (currentFilter != null) {
             if(currentFilter instanceof TransactionalFilter){
