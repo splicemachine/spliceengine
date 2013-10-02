@@ -47,7 +47,7 @@ import org.apache.derby.iapi.util.JBitSet;
  *
  */
 
-abstract class DMLStatementNode extends StatementNode
+public abstract class DMLStatementNode extends StatementNode
 {
 
 	/**
