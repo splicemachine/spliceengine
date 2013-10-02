@@ -67,7 +67,7 @@ public class NistIT {
 			
 	        // write report to file
 	        String report = baos.toString("UTF-8");
-	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true);
+	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, false);
 		}
     }
     
