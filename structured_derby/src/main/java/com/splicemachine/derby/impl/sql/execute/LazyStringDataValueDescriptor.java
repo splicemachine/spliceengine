@@ -156,7 +156,8 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor recycle() {
-        return null;
+        restoreToNull();
+        return this;
     }
 
     @Override

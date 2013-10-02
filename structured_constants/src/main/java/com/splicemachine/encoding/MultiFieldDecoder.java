@@ -52,7 +52,7 @@ public class MultiFieldDecoder {
     }
 
     public void reset(){
-        currentOffset=0; //reset to start
+        currentOffset=offset; //reset to start
     }
 
     public byte decodeNextByte(){
@@ -292,13 +292,19 @@ public class MultiFieldDecoder {
             kryo = kryoPool.get();
 
         byte[] bytes = decodeNextBytesUnsorted();
+        if(bytes==null||bytes.length==0) return null;
+
         Input input = new Input(bytes);
         return kryo.readClassAndObject(input);
     }
 
     public static MultiFieldDecoder wrap(byte[] row,KryoPool kryoPool) {
-        MultiFieldDecoder next = new MultiFieldDecoder(KryoPool.defaultPool());
-        next.set(row);
+        return wrap(row,0,row.length,kryoPool);
+    }
+
+    public static MultiFieldDecoder wrap(byte[] row,int offset, int length,KryoPool kryoPool) {
+        MultiFieldDecoder next = new MultiFieldDecoder(kryoPool);
+        next.set(row,offset,length);
         next.reset();
         return next;
     }

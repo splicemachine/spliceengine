@@ -48,7 +48,7 @@ public class BitReader {
     private void adjustBit() {
         if(byteAndBitOffset[1]==9){
             byteAndBitOffset[0]++;
-            if(byteAndBitOffset[0]>=length) throw new IndexOutOfBoundsException();
+            if(byteAndBitOffset[0]>=initialOffset+length) throw new IndexOutOfBoundsException();
             if(useContinuationBit)
                 byteAndBitOffset[1]=2;
             else
@@ -67,7 +67,7 @@ public class BitReader {
      */
     @SuppressWarnings("SimplifiableIfStatement") // it's clearer unsimplified, and the JVM will optimize it anyway
     public boolean hasNext(){
-        if(byteAndBitOffset[0]<length-1)
+        if(byteAndBitOffset[0]<initialOffset+length-1)
             return true;
         else if(byteAndBitOffset[0]>=initialOffset+length)
             return false;

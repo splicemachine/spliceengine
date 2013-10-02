@@ -186,8 +186,10 @@ public class RowMarshaller {
             for(int i=index.nextSetBit(0);i>=0 && i<reversedKeyColumns.length;i=index.nextSetBit(i+1)){
                 int pos = reversedKeyColumns[i];
                 DataValueDescriptor dvd = fields[pos];
-                if(dvd==null)
+                if(dvd==null){
+                    entryDecoder.seekForward(decoder,i);
                     continue;
+                }
                 if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
                     dvd.setToNull();;
                     DerbyBytesUtil.skip(decoder,dvd);
@@ -198,9 +200,10 @@ public class RowMarshaller {
         }else{
             for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
                 DataValueDescriptor dvd = fields[i];
-                if(dvd==null)
+                if(dvd==null){
+                    entryDecoder.seekForward(decoder,i);
                     continue;
-                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
+                }if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
                     DerbyBytesUtil.skip(decoder,dvd);
                 }else{
                     DerbyBytesUtil.decodeInto(decoder,dvd);
