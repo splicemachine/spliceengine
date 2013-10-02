@@ -43,7 +43,7 @@ public class UnionOperationIT extends SpliceUnitTest {
 
     @ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
+		.around(spliceSchemaWatcher)  
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)		
 		.around(spliceTableWatcher3)		
@@ -224,12 +224,12 @@ public class UnionOperationIT extends SpliceUnitTest {
         Assert.assertEquals(2, i);
     }
 
+    /**
+     * Regression for Bug 292
+     * @throws Exception
+     */
     @Test
     public void testUnionValuesInSubSelect() throws Exception{
-        /*
-         * regression for Bug 292
-         */
-//        ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union values 1 union values 2)");
         ResultSet rs = methodWatcher.executeQuery("select empId from "+spliceTableWatcher1.toString()+" where empId in (select empId from "+spliceTableWatcher2.toString()+" union all values 1)");
         int i=0;
         while(rs.next()){
@@ -257,5 +257,29 @@ public class UnionOperationIT extends SpliceUnitTest {
             i++;
         }    	
     }
+    // 792
+    @Test
+    public void testUnionOverScalarAggregate() throws Exception {
+    	ResultSet rs = methodWatcher.executeQuery(format(
+    			"select max(a.i) from %s a union select max(b.i) from %s b",spliceTableWatcher3,spliceTableWatcher3));
+        int i=0;
+        while(rs.next()){
+        	Assert.assertNotNull("max cannot be null",rs.getInt(1));
+        	i++;
+        }    	
+        Assert.assertEquals("union should return 1 rows", 1,i);        
+    }
+    // Bug 791
+    @Test
+    public void testUnionAllOverScalarAggregate() throws Exception {
+    	ResultSet rs = methodWatcher.executeQuery(format(
+    			"select max(a.i) from %s a union all select max(b.i) from %s b",spliceTableWatcher3,spliceTableWatcher3));
+        int i=0;
+        while(rs.next()){
+            i++;
+        }    	
+        Assert.assertEquals("union all should return 2 rows", 2,i);
+    }
+
     
 }
