@@ -549,7 +549,6 @@ public class InnerJoinIT extends SpliceUnitTest {
 	}		
 	
 	@Test
-        @Ignore("Bug 324")
 	public void testSinkableCrossJoin() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc cross join dd group by cc.si");
 		int j = 0;
@@ -558,8 +557,8 @@ public class InnerJoinIT extends SpliceUnitTest {
 			LOG.info("cc.si="+rs.getString(1)+",count="+rs.getLong(2));
 			Assert.assertNotNull(rs.getString(1));
 			Assert.assertEquals(9,rs.getLong(2));
-		}	
-		Assert.assertEquals(9, j);
+        }
+		Assert.assertEquals(10, j);
 	}	
 	
 	@Test
@@ -758,6 +757,19 @@ public class InnerJoinIT extends SpliceUnitTest {
                 o("E2", "E3", "Betty", "Carmen"));
 
         ResultSet rs = methodWatcher.executeQuery("select a.empnum, b.empnum, a.empname, b.empname from staff a join staff b on a.city = b.city where a.empnum < b.empnum " +
+                "order by a.empnum");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+    }
+
+    @Test
+    public void testSelfJoinWithGreaterThanSelection() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("E3", "E2", "Carmen", "Betty"),
+                o("E4", "E1", "Don", "Alice"));
+
+        ResultSet rs = methodWatcher.executeQuery("select a.empnum, b.empnum, a.empname, b.empname from staff a join staff b on a.city = b.city where a.empnum > b.empnum " +
                 "order by a.empnum");
         List results = TestUtils.resultSetToArrays(rs);
 

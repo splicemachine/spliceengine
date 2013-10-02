@@ -447,7 +447,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 rightIterator = filtered.iterator();
                 return rightIterator.next();
             } else {
-                resetRightSide();
                 if (notExistsRightSide || outerJoin) {
                     SpliceLogUtils.trace(LOG, "simple left emit=%s, outerJoin=%s, notExistsRightSide=%s",
                                             leftJoinRow, outerJoin, notExistsRightSide);
