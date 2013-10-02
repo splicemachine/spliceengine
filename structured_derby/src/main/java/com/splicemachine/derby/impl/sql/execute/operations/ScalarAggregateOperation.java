@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -10,6 +11,7 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -62,9 +64,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.isInSortedOrder = isInSortedOrder;
         this.singleInputRow = singleInputRow;
-//        ExecutionFactory factory = a.getExecutionFactory();
-//        sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
-//        sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
         recordConstructorTime();
     }
 
@@ -91,7 +90,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	
 	@Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        try {
+		try {
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
             SuccessFilter filter = new SuccessFilter(failedTasks);
@@ -105,7 +104,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder, spliceRuntimeContext);
+    	return getReduceRowProvider(top,rowDecoder, spliceRuntimeContext);
     }
 
     @Override
@@ -132,6 +131,16 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return doAggregation(false, spliceRuntimeContext);
     }
 
+    @Override
+    protected JobStats doShuffle() throws StandardException {
+        long start = System.currentTimeMillis();
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+        nextTime+= System.currentTimeMillis()-start;
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+        return rowProvider.shuffleRows(soi);
+    }
+    
     @Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		return doAggregation(true,spliceRuntimeContext);
@@ -186,7 +195,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		if(keyValues.isEmpty())
 			return null;
 		else{
-            return (ExecIndexRow)scanDecoder.decode(keyValues);
+			return (ExecIndexRow)scanDecoder.decode(keyValues);
 		}
 	}
 	
@@ -220,6 +229,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 									ExecRow aggResult,
 									boolean hasDistinctAggregates,boolean isScan) throws StandardException{
 		int size = aggregates.length;
+		SpliceLogUtils.trace(LOG,"accumulateScalarAggregation");
 		for(int i=0;i<size;i++){
 			SpliceGenericAggregator currAggregate = aggregates[i];
 			if(isScan||hasDistinctAggregates && !currAggregate.isDistinct()){
