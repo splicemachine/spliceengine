@@ -494,7 +494,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @return
      */
     private Object[] transactionIdToRowKey(long id) {
-        return new Object[] {(short) (id % 16), id};
+        return new Object[] {(byte) (id % 16), id};
     }
 
     /**

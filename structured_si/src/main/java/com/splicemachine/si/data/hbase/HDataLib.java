@@ -308,6 +308,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
             return Bytes.toBytes((Boolean) value);
         } else if (clazz == byte[].class) {
             return (byte[]) value;
+        } else if (clazz == Byte.class) {
+            return new byte[] {(Byte) value};
         }
         throw new RuntimeException("Unsupported class " + clazz.getName() + " for " + value);
     }
