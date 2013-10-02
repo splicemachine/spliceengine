@@ -33,7 +33,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         if (node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode)node).getResultSetNode()) != null) {
             Iterable names = JoinSelector.classNames(JoinSelector.getSelfAndChildren(rsn));
-            LOG.error(String.format("Plan nodes for query \n\t%s\n\n\t%s", query, names));
+            LOG.debug(String.format("Plan nodes for query <<\n\t%s\n>>\n\t%s", query, names));
         }
         return node;
     }
