@@ -171,7 +171,7 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 accessedCols,
-                txnId);
+                txnId,true);
     }
 
     @Override

@@ -17,16 +17,14 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class SpliceMasterObserver extends BaseMasterObserver {
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     private ExecutorService executor;
     protected static final AtomicReference<State> state = new AtomicReference<State>();
+    private volatile Future<Void> createFuture;
 
     public static enum State {
         NOT_STARTED,
@@ -72,25 +70,30 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         }
     }
 
-    protected static void evaluateState() throws Exception {
-        switch (state.get()) {
-            case INITIALIZING:
-                throw new PleaseHoldException("Please Hold - Starting");
-            case NOT_STARTED:
-                boolean set = state.compareAndSet(State.NOT_STARTED, State.INITIALIZING);
-                if (!set) {
-                    evaluateState();
-                }
-                return;
-            case RUNNING:
-                throw new SpliceDoNotRetryIOException("Success");
-            default:
-                break;
+    protected void evaluateState() throws Exception {
+        //check for startup errors
+        if(createFuture!=null && createFuture.isDone()){
+            createFuture.get(); //this will throw an error if the startup sequence fails
         }
+        boolean success;
+        do{
+            State currentState = state.get();
+            switch (currentState) {
+                case INITIALIZING:
+                    throw new PleaseHoldException("Please Hold - Starting");
+                case RUNNING:
+                    throw new SpliceDoNotRetryIOException("Success");
+                case NOT_STARTED:
+                    success = state.compareAndSet(currentState, State.INITIALIZING);
+                    break;
+                default:
+                    throw new IllegalStateException("Unable to process Startup state "+ currentState);
+            }
+        }while(!success);
     }
 
     private void createSplice() throws Exception {
-        executor.submit(new Callable<Void>() {
+        createFuture = executor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 Connection connection = null;

@@ -109,7 +109,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                                double optimizerEstimatedCost) throws StandardException {
 		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
 		    beginTime = startExecutionTime = getCurrentTimeMillis();
-        this.operationInformation = new DerbyOperationInformation(optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
+        this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 		this.activation = activation;
         this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];

@@ -91,12 +91,12 @@ public class SpliceMetrics implements Updater {
             totalCancelledTasks.pushMetric(this.taskMetrics);
 
             //get current view of the Job Scheduler
-            JobSchedulerManagement jobManagement = SpliceDriver.driver().getJobSchedulerManagement();
-            numRunningJobs.set(jobManagement.getNumRunningJobs());
-            totalSubmittedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalCompletedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalFailedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalCancelledJobs.set(jobManagement.getTotalSubmittedJobs());
+//            JobSchedulerManagement jobManagement = SpliceDriver.driver().getJobSchedulerManagement();
+//            numRunningJobs.set(jobManagement.getNumRunningJobs());
+//            totalSubmittedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalCompletedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalFailedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalCancelledJobs.set(jobManagement.getTotalSubmittedJobs());
 
             numRunningJobs.pushMetric(this.jobMetrics);
             totalSubmittedJobs.pushMetric(this.jobMetrics);

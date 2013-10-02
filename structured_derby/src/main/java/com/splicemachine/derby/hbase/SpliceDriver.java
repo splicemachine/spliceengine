@@ -173,9 +173,9 @@ public class SpliceDriver extends SIConstants {
         return (JobScheduler<J>)jobScheduler;
     }
 
-    public JobSchedulerManagement getJobSchedulerManagement() {
-        return (JobSchedulerManagement)jobScheduler;
-    }
+//    public JobSchedulerManagement getJobSchedulerManagement() {
+//        return (JobSchedulerManagement)jobScheduler;
+//    }
 
     public void registerService(Service service){
         this.services.add(service);

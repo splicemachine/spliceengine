@@ -93,13 +93,17 @@ public class TableScanOperationTest {
     public void testCanProperlyScanTable() throws Exception {
         System.out.println(Arrays.toString(dataTypes));
         ExecRow testRow = getExecRow(dataTypes);
+        int[] baseColumMap = new int[testRow.nColumns()];
+        for(int i=0;i<baseColumMap.length;i++){
+            baseColumMap[i] =i;
+        }
 
         ScanInformation mockInfo = mock(ScanInformation.class);
         when(mockInfo.getConglomerateId()).thenReturn(1184l);
         when(mockInfo.getResultRow()).thenReturn(testRow);
 
         OperationInformation mockOpInfo = mock(OperationInformation.class);
-        when(mockOpInfo.getBaseColumnMap()).thenReturn(new int[]{0});
+        when(mockOpInfo.getBaseColumnMap()).thenReturn(baseColumMap);
         when(mockOpInfo.compactRow(any(ExecRow.class),any(FormatableBitSet.class),any(Boolean.class))).thenReturn(testRow);
 
         Pair<List<KeyValue>,List<ExecRow>> serializedRows = createRepresentativeRows(10,dataTypes);

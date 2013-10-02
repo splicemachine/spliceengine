@@ -67,6 +67,7 @@ public class RowMarshaller {
     private static final RowMarshall SPARSE_PACKED = new RowMarshall() {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns,EntryDecoder entryDecoder) throws StandardException {
+            if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
             entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
             unpack(fields, columns,entryDecoder);
         }
@@ -105,36 +106,7 @@ public class RowMarshaller {
         }
     };
 
-    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns,EntryDecoder entryDecoder) throws StandardException {
-        BitIndex index = entryDecoder.getCurrentIndex();
-        MultiFieldDecoder decoder;
-        try {
-            decoder = entryDecoder.getEntryDecoder();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        if(reversedKeyColumns!=null){
-            for(int i=index.nextSetBit(0);i>=0 && i<reversedKeyColumns.length;i=index.nextSetBit(i+1)){
-                int pos = reversedKeyColumns[i];
-                DataValueDescriptor dvd = fields[pos];
-                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
-                    dvd.setToNull();;
-                    DerbyBytesUtil.skip(decoder,dvd);
-                }else{
-                    DerbyBytesUtil.decodeInto(decoder,dvd);
-                }
-            }
-        }else{
-            for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
-                DataValueDescriptor dvd = fields[i];
-                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
-                    DerbyBytesUtil.skip(decoder,dvd);
-                }else{
-                    DerbyBytesUtil.decodeInto(decoder,dvd);
-                }
-            }
-        }
-    }
+
 
     private static final RowMarshall PACKED = new RowMarshall() {
         @Override
@@ -167,6 +139,7 @@ public class RowMarshaller {
 
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns, EntryDecoder entryDecoder) throws StandardException {
+            if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
             entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
             unpack(fields,columns,entryDecoder);
         }
@@ -197,6 +170,41 @@ public class RowMarshaller {
                     DerbyBytesUtil.skip(rowDecoder,dvd);
                 } else
                     DerbyBytesUtil.decodeInto(rowDecoder, dvd);
+            }
+        }
+    }
+
+    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns,EntryDecoder entryDecoder) throws StandardException {
+        BitIndex index = entryDecoder.getCurrentIndex();
+        MultiFieldDecoder decoder;
+        try {
+            decoder = entryDecoder.getEntryDecoder();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        if(reversedKeyColumns!=null){
+            for(int i=index.nextSetBit(0);i>=0 && i<reversedKeyColumns.length;i=index.nextSetBit(i+1)){
+                int pos = reversedKeyColumns[i];
+                DataValueDescriptor dvd = fields[pos];
+                if(dvd==null)
+                    continue;
+                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
+                    dvd.setToNull();;
+                    DerbyBytesUtil.skip(decoder,dvd);
+                }else{
+                    DerbyBytesUtil.decodeInto(decoder,dvd);
+                }
+            }
+        }else{
+            for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
+                DataValueDescriptor dvd = fields[i];
+                if(dvd==null)
+                    continue;
+                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
+                    DerbyBytesUtil.skip(decoder,dvd);
+                }else{
+                    DerbyBytesUtil.decodeInto(decoder,dvd);
+                }
             }
         }
     }

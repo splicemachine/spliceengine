@@ -33,12 +33,14 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     @Deprecated
     public DerbyOperationInformation() { }
 
-    public DerbyOperationInformation(double optimizerEstimatedRowCount,
+    public DerbyOperationInformation(Activation activation,
+                                     double optimizerEstimatedRowCount,
                                      double optimizerEstimatedCost,
                                      int resultSetNumber) {
         this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
         this.optimizerEstimatedCost = optimizerEstimatedCost;
         this.resultSetNumber = resultSetNumber;
+        this.activation = activation;
     }
 
     @Override

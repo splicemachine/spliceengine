@@ -58,6 +58,7 @@ public class TableScanOperation extends ScanOperation {
 	}
 
     private EntryDecoder rowDecoder;
+    private int[] baseColumnMap;
 
 
     public TableScanOperation() {
@@ -134,6 +135,7 @@ public class TableScanOperation extends ScanOperation {
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
 	    keyValues = new ArrayList<KeyValue>(1);
+        this.baseColumnMap = operationInformation.getBaseColumnMap();
 	}
 
 	@Override
@@ -197,7 +199,7 @@ public class TableScanOperation extends ScanOperation {
                 if (fields.length != 0) {
                 	for(KeyValue kv:keyValues){
                         //should only be 1
-                		RowMarshaller.sparsePacked().decode(kv,fields,null,rowDecoder);
+                		RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
                 	}
                 }
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
