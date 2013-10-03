@@ -380,8 +380,5 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     @Override
     public void openOperation(LTable table) throws IOException {
     }
-    @Override
-    public LTuple volatileGet(LTable table, LGet get) throws IOException {
-    		return get(table,get);
-    }
+
 }

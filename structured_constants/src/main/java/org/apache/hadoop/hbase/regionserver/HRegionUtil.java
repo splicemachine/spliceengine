@@ -28,13 +28,13 @@ public class HRegionUtil {
 	 * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
 	 * code is utilized via constraint checking and SI Write/Write conflict checking
 	 * 
-	 * @param region
-	 * @param store
-	 * @param key
-	 * @return
+	 *
+     * @param store
+     * @param key
+     * @return
 	 * @throws IOException
 	 */
-	public static boolean keyExists(HRegion region, Store store, byte[] key) throws IOException {
+	public static boolean keyExists(Store store, byte[] key) throws IOException {
 		if (key == null)
 			return false;
 	    store.lock.readLock().lock();

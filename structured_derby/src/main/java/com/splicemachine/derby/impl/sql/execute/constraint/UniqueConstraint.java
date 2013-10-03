@@ -65,7 +65,7 @@ public class UniqueConstraint implements Constraint {
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();
-        if (!HRegionUtil.keyExists(region, region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
+        if (!HRegionUtil.keyExists(region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
         		return true;
         Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
@@ -89,7 +89,7 @@ public class UniqueConstraint implements Constraint {
         Collection<KVPair> changes = Collections2.filter(mutations,stripDeletes);
         List<KVPair> failedKvs = Lists.newArrayListWithExpectedSize(0);
         for(KVPair change:changes){
-            if(HRegionUtil.keyExists(rce.getRegion(), rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
+            if(HRegionUtil.keyExists(rce.getRegion().getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), change.getRow()) && !validate(change,txnId,rce,priorValues))
                 failedKvs.add(change);
         }
         return failedKvs;

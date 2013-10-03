@@ -5,6 +5,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
@@ -157,12 +159,18 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
                 Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         suppressIndexing(get);
-        Result result = reader.volatileGet(table, get); // Do not put this into a Result, keep in List<KeyValue>, no reason to copy
+        checkBloom(get);
+        Result result = reader.get(table, get);
         if (result != null) {
-            return new List[]{dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
+            return new List[]{
+                    dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
                     dataLib.getResultColumn(result, siFamily, commitTimestampQualifier)};
         }
         return new List[]{null, null};
+    }
+
+    public void checkBloom(OperationWithAttributes operation) {
+        dataLib.addAttribute(operation, CHECK_BLOOM_ATTRIBUTE_NAME, siFamily);
     }
 
     boolean isAntiTombstone(KeyValue keyValue) {
@@ -285,7 +293,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     }
 
     public void closeLowLevelOperation(IHTable table) throws IOException {
-    	reader.closeOperation(table);
+        reader.closeOperation(table);
     }
 
     public void startLowLevelOperation(IHTable table) throws IOException {

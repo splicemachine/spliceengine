@@ -252,6 +252,7 @@ public class SpliceConstants {
     public static final byte[] EOF_MARKER = new byte[] {0, 0, 0, 0};
     public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
+    public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
     public static final byte[] VALUE_COLUMN = Encoding.encode(1);
 	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static final String SPLICE_DB = "spliceDB";

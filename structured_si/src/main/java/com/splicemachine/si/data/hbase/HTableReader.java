@@ -49,10 +49,5 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     public void closeOperation(IHTable table) throws IOException {
        table.closeOperation();
     }
-    @Override
-    public Result volatileGet(IHTable table, Get get) throws IOException {
-    	return table.volatileGet(get);
-    }
-    
 
 }
