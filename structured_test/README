@@ -1,16 +1,24 @@
-This README describes NistTest
+This README describes NistIT (NIST Integration Test)
 
-- NistTest: Run all SQL script in the src/test/resourced/nist folder with derby, splice and do script output
-            differencing.  Runs just over 5 min.
-    
-   Usage: mvn test -DNistTest [-Dnoclean] [-Dscript=<scriptName.sql>]
+- NistIT: Run all SQL script in the src/test/resourced/nist folder with derby, splice and do script output
+            differencing.  Runs just over 5 min.  When run this way, a splice server must be running ahead
+            of starting the test.
+
+   To run manually... (splice server must be running)
+
+   Usage: mvn verify -DNistIT [-Dnoclean] [-Dscript=<scriptName.sql>]
    Where: noclean = do not clean the splice DB schema. Default is to remove all foreign schema before and after run.
           script=<scriptName.sql> = run the Nist script noted (plus schema creation scripts before).
           
    Notes:
-    - To build, in the splicemachine/structured_test directory, run "mvn clean install -DskipTests"
-    - Note that if you just run "> mvn test", that will run NistTest (the main test) and all tests in
+    - To build, in the splicemachine/structured_test directory, run "> mvn clean install -DskipTests"
+    - Note that if you just run "> mvn test", that will run NistIT (the main test) and all tests in
             the project and Splice tests may fail because schema and tables already exist.
+
+    To run as a Maven Profile... (starts/stops server for you)
+
+    Usage: mvn verify -P integration-tests
+        Will run all tests, unit and integ, starting and stopping the splice server for you.
 
 - Structure
    - Control files located in src/test/resources/nist
@@ -44,4 +52,6 @@ This README describes NistTest
             schema5.sql for now.
    - The schema cleanup does not always work. Although Views are dropped first from each schema, there are some
        schemas that have Views that are dependent on other views. If an attempt is made to drop a view on which
-       another view is dependent, the View drop fails and then, of course, the schema drop fails.
+       another view is dependent, the View drop fails and then, of course, the schema drop fails.  Usually it
+       is not a problem to run ITs twice because the clean that runs before the test removes dangling schema
+       that the post test cleanup failed to remove.  

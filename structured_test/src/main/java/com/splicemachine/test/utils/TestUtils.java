@@ -1,12 +1,16 @@
 package com.splicemachine.test.utils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintStream;
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+import com.google.common.io.Files;
+import com.splicemachine.test.runner.TestRunner;
+import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.IOFileFilter;
+import org.apache.derby.tools.ij;
+import org.junit.Assert;
+
+import java.io.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,18 +19,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.IOFileFilter;
-import org.apache.derby.tools.ij;
-import org.junit.Assert;
-
-import com.google.common.collect.Sets;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
-import com.splicemachine.test.runner.DerbyRunner;
-import com.splicemachine.test.runner.SpliceRunner;
 
 /**
  * @author Jeff Cunningham
@@ -48,10 +40,7 @@ public class TestUtils {
 		@Override
 		public boolean accept(File file) {
 			if (inclusions != null) {
-				if (inclusions.contains(file.getName()))
-					return true;
-				else
-					return false;
+                return inclusions.contains(file.getName());
 			}
 			if (exclusions != null) {
 				if (exclusions.contains(file.getName()))
@@ -87,34 +76,22 @@ public class TestUtils {
     private static final Set<String> verbotten =
             Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT");
     
-    public static void cleanup(DerbyRunner derbyRunner, SpliceRunner spliceRunner, PrintStream out) throws Exception {
+    public static void cleanup(List<TestRunner> runners, PrintStream out) throws Exception {
         // TODO: Still not quite working.  See Derby's JDBC.dropSchema(DatabaseMetaData dmd, String schema)
-        Connection derbyConnection = derbyRunner.getConnection();
-        derbyConnection.setAutoCommit(false);
-        ResultSet derbySchema = derbyConnection.getMetaData().getSchemas();
-        out.println("Dropping Derby test schema...");
-        try {
-            dropSchema(derbyConnection, derbySchema, verbotten, out);
-        } catch (Exception e) {
-            out.println("Dropping Derby schema failed: "+e.getLocalizedMessage());
-            e.printStackTrace(out);
-        } finally {
-            derbyConnection.commit();
-            derbyConnection.close();
-        }
-
-        Connection spliceConnection = spliceRunner.getConnection();
-        spliceConnection.setAutoCommit(false);
-        ResultSet spliceSchema = spliceConnection.getMetaData().getSchemas();
-        out.println("Dropping Splice test schema...");
-        try {
-            dropSchema(spliceConnection, spliceSchema, verbotten, out);
-        } catch (Exception e) {
-            out.println("Dropping Splice schema failed: " + e.getLocalizedMessage());
-            e.printStackTrace(out);
-        } finally {
-            spliceConnection.commit();
-            spliceConnection.close();
+        for (TestRunner runner : runners) {
+            Connection derbyConnection = runner.getConnection();
+            derbyConnection.setAutoCommit(false);
+            ResultSet derbySchema = derbyConnection.getMetaData().getSchemas();
+            out.println(runner.getName()+" - Dropping Derby test schema...");
+            try {
+                dropSchema(derbyConnection, derbySchema, verbotten, out);
+            } catch (Exception e) {
+                out.println(runner.getName()+" - Dropping schema failed: "+e.getLocalizedMessage());
+                e.printStackTrace(out);
+            } finally {
+                derbyConnection.commit();
+                derbyConnection.close();
+            }
         }
     }
 
@@ -229,7 +206,8 @@ public class TestUtils {
 	 * @throws Exception thrown upon any error condition. The file input, output as well as the connection
 	 * is closed.
 	 */
-	public static void runTest(File file, String outputFileExtension, String outputDirectory, Connection connection) throws Exception {
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+    public static void runTest(File file, String outputFileExtension, String outputDirectory, Connection connection) throws Exception {
 	    FileInputStream fis = null;
 	    FileOutputStream fop = null;
 	    try {
@@ -309,11 +287,8 @@ public class TestUtils {
 	 * the <code>commentPattern</code>
 	 */
 	private static boolean lineIsComment(String line, String commentPattern) {
-	    if (commentPattern == null || commentPattern.isEmpty()) {
-	        return false;
-	    }
-	    return line.trim().startsWith(commentPattern);
-	}
+        return !(commentPattern == null || commentPattern.isEmpty()) && line.trim().startsWith(commentPattern);
+    }
 
 	/**
 	 * Read files into a list of Strings optionally ignoring comment lines.
@@ -323,7 +298,6 @@ public class TestUtils {
 	 *                       ignore.
 	 * @return the list of lines from the file with any comment lines optionally
 	 * absent.
-	 * @see lineIsComment
 	 */
 	public static List<String> fileToLines(String filePath, String commentPattern) {
 	    List<String> lines = new LinkedList<String>();
@@ -368,7 +342,8 @@ public class TestUtils {
 	 * @param append if <code>true</code>, append to the file, else delete it.
 	 * @throws Exception any failure.
 	 */
-	public static void createLog(String dirName, String logName, String discriminator, String content, boolean append) throws Exception {
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+    public static void createLog(String dirName, String logName, String discriminator, String content, boolean append) throws Exception {
 	    File targetFile = new File(dirName,logName+(discriminator != null ? discriminator : ""));
 	    Files.createParentDirs(targetFile);
 	    if (! append) {
@@ -379,44 +354,30 @@ public class TestUtils {
 		FileUtils.writeStringToFile(targetFile, content, append);
 	}
 
-	/**
-	 * Execute a set of SQL scripts in Derby and Splice.
-	 * @param testFiles the suite of SQL scripts to run
-	 * @param derbyRunner the Derby test runner
-	 * @param spliceRunner the Splice test runner
-	 * @param out the location to which to print the output.
-	 * @throws Exception any failure
-	 */
-	public static void runTests(List<File> testFiles,
-	                                              DerbyRunner derbyRunner,
-	                                              SpliceRunner spliceRunner,
-	                                              PrintStream out) throws Exception {
-	    out.println("Starting...");
-	    // print to stdout also for user feedback...
-	    System.out.println("Starting...");
-	
-	    // run derby
-	    out.println("Derby...");
-	    System.out.println("Derby...");
-	
-	    out.println("    Running "+testFiles.size()+" tests...");
-	    System.out.println("    Running "+testFiles.size()+" tests...");
-	    long start = System.currentTimeMillis();
-	    derbyRunner.runDerby(testFiles);
-	    String derbyDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
-	    out.println(derbyDone);
-	    System.out.println(derbyDone);
-	
-	    // run splice
-	    out.println("Splice...");
-	    System.out.println("Splice...");
-	
-	    out.println("    Running "+testFiles.size()+" tests...");
-	    System.out.println("    Running "+testFiles.size()+" tests...");
-	    start = System.currentTimeMillis();
-	    spliceRunner.runSplice(testFiles);
-	    String spliceDone = "    Duration: " + getDuration(start, System.currentTimeMillis());
-	    out.println(spliceDone);
-	    System.out.println(spliceDone);
-	}
+    /**
+     * Execute a set of SQL scripts in the given test runners.
+     * @param testScripts the suite of SQL scripts to run
+     * @param runners the list of test runners to execute using the scripts
+     * @param log the location to which to print the output.
+     * @throws Exception any failure
+     */
+    public static void runTests(List<File> testScripts, List<TestRunner> runners, PrintStream log) throws Exception {
+        log.println("Starting...");
+        // print to stdout also for user feedback...
+        System.out.println("Starting...");
+
+        for (TestRunner runner : runners) {
+            // run all scripts with runner
+            log.println(runner.getName()+"...");
+            System.out.println(runner.getName()+"...");
+
+            log.println("    Running "+testScripts.size()+" tests...");
+            System.out.println("    Running "+testScripts.size()+" tests...");
+            long start = System.currentTimeMillis();
+            runner.run(testScripts);
+            String done = "    Duration: " + getDuration(start, System.currentTimeMillis());
+            log.println(done);
+            System.out.println(done);
+        }
+    }
 }

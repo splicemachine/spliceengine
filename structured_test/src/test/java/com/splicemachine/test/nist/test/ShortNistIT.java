@@ -1,26 +1,22 @@
 package com.splicemachine.test.nist.test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.PrintStream;
-import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import com.splicemachine.test.diff.DiffEngine;
-import com.splicemachine.test.diff.DiffReport;
 import com.splicemachine.test.nist.NistTestUtils;
 import com.splicemachine.test.runner.DerbyRunner;
 import com.splicemachine.test.runner.SpliceRunner;
 import com.splicemachine.test.utils.DependencyTree;
 import com.splicemachine.test.utils.TestUtils;
+import com.splicemachine.test.verify.VerifyReport;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
+import java.sql.Connection;
+import java.util.*;
 
 /**
  * TODO: Temporary - for framework testing
@@ -55,12 +51,12 @@ public class ShortNistIT {
         List<File> testFiles = new ArrayList<File>();
         testFiles.add(new File(TestUtils.getResourceDirectory(), "/nist/schema8.sql"));
         testFiles.add(new File(TestUtils.getResourceDirectory(), "/nist/cdr002.sql"));
-        TestUtils.runTests(testFiles, derbyRunner, spliceRunner, ps);
+        TestUtils.runTests(testFiles, Arrays.asList(derbyRunner, spliceRunner), ps);
         // diff output and assert no differences in each report
         DiffEngine theDiffer = new DiffEngine(TestUtils.getBaseDirectory()+NistTestUtils.TARGET_NIST_DIR, derbyOutputFilter,spliceOutputFilter);
-        Collection<DiffReport> reports = theDiffer.diffOutput(testFiles);
+        Collection<VerifyReport> reports = theDiffer.verifyOutput(testFiles);
 
-        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
+        Map<String,Integer> failedDiffs = VerifyReport.Report.reportCollection(reports, ps);
 
         System.out.print(baos.toString("UTF-8"));
 
@@ -95,11 +91,10 @@ public class ShortNistIT {
         SpliceRunner spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
         DerbyRunner derbyRunner = new DerbyRunner(NistTestUtils.TARGET_NIST_DIR);
         TestUtils.runTests(NistTestUtils.createRunList("schema1.sql"),
-                derbyRunner,
-                spliceRunner, 
+                Arrays.asList(derbyRunner, spliceRunner),
                 System.out);
 
-        TestUtils.cleanup(derbyRunner, spliceRunner, System.out);
+        TestUtils.cleanup(Arrays.asList(derbyRunner, spliceRunner), System.out);
     }
 
 }

@@ -1,7 +1,6 @@
 package com.splicemachine.test.diff;
 
 import difflib.myers.Equalizer;
-import org.apache.derby.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -152,7 +151,7 @@ public class LineEqualizer implements Equalizer<String> {
 
     private boolean compareIgnoredLines() {
 		// The problem with this stateful approach is, by the time we have
-		// a false equals, we're way past where the problem occurred.
+		// a false equals, we're way past the line where the problem occurred.
 		// Log something so we can find our way to the real prob
 
         try {
@@ -205,8 +204,8 @@ public class LineEqualizer implements Equalizer<String> {
     }
 
     private static boolean equalsIgnoreWhitespace(String derby, String splice) {
-		String[] derbyTokens = StringUtil.split(derby, ' ');
-		String[] spliceTokens = StringUtil.split(splice, ' ');
+        String[] derbyTokens = derby.split("\\s+");
+        String[] spliceTokens = splice.split("\\s+");
 		if (derbyTokens.length != spliceTokens.length) {
 			return false;
 		} else {

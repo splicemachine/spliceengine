@@ -1,28 +1,29 @@
 package com.splicemachine.test.diff;
 
+import com.splicemachine.test.utils.TestUtils;
+import com.splicemachine.test.verify.Verifier;
+import com.splicemachine.test.verify.VerifyReport;
+import difflib.DiffUtils;
+import difflib.Patch;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import com.splicemachine.test.utils.TestUtils;
-
-import difflib.DiffUtils;
-import difflib.Patch;
-
 /**
  * Static utility to determine and report file differences
  */
-public class DiffEngine {
+public class DiffEngine implements Verifier {
 	private final String testInputDir;
 	private final List<String> derbyFilter;
 	private final List<String> spliceFilter;
 
     /**
      * @param testInputDir the directory in which to look for SQL scripts (input)
-	 * @param derbyFilter any optional output line filters to apply to Derby output.
-	 * @param spliceFilter any optional output line filters to apply to Splice output.
+	 * @param derbyOutputFilter any optional output line filters to apply to Derby output.
+	 * @param spliceOutputFilter any optional output line filters to apply to Splice output.
      */
 	public DiffEngine(String testInputDir, 
 			List<String> derbyOutputFilter, List<String> spliceOutputFilter) {
@@ -37,9 +38,10 @@ public class DiffEngine {
      *                 to produce output residing in <code>testOutputDir</code>
      * @return the list of {@link DiffReport}s
      */
-    public List<DiffReport> diffOutput(List<File> sqlFiles) {
+    @Override
+    public List<VerifyReport> verifyOutput(List<File> sqlFiles) {
 
-        List<DiffReport> diffs = new ArrayList<DiffReport>();
+        List<VerifyReport> diffs = new ArrayList<VerifyReport>();
 
         for (File sqlFile: sqlFiles) {
             // derby output
@@ -105,11 +107,7 @@ public class DiffEngine {
         return filteredLines;
     }
 
-    public static boolean isEmpty(String string) {
-        return (string == null || string.isEmpty());
-    }
-
-    public static boolean isEmpty(Collection<? extends Object> objects) {
+    private static boolean isEmpty(Collection<? extends Object> objects) {
         return (objects == null || objects.isEmpty());
     }
 

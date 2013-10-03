@@ -1,17 +1,20 @@
 package com.splicemachine.test.nist;
 
 import com.splicemachine.test.diff.DiffEngine;
-import com.splicemachine.test.diff.DiffReport;
 import com.splicemachine.test.runner.DerbyRunner;
 import com.splicemachine.test.runner.SpliceRunner;
 import com.splicemachine.test.utils.TestUtils;
-
+import com.splicemachine.test.verify.Verifier;
+import com.splicemachine.test.verify.VerifyReport;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +58,7 @@ public class NistIT {
         derbyRunner = new DerbyRunner(NistTestUtils.TARGET_NIST_DIR);
         spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
         
-        if (clean) {
+        if (clean && spliceRunner != null) {
 			// clean schema before test run for cleanup, unless noclean
         	// system property was specified
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -63,7 +66,7 @@ public class NistIT {
         	System.out.println("Cleaning before test...");
         	ps.println("Cleaning before test...");
 
-			NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
+			NistTestUtils.cleanup(Arrays.asList(derbyRunner, spliceRunner), ps);
 			
 	        // write report to file
 	        String report = baos.toString("UTF-8");
@@ -73,7 +76,7 @@ public class NistIT {
     
     @AfterClass
     public static void afterClass() throws Exception {
-        if (clean) {
+        if (clean && derbyRunner != null && spliceRunner != null) {
 			// clean schema before test run for cleanup, unless noclean
         	// system property was specified
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -81,7 +84,7 @@ public class NistIT {
         	System.out.println("Cleaning after test...");
         	ps.println("Cleaning after test...");
 
-        	NistTestUtils.cleanup(derbyRunner, spliceRunner, ps);
+        	NistTestUtils.cleanup(Arrays.asList(derbyRunner, spliceRunner), ps);
 			
 	        // write report to file
 	        String report = baos.toString("UTF-8");
@@ -95,15 +98,15 @@ public class NistIT {
         PrintStream ps = new PrintStream(baos);
 
         // run the tests
-        TestUtils.runTests(testFiles, derbyRunner, spliceRunner, ps);
+        TestUtils.runTests(testFiles, Arrays.asList(derbyRunner, spliceRunner), ps);
 
         // diff output and assert no differences in each report
-        DiffEngine theDiffer = new DiffEngine(TestUtils.getBaseDirectory()+NistTestUtils.TARGET_NIST_DIR, 
+        Verifier theDiffer = new DiffEngine(TestUtils.getBaseDirectory()+NistTestUtils.TARGET_NIST_DIR,
         		derbyOutputFilter, spliceOutputFilter);
-        Collection<DiffReport> reports = theDiffer.diffOutput(testFiles);
+        Collection<VerifyReport> reports = theDiffer.verifyOutput(testFiles);
 
         // report test output
-        Map<String,Integer> failedDiffs = DiffReport.reportCollection(reports, ps);
+        Map<String,Integer> failedDiffs = VerifyReport.Report.reportCollection(reports, ps);
 
         // write report to file
         String report = baos.toString("UTF-8");

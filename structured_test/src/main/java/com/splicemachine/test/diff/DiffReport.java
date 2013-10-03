@@ -1,5 +1,6 @@
 package com.splicemachine.test.diff;
 
+import com.splicemachine.test.verify.VerifyReport;
 import difflib.Chunk;
 import difflib.Delta;
 import org.apache.commons.lang.StringUtils;
@@ -11,7 +12,7 @@ import java.util.*;
  * A report of the differences in the output of the execution of a given
  * SQL script against both Derby and Splice.
  */
-public class DiffReport {
+public class DiffReport implements VerifyReport {
     public final String sqlFileName;
     public final String derbyFile;
     public final String spliceFile;
@@ -39,7 +40,8 @@ public class DiffReport {
      * this output
      * @return SQL script base name
      */
-    public String getSqlFileName() {
+    @Override
+    public String getScriptFileName() {
         return this.sqlFileName;
     }
 
@@ -47,7 +49,8 @@ public class DiffReport {
      * Does this report have differences?
      * @return <code>true</code>, if so
      */
-    public boolean hasDifferences() {
+    @Override
+    public boolean hasErrors() {
         return ! this.deltas.isEmpty();
     }
 
@@ -55,7 +58,8 @@ public class DiffReport {
      * Get the number of differences in the output
      * @return number of differences
      */
-    public int getNumberOfDiffs() {
+    @Override
+    public int getNumberOfErrors() {
         return (this.deltas.isEmpty() ? 0 : this.deltas.size());
     }
 
@@ -63,43 +67,21 @@ public class DiffReport {
      * Pretty print the difference output of this report
      * @param out the output location
      */
+    @Override
     public void print(PrintStream out) {
         if (out == null) {
             return;
         }
         out.println("\n===========================================================================================");
         out.println(sqlFileName);
-        if (! hasDifferences()) {
+        if (! hasErrors()) {
             out.println("No differences");
         } else {
-            out.println(getNumberOfDiffs()+" differences");
+            out.println(getNumberOfErrors()+" differences");
             printDeltas(this.deltas, out);
         }
         out.println("===========================================================================================");
         out.flush();
-    }
-
-    /**
-     * Create a report of all difference reports in the collection.
-     * @param reports the collection of difference reports
-     * @param ps location of output
-     * @return the mapping names of all scripts that have output file differences
-     * and their number of differences
-     */
-    public static Map<String, Integer> reportCollection(Collection<DiffReport> reports, PrintStream ps) {
-        Map<String, Integer> failedTestMap = new HashMap<String, Integer>();
-        for (DiffReport report : reports) {
-            if (ps != null) {
-                report.print(ps);
-            }
-            if (report.hasDifferences()) {
-                failedTestMap.put(report.sqlFileName,report.getNumberOfDiffs());
-            }
-        }
-        if (ps != null) {
-            ps.println(reports.size()+" tests run. "+failedTestMap.size()+" failed output differencing.");
-        }
-        return failedTestMap;
     }
 
     private void printDeltas(List<Delta<String>> deltas, PrintStream out) {

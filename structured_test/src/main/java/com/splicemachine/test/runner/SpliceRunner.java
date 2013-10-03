@@ -1,5 +1,9 @@
 package com.splicemachine.test.runner;
 
+import com.splicemachine.test.connection.SpliceNetConnection;
+import com.splicemachine.test.utils.TestUtils;
+import org.apache.log4j.Logger;
+
 import java.io.File;
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -9,11 +13,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import org.apache.log4j.Logger;
-
-import com.splicemachine.test.connection.SpliceNetConnection;
-import com.splicemachine.test.utils.TestUtils;
 
 /**
  * Test runner for Splice.
@@ -31,7 +30,7 @@ import com.splicemachine.test.utils.TestUtils;
  * </p>
  * @see DerbyRunner
  */
-public class SpliceRunner {
+public class SpliceRunner implements TestRunner {
     private static final Logger LOG = Logger.getLogger(SpliceRunner.class);
 
     private final String outputDirectory;
@@ -50,12 +49,18 @@ public class SpliceRunner {
         connection.close();
     }
 
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
+
     /**
      * Run the given set of tests.
      * @param testFiles the SQL scripts to run
      * @throws Exception any failure
      */
-    public void runSplice(List<File> testFiles) throws Exception {
+    @Override
+    public void run(List<File> testFiles) throws Exception {
         Collection<Future<String>> testRuns = new ArrayList<Future<String>>(testFiles.size());
         Connection connection = getConnection();
         for (File file: testFiles) {
@@ -78,6 +83,7 @@ public class SpliceRunner {
      * @return valid Connection
      * @throws Exception if an error occurs acquiring the connection
      */
+    @Override
     public Connection getConnection() throws Exception {
     	return SpliceNetConnection.getConnection();
     }

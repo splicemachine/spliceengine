@@ -14,7 +14,7 @@ import java.util.List;
  * Test runner for Derby.
  * @see SpliceRunner
  */
-public class DerbyRunner {
+public class DerbyRunner implements TestRunner {
     private static final Logger LOG = Logger.getLogger(DerbyRunner.class);
     private static final String TARGET_DERBY_DIR = "/target/derby";
 
@@ -42,12 +42,18 @@ public class DerbyRunner {
         connection.close();
     }
 
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
+
     /**
      * Run the given set of tests.
      * @param testFiles the SQL scripts to run
      * @throws Exception any failure
      */
-    public void runDerby(List<File> testFiles) throws Exception {
+    @Override
+    public void run(List<File> testFiles) throws Exception {
 
         Connection connection = getConnection();
         for (File file: testFiles) {
@@ -70,6 +76,7 @@ public class DerbyRunner {
      * @return valid Connection
      * @throws Exception if an error occurs acquiring the connection
      */
+    @Override
     public Connection getConnection() throws Exception {
     	return DerbyEmbedConnection.getConnection();
     }
