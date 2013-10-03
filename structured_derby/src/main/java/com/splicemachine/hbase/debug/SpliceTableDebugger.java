@@ -2,7 +2,7 @@ package com.splicemachine.hbase.debug;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
-import com.splicemachine.encoding.DataType;
+import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.storage.EntryPredicateFilter;

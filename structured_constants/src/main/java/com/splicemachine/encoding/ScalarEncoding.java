@@ -1,10 +1,5 @@
 package com.splicemachine.encoding;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-
 /**
  * @author Scott Fines
  * Created on: 6/6/13
@@ -195,10 +190,10 @@ final class ScalarEncoding {
         byte firstDataByte = (byte)(x >>> (length-1)*8);
         firstDataByte &= (1<<numHeaderBits)-1;
         b = (byte)((b>>>extraHeaderSize) | firstDataByte);
-        if(desc)
-            b ^= 0xff; //reverse the sign bit so that data is reversed in 2's-complement
         b &= (0xff >>> extraHeaderSize);
         b |= (extraHeader <<Byte.SIZE - extraHeaderSize);
+        if(desc)
+            b ^= 0xff; //reverse the sign bit so that data is reversed in 2's-complement
 
         data[0] = (byte)b;
 
@@ -217,52 +212,6 @@ final class ScalarEncoding {
 
     public static long toLong(byte[] data, boolean desc){
         return toLong(data,0,desc);
-    }
-
-    public static long toLong(ByteBuffer data, boolean desc){
-        assert data.remaining()>0;
-        byte headerByte = data.get();
-        if(desc)
-            headerByte ^= 0xff;
-
-        int sign = (headerByte & LONG_SIGN_BIT) !=0 ? 0: Byte.MIN_VALUE;
-        int negSign = ~sign >>Integer.SIZE-1;
-
-        int h = headerByte ^ negSign;
-        int length;
-        int numHeaderDataBits;
-        if((h&SINGLE_HEADER_BIT)!=0){
-            length =1;
-            numHeaderDataBits = 0x6;
-        }else if((h&DOUBLE_HEADER_BIT)!=0){
-            length =2;
-            numHeaderDataBits = 0x5;
-        }else{
-            length = (headerByte^~negSign)>>>0x2;
-            length &= (1<<0x3)-1;
-            length += 0x3;
-            numHeaderDataBits = 0x2;
-        }
-
-        long x = (long)sign >>Long.SIZE-1;
-        byte d = (byte)(x<<numHeaderDataBits);
-        d |= (byte)(headerByte & ((1<<numHeaderDataBits)-1));
-        if(sign!=0)
-            x &= ~(((long)~d & 0xff)<<(length-1)*8);
-        else
-            x |= (((long)d & 0xff)<<(length-1)*8);
-
-        for(int i=1,pos=2;i<length;i++,pos++){
-            byte next = data.get();
-            if(desc)
-                next ^=0xff;
-            int nextByteOffset = (length-pos)*8;
-            if(sign!=0)
-                x &= ~(((long)~next&0xff)<<nextByteOffset);
-            else
-                x |= (((long)next&0xff)<<nextByteOffset);
-        }
-        return x;
     }
 
     public static long toLong(byte[] data,int offset, boolean desc){
@@ -315,9 +264,6 @@ final class ScalarEncoding {
         return (int) toLong(data, desc);
     }
 
-    public static int getInt(ByteBuffer data, boolean desc){
-        return (int)toLong(data,desc);
-    }
 
     /**
      * @param data
@@ -372,54 +318,6 @@ final class ScalarEncoding {
         return new long[]{x,i};
     }
 
-    public static long[] toLongWithOffset(ByteBuffer data,int reservedBits,boolean desc){
-        assert data.remaining() >0; //need at least one byte
-        byte headerByte = data.get();
-        if(desc)
-            headerByte ^= 0xff;
-        headerByte <<=reservedBits;
-
-        int sign = (headerByte & LONG_SIGN_BIT) !=0 ? 0: Byte.MIN_VALUE;
-        int negSign = ~sign >>Integer.SIZE-1;
-
-        int h = headerByte ^ negSign;
-        int length;
-        int numHeaderDataBits;
-        if((h&SINGLE_HEADER_BIT)!=0){
-            length =1;
-            numHeaderDataBits = 0x6-reservedBits;
-        }else if((h&DOUBLE_HEADER_BIT)!=0){
-            length =2;
-            numHeaderDataBits = 0x5-reservedBits;
-        }else{
-            length = (headerByte^~negSign)>>>0x2;
-            length &= (1<<0x3)-1;
-            length += 0x3;
-            numHeaderDataBits = 0x2 -reservedBits;
-        }
-
-        long x = (long)sign >>Long.SIZE-1;
-        byte d = (byte)(x<<numHeaderDataBits);
-        d |= (byte)((headerByte>>>reservedBits) & ((1<<numHeaderDataBits)-1));
-        if(sign!=0)
-            x &= ~(((long)~d & 0xff)<<(length-1)*8);
-        else
-            x |= (((long)d & 0xff)<<(length-1)*8);
-
-        int i=1;
-        for(int pos=2;i<length;i++,pos++){
-            byte next = data.get();
-            if(desc)
-                next ^=0xff;
-            int offset = (length-pos)*8;
-            if(sign!=0)
-                x &= ~(((long)~next&0xff)<<offset);
-            else
-                x |= (((long)next&0xff)<<offset);
-        }
-        return new long[]{x,i};
-    }
-
     /**
      * Serializes a boolean into a 1-byte byte[].
      *
@@ -438,10 +336,6 @@ final class ScalarEncoding {
             return desc? new byte[]{0x01}: new byte[]{0x02};
     }
 
-    public static ByteBuffer toBuffer(boolean value, boolean desc){
-        return ByteBuffer.wrap(toBytes(value,desc));
-    }
-
     public static boolean toBoolean(byte[] data, boolean desc){
         return toBoolean(data,0,desc);
     }
@@ -450,13 +344,6 @@ final class ScalarEncoding {
         if(desc)
             return data[offset] == 0x02;
         else return data[offset] == 0x01;
-    }
-
-    public static boolean toBoolean(ByteBuffer buffer, boolean desc){
-        byte data = buffer.get();
-        if(desc)
-            return data == 0x02;
-        else return data ==0x01;
     }
 
     public static void toLong(byte[] data, int byteOffset, boolean desc, long[] valueAndLength) {
@@ -505,30 +392,5 @@ final class ScalarEncoding {
         }
         valueAndLength[0] = x;
         valueAndLength[1] = length;
-    }
-
-    public static void main(String...args) throws Exception{
-        byte[] data = new byte[]{ (byte)0xe1, (byte)0xE8,(byte)0xAA };
-//        System.out.println(Encoding.decodeInt(data));
-//        data = new byte[]{(byte)0xE1,(byte)0xE6,(byte)0xE8};
-//        System.out.println(Encoding.decodeInt(data));
-//        data = new byte[]{(byte)0xE1,(byte)0xBD,(byte)0xCD};
-
-//        System.out.println(Encoding.decodeInt(data));
-//        data = Bytes.toBytesBinary("\\xE1\\xBE^");
-//
-//        System.out.println(Encoding.decodeInt(data));
-//        data = Bytes.toBytesBinary("\\xE1\\xE8\\xF3");
-//
-//        System.out.println(Encoding.decodeInt(data));
-//        data = Bytes.toBytesBinary("\\xE4\\xFEr`");
-//        System.out.println(Encoding.decodeInt(data));
-//
-//        data = Bytes.toBytesBinary("\\xE4x\\xDB1");
-//        System.out.println(Encoding.decodeInt(data));
-
-        //16675424
-        data = Bytes.toBytesBinary("\\xAB\\x95\\x82\\xD0\\xCA\\x8B\\xC9\\xA0\\x80\\xC0");
-        System.out.println(Bytes.toStringBinary(Encoding.decodeBytesUnsortd(data, 0, data.length)));
     }
 }

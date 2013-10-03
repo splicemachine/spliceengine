@@ -1,4 +1,4 @@
-package com.splicemachine.encoding;
+package com.splicemachine.encoding.debug;
 
 import java.io.Console;
 

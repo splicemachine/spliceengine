@@ -1,6 +1,7 @@
-package com.splicemachine.encoding;
+package com.splicemachine.encoding.debug;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.math.BigDecimal;

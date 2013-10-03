@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.debug;
 
-import com.splicemachine.encoding.DataType;
+import com.splicemachine.encoding.debug.DataType;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.BufferedReader;

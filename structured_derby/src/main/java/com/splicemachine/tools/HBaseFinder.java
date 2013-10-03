@@ -2,9 +2,8 @@ package com.splicemachine.tools;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.DataType;
+import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.conf.Configuration;

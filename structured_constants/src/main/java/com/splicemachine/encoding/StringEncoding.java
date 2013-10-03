@@ -21,21 +21,6 @@ import java.nio.ByteBuffer;
  */
 public class StringEncoding {
 
-    /**
-     * trims unicode \u0000 from the end of value before serializing
-     *
-     * @param value
-     * @param desc
-     * @return
-     */
-    public static byte[] toNonNullBytes(String value, boolean desc){
-        int nullIndex = value.indexOf('\u0000');
-        if(nullIndex!=-1){
-            value = value.substring(0,nullIndex);
-        }
-        return toBytes(value,desc);
-    }
-
     public static byte[] toBytes(String value, boolean desc){
         if(value==null) return new byte[0];
         if(value.length()==0) return new byte[]{0x01};
@@ -49,58 +34,6 @@ public class StringEncoding {
             data[i] = newD;
         }
         return data;
-    }
-
-    public static byte[] toBytes(String value, boolean desc, boolean encodeNull){
-        if(value==null){
-            /*
-             * The UTF-8 spec includes several invalid byte sequences, including 0xf5-0xff, which
-             * allows us to shift everything up by 3 bytes so as to encode nulls explicitly.
-             *
-             * Thus, we encode null as 0x01, "" as 0x02, and everything else as the same byte +3
-             */
-            if(encodeNull){
-                if(desc)
-                    return new byte[]{(byte)(0x01 ^ 0xff)};
-                return new byte[]{(byte)0x01};
-            }else
-                return new byte[]{};
-        }
-        if(value.length()==0) {
-            if(desc)
-                return new byte[]{(byte)(0x02 ^ 0xff)};
-            return new byte[]{0x02};
-        }
-
-        byte[] data = Bytes.toBytes(value);
-        for(int i=0;i<data.length;i++){
-            byte newD = (byte)(data[i]+3);
-            if(desc)
-                newD ^= 0xff;
-            data[i] = newD;
-        }
-
-        return data;
-    }
-
-    public static String getString(byte[] data, boolean desc, boolean encodedNull){
-        if(data==null) return null;
-        if(data.length==1){
-            byte byt = data[0];
-            if(desc)
-                byt ^= 0xff;
-            if(byt == 0x01){
-                return null;
-            }else if(byt == 0x02){
-                return "";
-            }
-        }
-        byte[] copy = new byte[data.length];
-
-        for(int i=0;i<data.length;i++){
-            copy[i] = (byte)(data[i]-3);
-        }
-        return new String(copy);
     }
 
     /**
@@ -135,8 +68,4 @@ public class StringEncoding {
         return getString(dataToCopy,desc);
     }
 
-    public static void main(String... args) throws Exception{
-//        System.out.println(Bytes.toStringBinary(Encoding.encodeBytesUnsorted(Bytes.toBytesBinary("\\x00\\x94\\x0C\\x1E\\x12qp\\x04"))));
-        System.out.println(Bytes.toStringBinary(Encoding.encode("645c405f-0140-a1fe-520e-0000025d2170")));
-    }
 }
