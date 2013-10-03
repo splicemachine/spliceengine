@@ -133,4 +133,15 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Should return 5 rows",5, i);	
     }    
 
+    @Test()
+    // Bugzilla #790
+    public void testAggregateWithSingleReturnedValue() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select tmpC1 from (select max(c1+10) from %s group by c2) as tmp (tmpC1)",spliceTableWatcher2));
+        int i =0;
+        while (rs.next()) {
+        	i++;
+        }
+        Assert.assertEquals("Should return 3 rows",3, i);	
+    } 
+        
 }
