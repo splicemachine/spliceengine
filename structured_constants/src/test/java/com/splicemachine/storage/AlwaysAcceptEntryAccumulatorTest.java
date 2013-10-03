@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 
@@ -23,6 +22,7 @@ import static org.mockito.Mockito.mock;
  * @author Scott Fines
  *         Created on: 10/2/13
  */
+@SuppressWarnings("StatementWithEmptyBody")
 @RunWith(Parameterized.class)
 public class AlwaysAcceptEntryAccumulatorTest {
     private static final KryoPool kryoPool = mock(KryoPool.class);
@@ -51,7 +51,7 @@ public class AlwaysAcceptEntryAccumulatorTest {
 
     @Test
     public void testMissingColumnsWorks() throws Exception {
-        System.out.println(Arrays.toString(dataTypes));
+//        System.out.println(Arrays.toString(dataTypes));
         Random random = new Random(0l);
         int missingField = random.nextInt(dataTypes.length);
         EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(null,true);
@@ -68,7 +68,7 @@ public class AlwaysAcceptEntryAccumulatorTest {
             Object correct = type.generateRandom(random);
             correctData[i] = correct;
             type.load(encoder,correct,false);
-            accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+            accumulate(accumulator, encoder, i, type);
         }
 
         byte[] bytes = accumulator.finish();
@@ -97,6 +97,16 @@ public class AlwaysAcceptEntryAccumulatorTest {
         }
     }
 
+    private void accumulate(EntryAccumulator accumulator, MultiFieldEncoder encoder, int i, TestType type) {
+        if(type.isScalarType())
+            accumulator.addScalar(i, ByteBuffer.wrap(encoder.build()));
+        else if(type==TestType.FLOAT)
+            accumulator.addFloat(i, ByteBuffer.wrap(encoder.build()));
+        else if(type==TestType.DOUBLE)
+            accumulator.addDouble(i, ByteBuffer.wrap(encoder.build()));
+        accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+    }
+
     @Test
     public void testCanAccumulateColumns() throws Exception {
 //        System.out.println(Arrays.toString(dataTypes));
@@ -110,8 +120,8 @@ public class AlwaysAcceptEntryAccumulatorTest {
             TestType type = dataTypes[i];
             Object correct = type.generateRandom(random);
             correctData[i] = correct;
-            type.load(encoder,correct,false);
-            accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+            type.load(encoder, correct, false);
+            accumulate(accumulator, encoder, i, type);
         }
 
         byte[] bytes = accumulator.finish();
@@ -124,6 +134,19 @@ public class AlwaysAcceptEntryAccumulatorTest {
         BitIndex index = BitIndexing.wrap(bytes,0,offset);
         for(int i=0;i<dataTypes.length;i++){
             Assert.assertTrue("Index missing entry "+ i,index.isSet(i));
+            TestType type = dataTypes[i];
+            if(type.isScalarType()){
+                Assert.assertTrue("Incorrect type, wanted scalar",index.isScalarType(i));
+            } else if(type == TestType.FLOAT){
+                Assert.assertTrue("Incorrect type, wanted float",index.isFloatType(i));
+            } else if(type == TestType.DOUBLE){
+                Assert.assertTrue("Incorrect type, wanted double",index.isDoubleType(i));
+            }else{
+                //make sure it's not any of the three types
+                Assert.assertFalse("Incorrect type, wanted untyped, got scalar", index.isScalarType(i));
+                Assert.assertFalse("Incorrect type, wanted untyped, got float", index.isFloatType(i));
+                Assert.assertFalse("Incorrect type, wanted untyped, got double", index.isDoubleType(i));
+            }
         }
 
         MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1,kryoPool);

@@ -1,6 +1,7 @@
 package com.splicemachine.encoding;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 
 /**
  * Utilities for encoding various values using a sort-order preserving encoding
@@ -677,5 +678,9 @@ public final class Encoding {
 
     public static byte[] encodedNullFloat() {
         return DecimalEncoding.NULL_FLOAT_BYTES;
+    }
+
+    public static void main(String... args) throws Exception{
+        System.out.println(Arrays.toString(Encoding.encode("baker")));
     }
 }

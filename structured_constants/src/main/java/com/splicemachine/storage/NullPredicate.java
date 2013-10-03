@@ -23,12 +23,6 @@ public class NullPredicate implements Predicate{
     private boolean isFloatColumn;
     private int column;
 
-    /**
-     * Used for Serialization, DO NOT USE
-     */
-    @Deprecated
-    public NullPredicate() { }
-
     public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,
                          int column,boolean isDoubleColumn,boolean isFloatColumn) {
         this.filterIfMissing = filterIfMissing;
@@ -80,24 +74,6 @@ public class NullPredicate implements Predicate{
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(filterIfMissing);
-        out.writeBoolean(isNullNumericalComparision);
-        out.writeBoolean(isDoubleColumn);
-        out.writeBoolean(isFloatColumn);
-        out.writeInt(column);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        filterIfMissing = in.readBoolean();
-        isNullNumericalComparision = in.readBoolean();
-        isDoubleColumn = in.readBoolean();
-        isFloatColumn = in.readBoolean();
-        column = in.readInt();
-    }
-
-    @Override
     public void setCheckedColumns(BitSet checkedColumns) {
         checkedColumns.set(column);
     }
@@ -126,11 +102,6 @@ public class NullPredicate implements Predicate{
         data[4] = isFloatColumn? (byte)0x01:0x00;
         BytesUtil.intToBytes(column,data,5);
         return data;
-    }
-
-    @Override
-    public List<Integer> appliesToColumns() {
-        return Collections.singletonList(column);
     }
 
     public static Pair<NullPredicate,Integer> fromBytes(byte[] data, int offset){

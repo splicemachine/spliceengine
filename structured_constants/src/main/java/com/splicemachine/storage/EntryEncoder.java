@@ -36,12 +36,6 @@ public class EntryEncoder {
         this.kryoPool = kryoPool;
     }
 
-    public EntryEncoder(KryoPool kryoPool,int size, AllFullBitIndex allFullBitIndex) {
-        this.encoder = MultiFieldEncoder.create(kryoPool,size);
-        this.bitIndex = allFullBitIndex;
-        this.kryoPool = kryoPool;
-    }
-
     public MultiFieldEncoder getEntryEncoder(){
         if(encoder==null)
             encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());

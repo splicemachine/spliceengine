@@ -8,7 +8,7 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 7/8/13
  */
-public interface Predicate extends Externalizable {
+public interface Predicate{
 
     boolean applies(int column);
 
@@ -25,5 +25,4 @@ public interface Predicate extends Externalizable {
 
     byte[] toBytes();
 
-    List<Integer> appliesToColumns();
 }

@@ -1,14 +1,10 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.BitSet;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -16,7 +12,6 @@ import java.util.List;
  * Created on: 7/9/13
  */
 public class OrPredicate implements Predicate {
-    private static final long serialVersionUID = 1l;
     private List<Predicate> ors;
 
     /**
@@ -24,10 +19,6 @@ public class OrPredicate implements Predicate {
      */
     private boolean matched;
     private int visitedCount;
-
-    @Deprecated
-    public OrPredicate() {
-    }
 
     public OrPredicate(List<Predicate> ors) {
         this.ors = ors;
@@ -69,23 +60,6 @@ public class OrPredicate implements Predicate {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(ors.size());
-        for(Predicate predicate:ors){
-            out.writeObject(predicate);
-        }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        int size = in.readInt();
-        ors = Lists.newArrayListWithCapacity(size);
-        for(int i=0;i<size;i++){
-            ors.add((Predicate)in.readObject());
-        }
-    }
-
-    @Override
     public void setCheckedColumns(BitSet checkedColumns) {
         for(Predicate or:ors){
             or.setCheckedColumns(checkedColumns);
@@ -117,18 +91,6 @@ public class OrPredicate implements Predicate {
         System.arraycopy(listData,0,data,1,listData.length);
 
         return data;
-    }
-
-    @Override
-    public List<Integer> appliesToColumns() {
-
-        List<Integer> cols = new LinkedList<Integer>();
-
-        for(Predicate pred : ors){
-            cols.addAll(pred.appliesToColumns());
-        }
-
-        return cols;
     }
 
     public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {

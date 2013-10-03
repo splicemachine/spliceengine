@@ -73,7 +73,7 @@ public class SparseEntryAccumulatorTest {
             Object correct = type.generateRandom(random);
             correctData[i] = correct;
             type.load(encoder,correct,false);
-            accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+            accumulate(accumulator,encoder,i,type);
         }
 
         byte[] bytes = accumulator.finish();
@@ -87,8 +87,22 @@ public class SparseEntryAccumulatorTest {
         for(int i=0;i<dataTypes.length;i++){
             if(i==missingField)
                 Assert.assertFalse("Index contains entry "+i+" which should be missing",index.isSet(i));
-            else
+            else{
                 Assert.assertTrue("Index missing entry " + i, index.isSet(i));
+                TestType type = dataTypes[i];
+                if(type.isScalarType()){
+                    Assert.assertTrue("Incorrect type, wanted scalar",index.isScalarType(i));
+                } else if(type == TestType.FLOAT){
+                    Assert.assertTrue("Incorrect type, wanted float",index.isFloatType(i));
+                } else if(type == TestType.DOUBLE){
+                    Assert.assertTrue("Incorrect type, wanted double",index.isDoubleType(i));
+                }else{
+                    //make sure it's not any of the three types
+                    Assert.assertFalse("Incorrect type, wanted untyped, got scalar",index.isScalarType(i));
+                    Assert.assertFalse("Incorrect type, wanted untyped, got float",index.isFloatType(i));
+                    Assert.assertFalse("Incorrect type, wanted untyped, got double",index.isDoubleType(i));
+                }
+            }
         }
 
         MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1,kryoPool);
@@ -118,7 +132,7 @@ public class SparseEntryAccumulatorTest {
             Object correct = type.generateRandom(random);
             correctData[i] = correct;
             type.load(encoder,correct,false);
-            accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+            accumulate(accumulator,encoder,i,type);
         }
 
         byte[] bytes = accumulator.finish();
@@ -131,6 +145,19 @@ public class SparseEntryAccumulatorTest {
         BitIndex index = BitIndexing.wrap(bytes,0,offset);
         for(int i=0;i<dataTypes.length;i++){
             Assert.assertTrue("Index missing entry "+ i,index.isSet(i));
+            TestType type = dataTypes[i];
+            if(type.isScalarType()){
+                Assert.assertTrue("Incorrect type, wanted scalar",index.isScalarType(i));
+            } else if(type == TestType.FLOAT){
+                Assert.assertTrue("Incorrect type, wanted float",index.isFloatType(i));
+            } else if(type == TestType.DOUBLE){
+                Assert.assertTrue("Incorrect type, wanted double",index.isDoubleType(i));
+            }else{
+                //make sure it's not any of the three types
+                Assert.assertFalse("Incorrect type, wanted untyped, got scalar",index.isScalarType(i));
+                Assert.assertFalse("Incorrect type, wanted untyped, got float",index.isFloatType(i));
+                Assert.assertFalse("Incorrect type, wanted untyped, got double",index.isDoubleType(i));
+            }
         }
 
         MultiFieldDecoder decoder =  MultiFieldDecoder.wrap(bytes,offset+1,bytes.length-offset-1,kryoPool);
@@ -140,5 +167,15 @@ public class SparseEntryAccumulatorTest {
             TestType type = dataTypes[i];
             type.check(decoder,correct,false);
         }
+    }
+
+    private void accumulate(EntryAccumulator accumulator, MultiFieldEncoder encoder, int i, TestType type) {
+        if(type.isScalarType())
+            accumulator.addScalar(i, ByteBuffer.wrap(encoder.build()));
+        else if(type==TestType.FLOAT)
+            accumulator.addFloat(i, ByteBuffer.wrap(encoder.build()));
+        else if(type==TestType.DOUBLE)
+            accumulator.addDouble(i, ByteBuffer.wrap(encoder.build()));
+        accumulator.add(i, ByteBuffer.wrap(encoder.build()));
     }
 }

@@ -61,6 +61,11 @@ public enum TestType  {
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Byte encode/decode",((Byte)correct).byteValue(), decoder.decodeNextByte());
         }
+
+        @Override
+        public boolean isScalarType() {
+            return true;
+        }
     },
     SHORT{
         @Override public Object generateRandom(Random random) { return (short)random.nextInt(); }
@@ -82,6 +87,10 @@ public enum TestType  {
         @Override
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Short encode/decode",((Short)correct).shortValue(), decoder.decodeNextShort());
+        }
+        @Override
+        public boolean isScalarType() {
+            return true;
         }
     },
     INTEGER{
@@ -105,6 +114,10 @@ public enum TestType  {
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Integer encode/decode",((Integer)correct).intValue(), decoder.decodeNextInt());
         }
+        @Override
+        public boolean isScalarType() {
+            return true;
+        }
     },
     LONG{
         @Override public Object generateRandom(Random random) { return random.nextLong(); }
@@ -127,6 +140,9 @@ public enum TestType  {
         public void check(MultiFieldDecoder decoder, Object correct) {
             Assert.assertEquals("Incorrect Long encode/decode",((Long)correct).longValue(), decoder.decodeNextLong());
         }
+        @Override public boolean isScalarType() {
+            return true;
+        }
     },
     FLOAT{
         @Override public Object generateRandom(Random random) { return random.nextFloat(); }
@@ -141,7 +157,7 @@ public enum TestType  {
         }
         @Override
         public void check(MultiFieldDecoder decoder, Object correct,boolean descending) {
-            Assert.assertEquals("Incorrect Float encode/decode", (Float) correct, decoder.decodeNextFloat(descending),FLOAT_SIZE);
+            Assert.assertEquals("Incorrect Float encode/decode", (Float) correct, decoder.decodeNextFloat(descending), FLOAT_SIZE);
         }
         @Override
         public void check(MultiFieldDecoder decoder, Object correct) {
@@ -405,5 +421,9 @@ public enum TestType  {
 
     public void check(MultiFieldDecoder decoder, Object correct){
         throw new UnsupportedOperationException();
+    }
+
+    public boolean isScalarType() {
+        return false;
     }
 }
