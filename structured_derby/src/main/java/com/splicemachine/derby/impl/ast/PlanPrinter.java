@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.google.common.collect.Iterables;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.DMLStatementNode;
@@ -32,8 +33,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         ResultSetNode rsn;
         if (node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode)node).getResultSetNode()) != null) {
-            Iterable names = JoinSelector.classNames(JoinSelector.getSelfAndChildren(rsn));
-            LOG.debug(String.format("Plan nodes for query <<\n\t%s\n>>\n\t%s", query, names));
+            Iterable names = Iterables.transform(JoinSelector.getSelfAndChildren(rsn), JoinInfo.className);
+            LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n\t%s", query, names));
         }
         return node;
     }

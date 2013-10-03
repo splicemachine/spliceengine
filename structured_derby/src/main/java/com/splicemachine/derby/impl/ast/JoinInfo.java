@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.derby.impl.sql.compile.ResultSetNode;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,6 +43,7 @@ public class JoinInfo {
         this.rightLeaves = rightLeaves;
     }
 
+
     public String toString(){
         return String.format("{" +
                 "strategy=%s, " +
@@ -53,10 +58,26 @@ public class JoinInfo {
                 "rightLeaves=%s",
                 strategy, userSuppliedStrategy, isSystemTable,
                 isEquiJoin, rightEquiJoinColIsPK, hasRightIndex,
-                joinPredicates, otherPredicates,
-                JoinSelector.classNames(rightNodes),
-                JoinSelector.classNames(rightLeaves));
+                Iterables.transform(joinPredicates, predToString),
+                Iterables.transform(otherPredicates, predToString),
+                Iterables.transform(rightNodes, className),
+                Iterables.transform(rightLeaves, className)
+        );
 
     }
+
+    public static Function<Predicate,String> predToString = new Function<Predicate,String>(){
+        @Override
+        public String apply(@Nullable Predicate predicate) {
+            return predicate == null ? null : predicate.binaryRelOpColRefsToString();
+        }
+    };
+
+    public static Function<Object, String> className = new Function<Object, String>() {
+        @Override
+        public String apply(@Nullable Object o) {
+            return o == null ? "" : o.getClass().getSimpleName();
+        }
+    };
 
 }

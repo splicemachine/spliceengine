@@ -12,6 +12,7 @@ import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -55,7 +56,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
                 info.rightLeaves.size() != 1 ||
                 info.rightLeaves.get(0).getClass() != FromBaseTable.class ||
                 info.hasRightIndex){
-            LOG.info("--> BAILING");
+            LOG.debug("--> BAILING");
             return info.strategy;
         }
         // If cross-join or non-equijoin, use NLJ
@@ -72,7 +73,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
     }
 
     public static JoinNode withStrategy(JoinNode j, JoinStrategy s) throws StandardException {
-        LOG.info(String.format("--> SETTING STRATEGY %s", s));
+        LOG.debug(String.format("--> SETTING STRATEGY %s", s));
         ap(j).setJoinStrategy(s);
         // With new strategy set, regenerate access path
         j.getRightResultSet().changeAccessPath();
@@ -99,9 +100,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
         // Index?
         boolean hasRightIndex = containsClass(rightNodes, IndexToBaseRowNode.class);
 
-        Properties props = ((Optimizable)j.getRightResultSet()).getProperties();
-        boolean userSupplied = props != null &&
-                                props.getProperty("joinStrategy") != null;
+        boolean userSupplied = nodesContainStrategyHint(j, getSelfAndChildren(j));
 
         ConglomerateDescriptor cd = ap(j).getConglomerateDescriptor();
         boolean isSystemTable = cd != null &&
@@ -118,6 +117,19 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             otherPreds,
                             rightNodes,
                             rightLeaves);
+    }
+
+    public static boolean nodesContainStrategyHint(JoinNode j, List<ResultSetNode> rsns){
+        for (ResultSetNode rsn: rsns){
+            Properties props = ((Optimizable)rsn).getProperties();
+            if (props != null &&
+                    props.getProperty("joinStrategy") != null &&
+                    (j == rsn ||
+                            j.getReferencedTableMap().contains(rsn.getReferencedTableMap()))){
+                return true;
+            }
+        }
+        return false;
     }
 
     public static List<ResultSetNode> getSelfAndChildren(ResultSetNode rsn) throws StandardException {
@@ -217,13 +229,4 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return false;
     }
 
-    public static Iterable classNames(List l) {
-        return Iterables.transform(l,
-                new Function<Object, String>() {
-                    @Override
-                    public String apply(@Nullable Object o) {
-                        return o == null ? "" : o.getClass().getSimpleName();
-                    }
-                });
-    }
 }
