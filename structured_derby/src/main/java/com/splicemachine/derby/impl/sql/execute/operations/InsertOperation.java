@@ -10,8 +10,10 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -41,6 +43,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     private ExecRow rowTemplate;
     private HTableInterface sysColumnTable;
 
+    private int[] pkCols;
     public InsertOperation(){
 		super();
 	}
@@ -52,25 +55,29 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		recordConstructorTime(); 
 	}
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		super.init(context);
-		heapConglom = ((InsertConstantOperation)constants).getConglomerateId();
+    public InsertOperation(SpliceOperation source,
+                           OperationInformation opInfo,
+                           DMLWriteInfo writeInfo,
+                           String txnId) throws StandardException {
+        super(source, opInfo, writeInfo);
+        transactionID = txnId;
+    }
 
-        if(constants instanceof InsertConstantOperation){
-            pkCols = ((InsertConstantOperation)constants).getPkColumns();
-            if(pkCols!=null)
-                pkColumns = fromIntArray(pkCols);
-        }
-	}
+    @Override
+	public void init(SpliceOperationContext context) throws StandardException{
+        super.init(context);
+        heapConglom = writeInfo.getConglomerateId();
+
+        pkCols = writeInfo.getPkColumnMap();
+    }
 
     @Override
     public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        KeyType keyType;
+        KeyMarshall keyType;
         int[] keyColumns = null;
         if(pkCols==null){
             //just need a salted row key
-            keyType = KeyType.SALTED;
+            keyType = new SaltedKeyMarshall(operationInformation.getUUIDGenerator());
         }else{
             keyColumns = new int[pkCols.length];
             for(int i=0;i<keyColumns.length;i++){
@@ -101,7 +108,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
         int index = columnPosition-1;
 
-        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantOperation) constants).getAutoincRowLocation()[index];
+        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation()[index];
 
         byte[] rlBytes = rl.getBytes();
 

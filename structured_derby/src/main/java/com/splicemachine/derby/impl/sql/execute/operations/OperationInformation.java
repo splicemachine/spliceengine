@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -34,4 +35,6 @@ public interface OperationInformation {
     DataValueDescriptor getSequenceField(byte[] uuidBytes) throws StandardException;
 
     void setCurrentRow(ExecRow row);
+
+    Snowflake.Generator getUUIDGenerator();
 }

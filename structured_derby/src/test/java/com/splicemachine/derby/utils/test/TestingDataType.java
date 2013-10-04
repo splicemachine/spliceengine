@@ -4,7 +4,9 @@ import com.google.common.base.Charsets;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
+import org.apache.derby.impl.sql.execute.ValueRow;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -325,9 +327,12 @@ public enum TestingDataType {
         public Object newObject(Random random) {
             return new Date().getTime();
         }
+
+        @Override public boolean isScalarType() { return true; }
     },
     TIME(Types.TIME){
         @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((Long)o); }
+        @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
             return new SQLTime();
@@ -365,6 +370,7 @@ public enum TestingDataType {
     },
     TIMESTAMP(Types.TIMESTAMP){
         @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((Long)o); }
+        @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
             return new SQLTimestamp();
@@ -477,5 +483,15 @@ public enum TestingDataType {
                 bitSet.set(i);
         }
         return bitSet;
+    }
+
+    public static ExecRow getTemplateOutput(TestingDataType... outputDataTypes) {
+        ExecRow valueRow = new ValueRow(outputDataTypes.length);
+        int i=1;
+        for(TestingDataType dataType:outputDataTypes){
+            valueRow.setColumn(i,dataType.getDataValueDescriptor());
+            i++;
+        }
+        return valueRow;
     }
 }

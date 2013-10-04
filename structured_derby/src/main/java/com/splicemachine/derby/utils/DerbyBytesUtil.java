@@ -637,7 +637,7 @@ public class DerbyBytesUtil {
                 dvd.setValue(decoder.decodeNextByte(desc));
             }
 
-            @Override public boolean isScalarType() { return false;   }
+            @Override public boolean isScalarType() { return true;   }
         });
 
         serializationMap.put(Format.SMALLINT,new Serializer() {

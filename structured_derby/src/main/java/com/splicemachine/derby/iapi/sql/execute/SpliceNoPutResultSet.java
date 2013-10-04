@@ -49,7 +49,8 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 															RowProvider rowProvider, boolean returnsRows){
 		SpliceLogUtils.trace(LOG, "instantiate with rowProvider %s",rowProvider);
 		this.activation = activation;
-		this.resultDescription = activation.getPreparedStatement().getResultDescription();
+        if(activation!=null)
+            this.resultDescription = activation.getPreparedStatement().getResultDescription();
 		this.topOperation = topOperation;
 		this.rowProvider = rowProvider;
 		this.returnsRows = returnsRows;
@@ -299,6 +300,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         try{
 		    rowProvider.open();
         }catch(Exception e){
+            e.printStackTrace();
             throw Exceptions.parseException(e);
         }
 		closed=false;

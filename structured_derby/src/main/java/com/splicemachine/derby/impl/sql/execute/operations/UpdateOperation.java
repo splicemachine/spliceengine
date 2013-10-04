@@ -50,6 +50,8 @@ public class UpdateOperation extends DMLWriteOperation{
 		super();
 	}
 
+    int[] pkCols;
+    FormatableBitSet pkColumns;
 	public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
 												 GeneratedMethod checkGM, Activation activation)
 			throws StandardException {
@@ -62,18 +64,16 @@ public class UpdateOperation extends DMLWriteOperation{
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
-        UpdateConstantOperation constantAction = (UpdateConstantOperation)constants;
-		heapConglom = constantAction.getConglomerateId();
-        pkCols = constantAction.getPkColumns();
-        if(pkCols!=null)
-            pkColumns = fromIntArray(pkCols);
+        heapConglom = writeInfo.getConglomerateId();
 
+        pkCols = writeInfo.getPkColumnMap();
+        pkColumns = writeInfo.getPkColumns();
 	}
 
     @Override
     public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         boolean modifiedPrimaryKeys = false;
-        FormatableBitSet heapList = ((UpdateConstantOperation)constants).getBaseRowReadList();
+        FormatableBitSet heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
         if(pkColumns!=null){
             for(int pkCol = pkColumns.anySetBit();pkCol!=-1;pkCol= pkColumns.anySetBit(pkCol)){
                 if(heapList.isSet(pkCol+1)){
@@ -110,7 +110,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		 * and so forth
 		 */
         if(heapList==null){
-            int[] changedCols = ((UpdateConstantOperation)constants).getChangedColumnIds();
+            int[] changedCols = ((UpdateConstantOperation)writeInfo.getConstantAction()).getChangedColumnIds();
             heapList = new FormatableBitSet(changedCols.length);
             for(int colPosition:changedCols){
                 heapList.grow(colPosition+1);

@@ -241,7 +241,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public DataValueDescriptor recycle() {
-        return null;
+        restoreToNull();
+        return this;
     }
 
     @Override

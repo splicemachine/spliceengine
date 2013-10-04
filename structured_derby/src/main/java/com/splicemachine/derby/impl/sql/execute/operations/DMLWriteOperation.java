@@ -13,7 +13,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -27,10 +26,8 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -52,42 +49,27 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	private static final Logger LOG = Logger.getLogger(DMLWriteOperation.class);
 	protected SpliceOperation source;
 	public SpliceOperation savedSource;
-	ConstantAction constants;
 	protected long heapConglom;
 	protected DataDictionary dd;
 	protected TableDescriptor td;
-	protected boolean autoIncrementGenerated;
-	protected static List<NodeType> parallelNodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
+
+    protected static List<NodeType> parallelNodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN);
 	protected static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
 	private boolean isScan = true;
 	private ModifiedRowProvider modifiedProvider;
-    protected FormatableBitSet pkColumns;
-    protected int[] pkCols;
-	
+
+    protected DMLWriteInfo writeInfo;
+
 	public DMLWriteOperation(){
 		super();
 	}
-	
-	public DMLWriteOperation(Activation activation) throws StandardException{
-		super(activation,-1,0d,0d);
-		this.activation = activation;
-		init(SpliceOperationContext.newContext(activation));
-	}
-	
-	public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
+
+    public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
 		super(activation,-1,0d,0d);
 		this.source = source;
 		this.activation = activation;
 		init(SpliceOperationContext.newContext(activation));
-	}
-	
-	public DMLWriteOperation(SpliceOperation source,
-			GeneratedMethod generationClauses, 
-			GeneratedMethod checkGM) throws StandardException{
-		super(source.getActivation(),-1,0d,0d);
-		this.source = source;
-		this.activation = source.getActivation();
-		init(SpliceOperationContext.newContext(activation));
+
 	}
 	
 	public DMLWriteOperation(SpliceOperation source,
@@ -97,8 +79,17 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		super(activation,-1,0d,0d);
 		this.source = source;
 		this.activation = activation;
+        this.writeInfo = new DerbyDMLWriteInfo();
         init(SpliceOperationContext.newContext(activation));
 	}
+
+    DMLWriteOperation(SpliceOperation source,
+                             OperationInformation opInfo,
+                             DMLWriteInfo writeInfo) throws StandardException{
+        super(opInfo);
+        this.writeInfo = writeInfo;
+        this.source = source;
+    }
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
@@ -110,28 +101,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			ClassNotFoundException {
 		super.readExternal(in);
 		source = (SpliceOperation)in.readObject();
-        if(in.readBoolean())
-            pkColumns = (FormatableBitSet)in.readObject();
+        writeInfo = (DMLWriteInfo)in.readObject();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		super.writeExternal(out);
 		out.writeObject(source);
-        out.writeBoolean(pkColumns!=null);
-        if(pkColumns!=null){
-            out.writeObject(pkColumns);
-        }
+        out.writeObject(writeInfo);
 	}
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 		super.init(context);
-		((SpliceOperation)source).init(context);
+		source.init(context);
+        writeInfo.initialize(context);
 		
-		constants = activation.getConstantAction();
-
 		List<SpliceOperation> opStack = getOperationStack();
 		boolean hasScan = false;
 		for(SpliceOperation op:opStack){
@@ -149,12 +135,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		return (SpliceOperation)source;
+		return source;
 	}
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		return Collections.singletonList((SpliceOperation)source);
+		return Collections.singletonList(source);
 	}
 
 	@Override
@@ -176,12 +162,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-    	return ((SpliceOperation)source).getMapRowProvider(top, decoder, spliceRuntimeContext);
+    	return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {    	
-    	return ((SpliceOperation)source).getReduceRowProvider(top, decoder, spliceRuntimeContext);
+    	return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
@@ -211,7 +197,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     @Override
 	public ExecRow getExecRowDefinition() throws StandardException {
-		ExecRow row = ((SpliceOperation)source).getExecRowDefinition();
+		ExecRow row = source.getExecRowDefinition();
 		SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 		return row;
 	}
@@ -224,17 +210,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException("Write Operations do not produce rows.");
 	}
-
-    protected FormatableBitSet fromIntArray(int[] values){
-        if(values ==null) return null;
-        FormatableBitSet fbt = new FormatableBitSet(values.length);
-        for(int value:values){
-            fbt.grow(value);
-            fbt.set(value-1);
-        }
-        return fbt;
-    }
-
 
     private class ModifiedRowProvider extends SingleScanRowProvider{
         private volatile boolean isOpen;
@@ -285,8 +260,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				else 
 					source.open();
 				/* Cache query plan text for source, before it gets blown away */
-				if (activation.getLanguageConnectionContext().getRunTimeStatisticsMode())
-				{
+                if(operationInformation.isRuntimeStatisticsEnabled()) {
 					/* savedSource nulled after run time statistics generation */
 					savedSource = source;
 				}
@@ -463,14 +437,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
 			return spliceRuntimeContext;
 		}
-	};
-	
+	}
+
 	@Override
 	public int modifiedRowCount() {
-		if (modifiedProvider != null)
-			return modifiedProvider.getModifiedRowCount();
-		else
-			return (int)rowsSunk;
+        return modifiedProvider.getModifiedRowCount();
 	}
 	
 	public SpliceOperation getSource() {
@@ -481,22 +452,20 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-        return new StringBuilder()
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("heapConglom:").append(heapConglom)
-                .append(indent).append("isScan:").append(isScan)
-                .append(indent).append("pkColumns:").append(pkColumns)
-                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
-                .toString();
+        return indent + "resultSetNumber:" + resultSetNumber + indent
+                + "heapConglom:" + heapConglom + indent
+                + "isScan:" + isScan + indent
+                + "writeInfo:" + writeInfo + indent
+                + "source:" + source.prettyPrint(indentLevel + 1);
     }
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) {
-        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+        return source.getRootAccessedCols(tableNumber);
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+        return source.isReferencingTable(tableNumber);
     }
 }

@@ -11,6 +11,7 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -27,35 +28,32 @@ import java.util.List;
 public class OperationSink {
     private static final Logger LOG = Logger.getLogger(OperationSink.class);
 
-    public static interface Translator{
-        @Nonnull List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException;
-
-        /**
-         * @return true if mutations with the same row key should be pushed to the same location in TEMP
-         */
-        boolean mergeKeys();
-    }
-
     private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
     private final String transactionId;
+    private final Snowflake.Generator uuidGenerator;
 
     private long rowCount = 0;
     private byte[] postfix;
 
-    private OperationSink(byte[] taskId,SinkingOperation operation,
-                          CallBufferFactory<KVPair> tableWriter, String transactionId) {
+    public OperationSink(byte[] taskId,
+                         SinkingOperation operation,
+                          CallBufferFactory<KVPair> tableWriter,
+                          String transactionId,
+                          Snowflake.Generator snowflakeGenerator) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
         this.transactionId = transactionId;
+        this.uuidGenerator = snowflakeGenerator;
     }
 
     public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
         //TODO -sf- move this to a static initializer somewhere
 
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId,
+                SpliceDriver.driver().getUUIDGenerator().newGenerator(100));
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
@@ -119,7 +117,6 @@ public class OperationSink {
         } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             throw e;
-//            SpliceLogUtils.logAndThrow(LOG, Exceptions.parseException(e));
         }finally{
             if(encoder!=null)
                 encoder.close();
@@ -129,9 +126,9 @@ public class OperationSink {
 
     private byte[] getPostfix(boolean shouldMakUnique) {
         if(taskId==null && shouldMakUnique)
-            return SpliceUtils.getUniqueKey();
+            return uuidGenerator.nextBytes();
         else if(taskId==null)
-            postfix = SpliceUtils.getUniqueKey();
+            postfix = uuidGenerator.nextBytes();
         if(postfix == null){
             postfix = new byte[taskId.length+(shouldMakUnique?8:0)];
             System.arraycopy(taskId,0,postfix,0,taskId.length);

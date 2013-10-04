@@ -9,7 +9,6 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
@@ -18,13 +17,16 @@ import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
@@ -55,22 +57,22 @@ class IndexRowReader {
 
     private HTableInterface table;
     private boolean populated = false;
-    private MultiFieldDecoder fieldDecoder;
 
     private static final MetricName fetchTimerName = new MetricName("com.splicemachine.operations","indexLookup","fetchTime");
     private final Timer fetchTimer = SpliceDriver.driver().getRegistry().newTimer(fetchTimerName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private EntryDecoder entryDecoder;
 
-    private IndexRowReader(ExecutorService lookupService,
-                          SpliceOperation sourceOperation,
-                          int batchSize,
-                          int numBlocks,
-                          ExecRow template,
-                          String txnId,
-                          int[] indexCols,
-                          long mainTableConglomId,
-                          int[] adjustedBaseColumnMap,
-                          byte[] predicateFilterBytes) {
+    IndexRowReader(ExecutorService lookupService,
+                   HTableInterface table,
+                   SpliceOperation sourceOperation,
+                   int batchSize,
+                   int numBlocks,
+                   ExecRow template,
+                   String txnId,
+                   int[] indexCols,
+                   long mainTableConglomId,
+                   int[] adjustedBaseColumnMap,
+                   byte[] predicateFilterBytes) {
         this.lookupService = lookupService;
         this.sourceOperation = sourceOperation;
         this.batchSize = batchSize;
@@ -81,8 +83,23 @@ class IndexRowReader {
         this.mainTableConglomId = mainTableConglomId;
         this.adjustedBaseColumnMap = adjustedBaseColumnMap;
         this.resultFutures = Lists.newArrayListWithExpectedSize(numBlocks);
+        this.table = table;
 
         this.predicateFilterBytes = predicateFilterBytes;
+    }
+
+    IndexRowReader(ExecutorService lookupService,
+                          SpliceOperation sourceOperation,
+                          int batchSize,
+                          int numBlocks,
+                          ExecRow template,
+                          String txnId,
+                          int[] indexCols,
+                          long mainTableConglomId,
+                          int[] adjustedBaseColumnMap,
+                          byte[] predicateFilterBytes) {
+        this(lookupService,null,sourceOperation,batchSize,numBlocks,template,
+                txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,predicateFilterBytes);
     }
 
     public static IndexRowReader create(SpliceOperation sourceOperation,
@@ -167,6 +184,9 @@ class IndexRowReader {
             sourceRows.add(rowLoc);
         }
 
+        if(table==null)
+            table = SpliceAccessManager.getHTable(mainTableConglomId);
+
         //submit to the background thread
         resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
 
@@ -188,6 +208,31 @@ class IndexRowReader {
     static class RowAndLocation{
         ExecRow row;
         byte[] rowLocation;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof RowAndLocation)) return false;
+
+            RowAndLocation that = (RowAndLocation) o;
+
+            if(!Bytes.equals(rowLocation,that.rowLocation)) return false;
+
+            if(row.nColumns()!=that.row.nColumns()) return false;
+            DataValueDescriptor[] leftRow = row.getRowArray();
+            DataValueDescriptor[] rightRow = row.getRowArray();
+            for(int i=0;i<leftRow.length;i++){
+                if(!leftRow[i].equals(rightRow[i])) return false;
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = row.hashCode();
+            result = 31 * result + Arrays.hashCode(rowLocation);
+            return result;
+        }
     }
 
     private class Lookup implements Callable<List<Pair<RowAndLocation,Result>>> {
@@ -195,8 +240,6 @@ class IndexRowReader {
 
         public Lookup(List<RowAndLocation> sourceRows) {
             this.sourceRows = sourceRows;
-            if(table==null)
-                table = SpliceAccessManager.getHTable(mainTableConglomId);
         }
 
         @Override

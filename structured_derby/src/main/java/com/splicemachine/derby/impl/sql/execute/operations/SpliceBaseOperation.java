@@ -60,7 +60,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected HRegion region;
 
 	protected Activation activation;
-    private String transactionID;
+    protected String transactionID;
 
     /**
      * Used to communicate a child transaction ID down to the sink operation in a sub-class.

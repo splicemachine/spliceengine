@@ -138,9 +138,9 @@ public class RowEncoderTest {
                 null,
                 null,
                 new SaltedKeyMarshall(generator),
-                getScalarFields(dataTypes),
-                getFloatFields(dataTypes),
-                getDoubleFields(dataTypes));
+                TestingDataType.getScalarFields(dataTypes),
+                TestingDataType.getFloatFields(dataTypes),
+                TestingDataType.getDoubleFields(dataTypes));
 
         //encode the row
         execRow.setRowArray(row);
