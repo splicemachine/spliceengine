@@ -68,6 +68,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		super(activation,-1,0d,0d);
 		this.source = source;
 		this.activation = activation;
+        this.writeInfo = new DerbyDMLWriteInfo();
 		init(SpliceOperationContext.newContext(activation));
 
 	}
@@ -76,11 +77,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 							GeneratedMethod generationClauses, 
 							GeneratedMethod checkGM,
 							Activation activation) throws StandardException{
-		super(activation,-1,0d,0d);
-		this.source = source;
-		this.activation = activation;
-        this.writeInfo = new DerbyDMLWriteInfo();
-        init(SpliceOperationContext.newContext(activation));
+        this(source,activation);
 	}
 
     DMLWriteOperation(SpliceOperation source,

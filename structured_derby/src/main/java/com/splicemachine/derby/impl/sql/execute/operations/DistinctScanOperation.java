@@ -22,6 +22,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -262,7 +263,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
             private ExecRow nextRow;
             private boolean populated = false;
-            private MultiFieldDecoder decoder;
+            private EntryDecoder decoder;
 
             @Override
             public boolean hasNext() throws StandardException {
@@ -279,10 +280,10 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                             DataValueDescriptor[] rowArray = nextRow.getRowArray();
 
                             if(decoder==null)
-                                decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                                decoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
                             for(KeyValue kv:values){
-                                RowMarshaller.sparsePacked().decode(kv, rowArray, null, decoder);
+                                RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, decoder);
                             }
                         }
 

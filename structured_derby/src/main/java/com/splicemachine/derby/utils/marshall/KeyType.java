@@ -259,30 +259,18 @@ public enum KeyType implements KeyMarshall{
             	for (int i=0;i<keyColumns.length;i++) {
                     boolean desc = !sortOrder[i];
                     DataValueDescriptor dvd = fields[keyColumns[i]];
-                    if (dvd != null && !dvd.isNull())
+                    if(dvd.isNull())
+                        DerbyBytesUtil.encodeTypedEmpty(keyEncoder,dvd,desc,true);
+                    else
                         DerbyBytesUtil.encodeInto(keyEncoder, dvd, desc);
-                    else{
-                        /*
-                         * it is safe to setRawBytes here, because we're not
-                         * actually setting anything, it's just a convenient way
-                         * of moving the encoder cursor forward
-                         */
-                        keyEncoder.setRawBytes(null);
-                    }
                 }
             }else{
                 for(int key:keyColumns){
                     DataValueDescriptor dvd = fields[key];
-                    if(dvd!=null&&!dvd.isNull())
-                        DerbyBytesUtil.encodeInto(keyEncoder,dvd,false);
-                    else{
-                        /*
-                         * it is safe to setRawBytes here, because we're not
-                         * actually setting anything, it's just a convenient way
-                         * of moving the encoder cursor forward
-                         */
-                        keyEncoder.setRawBytes(null);
-                    }
+                    if(dvd.isNull())
+                        DerbyBytesUtil.encodeTypedEmpty(keyEncoder,dvd,false,true);
+                    else
+                        DerbyBytesUtil.encodeInto(keyEncoder, dvd,false);
                 }
             }
         }

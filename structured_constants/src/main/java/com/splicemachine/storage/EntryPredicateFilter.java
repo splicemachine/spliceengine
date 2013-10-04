@@ -68,7 +68,10 @@ public class EntryPredicateFilter {
 
 
             int limit = decoder.offset()-1-offset;
-            if(offset+limit>array.length){
+            if(limit<=0){
+                //we have an implicit null field
+                limit=0;
+            }else if(offset+limit>array.length){
                 limit = array.length-offset;
             }
 

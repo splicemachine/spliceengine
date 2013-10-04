@@ -1,9 +1,10 @@
 package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.ResultSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -26,8 +27,6 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
-    
-    private static Logger LOG = Logger.getLogger(GroupedAggregateOperationIT.class);
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
@@ -111,15 +110,71 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Should return only rows for the group by columns",5, i);	
     }
     
-    @Test()
-    // Bugzilla #786
+    @Test
     public void testCountOfNullsAndBooleanSet() throws Exception {
+         /*
+          * According to sqlFiddle (e.g. MySQL and Postgres), the correct
+          * output of this query is:
+          *
+          * if the table looks like
+          *
+          * null | null
+          * 1    | 1
+          * null | null
+          * 2    | 1
+          * 3    | 1
+          * 10   | 10
+          *
+          * then the output should be
+          *
+          * T | 1
+          * T | 1
+          * T | 1
+          * T | 1
+          * T | 0
+          *
+          * (although not necessarily in that order). While that looks totally weird-ass, it's considered
+          * correct, so that's what we will test for here
+          */
         ResultSet rs = methodWatcher.executeQuery(format("select (1 in (1,2)), count(c1) from %s group by c1",spliceTableWatcher2));
-        int i =0;
+        List<Pair<Boolean,Integer>> results = Lists.newArrayListWithExpectedSize(5);
         while (rs.next()) {
-        	i++;
+            boolean truth = rs.getBoolean(1);
+            int count = rs.getInt(2);
+            results.add(Pair.newPair(truth,count));
         }
-        Assert.assertEquals("Should return only rows for the group by columns",5, i);	
+        Collections.sort(results,new Comparator<Pair<Boolean, Integer>>() {
+            @Override
+            public int compare(Pair<Boolean, Integer> o1, Pair<Boolean, Integer> o2) {
+                if(o1==null){
+                    if(o2==null) return 0;
+                    return -1;
+                }else if(o2==null){
+                    return 1;
+                }
+
+                if(o1.getFirst()){
+                    if(!o2.getFirst()) return -1; //put true before false
+                    //they are both true, compare second field
+                    return o1.getSecond().compareTo(o2.getSecond());
+                }else if(o2.getFirst()) return 1;
+
+                //they are both false
+                return o1.getSecond().compareTo(o2.getSecond());
+            }
+        });
+        @SuppressWarnings("unchecked") List<Pair<Boolean,Integer>> correctResults = Arrays.asList(
+                (Pair<Boolean,Integer>[])new Pair[]{
+                        Pair.newPair(true,0),
+                        Pair.newPair(true,1),
+                        Pair.newPair(true,1),
+                        Pair.newPair(true,1),
+                        Pair.newPair(true,1)
+                }
+        );
+
+
+        Assert.assertArrayEquals("Should return only rows for the group by columns",correctResults.toArray(),results.toArray());
     }    
 
     @Test()
