@@ -25,6 +25,10 @@ public class SaltedKeyMarshall implements KeyMarshall{
 
     @Override
     public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
+        /*
+         * It is safe to setRawBytes directly here, since the row key contains no actual information,
+         * and thus can't be decoded anyway.
+         */
         keyEncoder.setRawBytes(generator.nextBytes());
     }
 

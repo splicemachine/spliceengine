@@ -170,6 +170,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         
         
         sinkEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
+        /*
+         * We can setRawBytes here, because we know how long the uniqueSequenceID is, which
+         * allows us to always safely skip the correct number of bytes past.
+         */
         sinkEncoder.setRawBytes(uniqueSequenceID).mark();
     	allKeyColumns = new ArrayList<Integer>(groupByColumns);
     	allKeyColumns.addAll(nonGroupByUniqueColumns);
@@ -282,8 +286,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                   MultiFieldEncoder keyEncoder) throws StandardException {
 //                byte[] hash = new byte [] { HashUtils.hash(new byte[][] { currentKey }), (byte) 0 };
                 //TODO -sf- this might break DistinctGroupedAggregations
-                byte[] key = BytesUtil.concatenate(currentKey, SpliceUtils.getUniqueKey());
+                byte[] key = BytesUtil.concatenate(currentKey,SpliceUtils.getUniqueKey());
+                /*
+                 * The key is already encoded elsewhere, so it is safe to setRawBytes()
+                 */
                 keyEncoder.setRawBytes(key);
+                //can set the postfix directly, because it has known length, and also will never be directly decoded
                 keyEncoder.setRawBytes(keyPostfix);
             }
 

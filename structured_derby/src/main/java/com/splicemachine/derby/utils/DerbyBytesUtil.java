@@ -48,6 +48,10 @@ public class DerbyBytesUtil {
 
         @Override
         public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
+            /*
+             * We can safely setRawBytes() here because the LazyDataValueDescriptor will do it's own encoding (potentially
+             * just copying values out from a KeyValue).
+             */
             encoder.setRawBytes(((LazyDataValueDescriptor) dvd).getBytes(desc));
         }
 
@@ -56,15 +60,15 @@ public class DerbyBytesUtil {
             LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor)dvd;
             int colFormatId = ldvd.getTypeFormatId();
 
-            if(colFormatId== StoredFormatIds.SQL_REF_ID
-                    ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
-                    ||colFormatId == StoredFormatIds.SQL_VARBIT_ID
-                    ||colFormatId == StoredFormatIds.SQL_LONGVARBIT_ID
-                    ||colFormatId == StoredFormatIds.SQL_BLOB_ID
-                    ||colFormatId == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
-                    ||colFormatId == StoredFormatIds.SQL_BIT_ID){
-                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRawBytes(),desc);
-            }else
+//            if(colFormatId== StoredFormatIds.SQL_REF_ID
+//                    ||colFormatId == StoredFormatIds.SQL_USERTYPE_ID_V3
+//                    ||colFormatId == StoredFormatIds.SQL_VARBIT_ID
+//                    ||colFormatId == StoredFormatIds.SQL_LONGVARBIT_ID
+//                    ||colFormatId == StoredFormatIds.SQL_BLOB_ID
+//                    ||colFormatId == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID
+//                    ||colFormatId == StoredFormatIds.SQL_BIT_ID){
+//                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRawBytes(),desc);
+//            }else
                 ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRaw(),desc);
         }
 

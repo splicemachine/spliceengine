@@ -60,6 +60,10 @@ public enum KeyType implements KeyMarshall{
                               MultiFieldEncoder keyEncoder) throws StandardException {
             //delegate to BARE, then append the postfix
             BARE.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
+            /*
+             * The postfix will never be directly decoded (although it might be used for
+             * correctness checking), so it's safe to setRawBytes() directly.
+             */
             keyEncoder.setRawBytes(keyPostfix);
         }
 
@@ -83,7 +87,12 @@ public enum KeyType implements KeyMarshall{
             BARE.encodeKey(fields,keyColumns,sortOrder,keyPostfix,keyEncoder);
             //encode random bits at the end of the postfix for uniqueness --TODO -sf- make this more compact, and make SuccessFilter deal with it
             keyEncoder.encodeNext(counter.incrementAndGet());
-            //encode the postfix in place
+            /*
+             * encode the postfix in place
+             *
+             * The postfix will never be directly decoded (although it might be used for
+             * correctness checking), so it's safe to setRawBytes() directly.
+             */
             keyEncoder.setRawBytes(keyPostfix);
         }
 
@@ -161,6 +170,10 @@ public enum KeyType implements KeyMarshall{
     PREFIX_FIXED_POSTFIX_ONLY{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
+            /*
+             * The postfix will never be directly decoded (although it might be used for
+             * correctness checking), so it's safe to setRawBytes() directly.
+             */
             keyEncoder.setRawBytes(keyPostfix);
         }
 
@@ -177,8 +190,17 @@ public enum KeyType implements KeyMarshall{
     PREFIX_UNIQUE_POSTFIX_ONLY{
         @Override
         public void encodeKey(DataValueDescriptor[] fields, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-            //add a uniqueness field
+            /*
+             * Add a uniqueness field
+             *
+             * It is safe to call setRawBytes() here, since this field will never be used for
+             * decoding.
+             */
             keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
+            /*
+             * The postfix will never be directly decoded (although it might be used for
+             * correctness checking), so it's safe to setRawBytes() directly.
+             */
             keyEncoder.setRawBytes(keyPostfix);
         }
 
@@ -202,9 +224,13 @@ public enum KeyType implements KeyMarshall{
                               boolean[] sortOrder,
                               byte[] keyPostfix,
                               MultiFieldEncoder keyEncoder) {
-            //salted ignores row, keyColumns,sortOrder, because it generates
-            //a row key randomly
-//            keyEncoder.encodeNext(ThreadLocalRandom.current().nextInt());
+            /*
+             * salted ignores row, keycolumn,sortOrder because it generates
+             * a row key randomly.
+             *
+             * Since the key will never be decoded, it's safe to just shove
+             * the bytes in directly
+             */
             keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
         }
 
@@ -235,16 +261,28 @@ public enum KeyType implements KeyMarshall{
                     DataValueDescriptor dvd = fields[keyColumns[i]];
                     if (dvd != null && !dvd.isNull())
                         DerbyBytesUtil.encodeInto(keyEncoder, dvd, desc);
-                    else
+                    else{
+                        /*
+                         * it is safe to setRawBytes here, because we're not
+                         * actually setting anything, it's just a convenient way
+                         * of moving the encoder cursor forward
+                         */
                         keyEncoder.setRawBytes(null);
+                    }
                 }
             }else{
                 for(int key:keyColumns){
                     DataValueDescriptor dvd = fields[key];
                     if(dvd!=null&&!dvd.isNull())
                         DerbyBytesUtil.encodeInto(keyEncoder,dvd,false);
-                    else
-                        keyEncoder.setRawBytes(null); //we need to fill null items with 0
+                    else{
+                        /*
+                         * it is safe to setRawBytes here, because we're not
+                         * actually setting anything, it's just a convenient way
+                         * of moving the encoder cursor forward
+                         */
+                        keyEncoder.setRawBytes(null);
+                    }
                 }
             }
         }

@@ -77,10 +77,14 @@ public class RowEncoder {
                 ||keyType==KeyType.PREFIX_UNIQUE_POSTFIX_ONLY){
             Preconditions.checkNotNull(keyPrefix,
                     "No Key Prefix specified, but KeyType.FIXED_PREFIX chosen");
-            //set the prefix and mark
-            keyEncoder.setRawBytes(keyPrefix);
-            keyEncoder.mark();
-        }else if(keyPrefix!=null){
+        }if(keyPrefix!=null){
+            /*
+             * set the prefix and mark
+             *
+             * A fixed prefix is assumed to either be known in length, or to be previously
+             * encoded (Usually, it's known in length). Thus, we'll assume it's safe
+             * to setRawBytes correctly
+             */
             keyEncoder.setRawBytes(keyPrefix);
             keyEncoder.mark();
         }

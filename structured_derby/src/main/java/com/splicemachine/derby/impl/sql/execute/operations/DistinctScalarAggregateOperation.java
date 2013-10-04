@@ -246,6 +246,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
             if(keyEncoder==null){
                 keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),row.nColumns());
+                /*
+                 * We can setRawBytes here, because we know how long the uniqueSequenceID is, which
+                 * allows us to always safely skip the correct number of bytes past.
+                 */
                 keyEncoder.setRawBytes(uniqueSequenceID);
                 keyEncoder.mark();
             }
@@ -341,6 +345,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
                 byte[] key = BytesUtil.concatenate(emittedKey.array(),keyPostfix);
+                /*
+                 * the key is already encoded, so setRawBytes() is safe.
+                 */
                 keyEncoder.setRawBytes(key);
             }
 

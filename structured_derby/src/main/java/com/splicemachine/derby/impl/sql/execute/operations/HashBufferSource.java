@@ -47,6 +47,10 @@ public class HashBufferSource{
             this.hash = new byte[] {0};
             keyEncoder.setRawBytes(this.hash);
         }
+        /*
+         * We can setRawBytes here, because we know how long the prefix is, which
+         * allows us to always safely skip the correct number of bytes past.
+         */
         keyEncoder.setRawBytes(sinkRowPrefix);
         keyEncoder.mark();
         this.sourceRows = sourceRows;

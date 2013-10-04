@@ -250,10 +250,26 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                                   boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
                 ((KeyMarshall)KeyType.BARE).encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
                 //add ordinal position
+                /*
+                 * add the ordinal position.
+                 *
+                 * We can safely call setRawBytes() here, because we know that joinSideBytes are encoded
+                 * prior to being set here
+                 */
                 keyEncoder.setRawBytes(joinSideBytes);
-                //add a unique id
+                /*
+                 * add a unique id
+                 *
+                 * We can safely call setRawBytes() here because we know that a unique key is 8 bytes, and it will
+                 * never be decoded anyway
+                 */
                 keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
-                //add the postfix
+                /*
+                 * add the postfix
+                 *
+                 * We can safely call setRawBytes() here because we know that the prefix will be a fixed length and
+                 * will also never be outright decoded (it'll be used for correctness checking).
+                 */
                 keyEncoder.setRawBytes(keyPostfix);
             }
 

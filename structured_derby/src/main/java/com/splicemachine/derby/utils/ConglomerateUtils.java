@@ -61,12 +61,18 @@ public class ConglomerateUtils extends SpliceConstants {
 			Result result = table.get(get);
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 
-			if(data!=null) {
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,SpliceDriver.getKryoPool());
-                byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+            EntryDecoder entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            try{
+                if(data!=null) {
+                    entryDecoder.set(data);
+                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                    byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
-                return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
-			}
+                    return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
+                }
+            }finally{
+                entryDecoder.close();
+            }
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
 		} finally {

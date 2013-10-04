@@ -10,6 +10,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.yammer.metrics.core.MetricName;
@@ -58,6 +59,8 @@ class IndexRowReader {
 
     private static final MetricName fetchTimerName = new MetricName("com.splicemachine.operations","indexLookup","fetchTime");
     private final Timer fetchTimer = SpliceDriver.driver().getRegistry().newTimer(fetchTimerName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
+    private EntryDecoder entryDecoder;
+
     private IndexRowReader(ExecutorService lookupService,
                           SpliceOperation sourceOperation,
                           int batchSize,
@@ -112,7 +115,10 @@ class IndexRowReader {
     }
 
     public void close() throws IOException {
-        table.close();
+        if(entryDecoder!=null)
+            entryDecoder.close();
+        if(table!=null)
+            table.close();
         lookupService.shutdownNow();
     }
 
@@ -129,12 +135,11 @@ class IndexRowReader {
         RowAndLocation nextScannedRow = next.getFirst();
         Result nextFetchedData = next.getSecond();
 
-        if(fieldDecoder==null)
-            fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+        if(entryDecoder==null)
+            entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-        fieldDecoder.reset();
         for(KeyValue kv:nextFetchedData.raw()){
-            RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,fieldDecoder);
+            RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,entryDecoder);
         }
 
         return nextScannedRow;

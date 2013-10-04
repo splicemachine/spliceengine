@@ -51,6 +51,10 @@ public class DeleteOperation extends DMLWriteOperation {
             @Override
             public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
                 RowLocation location = (RowLocation)columns[columns.length-1].getObject();
+                /*
+                 * We can set the bytes directly, because we're not going to be decoding them ever,
+                 * so there's no chance of us mis-decoding them.
+                 */
                 keyEncoder.setRawBytes(location.getBytes());
             }
 

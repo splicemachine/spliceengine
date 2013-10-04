@@ -24,9 +24,7 @@ public class EntryPredicateFilter {
     public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
     public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates){
-        this.fieldsToReturn = fieldsToReturn;
-        this.valuePredicates = predicates;
-        this.returnIndex=false;
+        this(fieldsToReturn, predicates,true);
     }
 
     public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates,boolean returnIndex){

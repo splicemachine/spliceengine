@@ -285,7 +285,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             DataValueDescriptor restrictBoolean;
 
             if(reader==null){
-                reader = IndexRowReader.create(source,conglomId,compactRow,getTransactionID(),indexCols,adjustedBaseColumnMap,heapOnlyCols);
+                reader = IndexRowReader.create(source,conglomId,compactRow,getTransactionID(),indexCols,operationInformation.getBaseColumnMap(),heapOnlyCols);
             }
 
             do{

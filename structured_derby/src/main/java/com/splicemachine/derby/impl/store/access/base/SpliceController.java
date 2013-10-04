@@ -9,7 +9,7 @@ import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -159,7 +159,7 @@ public abstract class SpliceController implements ConglomerateController {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
-            MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
             try {
                 for(KeyValue kv:result.raw()){
                     RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);

@@ -11,7 +11,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -171,7 +170,7 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 accessedCols,
-                txnId,true);
+                txnId);
     }
 
     @Override
