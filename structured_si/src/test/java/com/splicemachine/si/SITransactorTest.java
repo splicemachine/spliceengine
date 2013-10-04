@@ -13,23 +13,13 @@ import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.si.impl.*;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -47,13 +37,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -389,11 +373,10 @@ public class SITransactorTest extends SIConstants {
                         if (dataLib.valuesEqual(dataLib.getKeyValueFamily(kv), transactorSetup.family) &&
                                 dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
                             final byte[] packedColumns = (byte[]) dataLib.getKeyValueValue(kv);
-                            final MultiFieldDecoder decoder = MultiFieldDecoder.create(KryoPool.defaultPool());
-                            decoder.set(packedColumns);
-                            if (decoder.nextIsNull()) {
-                                decoder.skip();
-                            } else {
+                            final EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
+                            entryDecoder.set(packedColumns);
+                            final MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                            if (entryDecoder.isSet(0)) {
                                 final int age = decoder.decodeNextInt();
                                 final Object ageKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
                                         transactorSetup.ageQualifier,
@@ -401,7 +384,7 @@ public class SITransactorTest extends SIConstants {
                                         dataLib.encode(age));
                                 newKeyValues.add(ageKeyValue);
                             }
-                            if (!decoder.nextIsNull()) {
+                            if (entryDecoder.isSet(1)) {
                                 final String job = decoder.decodeNextString();
                                 final Object jobKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
                                         transactorSetup.jobQualifier,
@@ -2373,7 +2356,7 @@ public class SITransactorTest extends SIConstants {
         final BitSet bitSet = new BitSet(2);
         bitSet.set(0);
         bitSet.set(1);
-        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList());
+        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList(),true);
         dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
