@@ -4,18 +4,20 @@ This README describes NistIT (NIST Integration Test)
             differencing.  Runs just over 5 min.  When run this way, a splice server must be running ahead
             of starting the test.
 
-   To run manually... (splice server must be running)
+   - To run manually... (splice server must be running)
 
-   Usage: mvn verify -DNistIT [-Dnoclean] [-Dscript=<scriptName.sql>]
-   Where: noclean = do not clean the splice DB schema. Default is to remove all foreign schema before and after run.
-          script=<scriptName.sql> = run the Nist script noted (plus schema creation scripts before).
+   Usage: mvn verify -Dtest=NistIT [-Dnoclean] [-Dscript=<scriptName.sql>] [-P <platform>]
+   Where: noclean => do not clean the splice DB schema. Default is to remove all foreign schema before and after run.
+          script=<scriptName.sql> => run the Nist script noted (plus schema creation scripts before).
+          platform => build and run the test on the given HBase platform.  Default platform is cloudera-cdh4.3.0.
+              Available platforms are "hdp1.3" - HortonWorks, "mapr-0.94.5" - MapR and "apache-hbase-0.94.5" - vanilla HBase.
           
    Notes:
     - To build, in the splicemachine/structured_test directory, run "> mvn clean install -DskipTests"
     - Note that if you just run "> mvn test", that will run NistIT (the main test) and all tests in
             the project and Splice tests may fail because schema and tables already exist.
 
-    To run as a Maven Profile... (starts/stops server for you)
+    - To run as a Maven Profile... (starts/stops server for you)
 
     Usage: mvn verify -P integration-tests
         Will run all tests, unit and integ, starting and stopping the splice server for you.
