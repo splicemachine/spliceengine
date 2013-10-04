@@ -70,7 +70,7 @@ public class NistIT {
 			
 	        // write report to file
 	        String report = baos.toString("UTF-8");
-	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, false);
+	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true, false);
 		}
     }
     
@@ -88,7 +88,7 @@ public class NistIT {
 			
 	        // write report to file
 	        String report = baos.toString("UTF-8");
-	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true);
+	        TestUtils.createLog(TestUtils.getBaseDirectory(), "Cleanup.log", null, report, true, true);
 		}
     }
 
@@ -110,7 +110,7 @@ public class NistIT {
 
         // write report to file
         String report = baos.toString("UTF-8");
-        TestUtils.createLog(TestUtils.getBaseDirectory(), "NistIT.log", null, report, false);
+        TestUtils.createLog(TestUtils.getBaseDirectory(), "NistIT.log", null, report, true, false);
 
         // make test assertion
         Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs.keySet() + "\n" + report,

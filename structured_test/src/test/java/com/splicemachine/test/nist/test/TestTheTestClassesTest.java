@@ -1,35 +1,17 @@
 package com.splicemachine.test.nist.test;
 
-import static com.splicemachine.test.nist.NistTestUtils.DERBY_FILTER;
-import static com.splicemachine.test.nist.NistTestUtils.NIST_DIR;
-import static com.splicemachine.test.nist.NistTestUtils.NIST_DIR_SLASH;
-import static com.splicemachine.test.nist.NistTestUtils.SCHEMA_LIST_FILE_NAME;
-import static com.splicemachine.test.nist.NistTestUtils.SKIP_TESTS_FILE_NAME;
-import static com.splicemachine.test.nist.NistTestUtils.SPLICE_FILTER;
-import static com.splicemachine.test.nist.NistTestUtils.createFiles;
-import static com.splicemachine.test.nist.NistTestUtils.createRunList;
-import static com.splicemachine.test.nist.NistTestUtils.getExcludedFileNames;
-import static com.splicemachine.test.nist.NistTestUtils.getSchemaFileNames;
-import static com.splicemachine.test.nist.NistTestUtils.getSkipTestFileNames;
-import static com.splicemachine.test.nist.NistTestUtils.getTestFileList;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.splicemachine.test.utils.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.test.utils.TestUtils;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
+import java.util.*;
+
+import static com.splicemachine.test.nist.NistTestUtils.*;
 
 /**
  *
@@ -221,7 +203,7 @@ public class TestTheTestClassesTest {
         ps.println("2");
         // write report to file
         String report = baos.toString("UTF-8");
-        TestUtils.createLog(TestUtils.getBaseDirectory(), "test.log", null, report, false);
+        TestUtils.createLog(TestUtils.getBaseDirectory(), "test.log", null, report, false, false);
 
         baos = new ByteArrayOutputStream();
         ps = new PrintStream(baos);
@@ -229,7 +211,7 @@ public class TestTheTestClassesTest {
         ps.println("4");
         // write report to file
         report = baos.toString("UTF-8");
-        TestUtils.createLog(TestUtils.getBaseDirectory(), "test.log", null, report, true);
+        TestUtils.createLog(TestUtils.getBaseDirectory(), "test.log", null, report, false, true);
 
         List<String> lines = TestUtils.fileToLines(TestUtils.getBaseDirectory()+"/test.log", null);
         Assert.assertEquals(4, lines.size());

@@ -15,10 +15,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * @author Jeff Cunningham
@@ -343,7 +342,7 @@ public class TestUtils {
 	 * @throws Exception any failure.
 	 */
 	@SuppressWarnings("ResultOfMethodCallIgnored")
-    public static void createLog(String dirName, String logName, String discriminator, String content, boolean append) throws Exception {
+    public static void createLog(String dirName, String logName, String discriminator, String content, boolean date, boolean append) throws Exception {
 	    File targetFile = new File(dirName,logName+(discriminator != null ? discriminator : ""));
 	    Files.createParentDirs(targetFile);
 	    if (! append) {
@@ -351,8 +350,13 @@ public class TestUtils {
 				targetFile.delete();
 			targetFile.createNewFile();
 		}
-		FileUtils.writeStringToFile(targetFile, content, append);
-	}
+        if (date) {
+            FileUtils.writeStringToFile(targetFile, df.format(new Date())+"\n"+content, append);
+        } else {
+            FileUtils.writeStringToFile(targetFile, content, append);
+        }
+    }
+    private static final DateFormat df = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
 
     /**
      * Execute a set of SQL scripts in the given test runners.
