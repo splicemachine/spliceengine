@@ -73,6 +73,18 @@ public class RowCountOperationIT extends SpliceUnitTest {
 		Assert.assertEquals(1, i);	
 	}
 
+    @Test
+    public void testLimitGreaterThanResultSet() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s fetch first 20 rows only", this.getTableReference(TABLE_NAME)));
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            int val = rs.getInt(1);
+            System.out.printf("val=%d%n", val);
+        }
+        Assert.assertEquals(10, i);
+    }
+
 	
 	@Test
 	public void testCountOffset() throws Exception {

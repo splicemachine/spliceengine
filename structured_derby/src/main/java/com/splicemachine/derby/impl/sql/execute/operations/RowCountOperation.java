@@ -269,7 +269,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                 @Override
                 public Result getResult() throws StandardException, IOException {
                     Result result = scanProvider.getResult();
-                    if(!result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
+                    if(result == null || !result.containsColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY))
                         return null;
                     return result;
                 }
