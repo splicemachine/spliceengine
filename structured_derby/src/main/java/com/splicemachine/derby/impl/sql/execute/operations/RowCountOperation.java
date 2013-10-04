@@ -12,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -58,8 +59,8 @@ public class RowCountOperation extends SpliceBaseOperation{
     private String offsetMethodName;
     private String fetchFirstMethodName;
 
-    private GeneratedMethod offsetMethod;
-    private GeneratedMethod fetchFirstMethod;
+    private SpliceMethod<DataValueDescriptor> offsetMethod;
+    private SpliceMethod<DataValueDescriptor> fetchFirstMethod;
     private boolean hasJDBClimitClause;
 
     private SpliceOperation source;
@@ -90,8 +91,6 @@ public class RowCountOperation extends SpliceBaseOperation{
                              double optimizerEstimatedRowCount,
                              double optimizerEstimatedCost) throws StandardException {
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.offsetMethod = offsetMethod;
-        this.fetchFirstMethod = fetchFirstMethod;
         this.offsetMethodName = (offsetMethod==null)? null: offsetMethod.getMethodName();
         this.fetchFirstMethodName = (fetchFirstMethod==null)? null: fetchFirstMethod.getMethodName();
         this.hasJDBClimitClause = hasJDBClimitClause;
@@ -146,11 +145,10 @@ public class RowCountOperation extends SpliceBaseOperation{
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
         source.init(context);
-        GenericStorablePreparedStatement gsps = context.getPreparedStatement();
         if(offsetMethodName!=null)
-            offsetMethod = gsps.getActivationClass().getMethod(offsetMethodName);
+            offsetMethod = new SpliceMethod<DataValueDescriptor>(offsetMethodName, activation);
         if(fetchFirstMethodName!=null)
-            fetchFirstMethod = gsps.getActivationClass().getMethod(fetchFirstMethodName);
+            fetchFirstMethod = new SpliceMethod<DataValueDescriptor>(fetchFirstMethodName, activation);
         firstTime=true;
         rowsFetched=0;
 
@@ -202,7 +200,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
     private long getTotalOffset() throws StandardException {
         if(offsetMethod!=null){
-            DataValueDescriptor offVal = (DataValueDescriptor)offsetMethod.invoke(activation);
+            DataValueDescriptor offVal = offsetMethod.invoke();
             if(offVal.isNotNull().getBoolean()){
                 offset = offVal.getLong();
             }
@@ -214,7 +212,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
     private long getFetchLimit() throws StandardException {
         if(fetchFirstMethod!=null){
-            DataValueDescriptor fetchFirstVal = (DataValueDescriptor)fetchFirstMethod.invoke(activation);
+            DataValueDescriptor fetchFirstVal = fetchFirstMethod.invoke();
             if(fetchFirstVal.isNotNull().getBoolean()){
                 fetchFirst = fetchFirstVal.getLong();
             }
