@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -92,13 +93,19 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
     public byte[] finish() {
         if(predicateFilter!=null){
             BitSet checkColumns = predicateFilter.getCheckedColumns();
-            for(int i=0;i<checkColumns.length();i++){
-                if(i>=fields.length||fields[i]==null){
-                    if(!predicateFilter.checkPredicates(null,i)) return null;
-                }else{
-                    ByteBuffer buffer = fields[i];
-                    buffer.reset();
-                    if(!predicateFilter.checkPredicates(buffer,i)) return null;
+            if(fields!=null){
+                for(int i=0;i<checkColumns.length();i++){
+                    if(i>=fields.length||fields[i]==null){
+                        if(!predicateFilter.checkPredicates(null,i)) return null;
+                    }else{
+                        ByteBuffer buffer = fields[i];
+                        buffer.reset();
+                        if(!predicateFilter.checkPredicates(buffer,i)) return null;
+                    }
+                }
+            }else{
+                for(int i=0;i<checkColumns.length();i++){
+                        if(!predicateFilter.checkPredicates(null,i)) return null;
                 }
             }
 
@@ -174,6 +181,12 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
     public boolean fieldsMatch(EntryAccumulator oldKeyAccumulator) {
         for(int myFields=occupiedFields.nextSetBit(0);myFields>=0;myFields=occupiedFields.nextSetBit(myFields+1)){
             if(!oldKeyAccumulator.hasField(myFields)) return false;
+
+            ByteBuffer myField = fields[myFields];
+            ByteBuffer theirField = oldKeyAccumulator.getField(myFields);
+            if(myField==null){
+                if(theirField!=null) return false;
+            }else if(!myField.equals(theirField)) return false;
         }
         return true;
     }
