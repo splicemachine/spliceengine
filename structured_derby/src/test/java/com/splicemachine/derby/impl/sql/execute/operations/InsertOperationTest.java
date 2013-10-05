@@ -2,17 +2,21 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
@@ -23,9 +27,9 @@ import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +51,11 @@ import static org.mockito.Mockito.*;
  *
  * Primary Keys
  * NonPrimary Keys
+ *
+ * These tests work by running a fixed series of ExecRows through the InsertOperation, and collecting
+ * the output byte[]. Then the correct byte arrays are generated, and compared against what was output. If
+ * they match, the InsertOperation works (as long as the write pipeline works). If they do not, then the
+ * Insert operation is failing.
  *
  * @author Scott Fines
  * Created on: 10/4/13
@@ -94,68 +103,46 @@ public class InsertOperationTest {
 
     @Test
     public void testCanInsertDataNoPrimaryKeys() throws Exception {
-        OperationInformation opInfo = mock(OperationInformation.class);
-        when(opInfo.getUUIDGenerator()).thenReturn(snowflake.newGenerator(100));
-
-        mockTransactions();
-
-        DMLWriteInfo writeInfo = mock(DMLWriteInfo.class);
-        when(writeInfo.getPkColumnMap()).thenReturn(null);
-        when(writeInfo.getPkColumns()).thenReturn(null);
-
         final List<ExecRow> correctOutputRows = getInputRows();
-        final List<ExecRow> rowsToWrite = Lists.newArrayList(correctOutputRows);
-
-        final List<KVPair> output = Lists.newArrayListWithExpectedSize(rowsToWrite.size());
-        mockOperationSink(writeInfo, output);
-
-        SpliceOperation sourceOperation = mock(SpliceOperation.class);
-        when(sourceOperation.nextRow()).thenAnswer(new Answer<ExecRow>() {
-            @Override
-            public ExecRow answer(InvocationOnMock invocation) throws Throwable {
-                return rowsToWrite.size() > 0 ? rowsToWrite.remove(0) : null;
-            }
-        });
-        when(sourceOperation.getExecRowDefinition()).thenReturn(TestingDataType.getTemplateOutput(dataTypes));
-
-        InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
-        operation.init(mock(SpliceOperationContext.class));
-
-        NoPutResultSet resultSet = operation.executeScan();
-        resultSet.open();
-
-        Assert.assertEquals("Reports incorrect row count!",correctOutputRows.size(),resultSet.modifiedRowCount());
-        Assert.assertEquals("Incorrect number of rows written!",correctOutputRows.size(),output.size());
+        final List<KVPair> output = doInsertionOperation(false,correctOutputRows);
 
         List<KVPair> correctOutput = getCorrectOutput(false,correctOutputRows);
         assertRowDataMatches(correctOutput,output);
     }
 
-
     @Test
     public void testCanInsertDataWithPrimaryKeys() throws Exception {
+        final List<ExecRow> correctOutputRows = getInputRows();
+        final List<KVPair> output = doInsertionOperation(true,correctOutputRows);
+
+        List<KVPair> correctOutput = getCorrectOutput(true,correctOutputRows);
+        assertRowDataMatches(correctOutput,output);
+    }
+
+    /*********************************************************************************************************************/
+    /*private helper methods*/
+
+    private List<KVPair> doInsertionOperation(boolean usePks,List<ExecRow> correctOutputRows) throws Exception {
         OperationInformation opInfo = mock(OperationInformation.class);
         when(opInfo.getUUIDGenerator()).thenReturn(snowflake.newGenerator(100));
 
         mockTransactions();
 
         DMLWriteInfo writeInfo = mock(DMLWriteInfo.class);
-        when(writeInfo.getPkColumnMap()).thenReturn(primaryKeys);
-        when(writeInfo.getPkColumns()).thenAnswer(new Answer<FormatableBitSet>() {
-            @Override
-            public FormatableBitSet answer(InvocationOnMock invocation) throws Throwable {
-                return DerbyDMLWriteInfo.fromIntArray(((DMLWriteInfo)invocation.getMock()).getPkColumnMap());
-            }
-        });
+        when(writeInfo.getPkColumnMap()).thenReturn(usePks? primaryKeys:null);
+        when(writeInfo.getPkColumns()).thenReturn(usePks? DerbyDMLWriteInfo.fromIntArray(primaryKeys):null);
 
-        final List<ExecRow> correctOutputRows = getInputRows();
         final List<ExecRow> rowsToWrite = Lists.newArrayList(correctOutputRows);
 
         final List<KVPair> output = Lists.newArrayListWithExpectedSize(rowsToWrite.size());
-        mockOperationSink(writeInfo, output);
+
+        SpliceObserverInstructions mockInstructions = mock(SpliceObserverInstructions.class);
+        doNothing().when(mockInstructions).setTransactionId(any(String.class));
+
+        when(writeInfo.buildInstructions(any(SpliceOperation.class))).thenReturn(mockInstructions);
 
         SpliceOperation sourceOperation = mock(SpliceOperation.class);
-        when(sourceOperation.nextRow()).thenAnswer(new Answer<ExecRow>() {
+        when(sourceOperation.nextRow(any(SpliceRuntimeContext.class))).thenAnswer(new Answer<ExecRow>() {
             @Override
             public ExecRow answer(InvocationOnMock invocation) throws Throwable {
                 return rowsToWrite.size() > 0 ? rowsToWrite.remove(0) : null;
@@ -163,21 +150,21 @@ public class InsertOperationTest {
         });
         when(sourceOperation.getExecRowDefinition()).thenReturn(TestingDataType.getTemplateOutput(dataTypes));
 
+        mockOperationSink(sourceOperation, output);
+
         InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
         operation.init(mock(SpliceOperationContext.class));
+        when(mockInstructions.getTopOperation()).thenReturn(operation);
 
         NoPutResultSet resultSet = operation.executeScan();
         resultSet.open();
 
-        Assert.assertEquals("Reports incorrect row count!",correctOutputRows.size(),resultSet.modifiedRowCount());
+        Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());
         Assert.assertEquals("Incorrect number of rows written!",correctOutputRows.size(),output.size());
-
-        List<KVPair> correctOutput = getCorrectOutput(true,correctOutputRows);
-        assertRowDataMatches(correctOutput,output);
+        return output;
     }
 
-/*********************************************************************************************************************/
-    /*private helper methods*/
+    @SuppressWarnings("unchecked")
     private void mockTransactions() throws IOException {
         ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
         doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
@@ -227,13 +214,15 @@ public class InsertOperationTest {
             }
         }
         final int[] pksToUse = pks;
-        List<KVPair> kvPairs = Lists.newArrayList(Lists.transform(rowsToWrite,new Function<ExecRow, KVPair>() {
+
+        return Lists.newArrayList(Lists.transform(rowsToWrite,new Function<ExecRow, KVPair>() {
             @Override
             public KVPair apply(@Nullable ExecRow input) {
                 MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
                 fieldEncoder.reset();
 
                 try {
+                    //noinspection ConstantConditions
                     RowMarshaller.sparsePacked().encodeRow(input.getRowArray(),null, fieldEncoder);
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
@@ -259,13 +248,10 @@ public class InsertOperationTest {
 
             }
         }));
-
-        return kvPairs;
     }
 
     private List<ExecRow> getInputRows() throws StandardException {
         ExecRow template = TestingDataType.getTemplateOutput(dataTypes);
-        Random random  = new Random(0l);
         List<ExecRow> rows = Lists.newArrayListWithCapacity(10);
         for(int i=0;i<10;i++){
             ExecRow nextRow = template.getNewNullRow();
@@ -278,7 +264,8 @@ public class InsertOperationTest {
         return rows;
     }
 
-    private void mockOperationSink(DMLWriteInfo writeInfo, final List<KVPair> output) throws Exception {
+    @SuppressWarnings("unchecked")
+    private void mockOperationSink(SpliceOperation rowSourceOp, final List<KVPair> output) throws Exception {
         RecordingCallBuffer<KVPair> outputBuffer = mock(RecordingCallBuffer.class);
         doAnswer(new Answer<Void>(){
             @Override
@@ -288,18 +275,29 @@ public class InsertOperationTest {
             }
         }).when(outputBuffer).add(any(KVPair.class));
         final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
-        when(bufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(outputBuffer);
+        when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
 
-        when(writeInfo.getOperationSink(any(SinkingOperation.class),any(byte[].class),any(String.class))).thenAnswer(new Answer<OperationSink>() {
+        RowProvider mockProvider = mock(RowProvider.class);
+        when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobStats>(){
+
             @Override
-            public OperationSink answer(InvocationOnMock invocation) throws Throwable {
-                SinkingOperation op = (SinkingOperation) invocation.getArguments()[0];
-                byte[] taskId = (byte[])invocation.getArguments()[1];
-                String txnId = (String)invocation.getArguments()[2];
+            public JobStats answer(InvocationOnMock invocation) throws Throwable {
+                SpliceObserverInstructions observerInstructions = (SpliceObserverInstructions) invocation.getArguments()[0];
 
-                return new OperationSink(taskId,op,bufferFactory,txnId,snowflake.newGenerator(100));
+                SpliceOperation op = observerInstructions.getTopOperation();
+
+                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",snowflake.newGenerator(100));
+
+                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext());
+                JobStats stats = mock(JobStats.class);
+                when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
+
+                return stats;
             }
         });
+
+        when(rowSourceOp.getMapRowProvider(any(SpliceOperation.class),any(RowDecoder.class),any(SpliceRuntimeContext.class)))
+                .thenReturn(mockProvider);
     }
 
 

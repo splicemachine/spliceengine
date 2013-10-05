@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
@@ -29,4 +31,6 @@ interface DMLWriteInfo extends Externalizable {
     long getConglomerateId();
 
     OperationSink getOperationSink(SinkingOperation op,byte[] taskId,String txnId) throws IOException;
+
+    SpliceObserverInstructions buildInstructions(SpliceOperation operation);
 }

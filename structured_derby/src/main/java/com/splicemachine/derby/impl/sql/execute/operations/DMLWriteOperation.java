@@ -152,7 +152,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 */
 		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
 		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
-		modifiedProvider = new ModifiedRowProvider(rowProvider,SpliceObserverInstructions.create(activation,this,new SpliceRuntimeContext()));
+
+		modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
         //modifiedProvider.setRowsModified(rowsSunk);
 		return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 	}

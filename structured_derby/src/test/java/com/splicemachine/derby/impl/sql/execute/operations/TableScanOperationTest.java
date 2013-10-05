@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
@@ -139,9 +140,10 @@ public class TableScanOperationTest {
         tableScanOp.init(mockContext);
 
         List<ExecRow> deserializedRows = Lists.newArrayListWithExpectedSize(actualRows.size());
+        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
         ExecRow nextRow;
         do{
-            nextRow = tableScanOp.nextRow();
+            nextRow = tableScanOp.nextRow(runtimeContext);
             if(nextRow!=null)
                 deserializedRows.add(nextRow.getClone());
         }while(nextRow!=null);

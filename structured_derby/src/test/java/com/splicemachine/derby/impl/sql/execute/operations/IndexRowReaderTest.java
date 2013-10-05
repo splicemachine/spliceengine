@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -132,7 +133,7 @@ public class IndexRowReaderTest {
         });
 
         SpliceOperation mockSource = mock(SpliceOperation.class);
-        when(mockSource.nextRow()).thenAnswer(new Answer<ExecRow>() {
+        when(mockSource.nextRow(any(SpliceRuntimeContext.class))).thenAnswer(new Answer<ExecRow>() {
             @Override
             public ExecRow answer(InvocationOnMock invocation) throws Throwable {
                 return inputIndexRows.size() > 0 ? inputIndexRows.remove(0) : null;
