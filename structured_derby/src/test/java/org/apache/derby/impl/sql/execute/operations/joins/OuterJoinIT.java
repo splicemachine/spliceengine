@@ -297,8 +297,14 @@ public class OuterJoinIT extends SpliceUnitTest {
         List results = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), results.toArray());
-
     }
 
+    @Test
+    public void testRepeatedLeftOuterWithLessThan() throws Exception {
+        for(int i=0;i<100;i++){
+            System.out.println(i);
+            testLeftOuterWithLessThan();
+        }
+    }
 }
 
