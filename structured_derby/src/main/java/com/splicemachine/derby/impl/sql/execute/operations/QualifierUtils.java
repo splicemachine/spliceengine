@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.Limits;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ScanQualifier;
 import org.apache.derby.iapi.store.access.Qualifier;
@@ -174,10 +175,12 @@ class QualifierUtils {
                     else
                         value = val.floatValue();
                 }else if(columnFormat==StoredFormatIds.SQL_DOUBLE_ID){
-                    if(val.compareTo(BigDecimal.valueOf(Double.MAX_VALUE))>0)
+                    if(val.compareTo(BigDecimal.valueOf(Limits.DB2_LARGEST_DOUBLE))>0)
                         value = Double.MAX_VALUE;
-                    else if(val.compareTo(BigDecimal.valueOf(Double.MIN_VALUE))<0)
-                        value = Double.MIN_VALUE;
+                    else if(val.signum()>0 && val.compareTo(BigDecimal.valueOf(Limits.DB2_SMALLEST_POSITIVE_DOUBLE))<0)
+                        value = 0d;
+                    else if(val.signum()<0 && val.compareTo(BigDecimal.valueOf(Limits.DB2_LARGEST_NEGATIVE_DOUBLE))>0)
+                        value = 0d;
                     else
                         value = val.doubleValue();
                 }else{

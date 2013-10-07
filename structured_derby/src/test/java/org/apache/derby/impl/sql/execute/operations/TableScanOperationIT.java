@@ -379,12 +379,15 @@ public class TableScanOperationIT extends SpliceUnitTest {
 
     @Test
     public void testScanDoubleWithEqualsOperator() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery("select se2 from" + this.getPaddedTableReference("AB") +"where se2 = 50.0");
+        /*
+         * Choose to scan for 0.0 to check for Bug 738 simultaneously.
+         */
+        ResultSet rs = methodWatcher.executeQuery("select se2 from" + this.getPaddedTableReference("AB") +"where se2 = 0.0");
 
         rs.next();
 
         double res = rs.getDouble(1);
-        Assert.assertEquals(50.0,res,0.0);
+        Assert.assertEquals(0.0,res,0.0);
 
         Assert.assertFalse(rs.next());
     }
