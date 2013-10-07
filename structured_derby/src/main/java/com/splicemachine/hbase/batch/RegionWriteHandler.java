@@ -156,6 +156,7 @@ public class RegionWriteHandler implements WriteHandler {
                 ctx.result(mutation,result);
             }
         }catch (IOException ioe) {
+            LOG.error(ioe);
             /*
              * We are hinging on an undocumented implementation of how HRegion.put(Pair<Put,Integer>[]) works.
              *
