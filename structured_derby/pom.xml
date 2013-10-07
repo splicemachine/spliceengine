@@ -273,6 +273,7 @@
                                         <sleep seconds="15" />
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
+                                            <arg value="${envClassifier}" />
                                         </exec>
                                         <sleep seconds="90" />
                                     </target>

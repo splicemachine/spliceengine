@@ -1,6 +1,7 @@
 package com.splicemachine.test.verify;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
 
 /**
@@ -14,6 +15,8 @@ public interface Verifier {
      * generate a report.
      * @param files files to verify
      * @return a report for each file
+     * @throws FileNotFoundException if <code>files</code> or results
+     * cannot be found.
      */
-    List<VerifyReport> verifyOutput(List<File> files);
+    List<VerifyReport> verifyOutput(List<File> files) throws FileNotFoundException;
 }

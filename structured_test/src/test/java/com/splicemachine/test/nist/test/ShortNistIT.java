@@ -1,5 +1,20 @@
 package com.splicemachine.test.nist.test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.PrintStream;
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import com.splicemachine.test.diff.DiffEngine;
 import com.splicemachine.test.nist.NistTestUtils;
 import com.splicemachine.test.runner.DerbyRunner;
@@ -7,22 +22,13 @@ import com.splicemachine.test.runner.SpliceRunner;
 import com.splicemachine.test.utils.DependencyTree;
 import com.splicemachine.test.utils.TestUtils;
 import com.splicemachine.test.verify.VerifyReport;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.PrintStream;
-import java.sql.Connection;
-import java.util.*;
 
 /**
  * TODO: Temporary - for framework testing
  * @author Jeff Cunningham
  *         Date: 7/25/13
  */
+@Ignore
 public class ShortNistIT {
 
     private static List<String> derbyOutputFilter;
