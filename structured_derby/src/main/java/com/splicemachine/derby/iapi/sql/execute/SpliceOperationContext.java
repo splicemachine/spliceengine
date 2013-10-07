@@ -108,7 +108,10 @@ public class SpliceOperationContext {
             if (scanner == null) {
                 scanner = region.getScanner(scan);
             }
-            scanner = new BufferedRegionScanner(region,scanner,scan.getCaching());
+            int caching = scan.getCaching();
+            if(caching<0)
+                caching=100;
+            scanner = new BufferedRegionScanner(region,scanner,100);
         }
         return scanner;
     }

@@ -187,6 +187,8 @@ class IndexRowReader {
         if(table==null)
             table = SpliceAccessManager.getHTable(mainTableConglomId);
 
+        if(sourceRows.size()<=0)
+            return;
         //submit to the background thread
         resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
 
