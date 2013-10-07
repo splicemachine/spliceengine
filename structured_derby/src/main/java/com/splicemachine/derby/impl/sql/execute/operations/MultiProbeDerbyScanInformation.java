@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
@@ -107,6 +108,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 
         Predicate finalPredicate  = new OrPredicate(allScanPredicates);
         Scan scan = SpliceUtils.createScan(txnId);
+        scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
         EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn, Arrays.asList(finalPredicate));
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
         MultiRangeFilter filter = builder.build();
