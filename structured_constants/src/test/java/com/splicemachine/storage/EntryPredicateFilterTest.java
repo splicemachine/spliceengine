@@ -10,6 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 
@@ -18,6 +19,46 @@ import java.util.Collections;
  * Created on: 10/3/13
  */
 public class EntryPredicateFilterTest {
+
+    @Test
+    public void testOrPredicateAppliesWithImplicitlyMissingField() throws Exception {
+        BitSet setCols = new BitSet(3);
+        setCols.set(0);
+        setCols.set(2);
+
+        BitSet scalarFields = new BitSet(3);
+        scalarFields.set(0,3);
+        scalarFields.and(setCols);
+
+        BitIndex index = BitIndexing.getBestIndex(setCols,scalarFields,new BitSet(),new BitSet());
+        EntryEncoder encoder = EntryEncoder.create(KryoPool.defaultPool(), index);
+
+        short testField1 = 10030;
+        long testField3 = 91968292l;
+
+        encoder.getEntryEncoder().encodeNext(testField1).encodeNext(testField3);
+
+        byte[] bytes = encoder.encode();
+
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,Encoding.encode(testField1),true);
+        Predicate pred2 = new NullPredicate(false,false,1,false,false);
+
+        Predicate finalPred = new AndPredicate(Arrays.<Predicate>asList(new OrPredicate(Arrays.asList(pred1,pred2))));
+
+        BitSet retCols = new BitSet(2);
+        retCols.set(0,2);
+        EntryPredicateFilter epf = new EntryPredicateFilter(retCols,Arrays.asList(finalPred));
+
+        EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
+        decoder.set(bytes);
+
+        EntryAccumulator accumulator = new SparseEntryAccumulator(epf,retCols);
+
+        Assert.assertTrue("Incorrectly does not match row!",epf.match(decoder,accumulator));
+
+        byte[] finished = accumulator.finish();
+        Assert.assertNotNull("No row returned from finish!",finished);
+    }
 
     @Test
     public void testFiltersOutRowsWithMissingColumnsToRemove() throws Exception {

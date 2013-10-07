@@ -97,6 +97,8 @@ public class EntryPredicateFilter {
 
     public boolean checkPredicates(ByteBuffer buffer,int position){
         for(Predicate predicate:valuePredicates){
+            if(!predicate.applies(position))
+                continue;
             if(predicate.checkAfter()){
                 if(buffer!=null){
                     if(!predicate.match(position,buffer.array(),buffer.position(),buffer.remaining()))
