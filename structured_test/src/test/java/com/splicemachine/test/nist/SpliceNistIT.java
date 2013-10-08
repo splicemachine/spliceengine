@@ -1,18 +1,11 @@
 package com.splicemachine.test.nist;
 
 import com.splicemachine.test.diff.DiffEngine;
-import com.splicemachine.test.runner.DerbyRunner;
 import com.splicemachine.test.runner.SpliceRunner;
 import com.splicemachine.test.runner.TestRunner;
 import com.splicemachine.test.utils.TestUtils;
 import com.splicemachine.test.verify.Verifier;
 import com.splicemachine.test.verify.VerifyReport;
-
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.PrintStream;
@@ -20,6 +13,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Run all NIST SQL scripts.  Clean DB schema before and after unless
@@ -28,6 +26,7 @@ import java.util.Map;
  * @author Jeff Cunningham
  *         Date: 7/22/13
  */
+@Ignore("BindException: Address already in use - An exception was thrown during network server startup. DRDA_ListenPort.S:Could not listen on port 1527 on host 0.0.0.0")
 public class SpliceNistIT {
     private static List<File> testFiles;
     private static List<String> derbyOutputFilter;
