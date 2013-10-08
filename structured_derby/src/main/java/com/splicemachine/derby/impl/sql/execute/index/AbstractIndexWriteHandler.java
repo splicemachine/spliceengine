@@ -215,6 +215,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     }
 
     protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
+        if(entry==null) return null;
         entry.mark();
         byte[] data = new byte[entry.remaining()];
         entry.get(data);

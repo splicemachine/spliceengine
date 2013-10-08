@@ -89,6 +89,16 @@ public class IndexUpsertWriteHandlerTest {
 
             writeHandler.updateIndex(next,testCtx);
         }
+        //add a null field to check
+        fieldEncoder.reset();
+        fieldEncoder.encodeEmpty();
+
+        byte[] row = encoder.encode();
+
+        KVPair next = new KVPair(Bytes.toBytes(11),row);
+        pairs.add(next);
+
+        writeHandler.updateIndex(next,testCtx);
 
         //make sure nothing has been written yet
         Assert.assertEquals("Rows are written before being finalized!",0,indexPairs.size());

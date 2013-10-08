@@ -117,14 +117,6 @@ public class EntryDecoder {
 //        }
     }
 
-//    public MultiFieldDecoder getEntryDecoder() throws IOException{
-//        decompressIfNeeded();
-//        MultiFieldDecoder wrap = MultiFieldDecoder.wrap(data);
-//        wrap.seek(dataOffset); //position self correctly in array
-//
-//        return wrap;
-//    }
-
     public MultiFieldDecoder getEntryDecoder() throws IOException{
         decompressIfNeeded();
         if(decoder==null){
@@ -157,6 +149,8 @@ public class EntryDecoder {
         int offset = decoder.offset();
         seekForward(decoder,position);
         int length = decoder.offset()-1-offset;
+        if(length<=0) return null;
+
         return ByteBuffer.wrap(decoder.array(),offset,length);
     }
 

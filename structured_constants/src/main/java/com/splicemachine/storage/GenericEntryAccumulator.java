@@ -63,7 +63,8 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         if(occupiedFields.get(position)) return; //already populated that field
 
         fields[position] = buffer;
-        buffer.mark();
+        if(buffer!=null)
+            buffer.mark();
         occupiedFields.set(position);
     }
 
