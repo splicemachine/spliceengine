@@ -193,6 +193,20 @@ public class SortOperationIT extends SpliceUnitTest {
 		Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
 	}
 
+    @Test
+	public void testSortOperationByKey1DescendingLimited() throws Exception {
+        //Regression test for Bug 856
+		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by name desc {limit 1}",this.getTableReference(TABLE_NAME_1)));
+		List<Triplet> returnedByName = new ArrayList<Triplet>();
+		while(rs.next()){
+			Triplet triple = new Triplet(rs.getString(1),rs.getString(2),rs.getString(3));
+			returnedByName.add(triple);
+		}
+		List<Triplet> reversedByName = Lists.newArrayListWithExpectedSize(1);
+        reversedByName.add(correctByName.get(correctByName.size()-1));
+		Assert.assertEquals("Incorrect name ordering!",reversedByName,returnedByName);
+	}
+
 	@Test
 	public void testSortOperationByKey2Descending() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select name,value1,value2 from %s order by value1 desc",this.getTableReference(TABLE_NAME_1)));

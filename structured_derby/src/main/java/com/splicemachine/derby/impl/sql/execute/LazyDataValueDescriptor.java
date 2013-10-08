@@ -67,6 +67,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
        init(dvd, dvdSerializer);
     }
 
+    public void setDescendingOrder(boolean descendingOrder){
+        assert isNull();
+        this.descendingOrder = descendingOrder;
+    }
+
     protected void init(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
         this.dvd = dvd;
         typeFormatId = dvd.getTypeFormatId();
@@ -744,7 +749,13 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         byte[] bytes = getBytes();
         byte[] retBytes = new byte[bytes.length];
         System.arraycopy(bytes,0,retBytes,0,bytes.length);
-        if(desc){
+        if(desc && !this.descendingOrder){
+            //need to convert to descending order
+            for(int i=0;i<retBytes.length;i++){
+                retBytes[i] ^=0xff;
+            }
+        }else if(!desc && this.descendingOrder){
+            //need to convert to ascending order
             for(int i=0;i<retBytes.length;i++){
                 retBytes[i] ^=0xff;
             }
