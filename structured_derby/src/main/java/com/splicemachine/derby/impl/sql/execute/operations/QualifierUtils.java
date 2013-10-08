@@ -155,10 +155,10 @@ class QualifierUtils {
                 if(columnFormat==StoredFormatIds.SQL_REAL_ID){
                     //check for float overflow
                     double value = dvd.getDouble();
-                    if(value > Float.MAX_VALUE){
+                    if(value > Limits.DB2_LARGEST_REAL){
                         value = Float.MAX_VALUE;
-                    }else if(value < Float.MIN_VALUE){
-                        value = Float.MIN_VALUE;
+                    }else if(value < Limits.DB2_SMALLEST_POSITIVE_REAL){
+                        value = 0f;
                     }
                     correctType.setValue(value);
                 }else if(columnFormat==StoredFormatIds.SQL_DECIMAL_ID){
@@ -170,8 +170,10 @@ class QualifierUtils {
                 if(columnFormat==StoredFormatIds.SQL_REAL_ID){
                     if(val.compareTo(BigDecimal.valueOf(Float.MAX_VALUE))>0)
                         value = Float.MAX_VALUE;
-                    else if(val.compareTo(BigDecimal.valueOf(Float.MIN_VALUE))<0)
-                        value = Float.MIN_VALUE;
+                    else if(val.signum()>0 &&val.compareTo(BigDecimal.valueOf(Limits.DB2_SMALLEST_POSITIVE_REAL))<0)
+                        value = 0f;
+                    else if(val.signum()<0 &&val.compareTo(BigDecimal.valueOf(Limits.DB2_LARGEST_NEGATIVE_REAL))>0)
+                        value = 0f;
                     else
                         value = val.floatValue();
                 }else if(columnFormat==StoredFormatIds.SQL_DOUBLE_ID){

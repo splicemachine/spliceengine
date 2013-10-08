@@ -404,15 +404,15 @@ public class TableScanOperationIT extends SpliceUnitTest {
         Assert.assertFalse(rs.next());
     }
 
-    @Ignore("Bug 420")
+//    @Ignore("Bug 420")
     @Test
     public void testScanRealWithEqualsOperation() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery("select se4 from" + this.getPaddedTableReference("AB") +"where se4 = 50.0");
+        ResultSet rs = methodWatcher.executeQuery("select se4 from" + this.getPaddedTableReference("AB") +"where se4 = 0e0");
 
         rs.next();
 
-        double res = rs.getDouble(1);
-        Assert.assertEquals(50.0,res,0.0);
+        float res = rs.getFloat(1);
+        Assert.assertEquals(0.0,res,0.0);
 
         Assert.assertFalse(rs.next());
     }
