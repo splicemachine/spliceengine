@@ -4,8 +4,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -281,5 +284,28 @@ public class UnionOperationIT extends SpliceUnitTest {
         Assert.assertEquals("union all should return 2 rows", 2,i);
     }
 
-    
+    @Test
+    public void testMultipleUnionsInASubSelect() throws Exception {
+        //Bug 852
+        ResultSet rs = methodWatcher.executeQuery(format(
+                "select i from %1$s where exists (select i from %2$s where %1$s.i < i union \n" +
+                        "select i from %2$s where 1 = 0 union select i from %2$s where %1$s.i < i union select\n" +
+                        "i from %2$s where 1 = 0)",spliceTableWatcher3,spliceTableWatcher4
+        ));
+
+        int[] correctResults = new int[]{1,2};
+        List<Integer> actual = Lists.newArrayListWithExpectedSize(2);
+        while(rs.next()){
+            actual.add(rs.getInt(1));
+        }
+
+        Assert.assertEquals("Incorrect result count returned!",correctResults.length,actual.size());
+        Collections.sort(actual);
+
+        int[] actualResults = new int[2];
+        for(int i=0;i<actual.size();i++){
+            actualResults[i] = actual.get(i);
+        }
+        Assert.assertArrayEquals("Incorrect result contents!",correctResults,actualResults);
+    }
 }

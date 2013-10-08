@@ -135,8 +135,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			}
 			cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
 			if (this.constantRestrictionMethodName != null) {
-				GeneratedMethod constantRestriction = statement.getActivationClass().getMethod(this.constantRestrictionMethodName);
-				DataValueDescriptor restrictBoolean = (DataValueDescriptor) constantRestriction.invoke(activation);
+				SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
+				DataValueDescriptor restrictBoolean = constantRestriction.invoke();
 				shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 
                 if(restrictBoolean != null && !restrictBoolean.isNull()){
