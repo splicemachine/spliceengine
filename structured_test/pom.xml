@@ -107,14 +107,6 @@
 					<classpathDependencyExcludes>
 						<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>
 					</classpathDependencyExcludes>
-					<argLine>-Xms2g -Xmx2g -Djava.awt.headless=true</argLine>
-					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>**/*Test.java</include>
-					</includes>
-					<excludes>
-						<exclude>**/*IT.java</exclude>
-					</excludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -211,14 +203,6 @@
 							<classpathDependencyExcludes>
 								<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>
 							</classpathDependencyExcludes>
-							<argLine>-Xms2g -Xmx2g -Djava.awt.headless=true</argLine>
-							<redirectTestOutputToFile>true</redirectTestOutputToFile>
-							<includes>
-								<include>**/*Test.java</include>
-							</includes>
-							<excludes>
-								<exclude>**/*IT.java</exclude>
-							</excludes>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -235,8 +219,8 @@
 										</exec>
 										<sleep seconds="15" />
 										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${splice.start.script}" />
-											<arg value="${envClassifier}" />
+                                            <arg value="${basedir}/../${splice.start.script}" />
+                                            <arg value="${envClassifier}" />
 										</exec>
 										<sleep seconds="90" />
 									</target>
