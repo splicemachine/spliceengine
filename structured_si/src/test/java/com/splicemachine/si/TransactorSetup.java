@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -36,6 +37,7 @@ public class TransactorSetup extends SIConstants {
     public final TransactionStore transactionStore;
     public RollForwardQueue rollForwardQueue;
     public DataStore dataStore;
+    public TimestampSource timestampSource = new SimpleTimestampSource();
 
     public TransactorSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -63,7 +65,8 @@ public class TransactorSetup extends SIConstants {
         dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                 "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
                 commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
-        transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
+        timestampSource = new SimpleTimestampSource();
+        transactor = new SITransactor(timestampSource, dataLib, writer,
                 dataStore,
                 transactionStore, storeSetup.getClock(), 1500, storeSetup.getHasher(), listener);
         if (!simple) {

@@ -11,15 +11,13 @@ import java.util.List;
  * Reads data from a set of iterators that are expected to provide Data items in order by their ID. Produces the items
  * in overall ID order.
  */
-public class OrderedMuxer<ID, Data> implements Iterator<Data> {
+public class OrderedMuxer<ID extends Comparable, Data> implements Iterator<Data> {
     private final List<Pair<Short, Data>> candidates = new ArrayList<Pair<Short, Data>>();
     private final List<Iterator<Data>> sources;
-    private final Comparator<ID> comparator;
     private final DataIDDecoder<ID, Data> reader;
 
-    public OrderedMuxer(List<Iterator<Data>> sources, Comparator<ID> comparator, DataIDDecoder<ID, Data> reader) {
+    public OrderedMuxer(List<Iterator<Data>> sources, DataIDDecoder<ID, Data> reader) {
         this.sources = sources;
-        this.comparator = comparator;
         this.reader = reader;
         loadAllCandidates();
     }
@@ -86,7 +84,7 @@ public class OrderedMuxer<ID, Data> implements Iterator<Data> {
     }
 
     private boolean lessThan(Pair<Short, Data> candidate1, Pair<Short, Data> candidate2) {
-        return comparator.compare(candidateKey(candidate1), candidateKey(candidate2)) < 0;
+        return candidateKey(candidate1).compareTo(candidateKey(candidate2)) < 0;
     }
 
 }

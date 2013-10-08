@@ -5,12 +5,16 @@ import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import org.apache.commons.lang.ArrayUtils;
+import com.splicemachine.si.impl.iterator.ContiguousIterator;
+import com.splicemachine.si.impl.iterator.ContiguousIteratorFunctions;
+import com.splicemachine.si.impl.iterator.DataIDDecoder;
+import com.splicemachine.si.impl.iterator.OrderedMuxer;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -82,37 +86,66 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     // Write (i.e. "record") transaction information to the transaction table.
 
-    public void recordNewTransaction(long startTransactionTimestamp, TransactionParams params,
-                                     TransactionStatus status, long beginTimestamp, long counter) throws IOException {
-        writePut(buildCreatePut(startTransactionTimestamp, params, status, beginTimestamp, counter));
+    public void recordNewTransaction(final long startTransactionTimestamp, final TransactionParams params,
+                                     final TransactionStatus status, final long beginTimestamp, final long counter) throws IOException {
+        withTransactionTable(new TransactionStoreCallback<Void, Table>() {
+            @Override
+            public Void withTable(Table transactionTable) throws IOException {
+                if (!recordNewTransactionDirect(transactionTable, startTransactionTimestamp, params, status, beginTimestamp, counter)) {
+                    throw new RuntimeException("create transaction failed");
+                }
+                return null;
+            }
+        });
     }
 
-    public boolean recordTransactionCommit(long startTransactionTimestamp, long commitTimestamp,
-                                           Long globalCommitTimestamp, TransactionStatus expectedStatus,
-                                           TransactionStatus newStatus) throws IOException {
+    public boolean recordNewTransactionDirect(Table transactionTable, long startTransactionTimestamp, TransactionParams params,
+                                              TransactionStatus status, long beginTimestamp, long counter) throws IOException {
+        return writePut(transactionTable, buildCreatePut(startTransactionTimestamp, params, status, beginTimestamp, counter));
+    }
+
+    public boolean recordTransactionCommit(final long startTransactionTimestamp, final long commitTimestamp,
+                                           final Long globalCommitTimestamp, final TransactionStatus expectedStatus,
+                                           final TransactionStatus newStatus) throws IOException {
         Tracer.traceStatus(startTransactionTimestamp, newStatus, true);
         try {
-            return writePut(buildCommitPut(startTransactionTimestamp, commitTimestamp, globalCommitTimestamp, newStatus),
-                    (expectedStatus == null) ? null : encodeStatus(expectedStatus));
+            return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
+                @Override
+                public Boolean withTable(Table transactionTable) throws IOException {
+                    return writePut(transactionTable, buildCommitPut(startTransactionTimestamp, commitTimestamp, globalCommitTimestamp, newStatus),
+                            (expectedStatus == null) ? null : encodeStatus(expectedStatus));
+                }
+            });
         } finally {
             Tracer.traceStatus(startTransactionTimestamp, newStatus, false);
         }
     }
 
-    public boolean recordTransactionStatusChange(long startTransactionTimestamp, TransactionStatus expectedStatus,
-                                                 TransactionStatus newStatus)
+    public boolean recordTransactionStatusChange(final long startTransactionTimestamp, final TransactionStatus expectedStatus,
+                                                 final TransactionStatus newStatus)
             throws IOException {
         Tracer.traceStatus(startTransactionTimestamp, newStatus, true);
         try {
-            return writePut(buildStatusUpdatePut(startTransactionTimestamp, newStatus), encodeStatus(expectedStatus));
+            return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
+                @Override
+                public Boolean withTable(Table transactionTable) throws IOException {
+                    return writePut(transactionTable, buildStatusUpdatePut(startTransactionTimestamp, newStatus), encodeStatus(expectedStatus));
+                }
+            });
         } finally {
             Tracer.traceStatus(startTransactionTimestamp, newStatus, false);
         }
     }
 
-    public void recordTransactionKeepAlive(long startTransactionTimestamp)
+    public void recordTransactionKeepAlive(final long startTransactionTimestamp)
             throws IOException {
-        writePut(buildKeepAlivePut(startTransactionTimestamp));
+        withTransactionTable(new TransactionStoreCallback<Void, Table>() {
+            @Override
+            public Void withTable(Table transactionTable) throws IOException {
+                writePut(transactionTable, buildKeepAlivePut(startTransactionTimestamp), encodeStatus(TransactionStatus.ACTIVE));
+                return null;
+            }
+        });
     }
 
     // Internal functions to construct operations to update the transaction table.
@@ -178,24 +211,26 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     // Apply operations to the transaction table
 
-    private void writePut(Put put) throws IOException {
-        writePut(put, null);
+    private boolean writePut(Table transactionTable, Put put) throws IOException {
+        return writePut(transactionTable, put, null);
     }
 
-    private boolean writePut(Put put, Data expectedStatus) throws IOException {
-        final Table transactionSTable = reader.open(transactionSchema.tableName);
+    private <T> T withTransactionTable(TransactionStoreCallback<T, Table> transactionStoreCallback) throws IOException {
+        final Table transactionTable = reader.open(transactionSchema.tableName);
         try {
-            if (expectedStatus == null) {
-                writer.write(transactionSTable, put);
-                listener.writeTransaction();
-                return true;
-            } else {
-                return writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
-                        expectedStatus, put);
-            }
+            return transactionStoreCallback.withTable(transactionTable);
         } finally {
-            reader.close(transactionSTable);
+            reader.close(transactionTable);
         }
+    }
+
+    private boolean writePut(Table transactionTable, Put put, Data expectedStatus) throws IOException {
+        final boolean result = writer.checkAndPut(transactionTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
+                expectedStatus, put);
+        if (expectedStatus == null && result) {
+            listener.writeTransaction();
+        }
+        return result;
     }
 
     // Load transactions from the cache or the underlying transaction table.
@@ -319,21 +354,35 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         if (transactionId == Transaction.ROOT_ID) {
             return Transaction.rootTransaction;
         }
-        Data tupleKey = transactionIdToRowKeyObject(transactionId);
         Table transactionTable = reader.open(transactionSchema.tableName);
         try {
-            Get get = dataLib.newGet(tupleKey, null, null, null);
-            Result resultTuple = reader.get(transactionTable, get);
-            if (resultTuple != null) {
-                listener.loadTransaction();
-                final Transaction result = decodeTransactionResults(transactionId, resultTuple);
-                cacheCompletedTransactions(transactionId, result);
-                return result;
+            final Result rawResult = readTransaction(transactionTable, transactionId);
+            if (rawResult != null) {
+                Transaction result = decodeResults(transactionId, rawResult);
+                if (result != null) {
+                    return result;
+                }
             }
         } finally {
             reader.close(transactionTable);
         }
         throw new RuntimeException("transaction ID not found: " + transactionId);
+    }
+
+    private Result readTransaction(Table transactionTable, long transactionId) throws IOException {
+        Data tupleKey = transactionIdToRowKeyObject(transactionId);
+        Get get = dataLib.newGet(tupleKey, null, null, null);
+        return reader.get(transactionTable, get);
+    }
+
+    private Transaction decodeResults(long transactionId, Result resultTuple) throws IOException {
+        Transaction result = null;
+        if (resultTuple != null) {
+            listener.loadTransaction();
+            result = decodeTransactionResults(transactionId, resultTuple);
+            cacheCompletedTransactions(transactionId, result);
+        }
+        return result;
     }
 
     private void cacheCompletedTransactions(long transactionId, Transaction result) {
@@ -434,7 +483,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @throws IOException
      */
     public long generateTimestamp(long transactionId) throws IOException {
-        final Table transactionSTable = reader.open(transactionSchema.tableName);
+        final Table transactionTable = reader.open(transactionSchema.tableName);
         try {
             final Transaction transaction = loadTransactionDirect(transactionId);
             long current = transaction.counter;
@@ -443,7 +492,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                 final long next = current + 1;
                 final Put put = buildBasePut(transactionId);
                 addFieldToPut(put, encodedSchema.counterQualifier, next);
-                if (writer.checkAndPut(transactionSTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
+                if (writer.checkAndPut(transactionTable, encodedSchema.siFamily, encodedSchema.counterQualifier,
                         dataLib.encode(current), put)) {
                     return next;
                 } else {
@@ -451,7 +500,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                 }
             }
         } finally {
-            reader.close(transactionSTable);
+            reader.close(transactionTable);
         }
         throw new IOException("Unable to obtain timestamp");
     }
@@ -494,7 +543,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @return
      */
     private Object[] transactionIdToRowKey(long id) {
-        return new Object[] {(byte) (id % 16), id};
+        return new Object[]{(byte) (id % 16), id};
     }
 
     /**
@@ -511,4 +560,65 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         }
     }
 
+    final DataIDDecoder<Long, Result> decoder = new DataIDDecoder<Long, Result>() {
+        @Override
+        public Long getID(Result result) {
+            return decodeLong(result, encodedSchema.idQualifier);
+        }
+    };
+
+    public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
+                                                         final int maxCount, final TransactionParams missingParams,
+                                                         final TransactionStatus missingStatus)
+            throws IOException {
+        return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+            @Override
+            public List<Transaction> withTable(final Table transactionTable) throws IOException {
+                final ContiguousIterator<Long, Result> contiguousIterator = makeContiguousIterator(transactionTable, startTransactionId, missingParams, missingStatus);
+                final List<Transaction> results = new ArrayList<Transaction>();
+                long transactionId = startTransactionId;
+                while (results.size() < maxCount && contiguousIterator.hasNext() && transactionId < maxTransactionId) {
+                    final Result next = contiguousIterator.next();
+                    transactionId = decoder.getID(next);
+                    final Transaction transaction = decodeResults(transactionId, next);
+                    if (transaction.getEffectiveStatus().isActive()) {
+                        results.add(transaction);
+                    }
+                }
+                return results;
+            }
+        });
+    }
+
+    private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId, TransactionParams missingParams, TransactionStatus missingStatus) throws IOException {
+        List<Iterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
+        return new ContiguousIterator<Long, Result>(startTransactionId,
+                new OrderedMuxer<Long, Result>(scanners, decoder), decoder, makeCallbacks(transactionTable, missingParams, missingStatus));
+    }
+
+    private ContiguousIteratorFunctions<Long, Result> makeCallbacks(final Table transactionTable, final TransactionParams missingParams, final TransactionStatus missingStatus) {
+        return new ContiguousIteratorFunctions<Long, Result>() {
+            @Override
+            public Long increment(Long transactionId) {
+                return transactionId + 1;
+            }
+
+            @Override
+            public Result missing(Long transactionId) throws IOException {
+                recordNewTransactionDirect(transactionTable, transactionId, missingParams, missingStatus, transactionId, 0);
+                return readTransaction(transactionTable, transactionId);
+            }
+        };
+    }
+
+    private List<Iterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
+        List<Iterator<Result>> scanners = new ArrayList<Iterator<Result>>();
+        for (byte i = 0; i < 16; i++) {
+            final Data rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
+            final Data endKey = i == 15 ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
+            final Scan scan = dataLib.newScan(rowKey, endKey, null, null, null);
+            scanners.add(reader.scan(transactionTable, scan));
+        }
+        return scanners;
+    }
 }

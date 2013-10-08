@@ -3,6 +3,7 @@ package com.splicemachine.si.api;
 import com.splicemachine.si.impl.TransactionId;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Transactor calls for controlling transactions (e.g. starting, stopping them).
@@ -47,4 +48,6 @@ public interface TransactorControl {
     TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException;
 
     TransactionId transactionIdFromString(String transactionId);
+
+    List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
 }

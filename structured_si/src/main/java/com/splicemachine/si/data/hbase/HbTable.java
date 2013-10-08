@@ -31,7 +31,12 @@ public class HbTable implements IHTable {
 
     @Override
     public Result get(Get get) throws IOException {
-        return table.get(get);
+        final Result result = table.get(get);
+        if (result.isEmpty()) {
+           return null;
+        } else {
+            return result;
+        }
     }
 
     @Override

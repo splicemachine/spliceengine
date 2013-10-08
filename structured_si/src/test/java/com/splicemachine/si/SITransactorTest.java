@@ -13,13 +13,24 @@ import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.*;
+import com.splicemachine.si.impl.FilterState;
+import com.splicemachine.si.impl.FilterStatePacked;
+import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
+import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.impl.Transaction;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -37,7 +48,13 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -170,7 +187,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     static void insertAgeDirectBatch(boolean useSimple, boolean usePacked, TransactorSetup transactorSetup, StoreSetup storeSetup,
-                                Object[] args) throws IOException {
+                                     Object[] args) throws IOException {
         insertFieldBatch(useSimple, usePacked, transactorSetup, storeSetup, args, transactorSetup.ageQualifier);
     }
 
@@ -203,8 +220,8 @@ public class SITransactorTest extends SIConstants {
                 }
                 final BitSet bitSet = new BitSet();
                 bitSet.set(columnIndex);
-                final EntryEncoder entryEncoder = EntryEncoder.create(KryoPool.defaultPool(),2, bitSet, null, null, null);
-                try{
+                final EntryEncoder entryEncoder = EntryEncoder.create(KryoPool.defaultPool(), 2, bitSet, null, null, null);
+                try {
                     if (columnIndex == 0) {
                         entryEncoder.getEntryEncoder().encodeNext((Integer) fieldValue);
                     } else {
@@ -212,7 +229,7 @@ public class SITransactorTest extends SIConstants {
                     }
                     final byte[] packedRow = entryEncoder.encode();
                     dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
-                }finally{
+                } finally {
                     entryEncoder.close();
                 }
             } else {
@@ -229,7 +246,7 @@ public class SITransactorTest extends SIConstants {
         final STableReader reader = storeSetup.getReader();
         Object[] puts = new Object[args.length];
         int i = 0;
-        for (Object subArgs: args) {
+        for (Object subArgs : args) {
             Object[] subArgsArray = (Object[]) subArgs;
             TransactionId transactionId = (TransactionId) subArgsArray[0];
             String name = (String) subArgsArray[1];
@@ -272,15 +289,15 @@ public class SITransactorTest extends SIConstants {
     }
 
     private static void processPutDirectBatch(boolean useSimple, boolean usePacked,
-                                         TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
-                                         Object[] puts) throws IOException {
+                                              TransactorSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
+                                              Object[] puts) throws IOException {
         final Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object tableToUse = testSTable;
             if (useSimple) {
                 if (usePacked) {
                     Object[] packedPuts = new Object[puts.length];
-                    for (int i=0; i<puts.length; i++) {
+                    for (int i = 0; i < puts.length; i++) {
                         packedPuts[i] = ((LTuple) puts[i]).pack("V", "p");
                     }
                     puts = packedPuts;
@@ -542,7 +559,7 @@ public class SITransactorTest extends SIConstants {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertTrue("Incorrect message returned!",dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
+            Assert.assertTrue("Incorrect message returned!", dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
         }
     }
 
@@ -863,7 +880,7 @@ public class SITransactorTest extends SIConstants {
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
             String message = dnrio.getMessage();
-            Assert.assertTrue("Incorrect message pattern returned!",message.matches("transaction [0-9]* is not ACTIVE.*"));
+            Assert.assertTrue("Incorrect message pattern returned!", message.matches("transaction [0-9]* is not ACTIVE.*"));
         }
     }
 
@@ -902,8 +919,7 @@ public class SITransactorTest extends SIConstants {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertTrue("Incorrect message returned!",dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
-//            Assert.assertTrue(dnrio.getMessage().startsWith("transaction is not ACTIVE"));
+            Assert.assertTrue("Incorrect message returned!", dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
         }
 
         TransactionId t3 = transactor.beginTransaction();
@@ -2178,7 +2194,7 @@ public class SITransactorTest extends SIConstants {
                 Assert.assertEquals(-1, timestamp);
                 Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
             }
-            Assert.assertTrue("Latch timed out",latch.await(11, TimeUnit.SECONDS));
+            Assert.assertTrue("Latch timed out", latch.await(11, TimeUnit.SECONDS));
 
             Object result2 = readRaw(testRow);
             final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
@@ -2356,7 +2372,7 @@ public class SITransactorTest extends SIConstants {
         final BitSet bitSet = new BitSet(2);
         bitSet.set(0);
         bitSet.set(1);
-        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList(),true);
+        EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, Collections.<Predicate>emptyList(), true);
         dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
@@ -3261,7 +3277,7 @@ public class SITransactorTest extends SIConstants {
             transactor.commit(t2);
             Assert.fail();
         } catch (DoNotRetryIOException dnrio) {
-            Assert.assertTrue("Incorrect message returned!",dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
+            Assert.assertTrue("Incorrect message returned!", dnrio.getMessage().matches("transaction [0-9]* is not ACTIVE.*"));
         }
     }
 
@@ -3300,7 +3316,7 @@ public class SITransactorTest extends SIConstants {
     public void batchWriteRead() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         Assert.assertEquals("joe144 absent", read(t1, "joe144"));
-        insertAgeBatch(new Object[] {t1, "joe144", 20}, new Object[] {t1, "bob144", 30});
+        insertAgeBatch(new Object[]{t1, "joe144", 20}, new Object[]{t1, "bob144", 30});
         Assert.assertEquals("joe144 age=20 job=null", read(t1, "joe144"));
         Assert.assertEquals("bob144 age=30 job=null", read(t1, "bob144"));
         transactor.commit(t1);
@@ -3384,4 +3400,134 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("147zoe age=51 job=null", read(t2, "147zoe"));
     }
 
+    @Test
+    public void oldestActiveTransactionsOne() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t1.getId() - 1);
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(t1.getId(), result.get(0).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsTwo() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        final TransactionId t1 = transactor.beginTransaction();
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(t0.getId(), result.get(0).getId());
+        Assert.assertEquals(t1.getId(), result.get(1).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsFuture() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        final TransactionId t1 = transactor.beginTransaction();
+        transactor.beginTransaction();
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(t0.getId(), result.get(0).getId());
+        Assert.assertEquals(t1.getId(), result.get(1).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsSkipCommitted() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        final TransactionId t1 = transactor.beginTransaction();
+        final TransactionId t2 = transactor.beginTransaction();
+        transactor.commit(t0);
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t2);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(t1.getId(), result.get(0).getId());
+        Assert.assertEquals(t2.getId(), result.get(1).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsSkipCommittedGap() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        final TransactionId t1 = transactor.beginTransaction();
+        final TransactionId t2 = transactor.beginTransaction();
+        transactor.commit(t1);
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t2);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(t0.getId(), result.get(0).getId());
+        Assert.assertEquals(t2.getId(), result.get(1).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsSavedTimestampAdvances() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId() - 1);
+        transactor.beginTransaction();
+        final TransactionId t2 = transactor.beginTransaction();
+        transactor.commit(t0);
+        final long originalSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
+        transactor.getActiveTransactionIds(t2);
+        final long newSavedTimestamp = transactorSetup.timestampSource.retrieveTimestamp();
+        Assert.assertEquals(originalSavedTimestamp + 2, newSavedTimestamp);
+    }
+
+    @Test
+    public void oldestActiveTransactionsFillMissing() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        TransactionId committedTransactionID = null;
+        for (int i = 0; i < 1000; i++) {
+            final TransactionId transactionId = transactor.beginTransaction();
+            if (committedTransactionID == null) {
+                committedTransactionID = transactionId;
+            }
+            transactor.commit(transactionId);
+        }
+        Long commitTimestamp = (committedTransactionID.getId() + 1);
+        final TransactionId voidedTransactionID = transactor.transactionIdFromString(commitTimestamp.toString());
+        try {
+            transactor.getTransactionStatus(voidedTransactionID);
+            Assert.fail();
+        } catch (RuntimeException ex) {
+            Assert.assertTrue(ex.getMessage().startsWith("transaction ID not found:"));
+        }
+
+        final TransactionId t1 = transactor.beginTransaction();
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals(t0.getId(), result.get(0).getId());
+        Assert.assertEquals(t1.getId(), result.get(1).getId());
+        Assert.assertEquals(TransactionStatus.ERROR, transactor.getTransactionStatus(voidedTransactionID));
+    }
+
+    @Test
+    public void oldestActiveTransactionsManyActive() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        for (int i = 0; i < 500; i++) {
+            transactor.beginTransaction();
+        }
+        final TransactionId t1 = transactor.beginTransaction();
+        final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
+        Assert.assertEquals(502, result.size());
+        Assert.assertEquals(t0.getId(), result.get(0).getId());
+        Assert.assertEquals(t1.getId(), result.get(result.size() - 1).getId());
+    }
+
+    @Test
+    public void oldestActiveTransactionsTooManyActive() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        for (int i = 0; i < 1000; i++) {
+            transactor.beginTransaction();
+        }
+
+        final TransactionId t1 = transactor.beginTransaction();
+        try {
+            transactor.getActiveTransactionIds(t1);
+            Assert.fail();
+        } catch (RuntimeException ex) {
+            Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
+        }
+    }
 }

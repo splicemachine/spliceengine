@@ -32,11 +32,13 @@ public class ZooKeeperTimestampSource implements TimestampSource {
         return Long.parseLong(id.substring(id.length()-10, id.length()));
     }
 
-    public static void createWithParents(RecoverableZooKeeper rzk, String znode)
-            throws KeeperException, InterruptedException {
-            if(znode == null)
-                return;
-            ZkUtils.recursiveSafeCreate(znode, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    @Override
+    public void rememberTimestamp(long timestamp) {
+        throw new RuntimeException("not implemented");
     }
 
+    @Override
+    public long retrieveTimestamp() {
+        throw new RuntimeException("not implemented");
+    }
 }

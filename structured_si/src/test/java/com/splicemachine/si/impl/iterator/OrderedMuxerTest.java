@@ -5,7 +5,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
@@ -50,19 +49,6 @@ public class OrderedMuxerTest {
                         {3, 9, 5, 7, 1}}));
     }
 
-    final Comparator<Integer> comparator = new Comparator<Integer>() {
-        @Override
-        public int compare(Integer o1, Integer o2) {
-            if (o1 < o2) {
-                return -1;
-            } else if (o1 > o2) {
-                return 1;
-            } else {
-                return 0;
-            }
-        }
-    };
-
     final DataIDDecoder<Integer, Integer> decoder = new DataIDDecoder<Integer, Integer>() {
         @Override
         public Integer getID(Integer integer) {
@@ -71,7 +57,7 @@ public class OrderedMuxerTest {
     };
 
     private Integer[] mux(Integer[][] sourceData) {
-        return resultToArray(new OrderedMuxer(setupSources(sourceData), comparator, decoder));
+        return resultToArray(new OrderedMuxer(setupSources(sourceData), decoder));
     }
 
     static Integer[] resultToArray(Iterator<Integer> sequence) {

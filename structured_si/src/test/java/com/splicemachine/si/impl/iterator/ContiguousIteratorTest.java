@@ -4,83 +4,72 @@ import com.google.common.collect.Iterators;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Comparator;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class ContiguousIteratorTest {
     @Test
-    public void singleGap() {
+    public void singleGap() throws IOException {
         check(0, new Integer[]{0, 1, 2, 4, 5},
                 new Integer[]{0, 1, 2, -3, 4, 5});
     }
 
     @Test
-    public void mutliGap() {
+    public void mutliGap() throws IOException {
         check(0, new Integer[]{0, 2, 4, 5},
                 new Integer[]{0, -1, 2, -3, 4, 5});
     }
 
     @Test
-    public void longGap() {
+    public void longGap() throws IOException {
         check(0, new Integer[]{0, 4, 5},
                 new Integer[]{0, -1, -2, -3, 4, 5});
     }
 
     @Test
-    public void emptyInput() {
+    public void emptyInput() throws IOException {
         check(0, new Integer[]{},
                 new Integer[]{});
     }
 
     @Test
-    public void differentStart() {
+    public void differentStart() throws IOException {
         check(2, new Integer[]{2, 4, 5},
                 new Integer[]{2, -3, 4, 5});
     }
 
     @Test
-    public void startBeforeFirst() {
+    public void startBeforeFirst() throws IOException {
         check(1, new Integer[]{3, 5},
                 new Integer[]{-1, -2, 3, -4, 5});
     }
 
     @Test
-    public void startBeyondFirst() {
+    public void startBeyondFirst() throws IOException {
         try {
             check(2, new Integer[]{0, 1, 2, 4, 5},
                 new Integer[]{0, 1, 2, -3, 4, 5});
             Assert.fail();
         } catch (RuntimeException ex) {
-            Assert.assertEquals("expected value is ahead of actual value", ex.getMessage());
+            Assert.assertEquals("expected value 2 is ahead of actual value 0", ex.getMessage());
         }
     }
 
     @Test
-    public void withMuxer() {
+    public void withMuxer() throws IOException {
         final Iterator<Integer> muxer = new OrderedMuxer(OrderedMuxerTest.setupSources(new Integer[][]{
                 {0, 2, 4},
-                {1, 5, 9}}), comparator, decoder);
-        final Iterator<Integer> result = new ContiguousIterator<Integer, Integer>(0, muxer, comparator, decoder, callbacks);
-        Assert.assertArrayEquals(new Integer[]{0, 1, 2, -3, 4, 5, -6, -7, -8, 9}, OrderedMuxerTest.resultToArray(result));
+                {1, 5, 9}}), decoder);
+        final ContiguousIterator<Integer, Integer> result = new ContiguousIterator<Integer, Integer>(0, muxer, decoder, callbacks);
+        Assert.assertArrayEquals(new Integer[]{0, 1, 2, -3, 4, 5, -6, -7, -8, 9}, resultToArray(result));
     }
 
-    private void check(int start, Integer[] expected, Integer[] input) {
-        final Iterator<Integer> result = new ContiguousIterator(start, Iterators.<Integer>forArray(expected), comparator, decoder, callbacks);
-        Assert.assertArrayEquals(input, OrderedMuxerTest.resultToArray(result));
+    private void check(int start, Integer[] expected, Integer[] input) throws IOException {
+        final ContiguousIterator<Integer, Integer> result = new ContiguousIterator(start, Iterators.<Integer>forArray(expected), decoder, callbacks);
+        Assert.assertArrayEquals(input, resultToArray(result));
     }
-
-    final static Comparator<Integer> comparator = new Comparator<Integer>() {
-        @Override
-        public int compare(Integer o1, Integer o2) {
-            if (o1 < o2) {
-                return -1;
-            } else if (o1 > o2) {
-                return 1;
-            } else {
-                return 0;
-            }
-        }
-    };
 
     final static DataIDDecoder<Integer, Integer> decoder = new DataIDDecoder<Integer, Integer>() {
         @Override
@@ -100,4 +89,14 @@ public class ContiguousIteratorTest {
             return integer * -1;
         }
     };
+
+    static Integer[] resultToArray(ContiguousIterator<Integer, Integer> sequence) throws IOException {
+        List<Integer> result = new ArrayList<Integer>();
+        while (sequence.hasNext()) {
+            result.add(sequence.next());
+        }
+        return result.toArray(new Integer[result.size()]);
+    }
+
+
 }

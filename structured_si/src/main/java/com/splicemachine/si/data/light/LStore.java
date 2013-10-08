@@ -87,7 +87,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
         List<LTuple> results = new ArrayList<LTuple>();
         for (LTuple t : tuples) {
             if ((t.key.equals(get.startTupleKey)) ||
-                    ((t.key.compareTo((String) get.startTupleKey) > 0) && (t.key.compareTo((String) get.endTupleKey) < 0))) {
+                    ((t.key.compareTo((String) get.startTupleKey) > 0) && (get.endTupleKey == null || t.key.compareTo((String) get.endTupleKey) < 0))) {
                 results.add(filterCells(t, get.families, get.columns, get.effectiveTimestamp));
             }
         }
@@ -185,14 +185,21 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);
             Iterator results = runScan(table, get);
-            LTuple result = (LTuple) results.next();
+            LTuple result = null;
+            if (results.hasNext()) {
+                result = (LTuple) results.next();
+            }
             assert !results.hasNext();
             boolean match = false;
-            sortValues(result.values);
-            for (LKeyValue kv : result.values) {
-                if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
-                    match = kv.value.equals(expectedValue);
-                    break;
+            if (result == null) {
+                match = (expectedValue == null);
+            } else {
+                sortValues(result.values);
+                for (LKeyValue kv : result.values) {
+                    if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
+                        match = kv.value.equals(expectedValue);
+                        break;
+                    }
                 }
             }
             if (match) {

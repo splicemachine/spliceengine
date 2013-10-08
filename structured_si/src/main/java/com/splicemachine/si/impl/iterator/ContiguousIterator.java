@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.iterator;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -8,34 +9,30 @@ import java.util.Iterator;
  * gaps with calls to the "missing" callback. The net result is that the consumer of this iterator sees a contiguous
  * series of data elements representing all IDs.
  */
-public class ContiguousIterator<ID, Data> implements Iterator<Data> {
+public class ContiguousIterator<ID extends Comparable, Data> {
     private ID target;
     private Data buffered;
     private final Iterator<Data> source;
-    private final Comparator<ID> comparator;
     private final DataIDDecoder<ID, Data> decoder;
     private final ContiguousIteratorFunctions<ID, Data> callbacks;
 
     /**
      * @param target The first ID expected. This is needed because there may be a gap at the beginning of the sequence.
      */
-    public ContiguousIterator(ID target, Iterator<Data> source, Comparator<ID> comparator,
+    public ContiguousIterator(ID target, Iterator<Data> source,
                               DataIDDecoder<ID, Data> decoder,
                               ContiguousIteratorFunctions<ID, Data> callbacks) {
         this.target = target;
         this.source = source;
-        this.comparator = comparator;
         this.decoder = decoder;
         this.callbacks = callbacks;
     }
 
-    @Override
     public boolean hasNext() {
         return buffered != null || source.hasNext();
     }
 
-    @Override
-    public Data next() {
+    public Data next() throws IOException {
         Data result = null;
         while (result == null && hasNext()) {
             final Data next = read();
@@ -46,7 +43,7 @@ public class ContiguousIterator<ID, Data> implements Iterator<Data> {
                 buffered = next;
                 result = callbacks.missing(target);
             } else {
-                throw new RuntimeException("expected value is ahead of actual value");
+                throw new RuntimeException("expected value " + target + " is ahead of actual value " + next);
             }
             target = callbacks.increment(target);
         }
@@ -54,7 +51,7 @@ public class ContiguousIterator<ID, Data> implements Iterator<Data> {
     }
 
     private int compareToTarget(Data next) {
-        return comparator.compare(decoder.getID(next), target);
+        return decoder.getID(next).compareTo(target);
     }
 
     private Data read() {
@@ -65,11 +62,6 @@ public class ContiguousIterator<ID, Data> implements Iterator<Data> {
             buffered = null;
             return result;
         }
-    }
-
-    @Override
-    public void remove() {
-        throw new RuntimeException("not implemented");
     }
 
 }

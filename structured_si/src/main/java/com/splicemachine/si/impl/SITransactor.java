@@ -54,7 +54,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     private final TransactorListener listener;
 
     private final TransactionSource transactionSource;
-    
+
     public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
                         final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
                         Hasher<Data, Hashable> hasher, TransactorListener listener) {
@@ -471,25 +471,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private ScanBounds<Data> findScanBounds(Map<Hashable, List<PutInBatch<Data, Put>>> putInProgressMap) {
-        Hashable hashableMin = null;
-        Hashable hashableMax = null;
-        ScanBounds<Data> scanBounds = new ScanBounds<Data>();
-        for (Map.Entry<Hashable, List<PutInBatch<Data, Put>>> entry : putInProgressMap.entrySet()) {
-            final Hashable hashableRowKey = entry.getKey();
-            final Data rowKey = entry.getValue().get(0).rowKey;
-            if (hashableMin == null || hashableRowKey.compareTo(hashableMin) < 0) {
-                hashableMin = hashableRowKey;
-                scanBounds.minKey = rowKey;
-            }
-            if (hashableMax == null || hashableRowKey.compareTo(hashableMax) > 0) {
-                hashableMax = hashableRowKey;
-                scanBounds.maxKey = rowKey;
-            }
-        }
-        return scanBounds;
-    }
-
     private PutToRun<Mutation, Lock> getMutationLockPutToRun(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction, Data rowKey, Lock lock, ConflictResults conflictResults) throws IOException {
         final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
                 conflictResults.hasTombstone);
@@ -510,7 +491,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
         return hashableRowKey;
     }
-
 
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {
@@ -822,10 +802,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * Throw an exception if the transaction is not active.
      */
     private void ensureTransactionActive(Transaction transaction) throws IOException {
-        if(transaction.status==TransactionStatus.COMMITTED||transaction.status==TransactionStatus.COMMITTING) return; //don't care if we've already committed
+        if (transaction.status == TransactionStatus.COMMITTED || transaction.status == TransactionStatus.COMMITTING)
+            return; //don't care if we've already committed
         else if (transaction.status.isFinished()) {
             String txnIdStr = transaction.getTransactionId().getTransactionIdString();
-            throw new DoNotRetryIOException("transaction "+txnIdStr+" is not ACTIVE. State is " + transaction.status);
+            throw new DoNotRetryIOException("transaction " + txnIdStr + " is not ACTIVE. State is " + transaction.status);
         }
     }
 
@@ -836,5 +817,30 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         if (transaction.isReadOnly()) {
             throw new DoNotRetryIOException("transaction is read only: " + transaction.getTransactionId().getTransactionIdString());
         }
+    }
+
+    @Override
+    public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException {
+        final long currentMin = timestampSource.retrieveTimestamp();
+        final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
+                true, false, false, false);
+        final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
+                currentMin, max.getId(), 1000, missingParams, TransactionStatus.ERROR);
+        final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());
+        if (!oldestActiveTransactions.isEmpty()) {
+            final long oldestId = oldestActiveTransactions.get(0).getTransactionId().getId();
+            if (oldestId > currentMin) {
+                timestampSource.rememberTimestamp(oldestId);
+            }
+        }
+        final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size()-1).getTransactionId();
+        if (youngestId.equals(max)) {
+            for (Transaction t : oldestActiveTransactions) {
+                result.add(t.getTransactionId());
+            }
+        } else {
+            throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
+        }
+        return result;
     }
 }

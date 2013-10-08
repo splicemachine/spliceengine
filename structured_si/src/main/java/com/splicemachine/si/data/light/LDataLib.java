@@ -19,6 +19,8 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
                 toAppend = String.format("%1$06d", a);
             } else if (a instanceof Long) {
                 toAppend = String.format("%1$020d", a);
+            } else if (a instanceof Byte) {
+                toAppend = String.format("%1$02d", a);
             }
             builder.append(toAppend);
         }
