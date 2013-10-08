@@ -8336,6 +8336,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<name>SE005</name>
 							<text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance</text>	
 						</msg>
+		
+						<msg>
+							<name>SE006.C.3</name>
+							<text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance</text>
+						</msg>
 
        </family>
     </section>
