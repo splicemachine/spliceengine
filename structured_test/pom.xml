@@ -51,7 +51,7 @@
 			<artifactId>splice_machine</artifactId>
 			<version>1.0.1-SNAPSHOT</version>
 			<classifier>${envClassifier}</classifier>
-		</dependency>
+		</dependency>		
 
 	</dependencies>
 	<build>
@@ -357,6 +357,7 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
+                                <argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/test/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
@@ -365,10 +366,10 @@
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
-								<argument>60021</argument>
-								<argument>60022</argument>
-								<argument>60023</argument>
-								<argument>60024</argument>
+								<argument>60025</argument>
+								<argument>60026</argument>
+								<argument>60027</argument>
+								<argument>60028</argument>
 							</arguments>
 
 						</configuration>
