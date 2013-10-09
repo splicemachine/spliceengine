@@ -1,7 +1,7 @@
 package com.splicemachine.hbase.debug;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
@@ -42,7 +42,7 @@ public class SpliceTableDebugger extends Configured implements Tool {
         try{
             zkManager = new SpliceZooKeeperManager();
             System.out.println("Beginning");
-            scheduler = new AsyncJobScheduler(zkManager,getConf());
+            scheduler = new DistributedJobScheduler(zkManager,getConf());
             System.out.println("Executing");
             int ret =  operation.execute(getConf(),scheduler,args);
             System.out.println("Finished");

@@ -19,17 +19,20 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
+ * JobScheduler which uses ZooKeeper and HBase coprocessors to submit and manage tasks.
+ *
+ * //TODO -sf- more documentation here
  * @author Scott Fines
  * Created on: 5/9/13
  */
-public class AsyncJobScheduler implements JobScheduler<CoprocessorJob>{
+public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     private static final int DEFAULT_MAX_RESUBMISSIONS = 20;
     protected final SpliceZooKeeperManager zkManager;
     private final int maxResubmissionAttempts;
 
     private final JobMetrics jobMetrics = new JobMetrics();
 
-    public AsyncJobScheduler(SpliceZooKeeperManager zkManager,Configuration configuration) {
+    public DistributedJobScheduler(SpliceZooKeeperManager zkManager, Configuration configuration) {
         this.zkManager = zkManager;
 
         maxResubmissionAttempts = configuration.getInt("splice.tasks.maxResubmissions",DEFAULT_MAX_RESUBMISSIONS);

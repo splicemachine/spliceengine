@@ -5,20 +5,14 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.writer.WriteUtils;
+import com.splicemachine.derby.utils.TransactionUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorControl;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -138,8 +132,6 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                     taskStatus.setStatus(Status.INVALID);
                 }else{
                     taskStatus = TaskStatus.fromBytes(data);
-//                    ByteDataInput bdi = new ByteDataInput(data);
-//                    taskStatus = (TaskStatus)bdi.readObject();
                 }
             } catch (InterruptedException e) {
                 throw new ExecutionException(e);
@@ -234,16 +226,11 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      * protects us from programmer error. However, as invalidations can result in tasks not having a child transaction, we can also be
      * relaxed about this check.
      */
-    boolean rollback(int numTries) {
+    boolean rollback(int maxTries) {
         if(!task.isTransactional()){
             //no need to roll back a nontransactional task
             return true;
         }
-        if(numTries<0){
-            fail(new AttemptsExhaustedException("Unable to roll back transaction after many retries"));
-            return false;
-        }
-
         String tId = taskStatus.getTransactionId();
         if(tId==null){
             //emit a warning in case
@@ -251,128 +238,36 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
             return true;
         }
 
-        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
-        TransactionId txnId = txnControl.transactionIdFromString(tId);
-        try{
-            SchedulerTracer.traceTaskRollback(txnId);
-            txnControl.rollback(txnId);
-            return true;
-        } catch (IOException e) {
-            /*
-             * We encountered a problem rolling back. We need to make sure that we properly rolled
-             * back (and that we don't need to fail everything)
-             */
-            TransactionStatus status;
-            try {
-                status = getTransactionStatus(txnId,txnControl,5);
-            } catch (RetriesExhaustedException e1) {
-                LOG.error("Unable to read transaction status after 5 attempts. Something is really wrong, failing entire job",e1);
-                fail(new AttemptsExhaustedException(e));
-                return false;
-            }
-            switch (status) {
-                case ROLLED_BACK:
-                    //we succeeded!
-                    return false;
-                case ACTIVE:
-                    //we are able to attempt the roll back again
-                    return rollback(numTries-1);
-                case COMMITTING:
-                    throw new IllegalStateException("Saw a Transaction state of COMMITTING where it wasn't expected");
-                case COMMITTED:
-                    /*
-                     * On the one hand, rolling back a committed transaction does nothing. On the other, why are we
-                     * hitting this? Probably a programmer's error, throw an assertion error
-                     */
-                    throw new IllegalStateException("Attempted to roll back a COMMITTED transaction");
-                default:
-                    //we encountered an error that we can't recover from, kill the entire job
-                    fail(new DoNotRetryIOException("Unable to rollback transaction",e));
-                    return false;
-            }
-        }
-    }
-
-    //commit this task's transaction (if it has one)
-    boolean commit(int maxTries,int tryCount){
-        if(!task.isTransactional()){
-            //no need to roll back a nontransactional task
-            return true;
-        }
-        if(tryCount<0){
-            fail(new AttemptsExhaustedException("Unable to commit transaction after " + maxTries + " retries"));
+        try {
+            return TransactionUtils.rollback(HTransactorFactory.getTransactorControl(),tId,maxTries); //TODO -sf- make 5 configurable
+        } catch (AttemptsExhaustedException e) {
+            fail(e);
             return false;
         }
+    }
 
+
+
+    boolean commit(int maxTries){
+        if(!task.isTransactional()){
+            return true;
+        }
         String tId = taskStatus.getTransactionId();
-        Preconditions.checkNotNull(tId, "Transactional task has no transaction");
+        Preconditions.checkNotNull(tId,"Transactional task has no transaction");
 
         TransactorControl txnControl = HTransactorFactory.getTransactorControl();
-        TransactionId txnId = txnControl.transactionIdFromString(tId);
-        try{
-            SchedulerTracer.traceTaskCommit(txnId);
-            txnControl.commit(txnId);
-            return true;
-        } catch (IOException e) {
-           /*
-            * we got an error trying to commit. This leaves us in an awkward state. Because
-            * the error could have come before OR after a successful write to HBase, we don't know
-            * what state the actual transaction is. We must read that state, and decide what to do next.
-            * In some cases, we can just retry the commit. In others, we have to retry the operation
-            */
-            TransactionStatus status;
-            try {
-                status = getTransactionStatus(txnId,txnControl,maxTries);
-            } catch (RetriesExhaustedException e1) {
-                //we cannot even get the transaction status, we're screwed.
-                //we have no choice but to bomb out the entire job
-                fail(new AttemptsExhaustedException(e1.getMessage()));
-                return false;
-            }
-            switch (status) {
-                case COMMITTED:
-                    //we successfully commit!
-                    return true;
-                case ACTIVE:
-                    //we can retry just the commit
-                    return commit(maxTries, tryCount-1);
-                case COMMITTING:
-                    throw new IllegalStateException("Transaction "+ tId+" was seen in the state of COMMITTING when it should not be");
-                case ROLLED_BACK:
-                    LOG.error("Attempting to commit a rolled back transaction. This is likely to be a programmer error");
-                    fail(new IOException("Transaction " + tId + " has been rolled back"));
-                    return false;
-                default:
-                    //our transaction failed. We have to retry it
-                    fail(new IOException("failed to commit"));
-                    return false;
 
-            }
+        try {
+            return TransactionUtils.commit(txnControl,tId,maxTries);//TODO -sf- make 5 configurable
+        } catch (AttemptsExhaustedException e) {
+            fail(e);
+            return false;
         }
     }
+
 
 /******************************************************************************************/
     /*private helper methods*/
-
-    //get the transaction status (retrying if necessary)
-    private TransactionStatus getTransactionStatus(TransactionId txnId,
-                                                   TransactorControl txnControl,
-                                                   int retriesLeft) throws RetriesExhaustedException {
-        if(retriesLeft<0)
-            throw new RetriesExhaustedException("Unable to obtain transaction status after 5 attempts");
-
-        try{
-            return txnControl.getTransactionStatus(txnId);
-        } catch (IOException e) {
-            LOG.error("Unable to read transaction status, retrying up to "+ retriesLeft+" more times", e);
-            try {
-                Thread.sleep(WriteUtils.getWaitTime(5-retriesLeft,1000));
-            } catch (InterruptedException e1) {
-                LOG.info("Interrupted while waiting to retry Transaction table lookup");
-            }
-            return getTransactionStatus(txnId,txnControl,retriesLeft-1);
-        }
-    }
 
     /*
      * Resubmits the task. Rolls back its child transaction, then resubmits
@@ -381,7 +276,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
 
-        if(rollback(tryNum))
+        if(rollback(5)) //TODO -sf- make this configurable
             jobControl.resubmit(this,tryNum);
         else
             throw new ExecutionException(taskStatus.getError());

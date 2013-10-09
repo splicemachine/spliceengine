@@ -119,7 +119,7 @@ class JobControl implements JobFuture {
                     break;
                 case COMPLETED:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s completed successfully",job.getJobId(),changedFuture.getTaskNode());
-                    if(changedFuture.commit(maxResubmissionAttempts,maxResubmissionAttempts)){
+                    if(changedFuture.commit(maxResubmissionAttempts)){
                         TaskStats taskStats = changedFuture.getTaskStats();
                         if(taskStats!=null)
                             this.stats.addTaskStatus(changedFuture.getTaskNode(),taskStats);

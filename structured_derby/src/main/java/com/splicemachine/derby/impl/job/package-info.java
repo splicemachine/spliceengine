@@ -13,7 +13,7 @@
  * Job Control is maintained by a {@link com.splicemachine.job.JobScheduler}, which is responsible
  * for taking multiple tasks, submitting them, and managing their state information as they are returned.
  *
- * The canonical example of this is {@link com.splicemachine.derby.impl.job.scheduler.AsyncJobScheduler}, which
+ * The canonical example of this is {@link com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler}, which
  * uses ZooKeeper as a distributed coordination mechanism. Tasks report their state to the JobScheduler by modifying
  * the state of a ZooKeeper node, which is watched by the JobScheduler. Once notified, the JobScheduler reacts
  * according to the changed state (i.e. committ/rollback, resubmission of retryable tasks, etc.).
