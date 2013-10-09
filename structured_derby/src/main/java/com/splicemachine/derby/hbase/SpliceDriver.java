@@ -387,46 +387,6 @@ public class SpliceDriver extends SIConstants {
         }
     }
 
-    @SuppressWarnings("deprecation")
-	private boolean ensureHBaseTablesPresent() {
-        SpliceLogUtils.info(LOG, "Ensuring Required Hbase Tables are present");
-        HBaseAdmin admin = null;
-        try{
-            admin = new HBaseAdmin(SpliceUtils.config);
-            if(!admin.tableExists(TEMP_TABLE_BYTES)){
-                HTableDescriptor td = SpliceUtils.generateDefaultSIGovernedTable(TEMP_TABLE);
-                byte[][] prefixes = new RowKeyDistributorByHashPrefix.OneByteSimpleHash().getAllPossiblePrefixes();
-                byte[][] splitKeys = new byte[prefixes.length - 2][];
-                System.arraycopy(prefixes, 1, splitKeys, 0, prefixes.length - 1);
-                admin.createTable(td, splitKeys);
-                SpliceLogUtils.info(LOG, TEMP_TABLE+" created");
-            }
-            if (!admin.tableExists(TRANSACTION_TABLE_BYTES)) {
-                HTableDescriptor desc = new HTableDescriptor(TRANSACTION_TABLE_BYTES);
-                desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY.getBytes(),
-                        Integer.MAX_VALUE,
-                        compression,
-                        DEFAULT_IN_MEMORY,
-                        DEFAULT_BLOCKCACHE,
-                        Integer.MAX_VALUE,
-                        DEFAULT_BLOOMFILTER));
-                desc.addFamily(new HColumnDescriptor(DEFAULT_FAMILY));
-                admin.createTable(desc);
-            }
-            return true;
-        }catch(Exception e){
-            SpliceLogUtils.error(LOG,"Unable to set up HBase Tables",e);
-            return false;
-        }finally{
-            if(admin!=null){
-                try{
-                    admin.close();
-                } catch (IOException e) {
-                    SpliceLogUtils.error(LOG,"Unable to close Hbase admin, this could be symptomatic of a deeper problem",e);
-                }
-            }
-        }
-    }
      private boolean startServices() {
         try{
             SpliceLogUtils.info(LOG, "Splice Engine is Running, Enabling Services");

@@ -33,6 +33,11 @@ public class HbRegion implements IHTable {
     }
 
     @Override
+    public String getName() {
+        return region.getTableDesc().getNameAsString();
+    }
+
+    @Override
     public void close() throws IOException {
         throw new RuntimeException("not implemented");
     }

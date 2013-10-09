@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.Iterator;
@@ -22,6 +23,11 @@ public class HbTable implements IHTable {
 
     public HbTable(HTableInterface table) {
         this.table = table;
+    }
+
+    @Override
+    public String getName() {
+        return Bytes.toString(table.getTableName());
     }
 
     @Override

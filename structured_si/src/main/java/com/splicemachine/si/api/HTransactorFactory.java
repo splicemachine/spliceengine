@@ -18,6 +18,7 @@ import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
+import com.splicemachine.si.impl.PermissionArgs;
 import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Transaction;
@@ -54,6 +55,7 @@ public class HTransactorFactory extends SIConstants {
     private final static Map<Long, Transaction> cache = CacheMap.makeCache(true);
     private final static Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
     private final static Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
+    private final static Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
 
     private static volatile ManagedTransactor managedTransactor;
 
@@ -99,6 +101,7 @@ public class HTransactorFactory extends SIConstants {
             final STableWriter writer = new HTableWriter();
             final TransactionSchema transactionSchema = new TransactionSchema(TRANSACTION_TABLE,
                     DEFAULT_FAMILY,
+                    SI_PERMISSION_FAMILY,
                     EMPTY_BYTE_ARRAY,
                     TRANSACTION_ID_COLUMN,
                     TRANSACTION_START_TIMESTAMP_COLUMN,
@@ -114,7 +117,7 @@ public class HTransactorFactory extends SIConstants {
             );
             managedTransactor = new ManagedTransactor();
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-                    immutableCache, activeCache, cache, committedCache, failedCache, 1000, managedTransactor);
+                    immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, 1000, managedTransactor);
 
             final DataStore rowStore = new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE, SI_TRANSACTION_ID_KEY,

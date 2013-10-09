@@ -41,6 +41,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         Delete extends OperationWithAttributes, Lock, OperationStatus, Scanner>
         implements Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
+    public static final int MAX_ACTIVE_COUNT = 1000;
 
     private final TimestampSource timestampSource;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -315,7 +316,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
-
     @Override
     public void preProcessGet(Get readOperation) throws IOException {
         dataLib.setGetTimeRange(readOperation, 0, Long.MAX_VALUE);
@@ -367,6 +367,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             return dataStore.writeBatch(table, new Pair[0]);
         }
 
+        checkPermission(table, mutations);
+
         Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
         Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);
         try {
@@ -389,6 +391,21 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         } finally {
             releaseLocksForPutBatch(table, locks);
         }
+    }
+
+    private void checkPermission(Table table, Mutation[] mutations) throws IOException {
+        final String tableName = dataStore.getTableName(table);
+        for(TransactionId t : getTransactionIds(mutations)) {
+            transactionStore.confirmPermission(t, tableName);
+        }
+    }
+
+    private Set<TransactionId> getTransactionIds(Mutation[] mutations) {
+        Set<TransactionId> writingTransactions = new HashSet<TransactionId>();
+        for(Mutation m : mutations) {
+            writingTransactions.add(dataStore.getTransactionIdFromOperation(m));
+        }
+        return writingTransactions;
     }
 
     private void releaseLocksForPutBatch(Table table, Map<Hashable, Lock> locks) {
@@ -825,7 +842,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
                 true, false, false, false);
         final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
-                currentMin, max.getId(), 1000, missingParams, TransactionStatus.ERROR);
+                currentMin, max.getId(), MAX_ACTIVE_COUNT, missingParams, TransactionStatus.ERROR);
         final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());
         if (!oldestActiveTransactions.isEmpty()) {
             final long oldestId = oldestActiveTransactions.get(0).getTransactionId().getId();
@@ -842,5 +859,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
         }
         return result;
+    }
+
+    @Override
+    public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException {
+        return transactionStore.forbidPermission(tableName, transactionId);
     }
 }

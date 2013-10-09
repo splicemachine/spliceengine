@@ -50,4 +50,5 @@ public interface TransactorControl {
     TransactionId transactionIdFromString(String transactionId);
 
     List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
+    boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException;
 }

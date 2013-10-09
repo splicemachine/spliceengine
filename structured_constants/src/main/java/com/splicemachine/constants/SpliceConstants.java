@@ -230,6 +230,8 @@ public class SpliceConstants {
 	public static final String DEFAULT_FAMILY = "V";
 	public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);
 
+    public static final String SI_PERMISSION_FAMILY = "P";
+
     //TEMP Table task column--used for filtering out failed tasks from the temp
     //table
 

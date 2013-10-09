@@ -175,7 +175,7 @@ public class IndexRowReaderTest {
     }
 
     private Map<byte[],ExecRow> getCorrectOutput() throws StandardException {
-        Map<byte[],ExecRow> output = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        Map<byte[],ExecRow> output = Maps.<byte[],byte[],ExecRow>newTreeMap(Bytes.BYTES_COMPARATOR);
         ExecRow template = TestingDataType.getTemplateOutput(outputDataTypes);
 
         Snowflake snowflake = new Snowflake((short)1);
@@ -195,7 +195,7 @@ public class IndexRowReaderTest {
         return output;
     }
     private Map<byte[], Result> getInputHeapRows(Map<byte[],ExecRow> outputRows) throws StandardException, IOException {
-        Map<byte[],Result> results = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        Map<byte[],Result> results = Maps.<byte[],byte[],Result>newTreeMap(Bytes.BYTES_COMPARATOR);
         BitSet setCols = new BitSet(outputDataTypes.length);
         setCols.set(0,outputDataTypes.length);
         setCols.andNot(indexedColumns);

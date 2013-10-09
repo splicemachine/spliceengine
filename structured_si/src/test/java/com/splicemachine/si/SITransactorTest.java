@@ -16,7 +16,9 @@ import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
+import com.splicemachine.si.impl.PermissionFailure;
 import com.splicemachine.si.impl.RollForwardAction;
+import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.si.impl.Transaction;
@@ -1052,7 +1054,7 @@ public class SITransactorTest extends SIConstants {
     @Test
     public void writeDeleteScanWithIncludeSIColumnAfterRollForward() throws IOException, InterruptedException {
         try {
-            Tracer.rollForwardDelayOverride = 100;
+            Tracer.rollForwardDelayOverride = 200;
             final CountDownLatch latch = makeLatch("140moe");
 
             TransactionId t1 = transactor.beginTransaction();
@@ -3476,7 +3478,7 @@ public class SITransactorTest extends SIConstants {
         final TransactionId t0 = transactor.beginTransaction();
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
         TransactionId committedTransactionID = null;
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
             final TransactionId transactionId = transactor.beginTransaction();
             if (committedTransactionID == null) {
                 committedTransactionID = transactionId;
@@ -3504,12 +3506,12 @@ public class SITransactorTest extends SIConstants {
     public void oldestActiveTransactionsManyActive() throws IOException {
         final TransactionId t0 = transactor.beginTransaction();
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT / 2; i++) {
             transactor.beginTransaction();
         }
         final TransactionId t1 = transactor.beginTransaction();
         final List<TransactionId> result = transactor.getActiveTransactionIds(t1);
-        Assert.assertEquals(502, result.size());
+        Assert.assertEquals(SITransactor.MAX_ACTIVE_COUNT / 2 + 2, result.size());
         Assert.assertEquals(t0.getId(), result.get(0).getId());
         Assert.assertEquals(t1.getId(), result.get(result.size() - 1).getId());
     }
@@ -3518,7 +3520,7 @@ public class SITransactorTest extends SIConstants {
     public void oldestActiveTransactionsTooManyActive() throws IOException {
         final TransactionId t0 = transactor.beginTransaction();
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT; i++) {
             transactor.beginTransaction();
         }
 
@@ -3529,5 +3531,31 @@ public class SITransactorTest extends SIConstants {
         } catch (RuntimeException ex) {
             Assert.assertTrue(ex.getMessage().startsWith("expected max id of"));
         }
+    }
+
+    @Test
+    public void forbidWrites() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        Assert.assertTrue(transactor.forbidWrites(storeSetup.getPersonTableName(), t1));
+        try {
+            insertAge(t1, "joe69", 20);
+            Assert.fail();
+        } catch (PermissionFailure ex) {
+            Assert.assertTrue(ex.getMessage().startsWith("permission fail"));
+        } catch (RetriesExhaustedWithDetailsException e) {
+            assertPermissionFailure(e);
+        }
+    }
+
+    @Test
+    public void forbidWritesAfterWritten() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe69", 20);
+        Assert.assertFalse(transactor.forbidWrites(storeSetup.getPersonTableName(), t1));
+    }
+
+    private void assertPermissionFailure(RetriesExhaustedWithDetailsException e) {
+        Assert.assertEquals(1, e.getNumExceptions());
+        Assert.assertTrue(e.getMessage().indexOf("permission fail") >= 0);
     }
 }

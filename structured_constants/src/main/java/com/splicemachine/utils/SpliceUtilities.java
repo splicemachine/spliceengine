@@ -62,22 +62,22 @@ public class SpliceUtilities extends SIConstants {
 		desc.addFamily(createDataFamily());
         return desc;
 	}
-	
-	public static HTableDescriptor generateTransactionTable(String tableName) {
-            HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
-            HColumnDescriptor columnDescriptor = new HColumnDescriptor(DEFAULT_FAMILY.getBytes());
-            columnDescriptor.setMaxVersions(5);
-            columnDescriptor.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
-            columnDescriptor.setInMemory(DEFAULT_IN_MEMORY);
-            columnDescriptor.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-            columnDescriptor.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
-            columnDescriptor.setTimeToLive(DEFAULT_TTL);
-            desc.addFamily(columnDescriptor);
 
-            return desc;
-	}
-	
-	public static HColumnDescriptor createDataFamily() {
+    public static HTableDescriptor generateTransactionTable() {
+        HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
+        HColumnDescriptor columnDescriptor = new HColumnDescriptor(DEFAULT_FAMILY.getBytes());
+        columnDescriptor.setMaxVersions(5);
+        columnDescriptor.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
+        columnDescriptor.setInMemory(DEFAULT_IN_MEMORY);
+        columnDescriptor.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+        columnDescriptor.setBloomFilterType(StoreFile.BloomType.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
+        columnDescriptor.setTimeToLive(DEFAULT_TTL);
+        desc.addFamily(columnDescriptor);
+        desc.addFamily(new HColumnDescriptor(SI_PERMISSION_FAMILY.getBytes()));
+        return desc;
+    }
+
+    public static HColumnDescriptor createDataFamily() {
         HColumnDescriptor snapshot = new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes());
         snapshot.setMaxVersions(Integer.MAX_VALUE);
         snapshot.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
@@ -125,7 +125,7 @@ public class SpliceUtilities extends SIConstants {
                 createTempTable(admin);
             }
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
-                HTableDescriptor td = generateTransactionTable(TRANSACTION_TABLE);
+                HTableDescriptor td = generateTransactionTable();
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE_BYTES+" created");
             }

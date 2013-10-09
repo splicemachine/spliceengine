@@ -13,6 +13,7 @@ import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.ImmutableTransaction;
 import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.impl.PermissionArgs;
 import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
@@ -23,7 +24,7 @@ import java.util.Map;
 
 public class TransactorSetup extends SIConstants {
     final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
-            -1, "id", "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
+            "permissionFamily", -1, "id", "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
             "keepAlive", "status", "commit", "globalCommit", "counter");
     Object family;
     Object ageQualifier;
@@ -54,9 +55,10 @@ public class TransactorSetup extends SIConstants {
         final Map<Long, Transaction> cache = CacheMap.makeCache(true);
         final Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
         final Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
+        final Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
         final ManagedTransactor listener = new ManagedTransactor();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
-                cache, committedCache, failedCache, 1000, listener);
+                cache, committedCache, failedCache, permissionCache, 1000, listener);
 
         final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);

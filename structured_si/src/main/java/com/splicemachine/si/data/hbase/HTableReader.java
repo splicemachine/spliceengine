@@ -31,6 +31,11 @@ public class HTableReader implements STableReader<IHTable, Result, Get, Scan, Ke
     }
 
     @Override
+    public String getTableName(IHTable table) {
+        return table.getName();
+    }
+
+    @Override
     public Result get(IHTable table, Get get) throws IOException {
         return table.get(get);
     }

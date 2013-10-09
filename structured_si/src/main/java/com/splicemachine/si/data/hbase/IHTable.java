@@ -17,6 +17,7 @@ import java.util.List;
  * Abstraction that makes HBase tables and regions have a uniform interface.
  */
 public interface IHTable {
+    String getName();
     void close() throws IOException;
     Result get(Get get) throws IOException;
     Iterator<Result> scan(Scan scan) throws IOException;

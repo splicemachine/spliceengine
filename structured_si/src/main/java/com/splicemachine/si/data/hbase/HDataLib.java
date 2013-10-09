@@ -126,6 +126,12 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
             return Bytes.toInt(bytes);
         } else if (type.equals(Long.class)) {
             return Bytes.toLong(bytes);
+        } else if (type.equals(Byte.class)) {
+            if (value.length > 0) {
+                return value[0];
+            } else {
+                return null;
+            }
         } else if (type.equals(String.class)) {
             return Bytes.toString(bytes);
         }

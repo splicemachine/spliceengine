@@ -55,6 +55,11 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     }
 
     @Override
+    public String getTableName(LTable table) {
+        return table.relationIdentifier;
+    }
+
+    @Override
     public LTuple get(LTable table, LGet get) {
         Iterator<LTuple> results = runScan(table, get);
         if (results.hasNext()) {
@@ -191,6 +196,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
             }
             assert !results.hasNext();
             boolean match = false;
+            boolean found = false;
             if (result == null) {
                 match = (expectedValue == null);
             } else {
@@ -198,11 +204,12 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
                 for (LKeyValue kv : result.values) {
                     if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
                         match = kv.value.equals(expectedValue);
+                        found = true;
                         break;
                     }
                 }
             }
-            if (match) {
+            if (match || (expectedValue == null && !found)) {
                 write(table, put, lock);
                 return true;
             } else {

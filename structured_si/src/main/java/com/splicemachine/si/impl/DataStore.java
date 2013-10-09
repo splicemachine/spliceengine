@@ -300,4 +300,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         reader.openOperation(table);
     }
 
+    public String getTableName(IHTable table) {
+        return reader.getTableName(table);
+    }
 }

@@ -100,7 +100,7 @@ public class HStoreSetup implements StoreSetup {
             testCluster.startMiniCluster(1);
             final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
                     new String[]{SpliceConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
-            tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{"siFamily", "siChildrenFamily"});
+            tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{"siFamily", "permissionFamily"});
             return tableSource;
         } catch (Exception e) {
             throw new RuntimeException(e);

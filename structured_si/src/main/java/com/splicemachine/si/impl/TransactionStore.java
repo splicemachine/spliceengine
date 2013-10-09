@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     private final STableWriter writer;
     private final TransactionSchema transactionSchema;
     private final EncodedTransactionSchema<Data> encodedSchema;
+    private final List<Data> siFamilyList = new ArrayList<Data>(1);
+    private final List<Data> permissionFamilyList = new ArrayList<Data>(1);
 
     // Configure how long to wait in the event of a commit race.
     private int waitForCommittingMS;
@@ -62,6 +65,8 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     private final Map<Long, Transaction> stubCommittedTransactionCache;
     private final Map<Long, Transaction> stubFailedTransactionCache;
 
+    private final Map<PermissionArgs, Byte> permissionCache;
+
     public TransactionStore(TransactionSchema transactionSchema, SDataLib dataLib,
                             STableReader reader, STableWriter writer,
                             Map<Long, ImmutableTransaction> immutableTransactionCache,
@@ -69,6 +74,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                             Map<Long, Transaction> completedTransactionCache,
                             Map<Long, Transaction> stubCommittedTransactionCache,
                             Map<Long, Transaction> stubFailedTransactionCache,
+                            Map<PermissionArgs, Byte> permissionCache,
                             int waitForCommittingMS, TransactorListener listener) {
         this.transactionSchema = transactionSchema;
         this.encodedSchema = transactionSchema.encodedSchema(dataLib);
@@ -79,9 +85,16 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         this.stubCommittedTransactionCache = stubCommittedTransactionCache;
         this.stubFailedTransactionCache = stubFailedTransactionCache;
         this.immutableTransactionCache = immutableTransactionCache;
+        this.permissionCache = permissionCache;
         this.writer = writer;
         this.waitForCommittingMS = waitForCommittingMS;
         this.listener = listener;
+        setupFamilyLists();
+    }
+
+    private void setupFamilyLists() {
+        this.siFamilyList.add(this.encodedSchema.siFamily);
+        this.permissionFamilyList.add(this.encodedSchema.permissionFamily);
     }
 
     // Write (i.e. "record") transaction information to the transaction table.
@@ -371,7 +384,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     private Result readTransaction(Table transactionTable, long transactionId) throws IOException {
         Data tupleKey = transactionIdToRowKeyObject(transactionId);
-        Get get = dataLib.newGet(tupleKey, null, null, null);
+        Get get = dataLib.newGet(tupleKey, siFamilyList, null, null);
         return reader.get(transactionTable, get);
     }
 
@@ -468,6 +481,15 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         Boolean result = null;
         if (columnValue != null) {
             result = (Boolean) dataLib.decode(columnValue, Boolean.class);
+        }
+        return result;
+    }
+
+    private Byte decodeByte(Result resultTuple, Data family, Data columnQualifier) {
+        final Data columnValue = dataLib.getResultValue(resultTuple, family, columnQualifier);
+        Byte result = null;
+        if (columnValue != null) {
+            result = (Byte) dataLib.decode(columnValue, Byte.class);
         }
         return result;
     }
@@ -620,5 +642,74 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
             scanners.add(reader.scan(transactionTable, scan));
         }
         return scanners;
+    }
+
+    public void confirmPermission(TransactionId transactionId, String tableName) throws IOException {
+        Byte p = readPermission(transactionId, tableName);
+        if (p == null) {
+            if (writePermission(transactionId, tableName, (byte) 1)) {
+            } else {
+                throw new PermissionFailure("permission fail " + transactionId + " " + tableName);
+            }
+        } else if (p == 1) {
+        } else if (p == 0) {
+            throw new PermissionFailure("permission fail " + transactionId + " " + tableName);
+        }
+    }
+
+    private Byte readPermission(final TransactionId transactionId, final String tableName) throws IOException {
+        final PermissionArgs key = new PermissionArgs(transactionId, tableName);
+        Byte result = permissionCache.get(key);
+        if (result == null) {
+            result = readPermissionDirect(transactionId, tableName);
+            if (result != null) {
+                permissionCache.put(key, result);
+            }
+        }
+        return result;
+    }
+
+    private Byte readPermissionDirect(final TransactionId transactionId, final String tableName) throws IOException {
+        return withTransactionTable(new TransactionStoreCallback<Byte, Table>() {
+            @Override
+            public Byte withTable(Table transactionTable) throws IOException {
+                return readPermissionBody(transactionTable, transactionId, tableName);
+            }
+        });
+    }
+
+    private Byte readPermissionBody(Table transactionTable, TransactionId transactionId, String tableName) throws IOException {
+        Data tupleKey = transactionIdToRowKeyObject(transactionId.getId());
+        final Data qualifier = dataLib.encode(tableName);
+        final List<List<Data>> columnList = Arrays.asList(
+                Arrays.asList(encodedSchema.permissionFamily, qualifier));
+        Get get = dataLib.newGet(tupleKey, permissionFamilyList, columnList, null);
+        final Result result = reader.get(transactionTable, get);
+        if (result == null) {
+            return null;
+        } else {
+            return decodeByte(result, encodedSchema.permissionFamily, qualifier);
+        }
+    }
+
+    private boolean writePermission(final TransactionId transactionId, final String tableName, final byte permissionValue) throws IOException {
+        return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
+            @Override
+            public Boolean withTable(Table transactionTable) throws IOException {
+                Data tupleKey = transactionIdToRowKeyObject(transactionId.getId());
+                final Put put = dataLib.newPut(tupleKey);
+                final Data qualifier = dataLib.encode(tableName);
+                dataLib.addKeyValueToPut(put, encodedSchema.permissionFamily, qualifier, null, dataLib.encode(permissionValue));
+                if (writer.checkAndPut(transactionTable, encodedSchema.permissionFamily, qualifier, null, put)) {
+                    return true;
+                } else {
+                    return (readPermissionBody(transactionTable, transactionId, tableName) == permissionValue);
+                }
+            }
+        });
+    }
+
+    public boolean forbidPermission(final String tableName, final TransactionId transactionId) throws IOException {
+        return writePermission(transactionId, tableName, (byte) 0);
     }
 }
