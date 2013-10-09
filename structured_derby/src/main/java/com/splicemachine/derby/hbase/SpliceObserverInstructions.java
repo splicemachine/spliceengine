@@ -1,5 +1,8 @@
 package com.splicemachine.derby.hbase;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -10,6 +13,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -251,14 +256,19 @@ public class SpliceObserverInstructions implements Externalizable {
 
             ParameterValueSet pvs = activation.getParameterValueSet().getClone();
 
-            ByteDataOutput bdo = new ByteDataOutput();
+            Kryo kryo = SpliceDriver.getKryoPool().get();
+            Output output = new Output(4096,-1);
             try {
-                ActivationSerializer.write(activation,bdo);
-                return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
-                        stmtText,stmtRollBackParentContext,stmtTimeout,bdo.toByteArray());
+                KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
+                ActivationSerializer.write(activation,koo);
             } catch (IOException e) {
                 throw new RuntimeException(e); //should never happen
+            }finally{
+                output.flush();
+                SpliceDriver.getKryoPool().returnInstance(kryo);
             }
+            return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
+                    stmtText,stmtRollBackParentContext,stmtTimeout,output.toBytes());
         }
 
         @Override
@@ -292,7 +302,14 @@ public class SpliceObserverInstructions implements Externalizable {
 
         public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {
             try{
-                ActivationSerializer.readInto(new ByteDataInput(activationData),activation);
+                Kryo kryo = SpliceDriver.getKryoPool().get();
+                try{
+                    Input input = new Input(activationData);
+                    KryoObjectInput koi = new KryoObjectInput(input,kryo);
+                    ActivationSerializer.readInto(koi,activation);
+                }finally{
+                    SpliceDriver.getKryoPool().returnInstance(kryo);
+                }
 			/*
 			 * Set the populated operations with their comparable operation
 			 */

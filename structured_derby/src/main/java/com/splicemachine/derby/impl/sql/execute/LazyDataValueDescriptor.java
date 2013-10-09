@@ -631,7 +631,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             forceSerialization();
         }
 
-        byte[] bytes = null;
+        byte[] bytes;
 
         try{
             bytes = getBytes();
@@ -649,7 +649,6 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-
         out.writeInt(typeFormatId);
         out.writeBoolean(dvd != null);
         writeDvdBytes(out);
@@ -657,20 +656,17 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     protected void readDvdBytes(ObjectInput in) throws IOException, ClassNotFoundException {
-        if(in.readBoolean()){
+        if(!in.readBoolean()) return;
 
-            int numBytes = in.readInt();
+        int numBytes = in.readInt();
 
-            dvdBytes = new byte[numBytes];
-            in.readFully(dvdBytes);
-        }
+        dvdBytes = new byte[numBytes];
+        in.readFully(dvdBytes);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-
         DataValueDescriptor externalDVD = null;
-
         int typeId = in.readInt();
 
         if(in.readBoolean()){

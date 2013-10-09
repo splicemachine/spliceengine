@@ -124,27 +124,11 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-
-        out.writeInt(typeFormatId);
-        out.writeBoolean(ndv != null);
-        writeDvdBytes(out);
-    }
-
-    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
 
-        NumberDataValue extNDV = null;
-
-        int typeId = in.readInt();
-
-        if(in.readBoolean()){
-            extNDV = (NumberDataValue) createNullDVD(typeId);
-        }
-
-        readDvdBytes(in);
-
-        init(extNDV, LazyDataValueFactory.getDVDSerializer(typeId));
+        ndv = (NumberDataValue)dvd;
+        init(ndv, LazyDataValueFactory.getDVDSerializer(typeFormatId));
     }
 
     @Override

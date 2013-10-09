@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
@@ -27,49 +28,57 @@ import org.apache.derby.impl.sql.execute.SumAggregator;
  * Created on: 8/15/13
  */
 public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
+    //ExternalizableSerializers are stateless, no need to create more than we need
+    private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = new ExternalizableSerializer();
     @Override
     public void register(Kryo instance) {
         instance.setReferences(false);
-        instance.register(GenericStorablePreparedStatement.class,new ExternalizableSerializer());
-        instance.register(DataTypeDescriptor.class,new ExternalizableSerializer());
-        instance.register(TypeDescriptorImpl.class,new ExternalizableSerializer());
-        instance.register(BaseTypeIdImpl.class,new ExternalizableSerializer());
-        instance.register(UserDefinedTypeIdImpl.class,new ExternalizableSerializer());
-        instance.register(DecimalTypeIdImpl.class,new ExternalizableSerializer());
-        instance.register(RowMultiSetImpl.class,new ExternalizableSerializer());
-        instance.register(RoutineAliasInfo.class,new ExternalizableSerializer());
+        instance.register(GenericStorablePreparedStatement.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DataTypeDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TypeDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BaseTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(UserDefinedTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DecimalTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER);
 
-        instance.register(IndexConglomerate.class,new ExternalizableSerializer());
-        instance.register(HBaseConglomerate.class,new ExternalizableSerializer());
+        instance.register(IndexConglomerate.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(HBaseConglomerate.class,EXTERNALIZABLE_SERIALIZER);
 
-        instance.register(FormatableBitSet.class,new ExternalizableSerializer());
+        instance.register(FormatableBitSet.class,EXTERNALIZABLE_SERIALIZER);
 
-        instance.register(CountAggregator.class,new ExternalizableSerializer());
-        instance.register(SumAggregator.class,new ExternalizableSerializer());
-        instance.register(AvgAggregator.class,new ExternalizableSerializer());
-        instance.register(MaxMinAggregator.class,new ExternalizableSerializer());
+        instance.register(CountAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SumAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AvgAggregator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MaxMinAggregator.class,EXTERNALIZABLE_SERIALIZER);
 
-        instance.register(SQLDecimal.class,new ExternalizableSerializer());
-        instance.register(SQLDouble.class,new ExternalizableSerializer());
-        instance.register(SQLInteger.class,new ExternalizableSerializer());
-        instance.register(SQLVarchar.class,new ExternalizableSerializer());
-        instance.register(SQLChar.class,new ExternalizableSerializer());
-        instance.register(SQLBoolean.class,new ExternalizableSerializer());
-        instance.register(SQLBit.class,new ExternalizableSerializer());
-        instance.register(SQLDate.class,new ExternalizableSerializer());
-        instance.register(SQLTime.class,new ExternalizableSerializer());
-        instance.register(SQLTimestamp.class,new ExternalizableSerializer());
-        instance.register(SQLSmallint.class,new ExternalizableSerializer());
-        instance.register(SQLTinyint.class,new ExternalizableSerializer());
-        instance.register(SQLLongint.class,new ExternalizableSerializer());
-        instance.register(SQLLongvarchar.class,new ExternalizableSerializer());
-        instance.register(SQLReal.class,new ExternalizableSerializer());
-        instance.register(SQLRef.class,new ExternalizableSerializer());
-        instance.register(LazyDataValueDescriptor.class,new ExternalizableSerializer());
-        instance.register(LazyNumberDataValueDescriptor.class,new ExternalizableSerializer());
-        instance.register(LazyStringDataValueDescriptor.class,new ExternalizableSerializer());
-        instance.register(TaskStatus.class,new ExternalizableSerializer());
+        instance.register(SQLDecimal.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLDouble.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLInteger.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLVarchar.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLChar.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLBoolean.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLBit.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLDate.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLTime.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLTimestamp.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLSmallint.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLTinyint.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLLongint.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLLongvarchar.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLReal.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LazyStringDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TaskStatus.class,EXTERNALIZABLE_SERIALIZER);
 
+
+        //register Activation-related classes
+        instance.register(ActivationSerializer.ArrayFieldStorage.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ActivationSerializer.ExecRowStorage.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ActivationSerializer.SerializableStorage.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(ContainerKey.class,new Serializer<ContainerKey>() {
             @Override

@@ -216,55 +216,6 @@ public class ActivationSerializer {
         boolean isType(Object instance, Class type);
     }
 
-    public static class OperationFieldFactory implements FieldStorageFactory<OperationFieldStorage>{
-
-        @Override
-        public OperationFieldStorage create(Object objectToStore, @SuppressWarnings("rawtypes") Class type) {
-            if(objectToStore instanceof ConvertedResultSet){
-                return new OperationFieldStorage(((ConvertedResultSet)objectToStore).getOperation());
-            }
-            return new OperationFieldStorage((SpliceOperation)objectToStore);
-        }
-
-        @Override
-        public boolean isType(Object instance, Class type) {
-            if (ConvertedResultSet.class.isAssignableFrom(type)
-                    || SpliceOperation.class.isAssignableFrom(type)) return true;
-            if(instance instanceof ConvertedResultSet) return true;
-            return false;
-        }
-    }
-
-    public static class OperationFieldStorage implements FieldStorage{
-        private static final long serialVersionUID = 1l;
-
-        private SpliceOperation operation;
-
-        @Deprecated
-        public OperationFieldStorage() {
-        }
-
-        public OperationFieldStorage(SpliceOperation operation) {
-            this.operation = operation;
-        }
-
-        @Override
-        public Object getValue(Activation context) throws StandardException {
-            ConversionResultSet crs = new ConversionResultSet(operation);
-            crs.setActivation(context);
-            return crs;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeObject(operation);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            this.operation = (SpliceOperation)in.readObject();
-        }
-    }
 
     public static class ArrayFieldStorage implements FieldStorage{
         private static final long serialVersionUID = 4l;

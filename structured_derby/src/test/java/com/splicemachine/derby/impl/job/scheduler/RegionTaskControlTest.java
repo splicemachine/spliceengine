@@ -31,11 +31,6 @@ import static org.mockito.Mockito.when;
  */
 public class RegionTaskControlTest {
 
-    @Test
-    public void testRollbackTaskWorksCorrectly() throws Exception {
-
-    }
-
     @Test(expected=KeeperException.class)
     public void testZkSessionExpirationCausesExplosion() throws Exception {
        /*
