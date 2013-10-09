@@ -3,6 +3,7 @@ package com.splicemachine.si.data.hbase;
 import com.google.common.collect.Iterables;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.data.api.SDataLib;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -13,6 +14,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.lucene.util.ArrayUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -322,43 +324,54 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     
     @Override
     public boolean matchingColumn(KeyValue keyValue, byte[] family, byte[] qualifier) {
-    	return keyValue.matchingColumn(family, qualifier);
+    	return matchingFamily(keyValue,family)&&matchingQualifier(keyValue,qualifier);
     }
 
     @Override
     public boolean matchingFamily(KeyValue keyValue, byte[] family) {
-    	return keyValue.matchingFamily(family);
+    	if (family==null||keyValue==null || family.length != keyValue.getFamilyLength())
+    		return false;
+    	return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getFamilyOffset(), family, 0, keyValue.getFamilyLength());
     }
     
     @Override
     public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
-    	return qualifier==null?false:keyValue.matchingQualifier(qualifier);
+    	if (qualifier==null||keyValue==null||qualifier.length != keyValue.getQualifierLength())
+    		return false;
+    	return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getQualifierOffset(), qualifier, 0, keyValue.getQualifierLength());
     }
 
     @Override
     public boolean matchingValue(KeyValue keyValue, byte[] value) {
-    		 return value==null?false:Bytes.equals(value, 0, value.length,
-    			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+    	if (value==null||keyValue==null || value.length != keyValue.getValueLength())
+    		return false;
+    	return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getValueOffset(), value, 0, keyValue.getValueLength());   	
     }
 
 	@Override
 	public boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other) {
-		    return keyValue.matchingFamily(other);
+		if (keyValue==null||other==null || keyValue.getFamilyLength()!=other.getFamilyLength())
+			return false;
+		return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getFamilyOffset(), other.getBuffer(), other.getFamilyOffset(), other.getFamilyLength());
 	}
 	@Override
 	public boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other) {
-		    return other==null?false:keyValue.matchingQualifier(other);
+		if (keyValue==null||other==null || keyValue.getQualifierLength()!=other.getQualifierLength())
+			return false;
+		return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getQualifierOffset(), other.getBuffer(), other.getQualifierOffset(), other.getQualifierLength());
 	}
 	@Override
 	public boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other) {
-		    return keyValue.matchingRow(other);
+		if (keyValue==null||other==null || keyValue.getRowLength()!=other.getRowLength())
+			return false;
+		return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getRowOffset(), other.getBuffer(), other.getRowOffset(), other.getRowLength());
 	}
 
 	@Override
     public boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other) {
-    		if (other == null) return false;
-    		 return Bytes.equals(other.getBuffer(), other.getValueOffset(), other.getValueLength(),
-    			        keyValue.getBuffer(), keyValue.getValueOffset(), keyValue.getValueLength());
+		if (keyValue==null||other==null || keyValue.getValueLength()!=other.getValueLength())
+			return false;
+		return ArrayUtil.equals(keyValue.getBuffer(), keyValue.getValueOffset(), other.getBuffer(), other.getValueOffset(), other.getValueLength());
     }
 
 	@Override
