@@ -1,1 +1,1 @@
-mvn test -Dtest=NistIT
+mvn clean test -Dtest=TestNist

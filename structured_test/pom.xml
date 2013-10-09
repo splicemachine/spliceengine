@@ -107,6 +107,13 @@
 					<classpathDependencyExcludes>
 						<classpathDependencyExclude>com.splicemachine:splice_machine</classpathDependencyExclude>
 					</classpathDependencyExcludes>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
 				</configuration>
 			</plugin>
 			<plugin>
