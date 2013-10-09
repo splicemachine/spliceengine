@@ -5,6 +5,7 @@ import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
@@ -37,4 +38,6 @@ public interface OperationInformation {
     void setCurrentRow(ExecRow row);
 
     Snowflake.Generator getUUIDGenerator();
+
+    ExecutionFactory getExecutionFactory();
 }

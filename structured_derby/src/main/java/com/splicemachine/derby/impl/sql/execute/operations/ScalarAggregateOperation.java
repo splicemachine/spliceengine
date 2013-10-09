@@ -9,24 +9,27 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
  *  
@@ -41,13 +44,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 	
 	protected boolean isInSortedOrder;
 	protected boolean singleInputRow;
-	protected int countOfRows;
-	protected int rowsInput = 0;
 
 	protected boolean isOpen=false;
 
-    private RowDecoder scanDecoder;
+    private ScalarAggregator scanAggregator;
+    private ScalarAggregator sinkAggregator;
 
+    @SuppressWarnings("UnusedDeclaration")
     public ScalarAggregateOperation () {
 		super();
 	}
@@ -104,13 +107,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-    	return getReduceRowProvider(top,rowDecoder, spliceRuntimeContext);
+    	return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
-		ExecutionFactory factory = activation.getExecutionFactory();
+		ExecutionFactory factory = operationInformation.getExecutionFactory();
 		try {
 			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
 			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
@@ -126,16 +129,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
     }
 
-    @Override
-    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return doAggregation(false, spliceRuntimeContext);
-    }
+
 
     @Override
     protected JobStats doShuffle() throws StandardException {
         long start = System.currentTimeMillis();
         SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
         return rowProvider.shuffleRows(soi);
@@ -143,101 +143,59 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     
     @Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		return doAggregation(true,spliceRuntimeContext);
+        if(scanAggregator==null){
+            RowDecoder decoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition());
+            scanAggregator = new ScalarAggregator(new ScalarAggregateScan(decoder,regionScanner),
+                    aggregates,true,false);
+        }
+
+        ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
+        if(aggregate!=null)
+            return finish(aggregate, scanAggregator);
+        return null;
 	}
 
-	protected ExecRow doAggregation(boolean useScan, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        ExecRow execIndexRow;
-        ExecRow aggResult = null;
-		if(useScan){
-            do{
-                execIndexRow = getNextRowFromScan(false, spliceRuntimeContext);
-                if(execIndexRow==null)continue;
-                aggResult = aggregate(execIndexRow,aggResult,false,true);
-            }while(execIndexRow!=null);
-		}else{
-            do{
-                execIndexRow = getNextRowFromSource(false, spliceRuntimeContext);
-                if(execIndexRow==null) continue;
-                aggResult = aggregate(execIndexRow,aggResult,true,false);
-            }while(execIndexRow!=null && countOfRows <= 0);
-		}
-		if(aggResult==null) return null; //we didn't have any rows to aggregate
-		if(countOfRows==0){
-			aggResult = finishAggregation(aggResult);
-			setCurrentRow(aggResult);
-			countOfRows++;
-		}
-		return aggResult;
-	}
-	
-	protected ExecRow aggregate(ExecRow execIndexRow,
-                                ExecRow aggResult, boolean doInitialize, boolean isScan) throws StandardException{
-		if(aggResult==null){
-			aggResult = execIndexRow.getClone();
-			if(doInitialize){
-				initializeScalarAggregation(aggResult);
-			}
-		}else
-			accumulateScalarAggregation(execIndexRow, aggResult, false,isScan);
-		return aggResult;
-	}
-	
-	protected ExecIndexRow getNextRowFromScan(boolean doClone, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        if(scanDecoder==null)
-            scanDecoder = getRowEncoder(new SpliceRuntimeContext()).getDual(sourceExecIndexRow,true);
-		List<KeyValue> keyValues = new ArrayList<KeyValue>();
-		try{
-			regionScanner.next(keyValues);
-		}catch(IOException ioe){
-			SpliceLogUtils.logAndThrow(LOG, StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
-		}
-		if(keyValues.isEmpty())
-			return null;
-		else{
-			return (ExecIndexRow)scanDecoder.decode(keyValues);
-		}
-	}
-	
-	private ExecIndexRow getNextRowFromSource(boolean doClone, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		ExecRow sourceRow;
-		ExecIndexRow inputRow = null;
-		if((sourceRow = source.nextRow(spliceRuntimeContext))!=null){
-			rowsInput++;
-			sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone():sourceRow);
-			inputRow = sourceExecIndexRow;
-		}
-		return inputRow;
-	}
-	
+    @Override
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(sinkAggregator==null){
+            sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),aggregates,false,true);
+        }
+
+        ExecRow aggregate = sinkAggregator.aggregate(spliceRuntimeContext);
+        if(aggregate!=null)
+            return finish(aggregate,sinkAggregator);
+        return null;
+    }
+
+
+    private ExecRow finish(ExecRow row,ScalarAggregator aggregator) throws StandardException {
+        SpliceLogUtils.trace(LOG, "finishAggregation");
+
+		/*
+		** If the row in which we are to place the aggregate
+		** result is null, then we have an empty input set.
+		** So we'll have to create our own row and set it
+		** up.  Note: we needn't initialize in this case,
+		** finish() will take care of it for us.
+		*/
+        if (row == null) {
+            row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
+        }
+        setCurrentRow(row);
+        boolean eliminatedNulls = aggregator.finish(row);
+
+        if (eliminatedNulls)
+            addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+
+        return row;
+    }
+
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
         SpliceUtils.populateDefaultValues(row.getRowArray(),0);
         return row;
-	}
-
-	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
-		for(SpliceGenericAggregator aggregator: aggregates){
-			aggregator.initialize(aggResult);
-			aggregator.accumulate(aggResult,aggResult);
-		}
-	}
-	
-	protected void accumulateScalarAggregation(ExecRow nextRow,
-									ExecRow aggResult,
-									boolean hasDistinctAggregates,boolean isScan) throws StandardException{
-		int size = aggregates.length;
-		SpliceLogUtils.trace(LOG,"accumulateScalarAggregation");
-		for(int i=0;i<size;i++){
-			SpliceGenericAggregator currAggregate = aggregates[i];
-			if(isScan||hasDistinctAggregates && !currAggregate.isDistinct()){
-				currAggregate.merge(nextRow, aggResult);
-			}else{
-				currAggregate.accumulate(nextRow,aggResult);
-			}
-		}
 	}
 
     @Override

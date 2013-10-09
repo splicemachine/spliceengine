@@ -138,6 +138,11 @@ public class DerbyOperationInformation implements OperationInformation,Externali
     }
 
     @Override
+    public ExecutionFactory getExecutionFactory() {
+        return activation.getExecutionFactory();
+    }
+
+    @Override
     public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException {
         if(subQueryTrackingArray ==null)
             subQueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();

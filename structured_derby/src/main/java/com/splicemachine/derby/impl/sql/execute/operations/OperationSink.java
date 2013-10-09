@@ -139,30 +139,4 @@ public class OperationSink {
         }
         return postfix;
     }
-
-    private void debugFailIfDesired(CallBuffer<Mutation> writeBuffer) throws Exception {
-    /*
-     * For testing purposes, if the flag FAIL_TASKS_RANDOMLY is set, then randomly decide whether
-     * or not to fail this task.
-     */
-        if(SpliceConstants.debugFailTasksRandomly){
-            double shouldFail = Math.random();
-            if(shouldFail<SpliceConstants.debugTaskFailureRate){
-                //make sure that we flush the buffer occasionally
-//                if(Math.random()<2*SpliceConstants.debugTaskFailureRate)
-                    writeBuffer.flushBuffer();
-                //wait for 1 second, then fail
-                try {
-                    Thread.sleep(1000l);
-                } catch (InterruptedException e) {
-                    //we were interrupted! sweet, fail early!
-                    throw new IOException(e);
-                }
-
-                //now fail with a retryable exception
-                throw new IOException("Random task failure as determined by debugFailTasksRandomly");
-            }
-        }
-    }
-
 }

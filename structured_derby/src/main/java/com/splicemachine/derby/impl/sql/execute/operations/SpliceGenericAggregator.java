@@ -23,9 +23,9 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SpliceGenericAggregator {
 	private static Logger LOG = Logger.getLogger(SpliceGenericAggregator.class);
 	private final AggregatorInfo aggInfo;
-	int aggregatorColumnId;
-	private int inputColumnId;
-	private int resultColumnId;
+	final int aggregatorColumnId;
+	private final int inputColumnId;
+	private final int resultColumnId;
 	
 	private final ClassFactory cf;
 	
@@ -38,6 +38,19 @@ public class SpliceGenericAggregator {
 		this.inputColumnId = aggInfo.getInputColNum()+1;
 		this.resultColumnId = aggInfo.getOutputColNum()+1;
 	}
+
+    SpliceGenericAggregator(ExecAggregator cachedAggregator,
+                            int aggregatorColumnId,
+                            int inputColumnId,
+                            int resultColumnId){
+        this.cachedAggregator = cachedAggregator;
+        this.aggInfo=null;
+        this.cf=null;
+
+        this.aggregatorColumnId = aggregatorColumnId;
+        this.inputColumnId = inputColumnId;
+        this.resultColumnId = resultColumnId;
+    }
 	
 	public AggregatorInfo getAggregatorInfo(){
 		return this.aggInfo;
