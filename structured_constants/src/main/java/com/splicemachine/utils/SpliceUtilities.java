@@ -94,7 +94,7 @@ public class SpliceUtilities extends SIConstants {
         siFamily.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
         siFamily.setInMemory(true);
         siFamily.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        siFamily.setBloomFilterType(BloomType.ROWCOL); //SI Column Family should use BloomFilters
+        siFamily.setBloomFilterType(BloomType.ROW); //SI Column Family should use BloomFilters
         siFamily.setTimeToLive(DEFAULT_TTL);
         return siFamily;
     }
