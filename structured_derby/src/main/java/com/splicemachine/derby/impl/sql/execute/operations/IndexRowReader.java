@@ -266,7 +266,8 @@ class IndexRowReader {
                 }
                 return locations;
             }finally{
-                fetchTimer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
+                if(SpliceConstants.collectStats)
+                    fetchTimer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
             }
         }
     }

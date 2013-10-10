@@ -202,7 +202,7 @@ public class TimingStats implements Stats{
 
         com.splicemachine.derby.stats.Accumulator acc;
 
-        if(SpliceConstants.COLLECT_STATS){
+        if(SpliceConstants.collectStats){
             acc = new Accumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
         }else{
             acc = new RecordAccumulator();
@@ -215,7 +215,7 @@ public class TimingStats implements Stats{
 
         com.splicemachine.derby.stats.Accumulator acc;
 
-        if(SpliceConstants.COLLECT_STATS){
+        if(SpliceConstants.collectStats){
             acc = new ThreadSafeAccumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
         }else{
             acc = new RecordAccumulator();

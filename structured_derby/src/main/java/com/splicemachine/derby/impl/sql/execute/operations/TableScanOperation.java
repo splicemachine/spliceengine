@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -214,7 +215,8 @@ public class TableScanOperation extends ScanOperation {
                 }
 			}
 		}finally{
-            timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
+            if(SpliceConstants.collectStats)
+                timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
         }
 		setCurrentRow(currentRow);
 		nextTime += getElapsedMillis(beginTime);

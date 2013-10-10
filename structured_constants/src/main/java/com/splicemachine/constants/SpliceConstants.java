@@ -261,7 +261,10 @@ public class SpliceConstants {
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
-    public static final boolean COLLECT_STATS = false;
+
+    public static boolean collectStats;
+    public static final String COLLECT_PERF_STATS ="splice.collectTimingStatistics";
+    public static final boolean DEFAULT_COLLECT_STATS = false;
 	
     // Default Configuration Options
 	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
@@ -425,6 +428,8 @@ public class SpliceConstants {
 
         long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
         tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
+
+        collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -332,7 +333,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             }while(!restrict);
             return retRow;
         }finally{
-            totalTimer.update(System.nanoTime()-start, TimeUnit.NANOSECONDS);
+            if(SpliceConstants.collectStats)
+                totalTimer.update(System.nanoTime()-start, TimeUnit.NANOSECONDS);
         }
     }
 
