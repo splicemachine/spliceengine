@@ -193,10 +193,34 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 		ExecRow row = sourceExecIndexRow.getClone();
         SpliceUtils.populateDefaultValues(row.getRowArray(),0);
         return row;
+	}
+
+	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
+		for(SpliceGenericAggregator aggregator: aggregates){
+			aggregator.initialize(aggResult);
+			aggregator.accumulate(aggResult,aggResult);
+		}
+	}
+	
+	protected void accumulateScalarAggregation(ExecRow nextRow,
+									ExecRow aggResult,
+									boolean hasDistinctAggregates,boolean isScan) throws StandardException{
+		int size = aggregates.length;
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG,"accumulateScalarAggregation");
+		for(int i=0;i<size;i++){
+			SpliceGenericAggregator currAggregate = aggregates[i];
+			if(isScan||hasDistinctAggregates && !currAggregate.isDistinct()){
+				currAggregate.merge(nextRow, aggResult);
+			}else{
+				currAggregate.accumulate(nextRow,aggResult);
+			}
+		}
 	}
 
     @Override
