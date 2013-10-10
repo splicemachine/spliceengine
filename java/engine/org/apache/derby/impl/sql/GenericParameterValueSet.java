@@ -46,7 +46,7 @@ import java.util.Iterator;
  *
  */
 
-final class GenericParameterValueSet implements ParameterValueSet,Externalizable
+public final class GenericParameterValueSet implements ParameterValueSet,Externalizable
 {
     public static final long serialVerionUID = 1l;
 

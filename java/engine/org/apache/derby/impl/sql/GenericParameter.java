@@ -40,7 +40,7 @@ import java.sql.Types;
  * A parameter.  Originally lifted from ParameterValueSet.
  *
  */
-final class GenericParameter implements Externalizable
+public final class GenericParameter implements Externalizable
 {
     public static final long serialVersionUID=4l;
 
