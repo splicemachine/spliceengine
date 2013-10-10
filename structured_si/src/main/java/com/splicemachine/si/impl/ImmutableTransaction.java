@@ -21,28 +21,30 @@ public class ImmutableTransaction {
     private final ImmutableTransaction immutableParent;
     private final boolean dependent;
     private final boolean allowWrites;
+    private final boolean additive;
 
     private final long beginTimestamp;
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
 
     public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
-                                Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
-                                Boolean readUncommitted, long beginTimestamp) {
+                                boolean additive, Boolean readCommitted, ImmutableTransaction immutableParent,
+                                boolean dependent, Boolean readUncommitted, long beginTimestamp) {
         this.behavior = behavior;
         this.transactionId = transactionId;
         this.immutableParent = immutableParent;
         this.dependent = dependent;
         this.allowWrites = allowWrites;
+        this.additive = additive;
         this.beginTimestamp = beginTimestamp;
         this.readUncommitted = readUncommitted;
         this.readCommitted = readCommitted;
     }
 
-    public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, Boolean readCommitted,
-                                ImmutableTransaction immutableParent, boolean dependent, Boolean readUncommitted,
-                                long beginTimestamp) {
-        this(behavior, new TransactionId(id), allowWrites, readCommitted, immutableParent,
+    public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, boolean additive,
+                                Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
+                                Boolean readUncommitted, long beginTimestamp) {
+        this(behavior, new TransactionId(id), allowWrites, additive, readCommitted, immutableParent,
                 dependent, readUncommitted, beginTimestamp);
     }
 
@@ -51,7 +53,7 @@ public class ImmutableTransaction {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
         return new ImmutableTransaction(behavior, newTransactionId,
-                allowWrites, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
+                allowWrites, additive, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
     }
 
     // immediate access
@@ -70,6 +72,10 @@ public class ImmutableTransaction {
 
     public boolean isReadOnly() {
         return !allowWrites;
+    }
+
+    public boolean isAdditive() {
+        return additive;
     }
 
     public boolean isRootTransaction() {
@@ -154,7 +160,7 @@ public class ImmutableTransaction {
     /**
      * @param t2
      * @return indicator of whether the writes from t2 should be visible from this transaction (based on transaction
-     * status, isolation levels, & timestamps.
+     *         status, isolation levels, & timestamps.
      * @throws IOException
      */
     public VisibleResult canSee(Transaction t2, TransactionSource transactionSource) throws IOException {
@@ -213,7 +219,7 @@ public class ImmutableTransaction {
      * @param t2
      * @param transactionSource allows the caller to plugin in a mechanism for loading transactions
      * @return indicator of whether and how this transaction writes would conflict with t2. This is based on the status,
-     * begin times, and lineage of the transactions.
+     *         begin times, and lineage of the transactions.
      * @throws IOException
      */
     public ConflictType isInConflictWith(ImmutableTransaction t2, TransactionSource transactionSource) throws IOException {
@@ -244,6 +250,7 @@ public class ImmutableTransaction {
 
     /**
      * Produce the chain of all transactions from this transaction to the root transaction.
+     *
      * @throws IOException
      */
     private List<ImmutableTransaction> getChain() throws IOException {
@@ -264,7 +271,8 @@ public class ImmutableTransaction {
      * and the immediate child of this point containing transaction2 (the effective transaction2).
      * Note: if transaction1 or transaction2 is the same as the as the point of intersection then they will be used
      * as their respective effective transaction.
-     * @param collapse if true then t2 is always used as effective transaction 2
+     *
+     * @param collapse     if true then t2 is always used as effective transaction 2
      * @param transaction1
      * @param transaction2
      * @return three transactions as described above

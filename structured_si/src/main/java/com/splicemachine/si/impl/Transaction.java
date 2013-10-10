@@ -8,7 +8,7 @@ import com.splicemachine.si.api.TransactionStatus;
 public class Transaction extends ImmutableTransaction {
     public static final long ROOT_ID = -1;
     static final Transaction rootTransaction = new Transaction(RootTransactionBehavior.instance, ROOT_ID, 0, 0, null, true,
-            false, false, false, TransactionStatus.ACTIVE, null, null, null);
+            false, false, false, false, TransactionStatus.ACTIVE, null, null, null);
 
     /**
      * the parent transaction or null if this is a root level transaction
@@ -32,9 +32,9 @@ public class Transaction extends ImmutableTransaction {
     public final Long counter;
 
     public Transaction(TransactionBehavior transactionBehavior, long id, long beginTimestamp, long keepAlive, Transaction parent,
-                       boolean dependent, boolean allowWrites, Boolean readUncommitted, Boolean readCommitted,
+                       boolean dependent, boolean allowWrites, boolean additive, Boolean readUncommitted, Boolean readCommitted,
                        TransactionStatus status, Long commitTimestamp, Long globalCommitTimestamp, Long counter) {
-        super(transactionBehavior, id, allowWrites, readCommitted, parent, dependent, readUncommitted,
+        super(transactionBehavior, id, allowWrites, additive, readCommitted, parent, dependent, readUncommitted,
                 beginTimestamp);
         this.keepAlive = keepAlive;
         this.parent = parent;

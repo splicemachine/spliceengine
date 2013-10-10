@@ -14,6 +14,7 @@ public class EncodedTransactionSchema<Data> {
     final Data parentQualifier;
     final Data dependentQualifier;
     final Data allowWritesQualifier;
+    final Data additiveQualifier;
     final Data readUncommittedQualifier;
     final Data readCommittedQualifier;
     final Data commitQualifier;
@@ -24,8 +25,8 @@ public class EncodedTransactionSchema<Data> {
 
     public EncodedTransactionSchema(String tableName, Data siFamily, Data permissionFamily, Data siNull, Data idQualifier,
                                     Data startQualifier, Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
-                                    Data readUncommittedQualifier, Data readCommittedQualifier, Data keepAliveQualifier,
-                                    Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
+                                    Data additiveQualifier, Data readUncommittedQualifier, Data readCommittedQualifier,
+                                    Data keepAliveQualifier, Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
                                     Data counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
@@ -37,6 +38,7 @@ public class EncodedTransactionSchema<Data> {
         this.parentQualifier = parentQualifier;
         this.dependentQualifier = dependentQualifier;
         this.allowWritesQualifier = allowWritesQualifier;
+        this.additiveQualifier = additiveQualifier;
         this.readUncommittedQualifier = readUncommittedQualifier;
         this.readCommittedQualifier = readCommittedQualifier;
         this.commitQualifier = commitQualifier;

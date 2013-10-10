@@ -52,6 +52,7 @@ public class SIBrowser extends SIConstants {
                 Long counter = getLong(r, Bytes.toBytes(TRANSACTION_COUNTER_COLUMN));
                 Long parent = getLong(r, TRANSACTION_PARENT_COLUMN_BYTES);
                 Boolean writes = getBoolean(r, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+                Boolean additive = getBoolean(r, TRANSACTION_ADDITIVE_COLUMN_BYTES);
                 Boolean dependent = getBoolean(r, TRANSACTION_DEPENDENT_COLUMN_BYTES);
                 Boolean readUncommitted = getBoolean(r, TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
                 Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
@@ -62,7 +63,7 @@ public class SIBrowser extends SIConstants {
                 readPermissions(r, permissions, forbidden);
 
                 x.put(id, new Object[]{beginTimestamp, parent, writes, startTimestamp, status, statusTimestamp,
-                        commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter,
+                        commitTimestamp, globalCommit, keepAliveValue, dependent, additive, readUncommitted, readCommitted, counter,
                         rowKey, setToString(permissions), setToString(forbidden)});
                 if (idToFind != null && beginTimestamp == idToFind) {
                     toFind = r;
@@ -81,10 +82,10 @@ public class SIBrowser extends SIConstants {
             } else {
                 final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
                 Collections.sort(list);
-                System.out.println("transaction\tbeginTimestamp\tparent\twritesAllowed\tstartClockTime\tstatus\tstatusClockTime\tcommitTimestamp\tglobalCommitTimestamp\tkeepAliveClockTime\tdependent\treadUncommitted\treadCommitted\tcounter\trowKey\tpermissions\tforbidden");
+                System.out.println("transaction\tbeginTimestamp\tparent\twritesAllowed\tstartClockTime\tstatus\tstatusClockTime\tcommitTimestamp\tglobalCommitTimestamp\tkeepAliveClockTime\tdependent\tadditive\treadUncommitted\treadCommitted\tcounter\trowKey\tpermissions\tforbidden");
                 for (Long k : list) {
                     Object[] v = (Object[]) x.get(k);
-                    System.out.println(k + "\t" + v[0] + "\t" + v[1] + "\t" + v[2] + "\t" + v[3] + "\t" + v[4] + "\t" + v[5] + "\t" + v[6] + "\t" + v[7] + "\t" + v[8] + "\t" + v[9] + "\t" + v[10] + "\t" + v[11] + "\t" + v[12] + "\t" + v[13] + "\t" + v[14] + "\t" + v[15]);
+                    System.out.println(k + "\t" + v[0] + "\t" + v[1] + "\t" + v[2] + "\t" + v[3] + "\t" + v[4] + "\t" + v[5] + "\t" + v[6] + "\t" + v[7] + "\t" + v[8] + "\t" + v[9] + "\t" + v[10] + "\t" + v[11] + "\t" + v[12] + "\t" + v[13] + "\t" + v[14] + "\t" + v[15] + "\t" + v[16]);
                 }
 
                 //dumpTable("conglomerates", "16");

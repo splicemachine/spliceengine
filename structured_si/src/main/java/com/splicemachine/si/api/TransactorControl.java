@@ -40,7 +40,7 @@ public interface TransactorControl {
      */
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
-                                        Boolean readUncommitted, Boolean readCommitted) throws IOException;
+                                        boolean additive, Boolean readUncommitted, Boolean readCommitted) throws IOException;
     void keepAlive(TransactionId transactionId) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void rollback(TransactionId transactionId) throws IOException;

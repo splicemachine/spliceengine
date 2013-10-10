@@ -16,6 +16,7 @@ public class TransactionSchema {
     final Object parentQualifier;
     final Object dependentQualifier;
     final Object allowWritesQualifier;
+    final Object additiveQualifier;
     final Object readUncommittedQualifier;
     final Object readCommittedQualifier;
     final Object commitQualifier;
@@ -26,8 +27,8 @@ public class TransactionSchema {
 
     public TransactionSchema(String tableName, Object siFamily, Object permissionFamily, Object siNull, Object idQualifier,
                              Object startQualifier, Object parentQualifier, Object dependentQualifier, Object allowWritesQualifier,
-                             Object readUncommittedQualifier, Object readCommittedQualifier, Object keepAliveQualifier,
-                             Object statusQualifier, Object commitQualifier, Object globalCommitQualifier,
+                             Object additiveQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
+                             Object keepAliveQualifier, Object statusQualifier, Object commitQualifier, Object globalCommitQualifier,
                              Object counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
@@ -38,6 +39,7 @@ public class TransactionSchema {
         this.parentQualifier = parentQualifier;
         this.dependentQualifier = dependentQualifier;
         this.allowWritesQualifier = allowWritesQualifier;
+        this.additiveQualifier = additiveQualifier;
         this.readUncommittedQualifier = readUncommittedQualifier;
         this.readCommittedQualifier = readCommittedQualifier;
         this.commitQualifier = commitQualifier;
@@ -57,6 +59,7 @@ public class TransactionSchema {
                 SDataLib.encode(parentQualifier),
                 SDataLib.encode(dependentQualifier),
                 SDataLib.encode(allowWritesQualifier),
+                SDataLib.encode(additiveQualifier),
                 SDataLib.encode(readUncommittedQualifier),
                 SDataLib.encode(readCommittedQualifier),
                 SDataLib.encode(keepAliveQualifier),

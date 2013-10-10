@@ -174,6 +174,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
             addFieldToPut(put, encodedSchema.parentQualifier, params.parent.getId());
         }
         addFieldToPut(put, encodedSchema.allowWritesQualifier, params.allowWrites);
+        addFieldToPut(put, encodedSchema.additiveQualifier, params.additive);
         if (params.readUncommitted != null) {
             addFieldToPut(put, encodedSchema.readUncommittedQualifier, params.readUncommitted);
         }
@@ -432,6 +433,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                 decodeParent(resultTuple),
                 dependent,
                 decodeBoolean(resultTuple, encodedSchema.allowWritesQualifier),
+                decodeBoolean(resultTuple, encodedSchema.additiveQualifier),
                 decodeBoolean(resultTuple, encodedSchema.readUncommittedQualifier),
                 decodeBoolean(resultTuple, encodedSchema.readCommittedQualifier),
                 decodeStatus(resultTuple, encodedSchema.statusQualifier),
@@ -535,7 +537,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         Transaction result = stubCommittedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.rootTransaction, true, false, false, false,
+                    timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
                     TransactionStatus.COMMITTED, globalCommitTimestamp, null, null);
             stubCommittedTransactionCache.put(timestamp, result);
         }
@@ -547,7 +549,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         Transaction result = stubFailedTransactionCache.get(timestamp);
         if (result == null) {
             result = new Transaction(StubTransactionBehavior.instance, timestamp,
-                    timestamp, 0, Transaction.rootTransaction, true, false, false, false,
+                    timestamp, 0, Transaction.rootTransaction, true, false, false, false, false,
                     TransactionStatus.ERROR, null, null, null);
             stubFailedTransactionCache.put(timestamp, result);
         }

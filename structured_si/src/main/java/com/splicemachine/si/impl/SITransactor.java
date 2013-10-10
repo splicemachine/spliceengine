@@ -91,7 +91,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
-        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, readUncommitted,
+        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, false, readUncommitted,
                 readCommitted);
     }
 
@@ -102,14 +102,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
-        return beginChildTransaction(parent, dependent, allowWrites, null, null);
+        return beginChildTransaction(parent, dependent, allowWrites, false, null, null);
     }
 
     @Override
-    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, Boolean readUncommitted,
-                                               Boolean readCommitted) throws IOException {
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
+                                               boolean additive, Boolean readUncommitted, Boolean readCommitted) throws IOException {
         if (allowWrites || readCommitted != null || readUncommitted != null) {
-            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
+            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, additive, readUncommitted, readCommitted);
             final long timestamp = assignTransactionId();
             final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
@@ -639,7 +639,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
-        if (updateTransaction.sameTransaction(dataTransaction)) {
+        if (updateTransaction.sameTransaction(dataTransaction) || updateTransaction.isAdditive() || dataTransaction.isAdditive()) {
             return ConflictType.NONE;
         } else {
             return updateTransaction.isInConflictWith(dataTransaction, transactionSource);
@@ -840,7 +840,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException {
         final long currentMin = timestampSource.retrieveTimestamp();
         final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
-                true, false, false, false);
+                true, false, false, false, false);
         final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
                 currentMin, max.getId(), MAX_ACTIVE_COUNT, missingParams, TransactionStatus.ERROR);
         final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());

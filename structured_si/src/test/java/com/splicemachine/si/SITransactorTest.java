@@ -2975,7 +2975,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentReadUncommittedDoesSeeParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe99", 20);
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, true, true);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, false, true, true);
         Assert.assertEquals("joe99 age=20 job=null", read(t2, "joe99"));
     }
 
@@ -2983,7 +2983,7 @@ public class SITransactorTest extends SIConstants {
     public void childIndependentReadOnlyUncommittedDoesSeeParentWrites() throws IOException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe100", 20);
-        final TransactionId t2 = transactor.beginChildTransaction(t1, false, false, true, true);
+        final TransactionId t2 = transactor.beginChildTransaction(t1, false, false, false, true, true);
         Assert.assertEquals("joe100 age=20 job=null", read(t2, "joe100"));
     }
 
@@ -2999,7 +2999,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(otherTransaction, "joe38", 30);
         transactor.commit(otherTransaction);
 
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, null, true);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, true, false, null, true);
         Assert.assertEquals("joe38 age=30 job=null", read(t2, "joe38"));
         transactor.commit(t2);
         transactor.commit(t1);
@@ -3017,7 +3017,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(otherTransaction, "joe97", 30);
         transactor.commit(otherTransaction);
 
-        TransactionId t2 = transactor.beginChildTransaction(t1, false, false, null, true);
+        TransactionId t2 = transactor.beginChildTransaction(t1, false, false, false, null, true);
         Assert.assertEquals("joe97 age=30 job=null", read(t2, "joe97"));
         transactor.commit(t2);
         transactor.commit(t1);
@@ -3557,5 +3557,33 @@ public class SITransactorTest extends SIConstants {
     private void assertPermissionFailure(RetriesExhaustedWithDetailsException e) {
         Assert.assertEquals(1, e.getNumExceptions());
         Assert.assertTrue(e.getMessage().indexOf("permission fail") >= 0);
+    }
+
+    @Test
+    public void additiveWritesSecond() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe70", 20);
+        final TransactionId t2 = transactor.beginTransaction();
+        final TransactionId t3 = transactor.beginChildTransaction(t2, true, true, true, null, null);
+        insertJob(t3, "joe70", "butcher");
+        transactor.commit(t3);
+        transactor.commit(t2);
+        transactor.commit(t1);
+        final TransactionId t4 = transactor.beginTransaction();
+        Assert.assertEquals("joe70 age=20 job=butcher", read(t4, "joe70"));
+    }
+
+    @Test
+    public void additiveWritesFirst() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        final TransactionId t2 = transactor.beginChildTransaction(t1, true, true, true, null, null);
+        insertJob(t2, "joe70", "butcher");
+        final TransactionId t3 = transactor.beginTransaction();
+        insertAge(t3, "joe70", 20);
+        transactor.commit(t3);
+        transactor.commit(t2);
+        transactor.commit(t1);
+        final TransactionId t4 = transactor.beginTransaction();
+        Assert.assertEquals("joe70 age=20 job=butcher", read(t4, "joe70"));
     }
 }

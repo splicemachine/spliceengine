@@ -22,6 +22,7 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_PARENT_COLUMN = 1;
     public static final int TRANSACTION_DEPENDENT_COLUMN = 2;
     public static final int TRANSACTION_ALLOW_WRITES_COLUMN = 3;
+    public static final int TRANSACTION_ADDITIVE_COLUMN = 17;
     public static final int TRANSACTION_READ_UNCOMMITTED_COLUMN = 4;
     public static final int TRANSACTION_READ_COMMITTED_COLUMN = 5;
     public static final int TRANSACTION_STATUS_COLUMN = 6;
@@ -35,6 +36,7 @@ public class SIConstants extends SpliceConstants {
     public static final byte[] TRANSACTION_PARENT_COLUMN_BYTES = Encoding.encode(TRANSACTION_PARENT_COLUMN);
     public static final byte[] TRANSACTION_DEPENDENT_COLUMN_BYTES = Encoding.encode(TRANSACTION_DEPENDENT_COLUMN);
     public static final byte[] TRANSACTION_ALLOW_WRITES_COLUMN_BYTES = Encoding.encode(TRANSACTION_ALLOW_WRITES_COLUMN);
+    public static final byte[] TRANSACTION_ADDITIVE_COLUMN_BYTES = Encoding.encode(TRANSACTION_ADDITIVE_COLUMN);
     public static final byte[] TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES = Encoding.encode(TRANSACTION_READ_UNCOMMITTED_COLUMN);
     public static final byte[] TRANSACTION_READ_COMMITTED_COLUMN_BYTES = Encoding.encode(TRANSACTION_READ_COMMITTED_COLUMN);
     public static final byte[] TRANSACTION_STATUS_COLUMN_BYTES = Encoding.encode(TRANSACTION_STATUS_COLUMN);
