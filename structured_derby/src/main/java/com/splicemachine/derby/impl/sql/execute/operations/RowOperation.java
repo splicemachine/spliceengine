@@ -212,15 +212,10 @@ public class RowOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
-		try {
-			ExecRow row = getRow();
-			SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
-			return row;
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-			return null;
-		}
+    public ExecRow getExecRowDefinition() throws StandardException {
+        ExecRow row = getRow();
+        SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
+        return row;
 	}
 	
 	public int getRowsReturned() {
