@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Splice Machine SQL Shell
+
+echo "Running Splice Machine SQL shell"
+
+export CLASSPATH=/usr/lib/hbase/hbase.jar:/usr/lib/hbase/lib/*
+
+# connect 'jdbc:derby://localhost:1527/splicedb';
+java -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
+

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Cloudera VM Splice Machine installer
+
+echo "Stopping Splice Machine into Cloudera"
+
+sudo service cloudera-scm-server stop

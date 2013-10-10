@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Cloudera VM Splice Machine starter
+
+echo "Starting Splice Machine on Cloudera"
+
+sudo service cloudera-scm-server start

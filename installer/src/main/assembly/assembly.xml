@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<assembly>
+    <id>${envClassifier}</id>
+    <formats>
+        <format>tar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>distributions</outputDirectory>
+        </dependencySet>
+    </dependencySets>
+    <fileSets>
+        <fileSet>
+            <directory>src/main/scripts</directory>
+            <outputDirectory>splicemachine</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/scripts/${envClassifier}</directory>
+            <outputDirectory>splicemachine/lib</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
+    </fileSets>
+    <files>
+        <file>
+            <source>src/main/scripts/README</source>
+            <fileMode>0644</fileMode>
+            <outputDirectory>splicemachine</outputDirectory>
+        </file>
+    </files>
+</assembly>

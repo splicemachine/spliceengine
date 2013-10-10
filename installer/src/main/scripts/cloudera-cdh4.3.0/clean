@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Cloudera VM Splice Machine DB cleaner
+
+echo "Cleaning Splice Machine Cloudera DB"
+
+# TODO Use zookeeper's cli to rmr /startupPath, then bounce hbase
+# see also, SpliceMasterObserver.createSplice()
+
+

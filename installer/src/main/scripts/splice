@@ -1,0 +1,54 @@
+#!/bin/bash
+
+usage() {
+    # $1 is an error, if any
+    if [ ! -z "$1" ] 
+        then
+        echo "Error: $1"
+    fi
+    echo "Usage: $0 {-install | -start | -stop | -restart | -clean | -splice}"
+    echo "Where: "
+    echo "  -install => install the splice complete jar"
+    echo "  -start => start HBase"
+    echo "  -stop => stop HBase"
+    echo "  -restart => bounce HBase"
+    echo "  -clean => clean the splice DB"
+    echo "  -splice => start the splice SQL shell"
+}
+
+case $1 in
+ -h | -help | -\?)
+     usage
+     exit 0      # This is not an error, User asked help. Don't do "exit 1"
+     ;;
+ -install)
+     # call platform-specific installer
+     ./lib/install
+     ;;
+ -start)
+     # call platform-specific HBase starter
+     ./lib/start
+     ;;
+ -stop)
+     # call platform-specific HBase stopper
+     ./lib/stop
+     ;;
+ -restart)
+     # call platform-specific HBase stopper
+     ./lib/stop
+     # call platform-specific HBase starter
+     ./lib/start
+     ;;
+ -clean)
+     # call DB cleaner
+     ./lib/clean
+     ;;
+ -splice)
+     # call splce shell
+     ./lib/splice
+     ;;
+ *)
+     usage "Unknown option (ignored): $1"
+     exit 1
+     ;;
+esac
