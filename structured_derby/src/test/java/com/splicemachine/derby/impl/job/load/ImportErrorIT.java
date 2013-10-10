@@ -115,7 +115,7 @@ public class ImportErrorIT {
         });
     }
 
-    @Test(expected = SQLException.class)
+    @Test(expected = SQLException.class,timeout=5000)
     public void testCannotInsertALongIntoAnIntegerField() throws Exception {
         runImportTest("long_int.csv",new ErrorCheck() {
             @Override

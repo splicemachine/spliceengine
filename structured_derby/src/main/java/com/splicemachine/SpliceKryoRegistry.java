@@ -21,6 +21,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
+import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -296,6 +297,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(GenericResultDescription.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ReferencedColumnsDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(HashMap.class);
         instance.register(TreeMap.class);
