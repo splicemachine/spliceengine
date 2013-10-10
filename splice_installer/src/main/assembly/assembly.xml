@@ -7,12 +7,19 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>distributions</outputDirectory>
+            <outputDirectory>splicemachine/lib</outputDirectory>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
         </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
-            <directory>src/main/scripts</directory>
+            <directory>src/main/scripts/</directory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <excludes>
+                <exclude>**/${envClassifier}</exclude>
+            </excludes>
             <outputDirectory>splicemachine</outputDirectory>
             <fileMode>0755</fileMode>
             <directoryMode>0755</directoryMode>
@@ -23,12 +30,11 @@
             <fileMode>0755</fileMode>
             <directoryMode>0755</directoryMode>
         </fileSet>
+        <fileSet>
+            <directory>src/main/scripts/lib</directory>
+            <outputDirectory>splicemachine/lib</outputDirectory>
+            <fileMode>0755</fileMode>
+            <directoryMode>0755</directoryMode>
+        </fileSet>
     </fileSets>
-    <files>
-        <file>
-            <source>src/main/scripts/README</source>
-            <fileMode>0644</fileMode>
-            <outputDirectory>splicemachine</outputDirectory>
-        </file>
-    </files>
 </assembly>

@@ -1,0 +1,6 @@
+# Cloudera specific environment properties
+
+SPLICE_ENV_LIB=cloudera
+
+HBASE_DIR="/usr/lib/hbase"
+HBASE_LIB_DIR="$HBASE_DIR/lib"

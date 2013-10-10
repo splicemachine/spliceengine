@@ -1,0 +1,7 @@
+# MapR specific environment properties
+
+SPLICE_ENV_LIB=mapr
+
+# TODO - this should be mapr spcific
+HBASE_DIR="/usr/lib/hbase"
+HBASE_LIB_DIR="$HBASE_DIR/lib"
