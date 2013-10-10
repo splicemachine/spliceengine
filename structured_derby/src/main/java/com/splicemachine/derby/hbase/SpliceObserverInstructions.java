@@ -184,7 +184,7 @@ public class SpliceObserverInstructions implements Externalizable {
      * the activation properly serialize. Someday, it would be nice to move all of this into making
      * Activation properly serializable.
      */
-    private static class ActivationContext implements Externalizable{
+    public static class ActivationContext implements Externalizable{
         private static final long serialVersionUID = 5l;
         private Map<String,Integer> setOps;
         private boolean statementAtomic;
@@ -282,7 +282,8 @@ public class SpliceObserverInstructions implements Externalizable {
             out.writeBoolean(pvs!=null);
             if(pvs!=null)
                 out.writeObject(pvs);
-            out.writeObject(activationData);
+            out.writeInt(activationData.length);
+            out.write(activationData);
         }
 
         @SuppressWarnings("unchecked")
@@ -297,7 +298,8 @@ public class SpliceObserverInstructions implements Externalizable {
             if(in.readBoolean()){
                 this.pvs = (ParameterValueSet)in.readObject();
             }
-            activationData = (byte[])in.readObject();
+            activationData = new byte[in.readInt()];
+            in.readFully(activationData);
         }
 
         public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {

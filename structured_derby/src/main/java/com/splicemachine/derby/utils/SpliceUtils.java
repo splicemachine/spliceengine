@@ -1,5 +1,8 @@
 package com.splicemachine.derby.utils;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
@@ -18,6 +21,8 @@ import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -244,20 +249,18 @@ public class SpliceUtils extends SpliceUtilities {
 	public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
 		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
 		if(instructions==null) return null;
-		//Putting this here to prevent some kind of weird NullPointer situation
-		//where the LanguageConnectionContext doesn't get initialized properly
-		ByteArrayInputStream bis = null;
-		ObjectInputStream ois = null;
+
+        Kryo kryo = SpliceDriver.getKryoPool().get();
 		try {
-			bis = new ByteArrayInputStream(instructions);
-			ois = new ObjectInputStream(bis);
-			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
+            Input input = new Input(instructions);
+            KryoObjectInput koi = new KryoObjectInput(input,kryo);
+			SpliceObserverInstructions soi = (SpliceObserverInstructions) koi.readObject();
 			return soi;
 		} catch (Exception e) {
-			Closeables.closeQuietly(ois);
-			Closeables.closeQuietly(bis);			
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-		}
+		}finally{
+            SpliceDriver.getKryoPool().returnInstance(kryo);
+        }
 		return null;
 	}
 
@@ -330,16 +333,17 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static byte[] generateInstructions(SpliceObserverInstructions instructions) {
+        Kryo kryo = SpliceDriver.getKryoPool().get();
         try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(out);
-            oos.writeObject(instructions);
-            oos.flush();
-            oos.close();
-            return out.toByteArray();
+            Output output = new Output(4096,-1);
+            KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
+            koo.writeObject(instructions);
+            return output.toBytes();
         } catch (IOException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:" + e.getMessage(), e);
             return null;
+        }finally{
+            SpliceDriver.getKryoPool().returnInstance(kryo);
         }
     }
 

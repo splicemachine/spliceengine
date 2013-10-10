@@ -5,23 +5,44 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.hbase.ActivationSerializer;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stats.TimingStats;
+import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.catalog.types.*;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.io.*;
+import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.store.raw.ContainerKey;
 import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.impl.sql.execute.AvgAggregator;
-import org.apache.derby.impl.sql.execute.CountAggregator;
-import org.apache.derby.impl.sql.execute.MaxMinAggregator;
-import org.apache.derby.impl.sql.execute.SumAggregator;
+import org.apache.derby.impl.services.uuid.BasicUUID;
+import org.apache.derby.impl.sql.*;
+import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
+import org.apache.derby.impl.sql.catalog.DD_Version;
+import org.apache.derby.impl.sql.catalog.DDdependableFinder;
+import org.apache.derby.impl.sql.execute.*;
+import org.apache.derby.impl.store.access.PC_XenaVersion;
+
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -33,6 +54,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     @Override
     public void register(Kryo instance) {
         instance.setReferences(false);
+        instance.setRegistrationRequired(true);
+
+        instance.register(ValueRow.class,new ValueRowSerializer());
         instance.register(GenericStorablePreparedStatement.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DataTypeDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TypeDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
@@ -53,20 +77,158 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(MaxMinAggregator.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(SQLDecimal.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLDouble.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLInteger.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLVarchar.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLChar.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLBoolean.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLBit.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLDate.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLTime.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLTimestamp.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLSmallint.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLTinyint.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLLongint.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLLongvarchar.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(SQLReal.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SQLDouble.class,new DataValueDescriptorSerializer<SQLDouble>(){
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLDouble object) throws StandardException {
+                output.writeDouble(object.getDouble());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLDouble dvd) throws StandardException {
+                dvd.setValue(input.readDouble());
+            }
+        });
+        instance.register(SQLInteger.class,new DataValueDescriptorSerializer<SQLInteger>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLInteger object) {
+                output.writeInt(object.getInt());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLInteger dvd) {
+                dvd.setValue(input.readInt());
+            }
+        });
+        instance.register(SQLVarchar.class,new DataValueDescriptorSerializer<SQLVarchar>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLVarchar object) throws StandardException {
+                output.writeString(object.getString());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLVarchar dvd) {
+                dvd.setValue(input.readString());
+            }
+        });
+        instance.register(SQLLongvarchar.class,new DataValueDescriptorSerializer<SQLLongvarchar>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLLongvarchar object) throws StandardException {
+                output.writeString(object.getString());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLLongvarchar dvd) {
+                dvd.setValue(input.readString());
+            }
+        });
+        instance.register(SQLChar.class,new DataValueDescriptorSerializer<SQLChar>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLChar object) throws StandardException {
+                output.writeString(object.getString());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLChar dvd) {
+                dvd.setValue(input.readString());
+            }
+        });
+        instance.register(SQLBoolean.class,new DataValueDescriptorSerializer<SQLBoolean>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLBoolean object) throws StandardException {
+                output.writeBoolean(object.getBoolean());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLBoolean dvd) throws StandardException {
+                dvd.setValue(input.readBoolean());
+            }
+        });
+        instance.register(SQLBit.class,new DataValueDescriptorSerializer<SQLBit>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLBit object) throws StandardException {
+                byte[] data = object.getBytes();
+                output.writeInt(data.length);
+                output.write(data);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLBit dvd) throws StandardException {
+                byte[] data = new byte[input.readInt()];
+                //noinspection ResultOfMethodCallIgnored
+                input.read(data);
+                dvd.setValue(data);
+            }
+        });
+        instance.register(SQLDate.class,new DataValueDescriptorSerializer<SQLDate>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLDate object) throws StandardException {
+                output.writeLong(object.getDate((Calendar) null).getTime());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLDate dvd) throws StandardException {
+                dvd.setValue(new Date(input.readLong()));
+            }
+        });
+        instance.register(SQLTime.class,new DataValueDescriptorSerializer<SQLTime>(){
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLTime object) throws StandardException {
+                output.writeLong(object.getTime(null).getTime());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLTime dvd) throws StandardException {
+                dvd.setValue(new Time(input.readLong()));
+            }
+        });
+        instance.register(SQLTimestamp.class,new DataValueDescriptorSerializer<SQLTimestamp>(){
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLTimestamp object) throws StandardException {
+                output.writeLong(object.getTimestamp(null).getTime());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLTimestamp dvd) throws StandardException {
+                dvd.setValue(new Timestamp(input.readLong()));
+            }
+        });
+        instance.register(SQLSmallint.class,new DataValueDescriptorSerializer<SQLSmallint>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLSmallint object) throws StandardException {
+                output.writeShort(object.getShort());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLSmallint dvd) throws StandardException {
+                dvd.setValue(input.readShort());
+            }
+        });
+        instance.register(SQLTinyint.class,new DataValueDescriptorSerializer<SQLTinyint>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLTinyint object) throws StandardException {
+                output.writeByte(object.getByte());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLTinyint dvd) throws StandardException {
+                dvd.setValue(input.readByte());
+            }
+        });
+
+        instance.register(SQLLongint.class,new DataValueDescriptorSerializer<SQLLongint>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLLongint object) throws StandardException {
+                output.writeLong(object.getLong());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLLongint dvd) throws StandardException {
+                dvd.setValue(input.readLong());
+            }
+        });
+        instance.register(SQLReal.class, new DataValueDescriptorSerializer<SQLReal>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLReal object) throws StandardException {
+                output.writeFloat(object.getFloat());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLReal dvd) throws StandardException {
+                dvd.setValue(input.readFloat());
+            }
+        });
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LazyDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LazyNumberDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
@@ -79,6 +241,84 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.ExecRowStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.SerializableStorage.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(SpliceObserverInstructions.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceObserverInstructions.ActivationContext.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericParameterValueSet.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericParameter.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SchemaDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceRuntimeContext.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(ProjectRestrictOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(TableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(BulkTableScanOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(GroupedAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(DistinctScanOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(DistinctScalarAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexRowToBaseRowOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(SortOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(UnionOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(UpdateOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(UpdateConstantOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(InsertOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(DeleteOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeSortJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(NestedLoopJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(NestedLoopLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeSortLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScalarAggregateOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(NormalizeOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(AnyOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(OnceOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowCountOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(BroadcastJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableHashtable.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableIntHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DD_Version.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DDdependableFinder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DDColumnDependableFinder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(byte[].class);
+        instance.register(boolean[].class);
+        instance.register(int[].class);
+        instance.register(double[].class);
+        instance.register(float[].class);
+        instance.register(long[].class);
+        instance.register(Collections.emptyList().getClass());
+        instance.register(CursorInfo.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericResultDescription.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ReferencedColumnsDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(HashMap.class);
+        instance.register(TreeMap.class);
+        instance.register(ArrayList.class);
+        instance.register(LinkedList.class);
+
+        instance.register(FormatableArrayHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexColumnOrder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(HBaseRowLocation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TaskStats.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TimingStats.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AggregatorInfoList.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AggregatorInfo.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(UserType.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(InsertConstantOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DerbyDMLWriteInfo.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DeleteConstantOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableLongHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableInstanceGetter.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceRuntimeContext.Path.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(IndexRowGenerator.class,EXTERNALIZABLE_SERIALIZER);
+
+
 
         instance.register(ContainerKey.class,new Serializer<ContainerKey>() {
             @Override
