@@ -232,6 +232,28 @@ public class MultiFieldDecoder {
         return bytes;
     }
 
+    public byte[] getNextRawFloat(){
+        if(!available())
+            return new byte[]{};
+        int offset = currentOffset>=0?currentOffset:0;
+        currentOffset+=4;
+        byte[] retData = new byte[4];
+        System.arraycopy(data,offset,retData,0,4);
+        currentOffset++;
+        return retData;
+    }
+
+    public byte[] getNextRawDouble(){
+        if(!available())
+            return new byte[]{};
+        int offset = currentOffset>=0?currentOffset:0;
+        currentOffset+=8;
+        byte[] retData = new byte[8];
+        System.arraycopy(data,offset,retData,0,8);
+        currentOffset++;
+        return retData;
+    }
+
 //    public byte[] getNextRawBytes(){
 //        if(!available()) return new byte[]{};
 //        if(currentOffset>=offset&&data[currentOffset]==0x00) {

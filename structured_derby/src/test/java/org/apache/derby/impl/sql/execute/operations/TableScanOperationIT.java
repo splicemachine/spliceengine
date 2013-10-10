@@ -504,5 +504,24 @@ public class TableScanOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals(6, count);
     }
-    
+
+    @Test
+    public void testCanScanDoubleEdgeCase() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select 1,1.797e+308,-1.797e+308,'This query should work' from "+spliceTableWatcher);
+        int count =0;
+        while(rs.next()){
+            int first = rs.getInt(1);
+            double second = rs.getDouble(2);
+            double third = rs.getDouble(3);
+            String fourth = rs.getString(4);
+
+            Assert.assertEquals("Incorrect first field!",1,first);
+            Assert.assertEquals("Incorrect second field!",1.797e+308,second,0.0000000001);
+            Assert.assertEquals("Incorrect third field!",-1.797e+308,third,0.0000000001);
+            Assert.assertEquals("Incorrect fourth field!","This query should work",fourth);
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect count returned!",10,count);
+    }
 }

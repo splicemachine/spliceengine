@@ -69,7 +69,15 @@ public class DerbyBytesUtil {
 //                    ||colFormatId == StoredFormatIds.SQL_BIT_ID){
 //                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRawBytes(),desc);
 //            }else
-                ((LazyDataValueDescriptor)dvd).initForDeserialization(decoder.getNextRaw(),desc);
+            byte[] bytes;
+            if(colFormatId==StoredFormatIds.SQL_DOUBLE_ID)
+                bytes = decoder.getNextRawDouble();
+            else if(colFormatId==StoredFormatIds.SQL_REAL_ID)
+                bytes = decoder.getNextRawFloat();
+            else
+                bytes = decoder.getNextRaw();
+
+            ldvd.initForDeserialization(bytes,desc);
         }
 
         @Override
