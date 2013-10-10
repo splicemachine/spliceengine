@@ -298,6 +298,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ReferencedColumnsDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ErrorTransport.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DefaultInfoImpl.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(HashMap.class);
         instance.register(TreeMap.class);
@@ -319,6 +320,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FormatableInstanceGetter.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SpliceRuntimeContext.Path.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRowGenerator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MultiProbeDerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MultiProbeTableScanOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DistinctGroupedAggregateOperation.class,EXTERNALIZABLE_SERIALIZER);
 
 
 
