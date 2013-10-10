@@ -74,6 +74,14 @@ public class UpdateOperation extends DMLWriteOperation{
     public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         boolean modifiedPrimaryKeys = false;
         FormatableBitSet heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
+        if(heapList==null){
+            int[] changedCols = ((UpdateConstantOperation)writeInfo.getConstantAction()).getChangedColumnIds();
+            heapList = new FormatableBitSet(changedCols.length);
+            for(int colPosition:changedCols){
+                heapList.grow(colPosition+1);
+                heapList.set(colPosition);
+            }
+        }
         if(pkColumns!=null){
             for(int pkCol = pkColumns.anySetBit();pkCol!=-1;pkCol= pkColumns.anySetBit(pkCol)){
                 if(heapList.isSet(pkCol+1)){
@@ -109,14 +117,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		 *
 		 * and so forth
 		 */
-        if(heapList==null){
-            int[] changedCols = ((UpdateConstantOperation)writeInfo.getConstantAction()).getChangedColumnIds();
-            heapList = new FormatableBitSet(changedCols.length);
-            for(int colPosition:changedCols){
-                heapList.grow(colPosition+1);
-                heapList.set(colPosition);
-            }
-        }
+
         final int[] colPositionMap = new int[heapList.size()];
         for(int i = heapList.anySetBit(),pos=heapList.getNumBitsSet();i!=-1;i=heapList.anySetBit(i),pos++){
             colPositionMap[i] = pos;

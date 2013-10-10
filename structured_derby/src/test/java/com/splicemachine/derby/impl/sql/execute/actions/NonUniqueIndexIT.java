@@ -33,6 +33,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
+    public static final String TABLE_NAME_9 = "I";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -41,6 +42,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 	public static final String INDEX_61 = "IDX_F1";
     public static final String INDEX_62 = "IDX_F2";
     public static final String INDEX_81 = "IDX_H2";
+    public static final String INDEX_91 = "IDX_I1";
 
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
@@ -51,6 +53,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,spliceSchemaWatcher.schemaName,"(oid decimal(5),name varchar(40))");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,spliceSchemaWatcher.schemaName,"(c1 int, c2 int, c3 int)");
 
     @Override
     public String getSchemaName() {
@@ -67,7 +70,8 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
         .around(spliceTableWatcher7)
-            .around(spliceTableWatcher8);
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9);
 
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -309,6 +313,24 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
             rule.getStatement().execute("drop view t_view");
         }
         */
+    }
+
+    @Test
+    public void testCanUpdateSecondFieldWithCompoundIndex() throws Exception {
+        //Regression test for Bug 867.
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+spliceTableWatcher9+" (c1,c2,c3) values (?,?,?)");
+        ps.setInt(1,6);
+        ps.setInt(2,2);
+        ps.setInt(3,8);
+        ps.execute();
+
+        SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(spliceTableWatcher9.tableName,spliceSchemaWatcher.schemaName,INDEX_91,spliceSchemaWatcher.schemaName,"(c1,c2 desc, c3)");
+        indexWatcher.starting(null);
+        try{
+            methodWatcher.prepareStatement("update "+ spliceTableWatcher9+" set c2 = 11 where c3 = 7").executeUpdate();
+        }finally{
+            indexWatcher.drop();;
+        }
     }
 
     private void assertSelectCorrect(String schemaName, String tableName, String name, int size) throws Exception{
