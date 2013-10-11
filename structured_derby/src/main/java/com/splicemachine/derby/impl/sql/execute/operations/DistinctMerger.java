@@ -6,12 +6,13 @@ import java.nio.ByteBuffer;
 
 public class DistinctMerger implements HashMerger{
 
+
     @Override
     public void merge(HashBuffer currentRows, ExecRow currentRow, ExecRow nextRow) {
     }
 
     @Override
     public ExecRow shouldMerge(HashBuffer currentRows, Object key) {
-        return null;
+        return currentRows.get(key);
     }
 }
