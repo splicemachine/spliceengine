@@ -77,7 +77,7 @@ public class SpliceGenericAggregator {
 	}
 
     public DataValueDescriptor getResultColumnValue(ExecRow row) throws StandardException{
-        return row.getColumn(resultColumnId);
+        return row.getColumn(aggInfo.getOutputColNum()+1);
     }
 	
 	public boolean finish(ExecRow row) throws StandardException{
@@ -138,5 +138,9 @@ public class SpliceGenericAggregator {
 
     public void setResultColumn(ExecRow row,DataValueDescriptor result) {
         row.setColumn(resultColumnId,result);
+    }
+
+    public int getResultColumnId() {
+        return resultColumnId;
     }
 }

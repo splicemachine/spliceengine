@@ -7,9 +7,11 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * When no row is returned from the actual operation, this provides a default value ONCE.
@@ -22,6 +24,7 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
 
     private final ExecAggregator[] execAggregators;
     private final SpliceGenericAggregator[] genericAggregators;
+    private final int[] colPosMap;
 
     public ScalarAggregateRowProvider(String type,
                                       byte[] tableName,
@@ -32,8 +35,19 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
         super(type,tableName, scan,decoder, spliceRuntimeContext);
         this.genericAggregators = aggregates;
         this.execAggregators = new ExecAggregator[genericAggregators.length];
+        int []columnMap = new int[execAggregators.length];
+        int maxPos = 0;
         for(int i=0;i<genericAggregators.length;i++){
             execAggregators[i] = genericAggregators[i].getAggregatorInstance();
+            columnMap[i] = genericAggregators[i].getResultColumnId();
+            if(columnMap[i]>maxPos){
+                maxPos = columnMap[i];
+            }
+        }
+        this.colPosMap = new int[maxPos+1];
+        Arrays.fill(colPosMap,-1);
+        for(int i=0;i<columnMap.length;i++){
+            colPosMap[columnMap[i]] = i;
         }
     }
 
@@ -47,7 +61,13 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
             for(int i=0;i<genericAggregators.length;i++){
                 ExecAggregator aggregate = execAggregators[i];
                 SpliceGenericAggregator genericAgg = genericAggregators[i];
-                aggregate.add(genericAgg.getResultColumnValue(row));
+                DataValueDescriptor column = row.getColumn(colPosMap[genericAgg.getResultColumnId()] + 1);
+                /*
+                 * For some reason, sometimes we get aggregators that aren't reflected
+                 * in the final answer. These should be ignored.
+                 */
+                if(column!=null)
+                    aggregate.add(column);
             }
         }
 
@@ -55,7 +75,7 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
             for(int i=0;i<genericAggregators.length;i++){
                 ExecAggregator aggregate = execAggregators[i];
                 SpliceGenericAggregator genericAgg = genericAggregators[i];
-                genericAgg.setResultColumn(finalRow,aggregate.getResult());
+                finalRow.setColumn(colPosMap[genericAgg.getResultColumnId()] + 1, aggregate.getResult());
             }
         }
 
