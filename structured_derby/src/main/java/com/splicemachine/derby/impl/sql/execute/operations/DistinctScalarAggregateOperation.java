@@ -9,14 +9,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.impl.storage.ScalarAggregateRowProvider;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -24,7 +25,6 @@ import org.apache.derby.iapi.sql.execute.ExecPreparedStatement;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,16 +43,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     private static final long serialVersionUID=1l;
 
     private int orderItem;
-    private int maxRowSize;
     private int[] keyColumns;
 
-//    private RingBuffer<ExecIndexRow> currentAggregations = new RingBuffer<ExecIndexRow>(1000); //TODO -sf- make configurable
     private HashBuffer<ByteBuffer,ExecIndexRow> currentAggregations = new DelegateHashBuffer<ByteBuffer, ExecIndexRow>(SpliceConstants.ringBufferSize);
     private KeyType keyHasher = KeyType.FIXED_PREFIX;
     private List<Pair<ByteBuffer,ExecRow>> finishedResults = Lists.newArrayList();
     private boolean isTemp;
     private boolean completedExecution =false;
-    private List<KeyValue> keyValues;
     private static final Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
     private final HashMerger<ByteBuffer,ExecIndexRow> hashMerger = new HashMerger<ByteBuffer, ExecIndexRow>() {
         @Override
@@ -81,6 +77,17 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                 //merge the aggregate
                 try {
                     mergeAggregates(one,two);
+                    /*
+                     * We need to update the keycolumns in the stored row, otherwise
+                     * the count will be off.
+                     *
+                     * Because we sorted the data in TEMP, we know that all rows with the
+                     * same keyColumns will be grouped together, so we can just update
+                     * the row to be the same value.
+                     */
+                    for(int keyColPos:keyColumns){
+                        one.getColumn(keyColPos+1).setValue(two.getColumn(keyColPos+1));
+                    }
                 } catch (StandardException e) {
                     SpliceLogUtils.logAndThrowRuntime(LOG,e);
                 }
@@ -96,70 +103,14 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             }
 
             return currentRows.get(key);
-//            //merge ALL rows when we're on the temp table
-//            if(isTemp) return true;
-//            for(int keyColPos:keyColumns){
-//                try{
-//                    DataValueDescriptor dvdOne = one.getColumn(keyColPos+1);
-//                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos+1);
-//                    if(dvdOne.compare(dvdTwo)!=0) return false;
-//                } catch (StandardException e) {
-//                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
-//                }
-//            }
-//            return true;
         }
     };
 
-    private final RingBuffer.Merger<ExecIndexRow> merger = new RingBuffer.Merger<ExecIndexRow>() {
-        @Override
-        public void merge(ExecIndexRow one, ExecIndexRow two) {
-            if(!isTemp) return; // throw away the row if it's not on the temp space
-            /*
-             * We need to merge aggregates, but ONLY if they have different
-             * keyColumns values.
-             */
-            boolean match =true;
-            for(int keyColPos:keyColumns){
-                try{
-                    DataValueDescriptor dvdOne = one.getColumn(keyColPos+1);
-                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos+1);
-                    if(dvdOne.compare(dvdTwo)!=0){
-                        match = false;
-                        break;
-                    }
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
-                }
-            }
-            if(!match){
-                //merge the aggregate
-                try {
-                    mergeAggregates(one,two);
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
-                }
-            }
-        }
-
-        @Override
-        public boolean shouldMerge(ExecIndexRow one, ExecIndexRow two) {
-            //merge ALL rows when we're on the temp table
-            if(isTemp) return true;
-            for(int keyColPos:keyColumns){
-                try{
-                    DataValueDescriptor dvdOne = one.getColumn(keyColPos+1);
-                    DataValueDescriptor dvdTwo = two.getColumn(keyColPos+1);
-                    if(dvdOne.compare(dvdTwo)!=0) return false;
-                } catch (StandardException e) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG,e);
-                }
-            }
-            return true;
-        }
-    };
     private MultiFieldEncoder keyEncoder;
     private ByteBuffer emittedKey;
+
+    private ScalarAggregateSource scanSource; //for operations against TEMP
+    private ScalarAggregateSource sinkSource; //for operations on main table
 
     private void mergeAggregates(ExecIndexRow one, ExecIndexRow two) throws StandardException {
         for(SpliceGenericAggregator aggregator:aggregates){
@@ -167,10 +118,11 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
     }
 
-    private RowDecoder decoder;
-
+    @Deprecated
+    @SuppressWarnings("UnusedDeclaration")
     public DistinctScalarAggregateOperation(){}
 
+    @SuppressWarnings("UnusedParameters")
     public DistinctScalarAggregateOperation(SpliceOperation source,
                                             boolean isInSortedOrder,
                                             int aggregateItem,
@@ -182,9 +134,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                                             double optimizerEstimatedRowCount,
                                             double optimizerEstimatedCost) throws StandardException{
         super(source,aggregateItem,source.getActivation(),rowAllocator,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-
         this.orderItem = orderItem;
-        this.maxRowSize = maxRowSize;
 
         init(SpliceOperationContext.newContext(source.getActivation()));
     }
@@ -192,22 +142,32 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         ExecRow clone = sourceExecIndexRow.getClone();
-        SpliceUtils.populateDefaultValues(clone.getRowArray(),0);
+        SpliceUtils.populateDefaultValues(clone.getRowArray(), 0);
         return clone;
     }
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        buildReduceScan();
+        SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+        return new ScalarAggregateRowProvider("distinctScalarAggregateReduce",
+                SpliceConstants.TEMP_TABLE_BYTES,
+                reduceScan,rowDecoder,
+                spliceRuntimeContext,
+                aggregates);
+    }
+
+    private void buildReduceScan() throws StandardException {
+        if(reduceScan!=null)
+            return; //nothing to do
         try{
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
             SuccessFilter filter = new SuccessFilter(failedTasks);
             reduceScan.setFilter(filter);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-        return new ProvidesDefaultClientScanProvider("distinctScalarAggregateReduce",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder, spliceRuntimeContext);
     }
 
     @Override
@@ -219,11 +179,19 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
+        return source.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return aggregate(false,spliceRuntimeContext);
+        if(finishedResults.size()>0)
+            return makeCurrent(finishedResults.remove(0));
+        else if(completedExecution)
+            return null;
+
+        if(sinkSource==null){
+            sinkSource = new OperationScalarAggregateSource(source,sourceExecIndexRow,true);
+        }
+        return aggregate(sinkSource,spliceRuntimeContext);
     }
 
     @Override
@@ -232,11 +200,18 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             return makeCurrent(finishedResults.remove(0));
         else if(completedExecution)
             return null;
-        return aggregate(true,spliceRuntimeContext);
+
+        if(scanSource==null){
+            SpliceRuntimeContext ctx = new SpliceRuntimeContext();
+            buildReduceScan();
+            scanSource = new DistinctScalarAggregateScan(
+                    region,reduceScan,getRowEncoder(ctx).getDual(sourceExecIndexRow),keyColumns,sourceExecIndexRow,ctx);
+        }
+        return aggregate(scanSource, spliceRuntimeContext);
     }
 
-    private ExecRow aggregate(boolean isTemp, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        ExecIndexRow row = isTemp? getNextRowFromTemp(): getNextRowFromSource(true,spliceRuntimeContext);
+    private ExecRow aggregate(ScalarAggregateSource source, SpliceRuntimeContext context) throws StandardException, IOException{
+        ExecIndexRow row = source.nextRow(context);
         if(row == null){
             return finalizeResults();
         }
@@ -255,6 +230,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             }
             keyEncoder.reset();
 
+            //noinspection RedundantCast
             ((KeyMarshall)keyHasher).encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
             byte[] key = keyEncoder.build();
             ByteBuffer keyBuffer = ByteBuffer.wrap(key);
@@ -269,7 +245,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                         return makeCurrent(entry.getKey(),finishAggregation(rowToEmit));
                 }
             }
-            row = isTemp?getNextRowFromTemp(): getNextRowFromSource(true,spliceRuntimeContext);
+            row = source.nextRow(context);
         }while(row!=null);
 
         return finalizeResults();
@@ -282,38 +258,11 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
     }
 
-    private ExecIndexRow getNextRowFromSource(boolean doClone, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        ExecRow sourceRow = source.nextRow(spliceRuntimeContext);
-        if(sourceRow==null) return null;
-        sourceExecIndexRow.execRowToExecIndexRow(doClone? sourceRow.getClone(): sourceRow);
-        return sourceExecIndexRow;
-    }
-
-    private ExecIndexRow getNextRowFromTemp() throws StandardException {
-        if(keyValues==null)
-            keyValues = new ArrayList<KeyValue>(sourceExecIndexRow.nColumns()+1);
-
-        keyValues.clear();
-        try{
-            regionScanner.next(keyValues);
-        } catch (IOException e) {
-            SpliceLogUtils.error(LOG,e);
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION);
-        }
-        if(keyValues.isEmpty())
-            return null;
-        else{
-            if(decoder==null)
-                decoder = getRowEncoder(new SpliceRuntimeContext()).getDual(sourceExecIndexRow,true);
-            return (ExecIndexRow)decoder.decode(keyValues);
-        }
-    }
 
     private ExecRow finalizeResults() throws StandardException {
         completedExecution=true;
         for(Map.Entry<ByteBuffer,ExecIndexRow> row:currentAggregations.entrySet()){
             finishedResults.add(Pair.<ByteBuffer, ExecRow>newPair(row.getKey(), finishAggregation(row.getValue())));
-//            finishedResults.add(finishAggregation(row));
         }
         currentAggregations.clear();
         if(finishedResults.size()>0)
@@ -353,6 +302,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
             @Override
             public void decode(DataValueDescriptor[] data, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
+                //noinspection RedundantCast
                 ((KeyMarshall)keyHasher).decode(data, reversedKeyColumns,sortOrder,rowDecoder);
             }
 
@@ -364,7 +314,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return RowEncoder.create(sourceExecIndexRow.nColumns(),
                 keyColumns,null,
                 null,
-//                KeyType.FIXED_PREFIX_UNIQUE_POSTFIX,
                 keyType,
                 RowMarshaller.packed());
     }
@@ -389,6 +338,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         }
 
         isTemp = !context.isSink() || context.getTopOperation()!=this;
+        if(isTemp){
+        }
     }
 
 

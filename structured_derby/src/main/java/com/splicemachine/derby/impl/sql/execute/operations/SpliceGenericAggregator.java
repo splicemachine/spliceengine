@@ -75,6 +75,10 @@ public class SpliceGenericAggregator {
 	public DataValueDescriptor getInputColumnValue(ExecRow row) throws StandardException{
 		return row.getColumn(inputColumnId); 
 	}
+
+    public DataValueDescriptor getResultColumnValue(ExecRow row) throws StandardException{
+        return row.getColumn(resultColumnId);
+    }
 	
 	public boolean finish(ExecRow row) throws StandardException{
 		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
@@ -114,7 +118,7 @@ public class SpliceGenericAggregator {
 		ua.accumulate(inputCol,this);
 	}
 	
-	private ExecAggregator getAggregatorInstance() throws StandardException {
+	public ExecAggregator getAggregatorInstance() throws StandardException {
 		ExecAggregator aggInstance;
 		if(cachedAggregator == null){
 			try{
@@ -132,4 +136,7 @@ public class SpliceGenericAggregator {
 		return aggInstance;
 	}
 
+    public void setResultColumn(ExecRow row,DataValueDescriptor result) {
+        row.setColumn(resultColumnId,result);
+    }
 }

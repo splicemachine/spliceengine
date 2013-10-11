@@ -10,6 +10,6 @@ import java.io.IOException;
  * @author Scott Fines
  * Created on: 10/8/13
  */
-interface ScalarAggregateSource {
+public interface ScalarAggregateSource {
     ExecIndexRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
 }

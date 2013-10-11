@@ -119,7 +119,9 @@ public class RegionAwareScanner implements Closeable {
 	                lookBehindExhausted=true;
 	        }
 	        if(!localExhausted){
-                keyValues = new ArrayList<KeyValue>();
+                if(keyValues==null)
+                    keyValues = Lists.newArrayList();
+                keyValues.clear();
 	            localExhausted = !localScanner.next(keyValues);
 	            return new Result(keyValues);
 	        }

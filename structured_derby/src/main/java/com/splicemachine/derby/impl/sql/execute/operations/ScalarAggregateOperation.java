@@ -8,7 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.ProvidesDefaultClientScanProvider;
+import com.splicemachine.derby.impl.storage.ScalarAggregateRowProvider;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -102,7 +102,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw Exceptions.parseException(e);
         }
         SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-        return new ProvidesDefaultClientScanProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,rowDecoder, spliceRuntimeContext);
+        return new ScalarAggregateRowProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,
+                reduceScan,rowDecoder, spliceRuntimeContext,aggregates);
 	}
 
     @Override
