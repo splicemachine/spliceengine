@@ -282,8 +282,8 @@ public class SpliceDriver extends SIConstants {
                 return null;
             }
         };
-        SchedulerTracer.registerTaskCommit(transactionFailer);
-        SchedulerTracer.registerTaskRollback(transactionFailer);
+//        SchedulerTracer.registerTaskCommit(transactionFailer);
+//        SchedulerTracer.registerTaskRollback(transactionFailer);
     }
 
     private boolean bootDatabase() throws Exception {

@@ -169,8 +169,8 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.set("hbase.master.dns.interface", interfaceName);
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 1024 * 1024 * 1024L);
 
-        //set a random task failure rate --10% of the time
-        configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.1d));
+        //set a random task failure rate
+        configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.05d));
         configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY,"true");
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
