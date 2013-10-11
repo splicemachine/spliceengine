@@ -491,7 +491,7 @@
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
                                 <argument>-Djava.awt.headless=true</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
