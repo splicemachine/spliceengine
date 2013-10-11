@@ -64,6 +64,10 @@ abstract class OrderableAggregator extends SystemAggregator
 			this.accumulate(bv);
 	}
 
+	public void add(DataValueDescriptor addend) throws StandardException{
+		this.accumulate(addend);
+	}	
+
 	/**
 	 * Return the result of the operations that we
 	 * have been performing.  Returns a DataValueDescriptor.

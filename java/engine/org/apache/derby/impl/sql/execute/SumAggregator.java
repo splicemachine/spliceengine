@@ -73,6 +73,10 @@ public  class SumAggregator
 		}
 	}
 
+	public void add(DataValueDescriptor addend) throws StandardException{
+		accumulate(addend);
+	}
+
 	/**
  	 * @return ExecAggregator the new aggregator
 	 */

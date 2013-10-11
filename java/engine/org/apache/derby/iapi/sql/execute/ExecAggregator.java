@@ -71,6 +71,12 @@ public interface ExecAggregator extends Formatable
 	) throws StandardException;
 
 	/**
+   * Add a value to this aggregator. Much like merge, but without
+	 * requiring the ExecAggregator set.
+   */
+	public void add(DataValueDescriptor addend) throws StandardException;
+
+	/**
 	 * Merges one aggregator into a another aggregator.
 	 * Merges two partial aggregates results into a single result.
 	 * Needed for: <UL>

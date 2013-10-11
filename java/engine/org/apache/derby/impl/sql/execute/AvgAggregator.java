@@ -156,6 +156,10 @@ public final class AvgAggregator extends SumAggregator
 		}
 	}
 
+	public void add(DataValueDescriptor addend) throws StandardException{
+		accumulate(addend);
+	}	
+
 	/**
 	 * Return the result of the aggregation.  If the count
 	 * is zero, then we haven't averaged anything yet, so

@@ -65,6 +65,10 @@ public final class CountAggregator
 		value += ((CountAggregator)addend).value;
 	}
 
+	public void add(DataValueDescriptor addend) throws StandardException{
+		value+=addend.getInt();
+	}
+
 	/**
 	 * Return the result of the aggregation.  Just
 	 * spit out the running count.
