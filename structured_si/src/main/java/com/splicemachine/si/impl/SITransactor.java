@@ -92,7 +92,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
         return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, false, readUncommitted,
-                readCommitted);
+                readCommitted, null);
     }
 
     @Override
@@ -102,21 +102,66 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
-        return beginChildTransaction(parent, dependent, allowWrites, false, null, null);
+        return beginChildTransaction(parent, dependent, allowWrites, false, null, null, null);
     }
 
+    /**
+     * @param parent              The new transaction should be a child of parent.
+     * @param dependent           Whether the commit of the child depends on the parent committing as well.
+     * @param allowWrites         Whether writes can be performed in the new transaction (else it is read only)
+     * @param additive            Whether the new transaction will be used to perform operations that do not incur write conflicts
+     *                            and which are idempotent.
+     * @param readUncommitted     Whether the new transaction should see uncommitted changes from other transactions, setting
+     *                            this to null causes the new transaction to "inherit" this property from its parent.
+     * @param readCommitted       Whether the new transaction should see committed changes from concurrent transactions. Otherwise
+     *                            snapshot isolation semantics apply. Setting this to null causes the new transaction to "inherit"
+     *                            this property from its parent.
+     * @param transactionToCommit The transactionToCommit is committed before starting a new transaction and the commit
+     *                            timestamp is used as the begin timestamp of the new transaction. This allows a transaction
+     *                            to be committed and a new one begun without any gap in the timestamps between them.
+     * @return
+     * @throws IOException
+     */
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
-                                               boolean additive, Boolean readUncommitted, Boolean readCommitted) throws IOException {
-        if (allowWrites || readCommitted != null || readUncommitted != null) {
+                                               boolean additive, Boolean readUncommitted, Boolean readCommitted,
+                                               TransactionId transactionToCommit) throws IOException {
+        Long timestamp = commitIfNeeded(transactionToCommit);
+        if (allowWrites || readCommitted != null || readUncommitted != null || timestamp != null) {
             final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, additive, readUncommitted, readCommitted);
-            final long timestamp = assignTransactionId();
+            if (timestamp == null) {
+                timestamp = assignTransactionId();
+            }
             final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
             listener.beginTransaction(!parent.isRootTransaction());
             return new TransactionId(timestamp);
         } else {
             return createLightweightChildTransaction(parent.getId());
+        }
+    }
+
+    private Long commitIfNeeded(TransactionId transactionToCommit) throws IOException {
+        if (transactionToCommit == null) {
+            return null;
+        } else {
+            return commitAndReturnTimestamp(transactionToCommit);
+        }
+    }
+
+    private Long commitAndReturnTimestamp(TransactionId transactionToCommit) throws IOException {
+        final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(transactionToCommit);
+        if (!immutableTransaction.getImmutableParent().isRootTransaction()) {
+            throw new RuntimeException("Cannot begin a child transaction at the time a non-root transaction commits: "
+                    + transactionToCommit.getTransactionIdString());
+        }
+        commit(transactionToCommit);
+        final Transaction transaction = transactionStore.getTransaction(transactionToCommit.getId());
+        final Long commitTimestampDirect = transaction.getCommitTimestampDirect();
+        if (commitTimestampDirect.equals(transaction.getEffectiveCommitTimestamp())) {
+            return commitTimestampDirect;
+        } else {
+            throw new RuntimeException("commit times did not match");
         }
     }
 
@@ -395,14 +440,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     private void checkPermission(Table table, Mutation[] mutations) throws IOException {
         final String tableName = dataStore.getTableName(table);
-        for(TransactionId t : getTransactionIds(mutations)) {
+        for (TransactionId t : getTransactionIds(mutations)) {
             transactionStore.confirmPermission(t, tableName);
         }
     }
 
     private Set<TransactionId> getTransactionIds(Mutation[] mutations) {
         Set<TransactionId> writingTransactions = new HashSet<TransactionId>();
-        for(Mutation m : mutations) {
+        for (Mutation m : mutations) {
             writingTransactions.add(dataStore.getTransactionIdFromOperation(m));
         }
         return writingTransactions;
@@ -850,7 +895,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 timestampSource.rememberTimestamp(oldestId);
             }
         }
-        final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size()-1).getTransactionId();
+        final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
         if (youngestId.equals(max)) {
             for (Transaction t : oldestActiveTransactions) {
                 result.add(t.getTransactionId());

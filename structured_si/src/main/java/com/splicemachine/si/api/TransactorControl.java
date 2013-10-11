@@ -39,8 +39,8 @@ public interface TransactorControl {
      * @throws java.io.IOException
      */
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
-    TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
-                                        boolean additive, Boolean readUncommitted, Boolean readCommitted) throws IOException;
+    TransactionId beginChildTransaction(TransactionId parent, boolean dependent,
+                                        boolean allowWrites, boolean additive, Boolean readUncommitted, Boolean readCommitted, TransactionId transactionToCommit) throws IOException;
     void keepAlive(TransactionId transactionId) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void rollback(TransactionId transactionId) throws IOException;
