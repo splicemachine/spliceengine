@@ -2,7 +2,9 @@
 
 # Cloudera VM Splice Machine installer
 
-echo "Stopping Splice Machine into Cloudera"
+. ./lib/setEnv
+
+echo "Stopping Splice Machine on $SPLICE_ENV"
 
 sudo $HBASE_HOME/bin/hbase-daemon.sh stop regionserver
 sudo $HBASE_HOME/bin/hbase-daemon.sh stop master

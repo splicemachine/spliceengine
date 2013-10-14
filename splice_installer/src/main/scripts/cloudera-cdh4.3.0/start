@@ -2,7 +2,9 @@
 
 # Cloudera VM Splice Machine starter
 
-echo "Starting Splice Machine on Cloudera"
+. ./lib/setEnv
+
+echo "Starting Splice Machine on $SPLICE_ENV"
 
 sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start master
 sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start regionserver

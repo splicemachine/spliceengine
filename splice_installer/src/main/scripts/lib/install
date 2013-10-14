@@ -5,7 +5,7 @@
 pushd lib
 
 # sets VM specific env vars
-source setEnv
+. ./setEnv
 
 echo "Installing Splice Machine into $SPLICE_ENV"
 
