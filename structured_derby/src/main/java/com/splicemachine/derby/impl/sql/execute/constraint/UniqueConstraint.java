@@ -57,7 +57,7 @@ public class UniqueConstraint implements Constraint {
     }
 
     @Override
-    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
+    public boolean validate(KVPair mutation,String txnId, RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
         if(!stripDeletes.apply(mutation)) return true; //no need to validate this mutation
         //if prior visited values has it, it's in the same batch mutation, so fail it
         if(priorValues.contains(mutation))

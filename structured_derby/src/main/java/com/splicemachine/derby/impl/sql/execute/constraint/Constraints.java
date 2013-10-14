@@ -28,7 +28,7 @@ public class Constraints {
         }
 
         @Override
-        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException {
+        public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException {
             return true;
         }
 

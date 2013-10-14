@@ -89,7 +89,7 @@ public class ForeignKey implements Constraint{
     }
 
     @Override
-    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priors) throws IOException {
+    public boolean validate(KVPair mutation, String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priors) throws IOException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 

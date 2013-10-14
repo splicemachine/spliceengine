@@ -64,7 +64,7 @@ public interface Constraint {
      *
      * @throws IOException if something goes wrong during the validation.
      */
-    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce,List<KVPair> priorValues) throws IOException;
+    boolean validate(KVPair mutation,String txnId,RegionCoprocessorEnvironment rce,Collection<KVPair> priorValues) throws IOException;
 
     /**
      * Validate that the constraint is satisfied on all the mutations.

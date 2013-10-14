@@ -12,6 +12,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import static org.mockito.Matchers.any;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
  */
 public class MockRegion {
 
-    public static Answer<OperationStatus[]> getSuccessOnlyAnswer(final List<Mutation> successfulPuts) {
+    public static Answer<OperationStatus[]> getSuccessOnlyAnswer(final Collection<Mutation> successfulPuts) {
         return new Answer<OperationStatus[]>() {
             @Override
             public OperationStatus[] answer(InvocationOnMock invocation) throws Throwable {

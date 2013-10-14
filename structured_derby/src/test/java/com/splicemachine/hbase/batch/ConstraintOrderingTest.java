@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
@@ -20,12 +21,14 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import static com.splicemachine.hbase.MockRegion.getMockRegion;
 import static com.splicemachine.hbase.MockRegion.getSuccessOnlyAnswer;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,14 +42,15 @@ public class ConstraintOrderingTest {
 
     @Test
     public void testUniqueConstraintPreventsWrites() throws Exception {
-        final List<Mutation> successfulPuts = Lists.newArrayList();
+        final Collection<Mutation> successfulPuts = Sets.newHashSet();
         HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(successfulPuts));
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
         when(rce.getRegion()).thenReturn(testRegion);
 
         final PipelineWriteContext testContext = new PipelineWriteContext("1",rce);
         Constraint uniqueConstraint = mock(Constraint.class);
-        when(uniqueConstraint.validate(any(KVPair.class),any(String.class),any(RegionCoprocessorEnvironment.class),any(List.class)))
+        //noinspection unchecked
+        when(uniqueConstraint.validate(any(KVPair.class),any(String.class),any(RegionCoprocessorEnvironment.class),anyCollection()))
                 .thenAnswer(new Answer<Boolean>() {
                     @Override
                     public Boolean answer(InvocationOnMock invocation) throws Throwable {
@@ -56,7 +60,7 @@ public class ConstraintOrderingTest {
                                 return false;
                             }
                         }
-                        List<KVPair> otherBatch = (List<KVPair>) invocation.getArguments()[3];
+                        @SuppressWarnings("unchecked") Collection<KVPair> otherBatch = (Collection<KVPair>) invocation.getArguments()[3];
                         for (KVPair kvPair : otherBatch) {
                             if (Bytes.equals(kvPair.getRow(), pair.getRow())) {
                                 return false;
