@@ -123,6 +123,9 @@ public class ContextManager
 	 */
 	private final ArrayList holder = new ArrayList();
 
+	public void setActiveThread(){
+		this.activeThread = Thread.currentThread();
+	}	
 	/**
 	 * Add a Context object to the ContextManager. The object is added
 	 * both to the holder list and to a stack for the specific type of
@@ -216,7 +219,7 @@ public class ContextManager
     /**
      * Is the ContextManager empty containing no Contexts.
      */
-    final boolean isEmpty()
+    public final boolean isEmpty()
     {
         return holder.isEmpty();
     }
@@ -609,7 +612,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
      * @see ContextService#resetCurrentContextManager(ContextManager)
      * @see #activeCount
      */
-	Thread	activeThread;
+	volatile Thread	activeThread;
     
     /**
      * Count of the number of setCurrentContextManager calls

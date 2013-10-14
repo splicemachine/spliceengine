@@ -580,4 +580,13 @@ public final class ContextService //OLD extends Hashtable
         if (allContexts != null)
             allContexts.remove( cm);
     }
+
+		public void forceRemoveContext(ContextManager cm){
+			if(allContexts!=null)
+				allContexts.remove(cm);
+			
+			if(threadContextList!=null){
+				threadContextList.remove();
+			}
+		}
 }
