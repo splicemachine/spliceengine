@@ -74,11 +74,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 		this.regionScanner = regionScanner;
+        boolean prepared = false;
         try {
+            impl = new SpliceTransactionResourceImpl();
+            impl.prepareContextManager();
+            prepared=true;
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 	        statement = soi.getStatement();
 	        topOperation = soi.getTopOperation();
-	        impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi);
 	        activation = soi.getActivation(impl.getLcc());
 	        spliceRuntimeContext = soi.getSpliceRuntimeContext();
@@ -92,6 +95,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		} catch (Exception e) {
             ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+        }finally{
+            if(prepared)
+                impl.resetContextManager();
         }
 	}
 
@@ -101,6 +107,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public boolean next(final List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
         if(finished)return false;
+        impl.prepareContextManager();
 		try {
 			ExecRow nextRow;
 	        long start = 0l;
@@ -169,6 +176,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
             SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
             return false; //won't happen since logAndThrow will throw an exception
+        }finally{
+            impl.resetContextManager();
         }
 	}
 

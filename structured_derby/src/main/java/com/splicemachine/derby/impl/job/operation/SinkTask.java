@@ -15,6 +15,7 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
@@ -70,9 +71,13 @@ public class SinkTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
     	SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
         SpliceTransactionResourceImpl impl = null;
+        ContextManager ctxManager = null;
+        boolean prepared=false;
         try {
             impl = new SpliceTransactionResourceImpl();
-            ContextService.getFactory().setCurrentContextManager(impl.getContextManager());
+            ctxManager = impl.getContextManager();
+            impl.prepareContextManager();
+            prepared=true;
             if(instructions==null)
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             impl.marshallTransaction(instructions);
@@ -101,6 +106,9 @@ public class SinkTask extends ZkTask {
                 throw (InterruptedException)e;
             else throw new ExecutionException(e);
         } finally {
+            if(prepared){
+                impl.resetContextManager();
+            }
             if (impl != null) {
                 impl.cleanup();
             }

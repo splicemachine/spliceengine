@@ -9,6 +9,8 @@ import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResourcePool;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -209,8 +211,11 @@ public class Sequence {
             if(systemTableSearched) return;
             SpliceTransactionResourceImpl stri = null;
 //            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
+            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
             try{
                 stri = new SpliceTransactionResourceImpl();
+//                ContextManager cm = stri.getContextManager();
+//                stri.prepareContextManager();
 //                //get a read-only child transaction
                 final TransactorControl transactor = HTransactorFactory.getTransactorControl();
                 TransactionId parent = transactor.transactionIdFromString(txnId);
@@ -239,8 +244,11 @@ public class Sequence {
             } catch(IOException ioe){
                 throw Exceptions.parseException(ioe);
             }finally{
-                if(stri!=null)
-                    stri.restoreContextStack();
+                if(stri!=null){
+//                    stri.resetContextManager();
+//                    ContextService.getFactory().setCurrentContextManager(currentCm);
+//                    stri.restoreContextStack();
+                }
             }
         }
     }

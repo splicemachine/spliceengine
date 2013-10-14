@@ -223,8 +223,9 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource = null;
         try {
+            transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
             try{
-                transactionResource = new SpliceTransactionResourceImpl();
                 transactor = HTransactorFactory.getTransactorControl();
                 txnId = transactor.beginTransaction(false,true,true);
                 transactionResource.marshallTransaction(txnId.getTransactionIdString());
@@ -256,9 +257,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             }finally{
                 initializationLock.unlock();
 
+                transactionResource.resetContextManager();
                 if(!success&&(transactor!=null && txnId !=null))
                     transactor.rollback(txnId);
             }
+        } catch (SQLException e) {
+            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
+                    "off so that other writes can try again",e);
+            state.set(State.READY_TO_START);
+            throw new IndexNotSetUpException(e);
         } finally {
             if (transactionResource != null) {
                 transactionResource.cleanup();
