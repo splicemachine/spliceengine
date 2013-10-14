@@ -7,4 +7,21 @@ echo "Cleaning Splice Machine Cloudera DB"
 # TODO Use zookeeper's cli to rmr /startupPath, then bounce hbase
 # see also, SpliceMasterObserver.createSplice()
 
+source setEnv
+
+./stop
+
+$ZOOKEEPER_HOME/bin/zkCli.sh <<flattenZoo
+ls /
+rmr /hbase
+rmr /conglomerates
+rmr /transactions
+rmr /derbyPropertyPath
+rmr /queryNodePath
+rmr /spliceTasks
+rmr /spliceJobs
+rmr /startupPath
+flattenZooo
+
+./start
 

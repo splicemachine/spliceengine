@@ -1,6 +1,8 @@
 # Cloudera specific environment properties
 
-SPLICE_ENV_LIB=cloudera
+export SPLICE_ENV=cloudera
 
-HBASE_DIR="/usr/lib/hbase"
-HBASE_LIB_DIR="$HBASE_DIR/lib"
+export ZOOKEEPER_HOME=/usr/lib/zookeeper
+
+export HBASE_HOME="/usr/lib/hbase"
+export HBASE_LIB="$HBASE_HOME/lib"

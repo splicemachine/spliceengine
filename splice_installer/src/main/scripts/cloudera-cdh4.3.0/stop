@@ -4,4 +4,5 @@
 
 echo "Stopping Splice Machine into Cloudera"
 
-sudo service cloudera-scm-server stop
+sudo $HBASE_HOME/bin/hbase-daemon.sh stop regionserver
+sudo $HBASE_HOME/bin/hbase-daemon.sh stop master

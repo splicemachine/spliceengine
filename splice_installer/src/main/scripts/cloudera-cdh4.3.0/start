@@ -4,4 +4,5 @@
 
 echo "Starting Splice Machine on Cloudera"
 
-sudo service cloudera-scm-server start
+sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start master
+sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start regionserver

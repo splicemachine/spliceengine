@@ -2,18 +2,19 @@
 
 # Generic VM Splice Machine installer
 
-# sets VM specific env vars
-call setEnv
+pushd lib
 
-echo "Installing Splice Machine into $SPLICE_ENV_LIB"
+# sets VM specific env vars
+source setEnv
+
+echo "Installing Splice Machine into $SPLICE_ENV"
 
 SPLICE_LINK_NAME="splice_machine_complete.jar"
 
 # Create indirection link
-pushd lib
 # grep makes sure we have the dist jar here and not both dist and linked (if link exists already)
 # TODO - in case of upgrade, need to parse dist jar name and find latest vers
-REAL_SPLICE_JAR_NAME=`/bin/ls *_complete.jar | grep $SPLICE_ENV_LIB`
+REAL_SPLICE_JAR_NAME=`/bin/ls *_complete.jar | grep $SPLICE_ENV`
 # DEBUG
 #echo "CWD: " `/bin/pwd`
 #echo "Source name: $REAL_SPLICE_JAR_NAME"
@@ -27,18 +28,20 @@ fi
 /bin/ln -s $REAL_SPLICE_JAR_NAME $SPLICE_LINK_NAME
 
 # Check that directory exits
-if [ ! -d $HBASE_LIB_DIR ]
+if [ ! -d $HBASE_LIB ]
     then
-#    echo "$HBASE_LIB_DIR/$SPLICE_LINK_NAME" `/bin/pwd`/$SPLICE_LINK_NAME
-#    echo "HBase directory does not exist: $HBASE_LIB_DIR  HBase not installed?"
+#    echo "$HBASE_LIB/$SPLICE_LINK_NAME" `/bin/pwd`/$SPLICE_LINK_NAME
+    echo "HBase lib directory does not exist: $HBASE_LIB  HBase not installed?"
     exit 1
 else
     # if this is a reinstall, the link does not have to be recreated
-    if [ ! -h "$HBASE_LIB_DIR/$SPLICE_LINK_NAME" ]
+    if [ ! -h "$HBASE_LIB/$SPLICE_LINK_NAME" ]
         then
-#	echo "Link `/bin/pwd`/$SPLICE_LINK_NAME $HBASE_LIB_DIR/$SPLICE_LINK_NAME"
-        sudo /bin/ln -s `/bin/pwd`/$SPLICE_LINK_NAME "$HBASE_LIB_DIR/$SPLICE_LINK_NAME"
+#	echo "Link `/bin/pwd`/$SPLICE_LINK_NAME $HBASE_LIB/$SPLICE_LINK_NAME"
+        sudo /bin/ln -s `/bin/pwd`/$SPLICE_LINK_NAME "$HBASE_LIB/$SPLICE_LINK_NAME"
     fi
 fi
+
+# TODO - need to install splice coprocessors
 
 popd

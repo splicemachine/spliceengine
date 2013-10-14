@@ -2,13 +2,15 @@
 
 # Generic Splice Machine SQL Shell
 
+CLASSPATH=""
+
 # sets VM specific env vars
-call setEnv
+source setEnv
 
 echo "Running Splice Machine SQL shell"
 
-export CLASSPATH=$HBASE_DIR/hbase.jar:$HBASE_DIR/lib/*
+CLASSPATH=$HBASE_HOME/hbase.jar:$HBASE_LIB/*
 
 # connect 'jdbc:derby://localhost:1527/splicedb';
-java -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
+java -cp $CLASSPATH -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
 
