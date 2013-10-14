@@ -6,5 +6,15 @@
 
 echo "Starting Splice Machine on $SPLICE_ENV"
 
-sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start master
-sudo $HBASE_HOME/bin/hbase-daemon.sh --config conf start regionserver
+sudo service cloudera-scm-server start
+
+#sudo $HBASE_HOME/bin/hbase-daemon.sh --config $HBASE_HOME/conf start master
+#sudo $HBASE_HOME/bin/hbase-daemon.sh --config $HBASE_HOME/conf  start regionserver
+
+distMode=`sudo $HBASE_HOME/bin/hbase --config "$HBASE_CONF_DIR" org.apache.hadoop.hbase.util.HBaseConfTool hbase.cluster.distributed | head -n 1`
+
+if [ "$distMode" == 'false' ]; then
+  echo "  Not running in cluster"
+else
+  echo "  Running in cluster"
+fi

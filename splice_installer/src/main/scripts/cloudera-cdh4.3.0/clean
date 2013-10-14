@@ -21,7 +21,7 @@ rmr /queryNodePath
 rmr /spliceTasks
 rmr /spliceJobs
 rmr /startupPath
-flattenZooo
+ls /
+flattenZoo
 
 ./lib/start
-
