@@ -187,23 +187,27 @@ class IndexRowReader {
         if(table==null)
             table = SpliceAccessManager.getHTable(mainTableConglomId);
 
-        if(sourceRows.size()<=0)
-            return;
-        //submit to the background thread
-        resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
+        if(sourceRows.size()>0){
+            //submit to the background thread
+            resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
+        }
 
         //if there is only one submitted future, call this again to set off an additional background process
         if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize)
             getMoreData();
-        else{
-            //wait for the first future to return correctly or error-out
-            try {
-                currentResults = resultFutures.remove(0).get();
-            } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
-            } catch (ExecutionException e) {
-                throw Exceptions.parseException(e);
-            }
+        else if(resultFutures.size()>0){
+            waitForBlockCompletion();
+        }
+    }
+
+    private void waitForBlockCompletion() throws StandardException {
+        //wait for the first future to return correctly or error-out
+        try {
+            currentResults = resultFutures.remove(0).get();
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e);
         }
     }
 
