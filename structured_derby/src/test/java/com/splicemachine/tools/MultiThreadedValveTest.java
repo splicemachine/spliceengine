@@ -44,27 +44,32 @@ public class MultiThreadedValveTest {
     }
 
     @Test
+    public void testRepeatedSomeThreadsCannotAcquire() throws Exception {
+        for(int i=0;i<100;i++){
+            testSomeThreadsCannotAcquire();
+        }
+    }
+
+    @Test
     public void testSomeThreadsCannotAcquire() throws Exception {
         final Valve valve = new Valve(new Valve.FixedMaxOpeningPolicy(numThreads));
-        List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
-        for(int i=0;i<numThreads;i++){
-            futures.add(testService.submit(new Callable<Boolean>() {
+        List<Future<Integer>> futures = Lists.newArrayListWithCapacity(numThreads);
+        for(int i=0;i<numThreads+1;i++){
+            futures.add(testService.submit(new Callable<Integer>() {
                 @Override
-                public Boolean call() throws Exception {
-                    return valve.tryAllow() >=0;
+                public Integer call() throws Exception {
+                    int version =  valve.tryAllow();
+                    return version;
                 }
             }));
         }
-        futures.add(testService.submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-                return valve.tryAllow()<0;
-            }
-        }));
 
-        for(Future<Boolean> future:futures){
-            Assert.assertTrue("Incorrect permit position!",future.get());
+        int failCount =0;
+        for(Future<Integer> future:futures){
+            if(future.get()<0)
+                failCount++;
         }
+        Assert.assertEquals("Incorrect number of permits acquired!",1,failCount);
     }
 
     @Test

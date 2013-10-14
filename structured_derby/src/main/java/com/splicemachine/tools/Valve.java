@@ -35,13 +35,15 @@ public class Valve {
         if(i>=0)
             return i;
 
+        /*
+         * We have run out of available permits at the current level.
+         * The OpeningPolicy may allow us to expand. If so, we will increase
+         * the number of available permits by the difference, and then acquire
+         * one.
+         */
         //see if the openingpolicy will allow us to expand the semaphore
         attemptIncrease(version.get());
         return tryAcquire();
-//        if(attemptIncrease(version.get()))
-//            return tryAcquire();
-//        else
-//            return -1;
     }
 
     private int tryAcquire() {
@@ -51,25 +53,16 @@ public class Valve {
     }
 
     private boolean attemptIncrease(int version) {
-        System.out.printf("[%s] attempting increase,version=%d%n",Thread.currentThread().getName(),version);
         int currentMax = maxPermits.get();
         int nextMax = openingPolicy.allowMore(currentMax, OpeningPolicy.SizeSuggestion.INCREMENT);
-        System.out.printf("[%s] currentMax=%d,nextMax=%d%n",Thread.currentThread().getName(),currentMax,nextMax);
         if(nextMax<=currentMax)
             return true;
         else{
-            //make sure nobody beat us to the punch with the version
-//            if(!this.version.compareAndSet(version,version+1)){
-//                System.out.printf("[%s], did not set version%n",Thread.currentThread().getName());
-//                return true;
-//            }else
             if( maxPermits.compareAndSet(currentMax,nextMax)){
-                System.out.printf("[%s], set maxPermits safely%n",Thread.currentThread().getName());
                 gate.release(nextMax - currentMax);
                 return true;
             }else{
-                System.out.printf("[%s], did not set maxPermits%n",Thread.currentThread().getName());
-                return true;
+                return false;
             }
         }
     }
