@@ -2,7 +2,7 @@
 <assembly>
     <id>${envClassifier}</id>
     <formats>
-        <format>tar</format>
+        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
