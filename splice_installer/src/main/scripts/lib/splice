@@ -15,6 +15,6 @@ for FILE in $(ls ${HBASE_LIB}/*.jar); do
   CLASSPATH="$CLASSPATH:$FILE"
 done
 
-# connect 'jdbc:derby://localhost:1527/splicedb';
+echo "To connect: connect 'jdbc:derby://localhost:1527/splicedb';"
 java -cp $CLASSPATH -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
 
