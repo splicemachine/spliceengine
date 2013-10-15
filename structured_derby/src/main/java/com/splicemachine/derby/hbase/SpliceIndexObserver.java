@@ -54,7 +54,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e, Put put, WALEdit edit, boolean writeToWAL) throws IOException {
-    	SpliceLogUtils.trace(LOG, "prePut %s",put);
+    	if (LOG.isTraceEnabled())
+    			SpliceLogUtils.trace(LOG, "prePut %s",put);
         if(conglomId>0){
             if(put.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)!=null) return;
 
@@ -79,7 +80,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     @Override
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,
                           Delete delete, WALEdit edit, boolean writeToWAL) throws IOException {
-    	SpliceLogUtils.trace(LOG, "preDelete %s",delete);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "preDelete %s",delete);
         if(conglomId>0){
             if(delete.getAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
                 KVPair deletePair = KVPair.delete(delete.getRow());
@@ -91,7 +93,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
     @Override
     public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, WritableByteArrayComparable comparator, Put put, boolean result) throws IOException {
-    	SpliceLogUtils.trace(LOG, "preCheckAndPut %s",put);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "preCheckAndPut %s",put);
     	return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
@@ -100,7 +103,8 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 
 
     private void mutate(RegionCoprocessorEnvironment rce, KVPair mutation,String txnId) throws IOException {
-    	SpliceLogUtils.trace(LOG, "mutate %s",mutation);
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "mutate %s",mutation);
         //we've already done our write path, so just pass it through
         WriteContext context;
         try{
