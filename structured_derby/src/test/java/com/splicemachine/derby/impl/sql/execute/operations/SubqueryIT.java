@@ -46,7 +46,7 @@ public class SubqueryIT {
 
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(k int, l int)");
     protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(k int, l int)");
-    protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS",schemaWatcher.schemaName,
+    protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("WORKS8",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
 
 
@@ -94,7 +94,10 @@ public class SubqueryIT {
                         spliceClassWatcher.closeAll();
                     }
                 }
-            }).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName));
+
+            })
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName));
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -206,5 +209,12 @@ public class SubqueryIT {
             Assert.assertNotNull("Value for column S should not be null", result.get("S"));
             Assert.assertNotNull("Value for column C should not be null", result.get("C"));
         }
+    }
+
+    @Test
+    public void testCorrelatedExpressionSubqueryOnlyReturnOneRow() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select w.empnum from works w where empnum = (select empnum from staff s where w.empnum = s.empnum)");
+        // WORKS has 12 rows, each should be returned since STAFF contains one of every EMPNUM
+        Assert.assertEquals(12, TestUtils.resultSetToMaps(rs).size());
     }
 }

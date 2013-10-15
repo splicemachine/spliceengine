@@ -645,13 +645,6 @@ public class InnerJoinIT extends SpliceUnitTest {
 				, TABLE_NAME_6,TABLE_NAME_6, TABLE_NAME_7,TABLE_NAME_7));
 	}
 
-	
-	@Test (expected=SQLException.class)  
-	public void testScalarSubqueryOnlyReturnOneRow21000() throws Exception {		
-			ResultSet rs = methodWatcher.executeQuery(String.format("select a from %s where %s.e = (select %s.e from %s where a > 'e1' )"
-				, TABLE_NAME_4,TABLE_NAME_4, TABLE_NAME_5,TABLE_NAME_5));
-	}
-
     @Test
     public void testInWithCorrelatedSubQueryOrSemijoin() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select empnum from staff where empnum in " +
