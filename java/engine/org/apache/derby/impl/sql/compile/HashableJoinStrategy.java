@@ -255,6 +255,11 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         else {
             numArgs = 24 ;
         }
+        // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
+        // filters, so include any nonStoreRestrictions in the storeRestrictionList
+        for (int i = 0, size = nonStoreRestrictionList.size() ; i < size ; i++) {
+           storeRestrictionList.addOptPredicate(nonStoreRestrictionList.getOptPredicate(i));
+        }
         fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
         if (genInListVals)
             ((PredicateList)storeRestrictionList).generateInListValues(acb, mb);

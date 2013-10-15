@@ -1691,6 +1691,22 @@ public class JoinNode extends TableOperatorNode {
             ColumnMappingUtils.updateColumnMappings(leftResultSet.getResultColumns(), nonLocalRefs.iterator() );
         }
 
+        FromBaseTable table = null;
+        List equalsPreds = new ArrayList();
+        if (rightResultSet instanceof Optimizable &&
+                isHashableJoin(rightResultSet)){
+             if(rightResultSet instanceof ProjectRestrictNode){
+                 //if the table is a ProjectRestrict, then you have to go past,
+                 // because ProjectRestricts don't necessarily have the Predicates we need
+                 table = (FromBaseTable) ((ProjectRestrictNode)rightResultSet).getChildResult();
+             }else{
+                 table = (FromBaseTable)rightResultSet;
+             }
+             equalsPreds = equiJoinPreds(table.nonStoreRestrictionList);
+             // Clear table's nonStore list, b/c it will be handled by the join
+             table.nonStoreRestrictionList = new PredicateList();
+        }
+
 
 
         rightResultSet.generate(acb, mb); // arg 3
@@ -1710,22 +1726,6 @@ public class JoinNode extends TableOperatorNode {
              *
              */
             if(isHashableJoin(rightResultSet)){
-                FromBaseTable table = null;
-                if(rightResultSet instanceof ProjectRestrictNode){
-                    //if the table is a ProjectRestrict, then you have to go past,
-                    // because ProjectRestricts don't necessarily have the Predicates we need
-                    table = (FromBaseTable) ((ProjectRestrictNode)rightResultSet).getChildResult();
-                }else{
-                    table = (FromBaseTable)rightResultSet;
-                }
-                PredicateList nonStoreRestrictionList = table.nonStoreRestrictionList;
-                List equalsPreds = new ArrayList(nonStoreRestrictionList.size());
-                for(int i=0;i<nonStoreRestrictionList.size();i++){
-                    Predicate op = (Predicate)nonStoreRestrictionList.getOptPredicate(i);
-                    if (op.isJoinPredicate() && op.getRelop().getOperator() == RelationalOperator.EQUALS_RELOP){
-                        equalsPreds.add(op);
-                    }
-                }
                 int[] leftHashCols = new int[equalsPreds.size()];
                 String leftTableName = null;
                 long leftTableNumber = -1;
@@ -1904,6 +1904,17 @@ public class JoinNode extends TableOperatorNode {
             return null;
         }
         return ref.getTableDescriptor(tableName, sd);
+    }
+
+    private List equiJoinPreds(PredicateList preds){
+        List equalsPreds = new ArrayList(preds.size());
+        for(int i=0;i < preds.size(); i++){
+            Predicate op = (Predicate)preds.getOptPredicate(i);
+            if (op.isJoinPredicate() && op.getRelop().getOperator() == RelationalOperator.EQUALS_RELOP){
+                equalsPreds.add(op);
+            }
+        }
+        return equalsPreds;
     }
 
     private boolean isNestedLoopOverHashableJoin(){
