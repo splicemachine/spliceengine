@@ -20,6 +20,14 @@ public class ColumnUtils {
         return (List<N>)v.getList();
     }
 
+    public static List<ResultSetNode> getChildren(ResultSetNode node)
+            throws StandardException
+    {
+        CollectChildrenVisitor v = new CollectChildrenVisitor();
+        node.accept(v);
+        return v.getChildren();
+    }
+
     /**
      * For a given ResultColumnList, return a map from
      *  [resultSetNumber, virtualColumnId] => ResultColumn
