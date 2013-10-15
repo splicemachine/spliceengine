@@ -295,7 +295,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
         methodWatcher.getOrCreateConnection().commit();
     }
 
-    @Test(timeout= 10000)
+//    @Test(timeout= 10000)
+    @Test
     public void testCanUpdateEntryIndexChanges() throws Exception{
        	new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_71,CLASS_NAME,"(name)",true).starting(null);
         String name = "sfines";

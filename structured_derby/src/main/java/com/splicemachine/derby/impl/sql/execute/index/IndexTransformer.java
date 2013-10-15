@@ -8,7 +8,6 @@ import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.Snowflake;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,16 +32,11 @@ public class IndexTransformer {
     private final boolean isUnique;
     private final int[] mainColToIndexPosMap;
     private final BitSet descColumns;
-    private Snowflake.Generator generator;
-    private final int blockSize;
 
     public static IndexTransformer newTransformer(BitSet indexedColumns,
-                            int[] mainColToIndexPosMap,
-                            BitSet descColumns,
-                            boolean unique,
-                            int blockSize) {
-
-
+                                                  int[] mainColToIndexPosMap,
+                                                  BitSet descColumns,
+                                                  boolean unique) {
         BitSet translatedIndexedColumns = new BitSet(indexedColumns.cardinality());
         for(int i = indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
             translatedIndexedColumns.set(mainColToIndexPosMap[i]);
@@ -55,8 +49,8 @@ public class IndexTransformer {
                 nonUniqueIndexedColumns,
                 descColumns,
                 mainColToIndexPosMap,
-                unique,
-                blockSize);
+                unique
+        );
     }
 
     public IndexTransformer(BitSet indexedColumns,
@@ -64,15 +58,13 @@ public class IndexTransformer {
                             BitSet nonUniqueIndexedColumns,
                             BitSet descColumns,
                             int[] mainColToIndexPosMap,
-                            boolean isUnique,
-                            int blockSize){
+                            boolean isUnique){
         this.indexedColumns = indexedColumns;
         this.translatedIndexedColumns = translatedIndexedColumns;
         this.nonUniqueIndexedColumns = nonUniqueIndexedColumns;
         this.descColumns = descColumns;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.isUnique = isUnique;
-        this.blockSize = blockSize;
     }
 
     public KVPair translate(KVPair mutation) throws IOException {
@@ -106,9 +98,9 @@ public class IndexTransformer {
         }
         //add the row location to the end of the index row
         indexRowAccumulator.add(translatedIndexedColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
-        byte[] indexRowKey = getIndexRowKey();
+        byte[] indexRowKey = getIndexRowKey(mutation.getRow());
         byte[] indexRowData = indexRowAccumulator.finish();
-        return new KVPair(indexRowKey,indexRowData);
+        return new KVPair(indexRowKey,indexRowData,mutation.getType());
     }
 
     private void accumulate(EntryAccumulator accumulator,BitIndex index,ByteBuffer buffer,int position){
@@ -122,19 +114,12 @@ public class IndexTransformer {
             accumulator.add(mainColToIndexPosMap[position],buffer);
     }
 
-    public byte[] getIndexRowKey(){
+    public byte[] getIndexRowKey(byte[] rowKey){
         if(isUnique) return indexKeyAccumulator.finish();
         else{
-            if(generator==null)
-                generator = SpliceDriver.driver().getUUIDGenerator().newGenerator(blockSize);
-            byte[] uuid = generator.nextBytes();
-            indexKeyAccumulator.add(translatedIndexedColumns.length(),ByteBuffer.wrap(uuid));
+            indexKeyAccumulator.add(translatedIndexedColumns.length(),ByteBuffer.wrap(rowKey));
             return indexKeyAccumulator.finish();
         }
-    }
-
-    void setGenerator(Snowflake.Generator generator){
-        this.generator = generator;
     }
 
     protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
@@ -160,4 +145,7 @@ public class IndexTransformer {
         return indexKeyAccumulator;
     }
 
+    public boolean isUnique() {
+        return isUnique;
+    }
 }

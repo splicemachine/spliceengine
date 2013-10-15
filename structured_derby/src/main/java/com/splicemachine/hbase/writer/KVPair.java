@@ -37,7 +37,9 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         DELETE
     }
 
-    public KVPair(){}
+    public KVPair(){
+        this.type = Type.INSERT;
+    }
 
     public KVPair(byte[] rowKey, byte[] value) {
         this(rowKey, value,Type.INSERT);

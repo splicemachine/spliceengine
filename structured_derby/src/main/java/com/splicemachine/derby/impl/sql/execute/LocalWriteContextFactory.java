@@ -456,11 +456,10 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
         public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites){
 
+            ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,isUnique,expectedWrites));
             if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,expectedWrites));
                 ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,expectedWrites));
             }else{
-                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
                 ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,false,expectedWrites));
             }
         }

@@ -1,25 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.Snowflake;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -37,6 +31,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     private EntryDecoder newPutDecoder;
     private EntryDecoder oldDataDecoder;
     private final int expectedWrites;
+    private final BitSet nonUniqueIndexColumn;
 
 
     public IndexUpsertWriteHandler(BitSet indexedColumns,
@@ -49,12 +44,12 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
         this.expectedWrites = expectedWrites;
-        BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
+        nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
         nonUniqueIndexColumn.set(translatedIndexColumns.length());
         this.transformer = new IndexTransformer(indexedColumns,
                 translatedIndexColumns,
                 nonUniqueIndexColumn,
-                descColumns,mainColToIndexPosMap,unique,expectedWrites);
+                descColumns,mainColToIndexPosMap,unique);
     }
 
     @Override
@@ -67,19 +62,23 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
-        if(indexBuffer==null){
-            try{
-                indexBuffer = getWriteBuffer(ctx,expectedWrites);
-            }catch(Exception e){
-                ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
-                failed=true;
-            }
-        }
+        ensureBufferReader(mutation, ctx);
 
         if(mutation.getType()== KVPair.Type.DELETE) return true; //send upstream without acting on it
 
         upsert(mutation,ctx);
         return !failed;
+    }
+
+    private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
+        if(indexBuffer==null){
+            try{
+                indexBuffer = getWriteBuffer(ctx,expectedWrites);
+            }catch(Exception e){
+                ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+                failed=true;
+            }
+        }
     }
 
     private void upsert(KVPair mutation, WriteContext ctx) {
@@ -98,10 +97,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
-    }
-
-    void setGenerator(Snowflake.Generator generator){
-        transformer.setGenerator(generator);
     }
 
     private KVPair update(KVPair mutation, WriteContext ctx) {
@@ -128,10 +123,17 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             return null;
         }
 
-
         /*
          * To update the index now, we must find the old index row and delete it, then
          * insert a new index row with the correct values.
+         *
+         * The order of ops goes like:
+         *
+         * 1. Execute a get with all the indexed columns that is currently present (before the update)
+         * 2. Create a KVPair reflecting the old get
+         * 3. Create a KVPair reflecting the updated get
+         * 4. Delete the old index row
+         * 5. Insert the new index row
          */
         try{
             Get oldGet = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
@@ -170,7 +172,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 oldDataDecoder.set(r.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
                 BitIndex oldIndex = oldDataDecoder.getCurrentIndex();
                 oldDecoder = oldDataDecoder.getEntryDecoder();
-                oldKeyAccumulator = new SparseEntryAccumulator(null,translatedIndexColumns);
+                oldKeyAccumulator = new SparseEntryAccumulator(null,transformer.isUnique()?translatedIndexColumns:nonUniqueIndexColumn);
 
                 //fill in all the index fields that have changed
                 for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
@@ -232,12 +234,16 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             //insert the new one
 
             //delete the old record
+            if(!transformer.isUnique()){
+                oldKeyAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(mutation.getRow()));
+            }
+
             byte[] existingIndexRowKey = oldKeyAccumulator.finish();
             KVPair indexDelete = KVPair.delete(existingIndexRowKey);
             doDelete(ctx,indexDelete);
 
             //insert the new
-            byte[] newIndexRowKey = transformer.getIndexRowKey();
+            byte[] newIndexRowKey = transformer.getIndexRowKey(mutation.getRow());
 
             newRowAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexValue = newRowAccumulator.finish();
@@ -264,21 +270,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
 
     protected void doDelete(final WriteContext ctx, final KVPair delete) throws Exception {
-        HTableInterface hTable = ctx.getHTable(indexConglomBytes);
-        try{
-            final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
-            hTable.coprocessorExec(BatchProtocol.class,
-                    delete.getRow(),indexStop, new Batch.Call<BatchProtocol, Object>() {
-                @Override
-                public WriteResult call(BatchProtocol instance) throws IOException {
-                    return instance.deleteFirstAfter(
-                            ctx.getTransactionId(), delete.getRow(), indexStop);
-                }
-            });
-        } catch (Throwable throwable) {
-            @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(throwable);
-            ctx.failed(delete,WriteResult.failed(t.getClass().getSimpleName()+":"+t.getMessage()));
-            failed=true;
-        }
+        ensureBufferReader(delete,ctx);
+        indexBuffer.add(delete);
     }
 }

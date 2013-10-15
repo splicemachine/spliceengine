@@ -516,7 +516,6 @@ public class IndexedPipelineTest {
                 keepState,unique,
                 expectedWrites);
 
-        writeHandler.setGenerator(generator);
         return writeHandler;
     }
 

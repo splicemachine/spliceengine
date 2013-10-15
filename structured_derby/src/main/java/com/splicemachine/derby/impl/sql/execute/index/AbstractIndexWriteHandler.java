@@ -200,7 +200,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             @Override public void writeComplete() { /*no-op*/ }
         };
 
-        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize+10); //make sure we don't flush before we can
+        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize*2+10); //make sure we don't flush before we can
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {

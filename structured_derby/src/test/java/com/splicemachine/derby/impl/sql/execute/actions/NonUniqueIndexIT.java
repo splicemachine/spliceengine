@@ -243,20 +243,45 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     @Test
     public void testCanAddDuplicateAndDelete() throws Exception{
     	new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
-        methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',2)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
-        methodWatcher.getStatement().execute(format("insert into %s.%s (name,val) values ('sfines',3)",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
-        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s.%s where name = 'sfines'",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
+        String name = "sfines";
+        addDuplicateAndDeleteTest(name);
+    }
+
+    @Test
+    public void testRepeatedAddDuplicateAndDelete() throws Exception {
+        new SpliceIndexWatcher(TABLE_NAME_5,spliceSchemaWatcher.schemaName,INDEX_51,spliceSchemaWatcher.schemaName,"(name)").starting(null);
+        for (int i = 0; i < 100; i++) {
+            System.out.println(i);
+            String name = Integer.toString(i);
+            addDuplicateAndDeleteTest(name);
+        }
+    }
+
+    private void addDuplicateAndDeleteTest(String name) throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement(format("insert into %s (name,val) values (?,?)",spliceTableWatcher5));
+        ps.setString(1,name);
+        ps.setInt(2, 2);
+        Assert.assertEquals("Incorrect insertion count!", 1, ps.executeUpdate());
+        ps.setString(1, name);
+        ps.setInt(2, 3);
+        Assert.assertEquals("Incorrect insertion count!", 1, ps.executeUpdate());
+
+        ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",spliceTableWatcher5,name));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(resultSet.next()){
             String retName = resultSet.getString(1);
             int val = resultSet.getInt(2);
-            Assert.assertEquals("Incorrect name returned!", "sfines", retName);
-            results.add(String.format("name:%s,value:%d",retName,val));
+            Assert.assertEquals("Incorrect name returned!", name, retName);
+            results.add(String.format("name:%s,value:%d", retName, val));
         }
         Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
+        for(String result:results){
+            System.out.println(result);
+        }
 
-        methodWatcher.getStatement().execute(format("delete from %s.%s where name = 'sfines' and val = 2",spliceSchemaWatcher.schemaName,TABLE_NAME_5));
-        assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_5,"sfines",1);
+        int deleted = methodWatcher.getStatement().executeUpdate(format("delete from %s where name = '%s' and val = 2", spliceTableWatcher5, name));
+        Assert.assertEquals("Incorrect number of rows were deleted!",1,deleted);
+        assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_5,name,1);
     }
 
     @Test(timeout=10000)
