@@ -51,7 +51,7 @@ import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.io.StorageFile;
 
 
-final class JarLoader extends SecureClassLoader {
+public final class JarLoader extends SecureClassLoader {
     
     /**
      * Two part name for the jar file.
