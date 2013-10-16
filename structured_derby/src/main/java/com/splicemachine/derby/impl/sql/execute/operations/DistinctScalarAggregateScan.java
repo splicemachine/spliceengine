@@ -31,20 +31,23 @@ public class DistinctScalarAggregateScan implements ScalarAggregateSource {
     private final ExecIndexRow toIndexRow;
 
     public DistinctScalarAggregateScan(HRegion region,
-                                        Scan scan,
+                                       Scan scan,
                                        RowDecoder decoder,
                                        final int[] keyCols,
                                        ExecIndexRow toIndexRow,
-                                       SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+                                       SpliceRuntimeContext spliceRuntimeContext,
+                                       final byte[] uniqueId) throws StandardException {
         this.toIndexRow = toIndexRow;
         final DataValueDescriptor[] cols = toIndexRow.getRowArray();
         ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
             @Override
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
-                fieldDecoder.seek(11); //skip the prefix value
+                fieldDecoder.seek(uniqueId.length+1);
 
-                return DerbyBytesUtil.slice(fieldDecoder, keyCols, cols);
+                int adjusted = DerbyBytesUtil.skip(fieldDecoder,keyCols,cols);
+                fieldDecoder.reset();
+                return fieldDecoder.slice(adjusted+uniqueId.length+1);
             }
 
             @Override

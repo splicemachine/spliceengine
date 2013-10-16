@@ -205,7 +205,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             SpliceRuntimeContext ctx = new SpliceRuntimeContext();
             buildReduceScan();
             scanSource = new DistinctScalarAggregateScan(
-                    region,reduceScan,getRowEncoder(ctx).getDual(sourceExecIndexRow),keyColumns,sourceExecIndexRow,ctx);
+                    region,reduceScan,getRowEncoder(ctx).getDual(sourceExecIndexRow),keyColumns,sourceExecIndexRow,ctx,uniqueSequenceID);
         }
         return aggregate(scanSource, spliceRuntimeContext);
     }

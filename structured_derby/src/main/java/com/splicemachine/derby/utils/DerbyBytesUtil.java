@@ -545,8 +545,15 @@ public class DerbyBytesUtil {
     }
 
     public static byte[] slice(MultiFieldDecoder fieldDecoder, int[] keyColumns, DataValueDescriptor[] rowArray) {
-        int size=0;
         int offset = fieldDecoder.offset();
+        int size = skip(fieldDecoder, keyColumns, rowArray);
+        //return to the original position
+        fieldDecoder.seek(offset);
+        return fieldDecoder.slice(size);
+    }
+
+    public static int skip(MultiFieldDecoder fieldDecoder, int[] keyColumns, DataValueDescriptor[] rowArray) {
+        int size=0;
         for(int keyColumn:keyColumns){
             DataValueDescriptor dvd = rowArray[keyColumn];
             if(DerbyBytesUtil.isFloatType(dvd))
@@ -556,9 +563,7 @@ public class DerbyBytesUtil {
             else
                 size+=fieldDecoder.skip();
         }
-        //return to the original position
-        fieldDecoder.seek(offset);
-        return fieldDecoder.slice(size);
+        return size;
     }
 
 
