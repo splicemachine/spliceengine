@@ -28,7 +28,7 @@ import org.apache.derby.iapi.error.StandardException;
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
 
-class ReflectMethod implements GeneratedMethod {
+public class ReflectMethod implements GeneratedMethod {
 
 	private final Method	realMethod;
 
