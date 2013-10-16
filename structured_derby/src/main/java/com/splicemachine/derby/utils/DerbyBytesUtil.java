@@ -526,12 +526,12 @@ public class DerbyBytesUtil {
 
     public static boolean isFloatType(DataValueDescriptor dvd){
         if(dvd==null) return false;
-        return Format.formatFor(dvd)==Format.REAL;
+        return dvd.getTypeFormatId() == StoredFormatIds.SQL_REAL_ID;
     }
 
-    public static boolean isDoubleType(DataValueDescriptor dvd){
+    public static boolean isDoubleType(DataValueDescriptor dvd){    	
         if(dvd==null) return false;
-        return Format.formatFor(dvd)==Format.DOUBLE;
+        return dvd.getTypeFormatId() == StoredFormatIds.SQL_DOUBLE_ID;
     }
 
     public static BitSet getNonNullFields(DataValueDescriptor[] row) {
