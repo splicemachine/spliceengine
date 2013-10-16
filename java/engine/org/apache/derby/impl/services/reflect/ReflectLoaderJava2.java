@@ -24,7 +24,7 @@ package org.apache.derby.impl.services.reflect;
 import org.apache.derby.iapi.util.ByteArray;
 import org.apache.derby.iapi.sql.compile.CodeGeneration;
 
-final class ReflectLoaderJava2 extends ClassLoader {
+public final class ReflectLoaderJava2 extends ClassLoader {
 
 	/*
 	**	Fields
@@ -36,7 +36,7 @@ final class ReflectLoaderJava2 extends ClassLoader {
 	** Constructor
 	*/
 
-	ReflectLoaderJava2(ClassLoader parent, DatabaseClasses cf) {
+	public ReflectLoaderJava2(ClassLoader parent, DatabaseClasses cf) {
 		super(parent);
 		this.cf = cf;
 	}
