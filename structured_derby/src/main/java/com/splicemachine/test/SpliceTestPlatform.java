@@ -155,7 +155,7 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setFloat("hbase.store.compaction.ratio", (float) 0.25);
         configuration.setFloat("io.hfile.bloom.error.rate", (float)0.005);
         configuration.setInt("hbase.master.event.waiting.time", 20);
-        configuration.setInt("hbase.client.pause", 500);
+        configuration.setInt("hbase.client.pause", 1000);
         configuration.setInt("hbase.master.lease.thread.wakefrequency", 3000);
         configuration.setInt("hbase.server.thread.wakefrequency", 1000);
         configuration.setInt("hbase.regionserver.msginterval", 1000);
