@@ -432,6 +432,7 @@
 							</filesets>
 						</configuration>
 					</plugin>
+					
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -439,25 +440,29 @@
 						<executions>
 							<execution>
 								<goals>
-									<goal>java</goal>
+									<goal>exec</goal>
 								</goals>
 							</execution>
 						</executions>
 						<configuration>
-							<mainClass>org.apache.zookeeper.server.ZooKeeperServerMain</mainClass>
-							<executable>maven</executable>
+							<classpathScope>compile</classpathScope>
+							<executable>java</executable>
 							<arguments>
+								<argument>-cp</argument>
+								<classpath>${maven.runtime.classpath}</classpath>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>
+								<argument>-Xmx2g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
+								<argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
 								<argument>2181</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>10</argument>
 								<argument>0</argument>
 							</arguments>
-							<systemProperties>
-								<systemProperty>
-									<key>java.awt.headless</key>
-									<value>true</value>
-								</systemProperty>
-							</systemProperties>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -616,9 +621,11 @@
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>								
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=128M</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
