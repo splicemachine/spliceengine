@@ -194,7 +194,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public long getPause() {
-                return WriteCoordinator.pause;
+                return SpliceConstants.pause;
             }
 
             @Override public void writeComplete() { /*no-op*/ }
