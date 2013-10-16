@@ -9,12 +9,10 @@ CLASSPATH=""
 
 echo "Running Splice Machine SQL shell"
 
-CLASSPATH=$HBASE_HOME/hbase.jar
+MYCLASSPATH=$HBASE_HOME/hbase.jar:$HBASE_LIB/*
 
-for FILE in $(ls ${HBASE_LIB}/*.jar); do
-  CLASSPATH="$CLASSPATH:$FILE"
-done
+#echo $MYCLASSPATH
 
-echo "To connect: connect 'jdbc:derby://localhost:1527/splicedb';"
-java -cp $CLASSPATH -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
+echo "Connect using: [connect 'jdbc:derby://localhost:1527/splicedb';]"
+java -classpath $MYCLASSPATH -Djdbc.drivers=org.apache.derby.jdbc.ClientDriver org.apache.derby.tools.ij $*
 

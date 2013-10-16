@@ -275,16 +275,4 @@
 <!--         </profile> -->
     </profiles>
 
-    <dependencies>
-        <dependency>
-            <groupId>commons-dbutils</groupId>
-            <artifactId>commons-dbutils</artifactId>
-            <version>1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>4.3.1</version>
-        </dependency>
-    </dependencies>
 </project>
