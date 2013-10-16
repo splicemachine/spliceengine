@@ -1,60 +1,155 @@
 package com.splicemachine.constants;
 
-import java.util.List;
-
-import com.splicemachine.encoding.Encoding;
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
-import com.google.common.collect.Lists;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 
 public class SpliceConstants {
+    @Retention(RetentionPolicy.SOURCE)
+    @interface Parameter{
+
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @interface DefaultValue{
+        String value();
+    }
+
     // Splice Configuration
 	public static Configuration config = SpliceConfiguration.create();
 
 	// Zookeeper Default Paths
-	public static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
-    public static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
-    public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
-	public static final String DEFAULT_CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
-	public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
-	public static final String DEFAULT_QUERY_NODE_PATH = "/queryNodePath";
-	public static final String DEFAULT_STARTUP_PATH = "/startupPath";	
-	public static final String DEFAULT_LEADER_ELECTION = "/leaderElection";	
+    /**
+     * The Path in zookeeper to store task information. Defaults to /spliceTasks
+     */
+    @Parameter public static final String BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
+    @DefaultValue(BASE_TASK_QUEUE_NODE) public static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
+    public static String zkSpliceTaskPath;
+
+    /**
+     * The Path in zookeeper to store job information. Defaults to /spliceJobs
+     */
+    @Parameter public static final String BASE_JOB_QUEUE_NODE = "splice.job_queue_node";
+    @DefaultValue(BASE_JOB_QUEUE_NODE) public static final String DEFAULT_BASE_JOB_QUEUE_NODE = "/spliceJobs";
+    public static String zkSpliceJobPath;
+
+    /**
+     * The Path in zookeeper for manipulating transactional information.
+     * Defaults to /transactions
+     */
+    @Parameter public static final String TRANSACTION_PATH = "splice.transactions_node";
+    @DefaultValue(TRANSACTION_PATH) public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
+    public static String zkSpliceTransactionPath;
+
+    /**
+     * Path in ZooKeeper for manipulating Conglomerate information.
+     * Defaults to /conglomerates
+     */
+    @Parameter public static final String CONGLOMERATE_SCHEMA_PATH = "splice.conglomerates_node";
+    @DefaultValue(CONGLOMERATE_SCHEMA_PATH) public static final String DEFAULT_CONGLOMERATE_SCHEMA_PATH = "/conglomerates";
+    public static String zkSpliceConglomeratePath;
+    public static String zkSpliceConglomerateSequencePath;
+
+    /**
+     * Path in ZooKeeper for storing Derby properties information.
+     * Defaults to /derbyPropertyPath
+     */
+    @Parameter public static final String DERBY_PROPERTY_PATH = "splice.derby_property_node";
+    @DefaultValue(DERBY_PROPERTY_PATH) public static final String DEFAULT_DERBY_PROPERTY_PATH = "/derbyPropertyPath";
+    public static String zkSpliceDerbyPropertyPath;
+    public static String zkSpliceQueryNodePath;
+
+    /**
+     * Location of Startup node in ZooKeeper. The presence of this node
+     * indicates whether or not Splice needs to attempt to recreate
+     * System tables (i.e. whether or not Splice has been installed and
+     * set up correctly).
+     * Defaults to /startupPath
+     */
+    @Parameter public static final String STARTUP_PATH = "splice.startup_path";
+    @DefaultValue(STARTUP_PATH) public static final String DEFAULT_STARTUP_PATH = "/startupPath";
+    public static String zkSpliceStartupPath;
+
+    /**
+     * Location of Leader Election path in ZooKeeper.
+     * Defaults to /leaderElection
+     */
+    @Parameter public static final String LEADER_ELECTION = "splice.leader_election";
+    @DefaultValue(LEADER_ELECTION) public static final String DEFAULT_LEADER_ELECTION = "/leaderElection";
+    public static String zkLeaderElection;
 
     /* Derby configuration settings */
 
-    //Derby network configuration
     /**
-     * The IP address to bind the Derby connection to. Defaults to 0.0.0.0
+     * The IP address to bind the Derby connection to.
+     * Defaults to 0.0.0.0
      */
-    public static final String CONFIG_DERBY_BIND_ADDRESS = "splice.server.address";
-    public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";
+    @Parameter public static final String DERBY_BIND_ADDRESS = "splice.server.address";
+    @DefaultValue(DERBY_BIND_ADDRESS) public static final String DEFAULT_DERBY_BIND_ADDRESS = "0.0.0.0";
+    public static String derbyBindAddress;
 
     /**
-     * The Port to bind the Derby connection to. Defaults to 0.0.0.0
+     * The Port to bind the Derby connection to.
+     * Defaults to 1527
      */
-    public static final String CONFIG_DERBY_BIND_PORT = "splice.server.port";
-    public static final int DEFAULT_DERBY_BIND_PORT = 1527;
+    @Parameter public static final String DERBY_BIND_PORT = "splice.server.port";
+    @DefaultValue(DERBY_BIND_PORT) public static final int DEFAULT_DERBY_BIND_PORT = 1527;
+    public static int derbyBindPort;
 
     /*Task and Job management*/
-
     /**
      * The priority under which to run user operation tasks. This can be any positive number, the higher
      * the priority, the sooner operations will be executed, relative to other prioritized tasks (such
      * as imports, TEMP cleaning, etc.)
+     * Defaults to 3
      */
-    public static final String CONFIG_OPERATION_PRIORITY = "splice.task.operationPriority";
-    public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
+    @Parameter public static final String OPERATION_PRIORITY = "splice.task.operationPriority";
+    @DefaultValue(OPERATION_PRIORITY) public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
+    public static int operationTaskPriority;
+
     /**
      * The Priority with which to assign import tasks. Setting this number higher than the
      * operation priority will make imports run preferentially to operation tasks; setting it lower
      * will make operations run preferentially to import tasks.
+     * Defaults to 3
      */
-    public static final String CONFIG_IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
-    public static final int DEFAULT_OPERATION_PRIORITY = 3;
+    @Parameter public static final String IMPORT_TASK_PRIORITY = "splice.task.importTaskPriority";
+    @DefaultValue(IMPORT_TASK_PRIORITY) public static final int DEFAULT_OPERATION_PRIORITY = 3;
+    public static int importTaskPriority;
+
+    /**
+     * The number of threads which will be used to process rows from import files. Increasing this
+     * number will result in a higher number of concurrent table writes, but setting it too high
+     * will result in outpacing the system's ability to read a block of data from disk.
+     * Defaults to 3
+     */
+    @Parameter private static final String IMPORT_MAX_PROCESSING_THREADS = "splice.import.maxProcessingThreads";
+    @DefaultValue(IMPORT_MAX_PROCESSING_THREADS) private static final int DEFAULT_IMPORT_MAX_PROCESSING_THREADS = 3;
+    public static int maxImportProcessingThreads;
+
+    /**
+     * The maximum size of the read buffer for importing data. When data is imported, it is read off
+     * the filesystem(HDFS) and pushed into a fixed-size buffer, where it is read by many processing threads.
+     * When the processing threads (set by splice.import.maxProcessingThreads) are set very low, the reading
+     * can outpace the writing, which will fill the buffer and force disk reads to wait for processing. In
+     * this situation, increasing the buffer size will help reduce the amount of time the reader spends
+     * waiting for a processing thread to complete its tasks.
+     *
+     * However, if the setting is too high, and the processing threads are slow (e.g. because of slow
+     * network write speed), then excessive memory can be consumed. Turn this down to relieve memory-pressure
+     * related issues.
+     * Defaults to 1000
+     */
+    @Parameter private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
+    @DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1000;
+    public static int maxImportReadBufferSize;
 
     //common SI fields
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
@@ -62,32 +157,185 @@ public class SpliceConstants {
 
     /*Writer configuration*/
 	// Constants
-    public static final int DEFAULT_POOL_MAX_SIZE = Integer.MAX_VALUE;
-    public static final int DEFAULT_POOL_CORE_SIZE = 100;
-    public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
-    public static final int DEFAULT_MAX_PENDING_BUFFERS = 10;
+
+    public static long tablePoolCleanerInterval;
+
+    /**
+     * The maximum number of HTable instances to pool for reuse. It is generally
+     * not necessary to adjust this, unless working in a very constrained memory environment.
+     *
+     * Default is no limit.
+     */
+    @Parameter private static final String POOL_MAX_SIZE = "splice.table.pool.maxsize";
+    @DefaultValue(POOL_MAX_SIZE) public static final int DEFAULT_POOL_MAX_SIZE = Integer.MAX_VALUE;
+    public static int tablePoolMaxSize;
+
+    /**
+     * The core number of HTable instances to pool for reuse. This is the number of HTable
+     * instances that will be kept open no matter what. It is generally not necessary to adjust this,
+     * unless working in a very constrained memory environment.
+     *
+     * Default is 100
+     */
+    @Parameter private static final String POOL_CORE_SIZE = "splice.table.pool.coresize";
+    @DefaultValue(POOL_CORE_SIZE) public static final int DEFAULT_POOL_CORE_SIZE = 100;
+    public static int tablePoolCoreSize;
+
+    /**
+     * The interval(in seconds) at which out HTable instances will be removed from the pool.
+     * It is generally not necessary to adjust this unless working in a very constrained
+     * memory environment.
+     *
+     * Default is 60 seconds.
+     */
+    @Parameter private static final String POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
+    @DefaultValue(POOL_CLEANER_INTERVAL) public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
+
     public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
     public static final long DEFAULT_CACHE_EXPIRATION = 60;
-    public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
-    public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
-    public static final int DEFAULT_HBASE_HTABLE_THREADS_MAX = Integer.MAX_VALUE;
-    public static final int DEFAULT_WRITE_THREADS_MAX = 20;
-    public static final int DEFAULT_WRITE_THREADS_CORE = 5;
-    public static final int DEFAULT_HBASE_HTABLE_THREADS_CORE = 10;
-    public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
-    public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
-    public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
-	public static final String DEFAULT_COMPRESSION = "none";
-	public static final String DEFAULT_MULTICAST_GROUP_ADDRESS = "230.0.0.1";
-	public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
-	public static final int DEFAULT_RMI_PORT = 40001;
-	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
-    public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
-    public static final int DEFAULT_RING_BUFFER_SIZE=10000;
-    public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
-    public static final int DEFAULT_INDEX_BUFFER_SIZE=1000;
-    public static final int DEFAULT_KRYO_POOL_SIZE=50;
 
+    /**
+     * The maximum size(in bytes) that an individual write buffer will keep in memory before automatically
+     * flushing those writes to the destination Table. Increasing this will reduce network overhead during
+     * heavy write operations, but may result in a large amount of heap to be occupied during the write
+     * process itself (Since Splice uses a compact network representation that differs from its disk representation,
+     * the process of preparing disk writes has the effect of exploding heap space). This memory pressure
+     * is especially problematic for tables with very few, small columns.
+     *
+     * This parameter may be adjusted in real time using JMX.
+     *
+     * Default is 2MB
+     */
+    @Parameter private static final String WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
+    @DefaultValue(WRITE_BUFFER_SIZE) public static final long DEFAULT_WRITE_BUFFER_SIZE = 2097152;
+    public static long writeBufferSize;
+
+    /**
+     * The maximum number of rows that an individual write buffer will keep in memory before automatically
+     * flushing those writes to the destination Table. Increasing this will allow more rows to be sent over
+     * the network at the same time; this reduces the network overhead (potentially improving performance), but
+     * may result in a large amount of heap being occupied during the local-disk write process itself (Since
+     * Splice uses a compact network representation that differs from its disk representation, the process of
+     * preparing local-disk writes has the effect of exploding the heap space used).
+     *
+     * This parameter may be adjusted in real time using JMX.
+     *
+     * Default is 1000
+     */
+    @Parameter private static final String BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
+    @DefaultValue(BUFFER_ENTRIES)public static final int DEFAULT_MAX_BUFFER_ENTRIES = 1000;
+    public static int maxBufferEntries;
+
+    /**
+     * The maximum number of threads which may be used to concurrently write data to any HBase table.
+     * In order to prevent potential deadlock situations, this parameter cannot be higher than the
+     * number of available IPC threads (hbase.regionserver.handler.count); setting the max threads
+     * to a number higher than the available IPC threads will have no effect.
+     *
+     * This parameter may be adjusted in real time using JMX.
+     *
+     * Default is 20.
+     */
+    @Parameter private static final String WRITE_THREADS_MAX = "splice.writer.maxThreads";
+    @DefaultValue(WRITE_THREADS_MAX) public static final int DEFAULT_WRITE_THREADS_MAX = 20;
+    public static int maxThreads;
+
+    /**
+     * The number of write threads to allow to remain alive even when the maximum number of threads
+     * is not required. Adjusting this only affects how quickly a write thread is allowed to proceed
+     * in some cases, and the number of threads which are alive in the overall system without at any
+     * given point in time. * This generally does not require adjustment, unless thread-management is
+     * problematic.
+     *
+     * Default is 5.
+     */
+    @Parameter private static final String WRITE_THREADS_CORE = "splice.writer.coreThreads";
+    @DefaultValue(WRITE_THREADS_CORE) public static final int DEFAULT_WRITE_THREADS_CORE = 5;
+    public static int coreWriteThreads;
+
+    /**
+     * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
+     * this up will result in more threads being available for writes after longer periods of inactivity,
+     * but will cause higher thread counts in the system overall. Turning this down will result in fewer
+     * threads being maintained in the system at any given point in time, but will also require more
+     * thread startups (potentially affecting performance). This generally does not require adjustment,
+     * unless thread-management is problematic or context switching is knowng to be an issue.
+     *
+     * Default is 60 seconds.
+     */
+    @Parameter public static final String HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
+    @DefaultValue(HBASE_HTABLE_THREADS_KEEPALIVETIME) public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
+
+    @Parameter
+    public static final String CLIENT_PAUSE = "hbase.client.pause";
+    @DefaultValue(CLIENT_PAUSE) public static final long DEFAULT_CLIENT_PAUSE = 1000;
+    public static long pause;
+    /**
+     * The number of times to retry a network operation before failing.  Turning this up will reduce the number of spurious
+     * failures caused by network events (NotServingRegionException, IndexNotSetUpException, etc.), but will also lengthen
+     * the time taken by a query before a failure is detected. Turning this down will decrease the latency required
+     * before detecting a failure, but may result in more spurious failures (especially during large writes).
+     *
+     * Generally, the order of retries is as follows:
+     *
+     * try 1, pause, try 2, pause, try 3, pause,try 4, 2*pause, try 5, 2*pause, try 6, 4*pause, try 7, 4*pause,
+     * try 8, 8*pause, try 9, 16*pause, try 10, 32*pause.
+     *
+     * So if the pause time (
+     * It is recommended to turn this setting up if you are seeing a large number of operations failing with
+     * NotServingRegionException, WrongRegionException, or IndexNotSetUpException errors, or if it is known
+     * that the mean time to recovery of a single region is longer than the
+     *
+     * Defaults to 10.
+     */
+    @Parameter public static final String HBASE_CLIENT_RETRIES_NUMBER = "hbase.client.retries.number";
+    @DefaultValue(HBASE_CLIENT_RETRIES_NUMBER) public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
+    public static int numRetries;
+
+    @Parameter public static final String HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
+    @DefaultValue(HBASE_CLIENT_COMPRESS_WRITES) public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
+    public static boolean compressWrites;
+
+    @Parameter public static final String COMPRESSION = "splice.compression";
+    @DefaultValue(COMPRESSION) public static final String DEFAULT_COMPRESSION = "none";
+    public static String compression;
+
+    @Parameter public static final String MULTICAST_GROUP_ADDRESS = "splice.multicast_group_address";
+    @DefaultValue(MULTICAST_GROUP_ADDRESS) public static final String DEFAULT_MULTICAST_GROUP_ADDRESS = "230.0.0.1";
+    public static String multicastGroupAddress;
+
+    @Parameter public static final String MULTICAST_GROUP_PORT = "splice.multicast_group_port";
+    @DefaultValue(MULTICAST_GROUP_PORT) public static final int DEFAULT_MULTICAST_GROUP_PORT = 4446;
+    public static int multicastGroupPort;
+
+    @Parameter public static final String RMI_PORT = "splice.rmi_port";
+    @DefaultValue(RMI_PORT) public static final int DEFAULT_RMI_PORT = 40001;
+    public static int rmiPort;
+
+	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
+
+    @Parameter private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
+    @DefaultValue(STARTUP_LOCK_WAIT_PERIOD) public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
+
+    @Parameter private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
+    @DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=10000;
+    public static int ringBufferSize;
+
+    @Parameter private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
+    @DefaultValue(INDEX_BATCH_SIZE) public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
+    public static int indexBatchSize;
+
+    @Parameter private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
+    @DefaultValue(INDEX_BUFFER_SIZE) public static final int DEFAULT_INDEX_BUFFER_SIZE=1000;
+    public static int indexBufferSize;
+
+    @Parameter private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
+    @DefaultValue(INDEX_LOOKUP_BLOCKS) private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
+    public static int indexLookupBlocks;
+
+    @Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
+    @DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=50;
+    public static int kryoPoolSize;
 
 
 	/**
@@ -102,104 +350,76 @@ public class SpliceConstants {
      * Setting the cache update interval <0 indicates that caching is to be turned off.
      * This is a performance killer, but is useful when debugging issues.
      */
+    public static final String CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
+    public static final String CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
+    public static final String RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
-    
-	
-	// Zookeeper Path Configuration Constants
-	public static final String CONFIG_BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
-    public static final String CONFIG_BASE_JOB_QUEUE_NODE = "splice.job_queue_node";
-    public static final String CONFIG_TRANSACTION_PATH = "splice.transactions_node";
-	public static final String CONFIG_CONGLOMERATE_SCHEMA_PATH = "splice.conglomerates_node";
-	public static final String CONFIG_DERBY_PROPERTY_PATH = "splice.derby_property_node";
-	public static final String CONFIG_QUERY_NODE_PATH = "splice.query_node_path";
-	public static final String CONFIG_STARTUP_PATH = "splice.startup_path";
-	public static final String CONFIG_LEADER_ELECTION = "splice.leader_election";
-    private static final String CONFIG_POOL_MAX_SIZE = "splice.table.pool.maxsize";
-    private static final String CONFIG_POOL_CORE_SIZE = "splice.table.pool.coresize";
-    private static final String CONFIG_POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
-    private static final String CONFIG_WRITE_BUFFER_SIZE = "hbase.client.write.buffer";
-    private static final String CONFIG_WRITE_THREADS_MAX = "splice.writer.maxThreads";
-    private static final String CONFIG_WRITE_THREADS_CORE = "splice.writer.coreThreads";
-    public static final String CONFIG_WRITE_BUFFER_MAX_FLUSHES = "hbase.client.write.buffers.maxflushes";
-    private static final String CONFIG_BUFFER_ENTRIES = "hbase.client.write.buffer.maxentries";
-    private static final String CONFIG_HBASE_HTABLE_THREADS_MAX = "hbase.htable.threads.max";
-    private static final String CONFIG_HBASE_HTABLE_THREADS_CORE = "hbase.htable.threads.core";
-    public static final String CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
-    public static final String CONFIG_HBASE_CLIENT_RETRIES_NUMBER = HConstants.HBASE_CLIENT_RETRIES_NUMBER;
-    public static final String CONFIG_CACHE_UPDATE_PERIOD = "hbase.htable.regioncache.updateinterval";
-    public static final String CONFIG_CACHE_EXPIRATION = "hbase.htable.regioncache.expiration";
-    public static final String CONFIG_HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
-    public static final String CONFIG_COMPRESSION = "splice.compression";
-    public static final String CONFIG_MULTICAST_GROUP_ADDRESS = "splice.multicast_group_address";
-    public static final String CONFIG_MULTICAST_GROUP_PORT = "splice.multicast_group_port";
-    public static final String CONFIG_RMI_PORT = "splice.rmi_port";
-    public static final String CONFIG_RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
+    //debug options
+    @Parameter private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
+    @DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
+    public static boolean dumpClassFile;
 
-    private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
     public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
+    public static final boolean DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY=false;
+    public static boolean debugFailTasksRandomly;
     public static final String DEBUG_TASK_FAILURE_RATE = "splice.debug.taskFailureRate";
+    public static double debugTaskFailureRate;
+    public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
 
-    private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
-    private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
-    private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
-    private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
-    private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
 
-    private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
-    private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
-    
+    @Parameter public static final String COLLECT_PERF_STATS ="splice.collectTimingStatistics";
+    @DefaultValue(COLLECT_PERF_STATS) public static final boolean DEFAULT_COLLECT_STATS = false;
+    public static boolean collectStats;
+
 	// Zookeeper Actual Paths
-	public static String zkSpliceTaskPath;
-	public static String zkSpliceJobPath;
-	public static String zkSpliceTransactionPath;
-	public static String zkSpliceConglomeratePath;
-	public static String zkSpliceConglomerateSequencePath;
-	public static String zkSpliceDerbyPropertyPath;
-	public static String zkSpliceQueryNodePath;
-	public static String zkSpliceStartupPath;
-	public static String zkLeaderElection;
-	public static String derbyBindAddress;
-	public static int derbyBindPort;
-    public static int operationTaskPriority;
-    public static int importTaskPriority;
+
+    @Parameter public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
+    @DefaultValue(SPLIT_WAIT_INTERVAL) public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static Long sleepSplitInterval;
-	public static int tablePoolMaxSize;
-	public static int tablePoolCoreSize;
-	public static long tablePoolCleanerInterval;
-	public static long writeBufferSize;
-	public static int maxBufferEntries;
-	public static int maxThreads;
-    public static int coreWriteThreads;
+
+    @Parameter private static final String MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
+    @DefaultValue(MAX_CONCURRENT_OPERATIONS) private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 20; //probably too low
     public static int maxTreeThreads; //max number of threads for concurrent stack execution
+
 	public static long threadKeepAlive;
-    public static int numRetries;
     public static boolean enableRegionCache;
     public static long cacheExpirationPeriod;
-    public static boolean compressWrites;
-    public static String compression;
-    public static String multicastGroupAddress;
-    public static int multicastGroupPort;
-    public static int rmiPort;
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
-    public static int ringBufferSize;
-    public static int indexBatchSize;
-    public static int indexBufferSize;
-    public static int indexLookupBlocks;
-    public static int kryoPoolSize;
 
+    @Parameter private static final String ROLL_FORWARD_HEAP_SIZE = "splice.rollForward.maxHeapSize";
+    @DefaultValue(ROLL_FORWARD_HEAP_SIZE) private static final long DEFAULT_ROLL_FORWARD_HEAP_SIZE = 2*1024*1024; //2 MB
     public static long maxRollForwardHeapSize;
+
+    @Parameter private static final String ROLL_FORWARD_ENTRIES = "splice.rollForward.maxEntries";
+    @DefaultValue(ROLL_FORWARD_ENTRIES) private static final int DEFAULT_ROLL_FORWARD_ENTRIES = 1000000; //1 million
     public static int maxRollForwardEntries;
+
+    @Parameter private static final String ROLL_FORWARD_TIMEOUT = "splice.rollForward.timeout";
+    @DefaultValue(ROLL_FORWARD_TIMEOUT) private static final long DEFAULT_ROLL_FORWARD_TIMEOUT = 10*1000; //10 seconds
     public static long rollForwardTimeout;
+
+    @Parameter private static final String ROLL_FORWARD_MAX_SCHEDULED_THREADS = "splice.rollForward.maxScheduledThreads";
+    @DefaultValue(ROLL_FORWARD_MAX_SCHEDULED_THREADS) private static final int DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS = 2;
     public static int maxRollForwardScheduledThreads;
+
+    @Parameter private static final String ROLL_FORWARD_MAX_LOAD_THREADS = "splice.rollForward.maxLoadThreads";
+    @DefaultValue(ROLL_FORWARD_MAX_LOAD_THREADS) private static final int DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS = 10;
     public static int maxRollForwardLoadThreads;
+
+    @Parameter private static final String ROLL_FORWARD_LOAD_CORE_THREADS = "splice.rollForward.coreLoadThreads";
+    @DefaultValue(ROLL_FORWARD_LOAD_CORE_THREADS) private static final int DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS = 2;
     public static int maxRollForwardCoreThreads;
+
+    @Parameter private static final String ROLL_FORWARD_MAX_CONCURRENT_ROLLS = "splice.rollForward.maxConcurrentRollForwards";
+    @DefaultValue(ROLL_FORWARD_MAX_CONCURRENT_ROLLS) private static final int DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS = 10; //at most 10*2MB = 20MB heap used at more for rollforwards
     public static int maxConcurrentRollForwards;
 
     /*Used to determine how many sequence numbers to reserve in a given block*/
+    @Parameter private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
+    @DefaultValue(SEQUENCE_BLOCK_SIZE) private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     public static long sequenceBlockSize;
 
-    
     /*
      * Setting the cache update interval <0 indicates that caching is to be turned off.
      * This is a performance killer, but is useful when debugging issues.
@@ -214,8 +434,6 @@ public class SpliceConstants {
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
-    public static final String PROPERTIES_TABLE_NAME = "SPLICE_PROPS";
-    public static final String PROPERTIES_CACHE = "properties";
     public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String[] SYSSCHEMAS_CACHES = {SYSSCHEMAS_CACHE,SYSSCHEMAS_INDEX1_ID_CACHE};
@@ -224,8 +442,7 @@ public class SpliceConstants {
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
-    public static final byte[]PROPERTIES_TABLE_NAME_BYTES = Bytes.toBytes(PROPERTIES_TABLE_NAME);
-    
+
 	// Splice Family Information
 	public static final String DEFAULT_FAMILY = "V";
 	public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);
@@ -236,85 +453,31 @@ public class SpliceConstants {
     //table
 
 	// Splice Default Table Definitions
-	public static final int DEFAULT_VERSIONS = HColumnDescriptor.DEFAULT_VERSIONS;
-
 	public static final Boolean DEFAULT_IN_MEMORY = HColumnDescriptor.DEFAULT_IN_MEMORY;
 	public static final Boolean DEFAULT_BLOCKCACHE=HColumnDescriptor.DEFAULT_BLOCKCACHE;
 	public static final int DEFAULT_TTL = HColumnDescriptor.DEFAULT_TTL;
 	public static final String DEFAULT_BLOOMFILTER = HColumnDescriptor.DEFAULT_BLOOMFILTER;
 		
-	public static final String TABLE_COMPRESSION = "com.splicemachine.table.compression";
-	public static final String HBASE_ZOOKEEPER_CLIENT_PORT = "hbase.zookeeper.property.clientPort";
-	public static final String HBASE_ZOOKEEPER_QUOROM = "hbase.zookeeper.quorum";
-
     // Default Constants
-	public static final String SPACE = " ";
-	public final static String PATH_DELIMITER = "/";
-	public static final int FIELD_FLAGS_SIZE = 1;
-    public static final byte[] EOF_MARKER = new byte[] {0, 0, 0, 0};
     public static final String SUPPRESS_INDEXING_ATTRIBUTE_NAME = "iu";
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
     public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
-    public static final byte[] VALUE_COLUMN = Encoding.encode(1);
-	public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static final String SPLICE_DB = "spliceDB";
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
-
-    public static boolean collectStats;
-    public static final String COLLECT_PERF_STATS ="splice.collectTimingStatistics";
-    public static final boolean DEFAULT_COLLECT_STATS = false;
-	
     // Default Configuration Options
-	public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
 
-    //debug options
-    public static boolean dumpClassFile;
-    public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
-    public static boolean debugFailTasksRandomly;
-    public static final boolean DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY=false;
-
-    public static double debugTaskFailureRate;
-    public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
-    private static final String CONFIG_MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
-    private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 20; //probably too low
-
-    private static final String ROLL_FORWARD_HEAP_SIZE = "splice.rollForward.maxHeapSize";
-    private static final String ROLL_FORWARD_ENTRIES = "splice.rollForward.maxEntries";
-    private static final String ROLL_FORWARD_TIMEOUT = "splice.rollForward.timeout";
-    private static final String ROLL_FORWARD_MAX_SCHEDULED_THREADS = "splice.rollForward.maxScheduledThreads";
-    private static final String ROLL_FORWARD_MAX_LOAD_THREADS = "splice.rollForward.maxLoadThreads";
-    private static final String ROLL_FORWARD_LOAD_CORE_THREADS = "splice.rollForward.coreLoadThreads";
-    private static final String ROLL_FORWARD_MAX_CONCURRENT_ROLLS = "splice.rollForward.maxConcurrentRollForwards";
-    private static final long DEFAULT_ROLL_FORWARD_HEAP_SIZE = 2*1024*1024; //2 MB
-    private static final int DEFAULT_ROLL_FORWARD_ENTRIES = 1000000; //1 million
-    private static final long DEFAULT_ROLL_FORWARD_TIMEOUT = 10*1000; //10 seconds
-    private static final int DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS = 2;
-    private static final int DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS = 10;
-    private static final int DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS = 2;
-    private static final int DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS = 10; //at most 10*2MB = 20MB heap used at more for rollforwards
-
-    private static final String IMPORT_MAX_PROCESSING_THREADS = "splice.import.maxProcessingThreads";
-    private static final int DEFAULT_IMPORT_MAX_PROCESSING_THREADS = 3;
-    public static int maxImportProcessingThreads;
-
-    private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
-    private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1000;
-    public static int maxImportReadBufferSize;
-    private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
-    private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
-
+    @Parameter public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
+    @DefaultValue(WRITE_MAX_FLUSHES_PER_REGION) public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
     public static int maxFlushesPerRegion;
-    public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
-    public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
-    public static final String LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW = "splice.loadControl.maxFlushedPerWindow";
-    public static final long LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW=10;
+
+    @Parameter public static final String LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW = "splice.loadControl.maxFlushedPerWindow";
+    @DefaultValue(LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW) public static final long LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW=10;
     public static long maxFlushedPerPeriod;
 
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
-
 
     public static enum TableEnv {
     	TRANSACTION_TABLE,
@@ -325,8 +488,6 @@ public class SpliceConstants {
     	USER_TABLE
     }
 
-    public enum SpliceConglomerate {HEAP,BTREE}
-
 	static {
 		setParameters();
 	}
@@ -334,30 +495,28 @@ public class SpliceConstants {
 	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
 			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
 
-	public static List<byte[]> spliceSystables = Lists.newArrayList(TEMP_TABLE_BYTES,TRANSACTION_TABLE_BYTES,CONGLOMERATE_TABLE_NAME_BYTES);
-	
 	public static void setParameters() {
-		zkSpliceTaskPath = config.get(CONFIG_BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
-		zkSpliceJobPath = config.get(CONFIG_BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
-		zkSpliceTransactionPath = config.get(CONFIG_TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);		
-		zkSpliceConglomeratePath = config.get(CONFIG_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+		zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
+		zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
+		zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+		zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 		zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
-		zkSpliceDerbyPropertyPath = config.get(CONFIG_DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
-		zkSpliceQueryNodePath = config.get(CONFIG_CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
-		zkLeaderElection = config.get(CONFIG_LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
+		zkSpliceDerbyPropertyPath = config.get(DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
+		zkSpliceQueryNodePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+		zkLeaderElection = config.get(LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 		sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
-		zkSpliceStartupPath = config.get(CONFIG_STARTUP_PATH,DEFAULT_STARTUP_PATH);
-        derbyBindAddress = config.get(CONFIG_DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
-        derbyBindPort = config.getInt(CONFIG_DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
-        operationTaskPriority = config.getInt(CONFIG_OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
-        importTaskPriority = config.getInt(CONFIG_IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
-        tablePoolMaxSize = config.getInt(CONFIG_POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
-        tablePoolCoreSize = config.getInt(CONFIG_POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
-        tablePoolCleanerInterval = config.getLong(CONFIG_POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
-        writeBufferSize = config.getLong(CONFIG_WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
-        maxBufferEntries = config.getInt(CONFIG_BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
-        maxThreads = config.getInt(CONFIG_WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
-        maxTreeThreads = config.getInt(CONFIG_MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
+		zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
+        derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
+        derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
+        operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
+        importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
+        tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
+        tablePoolCoreSize = config.getInt(POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
+        tablePoolCleanerInterval = config.getLong(POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
+        writeBufferSize = config.getLong(WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
+        maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
+        maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
+        maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
         if(ipcThreads < maxThreads){
             /*
@@ -381,7 +540,7 @@ public class SpliceConstants {
         }
         if(maxThreads<=0)
             maxThreads = 1;
-        coreWriteThreads = config.getInt(CONFIG_WRITE_THREADS_CORE,DEFAULT_WRITE_THREADS_CORE);
+        coreWriteThreads = config.getInt(WRITE_THREADS_CORE,DEFAULT_WRITE_THREADS_CORE);
         if(coreWriteThreads>maxThreads){
             //default the core write threads to 10% of the maximum available
             coreWriteThreads = maxThreads/10;
@@ -389,17 +548,17 @@ public class SpliceConstants {
         if(coreWriteThreads<0)
             coreWriteThreads=0;
 
-        threadKeepAlive = config.getLong(CONFIG_HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
-        numRetries = config.getInt(CONFIG_HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        cacheUpdatePeriod = config.getLong(CONFIG_CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
+        threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
+        numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
         enableRegionCache = cacheUpdatePeriod>0l;
-        cacheExpirationPeriod = config.getLong(CONFIG_CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
-        compressWrites = config.getBoolean(CONFIG_HBASE_CLIENT_COMPRESS_WRITES, DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
-        compression = config.get(CONFIG_COMPRESSION, DEFAULT_COMPRESSION);
-        multicastGroupAddress = config.get(CONFIG_MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
-        multicastGroupPort = config.getInt(CONFIG_MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
-        rmiPort = config.getInt(CONFIG_RMI_PORT, DEFAULT_RMI_PORT);
-        rmiRemoteObjectPort = config.getInt(CONFIG_RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
+        cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
+        compressWrites = config.getBoolean(HBASE_CLIENT_COMPRESS_WRITES, DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
+        compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
+        multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
+        multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
+        rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);
+        rmiRemoteObjectPort = config.getInt(RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
         dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
         startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
@@ -430,6 +589,7 @@ public class SpliceConstants {
         tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
 
         collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
+        pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {
