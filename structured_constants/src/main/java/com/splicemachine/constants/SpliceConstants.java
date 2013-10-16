@@ -266,10 +266,28 @@ public class SpliceConstants {
     @Parameter public static final String HBASE_HTABLE_THREADS_KEEPALIVETIME = "hbase.htable.threads.keepalivetime";
     @DefaultValue(HBASE_HTABLE_THREADS_KEEPALIVETIME) public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
 
-    @Parameter
-    public static final String CLIENT_PAUSE = "hbase.client.pause";
+    /**
+     * The amount of time (in milliseconds) to pause before retrying a network operation.
+     *
+     * This parameter is tightly connected to hbase.client.retries.number, as it determines
+     * how long to wait in between each retry. If the pause time is 1 second and the number
+     * of retries is 10, then the total time taken before a write can fail is 71 seconds. If
+     * the pause time is 500 ms, the total time before failing is 35.5 seconds. If the pause
+     * time is 2 seconds, the total time before failing is 142 seconds.
+     *
+     * Turning this setting up is recommended if you are seeing a large number of operations
+     * failing with NotServingRegionException or IndexNotSetUpException errors, or if it
+     * is known that the mean time to recovery of a single region is longer than the total
+     * time before failure.
+     *
+     * This setting may be adjusted in real time using JMX.
+     *
+     * Defaults to 1000 ms (1 second)
+     */
+    @Parameter public static final String CLIENT_PAUSE = "hbase.client.pause";
     @DefaultValue(CLIENT_PAUSE) public static final long DEFAULT_CLIENT_PAUSE = 1000;
     public static long pause;
+
     /**
      * The number of times to retry a network operation before failing.  Turning this up will reduce the number of spurious
      * failures caused by network events (NotServingRegionException, IndexNotSetUpException, etc.), but will also lengthen
@@ -279,12 +297,15 @@ public class SpliceConstants {
      * Generally, the order of retries is as follows:
      *
      * try 1, pause, try 2, pause, try 3, pause,try 4, 2*pause, try 5, 2*pause, try 6, 4*pause, try 7, 4*pause,
-     * try 8, 8*pause, try 9, 16*pause, try 10, 32*pause.
+     * try 8, 8*pause, try 9, 16*pause, try 10, 32*pause,try 11, 32*pause,...try {max}, fail
      *
-     * So if the pause time (
+     * So if the pause time (hbase.client.pause) is set to 1 second, and the number of retries is 10, the total time
+     * before a write can fail is 71 seconds. If the number of retries is 5, then the total time before failing is
+     * 5 seconds. If the number of retries is 20, the total time before failing is 551 seconds(approximately 10 minutes).
+     *
      * It is recommended to turn this setting up if you are seeing a large number of operations failing with
      * NotServingRegionException, WrongRegionException, or IndexNotSetUpException errors, or if it is known
-     * that the mean time to recovery of a single region is longer than the
+     * that the mean time to recovery of a single region is longer than the total time before failure.
      *
      * Defaults to 10.
      */
@@ -292,10 +313,13 @@ public class SpliceConstants {
     @DefaultValue(HBASE_CLIENT_RETRIES_NUMBER) public static final int DEFAULT_HBASE_CLIENT_RETRIES_NUMBER = HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER;
     public static int numRetries;
 
-    @Parameter public static final String HBASE_CLIENT_COMPRESS_WRITES = "hbase.client.compress.writes";
-    @DefaultValue(HBASE_CLIENT_COMPRESS_WRITES) public static final boolean DEFAULT_HBASE_CLIENT_COMPRESS_WRITES = false;
-    public static boolean compressWrites;
-
+    /**
+     * The type of compression to use when compressing Splice Tables. This is set the same way
+     * HBase sets table compression, and has the same codecs available to it (GZIP,Snappy, or
+     * LZO depending on what is installed).
+     *
+     * Defaults to none
+     */
     @Parameter public static final String COMPRESSION = "splice.compression";
     @DefaultValue(COMPRESSION) public static final String DEFAULT_COMPRESSION = "none";
     public static String compression;
@@ -314,25 +338,70 @@ public class SpliceConstants {
 
 	public static final int DEFAULT_RMI_REMOTE_OBJECT_PORT = 47000;
 
+    /**
+     * The amount of time (in milliseconds) to wait during index initialization before
+     * forcing a write to return. This setting prevents deadlocks during startup in small clusters,
+     * and is also the source of IndexNotSetUpExceptions.
+     *
+     * If an excessively high number of IndexNotSetUpExceptions are being seen, consider increasing
+     * this setting. However, if set too high, this may result in deadlocks on small clusters.
+     *
+     * Defaults to 1000 ms (1 s)
+     */
     @Parameter private static final String STARTUP_LOCK_WAIT_PERIOD = "splice.startup.lockWaitPeriod";
     @DefaultValue(STARTUP_LOCK_WAIT_PERIOD) public static final int DEFAULT_STARTUP_LOCK_PERIOD=1000;
 
+    /**
+     * The maximum number of entries to hold in aggregate/distinct ring buffers before forcing
+     * an eviction.
+     *
+     * The higher this is set, the more rows will be aggregated during the map stage
+     * of aggregate operations, but the more memory will be occupied by the buffer.
+     *
+     * Turn this setting up to improve aggregate performance with unsorted data. Turn this
+     * setting down if memory pressure is high during aggregations.
+     */
     @Parameter private static final String RING_BUFFER_SIZE = "splice.ring.bufferSize";
     @DefaultValue(RING_BUFFER_SIZE) public static final int DEFAULT_RING_BUFFER_SIZE=10000;
     public static int ringBufferSize;
 
+    /**
+     * The number of index rows to bulk fetch at a single time.
+     *
+     * Index lookups are bundled together into a single network operation for many rows.
+     * This setting determines the maximum number of rows which are fetched in a single
+     * network operation.
+     *
+     * Defaults to 4000
+     */
     @Parameter private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
     @DefaultValue(INDEX_BATCH_SIZE) public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
     public static int indexBatchSize;
 
-    @Parameter private static final String INDEX_BUFFER_SIZE = "splice.index.bufferSize";
-    @DefaultValue(INDEX_BUFFER_SIZE) public static final int DEFAULT_INDEX_BUFFER_SIZE=1000;
-    public static int indexBufferSize;
-
+    /**
+     * The number of concurrent bulk fetches a single index operation can initiate
+     * at a time. If fewer than that number of fetches are currently in progress, the
+     * index operation will submit a new bulk fetch. Once this setting's number of bulk
+     * fetches has been reached, the index lookup must wait for one of the previously
+     * submitted fetches to succeed before continuing.
+     *
+     * Index lookups will only submit a new bulk fetch if existing data is not already
+     * available.
+     *
+     * Defaults to 5
+     */
     @Parameter private static final String INDEX_LOOKUP_BLOCKS = "splice.index.numConcurrentLookups";
     @DefaultValue(INDEX_LOOKUP_BLOCKS) private static final int DEFAULT_INDEX_LOOKUP_BLOCKS = 5;
     public static int indexLookupBlocks;
 
+    /**
+     * The maximum number of Kryo objects to pool for reuse. This setting is generally
+     * not necessary to adjust unless there are an extremely large number of concurrent
+     * operations allowed on the system. Adjusting this down may lengthen the amount of
+     * time required to perform an operation slightly.
+     *
+     * Defaults to 50.
+     */
     @Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
     @DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=50;
     public static int kryoPoolSize;
@@ -355,10 +424,19 @@ public class SpliceConstants {
     public static final String RMI_REMOTE_OBJECT_PORT = "splice.rmi_remote_object_port";
 
     //debug options
+    /**
+     * For debugging an operation, this will force the query parser to dump any generated
+     * class files to the HBASE_HOME directory. This is not useful for anything except
+     * debugging certain kinds of errors, and is NOT recommended enabled in a production
+     * environment.
+     *
+     * Defaults to false (off)
+     */
     @Parameter private static final String DEBUG_DUMP_CLASS_FILE = "splice.debug.dumpClassFile";
     @DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_DUMP_CLASS_FILE=false;
     public static boolean dumpClassFile;
 
+    //internal debugging tools
     public static final String DEBUG_FAIL_TASKS_RANDOMLY = "splice.debug.failTasksRandomly";
     public static final boolean DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY=false;
     public static boolean debugFailTasksRandomly;
@@ -367,16 +445,39 @@ public class SpliceConstants {
     public static final double DEFAULT_DEBUG_TASK_FAILURE_RATE= 0.1; //fail 10% of tasks when enabled
 
 
+    /**
+     * When enabled, will collect timing stats for TableScans, Index lookups, and a few other
+     * things, and log those results to JMX and/or a logger.
+     *
+     * This is useful for performance analysis, but it does incur overhead. Enabling
+     * it is not recommended for production environments.
+     *
+     * Defaults to false (off)
+     */
     @Parameter public static final String COLLECT_PERF_STATS ="splice.collectTimingStatistics";
     @DefaultValue(COLLECT_PERF_STATS) public static final boolean DEFAULT_COLLECT_STATS = false;
     public static boolean collectStats;
 
-	// Zookeeper Actual Paths
-
+    /**
+     * Amount of time(in milliseconds) taken to wait for a Region split to occur before checking on that
+     * split's status during internal Split operations. It is generally not recommended
+     * to adjust this setting unless Region splits take an incredibly short or long amount
+     * of time to complete.
+     *
+     * Defaults to 500 ms.
+     */
     @Parameter public static final String SPLIT_WAIT_INTERVAL = "splice.splitWaitInterval";
     @DefaultValue(SPLIT_WAIT_INTERVAL) public static final long DEFAULT_SPLIT_WAIT_INTERVAL = 500l;
 	public static Long sleepSplitInterval;
 
+    /**
+     * The maximum number of operations which will be executed in parallel during tree-parsing phase.
+     *
+     * This is primarily of use to operations which can multiply their actions (e.g. nested MergeSortJoins).
+     * It generally does not require adjustment.
+     *
+     * Defaults to 20
+     */
     @Parameter private static final String MAX_CONCURRENT_OPERATIONS = "splice.tree.maxConcurrentOperations";
     @DefaultValue(MAX_CONCURRENT_OPERATIONS) private static final int DEFAULT_MAX_CONCURRENT_OPERATIONS = 20; //probably too low
     public static int maxTreeThreads; //max number of threads for concurrent stack execution
@@ -387,35 +488,22 @@ public class SpliceConstants {
     public static int rmiRemoteObjectPort;
     public static int startupLockWaitPeriod;
 
-    @Parameter private static final String ROLL_FORWARD_HEAP_SIZE = "splice.rollForward.maxHeapSize";
-    @DefaultValue(ROLL_FORWARD_HEAP_SIZE) private static final long DEFAULT_ROLL_FORWARD_HEAP_SIZE = 2*1024*1024; //2 MB
-    public static long maxRollForwardHeapSize;
-
-    @Parameter private static final String ROLL_FORWARD_ENTRIES = "splice.rollForward.maxEntries";
-    @DefaultValue(ROLL_FORWARD_ENTRIES) private static final int DEFAULT_ROLL_FORWARD_ENTRIES = 1000000; //1 million
-    public static int maxRollForwardEntries;
-
-    @Parameter private static final String ROLL_FORWARD_TIMEOUT = "splice.rollForward.timeout";
-    @DefaultValue(ROLL_FORWARD_TIMEOUT) private static final long DEFAULT_ROLL_FORWARD_TIMEOUT = 10*1000; //10 seconds
-    public static long rollForwardTimeout;
-
-    @Parameter private static final String ROLL_FORWARD_MAX_SCHEDULED_THREADS = "splice.rollForward.maxScheduledThreads";
-    @DefaultValue(ROLL_FORWARD_MAX_SCHEDULED_THREADS) private static final int DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS = 2;
-    public static int maxRollForwardScheduledThreads;
-
-    @Parameter private static final String ROLL_FORWARD_MAX_LOAD_THREADS = "splice.rollForward.maxLoadThreads";
-    @DefaultValue(ROLL_FORWARD_MAX_LOAD_THREADS) private static final int DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS = 10;
-    public static int maxRollForwardLoadThreads;
-
-    @Parameter private static final String ROLL_FORWARD_LOAD_CORE_THREADS = "splice.rollForward.coreLoadThreads";
-    @DefaultValue(ROLL_FORWARD_LOAD_CORE_THREADS) private static final int DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS = 2;
-    public static int maxRollForwardCoreThreads;
-
-    @Parameter private static final String ROLL_FORWARD_MAX_CONCURRENT_ROLLS = "splice.rollForward.maxConcurrentRollForwards";
-    @DefaultValue(ROLL_FORWARD_MAX_CONCURRENT_ROLLS) private static final int DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS = 10; //at most 10*2MB = 20MB heap used at more for rollforwards
-    public static int maxConcurrentRollForwards;
-
-    /*Used to determine how many sequence numbers to reserve in a given block*/
+    /**
+     * The number of sequential entries to reserve in a single sequential block.
+     *
+     * Splice uses weakly-ordered sequential generation, in that each RegionServer will perform
+     * one network operation to "reserve" a block of adjacent numbers, then it will sequentially
+     * use those numbers until the block is exhausted, before fetching another block. The result
+     * of which is that two different RegionServers operating concurrently with the same sequence
+     * will see blocks out of order, but numbers ordered within those blocks.
+     *
+     * This setting configures how large those blocks may be. Turning it up will result in fewer
+     * network operations during large-scale sequential id generation, and also less block-reordering
+     * due to the weak-ordering. However, it will also result in a greater number of "missing" ids, since
+     * a block, once allocated, can never be allocated again.
+     *
+     * Defaults to 1000
+     */
     @Parameter private static final String SEQUENCE_BLOCK_SIZE = "splice.sequence.allocationBlockSize";
     @DefaultValue(SEQUENCE_BLOCK_SIZE) private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     public static long sequenceBlockSize;
@@ -426,7 +514,6 @@ public class SpliceConstants {
      */
     public static long cacheUpdatePeriod;
 
-	
 	
 	// Splice Internal Tables
     public static final String TEMP_TABLE = "SPLICE_TEMP";
@@ -468,13 +555,23 @@ public class SpliceConstants {
 
     // Default Configuration Options
 
+    /**
+     * The maximum number of concurrent buffer flushes that are allowed to be directed to a single
+     * region by a single write operation. This helps to prevent overloading an individual region,
+     * at the cost of reducing overall throughput to that region.
+     *
+     * Turn this setting down if you encounter an excessive number of RegionTooBusyExceptions. Turn
+     * this setting up if system load is lower than expected during large writes, and the number of write
+     * threads are not fully utilized.
+     *
+     * This setting becomes useless once set higher than the maximum number of write threads (splice.writer.maxThreads),
+     * as a single region can never allocate more than the maximum total number of write threads.
+     *
+     * Defaults to 5
+     */
     @Parameter public static final String WRITE_MAX_FLUSHES_PER_REGION = "splice.writer.maxFlushesPerRegion";
     @DefaultValue(WRITE_MAX_FLUSHES_PER_REGION) public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
     public static int maxFlushesPerRegion;
-
-    @Parameter public static final String LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW = "splice.loadControl.maxFlushedPerWindow";
-    @DefaultValue(LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW) public static final long LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW=10;
-    public static long maxFlushedPerPeriod;
 
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
@@ -553,7 +650,6 @@ public class SpliceConstants {
         cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
         enableRegionCache = cacheUpdatePeriod>0l;
         cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
-        compressWrites = config.getBoolean(HBASE_CLIENT_COMPRESS_WRITES, DEFAULT_HBASE_CLIENT_COMPRESS_WRITES);
         compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
         multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
         multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
@@ -564,26 +660,16 @@ public class SpliceConstants {
         ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
         indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
         indexLookupBlocks = config.getInt(INDEX_LOOKUP_BLOCKS,DEFAULT_INDEX_LOOKUP_BLOCKS);
-        indexBufferSize = config.getInt(INDEX_BUFFER_SIZE,DEFAULT_INDEX_BUFFER_SIZE);
         kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
         debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
         debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 
         sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 
-        maxRollForwardHeapSize = config.getLong(ROLL_FORWARD_HEAP_SIZE,DEFAULT_ROLL_FORWARD_HEAP_SIZE);
-        maxRollForwardEntries = config.getInt(ROLL_FORWARD_ENTRIES, DEFAULT_ROLL_FORWARD_ENTRIES);
-        rollForwardTimeout = config.getLong(ROLL_FORWARD_TIMEOUT, DEFAULT_ROLL_FORWARD_TIMEOUT);
-        maxRollForwardScheduledThreads = config.getInt(ROLL_FORWARD_MAX_SCHEDULED_THREADS, DEFAULT_ROLL_FORWARD_MAX_SCHEDULED_THREADS);
-        maxRollForwardLoadThreads = config.getInt(ROLL_FORWARD_MAX_LOAD_THREADS, DEFAULT_ROLL_FORWARD_MAX_LOAD_THREADS);
-        maxRollForwardCoreThreads = config.getInt(ROLL_FORWARD_LOAD_CORE_THREADS,DEFAULT_ROLL_FORWARD_LOAD_CORE_THREADS);
-        maxConcurrentRollForwards = config.getInt(ROLL_FORWARD_MAX_CONCURRENT_ROLLS,DEFAULT_ROLL_FORWARD_MAX_CONCURENT_ROLLS);
         maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
         maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
         maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
-
-        maxFlushedPerPeriod = config.getLong(LOAD_CONTROL_MAX_FLUSHES_PER_WINDOW,LOAD_CONTROL_DEFAULT_MAX_FLUSHES_PER_WINDOW);
 
         long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
         tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);

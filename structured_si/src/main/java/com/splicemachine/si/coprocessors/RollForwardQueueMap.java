@@ -1,15 +1,9 @@
 package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.impl.Hasher;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.RollForwardQueueMaker;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -25,20 +19,6 @@ public class RollForwardQueueMap {
     public static RollForwardQueue<byte[], ByteBuffer> lookupRollForwardQueue(String tableName) {
         RollForwardQueueHolder holder = map.get(tableName);
         if(holder==null) return null;
-        return holder.queue;
-    }
-
-    public static RollForwardQueue<byte[],ByteBuffer> registerRegion(String tableName,Hasher<byte[],ByteBuffer> hasher, RollForwardAction<byte[]> action){
-        RollForwardQueueHolder holder = map.get(tableName);
-        if(holder==null){
-            //attempt to create one
-            RollForwardQueue<byte[],ByteBuffer> queue = RollForwardQueueMaker.instance().createConcurrentQueue(hasher,action);
-            holder = new RollForwardQueueHolder(queue);
-            RollForwardQueueHolder queueHolder = map.putIfAbsent(tableName, holder);
-            if(queueHolder!=null)
-                holder = queueHolder;
-        }
-        holder.refCount.incrementAndGet();
         return holder.queue;
     }
 
