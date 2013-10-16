@@ -11,6 +11,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -220,8 +221,26 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
                         qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat,activation.getDataValueFactory());
                         qualifiers[qualPos] = qualifier;
                     }
+                    //make sure that SQLChar qualifiers strip out \u0000 padding
+                    if(dvd.getTypeFormatId()== StoredFormatIds.SQL_CHAR_ID){
+                        String value = dvd.getString();
+                        if(value!=null){
+                            char[] valChars = value.toCharArray();
+                            int finalPosition = valChars.length;
+                            for(int i=valChars.length-1;i>=0;i--){
+                                if(valChars[i]!='\u0000'){
+                                    finalPosition=i+1;
+                                    break;
+                                }
+                            }
+                            value = value.substring(0,finalPosition);
+
+                            dvd.setValue(value);
+                        }
+                    }
                 }
             }
+
         }
         return scanQualifiers;
     }
@@ -275,7 +294,7 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
         }
         if (positioner == null)
             return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
-        String searchOp = null;
+        String searchOp;
 
         switch (searchOperator)
         {

@@ -494,6 +494,24 @@ public class TableScanOperationIT extends SpliceUnitTest {
 
         Assert.assertEquals("Incorrect count returned",2,count);
     }
+
+    @Test
+    public void testWithLikeCriteria() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from "+spliceTableWatcher+" where si like '2%'");
+        int count=0;
+        while(rs.next()){
+            String si = rs.getString(1);
+            String sc = rs.getString(3);
+
+            Assert.assertEquals("Incorrect si value","2",si);
+
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect count returned",1,count);
+
+    }
+
     @Test
     public void testBooleanDataTypeOnScan() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("select 1 in (1,2) from %s",spliceTableWatcher4)); 
