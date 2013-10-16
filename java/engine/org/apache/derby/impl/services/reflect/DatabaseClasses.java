@@ -80,7 +80,7 @@ import java.security.PrivilegedExceptionAction;
 	@see org.apache.derby.iapi.services.loader.ClassFactory
 */
 
-abstract class DatabaseClasses
+public abstract class DatabaseClasses
 	implements ClassFactory, ModuleControl
 {
 	/*
