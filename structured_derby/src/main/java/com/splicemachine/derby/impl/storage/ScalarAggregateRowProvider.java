@@ -5,7 +5,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceGenericAggregat
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
@@ -57,7 +56,7 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
         while(hasNext()){
             ExecRow row = super.next();
             if(finalRow==null)
-                finalRow = row.getNewNullRow();
+                finalRow = row.getClone();
             for(int i=0;i<genericAggregators.length;i++){
                 ExecAggregator aggregate = execAggregators[i];
                 SpliceGenericAggregator genericAgg = genericAggregators[i];

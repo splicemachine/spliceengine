@@ -143,8 +143,22 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals(1, i);
 	}
-	
-	@Test
+
+    @Test
+    public void testAvgWithExtraFieldOperation() throws Exception {
+        /* Regression test for Bug 882 */
+        ResultSet rs = methodWatcher.executeQuery(format("select avg(i),2147483647 - 1 from %s", spliceTableWatcher));
+        int i=0;
+        while(rs.next()){
+            Assert.assertEquals(stats.getAvg(),rs.getInt(1));
+            i++;
+            int field = rs.getInt(2);
+            Assert.assertEquals("Incorrect second field!",2147483647 - 1,field);
+        }
+        Assert.assertEquals(1, i);
+    }
+
+    @Test
 	public void testAllOperations() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", spliceTableWatcher));
 		int i=0;
