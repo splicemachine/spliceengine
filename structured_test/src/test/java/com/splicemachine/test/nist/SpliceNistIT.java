@@ -26,7 +26,6 @@ import org.junit.Test;
  * @author Jeff Cunningham
  *         Date: 7/22/13
  */
-@Ignore("BindException: Address already in use - An exception was thrown during network server startup. DRDA_ListenPort.S:Could not listen on port 1527 on host 0.0.0.0")
 public class SpliceNistIT {
     private static List<File> testFiles;
     private static List<String> derbyOutputFilter;
