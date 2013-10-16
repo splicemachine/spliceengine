@@ -21,6 +21,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
@@ -208,7 +209,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 finalStats = stats.finish();
                 ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
                 SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at %d",stats.getFinishTime());
-                context.close(success);
+                try {
+                    context.close();
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
             }
         } finally {
             if (impl != null) {

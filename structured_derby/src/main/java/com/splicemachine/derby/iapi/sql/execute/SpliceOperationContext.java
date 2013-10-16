@@ -123,15 +123,23 @@ public class SpliceOperationContext {
     	return lcc;
     }
 
-    public void close(boolean commit) throws IOException {
+    public void close() throws IOException, StandardException {
         try{
-        if(activation!=null) try {
-            activation.close();
-        } catch (StandardException e) {
-            throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
-        }
+            closeDerby();
         }finally{
-                getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
+            if(scanner!=null)
+                scanner.close();
+        }
+    }
+
+    private void closeDerby() throws StandardException {
+        try{
+            if(activation!=null)
+                activation.close();
+        }finally{
+//            LanguageConnectionContext languageConnectionContext = getLanguageConnectionContext();
+//            if(languageConnectionContext.get)
+//            languageConnectionContext.popStatementContext(languageConnectionContext.getStatementContext(), null);
         }
     }
 

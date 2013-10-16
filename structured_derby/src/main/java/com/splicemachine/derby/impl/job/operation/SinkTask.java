@@ -15,6 +15,7 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
@@ -73,6 +74,7 @@ public class SinkTask extends ZkTask {
         SpliceTransactionResourceImpl impl = null;
         ContextManager ctxManager = null;
         boolean prepared=false;
+        SpliceOperationContext opContext = null;
         try {
             impl = new SpliceTransactionResourceImpl();
             ctxManager = impl.getContextManager();
@@ -82,7 +84,7 @@ public class SinkTask extends ZkTask {
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             impl.marshallTransaction(instructions);
             Activation activation = instructions.getActivation(impl.getLcc());
-            SpliceOperationContext opContext = new SpliceOperationContext(region,
+            opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext());
             //init the operation stack
 
@@ -106,12 +108,29 @@ public class SinkTask extends ZkTask {
                 throw (InterruptedException)e;
             else throw new ExecutionException(e);
         } finally {
-            if(prepared){
-                impl.resetContextManager();
+            resetContext(impl, prepared);
+            closeOperationContext(opContext);
+        }
+    }
+
+    private void closeOperationContext(SpliceOperationContext opContext) throws ExecutionException {
+        if(opContext!=null){
+            try {
+                opContext.close();
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            } catch (StandardException e) {
+                throw new ExecutionException(e);
             }
-            if (impl != null) {
-                impl.cleanup();
-            }
+        }
+    }
+
+    private void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
+        if(prepared){
+            impl.resetContextManager();
+        }
+        if (impl != null) {
+            impl.cleanup();
         }
     }
 

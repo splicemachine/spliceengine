@@ -34,8 +34,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
     private final Monitor monitor;
 
-    public static final long pause = SpliceConstants.config.getLong(HConstants.HBASE_CLIENT_PAUSE,
-            HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+
     public static PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
         public List<KVPair> transform(List<KVPair> buffer) throws Exception {
@@ -55,7 +54,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
         Writer syncWriter = new SynchronousBucketingWriter(regionCache,connection);
-        Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,pause,SpliceConstants.maxFlushesPerRegion);
+        Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,maxEntries,SpliceConstants.numRetries,SpliceConstants.pause,SpliceConstants.maxFlushesPerRegion);
         return new WriteCoordinator(regionCache,writer, syncWriter, monitor);
     }
 

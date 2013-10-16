@@ -95,7 +95,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                 threadLocalEnvironment.set(null);
                 try{
                     if (!successHolder[0] && (contextHolder[0] != null)) {
-                        contextHolder[0].close(false);
+                        contextHolder[0].close();
                     }
                 }catch(Throwable e){
                     if (exception == null) {
