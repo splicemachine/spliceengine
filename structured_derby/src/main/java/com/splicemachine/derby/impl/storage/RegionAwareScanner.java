@@ -314,7 +314,7 @@ public class RegionAwareScanner implements Closeable {
         }
         /*
          * If we have no transaction id, we need to make sure and remove the SI Filter from the list,
-         * because otherwise shit'll break
+         * because otherwise it'll break
          */
         if(filter instanceof SIFilter) return null;
         else if(filter instanceof FilterList){
