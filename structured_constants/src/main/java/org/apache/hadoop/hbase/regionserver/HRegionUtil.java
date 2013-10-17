@@ -2,18 +2,14 @@ package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.SortedSet;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
-
 import com.google.common.io.Closeables;
-
 import org.cliffc.high_scale_lib.Counter;
 
 /**
@@ -50,10 +46,19 @@ public class HRegionUtil {
 	    		  return true;
 	      }
 	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
-	      if (store.memstore.kvset.contains(kv))
-	    	  return true;
-	      if (store.memstore.snapshot.contains(kv))
-	    	  return true;
+	      KeyValue placeHolder;
+	      if (!store.memstore.kvset.isEmpty()) {
+		      SortedSet<KeyValue> kvset = store.memstore.kvset.tailSet(kv);
+		      placeHolder = kvset.isEmpty()?null:kvset.first();
+		      if (placeHolder != null && placeHolder.matchingRow(key))
+		    	  return true;
+	      }
+	      if (!store.memstore.snapshot.isEmpty()) {
+		      SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	      
+		      placeHolder = snapshot.isEmpty()?null:snapshot.first();
+		      if (placeHolder != null && placeHolder.matchingRow(key))
+	    		  return true;
+	      }
 	      return false;  
 	    } catch (IOException ioe) {
 	    	ioe.printStackTrace();
