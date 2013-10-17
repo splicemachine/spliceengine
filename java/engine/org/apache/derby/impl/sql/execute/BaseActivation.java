@@ -1592,32 +1592,19 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 			int numRows = rowCache.size();
 			if (numRows == 0)
 			{
-				return new RowResultSet(
-										this,
-										(ExecRow) null,
-										true,
-										rsNum,
-										0,
-										0);
+                return getResultSetFactory().getRowResultSet(this,(ExecRow)null,true,rsNum,0,0);
 			}
-			RowResultSet[] rrs = new RowResultSet[numRows];
-			UnionResultSet[] urs = new UnionResultSet[numRows - 1];
+			NoPutResultSet[] rrs = new NoPutResultSet[numRows];
+			NoPutResultSet[] urs = new NoPutResultSet[numRows - 1];
 
 			for (int i = 0; i < numRows; i++)
 			{
-				rrs[i] = new RowResultSet(
-										this,
-										(ExecRow) rowCache.elementAt(i),
-										true,
-										rsNum,
-										1,
-										0);
+				rrs[i] = getResultSetFactory().getRowResultSet(this,(ExecRow)rowCache.elementAt(i),true,rsNum,1,0);
 				if (i > 0)
 				{
-					urs[i - 1] = new UnionResultSet (
+					urs[i - 1] = getResultSetFactory().getUnionResultSet(
 										(i > 1) ? (NoPutResultSet)urs[i - 2] : (NoPutResultSet)rrs[0],
 										rrs[i],
-										this,
 										rsNum,
 										i + 1,
 										0);

@@ -632,6 +632,13 @@ public interface ResultSetFactory {
 							  double optimizerEstimatedCost)
 		throws StandardException;
 
+    NoPutResultSet getRowResultSet(Activation activation, ExecRow row,
+                                   boolean canCacheRow,
+                                   int resultSetNumber,
+                                   double optimizerEstimatedRowCount,
+                                   double optimizerEstimatedCost)
+            throws StandardException;
+
 	/**
 		A VTI result set wraps a user supplied result set.
 
