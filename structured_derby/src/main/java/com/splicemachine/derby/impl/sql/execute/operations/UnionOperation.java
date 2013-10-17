@@ -129,16 +129,26 @@ public class UnionOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-    	ExecRow row = null;
-        isLeft = spliceRuntimeContext.isLeft(resultSetNumber);
-        if (isLeft) {
-        	row = firstResultSet.nextRow(spliceRuntimeContext);
-            if(row!=null)
+    	ExecRow row;
+        SpliceRuntimeContext.Side side = spliceRuntimeContext.getPathSide(resultSetNumber);
+        switch (side) {
+            case LEFT:
+                row = firstResultSet.nextRow(spliceRuntimeContext);
+                if(row!=null)
                     rowsSeenLeft++;
-        } else {
-        	row = secondResultSet.nextRow(spliceRuntimeContext);
-            if(row==null)
+                break;
+            case RIGHT:
+                row = secondResultSet.nextRow(spliceRuntimeContext);
+                if(row!=null)
                     rowsSeenRight++;
+                break;
+            case MERGED:
+                row = firstResultSet.nextRow(spliceRuntimeContext);
+                if(row==null)
+                    row = secondResultSet.nextRow(spliceRuntimeContext);
+                break;
+            default:
+                throw new IllegalStateException("Unknown side state "+ side);
         }
         setCurrentRow(row);
         if(row!=null)

@@ -35,20 +35,31 @@ public class SpliceRuntimeContext implements Externalizable {
 	}
 	
 	public void addPath(Path path) {
-		paths.add(path);
+		paths.add(0,path);
 	}
 
 	public void addPath(int resultSetNumber, int state) {
 		addPath(new Path(resultSetNumber,state));
 	}
-	
+
+    public void addPath(int resultSetNumber, Side side){
+        addPath(new Path(resultSetNumber,side));
+    }
+
+    public Side getPathSide(int resultSetNumber){
+        for (Path path: paths) {
+            if (path.resultSetNumber == resultSetNumber) {
+                return path.state;
+            }
+        }
+        throw new IllegalStateException("No Path found for the specified result set!");
+    }
+
 	public boolean isLeft(int resultSetNumber) {
 		for (Path path: paths) {
 			if (path.resultSetNumber == resultSetNumber) {
-				if (path.state == 0)
-					return true;
-				return false;
-			}
+                return path.state == Side.LEFT;
+            }
 		}
 		Thread.dumpStack();
 		throw new RuntimeException("UnionOperation Not Supported");
@@ -87,10 +98,32 @@ public class SpliceRuntimeContext implements Externalizable {
 
 
 
+    public static enum Side{
+        LEFT(0),
+        RIGHT(1),
+        MERGED(2);
+
+        private final int stateNum;
+
+        private Side(int stateNum) {
+            this.stateNum = stateNum;
+        }
+
+        public static Side getSide(int stateNum){
+            if(stateNum==LEFT.stateNum)
+                return LEFT;
+            else if(stateNum==RIGHT.stateNum)
+                return RIGHT;
+            else if(stateNum==MERGED.stateNum)
+                return MERGED;
+            else
+                throw new IllegalArgumentException("Incorrect stateNum: "+ stateNum);
+        }
+    }
 
 	public static class Path implements Externalizable {
 		private int resultSetNumber;
-		private int state;
+		private Side state;
 		public Path() {
 
 		}
@@ -98,20 +131,25 @@ public class SpliceRuntimeContext implements Externalizable {
 		public Path copy() {
 			return new Path(this.resultSetNumber,this.state);
 		}
-		
-		public Path (int resultSetNumber, int state) {
+
+        public Path(int resultSetNumber, Side state) {
+            this.resultSetNumber = resultSetNumber;
+            this.state = state;
+        }
+
+        public Path (int resultSetNumber, int state) {
 			this.resultSetNumber = resultSetNumber;
-			this.state = state;
+			this.state = Side.getSide(state);
 		}
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 			out.writeInt(resultSetNumber);
-			out.writeInt(state);
+			out.writeInt(state.stateNum);
 		}
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 			resultSetNumber = in.readInt();
-			state = in.readInt();
+			state = Side.getSide(in.readInt());
 		}
 		@Override
 		public String toString() {

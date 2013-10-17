@@ -203,7 +203,10 @@ public class RowOperation extends SpliceBaseOperation {
 	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
-		return RowProviders.sourceProvider(top, LOG, spliceRuntimeContext);
+
+        //make sure the runtime context knows it can be merged
+        spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
+        return RowProviders.sourceProvider(top, LOG, spliceRuntimeContext);
 	}
 	
 	@Override

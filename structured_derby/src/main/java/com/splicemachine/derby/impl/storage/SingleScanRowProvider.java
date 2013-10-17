@@ -104,12 +104,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
     private JobStats doShuffle(HTableInterface table,
                            SpliceObserverInstructions instructions, Scan scan) throws StandardException {
-        //TODO -sf- attach statistics
-        //if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
         SpliceUtils.setInstructions(scan,instructions);
         
-        //get transactional stuff from scan
-
         //determine if top operation writes data
         boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
         OperationJob job = new OperationJob(scan,instructions,table,readOnly);
