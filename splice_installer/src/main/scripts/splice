@@ -8,7 +8,8 @@ usage() {
     fi
     echo "Usage: $0 {-install | -start | -stop | -restart | -clean | -splice}"
     echo "Where: "
-    echo "  -install => install the splice complete jar"
+    echo "  -state => check the service state"
+    echo "  -install => install the splice complete jar and coprocessors"
     echo "  -start => start HBase"
     echo "  -stop => stop HBase"
     echo "  -restart => bounce HBase"
@@ -20,6 +21,10 @@ case $1 in
  -h | -help | -\?)
      usage
      exit 0      # This is not an error, User asked help. Don't do "exit 1"
+     ;;
+ -state)
+     # call platform-specific service checker
+     ./lib/serviceState
      ;;
  -install)
      # call platform-specific installer
@@ -37,7 +42,7 @@ case $1 in
      # call platform-specific HBase stopper
      ./lib/stop
      # TODO: remove sleep - only using to wait for Cloudera to stop
-     sleep 10s
+     sleep 30s
      # call platform-specific HBase starter
      ./lib/start
      ;;

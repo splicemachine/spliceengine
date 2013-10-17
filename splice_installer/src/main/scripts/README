@@ -20,6 +20,7 @@ Change directory into "splicemachine".
 Execute ./splice -help to see available options.
 
 With the VM's HBase instance still not started, execute ./splice -install.
+    To check the service state, run ./splice -state.
 
 Execute ./splice -start and wait for the instance to start.
 

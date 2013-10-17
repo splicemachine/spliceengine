@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Cloudera VM Splice Machine starter
+
+. ./lib/setEnv
+
+echo "Configuring Splice Machine on $SPLICE_ENV"
+
+curl -u admin:admin   'http://localhost:7180/api/v1/clusters/Cluster%201%20-%20CDH4/services/hbase1'
