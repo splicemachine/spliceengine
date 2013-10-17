@@ -4,9 +4,9 @@ currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
 echo "Shutting down splice at $currentDateTime" >> server.log
 
-if ps ax | grep -v grep | grep 'exec:exec' > /dev/null 
+if ps ax | grep -v grep | grep 'SpliceTestPlatform' > /dev/null
 then
- pid=$(ps ax | grep -v grep | grep 'exec:exec' | awk '{print $1}')
+ pid=$(ps ax | grep -v grep | grep 'SpliceTestPlatform' | awk '{print $1}')
  kill -9 $pid
  sleep 60
 else

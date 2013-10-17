@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "=== Running profile $1 === " > server.log
+currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
+echo "=== Running profile $1 @ $currentDateTime === " > server.log
 
 mvn -X exec:exec -e -DspliceCI -P $1 >> server.log &
 

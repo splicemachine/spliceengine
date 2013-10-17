@@ -1,8 +1,8 @@
 #!/bin/bash
 
-mvn exec:java -Dzoo > zoo.log &
+mvn exec:exec -Dzoo > zoo.log &
 
-if ps ax | grep -v grep | grep 'exec:java' > /dev/null 
+if ps ax | grep -v grep | grep 'ZooKeeperServerMain' > /dev/null
 then
  sleep 15
 else

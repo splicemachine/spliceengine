@@ -4,9 +4,9 @@ currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
 echo "Shutting down zookeeper at $currentDateTime" >> zoo.log
 
-if ps ax | grep -v grep | grep 'exec:java' > /dev/null 
+if ps ax | grep -v grep | grep 'ZooKeeperServerMain' > /dev/null
 then
- pid=$(ps ax | grep -v grep | grep 'exec:java' | awk '{print $1}')
+ pid=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
  kill -9 $pid
  sleep 60
 else
