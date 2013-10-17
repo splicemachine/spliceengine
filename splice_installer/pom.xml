@@ -15,6 +15,7 @@
     <distributionManagement>
     </distributionManagement>
     <properties>
+        <finalName>${project.artifactId}-${project.version}-${envClassifier}_complete</finalName>
     </properties>
     <dependencies>
         <dependency>
@@ -26,6 +27,27 @@
     </dependencies>
     <build>
         <plugins>
+        <plugin>
+            <groupId>com.pyx4me</groupId>
+            <artifactId>proguard-maven-plugin</artifactId>
+            <executions>
+                <execution>
+                    <phase>package</phase>
+                    <goals><goal>proguard</goal></goals>
+                </execution>
+            </executions>
+            <configuration>
+                <obfuscate>true</obfuscate>
+                <injar>splice_machine-1.0.1-SNAPSHOT-cloudera-cdh4.3.0_complete.jar</injar>
+                <outjar>splice_machine-1.0.1-SNAPSHOT-cloudera-cdh4.3.0_complete-obf.jar</outjar>
+                <outputDirectory>${project.build.directory}</outputDirectory>
+                <proguardInclude>${basedir}/proguard.conf</proguardInclude>
+                <libs>
+                    <lib>${java.home}/lib/rt.jar</lib>
+                    <lib>${java.home}/lib/jsse.jar</lib>
+                </libs>
+            </configuration>
+        </plugin>
           <plugin>
             <artifactId>maven-assembly-plugin</artifactId>
             <configuration>
@@ -43,6 +65,6 @@
               </execution>
             </executions>
           </plugin>
-        </plugins>
+         </plugins>
       </build>
   </project>
