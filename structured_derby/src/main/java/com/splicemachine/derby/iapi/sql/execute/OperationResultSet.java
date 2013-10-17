@@ -326,8 +326,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void addWarning(SQLWarning w) {
-        checkDelegate();
-        delegate.addWarning(w);
+        activation.addWarning(w);
     }
 
     @Override

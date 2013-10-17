@@ -17,10 +17,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.sql.Blob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 public class InsertOperationIT extends SpliceUnitTest { 
@@ -40,6 +37,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationIT.class.getSimpleName(),"(name varchar(40),count int)");
 	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(16M))");
 	protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("HMM",InsertOperationIT.class.getSimpleName(),"(b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
+    protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("WARNING",InsertOperationIT.class.getSimpleName(),"(a char(1))");
 
 	
 	@ClassRule 
@@ -55,12 +53,25 @@ public class InsertOperationIT extends SpliceUnitTest {
 		.around(spliceTableWatcher8)
 		.around(spliceTableWatcher9)
 		.around(spliceTableWatcher10)	
-		.around(spliceTableWatcher11)	
-		.around(spliceTableWatcher12);	
+		.around(spliceTableWatcher11)
+            .around(spliceTableWatcher13)
+		.around(spliceTableWatcher12);
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	
-	@Test
+
+    @Test
+    public void testDataTruncationWarningIsEmitted() throws Exception {
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into "+ spliceTableWatcher13+" values cast(? as char(1))");
+        ps.setString(1,"12");
+        int updated = ps.executeUpdate();
+        Assert.assertEquals("Incorrect number of rows updated!",1,updated);
+
+        SQLWarning warning = ps.getWarnings();
+        String sqlState = warning.getSQLState();
+        Assert.assertEquals("Incorrect warning code returned!","01004",sqlState);
+    }
+
+    @Test
 	public void testInsertMultipleRecords() throws Exception{
 			Statement s = methodWatcher.getStatement();
 			s.execute("insert into"+this.getPaddedTableReference("T")+"(name) values ('gdavis'),('mzweben'),('rreimer')");
