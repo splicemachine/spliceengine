@@ -290,7 +290,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${zookeeper.stop.script}" />
                                         </exec>
-                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.stop.script}" />
                                         </exec>
                                         <sleep seconds="90" />
