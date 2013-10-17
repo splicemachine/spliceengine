@@ -34,7 +34,7 @@ public class SpliceDatabase extends BasicDatabase {
          * they may be materialized over the wire and it won't work right. DO NOT CHANGE THIS SETTING.
          * See Bug #292 for more information.
          */
-        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
+//        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
         if(SpliceConstants.dumpClassFile)
     	    SanityManager.DEBUG_SET("DumpClassFile");

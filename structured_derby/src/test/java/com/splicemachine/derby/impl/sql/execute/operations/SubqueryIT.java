@@ -102,6 +102,25 @@ public class SubqueryIT {
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
+    public void testSubqueryWithSum() throws Exception {
+        /* Regression test for Bug 883/884*/
+        ResultSet rs = methodWatcher.executeQuery("select k from "+t1Watcher+" where k not in (select sum(k) from "+t2Watcher+")");
+        List<Integer> correctResults = Lists.newArrayList();
+        for(int i=0;i<size;i++){
+            correctResults.add(i);
+            if(i%2==0)
+                correctResults.add(i);
+        }
+
+        int count = 0;
+        while(rs.next()){
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect count returned!",size+size/2,count);
+    }
+
+    @Test
     public void testValuesSubSelect() throws Exception {
         /*
          * Regression for Bug 285. Make sure that values ((select ..)) works as expected

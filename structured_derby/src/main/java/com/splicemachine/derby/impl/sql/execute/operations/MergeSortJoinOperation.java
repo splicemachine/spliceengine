@@ -126,8 +126,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-    	ExecRow nextSink;
-    	if (spliceRuntimeContext.isLeft(resultSetNumber))
+        if (spliceRuntimeContext.isLeft(resultSetNumber))
     		return leftResultSet.nextRow(spliceRuntimeContext);
     	return rightResultSet.nextRow(spliceRuntimeContext);
     }

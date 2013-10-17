@@ -56,16 +56,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return topOperation;
     }
 
-    public void setTopOperation(SpliceOperation newTop){
-        this.topOperation = newTop;
-    }
-
     @Override
     public void markAsTopResultSet() {
         SpliceLogUtils.trace(LOG, "markAsTopResultSet");
         topOperation.markAsTopResultSet();
-//        checkDelegate();
-//        delegate.markAsTopResultSet();
     }
 
     @Override
@@ -80,13 +74,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
 
         delegate = operationTree.executeTree(topOperation);
-//        operationTree.traverse(topOperation);
-//        delegate = operationTree.execute();
         //open the delegate
         delegate.openCore();
 
         if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
-            PLAN_LOG.debug(((SpliceOperation)topOperation).prettyPrint(1));
+            PLAN_LOG.debug(topOperation.prettyPrint(1));
         }
     }
 
@@ -175,9 +167,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public boolean returnsRows() {
-    	if (delegate == null)
-    		return false;
-        return delegate.returnsRows();
+        return delegate != null && delegate.returnsRows();
     }
 
     @Override
