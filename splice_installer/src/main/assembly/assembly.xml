@@ -15,18 +15,11 @@
         <fileSet>
             <directory>src/main/scripts/</directory>
             <includes>
-                <include>License.txt</include>
-                <include>README</include>
+                <include>*</include>
             </includes>
-            <outputDirectory>splicemachine</outputDirectory>
-            <fileMode>0644</fileMode>
-            <directoryMode>0644</directoryMode>
-        </fileSet>
-        <fileSet>
-            <directory>src/main/scripts/</directory>
-            <includes>
-                <include>splice</include>
-            </includes>
+            <excludes>
+                <exclude>**/${envClassifier}</exclude>
+            </excludes>
             <outputDirectory>splicemachine</outputDirectory>
             <fileMode>0755</fileMode>
             <directoryMode>0755</directoryMode>

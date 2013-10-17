@@ -28,18 +28,6 @@
             <artifactId>kryo</artifactId>
             <version>${kryo.version}</version>
         </dependency>
-<!--   ** In preparation for BitSet -> OpenBitSet modification **       
-        <dependency>
-            <groupId>commons-dbutils</groupId>
-            <artifactId>commons-dbutils</artifactId>
-            <version>1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>4.3.1</version>
-        </dependency>
--->        
     </dependencies>
     <build>
         <resources>
