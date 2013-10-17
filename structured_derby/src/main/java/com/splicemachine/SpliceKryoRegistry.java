@@ -155,6 +155,39 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 dvd.setValue(data);
             }
         });
+        instance.register(SQLVarbit.class,new DataValueDescriptorSerializer<SQLVarbit>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLVarbit object) throws StandardException {
+                byte[] data = object.getBytes();
+                output.writeInt(data.length);
+                output.write(data);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLVarbit dvd) throws StandardException {
+                byte[] data = new byte[input.readInt()];
+                //noinspection ResultOfMethodCallIgnored
+                input.read(data);
+                dvd.setValue(data);
+            }
+        });        
+        instance.register(SQLLongVarbit.class,new DataValueDescriptorSerializer<SQLLongVarbit>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLLongVarbit object) throws StandardException {
+                byte[] data = object.getBytes();
+                output.writeInt(data.length);
+                output.write(data);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLLongVarbit dvd) throws StandardException {
+                byte[] data = new byte[input.readInt()];
+                //noinspection ResultOfMethodCallIgnored
+                input.read(data);
+                dvd.setValue(data);
+            }
+        });        
+
         instance.register(SQLDate.class,new DataValueDescriptorSerializer<SQLDate>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLDate object) throws StandardException {

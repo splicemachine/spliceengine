@@ -39,6 +39,8 @@ public class InsertOperationIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationIT.class.getSimpleName(),"(name varchar(40),count int)");
 	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(16M))");
+	protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("HMM",InsertOperationIT.class.getSimpleName(),"(b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
+
 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -53,7 +55,8 @@ public class InsertOperationIT extends SpliceUnitTest {
 		.around(spliceTableWatcher8)
 		.around(spliceTableWatcher9)
 		.around(spliceTableWatcher10)	
-		.around(spliceTableWatcher11);	
+		.around(spliceTableWatcher11)	
+		.around(spliceTableWatcher12);	
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
@@ -109,6 +112,16 @@ public class InsertOperationIT extends SpliceUnitTest {
 		methodWatcher.commit();
 	}
 
+	@Test
+	public void testInsertVarBit() throws Exception{		
+		try {
+			methodWatcher.executeUpdate("insert into"+this.getPaddedTableReference("HMM")+" values(X'11', X'22', X'33', X'44', X'55')");
+		} catch (Exception e) {
+			Assert.assertTrue("Inserting VarBit failed",false);
+		}
+	}
+
+	
 	@Test
 	public void testInsertReportsCorrectReturnedNumber() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("E")+"(name) values (?)");
