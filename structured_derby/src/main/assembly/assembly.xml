@@ -21,6 +21,7 @@
       <include>com.google.code.gson:gson</include>
       <include>net.sf.ehcache:ehcache-core</include>
       <include>com.esotericsoftware.kryo:kryo</include>
+      <include>org.apache.lucene:lucene-core</include>
       </includes>
     </dependencySet>
   </dependencySets>
