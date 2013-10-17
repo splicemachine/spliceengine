@@ -22,12 +22,14 @@ public class UpdateOperationIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("LOCATION",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("b",spliceSchemaWatcher.schemaName,"(num int, addr varchar(50), zip char(5))");
     protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NULL_TABLE",spliceSchemaWatcher.schemaName,"(addr varchar(50), zip char(5))");
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("c",spliceSchemaWatcher.schemaName,"(k int, l int)");
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher)
         .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3)
         .around(nullTableWatcher)
 		.around(new SpliceDataWatcher() {
             @Override
@@ -61,11 +63,52 @@ public class UpdateOperationIT extends SpliceUnitTest {
                     spliceClassWatcher.closeAll();
                 }
             }
-        });
+        }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try{
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher3 +" (k,l) values (?,?)");
+                        ps.setInt(1,1);
+                        ps.setInt(2,2);
+                        ps.execute();
+
+                        ps.setInt(1,3);
+                        ps.setInt(2,4);
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }finally{
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            });
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-	@Test
+    @Test
+    public void testUpdateSetNullLong() throws Exception {
+        /*regression test for Bug 889*/
+        int updated = methodWatcher.getStatement().executeUpdate("update "+ spliceTableWatcher3+" set k = NULL where l = 2");
+        Assert.assertEquals("incorrect num rows updated!",1,updated);
+        ResultSet rs = methodWatcher.executeQuery("select * from "+ spliceTableWatcher3);
+        boolean nullFound=false;
+        int count = 0;
+        while(rs.next()){
+            Integer k = rs.getInt(1);
+            boolean nullK = rs.wasNull();
+            Integer l =  rs.getInt(2);
+            Assert.assertFalse("l should not be null!",rs.wasNull());
+            if(nullK){
+                Assert.assertFalse("Too many null records found!", nullFound);
+                Assert.assertEquals("Incorrect row marked null!",2,l.intValue());
+                nullFound = true;
+            }
+            count++;
+        }
+        Assert.assertEquals("Incorrect row count returned!",2,count);
+    }
+
+    @Test
 	public void testUpdate() throws Exception {
 		int updated= methodWatcher.getStatement().executeUpdate("update "+spliceTableWatcher+" set addr='240' where num=100");
 		Assert.assertEquals("Incorrect num rows updated!",1,updated);

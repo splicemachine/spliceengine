@@ -102,7 +102,8 @@ public class MultiFieldDecoder {
     }
 
     public long decodeNextLong(boolean desc){
-        assert available();
+        if(!available())
+            return 0l;
         if(currentOffset>=0 &&data[currentOffset]==0x00){
             currentOffset++;
             return 0;
