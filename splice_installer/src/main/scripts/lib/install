@@ -11,49 +11,14 @@ echo "Installing Splice Machine into $SPLICE_ENV"
 
 SPLICE_GENERIC_JAR="splice_machine_complete.jar"
 
-# Create indirection link
-# grep makes sure we have the dist jar here and not both dist and linked (if link exists already)
+# Copy versioned splice jar to a generically named jar in hbase/lib
 # TODO - in case of upgrade, need to parse dist jar name and find latest vers
 REAL_SPLICE_JAR_NAME=`/bin/ls *_complete.jar | grep $SPLICE_ENV`
 # DEBUG
-#echo "CWD: " `/bin/pwd`
-#echo "Source name: $REAL_SPLICE_JAR_NAME"
-#echo "Target name: $SPLICE_GENERIC_JAR"
-if [ -e $SPLICE_GENERIC_JAR ]; then
-#    echo "Exists, unlinking"
-    /usr/bin/sudo /bin/rm $SPLICE_GENERIC_JAR
-fi
 #echo "copy $REAL_SPLICE_JAR_NAME $SPLICE_GENERIC_JAR"
 /usr/bin/sudo /bin/cp "$REAL_SPLICE_JAR_NAME" "$HBASE_LIB/$SPLICE_GENERIC_JAR"
 
-# install splice coprocessors by adding them to hbase-site.xml
-if [ ! -e "$HBASE_CONF_DIR/hbase-site.xml.pre_splice" ]; then 
-  /usr/bin/sudo /bin/cp "$HBASE_CONF_DIR"/hbase-site.xml "$HBASE_CONF_DIR"/hbase-site.xml.pre_splice
-  read -r -d '' COPROCESSOR_ELES <<'coprocessorElements'
-  <property>
-    <name>hbase.coprocessor.master.classes</name>
-    <value>com.splicemachine.derby.hbase.SpliceMasterObserver</value>   
-    <description>Master coprocessors for the Splice Machine.</description>
-  </property>
-  <property>
-    <name>hbase.coprocessor.region.classes</name>
-    <value>com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,com.splicemachine.si.coprocessors.SIObserver</value>
-    <description>These are the coprocessors used to run the Splice Machine.</description>
-  </property> 
-coprocessorElements
+# Call env specific script to install splice observer/coprocessors
+./config
 
-  old_IFS=$IFS
-  IFS=$'\n'
-  lines=($(cat "$HBASE_CONF_DIR"/hbase-site.xml)) # array
-  IFS=$old_IFS
-
-  for line in "${lines[@]}"; do
-    if [ "$line" == "</configuration>" ]; then 
-      echo "$COPROCESSOR_ELES" >> ./hbase-site
-    fi
-    echo "$line" >> ./hbase-site
-  done
-  
-  /usr/bin/sudo /bin/mv ./hbase-site $HBASE_CONF_DIR/hbase-site.xml
-fi
 popd>/dev/null

@@ -36,6 +36,8 @@ case $1 in
  -restart)
      # call platform-specific HBase stopper
      ./lib/stop
+     # TODO: remove sleep - only using to wait for Cloudera to stop
+     sleep 10s
      # call platform-specific HBase starter
      ./lib/start
      ;;

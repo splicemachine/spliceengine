@@ -6,15 +6,6 @@
 
 echo "Stopping Splice Machine on $SPLICE_ENV"
 
-distMode=`sudo $HBASE_HOME/bin/hbase --config "$HBASE_CONF_DIR" org.apache.hadoop.hbase.util.HBaseConfTool hbase.cluster.distributed | head -n 1`
+curl -X POST -u admin:admin 'http://localhost:7180/api/v1/clusters/Cluster%201%20-%20CDH4/services/hbase1/commands/stop'
 
-if [ "$distMode" == 'false' ]; then
-  echo "  Not running in cluster"
-else
-  echo "  Running in cluster"
-fi
-
-sudo service cloudera-scm-server stop
-
-#sudo $HBASE_HOME/bin/hbase-daemon.sh --config $HBASE_HOME/conf/ stop regionserver
-#sudo $HBASE_HOME/bin/hbase-daemon.sh --config $HBASE_HOME/conf/ stop master
+echo "curl -u admin:admin 'http://localhost:7180/api/v1/commands/<cmdId>'"
