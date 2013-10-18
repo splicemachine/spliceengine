@@ -13,6 +13,8 @@ import com.splicemachine.job.Task;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
+import org.apache.commons.codec.binary.Hex;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
@@ -103,7 +105,7 @@ public class TempCleaner {
         private final String jobId;
 
         public TempCleanJob(byte[] uid,byte[] start, byte[] finish,int taskPriority){
-            this.jobId = new String(uid);
+            this.jobId = Hex.encodeHexString(uid);
             Scan scan = new Scan();
             scan.setStartRow(start);
             scan.setStopRow(finish);
