@@ -8,4 +8,5 @@ echo "Starting Splice Machine on $SPLICE_ENV"
 
 curl -X POST -u admin:admin 'http://localhost:7180/api/v1/clusters/Cluster%201%20-%20CDH4/services/hbase1/commands/start'
 
-echo "curl -u admin:admin 'http://localhost:7180/api/v1/commands/<cmdId>'"
+echo "To check the state of the active command:"
+echo "> curl -u admin:admin 'http://localhost:7180/api/v1/commands/<cmdId>'"

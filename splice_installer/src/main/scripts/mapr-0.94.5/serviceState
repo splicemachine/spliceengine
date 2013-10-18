@@ -4,5 +4,5 @@
 
 . ./lib/setEnv
 
-echo "Checking service state on $SPLICE_ENV"
+echo "Checking the state of Splice Machine on $SPLICE_ENV"
 
