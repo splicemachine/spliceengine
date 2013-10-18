@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.ast;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
 
 import java.util.*;
@@ -11,22 +10,6 @@ import java.util.*;
  * Date: 7/29/13
  */
 public class ColumnUtils {
-
-    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
-            throws StandardException
-    {
-        CollectNodesVisitor v = new CollectNodesVisitor(clazz);
-        node.accept(v);
-        return (List<N>)v.getList();
-    }
-
-    public static List<ResultSetNode> getChildren(ResultSetNode node)
-            throws StandardException
-    {
-        CollectChildrenVisitor v = new CollectChildrenVisitor();
-        node.accept(v);
-        return v.getChildren();
-    }
 
     /**
      * For a given ResultColumnList, return a map from
@@ -39,7 +22,7 @@ public class ColumnUtils {
             throws StandardException
     {
         Map<List<Integer>, ResultColumn> chain = new HashMap<List<Integer>, ResultColumn>();
-        List<ResultColumn> cols = collectNodes(rcl, ResultColumn.class);
+        List<ResultColumn> cols = RSUtils.collectNodes(rcl, ResultColumn.class);
 
         for (ResultColumn rc: cols){
             List<Integer> top = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
