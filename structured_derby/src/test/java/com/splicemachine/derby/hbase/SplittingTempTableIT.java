@@ -74,7 +74,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                     try {
                         PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format(
                                 "insert into %s (i, j) values (?,?)", TABLE_NAME_1));
-                        for (int i = 0; i < 3; i++) {
+                        for (int i = 0; i < 4; i++) {
                             ps.setInt(1, 1); ps.setInt(2, 1);
                             ps.executeUpdate();
                             ps.setInt(1, 1); ps.setInt(2, 3);
@@ -84,6 +84,19 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                             ps.setInt(1, 2); ps.setInt(2, 4);
                             ps.executeUpdate();
                         }
+                        /* 
+                         * The table looks like this:
+                         * 
+                         *        i | j
+                         *       --------
+                         *        1 | 1
+                         *        1 | 1
+                         *        1 | 1
+                         *        1 | 1
+                         *        1 | 3 (x4)
+                         *        2 | 2 (x4)
+                         *        2 | 4 (x4)
+                         */
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -96,7 +109,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(SCHEMA_NAME);
 
     @Test
-    public void testBigIntermediateResults() throws Exception {
+    public void testGroupAggregate() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
                     "select a.i, avg(a.j), sum(a.j) from ",
@@ -113,14 +126,12 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                     "on e.i = f.i ",
                     "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
                     "on f.i = g.i ",
-                    "inner join " + TABLE_NAME_1 + " h --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
-                    "on g.i = h.i ",
                     "group by a.i"));
         int j = 0;
         boolean saw1 = false;
         boolean saw2 = false;
-        final int sumFor1 = 3359232; // (1+3)*3*(6**7);
-        final int sumFor2 = 5038848; // (2+4)*3*(6**7);
+        final int sumFor1 = 4194304; // for a.i = 1 we have 4x1 and 4x3, self joined 6 times => (1+3)*4*(8**6) 
+        final int sumFor2 = 6291456; // (2+4)*4*(8**6)
         while (rs.next()) {
             j++;
             Assert.assertNotNull(rs.getInt(1));
@@ -138,6 +149,58 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         }
         Assert.assertEquals(2, j);
         Assert.assertEquals(saw1, saw2);
+    }
+
+    @Test
+    public void testScalarAggregate() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                    "select avg(cast (a.j as double)), sum(a.j) from ",
+                    TABLE_NAME_1 + " a ",
+                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on a.i = b.i ",
+                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on b.i = c.i ",
+                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on c.i = d.i ",
+                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on d.i = e.i ",
+                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on e.i = f.i ",
+                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on f.i = g.i "));
+        final int sumFor1 = 4194304; // for a.i = 1 we have 4x1 and 4x3, self joined 6 times => (1+3)*4*(8**6) 
+        final int sumFor2 = 6291456; // (2+4)*4*(8**6)
+        boolean results = rs.next();
+        Assert.assertTrue("No results", results);
+        Assert.assertEquals("avg doesn't add up", 2.5, rs.getDouble(1), 0.0001);
+        Assert.assertEquals("sum doesn't add up", sumFor1 + sumFor2, rs.getInt(2));
+        Assert.assertFalse("More than one result", rs.next());
+    }
+
+    @Test
+    public void testCountStar() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                    "select count(*) from ",
+                    TABLE_NAME_1 + " a ",
+                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on a.i = b.i ",
+                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on b.i = c.i ",
+                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on c.i = d.i ",
+                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on d.i = e.i ",
+                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on e.i = f.i ",
+                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "on f.i = g.i "));
+        final int totalRows = 4194304; // we start with 16 rows, self joined 6 times with half of the rows => 16*(8**6) 
+        boolean results = rs.next();
+        Assert.assertTrue("No results", results);
+        Assert.assertEquals("Total rows don't add up", totalRows, rs.getInt(1));
+        Assert.assertFalse("More than one result", rs.next());
     }
 
     private String join(String... strings) {
