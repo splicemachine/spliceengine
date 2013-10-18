@@ -3,12 +3,12 @@ package com.splicemachine.derby.impl.ast;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.impl.sql.compile.Predicate;
-import org.apache.derby.impl.sql.compile.ResultSetNode;
+import org.apache.derby.impl.sql.compile.*;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
+
+import static java.lang.String.format;
 
 /**
  * @author P Trolard
@@ -45,7 +45,7 @@ public class JoinInfo {
 
 
     public String toString(){
-        return String.format("{" +
+        return format("{" +
                 "strategy=%s, " +
                 "userSuppliedStrategy=%s, " +
                 "isSystemTable=%s, " +
@@ -58,20 +58,13 @@ public class JoinInfo {
                 "rightLeaves=%s",
                 strategy, userSuppliedStrategy, isSystemTable,
                 isEquiJoin, rightEquiJoinColIsPK, hasRightIndex,
-                Iterables.transform(joinPredicates, predToString),
-                Iterables.transform(otherPredicates, predToString),
+                Iterables.transform(joinPredicates, PredicateUtils.predToString),
+                Iterables.transform(otherPredicates, PredicateUtils.predToString),
                 Iterables.transform(rightNodes, className),
                 Iterables.transform(rightLeaves, className)
         );
 
     }
-
-    public static Function<Predicate,String> predToString = new Function<Predicate,String>(){
-        @Override
-        public String apply(@Nullable Predicate predicate) {
-            return predicate == null ? null : predicate.binaryRelOpColRefsToString();
-        }
-    };
 
     public static Function<Object, String> className = new Function<Object, String>() {
         @Override
