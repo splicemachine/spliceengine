@@ -342,6 +342,10 @@ public class TernaryOperatorNode extends OperatorNode
 		mb.putField(field);
 	}
 
+    public String getOperator(){
+        return operator;
+    }
+
 	/**
 	 * Set the leftOperand to the specified ValueNode
 	 *
