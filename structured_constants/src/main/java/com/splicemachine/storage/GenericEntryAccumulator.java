@@ -96,7 +96,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
             predicateFilter.reset();
             BitSet checkColumns = predicateFilter.getCheckedColumns();
             if(fields!=null){
-                for(int i=0;i<checkColumns.length();i++){
+                for(int i=checkColumns.nextSetBit(0);i>=0;i=checkColumns.nextSetBit(i+1)){
                     if(i>=fields.length||fields[i]==null){
                         if(!predicateFilter.checkPredicates(null,i)) return null;
                     }else{
@@ -116,7 +116,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
-            BitIndex index = BitIndexing.getBestIndex(occupiedFields,scalarFields,floatFields,doubleFields);
+            BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields,scalarFields,floatFields,doubleFields);
             byte[] indexBytes = index.encode();
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];

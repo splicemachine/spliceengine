@@ -65,7 +65,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
 	@Override
     public boolean hasNext() throws StandardException,IOException {
-
         if(populated)return true;
         called++;
         if(accumulator==null){
@@ -89,6 +88,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
             return true;
         }
+        currentRowLocation=null;
         SpliceLogUtils.trace(LOG,"no result returned");
         return false;
 	}

@@ -24,12 +24,25 @@ class UncompressedBitIndex implements BitIndex {
 
     private UncompressedBitIndex(BitSet bitSet, BitSet scalarFields,BitSet floatFields,BitSet doubleFields) {
         this.bitSet = bitSet;
-        this.scalarFields = (BitSet)scalarFields.clone();
-        this.scalarFields.and(bitSet);
-        this.floatFields = (BitSet)floatFields.clone();
-        this.floatFields.and(bitSet);
-        this.doubleFields = (BitSet)doubleFields.clone();
-        this.doubleFields.and(bitSet);
+        this.scalarFields = scalarFields;
+        this.floatFields = floatFields;
+        this.doubleFields = doubleFields;
+//        if(scalarFields!=null){
+//            this.scalarFields = (BitSet)scalarFields.clone();
+////            this.scalarFields.and(bitSet);
+//        }else
+//            this.scalarFields = null;
+//        if(floatFields!=null){
+//            this.floatFields = (BitSet)floatFields.clone();
+////            this.floatFields.and(bitSet);
+//        }else{
+//            this.floatFields=null;
+//        }
+//        if(doubleFields!=null){
+//            this.doubleFields = (BitSet)doubleFields.clone();
+////            this.doubleFields.and(bitSet);
+//        }else
+//            this.doubleFields=null;
     }
 
     @Override
@@ -74,12 +87,12 @@ class UncompressedBitIndex implements BitIndex {
              * Float: 10
              * Scalar: 11
              */
-            if(scalarFields.get(setPos)){
+            if(scalarFields!=null &&scalarFields.get(setPos)){
                 bitWriter.set(3);
-            }else if(floatFields.get(setPos)){
+            }else if(floatFields!=null &&floatFields.get(setPos)){
                 bitWriter.set(2);
                 bitWriter.skipNext();
-            }else if(doubleFields.get(setPos)){
+            }else if(doubleFields!=null &&doubleFields.get(setPos)){
                 bitWriter.setNext();
                 bitWriter.skipNext();
                 bitWriter.setNext();
@@ -130,19 +143,20 @@ class UncompressedBitIndex implements BitIndex {
 
         UncompressedBitIndex that = (UncompressedBitIndex) o;
 
-        return bitSet.equals(that.bitSet)
-                && doubleFields.equals(that.doubleFields)
-                && floatFields.equals(that.floatFields)
-                && scalarFields.equals(that.scalarFields);
+        if (!bitSet.equals(that.bitSet)) return false;
+        if (doubleFields != null ? !doubleFields.equals(that.doubleFields) : that.doubleFields != null) return false;
+        if (floatFields != null ? !floatFields.equals(that.floatFields) : that.floatFields != null) return false;
+        if (scalarFields != null ? !scalarFields.equals(that.scalarFields) : that.scalarFields != null) return false;
 
+        return true;
     }
 
     @Override
     public int hashCode() {
         int result = bitSet.hashCode();
-        result = 31 * result + scalarFields.hashCode();
-        result = 31 * result + floatFields.hashCode();
-        result = 31 * result + doubleFields.hashCode();
+        result = 31 * result + (scalarFields != null ? scalarFields.hashCode() : 0);
+        result = 31 * result + (floatFields != null ? floatFields.hashCode() : 0);
+        result = 31 * result + (doubleFields != null ? doubleFields.hashCode() : 0);
         return result;
     }
 
@@ -168,17 +182,17 @@ class UncompressedBitIndex implements BitIndex {
 
     @Override
     public boolean isScalarType(int position) {
-        return scalarFields.get(position);
+        return scalarFields != null && scalarFields.get(position);
     }
 
     @Override
     public boolean isDoubleType(int position) {
-        return doubleFields.get(position);
+        return doubleFields != null && doubleFields.get(position);
     }
 
     @Override
     public boolean isFloatType(int position) {
-        return floatFields.get(position);
+        return floatFields != null && floatFields.get(position);
     }
 
     @Override
