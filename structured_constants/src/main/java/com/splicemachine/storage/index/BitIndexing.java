@@ -163,9 +163,9 @@ public class BitIndexing {
     }
 
     public static BitIndex getBestIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {
-            if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
-            if(floatFields==null)floatFields = new BitSet();
-            if(doubleFields==null)doubleFields= new BitSet();
+//            if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
+//            if(floatFields==null)floatFields = new BitSet();
+//            if(doubleFields==null)doubleFields= new BitSet();
             BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,scalarFields,floatFields,doubleFields);
             //see if we can improve space via compression
             BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,scalarFields,floatFields,doubleFields);

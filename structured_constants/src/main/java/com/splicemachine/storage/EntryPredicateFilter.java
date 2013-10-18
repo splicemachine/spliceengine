@@ -20,6 +20,7 @@ public class EntryPredicateFilter {
     private BitSet fieldsToReturn;
     private List<Predicate> valuePredicates;
     private boolean returnIndex;
+    private BitSet predicateColumns;
 
     public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
@@ -88,9 +89,11 @@ public class EntryPredicateFilter {
     }
 
     public BitSet getCheckedColumns(){
-        BitSet predicateColumns = new BitSet();
-        for(Predicate predicate:valuePredicates){
-            predicate.setCheckedColumns(predicateColumns);
+        if(predicateColumns==null){
+            predicateColumns = new BitSet();
+            for(Predicate predicate:valuePredicates){
+                predicate.setCheckedColumns(predicateColumns);
+            }
         }
         return predicateColumns;
     }
