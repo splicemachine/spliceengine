@@ -11,7 +11,6 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
-import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
@@ -20,7 +19,12 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.*;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.TaskSchedulerManagement;
+import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -33,21 +37,6 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-
-import net.sf.ehcache.Cache;
-
-import org.apache.derby.drda.NetworkServerControl;
-import org.apache.derby.iapi.db.OptimizerTrace;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.log4j.Logger;
-
-import javax.annotation.Nullable;
-import javax.management.*;
-
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -55,8 +44,29 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nullable;
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import net.sf.ehcache.Cache;
+import org.apache.derby.drda.NetworkServerControl;
+import org.apache.derby.iapi.db.OptimizerTrace;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
@@ -327,9 +337,9 @@ public class SpliceDriver extends SIConstants {
                         service.shutdown();
                     }
 
-                    metricsReporter.shutdown();
+                    if(metricsReporter!=null) metricsReporter.shutdown();
                     SpliceLogUtils.info(LOG,"Destroying internal Engine");
-                    stateHolder.set(State.SHUTDOWN);
+                    if(stateHolder!=null) stateHolder.set(State.SHUTDOWN);
                 }catch(Exception e){
                     SpliceLogUtils.error(LOG,
                             "Unable to shut down properly, this may affect the next time the service is started",e);
