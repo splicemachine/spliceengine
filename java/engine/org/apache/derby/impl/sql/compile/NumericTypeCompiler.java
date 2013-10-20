@@ -209,6 +209,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		TypeId leftTypeId = leftType.getTypeId();
 		TypeId rightTypeId = rightType.getTypeId();
 
+		
 		boolean supported = true;
 
 		if ( ! (rightTypeId.isNumericTypeId()) )
@@ -262,48 +263,57 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			higherTC = (NumericTypeCompiler) getTypeCompiler(leftTypeId);
 		}
 
-		/* The calculation of precision and scale should be based upon
-		 * the type with higher precedence, which is going to be the result
-		 * type, this is also to be consistent with maximumWidth.  Beetle 3906.
-		 */
-		precision = higherTC.getPrecision(operator, leftType, rightType);
-		scale = higherTC.getScale(operator, leftType, rightType);
-
-		if (higherType.getTypeId().isDecimalTypeId()) 
+		/* The result is nullable if either side is nullable */
+		nullable = leftType.isNullable() || rightType.isNullable();
+		
+		int highTypeId = higherType.getTypeId().getJDBCTypeId();
+		if (java.sql.Types.TINYINT == highTypeId ||
+			java.sql.Types.SMALLINT == highTypeId ||
+		    java.sql.Types.INTEGER == highTypeId)
 		{
-			maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
-
-			/*
-			** Be careful not to overflow
-			*/
-			if (maximumWidth < precision)
-			{
-				maximumWidth = Integer.MAX_VALUE;
-			}
+			return new DataTypeDescriptor(
+					TypeId.getBuiltInTypeId(java.sql.Types.BIGINT),
+					nullable
+				);
 		}
 		else
 		{
-			maximumWidth = higherType.getMaximumWidth();
-		}
 		
-		/* The result is nullable if either side is nullable */
-		nullable = leftType.isNullable() || rightType.isNullable();
+		
+			/* The calculation of precision and scale should be based upon
+			 * the type with higher precedence, which is going to be the result
+			 * type, this is also to be consistent with maximumWidth.  Beetle 3906.
+			 */
+			precision = higherTC.getPrecision(operator, leftType, rightType);
+			scale = higherTC.getScale(operator, leftType, rightType);
 
-		/*
-		** The higher type does not have the right nullability.  Create a
-		** new DataTypeDescriptor that has the correct type and nullability.
-		**
-		** It's OK to call the implementation of the DataTypeDescriptorFactory
-		** here, because we're in the same package.
-		*/
-		return new DataTypeDescriptor(
+			if (higherType.getTypeId().isDecimalTypeId()) 
+			{
+				maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
+
+				/*
+				 ** Be careful not to overflow
+				 */
+				if (maximumWidth < precision)
+				{
+					maximumWidth = Integer.MAX_VALUE;
+				}
+			}
+			else
+			{
+				maximumWidth = higherType.getMaximumWidth();
+			}
+		
+			return new DataTypeDescriptor(
 					higherType.getTypeId(),
 					precision,
 					scale,
 					nullable,
 					maximumWidth
 				);
+		}
 	}
+
 
 	/** @see TypeCompiler#convertible */
 	public boolean convertible(TypeId otherType, boolean forDataTypeFunction)

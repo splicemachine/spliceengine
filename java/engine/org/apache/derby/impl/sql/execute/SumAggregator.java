@@ -28,6 +28,10 @@ import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import org.apache.derby.iapi.services.io.StoredFormatIds;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLLongint;
+import org.apache.derby.iapi.types.SQLTinyint;
+import org.apache.derby.iapi.types.SQLSmallint;
 
 /**
  * Aggregator for SUM().  Defers most of its work
@@ -59,7 +63,18 @@ public  class SumAggregator
 			/* NOTE: We need to call cloneValue since value gets
 			 * reused underneath us
 			 */
-			value = addend.cloneValue(false);
+			if (addend instanceof SQLInteger ||
+			    addend instanceof SQLTinyint ||
+			    addend instanceof SQLSmallint)
+			{
+				SQLLongint l = new SQLLongint();
+				l.setValue(addend.getLong());
+				value = l;
+			}
+			else
+			{
+				value = addend.cloneValue(false);
+			}
 		}
 		else
 		{
