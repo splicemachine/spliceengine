@@ -182,7 +182,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 		while(rs.next()){
 			String uname = rs.getString(1);
 			int sum = rs.getInt(2);
-			int correctSum = unameStats.get(uname).getSum();
+			long correctSum = unameStats.get(uname).getSum();
 			Assert.assertEquals("Incorrect sum for uname "+ uname,correctSum,sum);
 			row++;
 		}
@@ -209,7 +209,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 		while(rs.next()){
 			String fruit = rs.getString(1);
 			int sum = rs.getInt(2);
-			int correctSum = fruitStats.get(fruit).getSum();
+			long correctSum = fruitStats.get(fruit).getSum();
 			Assert.assertEquals("Incorrect sum for fruit "+ fruit,correctSum,sum);
 			row++;
 		}
@@ -224,7 +224,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			String uname = rs.getString(1);
 			String fruit = rs.getString(2);
 			int sum = rs.getInt(3);
-			int correctSum = pairStats.get(Pair.newPair(uname, fruit)).getSum();
+			long correctSum = pairStats.get(Pair.newPair(uname, fruit)).getSum();
 			Assert.assertEquals("Incorrect sum for uname"+ uname+", fruit "+fruit,correctSum,sum);
 			row++;
 		}
@@ -374,7 +374,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			Stats cStats= unameStats.get(uname);
 			int cMin = cStats.getMin();
 			int cMax = cStats.getMax();
-			int cSum = cStats.getSum();
+			long cSum = cStats.getSum();
 			int cAvg = cStats.getAvg();
 			Assert.assertEquals("Incorrect min for uname "+ uname,cMin,min);
 			Assert.assertEquals("Incorrect max for uname "+ uname,cMax,max);
@@ -398,7 +398,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			Stats cStats= fruitStats.get(fruit);
 			int cMin = cStats.getMin();
 			int cMax = cStats.getMax();
-			int cSum = cStats.getSum();
+			long cSum = cStats.getSum();
 			int cAvg = cStats.getAvg();
 			Assert.assertEquals("Incorrect min for fruit "+ fruit,cMin,min);
 			Assert.assertEquals("Incorrect max for fruit "+ fruit,cMax,max);
@@ -424,7 +424,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			Stats cStats= pairStats.get(pair);
 			int cMin = cStats.getMin();
 			int cMax = cStats.getMax();
-			int cSum = cStats.getSum();
+			long cSum = cStats.getSum();
 			int cAvg = cStats.getAvg();
 			Assert.assertEquals("Incorrect min for pair "+ pair,cMin,min);
 			Assert.assertEquals("Incorrect max for pair "+ pair,cMax,max);
@@ -462,7 +462,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
             int count = rs.getInt(7);
             int cMin = cStats.getMin();
             int cMax = cStats.getMax();
-            int cSum = cStats.getSum();
+            long cSum = cStats.getSum();
             int cAvg = cStats.getAvg();
             int cCount = cStats.getCount();
             Assert.assertEquals("Incorrect min for pair "+ pair,cMin,min);

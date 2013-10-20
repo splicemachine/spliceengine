@@ -42,12 +42,17 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
                     protected void starting(Description description) {
                         try {
                             PreparedStatement ps = spliceClassWatcher.prepareStatement(INSERT);
-                            for (int i = 0; i < size; i++) {
+                            for (int i = 0; i < size-1; i++) {
                                 ps.setString(1, format("user%s", i + 1));
                                 ps.setInt(2, i);
                                 stats.add(i);
                                 ps.executeUpdate();
                             }
+                            
+                            ps.setString(1, format("user%s", size));
+                            ps.setInt(2, Integer.MAX_VALUE - 1);
+                            stats.add(Integer.MAX_VALUE - 1);
+                            ps.executeUpdate();
                             spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, size / 3);
 
                             ps = spliceClassWatcher.prepareStatement("insert into " + nullTableWatcher.toString() + " values (?,?)");
@@ -94,12 +99,12 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 		ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
-			Assert.assertEquals("Incorrect sum returned!",stats.getSum(),rs.getInt(1));
+			Assert.assertEquals("Incorrect sum returned!",stats.getSum(),rs.getLong(1));
 			i++;
 		}
 		Assert.assertEquals(1, i);
 	}
-	
+    
 	@Test
 	public void testMinOperation() throws Exception {
 		ResultSet rs = methodWatcher.executeQuery(format("select min(i) from %s", spliceTableWatcher));
@@ -124,7 +129,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testQualifiedMaxOperation() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s where i < %d", spliceTableWatcher,size));
+        ResultSet rs = methodWatcher.executeQuery(format("select max(i) from %s where i < %d", spliceTableWatcher,Integer.MAX_VALUE));
         int i=0;
         while(rs.next()){
             Assert.assertEquals(stats.getMax(),rs.getInt(1));
@@ -163,7 +168,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
 		ResultSet rs = methodWatcher.executeQuery(format("select sum(i), avg(i), max(i), min(i) from %s", spliceTableWatcher));
 		int i=0;
 		while(rs.next()){
-			int sum = rs.getInt(1);
+			long sum = rs.getLong(1);
 			int avg = rs.getInt(2);
 			int max = rs.getInt(3);
 			int min = rs.getInt(4);
@@ -220,8 +225,9 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
         // Regression test for bug 549
         ResultSet rs = methodWatcher.executeQuery(format("select sum(i) from %s having min(username) > 'user0'", spliceTableWatcher));
         rs.next();
-        int sum = rs.getInt(1);
-        Assert.assertEquals(45, sum);
+        long sum = rs.getLong(1);
+        long result = (long)Integer.MAX_VALUE - 1 + 36;
+        Assert.assertEquals(result,  sum);
     }
 
     @Test

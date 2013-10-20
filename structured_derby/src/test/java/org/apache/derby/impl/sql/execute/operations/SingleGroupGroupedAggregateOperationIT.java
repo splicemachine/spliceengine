@@ -170,7 +170,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			while(rs.next()){
 				String uname = rs.getString(1);
 				int sum = rs.getInt(2);
-				int correctSum = unameStats.get(uname).getSum();
+				long correctSum = unameStats.get(uname).getSum();
 				Assert.assertEquals("Incorrect count for uname "+ uname,correctSum,sum);
 				row++;
 			}

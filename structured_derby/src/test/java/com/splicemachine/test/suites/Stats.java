@@ -2,7 +2,7 @@ package com.splicemachine.test.suites;
 
 public final class Stats {
 	private int count;
-	private int sum;
+	private long sum;
 	private int max;
 	private int min;
 
@@ -13,13 +13,13 @@ public final class Stats {
 		this.min = Integer.MAX_VALUE;
 	}
 
-	public int getSum(){ return this.sum;}
+	public long getSum(){ return this.sum;}
 
 	public int getMax(){ return this.max;}
 
 	public int getMin(){ return this.min;}
 
-	public int getAvg(){ return this.count>0? this.sum/this.count:0;}
+	public int getAvg(){ return this.count>0? (int) (this.sum/this.count):0;}
 
 	public int getCount(){ return this.count;}
 
