@@ -186,7 +186,7 @@ public class UnaryOperatorNode extends OperatorNode
 	 *
 	 * @return	The operator of this unary operator.
 	 */
-	String getOperatorString()
+	public String getOperatorString()
 	{
 		return operator;
 	}

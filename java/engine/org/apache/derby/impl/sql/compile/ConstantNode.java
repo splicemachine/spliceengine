@@ -52,7 +52,7 @@ import java.util.Vector;
  * in the constructor of the generated method.  Ideally
  * we would have just 
  */
-abstract class ConstantNode extends ValueNode
+public abstract class ConstantNode extends ValueNode
 {
 	DataValueDescriptor	value;
 

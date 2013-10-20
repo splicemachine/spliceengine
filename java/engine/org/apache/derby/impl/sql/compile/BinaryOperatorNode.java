@@ -216,6 +216,10 @@ public class BinaryOperatorNode extends OperatorNode
 		this.operatorType = -1;
 	}
 
+    public String getOperatorString(){
+        return operator;
+    }
+
 	/**
 	 * Set the methodName.
 	 *

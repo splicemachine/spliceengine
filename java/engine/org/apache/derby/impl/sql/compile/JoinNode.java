@@ -80,7 +80,7 @@ public class JoinNode extends TableOperatorNode {
 	SubqueryList		subqueryList;
 	ValueNode			joinClause;
 	boolean	            joinClauseNormalized;
-	PredicateList		joinPredicates;
+	public PredicateList		joinPredicates;
 	ResultColumnList	usingClause;
 	//User provided optimizer overrides
 	Properties joinOrderStrategyProperties;
@@ -1703,8 +1703,13 @@ public class JoinNode extends TableOperatorNode {
                  table = (FromBaseTable)rightResultSet;
              }
              equalsPreds = equiJoinPreds(table.nonStoreRestrictionList);
-             // Clear table's nonStore list, b/c it will be handled by the join
-             table.nonStoreRestrictionList = new PredicateList();
+             // Clear equijoin predicaets, b/c they will be handled by the join
+            for(int i = table.nonStoreRestrictionList.size() - 1; i >= 0; i--){
+                Predicate op = (Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
+                if (op.isJoinPredicate()){
+                    table.nonStoreRestrictionList.removeOptPredicate(i);
+                }
+            }
         }
 
 
