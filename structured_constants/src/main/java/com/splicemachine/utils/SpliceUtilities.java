@@ -1,7 +1,9 @@
 package com.splicemachine.utils;
 
+import com.google.common.io.Closeables;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import java.io.IOException;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -10,15 +12,9 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.Compression;
-import org.apache.hadoop.hbase.regionserver.DelimitedKeyPrefixRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
-import com.google.common.io.Closeables;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 
 public class SpliceUtilities extends SIConstants {
 	private static final Logger LOG = Logger.getLogger(SpliceUtilities.class);
@@ -100,19 +96,23 @@ public class SpliceUtilities extends SIConstants {
     }
 
     public static void refreshHbase() {
-    	 SpliceLogUtils.info(LOG, "Refresh HBase");
-         HBaseAdmin admin = null;
-         try{
-             admin = getAdmin();
-             HTableDescriptor[] descriptors = admin.listTables();
-             for (HTableDescriptor desc : descriptors) {
-            	 admin.deleteTable(desc.getName());
-             }
-         }catch(Exception e){
-             SpliceLogUtils.error(LOG,"Unable to Refresh Hbase",e);
-         }finally{
-         	Closeables.closeQuietly(admin);
-         }
+        SpliceLogUtils.info(LOG, "Refresh HBase");
+        HBaseAdmin admin = null;
+        try{
+            admin = getAdmin();
+            HTableDescriptor[] descriptors = admin.listTables();
+            for (HTableDescriptor desc : descriptors) {
+                if (! admin.isTableDisabled(desc.getName())) {
+                    admin.disableTable(desc.getName());
+                }
+                admin.deleteTable(desc.getName());
+            }
+        }catch(Exception e){
+            // TODO: should this be logged and thrown? If we get this exception during startup, we will fail to start.
+            SpliceLogUtils.error(LOG,"Unable to Refresh Hbase",e);
+        }finally{
+            Closeables.closeQuietly(admin);
+        }
     }
     
     public static boolean createSpliceHBaseTables () {
