@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
@@ -567,7 +568,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
      * @return
      */
     private Object[] transactionIdToRowKey(long id) {
-        return new Object[]{(byte) (id % 16), id};
+        return new Object[]{(byte) (id % SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT), id};
     }
 
     /**
@@ -637,9 +638,9 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
 
     private List<Iterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
         List<Iterator<Result>> scanners = new ArrayList<Iterator<Result>>();
-        for (byte i = 0; i < 16; i++) {
+        for (byte i = 0; i < SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT; i++) {
             final Data rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
-            final Data endKey = i == 15 ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
+            final Data endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
             final Scan scan = dataLib.newScan(rowKey, endKey, null, null, null);
             scanners.add(reader.scan(transactionTable, scan));
         }

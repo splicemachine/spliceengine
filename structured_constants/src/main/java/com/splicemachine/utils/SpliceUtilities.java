@@ -73,6 +73,14 @@ public class SpliceUtilities extends SIConstants {
         return desc;
     }
 
+    public static byte[][] generateTransactionSplits() {
+        byte[][] result = new byte[TRANSACTION_TABLE_BUCKET_COUNT-1][];
+        for (int i=0; i<result.length; i++) {
+            result[i] = new byte[] {(byte) (i+1)};
+        }
+        return result;
+    }
+
     public static HColumnDescriptor createDataFamily() {
         HColumnDescriptor snapshot = new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes());
         snapshot.setMaxVersions(Integer.MAX_VALUE);
@@ -126,7 +134,7 @@ public class SpliceUtilities extends SIConstants {
             }
             if(!admin.tableExists(SpliceConstants.TRANSACTION_TABLE_BYTES)){
                 HTableDescriptor td = generateTransactionTable();
-                admin.createTable(td);
+                admin.createTable(td, generateTransactionSplits());
                 SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE_BYTES+" created");
             }
 
