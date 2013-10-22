@@ -4,14 +4,21 @@ import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.impl.translate.Transcoder;
+import com.splicemachine.si.impl.translate.Translator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.light.IncrementingClock;
+import com.splicemachine.si.data.light.LDataLib;
+import com.splicemachine.si.data.light.LGet;
+import com.splicemachine.si.data.light.LKeyValue;
 import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
+import com.splicemachine.si.data.light.LTable;
 import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.FilterStatePacked;
@@ -3629,4 +3636,74 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
+    @Test
+    @Ignore
+    public void test() throws IOException {
+        final TransactionId t1 = transactor.beginTransaction();
+        insertAge(t1, "joe70", 20);
+        transactor.commit(t1);
+
+        final LDataLib dataLib2 = new LDataLib();
+        final Clock clock2 = new IncrementingClock(1000);
+        final LStore store2 = new LStore(clock2);
+
+        final Transcoder transcoder = new Transcoder() {
+            @Override
+            public Object transcode(Object data) {
+                return data;
+            }
+
+            @Override
+            public Object transcodeKey(Object key) {
+                return storeSetup.getDataLib().decode(key, String.class);
+            }
+
+            @Override
+            public Object transcodeFamily(Object family) {
+                return storeSetup.getDataLib().decode(family, String.class);
+            }
+
+            @Override
+            public Object transcodeQualifier(Object qualifier) {
+                return storeSetup.getDataLib().decode(qualifier, String.class);
+            }
+        };
+        final Transcoder transcoder2 = new Transcoder() {
+            @Override
+            public Object transcode(Object data) {
+                return data;
+            }
+
+            @Override
+            public Object transcodeKey(Object key) {
+                return dataLib2.decode(key, String.class);
+            }
+
+            @Override
+            public Object transcodeFamily(Object family) {
+                return dataLib2.decode(family, String.class);
+            }
+
+            @Override
+            public Object transcodeQualifier(Object qualifier) {
+                return dataLib2.decode(qualifier, String.class);
+            }
+        };
+        final Translator translator = new Translator(storeSetup.getDataLib(), storeSetup.getReader(), dataLib2, store2, store2, transcoder, transcoder2);
+
+        translator.translate(storeSetup.getPersonTableName());
+        final LGet get = dataLib2.newGet(dataLib2.encode("joe70"), null, null, null);
+        final LTable table2 = store2.open(storeSetup.getPersonTableName());
+        final LTuple result = store2.get(table2, get);
+        Assert.assertNotNull(result);
+        final List<LKeyValue> results = dataLib2.listResult(result);
+        Assert.assertEquals(2, results.size());
+        final LKeyValue kv = results.get(1);
+        Assert.assertEquals("joe70", dataLib2.getKeyValueRow(kv));
+        Assert.assertEquals("V", dataLib2.getKeyValueFamily(kv));
+        Assert.assertEquals("age", dataLib2.getKeyValueQualifier(kv));
+        Assert.assertEquals(1L, dataLib2.getKeyValueTimestamp(kv));
+        Assert.assertEquals(20, dataLib2.getKeyValueValue(kv));
+
+    }
 }

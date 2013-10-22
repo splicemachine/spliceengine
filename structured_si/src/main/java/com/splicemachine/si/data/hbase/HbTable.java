@@ -47,6 +47,9 @@ public class HbTable implements IHTable {
 
     @Override
     public Iterator<Result> scan(Scan scan) throws IOException {
+        if(scan.getStartRow() == null) {
+            scan.setStartRow(new byte[]{});
+        }
         final ResultScanner scanner = table.getScanner(scan);
         return scanner.iterator();
     }

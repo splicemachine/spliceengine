@@ -204,6 +204,11 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     }
 
     @Override
+    public byte[] getGetRow(Get get) {
+        return get.getRow();
+    }
+
+    @Override
     public void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp) {
         try {
             get.setTimeRange(minTimestamp, maxTimestamp);

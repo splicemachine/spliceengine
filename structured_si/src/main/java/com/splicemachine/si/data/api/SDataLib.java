@@ -2,6 +2,7 @@ package com.splicemachine.si.data.api;
 
 import java.util.List;
 import java.util.Map;
+
 import org.apache.hadoop.hbase.KeyValue;
 
 /**
@@ -41,6 +42,7 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
     long getKeyValueTimestamp(KeyValue keyValue);
 
     Get newGet(Data rowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
+    Data getGetRow(Get get);
     void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
     void setGetMaxVersions(Get get);
     void setGetMaxVersions(Get get, int max);
@@ -56,14 +58,14 @@ public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, 
 
     Delete newDelete(Data rowKey);
     void addKeyValueToDelete(Delete delete, Data family, Data qualifier, long timestamp);
-	boolean matchingColumn(KeyValue keyValue, Data family, Data qualifier);
-	boolean matchingFamily(KeyValue keyValue, Data family);
-	boolean matchingQualifier(KeyValue keyValue, Data qualifier);
-	boolean matchingValue(KeyValue keyValue, Data value);
-	boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other);
-	boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other);
-	boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other);
-	boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other);
-	KeyValue newKeyValue(KeyValue keyValue, Data value);
+    boolean matchingColumn(KeyValue keyValue, Data family, Data qualifier);
+    boolean matchingFamily(KeyValue keyValue, Data family);
+    boolean matchingQualifier(KeyValue keyValue, Data qualifier);
+    boolean matchingValue(KeyValue keyValue, Data value);
+    boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other);
+    boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other);
+    boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other);
+    boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other);
+    KeyValue newKeyValue(KeyValue keyValue, Data value);
     KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);
 }
