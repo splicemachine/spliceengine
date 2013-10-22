@@ -1844,7 +1844,7 @@ public enum ErrorState {
     SPLICE_UNEXPECTED_EXCEPTION("SE001"){
         @Override
         public StandardException newException(Throwable rootCause) {
-            return StandardException.newException(getSqlState(),rootCause.getMessage());
+            return StandardException.newException(getSqlState(),rootCause,"unexpected exception");
         }
     };
 
