@@ -4218,9 +4218,9 @@ public class FromBaseTable extends FromTable
 				return false;
 			}
 		}
-		// Verify access path is an index
+		// Verify access path is an index or table with primary key constraint
 		ConglomerateDescriptor cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
-		if (! cd.isIndex())
+		if (cd.getIndexDescriptor() == null || cd.getIndexDescriptor().indexType() == null)
 		{
 			return false;
 		}
@@ -4472,40 +4472,33 @@ public class FromBaseTable extends FromTable
 					return false;
 				}
 			}
-			if (crs[nextCR].getColumnNumber() == keyColumns[nextKeyColumn])
+			while (crs[nextCR].getColumnNumber() != keyColumns[nextKeyColumn])
 			{
-				nextKeyColumn++;
-				continue;
-			}
-			else 
-			{
-				while (crs[nextCR].getColumnNumber() != keyColumns[nextKeyColumn])
+				// Stop if there is no equality predicate on this key column
+				if (! storeRestrictionList.hasOptimizableEqualityPredicate(this, keyColumns[nextKeyColumn], true))
 				{
-					// Stop if there is no equality predicate on this key column
-					if (! storeRestrictionList.hasOptimizableEqualityPredicate(this, keyColumns[nextKeyColumn], true))
+					return false;
+				}
+
+				// Advance to the next key column
+				nextKeyColumn++;
+
+				/* If we've walked through all of the key columns then
+				 * we need to check if the index is unique.
+				 */
+				if (nextKeyColumn == keyColumns.length)
+				{
+					if (cd.getIndexDescriptor().isUnique())
+					{
+						break;
+					}
+					else
 					{
 						return false;
 					}
-
-					// Advance to the next key column
-					nextKeyColumn++;
-
-					/* If we've walked through all of the key columns then
-					 * we need to check if the index is unique.
-					 */
-					if (nextKeyColumn == keyColumns.length)
-					{
-						if (cd.getIndexDescriptor().isUnique())
-						{
-							break;
-						}
-						else
-						{
-							return false;
-						}
-					}
 				}
 			}
+			nextKeyColumn++;
 		}
 		return true;
 	}
