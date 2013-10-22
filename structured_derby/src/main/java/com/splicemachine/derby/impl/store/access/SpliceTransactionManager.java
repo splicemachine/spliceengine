@@ -1718,14 +1718,17 @@ public class SpliceTransactionManager implements XATransactionController,
 	}
 
 	public void commit() throws StandardException {
-		LOG.debug("commit transaction contextId=="
-				+ ((SpliceTransaction) rawtran).getContextId());
-		if (LOG.isTraceEnabled())
-			LOG.trace("commit transaction contextId=="
-					+ ((SpliceTransaction) rawtran).getContextId());
-		this.closeControllers(false /* don't close held controllers */);
+        this.closeControllers(false /* don't close held controllers */);
+        if(rawtran!=null){
+            if(LOG.isDebugEnabled())
+                LOG.debug("commit transaction contextId=="
+                        + ((SpliceTransaction) rawtran).getContextId());
+            if (LOG.isTraceEnabled())
+                LOG.trace("commit transaction contextId=="
+                        + ((SpliceTransaction) rawtran).getContextId());
+            rawtran.commit();
+        }
 
-		rawtran.commit();
 
 		// for user transaction, set trans=null;
 		// if
@@ -1784,7 +1787,9 @@ public class SpliceTransactionManager implements XATransactionController,
 			throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("releaseSavePoint ");
-		return rawtran.releaseSavePoint(name, kindOfSavepoint);
+        if(rawtran!=null)
+            return rawtran.releaseSavePoint(name, kindOfSavepoint);
+        return 0;
 	}
 
 	public int rollbackToSavePoint(String name, boolean close_controllers,
@@ -2169,7 +2174,9 @@ public class SpliceTransactionManager implements XATransactionController,
 	public CompatibilitySpace getLockSpace() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getLockSpace ");
-		return rawtran.getCompatibilitySpace();
+        if(rawtran!=null)
+            return rawtran.getCompatibilitySpace();
+        return null;
 	}
 
 	/**
@@ -2206,7 +2213,9 @@ public class SpliceTransactionManager implements XATransactionController,
 	public String getTransactionIdString() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getTransactionIdString ");
-		return (rawtran.toString());
+        if(rawtran!=null)
+            return (rawtran.toString());
+        return "";
 	}
 
 	/**
@@ -2216,7 +2225,9 @@ public class SpliceTransactionManager implements XATransactionController,
 	public String getActiveStateTxIdString() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getActiveStateTxIdString ");
-		return (rawtran.getActiveStateTxIdString());
+        if(rawtran!=null)
+            return (rawtran.getActiveStateTxIdString());
+        return "";
 	}
 
 	/*

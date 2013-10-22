@@ -161,6 +161,9 @@ public abstract class SpliceController implements ConglomerateController {
             if(result==null||result.isEmpty()) return false;
             EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
             try {
+                for(DataValueDescriptor dvd:destRow){
+                    dvd.restoreToNull();
+                }
                 for(KeyValue kv:result.raw()){
                     RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
                 }

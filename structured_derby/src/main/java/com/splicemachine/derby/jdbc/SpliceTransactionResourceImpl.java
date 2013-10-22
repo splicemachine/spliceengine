@@ -188,5 +188,9 @@ public final class SpliceTransactionResourceImpl {
         cm.setActiveThread();
         csf.setCurrentContextManager(cm);
     }
+
+    public void popContextManager() {
+        csf.resetCurrentContextManager(cm);
+    }
 }
 
