@@ -152,8 +152,8 @@ public class BroadcastJoinOperation extends JoinOperation {
     public void init(SpliceOperationContext context) throws StandardException {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
-        rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
+        leftHashKeys = generateHashKeys(leftHashKeyItem);
+        rightHashKeys = generateHashKeys(rightHashKeyItem);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         rightResultSet.init(context);

@@ -139,22 +139,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         SpliceLogUtils.trace(LOG, "leftRow=%s,rightRow=%s", leftRow, rightRow);
     }
 
-    protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-
-        FormatableHashtable hashKeyInfo =  (FormatableHashtable) activation.getPreparedStatement().getSavedObject(hashKeyItem);
-
-        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get(JoinNode.HASH_KEYS_ARRAY_KEY);
-        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-
-        FormatableLongHolder tableNumber = (FormatableLongHolder) hashKeyInfo.get(JoinNode.TABLE_NUMBER_KEY);
-
-        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getLong());
-        int[] keyColumns = new int[fihArray.length];
-
-        for(int i=0;i<fihArray.length;i++){
-            keyColumns[i] = rootAccessedCols != null ? rootAccessedCols[fihArray[i].getInt()-1] : fihArray[i].getInt()-1;
+    protected int[] generateHashKeys(int hashKeyItem) {
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(hashKeyItem);
+        int[] cols = new int[fihArray.length];
+        for (int i = 0, s = fihArray.length; i < s; i++){
+            cols[i] = fihArray[i].getInt();
         }
-        return keyColumns;
+        return cols;
 	}
 
 	public SpliceOperation getRightResultSet() {

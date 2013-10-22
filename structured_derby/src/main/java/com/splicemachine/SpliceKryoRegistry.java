@@ -316,6 +316,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(IndexDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableHashtable.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableIntHolder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableIntHolder[].class);
         instance.register(DD_Version.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DDdependableFinder.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DDColumnDependableFinder.class,EXTERNALIZABLE_SERIALIZER);
