@@ -2,10 +2,10 @@ package com.splicemachine.derby.impl.ast;
 
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -25,10 +25,6 @@ import java.util.*;
 public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(MSJJoinConditionVisitor.class);
-
-    public static boolean isMSJ(AccessPath ap){
-        return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
-    }
 
     public static boolean predicateIsEvalable(OptimizablePredicate p, ResultSetNode n) {
         JBitSet pRefs = (JBitSet) p.getReferencedMap().clone();
@@ -66,7 +62,7 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public ProjectRestrictNode pullPredsFromPR(ProjectRestrictNode pr) throws StandardException {
-        if (isMSJ(pr.getTrulyTheBestAccessPath()) &&
+        if (RSUtils.isHashableJoin(pr.getTrulyTheBestAccessPath()) &&
                 pr.restrictionList != null) {
             for (int i = pr.restrictionList.size() - 1; i >= 0; i--) {
                 OptimizablePredicate p = pr.restrictionList.getOptPredicate(i);
@@ -80,7 +76,7 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
     }
 
     public FromBaseTable pullPredsFromTable(FromBaseTable t) throws StandardException {
-        if (isMSJ(t.getTrulyTheBestAccessPath())) {
+        if (RSUtils.isHashableJoin(t.getTrulyTheBestAccessPath())) {
             PredicateList pl = new PredicateList();
             t.pullOptPredicates(pl);
             for (int i = 0, s = pl.size(); i < s; i++) {
@@ -116,11 +112,11 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
             throws StandardException
     {
         ResultColumnList rcl = j.getResultColumns();
-        Map<List<Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
+        Map<Pair<Integer,Integer>, ResultColumn> chain = ColumnUtils.rsnChainMap(rcl);
         List<ColumnReference> predCRs = RSUtils.collectNodes(p, ColumnReference.class);
         for (ColumnReference cr: predCRs){
             ResultColumn rc = cr.getSource();
-            List<Integer> rsnAndCol = Arrays.asList(rc.getResultSetNumber(), rc.getVirtualColumnId());
+            Pair<Integer,Integer> rsnAndCol = ColumnUtils.RSCoordinate(rc);
             if (chain.containsKey(rsnAndCol)){
                 cr.setSource(chain.get(rsnAndCol));
             }

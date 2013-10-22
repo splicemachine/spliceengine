@@ -1,12 +1,15 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.google.common.base.*;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
 
+import javax.annotation.Nullable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +31,13 @@ public class RSUtils {
         node.accept(v);
         return (List<N>) v.getList();
     }
+
+    public static Function<ResultSetNode,Integer> rsNum = new Function<ResultSetNode, Integer>() {
+        @Override
+        public Integer apply(ResultSetNode rsn) {
+            return rsn.getResultSetNumber();
+        }
+    };
 
     /**
      * Return list of node and its ResultSetNode descendants, as returned by depth-first, pre-order traversal
@@ -94,5 +104,11 @@ public class RSUtils {
         return pr.restrictionList != null ? pr.restrictionList : new PredicateList();
     }
 
+    public static boolean isMSJ(AccessPath ap){
+        return (ap != null && ap.getJoinStrategy().getClass() == MergeSortJoinStrategy.class);
+    }
 
+    public static boolean isHashableJoin(AccessPath ap){
+        return (ap != null && ap.getJoinStrategy() instanceof HashableJoinStrategy);
+    }
 }

@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.ast;
 
-import com.google.common.base.Function;
+import com.google.common.base.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.Predicate;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -16,6 +17,15 @@ import static java.lang.String.format;
  *         Date: 18/10/2013
  */
 public class PredicateUtils {
+
+    public static com.google.common.base.Predicate<Predicate> isEquiJoinPred = new com.google.common.base.Predicate<Predicate>() {
+        @Override
+        public boolean apply(@Nullable Predicate p) {
+            return p != null &&
+                    p.isJoinPredicate() &&
+                    p.getAndNode().getLeftOperand().isBinaryEqualsOperatorNode();
+        }
+    };
 
     /**
      * Return string representation of Derby Predicate

@@ -141,8 +141,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
     public static boolean isEquijoin(List<Predicate> preds) throws StandardException {
         for (Predicate p: preds){
-            if (p.isJoinPredicate() &&
-                    p.getAndNode().getLeftOperand().isBinaryEqualsOperatorNode()){
+            if (PredicateUtils.isEquiJoinPred.apply(p)){
                 return true;
             }
         }
