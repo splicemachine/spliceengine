@@ -55,16 +55,13 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
         return visit((JoinNode) node);
     }
 
-    public static com.google.common.base.Predicate<ColumnReference> pointsTo(final ResultSetNode rsn) {
+    public static com.google.common.base.Predicate<ColumnReference> pointsTo(ResultSetNode rsn)
+            throws StandardException {
+        final Set<Integer> rsns = Sets.newHashSet(Iterables.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
         return new com.google.common.base.Predicate<ColumnReference>() {
             @Override
             public boolean apply(ColumnReference cr) {
-                try {
-                    Set<Integer> rsns = Sets.newHashSet(Iterables.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
-                    return rsns.contains(cr.getSourceResultColumn().getResultSetNumber());
-                } catch (StandardException se) {
-                    throw new RuntimeException(se);
-                }
+                return rsns.contains(cr.getSourceResultColumn().getResultSetNumber());
             }
         };
     }
