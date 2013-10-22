@@ -777,4 +777,23 @@ public class InnerJoinIT extends SpliceUnitTest {
 
         Assert.assertEquals(108, results.size());
     }
+
+    @Test
+    public void testJoinWithConditionReferringToTwoTablesOnLeft() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o(BigDecimal.valueOf(12)),
+                o(BigDecimal.valueOf(20)),
+                o(BigDecimal.valueOf(20)),
+                o(BigDecimal.valueOf(40)),
+                o(BigDecimal.valueOf(40)),
+                o(BigDecimal.valueOf(80)));
+        ResultSet rs = methodWatcher.executeQuery("select w.hours " +
+                "from proj p inner join works w on p.pnum = w.pnum " +
+                "inner join staff s on w.empnum = s.empnum and p.city = s.city " +
+                "order by w.hours");
+        List results = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), results.toArray());
+
+    }
 }
