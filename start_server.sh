@@ -3,7 +3,7 @@
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 cd structured_derby
 
-mvn exec:java -Dzoo > zoo.log &
+mvn exec:exec -Dzoo > zoo.log &
 
 if ps ax | grep -v grep | grep 'exec:java' > /dev/null 
 then
