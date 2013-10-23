@@ -697,7 +697,7 @@ public class TernaryOperatorNode extends OperatorNode
 		** The result type of a LocateFunctionNode is an integer.
 		*/
 		setType(new DataTypeDescriptor(TypeId.INTEGER_ID, 
-				receiver.getTypeServices().isNullable())); 
+				true)); 
 
 		return this;
 	}
