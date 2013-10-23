@@ -65,7 +65,6 @@ import java.util.List;
 import java.util.ArrayList;
 import javax.transaction.xa.XAResource;
 
-
 /**
 	This parser works on a statement-at-a-time basis.
 	It maintains a connection environment that is
@@ -1679,9 +1678,12 @@ throws SQLException
 	Token t;
 	String n = null;
 }
-{
+{	
 	<PROTOCOL> t=<STRING> [ <AS> n=identifier() ]
 	{
+		// TODO: remove this when PROTOCOL is supported
+		return new ijUnsupportedCommandResult("PROTOCOL");
+	
 		installProtocol(n, stringValue(t.image));
 		return null;
 	}
@@ -2043,7 +2045,11 @@ throws SQLException
 		else if(v!=null)
 			types = new String[] { "VIEW" };
 		else
+		{
+			// TODO: remove this when SYNONYM is supported
+			return new ijUnsupportedCommandResult("SHOW SYNONYMS");
 			types = new String[] { "SYNONYM" };
+		}
 		return showTables(schema, types);
 	}
 |	<INDEXES>
@@ -2079,14 +2085,20 @@ throws SQLException
 	}
 |       <ROLES>
         {
+            // TODO: remove this when ROLE is supported
+            return new ijUnsupportedCommandResult("SHOW ROLES");
             return showRoles();
         }
 |       <ENABLED_ROLES>
         {
+            // TODO: remove this when ROLE is supported
+            return new ijUnsupportedCommandResult("SHOW ENABLED_ROLES");
             return showEnabledRoles();
         }
 |       <SETTABLE_ROLES>
         {
+            // TODO: remove this when ROLE is supported
+            return new ijUnsupportedCommandResult("SHOW SETTABLE_ROLES");
             return showSettableRoles();
         }
 
@@ -2251,6 +2263,9 @@ throws SQLException
 		  [ withtoken = <WITH> holdType = holdType()] 
 	      <CURSOR> qi=qualifiedIdentifier() <AS> s=<STRING>
 	{
+	    // TODO: remove this when CURSOR is supported
+	    return new ijUnsupportedCommandResult("CURSOR");
+
 		sVal = stringValue(s.image);
 		try {
 			Session sn = findSession(qi.getSessionName());
@@ -2334,6 +2349,8 @@ throws SQLException
 {
 	<ABSOLUTE> row = intLiteral() qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when ABSOLUTE is supported
+		return new ijUnsupportedCommandResult("ABSOLUTE"); 
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.absolute(rs, row);
@@ -2351,6 +2368,8 @@ throws SQLException
 {
 	<RELATIVE> row = intLiteral() qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when RELATIVE is supported
+		return new ijUnsupportedCommandResult("RELATIVE");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.relative(rs, row);
@@ -2367,6 +2386,8 @@ throws SQLException
 {
 	<BEFORE> <FIRST> qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when BEFORE FIRST is supported
+		return new ijUnsupportedCommandResult("BEFORE FIRST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.beforeFirst(rs);
@@ -2383,6 +2404,8 @@ throws SQLException
 {
 	<FIRST> qi=qualifiedIdentifier()
 	{
+	    // TODO: remove this when FIRST is supported
+		return new ijUnsupportedCommandResult("FIRST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.first(rs);
@@ -2399,6 +2422,8 @@ throws SQLException
 {
 	<NEXT> qi=qualifiedIdentifier()
 	{
+	    // TODO: remove this when NEXT is supported
+		return new ijUnsupportedCommandResult("NEXT");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return new ijRowResult(rs, rs.next());
@@ -2415,6 +2440,8 @@ throws SQLException
 {
 	<AFTER> <LAST> qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when AFTER LAST is supported
+		return new ijUnsupportedCommandResult("AFTER LAST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.afterLast(rs);
@@ -2431,6 +2458,8 @@ throws SQLException
 {
 	<LAST> qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when LAST is supported
+		return new ijUnsupportedCommandResult("LAST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.last(rs);
@@ -2447,6 +2476,8 @@ throws SQLException
 {
 	<PREVIOUS> qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when PREVIOUS is supported
+		return new ijUnsupportedCommandResult("PREVIOUS");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.previous(rs);
@@ -2463,6 +2494,8 @@ throws SQLException
 {
 	<GETCURRENTROWNUMBER> qi=qualifiedIdentifier()
 	{
+		// TODO: remove this when GETCURRENTROWNUMBER is supported
+		return new ijUnsupportedCommandResult("GETCURRENTROWNUMBER");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return new ijVectorResult(utilInstance.getCurrentRowNumber(rs), null);
@@ -2480,6 +2513,8 @@ throws SQLException
 {
 	<CLOSE> qi=qualifiedIdentifier()
 	{
+	    // TODO: remove this when CLOSE is supported
+		return new ijUnsupportedCommandResult("CLOSE");
 		Session sn = findSession(qi.getSessionName());
 		
 		ResultSet rs = sn.getCursor(qi.getLocalName());

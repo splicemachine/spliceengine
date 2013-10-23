@@ -44,6 +44,7 @@ abstract class ijResultImpl implements ijResult {
 	public boolean isMulti() { return false; }
 	public boolean isException() { return false; }
 	public boolean isMultipleResultSetResult(){ return false; }
+	public boolean isUnsupportedCommand() { return false; }
 	public boolean hasWarnings() throws SQLException { return getSQLWarnings()!=null; }
 
 	public Connection getConnection() { return null; }

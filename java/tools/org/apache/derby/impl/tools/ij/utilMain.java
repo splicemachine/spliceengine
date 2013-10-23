@@ -501,7 +501,10 @@ public class utilMain implements java.security.PrivilegedAction {
               }
 			} else if (result.isException()) {
 				JDBCDisplayUtil.ShowException(out,result.getException());
-			}
+			} else if (result.isUnsupportedCommand())
+			{
+				out.println(result);
+			}	
 		}
 	}
 
