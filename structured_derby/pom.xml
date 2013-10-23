@@ -293,7 +293,6 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.stop.script}" />
                                         </exec>
-                                        <sleep seconds="90" />
                                     </target>
                                 </configuration>
                                 <goals>

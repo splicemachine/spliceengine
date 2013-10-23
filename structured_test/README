@@ -1,4 +1,4 @@
-This README describes TestNist (NIST Integration Test)
+This section describes TestNist (NIST Integration Test)
 
 - TestNist: Run all SQL script in the src/test/resourced/nist folder with derby, splice and do script output
             differencing.  Runs just less than 4 min.  When run this way, a splice server must be running ahead
@@ -6,7 +6,7 @@ This README describes TestNist (NIST Integration Test)
 
    - To run manually... (splice server must be running)
 
-   USAGE: mvn clean verify -Dtest=TestNist [-Dnoclean] [-Dscript=<scriptName.sql>] [-P <platform>]
+   USAGE: mvn clean install -Dtest=TestNist [-Dnoclean] [-Dscript=<scriptName.sql>] [-P <platform>]
    Where: noclean => do not clean the Derby and Splice DB schema. Default is to remove all foreign schema before and
                 after run.
           script=<scriptName.sql> => run the Nist script noted (plus schema creation scripts before).
@@ -20,11 +20,18 @@ This README describes TestNist (NIST Integration Test)
     - Note that if you just run "> mvn test", that will run NistIT (the main test) and all tests in
             the project and Splice tests may fail because schema and tables already exist.
 
-    - To run as a Maven Profile... (starts/stops server for you)
+This section describes TestNist (NIST Integration Test)
 
-    USAGE: mvn verify -P [<profile>,]apache-derby,integration-tests
+   - This runs as a Maven Profile... (starts/stops server for you)
+
+   USAGE: mvn clean install -P [<profile>,]apache-derby,integration-tests
         Will run all tests, unit and integ, starting and stopping the splice server for you.
-        *** THIS IS CURRENTLY DISABLED BECAUSE OF TROUBLE RUNNING ON BUILD SERVER ***
+
+    Notes:
+     - Test difference report output goes into NistIT.log
+     - apache-derby profile is given so that Derby test running code has access to vanilla Derby jars.
+
+This section describes the Nist testing overall
 
 - Structure
    - Control files located in src/test/resources/nist
@@ -60,4 +67,13 @@ This README describes TestNist (NIST Integration Test)
        schemas that have Views that are dependent on other views. If an attempt is made to drop a view on which
        another view is dependent, the View drop fails and then, of course, the schema drop fails.  Usually it
        is not a problem to run ITs twice because the clean that runs before the test removes dangling schema
-       that the post test cleanup failed to remove.  
+       that the post test cleanup failed to remove.
+   - Getting maven to launch the Splice server (with splice derby jars) AND to run tests against vanilla Derby
+       (acquire embedded connection, etc) in the same Java VM is not working.  If the splice sever is started
+       manually, one test can be run to exec sql scripts against both vanilla Derby, Splice Machine server,
+       compare and report results. This is how the TestNist test works. This works because the derby client
+       jars are running in separate VMs. To run Nist test scripts against both vanilla Derby and Splice in the
+       same VM, two test classes have to be run. The first, DerbyNistTest, is run against vanilla Derby and its
+       output written to target/nist. Then the splice server is started and SpliceNistIT is run against the
+       splice server with its output going to target/nist. At the end of SpliceNistIT the derby results are
+       compared to the splice results and the NistIT.log report is written.

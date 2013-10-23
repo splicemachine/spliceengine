@@ -381,7 +381,8 @@
 								<argument>60025</argument>
 								<argument>60026</argument>
 								<argument>60027</argument>
-								<argument>60028</argument>
+                                <argument>60028</argument>
+                                <argument>1530</argument>
 							</arguments>
 
 						</configuration>

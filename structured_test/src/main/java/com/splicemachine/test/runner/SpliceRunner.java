@@ -35,6 +35,7 @@ public class SpliceRunner implements TestRunner {
 
     private final String outputDirectory;
     private final ExecutorService executor;
+    private final String port;
 
     /**
      * Constructor. Initializes.
@@ -42,9 +43,20 @@ public class SpliceRunner implements TestRunner {
      * @throws Exception
      */
     public SpliceRunner(String outputDirectory) throws Exception {
+        this(outputDirectory,null);
+    }
+
+    /**
+     * Constructor. Initializes.
+     * @param outputDirectory directory in which to place test output
+     * @param port optional port to connect to
+     * @throws Exception
+     */
+    public SpliceRunner(String outputDirectory, String port) throws Exception {
     	this.outputDirectory = outputDirectory;
 //        executor = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
         executor = Executors.newSingleThreadExecutor();
+        this.port = port;
         Connection connection = getConnection();
         connection.close();
     }
@@ -85,7 +97,7 @@ public class SpliceRunner implements TestRunner {
      */
     @Override
     public Connection getConnection() throws Exception {
-    	return SpliceNetConnection.getConnection();
+    	return SpliceNetConnection.getConnection(this.port);
     }
 
     /**
