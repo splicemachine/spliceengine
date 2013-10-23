@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -8,9 +9,13 @@ import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -57,8 +62,16 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     @Override
-    public TaskFutureContext submit(final RegionTask task) throws IOException {
+    public TaskFutureContext submit(byte[] taskStart,byte[] taskEnd,final RegionTask task) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+
+        //make sure that the task is fully contained within this region
+        byte[] regionStart = rce.getRegion().getStartKey();
+        byte[] regionStop = rce.getRegion().getEndKey();
+
+        if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
+            throw new NotServingRegionException("Incorrect region for Task submission");
+
         return doSubmit(task, rce);
     }
 

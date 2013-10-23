@@ -10,5 +10,5 @@ import java.io.IOException;
  */
 public interface SpliceSchedulerProtocol extends CoprocessorProtocol {
 
-    public TaskFutureContext submit(RegionTask task) throws IOException;
+    public TaskFutureContext submit(byte[] taskStart,byte[] taskStop,RegionTask task) throws IOException;
 }

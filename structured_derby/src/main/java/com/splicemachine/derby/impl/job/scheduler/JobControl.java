@@ -4,6 +4,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.*;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
+import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
@@ -284,12 +285,17 @@ class JobControl implements JobFuture {
 
         try{
             table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,
-                    new Batch.Call<SpliceSchedulerProtocol, TaskFutureContext>() {
-                @Override
-                public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
-                    return instance.submit(task);
-                }
-            }, new Batch.Callback<TaskFutureContext>() {
+                    new BoundCall<SpliceSchedulerProtocol, TaskFutureContext>() {
+                        @Override
+                        public TaskFutureContext call(SpliceSchedulerProtocol instance) throws IOException {
+                            throw new UnsupportedOperationException();
+                        }
+
+                        @Override
+                        public TaskFutureContext call(byte[] startKey, byte[] stopKey, SpliceSchedulerProtocol instance) throws IOException {
+                            return instance.submit(startKey,stopKey,task);
+                        }
+                    }, new Batch.Callback<TaskFutureContext>() {
                         @Override
                         public void update(byte[] region, byte[] row, TaskFutureContext result) {
                             RegionTaskControl control = new RegionTaskControl(row,task,JobControl.this,result,tryCount,zkManager);

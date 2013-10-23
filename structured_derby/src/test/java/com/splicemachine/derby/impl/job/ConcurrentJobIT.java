@@ -109,9 +109,16 @@ public class ConcurrentJobIT {
             }));
         }
         //wait for it to finish
+        List<Exception> errors = Lists.newArrayListWithExpectedSize(0);
         for(Future<Void> future:futures){
-            future.get();
+            try{
+                future.get();
+            }catch(Exception t){
+                errors.add(t);
+            }
         }
+        if(errors.size()>0)
+            throw errors.get(0);
     }
 
     private void testCountOperation() throws Exception{
