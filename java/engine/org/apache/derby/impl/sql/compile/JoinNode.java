@@ -86,8 +86,8 @@ public class JoinNode extends TableOperatorNode {
 	Properties joinOrderStrategyProperties;
 
 	// Splice Additions
-	protected int[] leftHashKeys;
-	protected int[] rightHashKeys;
+	public int[] leftHashKeys;
+	public int[] rightHashKeys;
 
 
 	/**
@@ -1691,10 +1691,9 @@ public class JoinNode extends TableOperatorNode {
             ColumnMappingUtils.updateColumnMappings(leftResultSet.getResultColumns(), nonLocalRefs.iterator() );
         }
 
-        FromBaseTable table = null;
-        List equalsPreds = new ArrayList();
         if (rightResultSet instanceof Optimizable &&
                 isHashableJoin(rightResultSet)){
+             FromBaseTable table = null;
              if(rightResultSet instanceof ProjectRestrictNode){
                  //if the table is a ProjectRestrict, then you have to go past,
                  // because ProjectRestricts don't necessarily have the Predicates we need
@@ -1702,8 +1701,7 @@ public class JoinNode extends TableOperatorNode {
              }else{
                  table = (FromBaseTable)rightResultSet;
              }
-             equalsPreds = equiJoinPreds(table.nonStoreRestrictionList);
-             // Clear equijoin predicaets, b/c they will be handled by the join
+            // Clear join predicaets, b/c they will be handled by the join
             for(int i = table.nonStoreRestrictionList.size() - 1; i >= 0; i--){
                 Predicate op = (Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
                 if (op.isJoinPredicate()){
@@ -1712,81 +1710,20 @@ public class JoinNode extends TableOperatorNode {
             }
         }
 
-
-
         rightResultSet.generate(acb, mb); // arg 3
 		mb.push(rightResultSet.resultColumns.size()); // arg 4
 
-        if(rightResultSet instanceof Optimizable){
+       if(rightResultSet instanceof Optimizable &&
+             isHashableJoin(rightResultSet)){
+            // Add the left & right hash arrays to the method call
+            int leftHashKeysItem = acb.addItem(FormatableIntHolder.getFormatableIntHolders(leftHashKeys));
+            mb.push(leftHashKeysItem);
+            numArgs++;
 
-            /*
-             * In the event of a MergeSortJoin Strategy, we have to sort of hack the
-             * structure of the JoinNode, because it's structured fundamentally different
-             * than Derby-specific joins. In particular, it requires the hash keys for both
-             * the left and right result sets (as opposed to just the right in the case of a derby HashJoin).
-             * This block of code deals with that scenario.
-             *
-             * In particular, this will build both the left and right hash key sets by looking at the
-             * predicates which are part of the query.
-             *
-             */
-            if(isHashableJoin(rightResultSet)){
-                int[] leftHashCols = new int[equalsPreds.size()];
-                String leftTableName = null;
-                long leftTableNumber = -1;
-
-                int[] rightHashCols = new int[equalsPreds.size()];
-                String rightTableName = null;
-                long rightTableNumber = -1;
-
-                for(int i=0;i<equalsPreds.size();i++){
-                    BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode) ((Predicate)equalsPreds.get(i)).getRelop();
-
-                    ColumnReference maybeLeftCol = (ColumnReference) opNode.getLeftOperand();
-                    ColumnReference maybeRightCol = (ColumnReference) opNode.getRightOperand();
-
-                    ColumnReference leftCol = null;
-                    ColumnReference rightCol = null;
-
-                    if (maybeRightCol.getTableNumber() == table.getTableNumber()) {
-                        leftCol = maybeLeftCol;
-                        rightCol = maybeRightCol;
-                    } else {
-                        leftCol = maybeRightCol;
-                        rightCol = maybeLeftCol;
-                    }
-
-                    leftHashCols[i] = resolveColumn(leftCol.getColumnNumber(), (Optimizable) leftResultSet);
-                    rightHashCols[i] = resolveColumn(rightCol.getColumnNumber(), (Optimizable) rightResultSet);
-
-                    TableDescriptor ltd = getTDforColumnRef(leftCol);
-                    if (ltd != null){
-                        leftTableName = ltd.getName();
-                        leftTableNumber = ltd.getHeapConglomerateId();
-                    }
-
-                    TableDescriptor rtd = getTDforColumnRef(rightCol);
-                    if (rtd != null){
-                        rightTableName = rtd.getName();
-                        rightTableNumber = rtd.getHeapConglomerateId();
-                    }
-                }
-
-                FormatableHashtable leftHashTable = createFormatableHashtable(leftTableName, leftTableNumber, leftHashCols);
-
-                //add the left hash array to the method call
-                int leftHashKeyItem = acb.addItem(leftHashTable);
-                mb.push(leftHashKeyItem);
-                numArgs++;
-
-                FormatableHashtable rightHashTable = createFormatableHashtable(rightTableName, rightTableNumber, rightHashCols);
-
-                //add the right hash array to the method call
-                int rightHashKeyItem = acb.addItem(rightHashTable);
-                mb.push(rightHashKeyItem);
-                numArgs++;
-            }
-        }
+            int rightHashKeysItem = acb.addItem(FormatableIntHolder.getFormatableIntHolders(rightHashKeys));
+            mb.push(rightHashKeysItem);
+            numArgs++;
+       }
 		// Get our final cost estimate based on child estimates.
 		costEstimate = getFinalCostEstimate();
 
@@ -1863,64 +1800,6 @@ public class JoinNode extends TableOperatorNode {
 		return numArgs;
 
 	}
-
-	/*
-	 * Resolve the column number based on the chosen access path, taking into
-	 * account indexes
-	 */
-	private int resolveColumn(int columnNumber, Optimizable optimizable) {
-		AccessPath accessPath = ((Optimizable) optimizable).getTrulyTheBestAccessPath();
-		if (accessPath == null) {
-			return columnNumber;
-		}
-
-		ConglomerateDescriptor cd = accessPath.getConglomerateDescriptor();
-		if (cd == null || !cd.isIndex()) {
-			return columnNumber;
-		}
-
-		int indexColumn = cd.getIndexDescriptor().getKeyColumnPosition(columnNumber);
-		if (indexColumn == 0) {
-			// column is not in the index key
-			return columnNumber;
-		}
-		return indexColumn;
-	}
-
-    /*
-     * Return the TableDescriptor for the table containing the column in ref, 
-     * or null if not possible
-     */
-    private TableDescriptor getTDforColumnRef(ColumnReference ref) throws StandardException {
-        ResultColumn source = ref.getSource();
-        ColumnDescriptor cd = source.getTableColumnDescriptor();
-        if (cd != null){
-            return cd.getTableDescriptor();
-        }
-        String tableName = source.getTableName() != null ?
-                            source.getTableName() : source.getSourceTableName();
-        String schemaName = source.getSchemaName() != null ?
-                                source.getSchemaName() : source.getSourceSchemaName();
-        if (tableName == null || schemaName == null){
-            return null;
-        }
-        SchemaDescriptor sd = ref.getSchemaDescriptor(schemaName);
-        if (sd == null){
-            return null;
-        }
-        return ref.getTableDescriptor(tableName, sd);
-    }
-
-    private List equiJoinPreds(PredicateList preds){
-        List equalsPreds = new ArrayList(preds.size());
-        for(int i=0;i < preds.size(); i++){
-            Predicate op = (Predicate)preds.getOptPredicate(i);
-            if (op.isJoinPredicate() && op.getRelop().getOperator() == RelationalOperator.EQUALS_RELOP){
-                equalsPreds.add(op);
-            }
-        }
-        return equalsPreds;
-    }
 
     private boolean isNestedLoopOverHashableJoin(){
 
