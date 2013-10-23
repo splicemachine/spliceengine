@@ -40,7 +40,7 @@ import java.text.RuleBasedCollator;
  * just passing an appropriate RuleBasedCollator object for that kind of 
  * collation.
  */
-class CollatorSQLChar extends SQLChar implements CollationElementsInterface
+public final class CollatorSQLChar extends SQLChar implements CollationElementsInterface
 {
 	private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo;
 	/*
@@ -50,7 +50,7 @@ class CollatorSQLChar extends SQLChar implements CollationElementsInterface
      * Create SQL CHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 
      */
-    CollatorSQLChar(RuleBasedCollator collatorForCharacterDatatypes)
+    public CollatorSQLChar(RuleBasedCollator collatorForCharacterDatatypes)
     {
         setCollator(collatorForCharacterDatatypes);
     }

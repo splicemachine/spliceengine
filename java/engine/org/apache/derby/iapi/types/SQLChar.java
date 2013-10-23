@@ -3119,7 +3119,7 @@ public class SQLChar
 
     } // end of estimateMemoryUsage
 
-    protected void copyState(SQLChar other)
+    public void copyState(SQLChar other)
     {
         copyState
             (
@@ -3132,7 +3132,7 @@ public class SQLChar
              other.localeFinder
              );
     }
-    private void    copyState
+    public void    copyState
         (
          String otherValue,
          char[] otherRawData,

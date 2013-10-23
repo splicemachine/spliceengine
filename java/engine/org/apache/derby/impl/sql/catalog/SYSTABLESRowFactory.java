@@ -68,6 +68,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 	protected static final int		SYSTABLES_TABLETYPE = 3;
 	protected static final int		SYSTABLES_SCHEMAID = 4;
 	protected static final int		SYSTABLES_LOCKGRANULARITY = 5;
+	protected static final int		SYSTABLES_VERSION = 6;
 
 	protected static final int		SYSTABLES_INDEX1_ID = 0;
 	protected static final int		SYSTABLES_INDEX1_TABLENAME = 1;
@@ -215,6 +216,10 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 
 		/* 5th column is LOCKGRANULARITY (char(1)) */
 		row.setColumn(SYSTABLES_LOCKGRANULARITY, new SQLChar(lockGranularity));
+
+		/* 6th column is VERSION (varchar(128)) */
+		//TODO -sf- make this version number dynamic
+		row.setColumn(SYSTABLES_VERSION,new SQLVarchar("1.0"));
 
 		return row;
 	}
@@ -390,6 +395,9 @@ class SYSTABLESRowFactory extends CatalogRowFactory
 			SanityManager.ASSERT(lockGranularity.length() == 1, "Fifth column type incorrect");
 		}
 
+		//TODO -sf- place version into tuple descriptor
+//		String version = row.getColumn(SYSTABLES_VERSION);
+
 		// RESOLVE - Deal with lock granularity
 		tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0));
 		tabDesc.setUUID(tableUUID);
@@ -430,6 +438,7 @@ class SYSTABLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getIndicatorColumn("TABLETYPE"),
             SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
             SystemColumnImpl.getIndicatorColumn("LOCKGRANULARITY"),
+            SystemColumnImpl.getIdentifierColumn("VERSION",true),
         };
 	}
 
