@@ -207,7 +207,7 @@ public class ColumnReference extends ValueNode
 	 *
 	 * @return Whether or not this CR is correlated.
 	 */
-	boolean getCorrelated()
+	public boolean getCorrelated()
 	{
 		if (SanityManager.DEBUG)
 		{

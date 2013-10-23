@@ -1527,18 +1527,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 		 */
 		assignResultSetNumber();
 		
-		/* Set the point of attachment in all subqueries attached
-		 * to this node.
-		 */
-		if (projectSubquerys != null && projectSubquerys.size() > 0)
-		{
-			projectSubquerys.setPointOfAttachment(resultSetNumber);
-		}
-		if (restrictSubquerys != null && restrictSubquerys.size() > 0)
-		{
-			restrictSubquerys.setPointOfAttachment(resultSetNumber);
-		}
-
 		// Load our final cost estimate.
 		costEstimate = getFinalCostEstimate();
 
@@ -1945,5 +1933,21 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 
     public ConstantAction makeConstantAction() throws StandardException {
         return childResult.makeConstantAction();
+    }
+
+    public void assignResultSetNumber() throws StandardException {
+        super.assignResultSetNumber();
+
+		/* Set the point of attachment in all subqueries attached
+		 * to this node.
+		 */
+		if (projectSubquerys != null && projectSubquerys.size() > 0)
+		{
+			projectSubquerys.setPointOfAttachment(resultSetNumber);
+		}
+		if (restrictSubquerys != null && restrictSubquerys.size() > 0)
+		{
+			restrictSubquerys.setPointOfAttachment(resultSetNumber);
+		}
     }
 }

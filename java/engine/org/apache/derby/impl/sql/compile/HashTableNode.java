@@ -312,28 +312,6 @@ public class HashTableNode extends SingleChildResultSetNode
 		 */
 		assignResultSetNumber();
 
-		/* Set the point of attachment in all subqueries attached
-		 * to this node.
-		 */
-		if (pSubqueryList != null && pSubqueryList.size() > 0)
-		{
-			pSubqueryList.setPointOfAttachment(resultSetNumber);
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.ASSERT(pSubqueryList.size() == 0,
-					"pSubqueryList.size() expected to be 0");
-			}
-		}
-		if (rSubqueryList != null && rSubqueryList.size() > 0)
-		{
-			rSubqueryList.setPointOfAttachment(resultSetNumber);
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.ASSERT(rSubqueryList.size() == 0,
-					"rSubqueryList.size() expected to be 0");
-			}
-		}
-
 		// Get the final cost estimate based on child's cost.
 		costEstimate = childResult.getFinalCostEstimate();
 
@@ -445,4 +423,25 @@ public class HashTableNode extends SingleChildResultSetNode
 			joinPredicateList = (PredicateList)joinPredicateList.accept(v);
 		}
 	}
+
+    public void assignResultSetNumber() throws StandardException {
+        super.assignResultSetNumber();
+        /* Set the point of attachment in all subqueries attached
+         * to this node.
+		 */
+        if (pSubqueryList != null && pSubqueryList.size() > 0) {
+            pSubqueryList.setPointOfAttachment(resultSetNumber);
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(pSubqueryList.size() == 0,
+                        "pSubqueryList.size() expected to be 0");
+            }
+        }
+        if (rSubqueryList != null && rSubqueryList.size() > 0) {
+            rSubqueryList.setPointOfAttachment(resultSetNumber);
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(rSubqueryList.size() == 0,
+                        "rSubqueryList.size() expected to be 0");
+            }
+        }
+    }
 }

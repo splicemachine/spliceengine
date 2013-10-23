@@ -1627,14 +1627,6 @@ public class JoinNode extends TableOperatorNode {
 		 */
 		assignResultSetNumber();
 
-		/* Set the point of attachment in all subqueries attached
-		 * to this node.
-		 */
-		if (subquerys != null && subquerys.size() > 0)
-		{
-			subquerys.setPointOfAttachment(resultSetNumber);
-		}
-
 		// build up the tree.
 
 		/* Generate the JoinResultSet */
@@ -2145,6 +2137,13 @@ public class JoinNode extends TableOperatorNode {
 
 		return map;
 	}
+
+    public void assignResultSetNumber() throws StandardException {
+        super.assignResultSetNumber();
+        if (subqueryList != null && subqueryList.size() > 0) {
+			   subqueryList.setPointOfAttachment(resultSetNumber);
+		  }
+    }
 	
 
 }
