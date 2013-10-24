@@ -236,4 +236,13 @@ public class SubqueryIT {
         // WORKS has 12 rows, each should be returned since STAFF contains one of every EMPNUM
         Assert.assertEquals(12, TestUtils.resultSetToMaps(rs).size());
     }
+
+    @Test
+    public void testCorrelatedExpressionSubqueryWithBoundaryCrossingReference() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select works.* from proj, works, staff " +
+                "where proj.pnum = works.pnum and staff.empnum = works.empnum and staff.city = " +
+                "(select distinct staff.city from staff where proj.city = staff.city)");
+
+        Assert.assertEquals(6, TestUtils.resultSetToMaps(rs).size());
+    }
 }
