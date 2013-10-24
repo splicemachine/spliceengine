@@ -175,13 +175,6 @@ public class Exceptions {
         return error;
     }
 
-    public static Throwable getWrapperException(String errorMessage,String sqlState) {
-        StandardException se =  StandardException.newException(sqlState,errorMessage);
-        se.setSqlState(sqlState);
-        se.setTextMessage(errorMessage);
-        return se;
-    }
-
     public static String getErrorCode(Throwable error) {
         if(error instanceof StandardException){
             return ((StandardException)error).getSqlState();

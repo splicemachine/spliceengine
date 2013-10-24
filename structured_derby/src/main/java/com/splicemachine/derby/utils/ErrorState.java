@@ -6,6 +6,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedException;
+import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import java.io.FileNotFoundException;
@@ -1806,7 +1807,10 @@ public enum ErrorState {
     SPLICE_REGION_OFFLINE("SE004"){
         @Override
         public boolean accepts(Throwable t) {
-            return t instanceof NotServingRegionException || t instanceof WrongRegionException || super.accepts(t);
+            return t instanceof NotServingRegionException
+                    || t instanceof WrongRegionException
+                    || t instanceof HBaseClient.FailedServerException
+                    || super.accepts(t);
         }
 
         @Override
