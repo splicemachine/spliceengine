@@ -66,6 +66,13 @@ public class PredicateUtils {
             return format("%s%s%s", table == null ? "" : format("%s.", table),
                     cr.getColumnName(), source == null ? "" :
                     format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
+        } else if (operand instanceof VirtualColumnNode) {
+            VirtualColumnNode vcn = (VirtualColumnNode) operand;
+            ResultColumn source = vcn.getSourceColumn();
+            String table = source.getTableName();
+            return format("%s%s%s", table == null ? "" : format("%s.", table),
+                    source.getName(),
+                    format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
         } else if (operand instanceof SubqueryNode) {
             SubqueryNode subq = (SubqueryNode) operand;
             return format("subq=%s", subq.getResultSet().getResultSetNumber());
@@ -77,7 +84,7 @@ public class PredicateUtils {
                 return se.getMessage();
             }
         } else {
-            return operand.toString();
+            return operand.toString().replace("\n", " ");
         }
     }
 
