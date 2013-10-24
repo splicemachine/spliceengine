@@ -74,6 +74,7 @@ public class SpliceDatabase extends BasicDatabase {
         afterOptVisitors.add(JoinSelector.class);
         afterOptVisitors.add(MSJJoinConditionVisitor.class);
         afterOptVisitors.add(FindHashJoinColumns.class);
+        afterOptVisitors.add(FixSubqueryColRefs.class);
         afterOptVisitors.add(PlanPrinter.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
