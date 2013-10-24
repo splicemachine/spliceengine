@@ -357,10 +357,19 @@ public class JoinNode extends TableOperatorNode {
 	{
 		super.modifyAccessPath(outerTables);
 
+		/*
+     * Unfortunately for Derby, this assertion is no longer
+		 * true in the Splice use case. This is because we have
+		 * Some predicates which can sit on one side of the join
+		 * but reference the other side of the join. When that
+		 * happens, we cannot necessarily push the predicate down
+		 * Because it may cause a cross-materialization-boundary
+		 * access attempt, which isn't possible in Splice.
+		 */
+
 		/* By the time we're done here, both the left and right
 		 * predicate lists should be empty because we pushed everything
 		 * down.
-		 */
 		if (SanityManager.DEBUG)
 		{
 			if (getLeftPredicateList().size() != 0)
@@ -369,6 +378,7 @@ public class JoinNode extends TableOperatorNode {
 					"getLeftPredicateList().size() expected to be 0, not " +
 					getLeftPredicateList().size());
 			}
+
 			if (getRightPredicateList().size() != 0)
 			{
 				SanityManager.THROWASSERT(
@@ -376,6 +386,7 @@ public class JoinNode extends TableOperatorNode {
 					getRightPredicateList().size());
 			}
 		}
+		 */
 
 		return this;
 	}
