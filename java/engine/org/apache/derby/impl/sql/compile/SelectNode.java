@@ -2154,8 +2154,14 @@ public class SelectNode extends ResultSetNode
 	}
 
     private ColumnReference getJoinColumn(Predicate predicate){
-        BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode) predicate.getAndNode().getLeftOperand();
-        return (ColumnReference) opNode.getLeftOperand();
+				BinaryOperatorNode node = predicate.getAndNode();
+				ValueNode left;
+				do{
+					left = node.getLeftOperand();
+					if(left instanceof BinaryOperatorNode)
+						node = (BinaryOperatorNode)left;
+				}while(!(left instanceof ColumnReference));
+				return (ColumnReference)left;
     }
 
     private ValueNode createNotNullOperator(ColumnReference colRef) throws StandardException {
