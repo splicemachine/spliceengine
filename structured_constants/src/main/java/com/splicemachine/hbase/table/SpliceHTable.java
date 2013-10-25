@@ -10,6 +10,7 @@ import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -101,9 +102,10 @@ public class SpliceHTable extends HTable {
                      * We sent it to the wrong place, so we need to resubmit it. But since we
                      * pulled it from the cache, we first invalidate that cache
                      */
+                    ExecContext context = completedFuture.getKey();
+                    wait(context.attemptCount); //wait for a bit to see if it clears up
                     regionCache.invalidate(tableName);
 
-                    ExecContext context = completedFuture.getKey();
                     Pair<byte[],byte[]> failedKeys = context.keyBoundary;
                     context.errors.add(cause);
                     List<Pair<byte[],byte[]>> resubmitKeys = getKeys(failedKeys.getFirst(),failedKeys.getSecond(),0);
@@ -126,34 +128,36 @@ public class SpliceHTable extends HTable {
     }
 
     private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
-        if(attemptCount>maxRetries)
-            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts");
-
-        Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
-        byte[][] starts = startEndKeys.getFirst();
-        byte[][] ends = startEndKeys.getSecond();
-
-        for(int i=0;i<starts.length;i++){
-            byte[] start = starts[i];
-            byte[] end = ends[i];
-
-            if(end.length==0){
-                //we've reached the end of the table, so this MUST be the containing region
-                return Pair.newPair(start,end);
-            }
-            if(Bytes.compareTo(end,startKey)>0){
-                //this is a containing region
-                return Pair.newPair(start,end);
-            }
-        }
-
-        /*
-         * We couldn't find any containing region, which is bad. Backoff for a bit, then
-         * invalidate the cache and retry.
-         */
-        wait(attemptCount);
-        regionCache.invalidate(tableName);
-        return getContainingRegion(startKey,attemptCount+1);
+        HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey, attemptCount > 0);
+        return Pair.newPair(regionLocation.getRegionInfo().getStartKey(),regionLocation.getRegionInfo().getEndKey());
+//        if(attemptCount>maxRetries)
+//            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts");
+//
+//        Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
+//        byte[][] starts = startEndKeys.getFirst();
+//        byte[][] ends = startEndKeys.getSecond();
+//
+//        for(int i=0;i<starts.length;i++){
+//            byte[] start = starts[i];
+//            byte[] end = ends[i];
+//
+//            if(end.length==0){
+//                //we've reached the end of the table, so this MUST be the containing region
+//                return Pair.newPair(start,end);
+//            }
+//            if(Bytes.compareTo(end,startKey)>0){
+//                //this is a containing region
+//                return Pair.newPair(start,end);
+//            }
+//        }
+//
+//        /*
+//         * We couldn't find any containing region, which is bad. Backoff for a bit, then
+//         * invalidate the cache and retry.
+//         */
+//        wait(attemptCount);
+//        regionCache.invalidate(tableName);
+//        return getContainingRegion(startKey,attemptCount+1);
     }
 
     private void wait(int attemptCount) {
