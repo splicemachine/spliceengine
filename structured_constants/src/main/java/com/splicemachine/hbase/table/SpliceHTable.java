@@ -119,7 +119,7 @@ public class SpliceHTable extends HTable {
 
     private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey,int attemptCount) throws IOException {
         if(attemptCount>maxRetries){
-            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts");
+            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts on table " + tableName + " with startKey " + startKey + " and end key " + endKey);
         }
         Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
         byte[][] starts = startEndKeys.getFirst();
