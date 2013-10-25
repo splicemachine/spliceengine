@@ -72,7 +72,7 @@ public class SpliceHTable extends HTable {
                                                                    byte[] startKey,
                                                                    byte[] endKey,
                                                                    final Batch.Call<T, R> callable, final Batch.Callback<R> callback) throws Throwable {
-        List<Pair<byte[], byte[]>> keysToUse = getKeys(startKey, endKey,0);
+        List<Pair<byte[], byte[]>> keysToUse = getKeys(startKey, endKey);
 
         KeyedCompletionService<ExecContext,R> completionService = new KeyedCompletionService<ExecContext,R>(tableExecutor);
         int outstandingFutures = 0;
@@ -108,7 +108,7 @@ public class SpliceHTable extends HTable {
 
                     Pair<byte[],byte[]> failedKeys = context.keyBoundary;
                     context.errors.add(cause);
-                    List<Pair<byte[],byte[]>> resubmitKeys = getKeys(failedKeys.getFirst(),failedKeys.getSecond(),0);
+                    List<Pair<byte[],byte[]>> resubmitKeys = getKeys(failedKeys.getFirst(),failedKeys.getSecond());
                     for(Pair<byte[],byte[]> keys:resubmitKeys){
                         ExecContext newContext = new ExecContext(keys,context.errors,context.attemptCount+1);
                         submit(protocol,callable,callback,completionService,newContext);
@@ -130,34 +130,6 @@ public class SpliceHTable extends HTable {
     private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
         HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey, attemptCount > 0);
         return Pair.newPair(regionLocation.getRegionInfo().getStartKey(),regionLocation.getRegionInfo().getEndKey());
-//        if(attemptCount>maxRetries)
-//            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts");
-//
-//        Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
-//        byte[][] starts = startEndKeys.getFirst();
-//        byte[][] ends = startEndKeys.getSecond();
-//
-//        for(int i=0;i<starts.length;i++){
-//            byte[] start = starts[i];
-//            byte[] end = ends[i];
-//
-//            if(end.length==0){
-//                //we've reached the end of the table, so this MUST be the containing region
-//                return Pair.newPair(start,end);
-//            }
-//            if(Bytes.compareTo(end,startKey)>0){
-//                //this is a containing region
-//                return Pair.newPair(start,end);
-//            }
-//        }
-//
-//        /*
-//         * We couldn't find any containing region, which is bad. Backoff for a bit, then
-//         * invalidate the cache and retry.
-//         */
-//        wait(attemptCount);
-//        regionCache.invalidate(tableName);
-//        return getContainingRegion(startKey,attemptCount+1);
     }
 
     private void wait(int attemptCount) {
