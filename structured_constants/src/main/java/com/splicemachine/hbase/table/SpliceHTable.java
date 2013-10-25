@@ -122,7 +122,7 @@ public class SpliceHTable extends HTable {
     }
 
     List<Pair<byte[],byte[]>> getKeys(byte[] startKey, byte[] endKey) throws IOException{
-        if(Arrays.equals(startKey,endKey))
+        if((startKey.length!=0 || endKey.length!=0) && Arrays.equals(startKey,endKey))
             return Collections.singletonList(getContainingRegion(startKey, 0));
         return getKeys(startKey, endKey,0);
     }
