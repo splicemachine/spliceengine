@@ -123,6 +123,11 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     }
 
     @Override
+    public Object getGetRow(LGet get) {
+        return get.startTupleKey;
+    }
+
+    @Override
     public void setGetTimeRange(LGet get, long minTimestamp, long maxTimestamp) {
         assert minTimestamp == 0L;
         get.effectiveTimestamp = maxTimestamp - 1;

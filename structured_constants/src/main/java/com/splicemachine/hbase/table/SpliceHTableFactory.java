@@ -3,6 +3,7 @@ package com.splicemachine.hbase.table;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -60,29 +61,7 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 	  public HTableInterface createHTableInterface(Configuration config, final byte[] tableName) {
 			SpliceLogUtils.trace(LOG, "createHTableInterface for %s",Bytes.toString(tableName));
 	    try {
-	    	final HTable htable = new HTable(tableName,connection,tableExecutor){
-                @Override
-                public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol,
-                                                                               byte[] startKey,
-                                                                               byte[] endKey,
-                                                                               Batch.Call<T, R> callable,
-                                                                               Batch.Callback<R> callback) throws IOException, Throwable {
-                    Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
-                    byte[][] starts = startEndKeys.getFirst();
-                    byte[][] ends = startEndKeys.getSecond();
-
-                    List<byte[]> startKeysToUse = Lists.newArrayList();
-                    for(int i=0;i<starts.length;i++){
-                        byte[] start = starts[i];
-                        byte[] end = ends[i];
-                        Pair<byte[],byte[]> intersect = BytesUtil.intersect(startKey,endKey,start,end);
-                        if(intersect!=null){
-                           startKeysToUse.add(intersect.getFirst());
-                        }
-                    }
-                    connection.processExecs(protocol,startKeysToUse,tableName,tableExecutor,callable,callback);
-                }
-            };
+	    	final HTable htable =new SpliceHTable(tableName,connection,tableExecutor, HBaseRegionCache.getInstance());
 	    	htable.setAutoFlush(autoFlush);
 	    	return htable;
 	    } catch (IOException ioe) {

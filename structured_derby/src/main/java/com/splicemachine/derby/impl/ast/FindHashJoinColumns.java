@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.ast;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -55,18 +55,7 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
         return visit((JoinNode) node);
     }
 
-    public static com.google.common.base.Predicate<ColumnReference> pointsTo(ResultSetNode rsn)
-            throws StandardException {
-        final Set<Integer> rsns = Sets.newHashSet(Iterables.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
-        return new com.google.common.base.Predicate<ColumnReference>() {
-            @Override
-            public boolean apply(ColumnReference cr) {
-                return rsns.contains(cr.getSourceResultColumn().getResultSetNumber());
-            }
-        };
-    }
-
-    public static Integer translateToIndexOnNode(ColumnReference cr, ResultColumnList rcl)
+    public static Integer translateToIndexOnList(ColumnReference cr, ResultColumnList rcl)
             throws StandardException {
         Map<Pair<Integer, Integer>, ResultColumn> chainMap = ColumnUtils.rsnChainMap(rcl);
         Pair<Integer, Integer> colCoord = ColumnUtils.RSCoordinate(cr.getSourceResultColumn());
@@ -81,16 +70,16 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             throws StandardException {
         List<Integer> leftIndices = Lists.newArrayListWithCapacity(equiJoinPreds.size());
         List<Integer> rightIndices = Lists.newArrayListWithCapacity(equiJoinPreds.size());
-        com.google.common.base.Predicate<ColumnReference> isLeftRef = pointsTo(node.getLeftResultSet());
+        com.google.common.base.Predicate<ResultColumn> isLeftRef = RSUtils.pointsTo(node.getLeftResultSet());
         ResultColumnList leftRCL = node.getLeftResultSet().getResultColumns();
         ResultColumnList rightRCL = node.getRightResultSet().getResultColumns();
 
         for (Predicate p : equiJoinPreds) {
             for (ColumnReference cr : RSUtils.collectNodes(p, ColumnReference.class)) {
-                if (isLeftRef.apply(cr)) {
-                    leftIndices.add(translateToIndexOnNode(cr, leftRCL));
+                if (isLeftRef.apply(cr.getSourceResultColumn())) {
+                    leftIndices.add(translateToIndexOnList(cr, leftRCL));
                 } else {
-                    rightIndices.add(translateToIndexOnNode(cr, rightRCL));
+                    rightIndices.add(translateToIndexOnList(cr, rightRCL));
                 }
             }
         }

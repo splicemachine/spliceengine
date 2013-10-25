@@ -50,7 +50,7 @@ public class TestNist {
         spliceOutputFilter = NistTestUtils.readSpliceFilters();
 
         derbyRunner = new DerbyRunner(NistTestUtils.TARGET_NIST_DIR);
-        spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
+        spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR, null);
 
         if (clean && derbyRunner != null && spliceRunner != null) {
 			// clean schema before test run for cleanup, unless noclean
@@ -104,7 +104,7 @@ public class TestNist {
 
         // write report to file
         String report = baos.toString("UTF-8");
-        TestUtils.createLog(TestUtils.getBaseDirectory(), "NistIT.log", null, report, true, false);
+        TestUtils.createLog(TestUtils.getBaseDirectory(), "TestNist.log", null, report, true, false);
 
         // make test assertion
         Assert.assertEquals(failedDiffs.size() + " tests had differences: " + failedDiffs.keySet() + "\n" + report,

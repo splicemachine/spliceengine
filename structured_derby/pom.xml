@@ -288,12 +288,12 @@
                                 <configuration>
                                     <target name="StopSpliceServer" unless="${server.start.skip}">
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
-                                            <arg value="${basedir}/../${zookeeper.stop.script}" />
-                                        </exec>
-                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.stop.script}" />
                                         </exec>
-                                        <sleep seconds="90" />
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${zookeeper.stop.script}" />
+                                        </exec>
+                                        <sleep seconds="120" />
                                     </target>
                                 </configuration>
                                 <goals>
@@ -491,6 +491,7 @@
 						<configuration>
 							<classpathScope>compile</classpathScope>
 							<executable>java</executable>
+                            <workingDirectory>${basedir}</workingDirectory>
 							<arguments>
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>

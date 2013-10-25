@@ -23,28 +23,9 @@ public class TestUtils {
         return TestUtils.class.getClassLoader().getResource(path);
     }
 
-    public static void executeSqlFile(SpliceWatcher spliceWatcher, String fileSuffix, String schema){
-
-        String sqlStatementStrings = null;
+    public static void executeSql(SpliceWatcher spliceWatcher, String sqlStatements, String schema){
         try {
-            File f = new File(fileSuffix);
-            URL pathToFile = null;
-
-            if(f.isAbsolute()){
-                pathToFile = f.toURL();
-
-            }else{
-                pathToFile = getClasspathResource(fileSuffix);
-            }
-
-            sqlStatementStrings = IOUtils.toString(pathToFile);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to open file " + fileSuffix, e);
-        }
-
-        try {
-            for (String s : sqlStatementStrings.replaceAll("<SCHEMA>", schema).split(";")){
+            for (String s : sqlStatements.replaceAll("<SCHEMA>", schema).split(";")){
                 String trimmed = s.trim();
                 if (!trimmed.equals("")){
                     Statement stmt = spliceWatcher.getStatement();
@@ -53,7 +34,31 @@ public class TestUtils {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error loading SQL file at path : " + fileSuffix, e);
+            throw new RuntimeException("Error running SQL statements: " + sqlStatements, e);
+        }
+    }
+
+
+    public static void executeSqlFile(SpliceWatcher spliceWatcher, String fileSuffix, String schema){
+        executeSql(spliceWatcher, readFile(fileSuffix), schema);
+    }
+
+    public static String readFile(String fileName) {
+        try {
+            File f = new File(fileName);
+            URL pathToFile = null;
+
+            if (f.isAbsolute()) {
+                pathToFile = f.toURL();
+
+            } else {
+                pathToFile = getClasspathResource(fileName);
+            }
+
+            return IOUtils.toString(pathToFile);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to open file " + fileName, e);
         }
     }
 
@@ -107,6 +112,20 @@ public class TestUtils {
 
                 try {
                     TestUtils.executeSqlFile(watcher, fileName, className);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
+    public static SpliceDataWatcher createStringDataWatcher(final SpliceWatcher watcher, final String sqlStatements, final String className){
+        return new SpliceDataWatcher() {
+            @Override
+            protected void starting(Description description) {
+
+                try {
+                    TestUtils.executeSql(watcher, sqlStatements, className);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }

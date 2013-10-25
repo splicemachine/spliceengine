@@ -2,11 +2,13 @@ package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.utils.ConcurrentRingBuffer;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
@@ -162,6 +164,7 @@ public class BufferedRegionScanner implements RegionScanner{
     private static class ReadFiller implements ConcurrentRingBuffer.Filler<List<KeyValue>> {
         private final RegionScanner scanner;
         private final HRegion region;
+        private long count;
 
         public ReadFiller(RegionScanner scanner, HRegion region) {
             this.scanner = scanner;
@@ -172,6 +175,7 @@ public class BufferedRegionScanner implements RegionScanner{
         public void prepareToFill() throws ExecutionException {
             try {
                 region.startRegionOperation();
+                count = 0;
             } catch (NotServingRegionException e) {
                 throw new ExecutionException(e);
             } catch (RegionTooBusyException e) {
@@ -191,6 +195,7 @@ public class BufferedRegionScanner implements RegionScanner{
                 old.clear();
             try {
                 scanner.nextRaw(old,null);
+                count++;
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
@@ -200,6 +205,7 @@ public class BufferedRegionScanner implements RegionScanner{
 
         @Override
         public void finishFill() {
+        	HRegionUtil.updateReadRequests(region,count);
             region.closeRegionOperation();
         }
     }

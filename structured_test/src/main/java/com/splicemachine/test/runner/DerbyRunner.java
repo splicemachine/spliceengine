@@ -76,8 +76,7 @@ public class DerbyRunner implements TestRunner {
      * @return valid Connection
      * @throws Exception if an error occurs acquiring the connection
      */
-    @Override
     public Connection getConnection() throws Exception {
-    	return DerbyEmbedConnection.getConnection();
+    	return DerbyEmbedConnection.getConnection(null);
     }
 }

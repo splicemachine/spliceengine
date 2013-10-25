@@ -26,8 +26,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
     @Override
     public QueryTreeNode visit(JoinNode j) throws StandardException {
         try {
-            LOG.info(String.format("JoinSelector visiting JoinNode for query << %s >>", query));
-
             JoinInfo info = joinInfo(j);
             JoinStrategy chosen = chooseStrategy(info);
             if (!info.strategy.getClass().equals(chosen.getClass())) {

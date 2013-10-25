@@ -3,32 +3,32 @@ package com.splicemachine.test;
 import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
-import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.impl.TransactionId;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.derby.hbase.SpliceMasterObserver;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
-import org.apache.hadoop.hbase.NotServingRegionException;
-
-import javax.annotation.Nullable;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.coprocessors.SIObserver;
+import com.splicemachine.si.impl.TransactionId;
 import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nullable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
 
 public class SpliceTestPlatform extends TestConstants {
+    private static final Logger LOG = Logger.getLogger(SpliceTestPlatform.class);
 	protected MiniZooKeeperCluster miniZooKeeperCluster;
 	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;
@@ -38,6 +38,7 @@ public class SpliceTestPlatform extends TestConstants {
     protected Integer masterInfoPort;
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
+    protected Integer derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT;
 
     final Random random = new Random();
 
@@ -101,6 +102,13 @@ public class SpliceTestPlatform extends TestConstants {
         this.regionServerInfoPort = regionServerInfoPort;
 	}
 
+    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort,
+                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
+        this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
+                masterInfoPort, regionServerPort, regionServerInfoPort);
+        this.derbyPort = derbyPort;
+    }
+
 	public static void main(String[] args) throws Exception {
 		SpliceTestPlatform spliceTestPlatform;
 		if (args.length == 1) {
@@ -113,6 +121,10 @@ public class SpliceTestPlatform extends TestConstants {
             spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
             spliceTestPlatform.start();
 
+        }else if (args.length == 7) {
+            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+            spliceTestPlatform.start();
+
         }else{
 			System.out.println("Splice TestContext Platform supports one argument providing the target directory" +
 					" or two arguments dictating the zookeeper and hbase directory.");
@@ -123,6 +135,7 @@ public class SpliceTestPlatform extends TestConstants {
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
+        LOG.info("Derby listen port: "+derbyPort);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 
@@ -149,6 +162,7 @@ public class SpliceTestPlatform extends TestConstants {
         setInt(configuration, "hbase.master.info.port", masterInfoPort);
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
         setInt(configuration, "hbase.regionserver.info.port", regionServerInfoPort);
+        configuration.setInt(SpliceConstants.DERBY_BIND_PORT, derbyPort);
         configuration.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true);
         configuration.setInt("hbase.hstore.blockingStoreFiles", 20);
         configuration.setInt("hbase.hregion.memstore.block.multiplier", 4);

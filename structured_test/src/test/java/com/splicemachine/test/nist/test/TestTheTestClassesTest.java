@@ -52,6 +52,13 @@ public class TestTheTestClassesTest {
     }
 
     @Test
+    public void testSkipTestsFilter() throws Exception {
+        List<String> skipTestFileNames = getSkipTestFileNames();
+        // TODO: this will break with bug 910 is fixed (cause we should then remove the dml079.sql script from the skip.tests file)
+        Assert.assertTrue("Did dml079 get removed from the skip.tests file?",skipTestFileNames.contains("dml079.sql"));
+    }
+
+    @Test
     public void testFileFilters() throws Exception {
         List<String> skipTestFileNames = getSkipTestFileNames();
         List<String> schemaFileNames = getSchemaFileNames();

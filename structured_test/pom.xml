@@ -122,6 +122,7 @@
 				<configuration>
 					<skipTests>${skip.integration.tests}</skipTests>
 					<argLine>-Xms256M -Xmx1024M</argLine>
+                    <argLine>-Dlog4j.configuration=file:${basedir}/src/test/resources/info-log4j.properties</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 					<includes>
 						<include>**/*IT.java</include>
@@ -242,11 +243,11 @@
 								<configuration>
 									<target name="StopSpliceServer" unless="${server.start.skip}">
 										<exec executable="${run.command}" dir="${basedir}" spawn="true">
-											<arg value="${basedir}/../${zookeeper.stop.script}" />
-										</exec>
-										<exec executable="${run.command}" dir="${basedir}" spawn="true">
 											<arg value="${basedir}/../${splice.stop.script}" />
 										</exec>
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="true">
+                                            <arg value="${basedir}/../${zookeeper.stop.script}" />
+                                        </exec>
 									</target>
 								</configuration>
 								<goals>
@@ -355,15 +356,16 @@
 							</execution>
 						</executions>
 						<configuration>
-							<includeProjectDependencies>false</includeProjectDependencies>
-							<includePluginDependencies>true</includePluginDependencies>
-							<executableDependency>
-								<groupId>com.splicemachine</groupId>
-								<artifactId>splice_machine</artifactId>
-								<version>1.0.1-SNAPSHOT</version>
-								<classifier>${envClassifier}</classifier>
-							</executableDependency>
-							<executable>java</executable>
+							<!--<includeProjectDependencies>false</includeProjectDependencies>-->
+							<!--<includePluginDependencies>true</includePluginDependencies>-->
+							<!--<executableDependency>-->
+								<!--<groupId>com.splicemachine</groupId>-->
+								<!--<artifactId>splice_machine</artifactId>-->
+								<!--<version>1.0.1-SNAPSHOT</version>-->
+								<!--<classifier>${envClassifier}</classifier>-->
+							<!--</executableDependency>-->
+                            <classpathScope>compile</classpathScope>
+                            <executable>java</executable>
 							<workingDirectory>${basedir}</workingDirectory>
 							<arguments>
 								<argument>-cp</argument>
@@ -381,7 +383,8 @@
 								<argument>60025</argument>
 								<argument>60026</argument>
 								<argument>60027</argument>
-								<argument>60028</argument>
+                                <argument>60028</argument>
+                                <argument>1530</argument>
 							</arguments>
 
 						</configuration>

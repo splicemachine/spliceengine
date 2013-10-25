@@ -92,6 +92,10 @@ public class ImmutableTransaction {
         return (getTransactionId().getId() == timestamp);
     }
 
+    public ImmutableTransaction getImmutableParent() {
+        return immutableParent;
+    }
+
     @Override
     public String toString() {
         return "ImmutableTransaction: " + transactionId;
@@ -191,28 +195,6 @@ public class ImmutableTransaction {
             }
         }
         return new VisibleResult(visible, effectiveStatus2);
-    }
-
-    /**
-     * @param t2
-     * @param transactionSource allows the caller to plugin in a mechanism for loading transactions
-     * @return indicator of whether this transaction was started after t2 was started but before it committed or failed.
-     * @throws IOException
-     */
-    public boolean startedWhileOtherActive(Transaction t2, TransactionSource transactionSource) throws IOException {
-        final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(true, t1, t2);
-        final ImmutableTransaction et2 = intersections[2];
-        final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
-        final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
-        if (met2.getEffectiveBeginTimestamp() < t1.getEffectiveBeginTimestamp()) {
-            if (effectiveStatus2.isCommitted()) {
-                return met2.getEffectiveCommitTimestamp(met2.getParent()) > t1.getEffectiveBeginTimestamp();
-            } else if (effectiveStatus2.isActive()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

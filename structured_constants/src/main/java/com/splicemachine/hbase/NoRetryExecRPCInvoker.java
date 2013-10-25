@@ -122,4 +122,8 @@ public class NoRetryExecRPCInvoker implements InvocationHandler {
         }
         return t;
     }
+
+    public byte[] getRegionName() {
+        return regionName;
+    }
 }

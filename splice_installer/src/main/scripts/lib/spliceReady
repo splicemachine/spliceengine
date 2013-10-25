@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# /var/log/hbase/*-REGIONSERVER-*
+logLocationPat=$1
+logReadyLine='com.splicemachine.derby.hbase.SpliceDriver: Ready to accept connections'
+
+today=$(date +'%Y-%m-%d')
+scriptTime=($(date +'%H %M %S'))
+
+echo "Waiting for Splice..."
+# Keep checking until success or killed
+while [ true ]; do
+  # Show something while we wait
+  echo -ne "."
+  sleep 1
+
+  OLDIFS=$IFS
+  IFS=$'\n'
+  # Ready log lines from today
+  line=(`/bin/grep $logReadyLine "$logLocationPat" | /bin/grep $today`)
+  IFS=$OLDIFS
+
+  # May never have been started before
+  if [ -z "$line" ]; then
+    continue;
+  fi
+
+  # Use only the last log line
+  lastStart=${line[${#line[@]} - 1]}
+  #echo "Last start line: '$lastStart'"
+
+  # split into H M S array
+  upTime=$(echo $lastStart | /usr/bin/awk '{print $2}' | /usr/bin/awk '{/usr/bin/split($0,a,":"); print a[1] " " a[2] " " a[3]}')
+  upTime=(${upTime:0:8})
+
+  #echo "    upTime: '${upTime[@]}'"
+  #echo "scriptTime: '${scriptTime[@]}'"
+
+  if [ ${upTime[0]} -ne ${scriptTime[0]} ]; then
+    # We need to be in same hour for sure
+    continue;
+  fi
+
+  ready=""
+  if [ ${upTime[1]} -gt ${scriptTime[1]} ] ||
+        ([ ${upTime[1]} -eq ${scriptTime[1]} ] && [ ${upTime[2]} -ge ${scriptTime[2]} ]); then
+    # if upTime min > scriptTime min => given above tests, upTime min are "after" scriptTime min -> started
+    # else if ( upTime min == scriptTime min && upTime sec >= scriptTime sec )
+    #       => given above tests, we're in the same min and upTime sec are "after" scriptTime sec -> started
+    ready="Ready"
+  fi
+
+  if [ ! -z "$ready" ]; then
+    echo ""
+    echo "Ready"
+    exit 0;
+  fi
+done

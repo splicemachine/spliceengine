@@ -73,7 +73,7 @@ public class ShortNistIT {
     @Test
     @Ignore
     public void testDeleteSchemaDependencies() throws Exception {
-        SpliceRunner spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
+        SpliceRunner spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR, null);
 //        NistTestUtils.runTests(NistTestUtils.createRunList("schema1.sql"),
 //                new DerbyNistRunner(), NistTestUtils.readDerbyFilters(),
 //                spliceRunner, NistTestUtils.readSpliceFilters(), System.out);

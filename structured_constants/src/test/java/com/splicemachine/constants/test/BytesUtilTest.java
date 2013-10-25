@@ -90,6 +90,12 @@ public class BytesUtilTest {
         checkIntersect(new byte[] {3}, new byte[] {8}, new byte[] {2}, new byte[] {5}, new byte[] {3}, new byte[] {5}); // XAXA
         checkIntersect(new byte[] {5}, new byte[] { }, new byte[] {2}, new byte[] {4});                                 // XXA_
         checkIntersect(new byte[] {5}, new byte[] {7}, new byte[] {2}, new byte[] {4});                                 // XXAA
+        checkIntersect(new byte[] {3}, new byte[] {3}, new byte[] {2}, new byte[] {5}, new byte[] {3}, new byte[] {3}); // Checks for Equivalence : Bulk Loading
+    }
+    
+    @Test
+    public void intersectEquivalence() {
+    	
     }
 
     @Test

@@ -16,7 +16,6 @@ import java.util.Map;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -26,7 +25,6 @@ import org.junit.Test;
  * @author Jeff Cunningham
  *         Date: 7/22/13
  */
-@Ignore("BindException: Address already in use - An exception was thrown during network server startup. DRDA_ListenPort.S:Could not listen on port 1527 on host 0.0.0.0")
 public class SpliceNistIT {
     private static List<File> testFiles;
     private static List<String> derbyOutputFilter;
@@ -57,7 +55,8 @@ public class SpliceNistIT {
         spliceOutputFilter = NistTestUtils.readSpliceFilters();
 
 //        derbyRunner = new DerbyRunner(NistTestUtils.TARGET_NIST_DIR);
-        spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR);
+        // Changing the connection port requires a change to spliceCI profile in pom
+        spliceRunner = new SpliceRunner(NistTestUtils.TARGET_NIST_DIR, "1530");
         
 //        if (clean && spliceRunner != null) {
 //			// clean schema before test run for cleanup, unless noclean

@@ -119,7 +119,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         Sequence sequence;
         try {
             sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
-                    getTransactionID(),heapConglom,columnPosition));
+                    getTransactionID(),heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary()));
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

@@ -49,7 +49,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
         MonitoredThreadPool writerPool = MonitoredThreadPool.create();
         //TODO -sf- make region caching optional
-        RegionCache regionCache = HBaseRegionCache.create(SpliceConstants.cacheExpirationPeriod, SpliceConstants.cacheUpdatePeriod);
+        RegionCache regionCache = HBaseRegionCache.getInstance();
 
         int maxEntries = SpliceConstants.maxBufferEntries;
         Writer writer = new AsyncBucketingWriter(writerPool,regionCache,connection);
