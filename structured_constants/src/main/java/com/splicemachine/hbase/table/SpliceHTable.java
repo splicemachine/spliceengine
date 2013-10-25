@@ -7,6 +7,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -18,6 +20,7 @@ import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
@@ -36,7 +39,9 @@ public class SpliceHTable extends HTable {
     private final byte[] tableName;
     private final RegionCache regionCache;
     private final int maxRetries = SpliceConstants.numRetries;
+    private static Logger LOG = Logger.getLogger(SpliceHTable.class);
 
+    
     public SpliceHTable(byte[] tableName, HConnection connection, ExecutorService pool,
                         RegionCache regionCache) throws IOException {
         super(tableName, connection, pool);
@@ -118,7 +123,8 @@ public class SpliceHTable extends HTable {
     }
 
     private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey,int attemptCount) throws IOException {
-        if(attemptCount>maxRetries){
+        if(attemptCount>maxRetries) {
+        	SpliceLogUtils.error(LOG, "Unable to obtain full region set from cache");
             throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts on table " + tableName + " with startKey " + startKey + " and end key " + endKey);
         }
         Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
@@ -136,6 +142,8 @@ public class SpliceHTable extends HTable {
         }
 
         if(keysToUse.size()<=0){
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.error(LOG, "Keys to use miss");
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -151,13 +159,17 @@ public class SpliceHTable extends HTable {
         //make sure the start key of the first pair is the start key of the query
         Pair<byte[],byte[]> start = keysToUse.get(0);
         if(!Arrays.equals(start.getFirst(),startKey)){
-            regionCache.invalidate(tableName);
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.error(LOG, "First Key Miss, invalidate");
+        	regionCache.invalidate(tableName);
             return getKeys(startKey,endKey,attemptCount+1);
         }
         for(int i=1;i<keysToUse.size();i++){
             Pair<byte[],byte[]> next = keysToUse.get(i);
             Pair<byte[],byte[]> last = keysToUse.get(i-1);
             if(!Arrays.equals(next.getFirst(),last.getSecond())){
+            	if (LOG.isTraceEnabled())
+            		SpliceLogUtils.error(LOG, "Keys are not contiguous miss, invalidate");
                 //we are missing some data, so recursively try again
                 regionCache.invalidate(tableName);
                 return getKeys(startKey,endKey,attemptCount+1);
@@ -167,6 +179,8 @@ public class SpliceHTable extends HTable {
         //make sure the end key of the last pair is the end key of the query
         Pair<byte[],byte[]> end = keysToUse.get(keysToUse.size()-1);
         if(!Arrays.equals(end.getSecond(),endKey)){
+        	if (LOG.isTraceEnabled())
+        		SpliceLogUtils.error(LOG, "Last Key Miss, invalidate");
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
