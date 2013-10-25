@@ -11,10 +11,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -31,7 +28,7 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * @author Scott Fines
- *         Created on: 10/23/13
+ * Created on: 10/23/13
  */
 public class SpliceHTable extends HTable {
     private final HConnection connection;
@@ -122,10 +119,57 @@ public class SpliceHTable extends HTable {
         }
     }
 
+    List<Pair<byte[],byte[]>> getKeys(byte[] startKey, byte[] endKey) throws IOException{
+        if(Arrays.equals(startKey,endKey))
+            return Collections.singletonList(getContainingRegion(startKey, 0));
+        return getKeys(startKey, endKey,0);
+    }
+
+    private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
+        if(attemptCount>maxRetries)
+            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts");
+
+        Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
+        byte[][] starts = startEndKeys.getFirst();
+        byte[][] ends = startEndKeys.getSecond();
+
+        for(int i=0;i<starts.length;i++){
+            byte[] start = starts[i];
+            byte[] end = ends[i];
+
+            if(end.length==0){
+                //we've reached the end of the table, so this MUST be the containing region
+                return Pair.newPair(start,end);
+            }
+            if(Bytes.compareTo(end,startKey)>0){
+                //this is a containing region
+                return Pair.newPair(start,end);
+            }
+        }
+
+        /*
+         * We couldn't find any containing region, which is bad. Backoff for a bit, then
+         * invalidate the cache and retry.
+         */
+        wait(attemptCount);
+        regionCache.invalidate(tableName);
+        return getContainingRegion(startKey,attemptCount+1);
+    }
+
+    private void wait(int attemptCount) {
+        try {
+            Thread.sleep(SpliceHTableUtil.getWaitTime(attemptCount, SpliceConstants.pause));
+        } catch (InterruptedException e) {
+            Logger.getLogger(SpliceHTable.class).info("Interrupted while sleeping");
+        }
+    }
+
     private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey,int attemptCount) throws IOException {
         if(attemptCount>maxRetries) {
         	SpliceLogUtils.error(LOG, "Unable to obtain full region set from cache");
-            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts on table " + tableName + " with startKey " + startKey + " and end key " + endKey);
+            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "
+                    + attemptCount+" attempts on table " + Bytes.toLong(tableName)
+                    + " with startKey " + Bytes.toStringBinary(startKey) + " and end key " + Bytes.toStringBinary(endKey));
         }
         Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
         byte[][] starts = startEndKeys.getFirst();
@@ -144,6 +188,7 @@ public class SpliceHTable extends HTable {
         if(keysToUse.size()<=0){
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Keys to use miss");
+            wait(attemptCount);
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -159,9 +204,9 @@ public class SpliceHTable extends HTable {
         //make sure the start key of the first pair is the start key of the query
         Pair<byte[],byte[]> start = keysToUse.get(0);
         if(!Arrays.equals(start.getFirst(),startKey)){
-        	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "First Key Miss, invalidate");
-        	regionCache.invalidate(tableName);
+            wait(attemptCount);
+            regionCache.invalidate(tableName);
             return getKeys(startKey,endKey,attemptCount+1);
         }
         for(int i=1;i<keysToUse.size();i++){
@@ -170,6 +215,7 @@ public class SpliceHTable extends HTable {
             if(!Arrays.equals(next.getFirst(),last.getSecond())){
             	if (LOG.isTraceEnabled())
             		SpliceLogUtils.error(LOG, "Keys are not contiguous miss, invalidate");
+                wait(attemptCount);
                 //we are missing some data, so recursively try again
                 regionCache.invalidate(tableName);
                 return getKeys(startKey,endKey,attemptCount+1);
@@ -181,6 +227,7 @@ public class SpliceHTable extends HTable {
         if(!Arrays.equals(end.getSecond(),endKey)){
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Last Key Miss, invalidate");
+            wait(attemptCount);
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -195,7 +242,7 @@ public class SpliceHTable extends HTable {
                                                            KeyedCompletionService<ExecContext,R> completionService,
                                                            ExecContext context) throws RetriesExhaustedWithDetailsException {
         if(context.attemptCount>maxRetries){
-            throw new RetriesExhaustedWithDetailsException(context.errors, null,null);
+            throw new RetriesExhaustedWithDetailsException(context.errors, Collections.<Row>emptyList(),Collections.<String>emptyList());
         }
         final Pair<byte[],byte[]> keys = context.keyBoundary;
         final byte[] startKeyToUse = keys.getFirst();
