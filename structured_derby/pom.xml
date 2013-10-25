@@ -293,7 +293,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${zookeeper.stop.script}" />
                                         </exec>
-                                        <sleep seconds="120" />
+                                        <sleep seconds="90" />
                                     </target>
                                 </configuration>
                                 <goals>
