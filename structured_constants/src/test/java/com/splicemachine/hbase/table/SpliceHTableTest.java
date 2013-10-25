@@ -75,7 +75,7 @@ public class SpliceHTableTest {
         byte[] testEnd = testStart;
 
         List<Pair<byte[],byte[]>> pairs = table.getKeys(testStart,testEnd);
-        Assert.assertEquals("Incorrect number of regions returned!",1,pairs.size());
+        Assert.assertEquals("Incorrect number of regions returned!",11,pairs.size());
     }
 
 
