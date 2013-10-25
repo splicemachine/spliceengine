@@ -25,8 +25,10 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
 
 public class SpliceTestPlatform extends TestConstants {
+    private static final Logger LOG = Logger.getLogger(SpliceTestPlatform.class);
 	protected MiniZooKeeperCluster miniZooKeeperCluster;
 	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;
@@ -133,6 +135,7 @@ public class SpliceTestPlatform extends TestConstants {
 	public void start() throws Exception {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
+        LOG.info("Derby listen port: "+derbyPort);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 
