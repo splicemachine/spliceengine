@@ -1696,19 +1696,21 @@ public class JoinNode extends TableOperatorNode {
 
         if (rightResultSet instanceof Optimizable &&
                 isHashableJoin(rightResultSet)){
+             // Look for unary path to FromBaseTable, to prune preds from nonStoreRestrictionList
              FromBaseTable table = null;
-             if(rightResultSet instanceof ProjectRestrictNode){
-                 //if the table is a ProjectRestrict, then you have to go past,
-                 // because ProjectRestricts don't necessarily have the Predicates we need
+             if(rightResultSet instanceof ProjectRestrictNode &&
+                     ((ProjectRestrictNode) rightResultSet).getChildResult() instanceof FromBaseTable){
                  table = (FromBaseTable) ((ProjectRestrictNode)rightResultSet).getChildResult();
-             }else{
+             }else if (rightResultSet instanceof FromBaseTable){
                  table = (FromBaseTable)rightResultSet;
              }
-            // Clear join predicaets, b/c they will be handled by the join
-            for(int i = table.nonStoreRestrictionList.size() - 1; i >= 0; i--){
-                Predicate op = (Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
-                if (op.isJoinPredicate()){
-                    table.nonStoreRestrictionList.removeOptPredicate(i);
+            // If found, clear join predicates, b/c they will be handled by the join
+            if (table != null) {
+                for(int i = table.nonStoreRestrictionList.size() - 1; i >= 0; i--){
+                    Predicate op = (Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
+                    if (op.isJoinPredicate()){
+                        table.nonStoreRestrictionList.removeOptPredicate(i);
+                    }
                 }
             }
         }
