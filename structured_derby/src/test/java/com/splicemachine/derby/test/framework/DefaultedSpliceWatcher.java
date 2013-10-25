@@ -8,7 +8,7 @@ public class DefaultedSpliceWatcher extends SpliceWatcher{
     private String defaultSchema;
 
     public DefaultedSpliceWatcher(String schema){
-        defaultSchema = schema;
+        defaultSchema = schema.toUpperCase();
     }
 
     @Override

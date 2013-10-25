@@ -2,10 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -38,9 +35,9 @@ public class SubqueryIT {
             "('E4','P5',80)",
             "('E8','P8',NULL)");
 
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-
     public static final String CLASS_NAME = SubqueryIT.class.getSimpleName();
+
+    protected static SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -97,9 +94,13 @@ public class SubqueryIT {
 
             })
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
-            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName));
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName))
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table s (a int, b int, c int, d int, e int, f int);" +
+                    "insert into s values (0,1,2,3,4,5);" +
+                    "insert into s values (10,11,12,13,14,15);", CLASS_NAME));
 
-    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
     @Test
     public void testSubqueryWithSum() throws Exception {
@@ -244,5 +245,13 @@ public class SubqueryIT {
                 "(select distinct staff.city from staff where proj.city = staff.city)");
 
         Assert.assertEquals(6, TestUtils.resultSetToMaps(rs).size());
+    }
+
+    @Test
+    public void testJoinOfTwoSubqueries() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select * from (select a.a, b.a from s a, s b) a (b, a), " +
+                "(select a.a, b.a from s a, s b) b (b, a) where a.b = b.b");
+
+        Assert.assertEquals(8, TestUtils.resultSetToArrays(rs).size());
     }
 }
