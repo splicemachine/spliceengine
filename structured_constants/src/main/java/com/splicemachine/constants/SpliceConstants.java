@@ -508,6 +508,43 @@ public class SpliceConstants {
     @DefaultValue(SEQUENCE_BLOCK_SIZE) private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     public static long sequenceBlockSize;
 
+    /**
+     * The initial wait in milliseconds when a DDL operation waits for all concurrent transactions to finish before
+     * proceeding.
+     * 
+     * The operation will wait progressively longer until the DDL_DRAINING_MAXIMUM_WAIT is reached, then it will
+     * block concurrent transactions from writing to the affected tables.
+     * 
+     * Defaults to 1000 (1 second)
+     */
+    @Parameter private static final String DDL_DRAINING_INITIAL_WAIT = "splice.ddl.drainingWait.initial";
+    @DefaultValue(DDL_DRAINING_INITIAL_WAIT) private static final long DEFAULT_DDL_DRAINING_INITIAL_WAIT = 1000;
+    public static long ddlDrainingInitialWait;
+
+    /**
+     * The maximum wait in milliseconds a DDL operation will wait for concurrent transactions to finish before
+     * blocking them from writing to the affected tables.
+     * 
+     * Defaults to 100000 (100 seconds)
+     */
+    @Parameter private static final String DDL_DRAINING_MAXIMUM_WAIT = "splice.ddl.drainingWait.maximum";
+    @DefaultValue(DDL_DRAINING_MAXIMUM_WAIT) private static final long DEFAULT_DDL_DRAINING_MAXIMUM_WAIT = 100000;
+    public static long ddlDrainingMaximumWait;
+    
+    /**
+     * The lease duration for metadata caches in milliseconds.
+     * 
+     * If the duration is bigger, Splice servers cache metadata information for longer, putting less pressure on the
+     * metadata regions and reducing latency for DML operations. On the other hand, this increases the latency
+     * for DDL operations.
+     * 
+     * Defaults to 1000 (1 second)
+     */
+    @Parameter private static final String METADATA_CACHE_LEASE_DURATION = "splice.metadata.cache.lease";
+    // TODO change to something reasonable
+    @DefaultValue(METADATA_CACHE_LEASE_DURATION) private static final long DEFAULT_METADATA_CACHE_LEASE_DURATION = 0;
+    public static long metadataCacheLease;
+
     /*
      * Setting the cache update interval <0 indicates that caching is to be turned off.
      * This is a performance killer, but is useful when debugging issues.
@@ -676,6 +713,11 @@ public class SpliceConstants {
 
         collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
         pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
+
+        ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT, DEFAULT_DDL_DRAINING_INITIAL_WAIT);
+        ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT, DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
+        
+        metadataCacheLease = config.getLong(METADATA_CACHE_LEASE_DURATION, DEFAULT_METADATA_CACHE_LEASE_DURATION);
 	}
 	
 	public static void reloadConfiguration(Configuration configuration) {

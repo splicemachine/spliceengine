@@ -46,7 +46,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	 * @exception StandardException		Thrown on failure
 	 */
 	@Override
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		executeConstantActionMinion(activation, 
 				activation.getLanguageConnectionContext().getTransactionExecute());
@@ -62,7 +62,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction(Activation activation,TransactionController tc) throws StandardException {
+	public void executeConstantAction(Activation activation,TransactionController tc) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		executeConstantActionMinion(activation, tc);
 	}

@@ -95,7 +95,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
     }
 
     @Override
-    public void executeConstantAction(final Activation activation) throws StandardException {
+    public void executeTransactionalConstantAction(final Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
 

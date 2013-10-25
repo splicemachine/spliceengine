@@ -1,9 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.UUID;
@@ -44,6 +48,12 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -53,6 +63,8 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public abstract class DDLConstantOperation implements ConstantAction {
 private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
+
+    protected TransactorControl transactor = HTransactorFactory.getTransactorControl();
 	/**
 	 * Get the schema descriptor for the schemaid.
 	 *
@@ -846,5 +858,116 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 			return value;
 		}
 	}
+	
+	@Override
+    public final void executeConstantAction(Activation activation) throws StandardException {
+        executeTentativeUpdate();
+        List<TransactionId> active;
+        try {
+            active = waitForConcurrentTransactions(null);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        List<String> tables = getBlockedTables();
+        forbidActiveTransactionsTableAccess(active, tables);
+
+        executeTransactionalConstantAction(activation);
+
+        try {
+            waitForCacheInvalidation();
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    private void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
+            throws StandardException {
+        if (tables.isEmpty() || active.isEmpty()) {
+            return;
+        }
+        for (String table : tables) {
+            for (TransactionId transactionId : active) {
+                try {
+                    transactor.forbidWrites(table, transactionId);
+                } catch (IOException e) {
+                    throw Exceptions.parseException(e);
+                }
+            }
+        }
+    }
+
+	private void waitForCacheInvalidation() throws InterruptedException {
+        Thread.sleep(2*SpliceConstants.metadataCacheLease);
+    }
+
+    /**
+	 * Implementation of the actual DDL operation 
+	 * @param activation
+	 * @throws StandardException 
+	 */
+	protected abstract void executeTransactionalConstantAction(Activation activation) throws StandardException;
+
+	/**
+	 * @return list of tables affected by this DDL operation that have to be forbidden to write by concurrent transactions. 
+	 */
+    protected List<String> getBlockedTables() {
+        return Collections.emptyList();
+    }
+
+    /**
+	 * Executes a tentative metadata update on a separate, top-level transaction.
+	 * This allows concurrent transactions (overlapping the parent DDL transaction) that started after
+	 * the 'tentative' transaction completes to also contribute to the completion of the DDL statement.
+	 */
+	protected void executeTentativeUpdate() {
+	    // no-op
+	}
+
+    /**
+     * Waits for concurrent transactions that started before the tentative
+     * change completed.
+     * 
+     * Performs an exponential backoff until a configurable timeout triggers,
+     * then returns the list of transactions still running. The caller has to
+     * forbid those transactions to ever write to the tables subject to the DDL
+     * change.
+     * 
+     * @param maximum
+     *            wait for all transactions started before this one. It should
+     *            be the transaction created just after the tentative change
+     *            committed.
+     * @return list of transactions still running after timeout
+     * @throws IOException 
+     */
+	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum) throws IOException {
+	    if (!waitsForConcurrentTransactions()) {
+	        return Collections.emptyList();
+	    }
+	    List<TransactionId> active = transactor.getActiveTransactionIds(maximum);
+	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
+	    long totalWait = 0;
+	    while (!active.isEmpty() && totalWait <= SpliceConstants.ddlDrainingMaximumWait) {
+	        try {
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+	        totalWait += waitTime;
+	        waitTime *= 10;
+	        active = transactor.getActiveTransactionIds(maximum);
+	    }
+	    if (!active.isEmpty()) {
+	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));
+	    }
+	    return active;
+	}
+
+	/**
+	 * Declares whether this DDL operation has to wait for the draining of concurrent transactions or not
+	 * @return true if it has to wait for the draining of concurrent transactions
+	 */
+    protected boolean waitsForConcurrentTransactions() {
+        return false;
+    }
 }
 

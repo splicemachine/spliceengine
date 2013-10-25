@@ -234,7 +234,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantActivation with activation %s",activation);
 		TableDescriptor 			td;
 		UUID 						toid;

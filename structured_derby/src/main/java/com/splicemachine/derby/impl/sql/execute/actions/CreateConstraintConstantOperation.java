@@ -115,7 +115,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeTransactionalConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		ConglomerateDescriptor		conglomDesc = null;
 		ConglomerateDescriptor[]	conglomDescs = null;
