@@ -1,0 +1,17 @@
+<assembly>
+  <id>${envClassifier}_simple</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>  
+    <dependencySet>
+          <unpack>true</unpack>
+     <scope>runtime</scope>
+     <excludes>
+     <exclude>com.splicemachine:splice_machine</exclude>
+     </excludes>
+    </dependencySet>
+  </dependencySets>      
+</assembly>
+
