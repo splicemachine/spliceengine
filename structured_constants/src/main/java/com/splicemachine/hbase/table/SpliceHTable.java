@@ -96,8 +96,7 @@ public class SpliceHTable extends HTable {
                 completedFuture.get();
             }catch(ExecutionException ee){
                 Throwable cause = ee.getCause();
-                if(cause instanceof NotServingRegionException ||
-                        cause instanceof WrongRegionException){
+                if(cause instanceof IncorrectRegionException){
                     /*
                      * We sent it to the wrong place, so we need to resubmit it. But since we
                      * pulled it from the cache, we first invalidate that cache

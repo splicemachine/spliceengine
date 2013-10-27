@@ -5,6 +5,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -70,7 +71,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
         byte[] regionStop = rce.getRegion().getEndKey();
 
         if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
-            throw new NotServingRegionException("Incorrect region for Task submission");
+            throw new IncorrectRegionException("Incorrect region for Task submission");
 
         return doSubmit(task, rce);
     }
