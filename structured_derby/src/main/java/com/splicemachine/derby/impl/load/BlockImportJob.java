@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.Task;
@@ -30,14 +29,20 @@ import java.util.*;
  * Created on: 4/5/13
  */
 public class BlockImportJob extends FileImportJob{
-    protected BlockImportJob(HTableInterface table, ImportContext context) {
-        super(table, context);
+    private final FileSystem fs;
+
+    protected BlockImportJob(HTableInterface table, ImportContext context) throws IOException {
+        this(table, context, FileSystem.get(SpliceConstants.config));
+    }
+
+    protected BlockImportJob(HTableInterface table, ImportContext context, FileSystem fs){
+        super(table,context);
+        this.fs = fs;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         Path path = context.getFilePath();
-        FileSystem fs = FileSystem.get(SpliceUtils.config);
         if(!fs.exists(path))
             throw new FileNotFoundException("Unable to find file "
                     + context.getFilePath()+" in FileSystem. Did you put it into HDFS?");

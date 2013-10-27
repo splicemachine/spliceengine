@@ -297,7 +297,11 @@ public class HdfsImport extends ParallelVTI {
 	        table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
 	        context.setFilePath(file.getPath());
 			if(codec==null ||codec instanceof SplittableCompressionCodec){
-				importJob = new BlockImportJob(table, context);
+                try{
+                    importJob = new BlockImportJob(table, context);
+                }catch(IOException ioe){
+                    throw Exceptions.parseException(ioe);
+                }
 			}else{
 				importJob = new FileImportJob(table,context);
 			}
