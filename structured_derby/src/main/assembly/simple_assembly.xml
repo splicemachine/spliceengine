@@ -6,7 +6,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>  
     <dependencySet>
-    <outputDirectory>lib</outputDirectory>
+    <outputDirectory>splicemachine/lib</outputDirectory>
      <scope>runtime</scope>
      <useProjectArtifact>false</useProjectArtifact>
     </dependencySet>
@@ -14,7 +14,7 @@
   <fileSets>
    <fileSet>
       <directory>target</directory>
-      <outputDirectory></outputDirectory>
+      <outputDirectory>splicemachine/lib</outputDirectory>
       <includes>
         <include>*.jar</include>
       </includes>
@@ -22,6 +22,20 @@
         <exclude>*complete.jar</exclude>
       </excludes>
     </fileSet>
+      <fileSet>
+          <directory>target/classes/bin</directory>
+          <outputDirectory>splicemachine/bin</outputDirectory>
+          <includes>
+              <include>*sh</include>
+          </includes>
+      </fileSet>
+      <fileSet>
+          <directory>target/classes</directory>
+          <outputDirectory>splicemachine/lib</outputDirectory>
+          <includes>
+              <include>info-log4j.properties</include>
+          </includes>
+      </fileSet>
   </fileSets>
 </assembly>
 
