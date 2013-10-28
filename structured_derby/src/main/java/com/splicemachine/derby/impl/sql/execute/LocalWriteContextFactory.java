@@ -267,9 +267,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             state.set(State.READY_TO_START);
             throw new IndexNotSetUpException(e);
         } finally {
-            if (transactionResource != null) {
-                transactionResource.cleanup();
-            }
             if(currentCm!=null)
                 ContextService.getFactory().setCurrentContextManager(currentCm);
         }
