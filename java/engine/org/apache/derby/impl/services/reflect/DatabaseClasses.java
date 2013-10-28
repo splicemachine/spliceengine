@@ -96,7 +96,7 @@ public abstract class DatabaseClasses
 	** Constructor
 	*/
 
-	DatabaseClasses() {
+	public DatabaseClasses() {
 	}
 
 	/*
@@ -267,7 +267,7 @@ public abstract class DatabaseClasses
 		throw new ClassNotFoundException(className + " : " + loadError.getMessage());
 	}
 	
-	abstract Class loadClassNotInDatabaseJar(String className)
+	protected abstract Class loadClassNotInDatabaseJar(String className)
 		throws ClassNotFoundException;
 
 	public final Class loadApplicationClass(ObjectStreamClass classDescriptor)
@@ -339,5 +339,5 @@ public abstract class DatabaseClasses
 	** Keep track of loaded generated classes and their GeneratedClass objects.
 	*/
 
-	abstract LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump); 
+	protected abstract LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump); 
 }
