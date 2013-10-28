@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SpliceRuntimeContext implements Externalizable {
+    private static final long serialVersionUID = 1l;
 	private List<Path> paths = new ArrayList<Path>();
+    private boolean isSink = false;
 	
 	public SpliceRuntimeContext() {
 		
@@ -96,6 +98,13 @@ public class SpliceRuntimeContext implements Externalizable {
 		return sb.toString();
 	}
 
+    public void markAsSink() {
+        isSink = true;
+    }
+
+    public boolean isSinkOp() {
+        return isSink;
+    }
 
 
     public static enum Side{

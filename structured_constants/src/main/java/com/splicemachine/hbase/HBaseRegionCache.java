@@ -54,7 +54,7 @@ public class HBaseRegionCache implements RegionCache {
     public static RegionCache create(long cacheExpirationPeriod,long cacheUpdatePeriod){
         LoadingCache<Integer,SortedSet<HRegionInfo>> regionCache =
                 CacheBuilder.newBuilder()
-                        .expireAfterWrite(cacheExpirationPeriod, TimeUnit.SECONDS)
+                        .expireAfterAccess(cacheExpirationPeriod,TimeUnit.SECONDS)
                         .build(new RegionLoader(SpliceConstants.config));
 
         ThreadFactory cacheFactory = new ThreadFactoryBuilder()

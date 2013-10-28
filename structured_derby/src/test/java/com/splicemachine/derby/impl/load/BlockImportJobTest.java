@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -12,7 +11,6 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;

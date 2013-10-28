@@ -96,7 +96,7 @@ public class SpliceHTable extends HTable {
                 completedFuture.get();
             }catch(ExecutionException ee){
                 Throwable cause = ee.getCause();
-                if(cause instanceof IncorrectRegionException){
+                if(cause instanceof IncorrectRegionException || cause instanceof NotServingRegionException){
                     /*
                      * We sent it to the wrong place, so we need to resubmit it. But since we
                      * pulled it from the cache, we first invalidate that cache
@@ -128,7 +128,7 @@ public class SpliceHTable extends HTable {
 
     private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
         HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey, attemptCount > 0);
-        return Pair.newPair(regionLocation.getRegionInfo().getStartKey(),regionLocation.getRegionInfo().getEndKey());
+        return Pair.newPair(regionLocation.getRegionInfo().getStartKey(), regionLocation.getRegionInfo().getEndKey());
     }
 
     private void wait(int attemptCount) {
@@ -215,7 +215,7 @@ public class SpliceHTable extends HTable {
                                                            final Batch.Call<T, R> callable,
                                                            final Batch.Callback<R> callback,
                                                            KeyedCompletionService<ExecContext,R> completionService,
-                                                           ExecContext context) throws RetriesExhaustedWithDetailsException {
+                                                           final ExecContext context) throws RetriesExhaustedWithDetailsException {
         if(context.attemptCount>maxRetries){
             throw new RetriesExhaustedWithDetailsException(context.errors, Collections.<Row>emptyList(),Collections.<String>emptyList());
         }
@@ -224,7 +224,7 @@ public class SpliceHTable extends HTable {
         completionService.submit(context,new Callable<R>() {
             @Override
             public R call() throws Exception {
-                NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, true);
+                NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, context.attemptCount>0);
                 @SuppressWarnings("unchecked") T instance = (T) Proxy.newProxyInstance(getConfiguration().getClassLoader(), new Class[]{protocol}, invoker);
                 R result;
                 if(callable instanceof BoundCall){

@@ -127,7 +127,7 @@ final class BulkWriteAction implements Callable<Void> {
     private void doRetry(int tries, BulkWrite bulkWrite) throws Exception{
         Configuration configuration = SpliceConstants.config;
         NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                batchProtocolClass,tableName,bulkWrite.getRegionKey(),tries< writeConfiguration.getMaximumRetries());
+                batchProtocolClass,tableName,bulkWrite.getRegionKey(),tries<writeConfiguration.getMaximumRetries());
         BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
                 protoClassArray, invoker);
         boolean thrown=false;

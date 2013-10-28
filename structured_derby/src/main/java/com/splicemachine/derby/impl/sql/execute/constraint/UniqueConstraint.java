@@ -65,8 +65,10 @@ public class UniqueConstraint implements Constraint {
         Get get = createGet(mutation,txnId);
 
         HRegion region = rce.getRegion();
+        //check the Bloom Filter first--if it's not present, then we know we're good
         if (!HRegionUtil.keyExists(region.getStore(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES), mutation.getRow()))
         		return true;
+
         Result result = region.get(get);
         boolean rowPresent = result!=null && !result.isEmpty();
         if(rowPresent){

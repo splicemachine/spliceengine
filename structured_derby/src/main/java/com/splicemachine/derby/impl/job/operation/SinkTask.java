@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -17,7 +18,6 @@ import com.splicemachine.job.Status;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -84,8 +84,10 @@ public class SinkTask extends ZkTask {
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             impl.marshallTransaction(instructions);
             Activation activation = instructions.getActivation(impl.getLcc());
+            SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
+            spliceRuntimeContext.markAsSink();
             opContext = new SpliceOperationContext(region,
-                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(),instructions.getSpliceRuntimeContext());
+                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
             //init the operation stack
 
             SpliceOperation op = instructions.getTopOperation();
@@ -95,9 +97,9 @@ public class SinkTask extends ZkTask {
             
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
-                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(),instructions.getSpliceRuntimeContext());
+                stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext);
             else
-                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES,instructions.getSpliceRuntimeContext());
+                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES, spliceRuntimeContext);
             status.setStats(stats);
 
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
