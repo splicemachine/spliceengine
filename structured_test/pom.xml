@@ -171,19 +171,6 @@
 		</profile>
 
 		<profile>
-			<id>splice-derby</id>
-
-			<dependencies>
-				<dependency>
-					<groupId>com.splicemachine</groupId>
-					<artifactId>splice_machine</artifactId>
-					<version>1.0.1-SNAPSHOT</version>
-					<classifier>${envClassifier}</classifier>
-				</dependency>
-			</dependencies>
-		</profile>
-
-		<profile>
 			<id>integration-tests</id>
 			<properties>
 				<!-- enable failsafe integration tests -->
@@ -355,14 +342,6 @@
 							</execution>
 						</executions>
 						<configuration>
-							<!--<includeProjectDependencies>false</includeProjectDependencies>-->
-							<!--<includePluginDependencies>true</includePluginDependencies>-->
-							<!--<executableDependency>-->
-								<!--<groupId>com.splicemachine</groupId>-->
-								<!--<artifactId>splice_machine</artifactId>-->
-								<!--<version>1.0.1-SNAPSHOT</version>-->
-								<!--<classifier>${envClassifier}</classifier>-->
-							<!--</executableDependency>-->
                             <classpathScope>compile</classpathScope>
                             <executable>java</executable>
 							<workingDirectory>${basedir}</workingDirectory>

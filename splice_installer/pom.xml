@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>0.5rc2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <artifactId>splice_installer</artifactId>
     <name>splice_installer</name>
@@ -10,7 +10,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.1-SNAPSHOT</version>
+		<version>0.5rc2-SNAPSHOT</version>
 	</parent>
     <distributionManagement>
     </distributionManagement>
@@ -21,7 +21,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_machine</artifactId>
-            <version>1.0.1-SNAPSHOT</version>
+            <version>0.5rc2-SNAPSHOT</version>
             <classifier>${envClassifier}_complete</classifier>
         </dependency>
     </dependencies>
