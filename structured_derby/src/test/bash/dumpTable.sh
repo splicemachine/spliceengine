@@ -1,0 +1,16 @@
+#!/bin/sh
+
+HBASE_HOME=/Users/scottfines/apps/hbase
+
+CLASSPATH="$HBASE_HOME/lib/*"
+CLASSPATH="$CLASSPATH:$HBASE_HOME/*"
+
+echo $CLASSPATH
+
+TABLE=$1
+DESTINATION_DIR=$2
+COLUMN_NUM=$3
+COLUMN_TYPE=$4
+COLUMN_VALUE=$5
+
+java -cp $CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger scan $TABLE $DESTINATION_DIR $COLUMN_NUM $COLUMN_TYPE $COLUMN_VALUE

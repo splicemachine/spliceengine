@@ -97,6 +97,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
             BitSet checkColumns = predicateFilter.getCheckedColumns();
             if(fields!=null){
                 for(int i=checkColumns.nextSetBit(0);i>=0;i=checkColumns.nextSetBit(i+1)){
+
                     if(i>=fields.length||fields[i]==null){
                         if(!predicateFilter.checkPredicates(null,i)) return null;
                     }else{
