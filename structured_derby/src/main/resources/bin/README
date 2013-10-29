@@ -26,4 +26,6 @@ Load the demo data
 
 Run the Splice Machine SQL Shell
     Execute the sqlshell.sh script in the bin directory.
-    The connection string, used to connect to the Splice Machine database, is printed to the console.
+    You will be connected to the Splice Machine database.
+    You can execute SQL from the "splice> " prompt.
+    Type "splice> help;" for help.

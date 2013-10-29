@@ -45,6 +45,7 @@
             <outputDirectory>splicemachine/lib</outputDirectory>
             <includes>
                 <include>info-log4j.properties</include>
+                <include>hbase-log4j.properties</include>
             </includes>
         </fileSet>
     </fileSets>

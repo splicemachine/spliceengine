@@ -15,6 +15,7 @@ ZOO_DIR="${DIR}"/db/zookeeper
 HBASE_DIR="${DIR}"/db/hbase
 
 echo "Starting Splice Machine..."
+echo "Log file is ${DIR}/splice.log"
 (java ${GEN_SYS_ARGS} ${ZOO_SYS_ARGS} -classpath "${MYCLASSPATH}" org.apache.zookeeper.server.ZooKeeperServerMain 2181 "${ZOO_DIR}" 10 0  > "${DIR}"/splice.log 2>&1 &)
 
 sleep 15
