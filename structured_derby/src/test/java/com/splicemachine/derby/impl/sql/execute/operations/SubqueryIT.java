@@ -9,12 +9,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static com.splicemachine.homeless.TestUtils.o;
 
 /**
  * @author Scott Fines
@@ -253,5 +256,27 @@ public class SubqueryIT {
                 "(select a.a, b.a from s a, s b) b (b, a) where a.b = b.b");
 
         Assert.assertEquals(8, TestUtils.resultSetToArrays(rs).size());
+    }
+
+    @Test
+    public void testAggWithDoublyNestedCorrelatedSubquery() throws Exception {
+        List<Object[]> expected = Arrays.asList(o("P1", BigDecimal.valueOf(80)),
+                                                o("P5", BigDecimal.valueOf(92)));
+
+        ResultSet rs = methodWatcher.executeQuery("SELECT pnum, " +
+                "       Sum(hours) " +
+                "FROM   works c " +
+                "GROUP  BY pnum " +
+                "HAVING EXISTS (SELECT pname " +
+                "               FROM   proj, " +
+                "                      works a " +
+                "               WHERE  proj.pnum = a.pnum " +
+                "                      AND proj.budget / 200 < (SELECT Sum(hours) " +
+                "                                               FROM   works b " +
+                "                                               WHERE  a.pnum = b.pnum " +
+                "                                                      AND a.pnum = c.pnum))" +
+                "ORDER BY pnum");
+
+        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
     }
 }

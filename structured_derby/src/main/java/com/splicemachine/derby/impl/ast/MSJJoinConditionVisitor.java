@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.ast;
 
 
+import com.google.common.base.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -66,8 +68,10 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
                 pr.restrictionList != null) {
             for (int i = pr.restrictionList.size() - 1; i >= 0; i--) {
                 OptimizablePredicate p = pr.restrictionList.getOptPredicate(i);
-                if (!predicateIsEvalable(p, pr)) {
+                if (((Predicate)p).isJoinPredicate() && !predicateIsEvalable(p, pr)) {
                     pulledPreds.add(p);
+                    LOG.debug(String.format("Pulled pred %s from PR=%s",
+                            PredicateUtils.predToString.apply((Predicate)p), pr.getResultSetNumber()));
                     pr.restrictionList.removeOptPredicate(i);
                 }
             }
@@ -81,8 +85,10 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
             t.pullOptPredicates(pl);
             for (int i = 0, s = pl.size(); i < s; i++) {
                 OptimizablePredicate p = pl.getOptPredicate(i);
-                if (!predicateIsEvalable(p, t)) {
+                if (((Predicate)p).isJoinPredicate() && !predicateIsEvalable(p, t)) {
                     pulledPreds.add(p);
+                    LOG.debug(String.format("Pulled pred %s from Table=%s",
+                            PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
                 } else {
                     t.pushOptPredicate(p);
                 }
@@ -100,6 +106,8 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
                 p = updatePredColRefsToJoin((Predicate) p, j);
                 j.addOptPredicate(p);
                 pulledPreds.remove(p);
+                LOG.debug(String.format("Added pred %s to Join=%s.\nRemaining pulled preds: %s",
+                        PredicateUtils.predToString.apply((Predicate)p), j.getResultSetNumber(), pulledPreds));
             }
         }
         return j;

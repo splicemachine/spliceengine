@@ -22,7 +22,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
 
     private static final Logger LOG = Logger.getLogger(FixSubqueryColRefs.class);
 
-    private final Map<Integer,List<SubqueryNode>> correlatedSubQs;
+    private Map<Integer,List<SubqueryNode>> correlatedSubQs;
 
     public static <K,V> Map<K,List<V>> appendVal(Map<K,List<V>> m, K k, V v){
         if (m.containsKey(k)){
@@ -41,7 +41,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
     public SubqueryNode visit(SubqueryNode node) throws StandardException {
         if (node.getResultSet() instanceof Optimizable &&
                 node.hasCorrelatedCRs()){
-            appendVal(correlatedSubQs, node.getPointOfAttachment(), node);
+            correlatedSubQs = appendVal(correlatedSubQs, node.getPointOfAttachment(), node);
         }
         return node;
     }
@@ -55,7 +55,7 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
             Map<Pair<Integer,Integer>,ResultColumn> colMap = ColumnUtils.rsnChainMap(rcl);
             for (SubqueryNode sub: correlatedSubQs.get(num)){
                 Iterable<ColumnReference> crs =
-                        Iterables.filter(Sets.newHashSet(RSUtils.collectNodes(sub, ColumnReference.class)),
+                        Iterables.filter(RSUtils.collectNodes(sub, ColumnReference.class),
                                 new Predicate<ColumnReference>() {
                                     @Override
                                     public boolean apply(ColumnReference cr) {
