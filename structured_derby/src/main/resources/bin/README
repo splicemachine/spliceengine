@@ -1,0 +1,29 @@
+
+Contents
+    README - this file
+    bin/start-splice.sh - start the splice machine.
+    bin/stop-splice.sh - stop the splice machine.
+    bin/clean.sh - clean the splice machine database. Upon the next startup, it will be empty.
+    bin/loaddemo.sh - load the splice machine demo data.
+    bin/sqlshell.sh - execute SQL commands on the Splice Machine - query, insert, update, etc.
+
+Unpack the Splice Machine package
+    tar xzvf <splice dist>
+    This will create a "splicemachine" directory containing the distribution contents.
+
+Download the demo data (??? how? where?)
+    Unpack the demo data under the splicemachine directory.
+    tar xzvf <demodata>
+    This will create a "demodata" directory under the splicemachine directory.
+
+Start the Splice Machine
+    Execute the start-splice.sh script in the bin directory.
+    Wait for the service to start.  Run tail -f splice.log and watch for "Ready to accept connections".
+
+Load the demo data
+    Execute the loaddemo.sh script in the bin directory.
+    This will create and load the demo tables and create indexes.
+
+Run the Splice Machine SQL Shell
+    Execute the sqlshell.sh script in the bin directory.
+    The connection string, used to connect to the Splice Machine database, is printed to the console.
