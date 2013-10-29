@@ -67,6 +67,16 @@ public class RowProviders {
 		return new SourceRowProvider(source, log, spliceRuntimeContext);
 	}
 
+    public static RowProvider openedSourceProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext){
+        return new SourceRowProvider(source, log, spliceRuntimeContext){
+            @Override
+            public void open() {
+                //no-op
+            }
+        };
+    }
+
+
     public static RowProvider combine(RowProvider first,RowProvider second){
         return new CombinedRowProvider(first,second);
     }

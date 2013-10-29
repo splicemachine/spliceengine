@@ -22,10 +22,9 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -44,7 +43,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created: 1/17/13 2:49 PM
  */
-public class RegionAwareScanner implements Closeable {
+public class RegionAwareScanner implements SpliceResultScanner {
     private static final Logger LOG = Logger.getLogger(RegionAwareScanner.class);
     private final ScanBoundary boundary;
     private final HRegion region;
@@ -123,6 +122,8 @@ public class RegionAwareScanner implements Closeable {
                     keyValues = Lists.newArrayList();
                 keyValues.clear();
 	            localExhausted = !localScanner.next(keyValues);
+                if(keyValues.size()<=0)
+                    return null;
 	            return new Result(keyValues);
 	        }
 	        if(!lookAheadExhausted){
@@ -150,7 +151,8 @@ public class RegionAwareScanner implements Closeable {
      */
     public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
                                             byte[] tableName,
-                                            byte[] scanStart,byte[] scanFinish){
+                                            byte[] scanStart,
+                                            byte[] scanFinish){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
         return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary);
     }
@@ -171,11 +173,32 @@ public class RegionAwareScanner implements Closeable {
     }
 
     @Override
-    public void close() throws IOException{
+    public Result next() throws IOException {
+        return getNextResult();
+    }
+
+    @Override
+    public Result[] next(int nbRows) throws IOException {
+        List<Result> results = Lists.newArrayListWithExpectedSize(nbRows);
+        for(int i=0;i<nbRows;i++){
+            Result r = next();
+            if(r==null) break;
+            results.add(r);
+        }
+
+        return results.toArray(new Result[results.size()]);
+    }
+
+    @Override
+    public void close() {
         if(lookBehindScanner !=null) lookBehindScanner.close();
         if(lookAheadScanner!=null) lookAheadScanner.close();
-        if(localScanner!=null) localScanner.close();
-        if(table!=null) table.close();
+        try{
+            if(localScanner!=null) localScanner.close();
+            if(table!=null) table.close();
+        }catch(IOException ioe){
+            throw new RuntimeException(ioe);
+        }
     }
 
     private void buildScans() throws IOException {
@@ -343,5 +366,10 @@ public class RegionAwareScanner implements Closeable {
 
     public byte[] getTableName() {
         return tableName;
+    }
+
+    @Override
+    public Iterator<Result> iterator() {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

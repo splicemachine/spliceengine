@@ -11,7 +11,7 @@ public class SpliceRuntimeContext implements Externalizable {
     private static final long serialVersionUID = 1l;
 	private List<Path> paths = new ArrayList<Path>();
     private boolean isSink = false;
-	
+
 	public SpliceRuntimeContext() {
 		
 	}
@@ -35,7 +35,11 @@ public class SpliceRuntimeContext implements Externalizable {
 		}
 		return spliceRuntimeContext;
 	}
-	
+
+    public boolean isSink(){
+        return isSink;
+    }
+
 	public void addPath(Path path) {
 		paths.add(0,path);
 	}

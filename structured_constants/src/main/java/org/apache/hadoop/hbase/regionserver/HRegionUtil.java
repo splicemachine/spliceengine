@@ -29,7 +29,7 @@ public class HRegionUtil {
 	public static void startRegionOperation(HRegion region) throws IOException {
 		region.startRegionOperation();
 	}
-	
+
 	public static boolean lastElementIsLesser (KeyValueSkipListSet skipList, byte[] key) {
   	  try {
   		  KeyValue placeHolder = skipList.last();

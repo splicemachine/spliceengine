@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.MergeSortScanBoundary;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
@@ -159,47 +160,6 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
         if(!hasNext()) throw new NoSuchElementException();
         populated=false;
         return currentRow;
-    }
-
-    private static class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
-        private final RowDecoder leftDecoder;
-        private final RowDecoder rightDecoder;
-
-        protected MergeSortScanBoundary(byte[] columnFamily,RowDecoder leftDecoder,RowDecoder rightDecoder) {
-            super(columnFamily);
-            this.leftDecoder = leftDecoder;
-            this.rightDecoder = rightDecoder;
-        }
-
-        @Override
-        public byte[] getStartKey(Result result) {
-            byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
-            if(data==null) return null;
-            int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-            decoder.seek(9); //skip the prefix value
-            if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
-                //copy out all the fields from the key until we reach the ordinal
-                return decoder.slice(rightDecoder.getKeyColumns().length);
-            }else{
-                return decoder.slice(leftDecoder.getKeyColumns().length);
-            }
-        }
-
-        @Override
-        public byte[] getStopKey(Result result) {
-            byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
-            if(data==null) return null;
-            int ordinal = Encoding.decodeInt(data);
-            MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-            decoder.seek(9); //skip the prefix value
-            if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
-                //copy out all the fields from the key until we reach the ordinal
-                return decoder.slice(rightDecoder.getKeyColumns().length);
-            }else{
-                return decoder.slice(leftDecoder.getKeyColumns().length);
-            }
-        }
     }
 
 }
