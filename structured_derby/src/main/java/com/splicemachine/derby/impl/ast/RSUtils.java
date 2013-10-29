@@ -5,15 +5,15 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.splicemachine.utils.Partition;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.*;
 
 /**
  * Utilities for Derby's ResultSetNodes
@@ -76,7 +76,7 @@ public class RSUtils {
      */
     public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
         List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
-        for (List<ResultSetNode> pair : Iterables.paddedPartition(rsns, 2)) {
+        for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
             if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
                 return pair.get(0);
             }
