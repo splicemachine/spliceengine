@@ -1,12 +1,20 @@
 #!/bin/bash
 
+# Start with debug logging by passing this script the "-debug" argument
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 CLASSPATH=""
 
 export MYCLASSPATH="${DIR}"/lib/*
 
-GEN_SYS_ARGS="-Djava.awt.headless=true -Dlog4j.configuration=file:${DIR}/lib/info-log4j.properties \
+LOG4J_CONFIG="-Dlog4j.configuration=file:${DIR}/lib/info-log4j.properties"
+
+if [[ ! -z "$1" && "$1" -eq "-debug" ]]; then
+    LOG4J_CONFIG="-Dlog4j.configuration=file:${DIR}/lib/hbase-log4j.properties"
+fi
+
+GEN_SYS_ARGS="-Djava.awt.headless=true ${LOG4J_CONFIG} \
 -Djava.net.preferIPv4Stack=true"
 
 ZOO_SYS_ARGS="-Dzookeeper.sasl.client=false -Xmx2g -Xms1g"

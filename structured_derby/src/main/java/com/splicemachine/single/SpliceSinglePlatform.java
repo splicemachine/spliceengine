@@ -61,20 +61,20 @@ public class SpliceSinglePlatform {
     }
 
 	public static void main(String[] args) throws Exception {
-		SpliceSinglePlatform spliceTestPlatform;
+		SpliceSinglePlatform spliceSinglePlatform;
 		if (args.length == 1) {
-			spliceTestPlatform = new SpliceSinglePlatform(args[0]);
-            spliceTestPlatform.start();
+			spliceSinglePlatform = new SpliceSinglePlatform(args[0]);
+            spliceSinglePlatform.start();
 		}else if (args.length == 2) {
-			spliceTestPlatform = new SpliceSinglePlatform(args[0],args[1]);
-			spliceTestPlatform.start();
+			spliceSinglePlatform = new SpliceSinglePlatform(args[0],args[1]);
+			spliceSinglePlatform.start();
 		}else if (args.length == 6) {
-            spliceTestPlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
-            spliceTestPlatform.start();
+            spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
+            spliceSinglePlatform.start();
 
         }else if (args.length == 7) {
-            spliceTestPlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
-            spliceTestPlatform.start();
+            spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+            spliceSinglePlatform.start();
 
         }else{
 			System.out.println("Splice TestContext Platform supports one argument providing the target directory" +
