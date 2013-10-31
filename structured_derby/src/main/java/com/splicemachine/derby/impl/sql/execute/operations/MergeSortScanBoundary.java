@@ -1,11 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.hadoop.hbase.client.Result;
 
 /**
@@ -24,31 +27,35 @@ public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
 
     @Override
     public byte[] getStartKey(Result result) {
-        byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
-        if(data==null) return null;
-        int ordinal = Encoding.decodeInt(data);
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
-        decoder.seek(9); //skip the prefix value
-        if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
-            //copy out all the fields from the key until we reach the ordinal
-            return decoder.slice(rightDecoder.getKeyColumns().length);
-        }else{
-            return decoder.slice(leftDecoder.getKeyColumns().length);
-        }
+        return getKey(result);
     }
 
     @Override
     public byte[] getStopKey(Result result) {
-        byte[] data = result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, JoinUtils.JOIN_SIDE_COLUMN);
+        byte[] startKey = getKey(result);
+        BytesUtil.unsignedIncrement(startKey,startKey.length-1);
+        return startKey;
+    }
+
+    private byte[] getKey(Result result) {
+        byte[] data = result.getRow();
         if(data==null) return null;
-        int ordinal = Encoding.decodeInt(data);
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-        decoder.seek(9); //skip the prefix value
+
+        int ordinal = Encoding.decodeInt(data,data.length-19);
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data, SpliceDriver.getKryoPool());
+
+        decoder.seek(11); //skip the prefix value
+        byte[] joinData;
         if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
             //copy out all the fields from the key until we reach the ordinal
-            return decoder.slice(rightDecoder.getKeyColumns().length);
+            joinData = DerbyBytesUtil.slice(decoder,rightDecoder.getKeyColumns(),rightDecoder.getTemplate().getRowArray());
         }else{
-            return decoder.slice(leftDecoder.getKeyColumns().length);
+            joinData = DerbyBytesUtil.slice(decoder,leftDecoder.getKeyColumns(),leftDecoder.getTemplate().getRowArray());
         }
+        decoder.reset();
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
+        encoder.setRawBytes(decoder.slice(10));
+        encoder.setRawBytes(joinData);
+        return encoder.build();
     }
 }

@@ -6,6 +6,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
@@ -52,7 +53,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected SQLInteger rowType;
     public int emptyRightRowsReturned = 0;
 
-    protected GeneratedMethod emptyRowFun;
+    protected SpliceMethod<ExecRow> emptyRowFun;
     protected ExecRow emptyRow;
 
 	static {
@@ -148,8 +149,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
         return joinedRow;
     }
-
-
 
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -388,7 +387,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 @Override
                 public ExecRow get() throws StandardException {
                     if (emptyRow == null)
-                        emptyRow = (ExecRow) emptyRowFun.invoke(activation);
+                        emptyRow = emptyRowFun.invoke();
 
                     return emptyRow;
                 }

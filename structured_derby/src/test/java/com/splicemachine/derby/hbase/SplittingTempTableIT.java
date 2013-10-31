@@ -37,25 +37,25 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
         // This parameters cause the Temp regions to split more often
-        htd.setMaxFileSize(5 * 1024 * 1024); // 10 MB
-        htd.setMemStoreFlushSize(5 * 1024 * 1024); // 10 MB
+        htd.setMaxFileSize(10 * 1024 * 1024); // 10 MB
+        htd.setMemStoreFlushSize(10 * 1024 * 1024); // 10 MB
         admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
         admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
         admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
         admin.close();
     }
 
-    @AfterClass
-    public static void cleanup() throws Exception {
-        HBaseAdmin admin = new HBaseAdmin(new Configuration());
-        HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
-        htd.remove(HTableDescriptor.MEMSTORE_FLUSHSIZE);
-        htd.remove(HTableDescriptor.MAX_FILESIZE);
-        admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
-        admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
-        admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
-        admin.close();
-    }
+//    @AfterClass
+//    public static void cleanup() throws Exception {
+//        HBaseAdmin admin = new HBaseAdmin(new Configuration());
+//        HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
+//        htd.remove(HTableDescriptor.MEMSTORE_FLUSHSIZE);
+//        htd.remove(HTableDescriptor.MAX_FILESIZE);
+//        admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
+//        admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
+//        admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
+//        admin.close();
+//    }
 
     private static String TABLE_NAME_1 = "selfjoin";
     protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(
@@ -283,7 +283,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     public void testMergeSortJoinFourJoins() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
-                        "select a.i from ",
+                        "select a.i,a.k,b.k,a.l,b.l from ",
                         TABLE_NAME_1 + " a ",
                         "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                         "on a.i = b.i "+
@@ -303,7 +303,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
             count++;
         }
 
-        Assert.assertEquals("No results",65536,count);
+        Assert.assertEquals("Incorrect count",65536,count);
         Assert.assertEquals("incorrect sum!",98304,currentSumFor1);
     }
 
@@ -311,7 +311,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     public void testMergeSortJoinThreeJoins() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
-                        "select a.i from ",
+                        "select a.i,a.k,b.k,a.l,b.l,a.m,b.m from ",
                         TABLE_NAME_1 + " a ",
                         "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                         "on a.i = b.i "+
@@ -331,6 +331,18 @@ public class SplittingTempTableIT extends SpliceUnitTest {
 
         Assert.assertEquals("No results",8192,count);
         Assert.assertEquals("incorrect sum!",12288,currentSumFor1);
+    }
+
+    @Test
+    public void testRepeatedThreeJoinMSJ() throws Exception {
+        HBaseAdmin admin = new HBaseAdmin(new Configuration());
+        for(int i=0;i<100;i++){
+            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            int numRegions = tableRegions.size();
+            testMergeSortJoinThreeJoins();
+            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
+        }
     }
 
     @Test
@@ -355,6 +367,18 @@ public class SplittingTempTableIT extends SpliceUnitTest {
 
         Assert.assertEquals("Incorrect results",1024,count);
         Assert.assertEquals("incorrect sum!",1536,currentSumFor1);
+    }
+
+    @Test
+    public void testRepeatedTwoJoinMSJ() throws Exception {
+        HBaseAdmin admin = new HBaseAdmin(new Configuration());
+        for(int i=0;i<100;i++){
+            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            int numRegions = tableRegions.size();
+            testMergeSortJoinTwoJoins();
+            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
+        }
     }
 
     @Test

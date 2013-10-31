@@ -63,7 +63,6 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private byte[] regionStart;
     private final String transactionId;
     private final Scan scan;
-    private byte[] tableName;
 
     private RegionAwareScanner(String transactionId,
                                HTableInterface table,
@@ -107,33 +106,29 @@ public class RegionAwareScanner implements SpliceResultScanner {
     /**
      * @return the new RowResult in the scan, or {@code null} if no more rows are to be returned.
      */
-    public Result getNextResult(){
+    public Result getNextResult() throws IOException {
         Result currentResult;
-        try{
-	        //get next row from scanner
-	        if(!lookBehindExhausted){
-	            currentResult = lookBehindScanner.next();
-	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
-	            else
-	                lookBehindExhausted=true;
-	        }
-	        if(!localExhausted){
-                if(keyValues==null)
-                    keyValues = Lists.newArrayList();
-                keyValues.clear();
-	            localExhausted = !localScanner.next(keyValues);
-                if(keyValues.size()<=0)
-                    return null;
-	            return new Result(keyValues);
-	        }
-	        if(!lookAheadExhausted){
-	            currentResult = lookAheadScanner.next();
-	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
-	            else
-	                lookAheadExhausted = true;
-	        }
-        }catch(IOException ioe){
-            SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+        //get next row from scanner
+        if(!lookBehindExhausted){
+            currentResult = lookBehindScanner.next();
+            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
+            else
+                lookBehindExhausted=true;
+        }
+        if(!localExhausted){
+            if(keyValues==null)
+                keyValues = Lists.newArrayList();
+            keyValues.clear();
+            localExhausted = !localScanner.next(keyValues);
+            if(keyValues.size()<=0)
+                return null;
+            return new Result(keyValues);
+        }
+        if(!lookAheadExhausted){
+            currentResult = lookAheadScanner.next();
+            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
+            else
+                lookAheadExhausted = true;
         }
         return null;
     }
@@ -224,7 +219,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             lookBehindScan.setFilter(scan.getFilter());
             lookBehindScanner = table.getScanner(lookBehindScan);
         }if(remoteFinish!=null){
-            Scan lookAheadScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
+            Scan lookAheadScan = boundary.buildScan(transactionId,regionFinish,remoteFinish);
             lookAheadScan.setFilter(scan.getFilter());
             lookAheadScanner = table.getScanner(lookAheadScan);
         }
@@ -365,11 +360,11 @@ public class RegionAwareScanner implements SpliceResultScanner {
     }
 
     public byte[] getTableName() {
-        return tableName;
+        return region.getTableDesc().getName();
     }
 
     @Override
     public Iterator<Result> iterator() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 }

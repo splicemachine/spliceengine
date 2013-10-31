@@ -307,6 +307,9 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markInvalid() throws ExecutionException {
+        //only invalidate if we are in the PENDING state, otherwise let it go through or fail
+        if(getTaskStatus().getStatus()!=Status.PENDING)
+            return;
         setStatus(Status.INVALID,false);
     }
 

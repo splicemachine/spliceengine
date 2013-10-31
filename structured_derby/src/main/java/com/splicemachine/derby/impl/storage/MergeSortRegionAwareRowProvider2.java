@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
+import java.io.IOException;
 import java.util.NoSuchElementException;
 
 /**
@@ -88,14 +89,14 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
         return 0;
     }
 
-    public JoinSideExecRow nextJoinRow() throws StandardException{
+    public JoinSideExecRow nextJoinRow() throws StandardException, IOException {
         if(!hasNext()) throw new NoSuchElementException();
         populated=false;
         return joinSideRow;
     }
 
     @Override
-    public boolean hasNext()throws StandardException {
+    public boolean hasNext() throws StandardException, IOException {
         if(populated) return true;
         Result result = scanner.getNextResult();
         if(result!=null && !result.isEmpty()){
@@ -156,7 +157,7 @@ public class MergeSortRegionAwareRowProvider2 extends SingleScanRowProvider {
 
 
     @Override
-    public ExecRow next() throws StandardException {
+    public ExecRow next() throws StandardException, IOException {
         if(!hasNext()) throw new NoSuchElementException();
         populated=false;
         return currentRow;
