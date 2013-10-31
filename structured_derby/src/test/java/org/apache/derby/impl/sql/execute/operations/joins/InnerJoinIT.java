@@ -192,7 +192,7 @@ public class InnerJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeSortJoinOverIndexScan() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
-                "select c.schemaid from sys.systables c , sys.sysschemas s  --DERBY-PROPERTIES joinStrategy=SORTMERGE \n" +
+                "select c.schemaid from sys.systables c , sys.sysschemas s  --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
                         "where c.tablename like 'SYS%' and c.schemaid = s.schemaid");
         int values = 0;
         while (rs.next()) {
@@ -563,7 +563,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 	
 	@Test
 	public void testReturnOutOfOrderJoin() throws Exception{
-		ResultSet rs = methodWatcher.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+		ResultSet rs = methodWatcher.executeQuery("select cc.sa, dd.sa,cc.si from cc inner join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		while(rs.next()){
 			LOG.info(String.format("cc.sa=%s,dd.sa=%s",rs.getString(1),rs.getString(2)));
 		}
@@ -571,7 +571,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 
 	@Test
 	public void testScrollableInnerJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+		ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc inner join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;
@@ -588,7 +588,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 
 	@Test
 	public void testSinkableInnerJoinWithJoinStrategy() throws Exception {
-		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc inner join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+		ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc inner join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
 		int j = 0;
 		while (rs.next()) {
 			j++;

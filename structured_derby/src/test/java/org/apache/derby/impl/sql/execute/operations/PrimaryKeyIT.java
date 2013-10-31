@@ -255,13 +255,13 @@ public class PrimaryKeyIT extends SpliceUnitTest {
                 "                   S.SCHEMANAME AS TABLE_SCHEM, T.TABLENAME AS TABLE_NAME, " +
                 "                   COLS.COLUMNNAME AS COLUMN_NAME, " +
                 "                   CONS.CONSTRAINTNAME AS PK_NAME " +
-                "        FROM --DERBY-PROPERTIES joinOrder=FIXED \n " +
-                "                        SYS.SYSTABLES T --DERBY-PROPERTIES index='SYSTABLES_INDEX1' \n" +
-                "                        , SYS.SYSSCHEMAS S --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSSCHEMAS_INDEX1'  \n" +
-                "                        , SYS.SYSCONSTRAINTS CONS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCONSTRAINTS_INDEX3'  \n" +
+                "        FROM --SPLICE-PROPERTIES joinOrder=FIXED \n " +
+                "                        SYS.SYSTABLES T --SPLICE-PROPERTIES index='SYSTABLES_INDEX1' \n" +
+                "                        , SYS.SYSSCHEMAS S --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSSCHEMAS_INDEX1'  \n" +
+                "                        , SYS.SYSCONSTRAINTS CONS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCONSTRAINTS_INDEX3'  \n" +
                 "                        , SYS.SYSPRIMARYKEYS KEYS \n" +
-                "                        , SYS.SYSCONGLOMERATES CONGLOMS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index = 'SYSCONGLOMERATES_INDEX1' \n" +
-                "                        , SYS.SYSCOLUMNS COLS --DERBY-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCOLUMNS_INDEX1' \n" +
+                "                        , SYS.SYSCONGLOMERATES CONGLOMS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index = 'SYSCONGLOMERATES_INDEX1' \n" +
+                "                        , SYS.SYSCOLUMNS COLS --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP, index ='SYSCOLUMNS_INDEX1' \n" +
                 "        WHERE ((1=1) OR ? IS NOT NULL) AND S.SCHEMANAME LIKE ? AND T.TABLENAME=? AND " +
                 "                  T.SCHEMAID = S.SCHEMAID AND   " +
                 "                  T.TABLEID = COLS.REFERENCEID AND T.TABLEID = CONGLOMS.TABLEID AND " +

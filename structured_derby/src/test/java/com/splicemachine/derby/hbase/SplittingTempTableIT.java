@@ -114,17 +114,17 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                 join(
                     "select a.i, avg(a.j), sum(a.j) from ",
                     TABLE_NAME_1 + " a ",
-                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " b --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on a.i = b.i ",
-                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " c --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on b.i = c.i ",
-                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " d --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on c.i = d.i ",
-                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " e --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on d.i = e.i ",
-                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " f --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on e.i = f.i ",
-                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " g --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on f.i = g.i ",
                     "group by a.i"));
         int j = 0;
@@ -157,17 +157,17 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                 join(
                     "select avg(cast (a.j as double)), sum(a.j) from ",
                     TABLE_NAME_1 + " a ",
-                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " b --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on a.i = b.i ",
-                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " c --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on b.i = c.i ",
-                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " d --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on c.i = d.i ",
-                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " e --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on d.i = e.i ",
-                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " f --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on e.i = f.i ",
-                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " g --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on f.i = g.i "));
         final int sumFor1 = 4194304; // for a.i = 1 we have 4x1 and 4x3, self joined 6 times => (1+3)*4*(8**6) 
         final int sumFor2 = 6291456; // (2+4)*4*(8**6)
@@ -184,17 +184,17 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                 join(
                     "select count(*) from ",
                     TABLE_NAME_1 + " a ",
-                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " b --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on a.i = b.i ",
-                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " c --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on b.i = c.i ",
-                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " d --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on c.i = d.i ",
-                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " e --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on d.i = e.i ",
-                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " f --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on e.i = f.i ",
-                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " g --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
                     "on f.i = g.i "));
         final int totalRows = 4194304; // we start with 16 rows, self joined 6 times with half of the rows => 16*(8**6) 
         boolean results = rs.next();
