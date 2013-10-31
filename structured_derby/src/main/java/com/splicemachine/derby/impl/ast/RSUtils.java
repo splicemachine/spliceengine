@@ -23,12 +23,13 @@ import java.util.*;
  */
 public class RSUtils {
 
+
     /**
      * Return any instances of clazz at or below node
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
             throws StandardException {
-        return collectNodes(node, clazz, null);
+        return collectNodes(node, clazz, (Class)null);
     }
 
     /**
@@ -40,6 +41,14 @@ public class RSUtils {
         node.accept(v);
         return (List<N>) v.getList();
     }
+
+    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz, Predicate<Visitable> pred)
+            throws StandardException {
+        CollectNodesVisitor v = new CollectNodesVisitor(clazz);
+        node.accept(new VisitUntilVisitor(v, pred));
+        return (List<N>) v.getList();
+    }
+
 
     public static final Function<ResultSetNode,Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
@@ -65,10 +74,19 @@ public class RSUtils {
         return v.getChildren();
     }
 
-    public static final Set binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class,
+    public static final Set<?> binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class,
             UnionNode.class, IntersectOrExceptNode.class);
 
-    public static final Set leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
+    public static final Predicate<Visitable> isBinaryRSN =
+            Predicates.compose(Predicates.in(binaryRSNs),
+                    new Function<Visitable, Class<?>>() {
+                        @Override
+                        public Class<?> apply(Visitable node) {
+                            return node.getClass();
+                        }
+                    });
+
+    public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
     /**
      * If rsn subtree contains a node with 2 children, return the node above
@@ -98,6 +116,9 @@ public class RSUtils {
         }
         return leaves;
     }
+
+    public static final Predicate<ResultSetNode> rsnHasPreds =
+            Predicates.or(Predicates.instanceOf(ProjectRestrictNode.class), Predicates.instanceOf(FromBaseTable.class));
 
     public static PredicateList getPreds(FromBaseTable t) throws StandardException {
         PredicateList pl = new PredicateList();
