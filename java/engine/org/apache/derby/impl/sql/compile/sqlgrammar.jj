@@ -1404,10 +1404,10 @@ public class SQLParser
 	 *
 	 * @return	TRUE iff the next token is derby-properties 
 	 */
-	private boolean derbyPropertiesListFollows()
+	private boolean splicePropertiesListFollows()
 	{
 		return 
-			getToken(1).kind == DERBYDASHPROPERTIES;
+			getToken(1).kind == SPLICEDASHPROPERTIES;
 	}
 
 	/**
@@ -2007,142 +2007,151 @@ SKIP :
  */
 <IN_COMMENT> MORE [IGNORE_CASE]:
 {
-"D" : LOOKFOR_DE
+"S" : LOOKFOR_SP
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_D : (~["D"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_S : (~["S"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DE> MORE [IGNORE_CASE]:
+<LOOKFOR_SP> MORE [IGNORE_CASE]:
 {
-"E" : LOOKFOR_DER
+"P" : LOOKFOR_SPL
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DE : (~["E"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SP : (~["P"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DER> MORE [IGNORE_CASE]:
+<LOOKFOR_SPL> MORE [IGNORE_CASE]:
 {
-"R" : LOOKFOR_DERB
+"L" : LOOKFOR_SPLI
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DER : (~["R"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPL : (~["L"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERB> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLI> MORE [IGNORE_CASE]:
 {
-"B" : LOOKFOR_DERBY
+"I" : LOOKFOR_SPLIC
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERB : (~["B"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLI : (~["I"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBY> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLIC> MORE [IGNORE_CASE]:
 {
-"Y" : LOOKFOR_DERBYDASH
+"C" : LOOKFOR_SPLICE
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBY : (~["Y"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLIC : (~["C"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASH> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICE> MORE [IGNORE_CASE]:
 {
-"-" : LOOKFOR_DERBYDASHP
+"E" : LOOKFOR_SPLICEDASH
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASH : (~["-"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICE : (~["E"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHP> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASH> MORE [IGNORE_CASE]:
 {
-"P" : LOOKFOR_DERBYDASHPR
+"-" : LOOKFOR_SPLICEDASHP
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHP : (~["P"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASH : (~["-"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPR> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHP> MORE [IGNORE_CASE]:
 {
-"R" : LOOKFOR_DERBYDASHPRO
+"P" : LOOKFOR_SPLICEDASHPR
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPR : (~["R"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHP : (~["P"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPRO> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPR> MORE [IGNORE_CASE]:
 {
-"O" : LOOKFOR_DERBYDASHPROP
+"R" : LOOKFOR_SPLICEDASHPRO
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPRO : (~["O"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPR : (~["R"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROP> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPRO> MORE [IGNORE_CASE]:
 {
-"P" : LOOKFOR_DERBYDASHPROPE
+"O" : LOOKFOR_SPLICEDASHPROP
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROP : (~["P"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPRO : (~["O"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPE> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROP> MORE [IGNORE_CASE]:
 {
-"E" : LOOKFOR_DERBYDASHPROPER
+"P" : LOOKFOR_SPLICEDASHPROPE
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROPE : (~["E"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPROP : (~["P"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPER> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROPE> MORE [IGNORE_CASE]:
 {
-"R" : LOOKFOR_DERBYDASHPROPERT
+"E" : LOOKFOR_SPLICEDASHPROPER
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROPER : (~["R"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPROPE : (~["E"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPERT> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROPER> MORE [IGNORE_CASE]:
 {
-"T" : LOOKFOR_DERBYDASHPROPERTI
+"R" : LOOKFOR_SPLICEDASHPROPERT
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROPERT : (~["T"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPROPER : (~["R"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPERTI> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROPERT> MORE [IGNORE_CASE]:
 {
-"I" : LOOKFOR_DERBYDASHPROPERTIE
+"T" : LOOKFOR_SPLICEDASHPROPERTI
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROPERTI : (~["I"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPROPERT : (~["T"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPERTIE> MORE [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROPERTI> MORE [IGNORE_CASE]:
 {
-"E" : LOOKFOR_DERBYDASHPROPERTIES
+"I" : LOOKFOR_SPLICEDASHPROPERTIE
 |
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_DERBYDASHPROPERTIE : (~["E"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_SPLICEDASHPROPERTI : (~["I"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<LOOKFOR_DERBYDASHPROPERTIES> TOKEN [IGNORE_CASE] :
+<LOOKFOR_SPLICEDASHPROPERTIE> MORE [IGNORE_CASE]:
+{
+"E" : LOOKFOR_SPLICEDASHPROPERTIES
+|
+<("\n"|"\r"|"\r\n")?> : DEFAULT
+|
+<NOT_SPLICEDASHPROPERTIE : (~["E"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
+}
+
+<LOOKFOR_SPLICEDASHPROPERTIES> TOKEN [IGNORE_CASE] :
 {	
-	<DERBYDASHPROPERTIES : "DERBYDASHPROPERTIES"> 
+	<SPLICEDASHPROPERTIES : "SPLICEDASHPROPERTIES"> 
 }
 
 //once we find comment starting with -- DERBY-PROPERTIES, we want to switch 
@@ -2152,22 +2161,22 @@ SKIP :
 //token is that the existing code in parser allows newline characters between
 //individual token but with optimizer overrides, all the properties have to
 //be specified on the -- DERBY-PROPERTIES comment line. 
-<LOOKFOR_DERBYDASHPROPERTIES> TOKEN [IGNORE_CASE]:
+<LOOKFOR_SPLICEDASHPROPERTIES> TOKEN [IGNORE_CASE]:
 {
-"S" { matchedToken.kind = DERBYDASHPROPERTIES; } : PROPERTIES_LIST
+"S" { matchedToken.kind = SPLICEDASHPROPERTIES; } : PROPERTIES_LIST
 }
 
 //We found -- DERBY-PROPERTIE? where ? is a character other than S
 //and hence we should the rest of the characters on this line as 
 //a regular comment
-<LOOKFOR_DERBYDASHPROPERTIES> SKIP :
+<LOOKFOR_SPLICEDASHPROPERTIES> SKIP :
 {
 <("\n"|"\r"|"\r\n")?> : DEFAULT
 |
-<NOT_PROPERTIES : (~["S","s"])> : IT_IS_NOT_DERBYPROPERTIES_COMMENT
+<NOT_PROPERTIES : (~["S","s"])> : IT_IS_NOT_SPLICEPROPERTIES_COMMENT
 }
 
-<IT_IS_NOT_DERBYPROPERTIES_COMMENT> SKIP :
+<IT_IS_NOT_SPLICEPROPERTIES_COMMENT> SKIP :
 {
 	<SINGLE_LINE_SQLCOMMENT: (~["\n","\r"])* ("\n"|"\r"|"\r\n")?> : DEFAULT
 }
@@ -2432,7 +2441,6 @@ TOKEN [IGNORE_CASE] :
 |   <DYNAMIC: "dynamic">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
-|	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<INCREMENT: "increment">
 |	<INITIAL: "initial">
 |   <INOUT: "inout">
@@ -2556,7 +2564,7 @@ TOKEN [IGNORE_CASE] :
 |   <CS: "cs">
 |	<CURSORS: "cursors">
 |	<DB2SQL: "db2sql">
-|	<DERBY_JDBC_RESULT_SET: "derby_jdbc_result_set">
+|	<SPLICE_JDBC_RESULT_SET: "splice_jdbc_result_set">
 |	<DEFRAGMENT: "defragment">
 |       <DIRTY: "dirty">
 |	<DOCUMENT: "document">
@@ -3267,7 +3275,7 @@ deleteBody() throws StandardException :
 	<FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 		[ 
 			LOOKAHEAD
-			( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !derbyPropertiesListFollows() } )
+			( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
 			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
 		]
 		[targetProperties = propertyList(false) <CHECK_PROPERTIES>] 
@@ -3524,7 +3532,7 @@ updateBody() throws StandardException :
 |
 		tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		[
-			LOOKAHEAD( { (getToken(1).kind != SET) && !derbyPropertiesListFollows() } )
+			LOOKAHEAD( { (getToken(1).kind != SET) && !splicePropertiesListFollows() } )
 			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
 		]
 		[
@@ -6422,13 +6430,6 @@ numericValueFunction() throws StandardException :
 	{
 		return value;
 	}
-|
-	<IDENTITY_VAL_LOCAL> <LEFT_PAREN> <RIGHT_PAREN>
-	{
-		return (ValueNode) nodeFactory.getNode(
-						C_NodeTypes.IDENTITY_VAL_NODE,
-						getContextManager());
-	}
 }
 
 /*
@@ -6827,7 +6828,6 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == VALUE ||
-                getToken(1).kind == IDENTITY_VAL_LOCAL ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == UPPER ||
@@ -10476,7 +10476,7 @@ propertyList(boolean propertiesUseAllowed) throws StandardException :
 	StringTokenizer equalOperatorSeparatedProperty;
 }
 {
-	<DERBYDASHPROPERTIES> {
+	<SPLICEDASHPROPERTIES> {
 		//first use StringTokenizer to get tokens which are delimited by ,s
 		commaSeparatedProperties = new StringTokenizer(getToken(1).image,",");
 		while (commaSeparatedProperties.hasMoreTokens()) {
@@ -10785,12 +10785,12 @@ Short parameterStyle( boolean isTableFunction ) throws StandardException :
 	      return ReuseFactory.getShort(RoutineAliasInfo.PS_JAVA);
 	  }
 |
-	  <DERBY_JDBC_RESULT_SET>
+	  <SPLICE_JDBC_RESULT_SET>
 	  {
 	      if ( !isTableFunction )
 	      { throw StandardException.newException( SQLState.LANG_NO_DJRS ); }
 
-	      return ReuseFactory.getShort(RoutineAliasInfo.PS_DERBY_JDBC_RESULT_SET);
+	      return ReuseFactory.getShort(RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET);
 	  }
 }
 
@@ -14697,7 +14697,7 @@ nonReservedKeyword()  :
 	|	tok = <DYNAMIC>
     |   tok = <DATABASE>
 	|	tok = <DB2SQL>
-	|	tok = <DERBY_JDBC_RESULT_SET>
+	|	tok = <SPLICE_JDBC_RESULT_SET>
 	|	tok = <DOCUMENT>
 	|	tok = <EACH>
 	|	tok = <EMPTY>
@@ -14705,7 +14705,6 @@ nonReservedKeyword()  :
 	|	tok = <FN>
 	|	tok = <FORTRAN>
 	|	tok = <GENERATED>
-	|	tok = <IDENTITY_VAL_LOCAL>
 	|	tok = <INCREMENT>
 	|	tok = <INDEX>
 	|	tok = <INITIAL>

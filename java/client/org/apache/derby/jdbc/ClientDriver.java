@@ -282,7 +282,8 @@ public class ClientDriver implements java.sql.Driver {
             }
             String dbname = urlTokenizer.nextToken(":");
             int protocol = 0;
-            if (dbname.equals("derby") && (url.indexOf("derby://") != -1)) {
+            if (dbname.equals("derby") && (url.indexOf("derby://") != -1) ||
+            	dbname.equals("splice") && (url.indexOf("splice://") != -1)	) {
                 // For Derby AS need to check for // since jdbc:derby: is also the
                 // embedded prefix
                 protocol = DERBY_REMOTE_PROTOCOL;

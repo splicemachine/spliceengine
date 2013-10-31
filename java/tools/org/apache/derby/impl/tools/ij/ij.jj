@@ -593,7 +593,9 @@ class ij {
 	    		  	String dsName = util.getSystemProperty("ij.dataSource");
 				  	if(dsName == null){	
                 		row.append(" - 	");
-	              		row.append(s.getConnection().getMetaData().getURL());
+                		String url = s.getConnection().getMetaData().getURL();
+                		url = url.replace(":derby:", ":splice:");
+	              		row.append(url);
 	          		}
               		// save the warnings from these connections
 	              	w = appendWarnings(w,s.getConnection().getWarnings());

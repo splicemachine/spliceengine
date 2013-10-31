@@ -764,7 +764,7 @@ abstract class MethodCallNode extends JavaValueNode
 
 				if (
 				    returnType.isRowMultiSet() &&
-				    ( routineInfo.getParameterStyle() == RoutineAliasInfo.PS_DERBY_JDBC_RESULT_SET )
+				    ( routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET )
 				)
 				{
 				    requiredType = ResultSet.class.getName();
