@@ -6,6 +6,7 @@ import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
@@ -32,22 +33,14 @@ class ScalarAggregateScan implements ScalarAggregateSource{
             keyValues = Lists.newArrayListWithExpectedSize(2);
         keyValues.clear();
         /*
-         * We are merging intermediate results against the TEMP table, or this implementation wouldn't be used.
-         *
-         * However, that can happen in one of two cases--a scan or a sink. A sink occurs when there is a sink
-         * oepration in the plan above us, and we have been issued as a sink, while a scan occurs when the
-         * final results are to be returned.
-         *
-         * When sinking, it's okay to fail with a NotServingRegionException, because the Task framework will
-         * roll back the task, and resubmit it as two separate tasks against the correct region.
-         *
-         * When scanning, though, it's not okay to fail that way. The easiest way to ensure that doesn't
-         * happen (with a side benefit of less locking) is to use nextRaw instead of next.
+         * We use nextRaw() because it avoids region availability checks--once
+         * we get as far as calling this.nextRow(SpliceRuntimeContext), we should
+         * ensure that we are fully locked and the region's availability has been checked,
+         * but then we avoid making that check again until we've finished reading our aggregate
+         * data.
          */
-        if(spliceRuntimeContext.isSinkOp())
-            regionScanner.next(keyValues);
-        else
-            regionScanner.nextRaw(keyValues,null);
+        regionScanner.nextRaw(keyValues,null);
+
         if(keyValues.isEmpty())
             return null;
         return (ExecIndexRow)scanDecoder.decode(keyValues);

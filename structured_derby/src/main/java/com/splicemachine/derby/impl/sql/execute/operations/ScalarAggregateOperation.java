@@ -150,9 +150,21 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                     aggregates,true,false);
         }
 
-        ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
-        if(aggregate!=null)
-            return finish(aggregate, scanAggregator);
+        /*
+         * To avoid a NotServingRegionException, we make sure that we start the operation once,
+          * then use nextRaw() internally to the scan. This way, we read everything within our
+          * region even if the region closes during read.
+         */
+        if(region!=null)
+            region.startRegionOperation();
+        try{
+            ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
+            if(aggregate!=null)
+                return finish(aggregate, scanAggregator);
+        }finally{
+            if(region!=null)
+                region.closeRegionOperation();
+        }
         return null;
 	}
 

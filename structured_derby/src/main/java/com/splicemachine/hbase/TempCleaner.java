@@ -81,12 +81,12 @@ public class TempCleaner {
         cleanWatcher.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-//                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
-//                try{
-//                    future.completeAll();
-//                }finally{
-//                    future.cleanup();
-//                }
+                JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
+                try{
+                    future.completeAll();
+                }finally{
+                    future.cleanup();
+                }
 
                 /*
                  * If a region is entirely contained within the start and finish keys, then

@@ -218,6 +218,14 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testRepeatedScalarAggregate() throws Exception {
+        for(int i=0;i<100;i++){
+            testScalarAggregate();
+            System.out.printf("Iteration %d succeeded%n",i);
+        }
+    }
+
+    @Test
     public void testMergeSortJoinSixJoins() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
@@ -334,6 +342,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Ignored because it takes forever and ever to run, and generates some 300 regions")
     public void testRepeatedThreeJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){
@@ -370,6 +379,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Ignored because it takes forever and ever to run, and generates lots of regions")
     public void testRepeatedTwoJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){
@@ -407,6 +417,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Takes forever to run")
     public void testRepeatedOneJoinMSJ() throws Exception {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         for(int i=0;i<100;i++){

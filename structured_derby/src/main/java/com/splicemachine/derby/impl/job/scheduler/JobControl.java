@@ -150,7 +150,7 @@ class JobControl implements JobFuture {
 
     @Override
     public void cancel() throws ExecutionException {
-        throw new UnsupportedOperationException("Currently unsupported. Implementation needed");
+        //TODO -sf- implement
     }
 
     @Override
