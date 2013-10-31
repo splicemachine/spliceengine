@@ -2,8 +2,10 @@ package com.splicemachine.derby.hbase;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.AfterClass;
@@ -25,7 +27,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-@Ignore("bug 830")
+//@Ignore("bug 830")
 public class SplittingTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SplittingTempTableIT.class.getSimpleName().toUpperCase();
@@ -35,8 +37,8 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         HBaseAdmin admin = new HBaseAdmin(new Configuration());
         HTableDescriptor htd = admin.getTableDescriptor(SpliceConstants.TEMP_TABLE_BYTES);
         // This parameters cause the Temp regions to split more often
-        htd.setMaxFileSize(10 * 1024 * 1024); // 10 MB
-        htd.setMemStoreFlushSize(10 * 1024 * 1024); // 10 MB
+        htd.setMaxFileSize(5 * 1024 * 1024); // 10 MB
+        htd.setMemStoreFlushSize(5 * 1024 * 1024); // 10 MB
         admin.disableTable(SpliceConstants.TEMP_TABLE_BYTES);
         admin.modifyTable(SpliceConstants.TEMP_TABLE_BYTES, htd);
         admin.enableTable(SpliceConstants.TEMP_TABLE_BYTES);
@@ -61,8 +63,45 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(
             SCHEMA_NAME);
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,
-            SCHEMA_NAME, "(i int, j int)");
+            SCHEMA_NAME, "(i int, j int,k varchar(10000),l varchar(10000),m varchar(10000))");
 
+    private static final String LONG_STRING = "HAMLET: To be, or not to be--that is the question:\n" +
+            "Whether 'tis nobler in the mind to suffer\n" +
+            "The slings and arrows of outrageous fortune\n" +
+            "Or to take arms against a sea of troubles\n" +
+            "And by opposing end them. To die, to sleep--\n" +
+            "No more--and by a sleep to say we end\n" +
+            "The heartache, and the thousand natural shocks\n" +
+            "That flesh is heir to. 'Tis a consummation\n" +
+            "Devoutly to be wished. To die, to sleep--\n" +
+            "To sleep--perchance to dream: ay, there's the rub,\n" +
+            "For in that sleep of death what dreams may come\n" +
+            "When we have shuffled off this mortal coil,\n" +
+            "Must give us pause. There's the respect\n" +
+            "That makes calamity of so long life.\n" +
+            "For who would bear the whips and scorns of time,\n" +
+            "Th' oppressor's wrong, the proud man's contumely\n" +
+            "The pangs of despised love, the law's delay,\n" +
+            "The insolence of office, and the spurns\n" +
+            "That patient merit of th' unworthy takes,\n" +
+            "When he himself might his quietus make\n" +
+            "With a bare bodkin? Who would fardels bear,\n" +
+            "To grunt and sweat under a weary life,\n" +
+            "But that the dread of something after death,\n" +
+            "The undiscovered country, from whose bourn\n" +
+            "No traveller returns, puzzles the will,\n" +
+            "And makes us rather bear those ills we have\n" +
+            "Than fly to others that we know not of?\n" +
+            "Thus conscience does make cowards of us all,\n" +
+            "And thus the native hue of resolution\n" +
+            "Is sicklied o'er with the pale cast of thought,\n" +
+            "And enterprise of great pitch and moment\n" +
+            "With this regard their currents turn awry\n" +
+            "And lose the name of action. -- Soft you now,\n" +
+            "The fair Ophelia! -- Nymph, in thy orisons\n" +
+            "Be all my sins remembered.\n" +
+            "\n" +
+            "Read more at http://www.monologuearchive.com/s/shakespeare_001.html#5SGg36pHBiyOla5y.99";
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -73,15 +112,15 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                 protected void starting(Description description) {
                     try {
                         PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format(
-                                "insert into %s (i, j) values (?,?)", TABLE_NAME_1));
+                                "insert into %s (i, j,k,l,m) values (?,?,?,?,?)", TABLE_NAME_1));
                         for (int i = 0; i < 4; i++) {
-                            ps.setInt(1, 1); ps.setInt(2, 1);
+                            ps.setInt(1, 1); ps.setInt(2, 1); ps.setString(3,LONG_STRING);ps.setString(4,LONG_STRING);ps.setString(5,LONG_STRING);
                             ps.executeUpdate();
-                            ps.setInt(1, 1); ps.setInt(2, 3);
+                            ps.setInt(1, 1); ps.setInt(2, 3);ps.setString(3, LONG_STRING);ps.setString(4, LONG_STRING);ps.setString(5,LONG_STRING);
                             ps.executeUpdate();
-                            ps.setInt(1, 2); ps.setInt(2, 2);
+                            ps.setInt(1, 2); ps.setInt(2, 2);ps.setString(3, LONG_STRING);ps.setString(4, LONG_STRING);ps.setString(5,LONG_STRING);
                             ps.executeUpdate();
-                            ps.setInt(1, 2); ps.setInt(2, 4);
+                            ps.setInt(1, 2); ps.setInt(2, 4);ps.setString(3, LONG_STRING);ps.setString(4, LONG_STRING);ps.setString(5,LONG_STRING);
                             ps.executeUpdate();
                         }
                         /* 
@@ -176,6 +215,183 @@ public class SplittingTempTableIT extends SpliceUnitTest {
         Assert.assertEquals("avg doesn't add up", 2.5, rs.getDouble(1), 0.0001);
         Assert.assertEquals("sum doesn't add up", sumFor1 + sumFor2, rs.getInt(2));
         Assert.assertFalse("More than one result", rs.next());
+    }
+
+    @Test
+    public void testMergeSortJoinSixJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                        "on a.i = b.i "+
+                                " inner join "+TABLE_NAME_1+" c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on b.i = c.i" +
+                                " inner join "+TABLE_NAME_1+" d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on c.i = d.i" +
+                                " inner join "+TABLE_NAME_1+" e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on d.i = e.i" +
+                                " inner join "+TABLE_NAME_1+" f --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on e.i = f.i" +
+        " inner join "+TABLE_NAME_1+" g --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                " on f.i = g.i"));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect count",4194304,count);
+        Assert.assertEquals("Incorrect sum",6291456,currentSumFor1);
+    }
+
+    @Test
+    public void testMergeSortJoinFiveJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                        "on a.i = b.i "+
+                                " inner join "+TABLE_NAME_1+" c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on b.i = c.i" +
+                        " inner join "+TABLE_NAME_1+" d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                        " on c.i = d.i" +
+        " inner join "+TABLE_NAME_1+" e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                " on d.i = e.i" +
+        " inner join "+TABLE_NAME_1+" f --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                " on e.i = f.i"));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("No results",524288,count);
+        Assert.assertEquals("incorrect sum!",786432,currentSumFor1);
+    }
+
+    @Test
+    public void testMergeSortJoinFourJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                        "on a.i = b.i "+
+                                " inner join "+TABLE_NAME_1+" c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on b.i = c.i" +
+                        " inner join "+TABLE_NAME_1+" d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                        " on c.i = d.i" +
+        " inner join "+TABLE_NAME_1+" e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                " on d.i = e.i"));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("No results",65536,count);
+        Assert.assertEquals("incorrect sum!",98304,currentSumFor1);
+    }
+
+    @Test
+    public void testMergeSortJoinThreeJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                        "on a.i = b.i "+
+                                " inner join "+TABLE_NAME_1+" c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                                " on b.i = c.i" +
+                        " inner join "+TABLE_NAME_1+" d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                        " on c.i = d.i"));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("No results",8192,count);
+        Assert.assertEquals("incorrect sum!",12288,currentSumFor1);
+    }
+
+    @Test
+    public void testMergeSortJoinTwoJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i,a.k,b.k,a.l,b.l,a.m,b.m from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                        "on a.i = b.i "+
+                        " inner join "+TABLE_NAME_1+" c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n"+
+                        " on b.i = c.i"));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("Incorrect results",1024,count);
+        Assert.assertEquals("incorrect sum!",1536,currentSumFor1);
+    }
+
+    @Test
+    public void testMergeSortJoinOneJoin() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                        "select a.i,a.k,b.k,a.l,b.l,a.m,b.m from ",
+                        TABLE_NAME_1 + " a ",
+                        "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE ",
+                        "on a.i = b.i "));
+        //manually add up and count records
+        int currentSumFor1 =0;
+        int count=0;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            Assert.assertFalse("Null record seen!",rs.wasNull());
+            currentSumFor1+=val;
+            count++;
+        }
+
+        Assert.assertEquals("No results",128,count);
+        Assert.assertEquals("incorrect sum!",192,currentSumFor1);
+//        Assert.assertEquals("avg doesn't add up", 2.5, rs.getDouble(1), 0.0001);
+//        Assert.assertEquals("sum doesn't add up", sumFor1 + sumFor2, rs.getInt(2));
+//        Assert.assertFalse("More than one result", rs.next());
+    }
+
+    @Test
+    public void testRepeatedOneJoinMSJ() throws Exception {
+        HBaseAdmin admin = new HBaseAdmin(new Configuration());
+        for(int i=0;i<100;i++){
+            List<HRegionInfo> tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            int numRegions = tableRegions.size();
+            testMergeSortJoinOneJoin();
+            tableRegions = admin.getTableRegions(SpliceConstants.TEMP_TABLE_BYTES);
+            System.out.println("iteration "+ i+ " successful. Temp space went from "+ numRegions+" to "+ tableRegions.size() +" during this run");
+        }
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -400,14 +401,19 @@ public class MergeSortJoinerTest {
 
         MergeSortJoiner joiner;
         if(outer){
-            joiner = new MergeSortOuterJoiner(mergedRowTemplate,scanner,false,2,2,false,false,new StandardSupplier<ExecRow>() {
+            joiner = new MergeSortJoiner(mergedRowTemplate,scanner,false,2,2,false,false,new StandardSupplier<ExecRow>() {
                 @Override
                 public ExecRow get() throws StandardException {
                     return emptyRightRow;
                 }
-            });
+            }){
+                @Override
+                protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
+                    return noRecordsFound;
+                }
+            };
         }else
-            joiner = new MergeSortJoiner(mergedRowTemplate,scanner,false,2,2,false, false);
+            joiner = new MergeSortJoiner(mergedRowTemplate,scanner,false,2,2,false, false,null);
 
         List<ExecRow> joinedAnswers = populateFromJoiner(correctResults, joiner);
         assertReturnedRowsCorrect(correctResults, joinedAnswers);

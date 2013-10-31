@@ -1,8 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.StandardSuppliers;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -42,10 +43,11 @@ public class MergeSortJoiner {
     private final int rightNumCols;
     private final Restriction mergeRestriction;
     private final boolean oneRowRightSide;
-    private final boolean notExistsRightSide;
+    private final boolean antiJoin;
 
     private byte[] currentRowKey;
     private boolean rightSideReturned;
+    private final StandardSupplier<ExecRow> emptyRowSupplier;
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            MergeScanner scanner,
@@ -53,8 +55,10 @@ public class MergeSortJoiner {
                            int leftNumCols,
                            int rightNumCols,
                            boolean oneRowRightSide,
-                           boolean notExistsRightSide) {
-        this(mergedRowTemplate, scanner, Restriction.noOpRestriction,wasRightOuterJoin, leftNumCols, rightNumCols,oneRowRightSide, notExistsRightSide);
+                           boolean antiJoin,
+                           StandardSupplier<ExecRow> emptyRowSupplier) {
+        this(mergedRowTemplate, scanner, Restriction.noOpRestriction,wasRightOuterJoin,
+                leftNumCols, rightNumCols,oneRowRightSide, antiJoin,emptyRowSupplier);
     }
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
@@ -64,7 +68,8 @@ public class MergeSortJoiner {
                            int leftNumCols,
                            int rightNumCols,
                            boolean oneRowRightSide,
-                           boolean notExistsRightSide) {
+                           boolean antiJoin,
+                           StandardSupplier<ExecRow> emptyRowSupplier) {
         this.wasRightOuterJoin = wasRightOuterJoin;
         this.leftNumCols = leftNumCols;
         this.rightNumCols = rightNumCols;
@@ -72,7 +77,10 @@ public class MergeSortJoiner {
         this.scanner = scanner;
         this.mergeRestriction = mergeRestriction;
         this.oneRowRightSide = oneRowRightSide;
-        this.notExistsRightSide = notExistsRightSide;
+        this.antiJoin = antiJoin;
+        if(emptyRowSupplier==null)
+            emptyRowSupplier = StandardSuppliers.emptySupplier();
+        this.emptyRowSupplier = emptyRowSupplier;
     }
 
     public ExecRow nextRow() throws StandardException,IOException {
@@ -103,7 +111,6 @@ public class MergeSortJoiner {
             JoinSideExecRow nextRowToMerge = scanner.nextRow();
             if(nextRowToMerge==null){
                 //we are out of rows in the scanner, just return null;
-                //TODO -sf- is this correct for outer joins?
                 break;
             }
             currentRowKey = nextRowToMerge.getRowKey();
@@ -163,10 +170,9 @@ public class MergeSortJoiner {
              * Either way, clear the right side rows and set the hash, then
              * loop
              */
+            if(rightSideRows==null)
+                rightSideRows = Lists.newArrayList();
             rightSideRows.clear();
-            if(rightSideRows.size()<=0){
-                addEmptyRowToRightSide(rightSideRows);
-            }
             rightSideRowIterator = rightSideRows.iterator();
             currentHash = nextLeftRow.getHash();
             rightSideReturned=false;
@@ -174,20 +180,23 @@ public class MergeSortJoiner {
         }
     }
 
-    /*
-     * Outer joins should override this to make sure that a null entry makes it to the right side
-     */
-    protected void addEmptyRowToRightSide(Collection<ExecRow> rightSideRows) throws StandardException {
-        //no -op
-    }
-
-    /*
-     * Override to change how rows are merged.
-     *
-     * In particular, OuterJoin may want to override behavior to ensure that
-     * rows with no right side emit proper records.
-     */
-    protected ExecRow getNextMergedRow() throws StandardException {
+    private ExecRow getNextMergedRow() throws StandardException {
+        /*
+         * Merge left and right rows to get the next row to return.
+         *
+         * It is assumed that the left row is present.
+         *
+         * The flow of this is as follows:
+         *
+         * 1. Merge a left and a right row together (if a right row exists).
+         * 2. Check predicate. If Predicate fails, throw away this merged row and go to the next right row (return to 1).
+         * 3. If require only a single right side for this left, and a row has already been emitted, go to next right row (return to 1).
+         * 4. If an antiJoin, then go to next right row (return to 1)
+         * 5. If no rows have been returned (e.g. no right rows are available):
+         *  A. If outerjoin, merge with empty row
+         *  B. if antiJoin, merge with empty row
+         *  C. Otherwise, skip this left row.
+         */
         boolean noRecordsFound = currentLeftRow!=null;
         if(rightSideRowIterator!=null){
             while(rightSideRowIterator.hasNext()){
@@ -198,7 +207,7 @@ public class MergeSortJoiner {
                 if(oneRowRightSide && rightSideReturned)
                     continue; //skip rows if oneRowRightSide is required
                 noRecordsFound=false;
-                if(notExistsRightSide)
+                if(antiJoin)
                     continue; //antijoin miss
                 rightSideReturned=true;
                 return mergedRow;
@@ -207,23 +216,14 @@ public class MergeSortJoiner {
         }
         if(!rightSideReturned&&shouldMergeEmptyRow(noRecordsFound)){
             rightSideReturned=true;
-            ExecRow rightRow = getEmptyRow();
+            ExecRow rightRow = emptyRowSupplier.get();
             return JoinUtils.getMergedRow(currentLeftRow,rightRow,wasRightOuterJoin,rightNumCols,leftNumCols,mergedRowTemplate);
         }
         return null;
     }
 
     protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
-        return noRecordsFound && notExistsRightSide;
-    }
-
-    /*
-     * Get an empty right row.
-     *
-     * Default returns null (not used)
-     */
-    protected ExecRow getEmptyRow() throws StandardException {
-        return null;
+        return noRecordsFound && antiJoin;
     }
 
     public byte[] lastRowLocation() {

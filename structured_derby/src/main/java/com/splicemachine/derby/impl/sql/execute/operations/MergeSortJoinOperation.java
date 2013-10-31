@@ -9,12 +9,12 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
-import com.splicemachine.derby.impl.storage.MergeSortRegionAwareRowProvider2;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -49,8 +49,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	protected ExecRow rightTemplate;
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
-	protected MergeSortRegionAwareRowProvider2 serverProvider;
-	protected SQLInteger rowType;
+    protected SQLInteger rowType;
     public int emptyRightRowsReturned = 0;
 
     protected GeneratedMethod emptyRowFun;
@@ -131,42 +130,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
             RowDecoder leftDecoder = getRowEncoder(left, leftNumCols, leftHashKeys).getDual(leftResultSet.getExecRowDefinition());
             RowDecoder rightDecoder = getRowEncoder(right, rightNumCols, rightHashKeys).getDual(rightResultSet.getExecRowDefinition());
-            MergeScanner scanner;
-            if(spliceRuntimeContext.isSink()){
-                scanner = ResultMergeScanner.regionAwareScanner(reduceScan,transactionID,leftDecoder,rightDecoder,region);
-            }else{
-                scanner = ResultMergeScanner.clientScanner(reduceScan,leftDecoder,rightDecoder);
-            }
+            MergeScanner scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
             scanner.open();
-            Restriction mergeRestriction = Restriction.noOpRestriction;
-            if(restriction!=null){
-                mergeRestriction = new Restriction() {
-                    @Override
-                    public boolean apply(ExecRow row) throws StandardException {
-                        activation.setCurrentRow(row,resultSetNumber);
-                        DataValueDescriptor shouldKeep = restriction.invoke();
-                        return !shouldKeep.isNull() && shouldKeep.getBoolean();
-                    }
-                };
-            }
-            if(outer){
-                joiner = new MergeSortOuterJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,leftNumCols,rightNumCols,oneRowRightSide,notExistsRightSide,new StandardSupplier<ExecRow>() {
-                    @Override
-                    public ExecRow get() throws StandardException {
-                        if(emptyRow==null)
-                            emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
-
-                        return emptyRow;
-                    }
-                });
-            }else{
-                joiner = new MergeSortJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,leftNumCols,rightNumCols,oneRowRightSide, notExistsRightSide){
-                    @Override
-                    protected ExecRow getEmptyRow() {
-                        return rightTemplate;
-                    }
-                };
-            }
+            Restriction mergeRestriction = getRestriction();
+            joiner = getMergeJoiner(outer, scanner, mergeRestriction);
         }
         beginTime = getCurrentTimeMillis();
         ExecRow joinedRow = joiner.nextRow();
@@ -181,6 +148,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
         return joinedRow;
     }
+
+
 
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -400,4 +369,61 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 		closeTime += getElapsedMillis(beginTime);
 	}
+
+/***********************************************************************************************************************************/
+    /*private helper methods*/
+    private MergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext, RowDecoder leftDecoder, RowDecoder rightDecoder) {
+        MergeScanner scanner;
+        if(spliceRuntimeContext.isSink()){
+            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region);
+        }else{
+            scanner = ResultMergeScanner.clientScanner(reduceScan,leftDecoder,rightDecoder);
+        }
+        return scanner;
+    }
+
+    private MergeSortJoiner getMergeJoiner(boolean outer, final MergeScanner scanner, final Restriction mergeRestriction) {
+        if(outer){
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    if (emptyRow == null)
+                        emptyRow = (ExecRow) emptyRowFun.invoke(activation);
+
+                    return emptyRow;
+                }
+            };
+            return new MergeSortJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,leftNumCols,rightNumCols,
+                    oneRowRightSide,notExistsRightSide, emptyRowSupplier){
+                @Override
+                protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
+                    return noRecordsFound;
+                }
+            };
+        }else{
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    return rightTemplate;
+                }
+            };
+            return new MergeSortJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,
+                    leftNumCols,rightNumCols,oneRowRightSide, notExistsRightSide,emptyRowSupplier);
+        }
+    }
+
+    private Restriction getRestriction() {
+        Restriction mergeRestriction = Restriction.noOpRestriction;
+        if(restriction!=null){
+            mergeRestriction = new Restriction() {
+                @Override
+                public boolean apply(ExecRow row) throws StandardException {
+                    activation.setCurrentRow(row,resultSetNumber);
+                    DataValueDescriptor shouldKeep = restriction.invoke();
+                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
+                }
+            };
+        }
+        return mergeRestriction;
+    }
 }
