@@ -1,0 +1,111 @@
+package com.splicemachine.derby.impl.sql.execute.operations;
+
+import com.google.common.base.Supplier;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.marshall.KeyMarshall;
+import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+
+import java.io.IOException;
+
+/**
+ * @author Scott Fines
+ *         Created on: 11/1/13
+ */
+public class GroupedAggregator {
+    private final AggregateBuffer buffer;
+    private final StandardIterator<ExecRow> source;
+
+    private final int[] groupColumns;
+    private final boolean[] groupSortByColumns;
+    private final boolean isRollup;
+
+    private ExecRow[] rollupRows;
+    private MultiFieldEncoder groupKeyEncoder;
+    private KeyMarshall groupKeyHasher;
+    private boolean completed = false;
+
+    public GroupedAggregator(AggregateBuffer buffer,
+                             StandardIterator<ExecRow> source,
+                             int[] groupColumns,
+                             boolean[] groupSortByColumns,
+                             boolean isRollup) {
+        this.buffer = buffer;
+        this.source = source;
+        this.groupColumns = groupColumns;
+        this.groupSortByColumns = groupSortByColumns;
+        this.isRollup= isRollup;
+        groupKeyHasher = KeyType.BARE;
+    }
+
+    public GroupedRow nextRow() throws StandardException, IOException {
+        if(completed){
+            if(buffer.size()>0)
+                return buffer.getFinalizedRow();
+            else return null;
+        }
+
+        boolean shouldContinue;
+        do{
+            ExecRow nextRow = source.next();
+            shouldContinue = nextRow!=null;
+            if(!shouldContinue)
+                continue; //iterator exhausted, break from the loop
+
+            rollupRows(nextRow);
+            for(ExecRow rollup:rollupRows){
+                GroupedRow groupedRow = buffer.add(getGroupingKey(rollup),rollup);
+                if(groupedRow!=null&&groupedRow.getRow()!=nextRow)
+                    return groupedRow;
+            }
+        }while(shouldContinue);
+        /*
+         * We can only get here if we exhaust the iterator without evicting a record, which
+         * means that we have completed our steps.
+         */
+        completed=true;
+
+        //we've exhausted the iterator, so return an entry from the buffer
+        if(buffer.size()>0)
+            return buffer.getFinalizedRow();
+
+        //the buffer has nothing in it either, just return null
+        return null;
+    }
+
+    private byte[] getGroupingKey(ExecRow rollup) throws StandardException {
+        if(groupKeyEncoder==null)
+            groupKeyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupColumns.length);
+
+        groupKeyEncoder.reset();
+        groupKeyHasher.encodeKey(rollup.getRowArray(),groupColumns,groupSortByColumns,null,groupKeyEncoder);
+        return groupKeyEncoder.build();
+    }
+
+    private void rollupRows(ExecRow row) throws StandardException{
+        if(rollupRows==null){
+            rollupRows = isRollup? new ExecRow[groupColumns.length+1]: new ExecRow[1];
+        }
+        if(!isRollup){
+            rollupRows[0] = row;
+            return;
+        }
+        int rollUpPos = groupColumns.length;
+        int pos=0;
+        ExecRow nextRow = row.getClone();
+        do{
+            rollupRows[pos] = nextRow;
+            if(rollUpPos>0){
+                nextRow = nextRow.getClone();
+                DataValueDescriptor rollUpCol = nextRow.getColumn(groupColumns[rollUpPos-1]+1);
+                rollUpCol.setToNull();
+            }
+            rollUpPos--;
+            pos++;
+        }while(rollUpPos>=0);
+    }
+}
