@@ -454,7 +454,6 @@ public class InnerJoinIT extends SpliceUnitTest {
     }
 
 
-    @Ignore("Currently failing, written up as bug 338")
     @Test
     public void testSelfJoin() throws Exception {
 
