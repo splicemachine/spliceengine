@@ -191,8 +191,8 @@ public class SpliceConstants {
     @Parameter private static final String POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
     @DefaultValue(POOL_CLEANER_INTERVAL) public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
 
-    public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
-    public static final long DEFAULT_CACHE_EXPIRATION = 60;
+    public static final long DEFAULT_CACHE_UPDATE_PERIOD = 120000;
+    public static final long DEFAULT_CACHE_EXPIRATION = 180;
 
     /**
      * The maximum size(in bytes) that an individual write buffer will keep in memory before automatically
