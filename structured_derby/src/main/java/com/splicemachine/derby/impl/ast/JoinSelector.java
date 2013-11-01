@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -8,6 +11,7 @@ import org.apache.derby.impl.sql.compile.*;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -48,8 +52,6 @@ public class JoinSelector extends AbstractSpliceVisitor {
         // If reasons to bail present, return Derby's strategy
         if (info.userSuppliedStrategy ||
                 info.isSystemTable ||
-                info.rightLeaves.size() != 1 ||
-                info.rightLeaves.get(0).getClass() != FromBaseTable.class ||
                 info.hasRightIndex){
             LOG.debug("--> BAILING");
             return info.strategy;
@@ -80,7 +82,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
         List<ResultSetNode> rightLeaves = RSUtils.getLeafNodes(j.getRightResultSet());
 
         // Predicates
-        List<Predicate> preds = getRightPreds(j);
+        List<Predicate> preds = Lists.newLinkedList(getRightPreds(j));
         List<Predicate> joinPreds = new ArrayList<Predicate>(preds.size());
         List<Predicate> otherPreds = new ArrayList<Predicate>(preds.size());
 
@@ -127,8 +129,23 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return false;
     }
 
-    public static List<Predicate> getRightPreds(JoinNode j) throws StandardException {
-        return preds(RSUtils.getLastNonBinaryNode(j.getRightResultSet()));
+    public static Iterable<Predicate> getRightPreds(JoinNode j) throws StandardException {
+        Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
+                RSUtils.collectNodesUntil(j.getRightResultSet(), ResultSetNode.class,
+                        RSUtils.isBinaryRSN),
+                RSUtils.rsnHasPreds);
+        return Iterables.concat(
+                Iterables.transform(rightsUntilBinary,
+                        new Function<ResultSetNode, List<Predicate>>() {
+                            @Override
+                            public List<Predicate> apply(ResultSetNode rsn) {
+                                try {
+                                    return preds(rsn);
+                                } catch (StandardException se){
+                                    throw new RuntimeException(se);
+                                }
+                            }
+                        }));
     }
 
     public static List<Predicate> preds(ResultSetNode t) throws StandardException {
