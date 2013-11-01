@@ -122,6 +122,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>surefire-report-maven-plugin</artifactId>
+                <version>2.16</version>
                 <inherited>true</inherited>
             </plugin>
         </plugins>
