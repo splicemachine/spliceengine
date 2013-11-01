@@ -32,4 +32,29 @@ SPLICE_SYS_ARGS="-Xmx3g -Xms1g"
 
 (java ${GEN_SYS_ARGS} ${SPLICE_SYS_ARGS} -enableassertions -classpath "${MYCLASSPATH}" com.splicemachine.single.SpliceSinglePlatform "${ZOO_DIR}" "${HBASE_DIR}" 60021 60022 60023 60024 >> "${DIR}"/splice.log 2>&1 &)
 
-# TODO: splice is not yet ready for connection
+###
+timeout=100
+interval=5
+# kill -0 pid   Exit code indicates if a signal may be sent to $pid process.
+(
+  ((t = timeout))
+
+  while ((t > 0)); do
+    sleep $interval
+    kill -0 $$ || exit 0
+    ((t -= interval))
+  done
+
+  # Be nice, post SIGTERM first.
+  # The 'exit 0' below will be executed if any preceeding command fails.
+  kill -s SIGTERM $$ && kill -0 $$ || exit 0
+  sleep $delay
+  kill -s SIGKILL $$
+) 2> /dev/null &
+
+exec ./bin/isReady.sh "${DIR}"/splice.log
+
+if [[ $? -eq -1 ]]; then
+    echo "Try again"
+fi
+

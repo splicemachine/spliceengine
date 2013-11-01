@@ -1,5 +1,15 @@
 package com.splicemachine.single;
 
+import java.io.PrintStream;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.ServerAdminClient;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
@@ -11,14 +21,8 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.coprocessors.SIObserver;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.log4j.Logger;
 
-public class SpliceSinglePlatform {
+public class SpliceSinglePlatform extends ServerAdminClient {
     private static final Logger LOG = Logger.getLogger(SpliceSinglePlatform.class);
 	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;
@@ -60,27 +64,53 @@ public class SpliceSinglePlatform {
         this.derbyPort = derbyPort;
     }
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 		SpliceSinglePlatform spliceSinglePlatform;
-		if (args.length == 1) {
-			spliceSinglePlatform = new SpliceSinglePlatform(args[0]);
-            spliceSinglePlatform.start();
-		}else if (args.length == 2) {
-			spliceSinglePlatform = new SpliceSinglePlatform(args[0],args[1]);
-			spliceSinglePlatform.start();
-		}else if (args.length == 6) {
-            spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
-            spliceSinglePlatform.start();
+		try {
+			if (args.length == 1) {
+				if (args[0].toUpperCase().equals("STOP")) {
+					stop("localhost", 21281);
+				} else {
+					spliceSinglePlatform = new SpliceSinglePlatform(args[0]);
+					spliceSinglePlatform.start();
+				}
+			}else if (args.length == 2) {
+				spliceSinglePlatform = new SpliceSinglePlatform(args[0],args[1]);
+				spliceSinglePlatform.start();
+			}else if (args.length == 6) {
+			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
+			    spliceSinglePlatform.start();
 
-        }else if (args.length == 7) {
-            spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
-            spliceSinglePlatform.start();
+			}else if (args.length == 7) {
+			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+			    spliceSinglePlatform.start();
 
-        }else{
-			System.out.println("Splice TestContext Platform supports one argument providing the target directory" +
-					" or two arguments dictating the zookeeper and hbase directory.");
+			}else{
+				usage("Unknown argument(s)", null);
+				System.exit(1);
+			}
+		} catch (NumberFormatException e) {
+			usage("Bad port specified",e);
+			System.exit(1);
+		} catch (Exception e) {
+			usage("Unknown exception",e);
 			System.exit(1);
 		}
+	}
+	
+	private static void usage(String msg, Throwable t) {
+		PrintStream out = System.out;
+		if (t != null) {
+			out = System.err;
+		}
+		if (msg != null) {
+			out.println(msg);
+		}
+		if (t != null) {
+			t.printStackTrace(out);
+		}
+		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, " +
+                              "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort )");
 	}
 	
 	public void start() throws Exception {
@@ -88,6 +118,10 @@ public class SpliceSinglePlatform {
 		setBaselineConfigurationParameters(config);
         LOG.info("Derby listen port: "+derbyPort);
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
+	}
+	
+	public static void stop(String host, int port) {
+		kill(host, port);
 	}
 
 	public void end() throws Exception {
