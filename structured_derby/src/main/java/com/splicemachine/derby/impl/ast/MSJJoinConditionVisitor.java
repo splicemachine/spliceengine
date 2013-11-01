@@ -48,7 +48,7 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
 
         // Collect PRs, FBTs until a binary node (Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
-                RSUtils.collectNodes(j.getRightResultSet(), ResultSetNode.class,
+                RSUtils.collectNodesUntil(j.getRightResultSet(), ResultSetNode.class,
                         RSUtils.isBinaryRSN),
                 RSUtils.rsnHasPreds);
 

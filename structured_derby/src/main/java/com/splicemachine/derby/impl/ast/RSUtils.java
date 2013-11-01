@@ -29,24 +29,16 @@ public class RSUtils {
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
             throws StandardException {
-        return collectNodes(node, clazz, (Class)null);
-    }
-
-    /**
-     * Return any instances of clazz at or below node, skipping nodes below skipClass
-     */
-    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz, Class skipClass)
-            throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor(clazz, skipClass);
+        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
         node.accept(v);
-        return (List<N>) v.getList();
+        return v.getCollected();
     }
 
-    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz, Predicate<Visitable> pred)
+    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz, Predicate<Visitable> pred)
             throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor(clazz);
+        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
         node.accept(new VisitUntilVisitor(v, pred));
-        return (List<N>) v.getList();
+        return v.getCollected();
     }
 
 
