@@ -1,11 +1,10 @@
 package com.splicemachine.utils;
 
 import com.google.common.collect.Iterables;
-import junit.framework.Assert;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author P Trolard
@@ -21,8 +20,8 @@ public class PartitionTest {
     public void testPartitions() throws Exception {
         Assert.assertEquals(l(Iterables.toArray(Partition.partition(testColl, 2), Object.class)),
                 l(l(10, 20),
-                  l(30, 40),
-                  l(50, 60)));
+                        l(30, 40),
+                        l(50, 60)));
 
         Assert.assertEquals(l(Iterables.toArray(Partition.partition(testColl, 2, 1), Object.class)),
                 l(l(10, 20),
