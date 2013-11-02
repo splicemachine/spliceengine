@@ -1,31 +1,276 @@
+Welcome to the Splice Machine Private Beta Test Program.  This README file will help you get started,
+and contains the following information:
 
-Contents
-    README - this file
-    bin/start-splice.sh - start the splice machine.
-    bin/stop-splice.sh - stop the splice machine.
-    bin/clean.sh - clean the splice machine database. Upon the next startup, it will be empty.
-    bin/loaddemo.sh - load the splice machine demo data.
-    bin/sqlshell.sh - execute SQL commands on the Splice Machine - query, insert, update, etc.
+1. A brief introduction to the Splice Machine SQL Database
+2. How to download and launch the Splice Machine Database on a variety of systems
+3. How to connect to the SQL database and run simple commands
+4. How to load the provided sample data into the Database
+5. How to run sample queries on the sample data
+6. How to access the online or downloadable (PDF) documentation
+7. How to shut down the database
+8. How to clean the database
+9. Known tips and tricks
+10. A list of known bugs and other errata
 
-Unpack the Splice Machine package
-    tar xzvf <splice dist>
-    This will create a "splicemachine" directory containing the distribution contents.
+==========================================================
+1. A brief introduction to the Splice Machine SQL Database
+==========================================================
 
-Download the demo data (??? how? where?)
-    Unpack the demo data under the splicemachine directory.
-    tar xzvf <demodata>
-    This will create a "demodata" directory under the splicemachine directory.
+The Splice Machine Database is just that - a SQL database.  This means that from a SQL perspective, 
+relational tables can be created, data inserted/modified/deleted, and queried, all using standard SQL.  
+Additionally, the Splice Machine Database enforces ACID properties and supports transaction processing,
+indexing, and a number of other capabilities you come to expect from a full relational database.
 
-Start the Splice Machine
-    Execute the start-splice.sh script in the bin directory.
-    Wait for the service to start.  Run tail -f splice.log and watch for "Ready to accept connections".
+What makes the Splice Machine Database unique is that the back end storage is Hadoop and HBase.  Further,
+the Database engine has been tuned to leverage parallel processing across the multiple HBase Regions and
+Region Servers in your Hadoop deployment.  This enables a scalable database solution that can easily handle 
+billions of rows of data.
 
-Load the demo data
-    Execute the loaddemo.sh script in the bin directory.
-    This will create and load the demo tables and create indexes.
+=========================================================
+2. How to download and launch the Splice Machine Database
+=========================================================
 
-Run the Splice Machine SQL Shell
-    Execute the sqlshell.sh script in the bin directory.
-    You will be connected to the Splice Machine database.
-    You can execute SQL from the "splice> " prompt.
-    Type "splice> help;" for help.
+The following describes how you can download a self-contained package to run the Splice Machine Database.
+
+Prerequisites:
+  On Linux or Mac systems:
+   - JDK 1.6 or greater needs to be on your system
+  On Windows:
+   - Cygwin installed (see www.cygwin.com)
+
+To download the Cloudera package, navigate to the following (approx. 80 MB):
+  http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc1-cloudera-cdh4.3.0_simple.tar.gz
+
+Once you have downloaded the package, put the gz file in a working directory, then unzip:
+$ tar -xzf splice_machine-0.5rc1-cloudera-cdh4.3.0_simple.tar.gz
+
+Navigate to the bin directory:
+$ cd splicemachine
+
+Start up the database processes:
+$ ./bin/start-splice.sh
+
+While the database is running, it will log to the splice.log file found in the splicemachine directory.
+When you see "Ready to accept connections" in that log, the database is ready for use.
+
+================================================================
+3. Connecting to the database and performing simple SQL commands
+================================================================
+
+Once the database is running, you can bring up the interactive query mechanism:
+
+a.  cd to the splicemachine directory that was installed
+b.  launch the command-line-interface using the shell command ./bin/sqlshell.sh
+
+c. Once you see the "splice>" prompt, you first need to connect to a database:
+splice> connect 'jdbc:splice://localhost:1527/splicedb';
+
+Now you can issue SQL commands at the splice> prompt.
+d.  create a table:
+splice> create table test (i int);
+
+e.  add data to the table:
+splice> insert into test values 1,2,3,4,5;
+
+f.  query data in that table:
+splice> select * from test;
+
+g.  drop the table:
+splice> drop table test;
+
+======================================================================
+4. (Optional) How to import the provided sample data into the Database
+======================================================================
+
+At this point you have enough information to start running queries against your own data.  Refer to
+the SQL Reference for command and syntax details and examples.
+
+To help you get started we have also made available sample data to load and run queries against.  Four tables
+will be created, each with one million records:
+
+TRANSACTION_HEADER  - standard "headers" from a transaction system
+TRANSACTION_DETAIL - stanard "detail" records from a transaction system
+PRODUCT_DIVISION_SUMMARY - aggregated customer sales data by date
+TARGETS - a list of "target" customers
+
+Compressed, this is about 200MB of data.  The link to access this data is at:
+http://d10sdxe2fhfs9c.cloudfront.net/demodata.tar.gz
+
+To import the data:
+a. navigate to the spicemachine directory created when downloading the software. Then unzip:
+$ tar -xvf demodata.tar.gz
+(you will see that this creates a demodata directory, with data and sql directories underneath.)
+
+b. Start up the database if it isn't started already, and create a splice shell
+
+c. From the splice> shell, "run" the file:
+splice> run '<full path to loadall.sql file';  -- loadall.sql is found underneath database/sql
+
+This will take a few minutes, but the loadall.sql file will create the schema, load the data,
+and create indexes for the tables.
+
+===============================================
+5. How to run sample queries on the sample data
+===============================================
+ 
+Here are a few queries to try from the interactive query prompt (splice>).  First, start up the
+interactive query prompt as shown in the section "How to verify the Database is running properly".
+
+Then try these queries out (splice> omitted so you can copy and paste right at the splice> prompt):
+
+1. Grab the customer ids of a subset of transaction_detail records based on category_id and transaction_dt:
+select customer_master_id
+from transaction_detail d
+where TRANSACTION_DT >= DATE('2010-01-01') and TRANSACTION_DT <= DATE('2013-12-31')
+AND ORIGINAL_SKU_CATEGORY_ID >= 44427 and original_sku_category_id <= 44431;
+
+2. Header and targets table queried with a join:
+select t.*
+from targets e, transaction_header t
+where e.customer_master_id=t.customer_master_id
+and t.customer_master_id > 14000 and t.customer_master_id < 15000;
+
+
+===============================================================
+6. How to access the online or downloadable (PDF) documentation
+===============================================================
+
+<TBD>
+
+================================
+7. How to shut down the database
+================================
+
+To shut down the database:
+
+a. First make sure you have "quit;" from any splice> prompts:
+splice> quit;
+
+b. cd to the splicemachine directory that was installed
+
+c. run the following:
+$ ./bin/stop-splice.sh
+
+================================
+7. How to clean the database
+================================
+
+To clean the database (essentially wiping out any existing tables, indexes, etc):
+
+a. First make sure you have "quit;" from any splice> prompts:
+splice> quit;
+
+b. cd to the splicemachine directory that was installed
+
+c. run the following:
+$ ./bin/stop-splice.sh
+$ ./bin/clean.sh
+$ ./bin/start-splice.sh
+
+
+=========================
+9. Useful tips and tricks
+=========================
+
+- At the splice> prompt, remember to always end any SQL statement with a semicolon:
+splice> select * from a;
+
+- SQL statements can go across multiple lines at the splice> prompt.  Just be sure to end 
+the last line with a semicolon:
+splice> select * from a
+> where i > 1;
+
+- You can run collections of sql statements in a file.  To do so use run:
+splice> run 'path/to/file.sql';
+
+- Some useful commands from the splice> prompt include:
+splice> show tables; -- shows a list of all tables and their schemas in the database
+splice> describe <table>; -- shows columns and attributes of the specified table
+
+- To limit the number of rows returned, use { limit <numrows };
+splice> select * from a { limit 10 };
+
+- As with any database, you can very easily write slow queries.  Here are some tips to help avoid this:
+  - Use a WHERE clause to restrict how much data is scanned
+  - If there is an index on the criteria used in the WHERE clause (or if the where clause is using a primary key), 
+this helps speed up the query.  Composite indexes work well here.
+  - Indexing doesn't yet help for MAX(), MIN(), and IN() criteria.  If you can change these to =, >, BETWEEN,
+the index will help 
+
+- The query optimizer logic is in its earliest stages.  Therefore it may be required to provide "hints" to help
+make queries run faster by giving it a correct strategy.
+
+- Hints can provide the following information:
+  - which index to use ("index=<index name>").  You can use index=NULL if you want NO index to be used.
+  - which table join order to use (joinOrder = { FIXED | UNFIXED })
+  - which join strategy to use (joinStrategy = { NESTEDLOOP | SORTMERGE | BROADCAST })
+
+- Hints are provided in well-formatted "comments" starting with --DERBY-PROPERTIES, and need to be placed 
+at the end of SPECIFIC LINES of a multi-line query:
+  - joinOrder after the word FROM
+  - index and join strategy after the table listing
+  
+Here are some examples:
+
+-- use idx1
+select i
+from a --DERBY-PROPERTIES index=idx1
+where i > 500;
+
+-- use joinOrder and joinStrategy
+select a.i, b.j
+from  --DERBY-PROPERTIES joinOrder=FIXED
+a,b --DERBY-PROPERTIES joinStrategy=SORTMERGE
+where a.i = b.i;
+
+
+
+========================================
+10. A list of known bugs and other errata
+========================================
+
+- The Documentation is in its early stages, and there are a number of corrections that need to be made.  Here are a few:
+  - In our 0.5 release, there is no security or permission management, so all references to this can be ignored.
+
+  - In order to import data, ONLY use SYSCS_UTIL.SYSCS_IMPORT_DATA, not SYSCS_UTIL.SYSCS_IMPORT_TABLE.  See the examples
+    in this README for how to use, or this summary:
+
+    call SYSCS_UTIL.SYSCS_IMPORT_DATA(<schema>, <table>,<insert columns>,<column indices(always null)>,<absolute file path>,<column delimiter>,<character delimiter>,<timestamp format>,<date format>,<time format>)
+
+The three time formats are optional--if set to null, the default values will be:
+
+timestamp: yyyy-mm-dd hh:mm:ss
+time:		 hh:mm:ss
+date:		yyyy-mm-dd
+
+  - There are a number of concepts referred to in the documentation that will not be ready until a later release.  These include references to:
+     - security (grant, role, user, permission, authorization)
+     - foreign keys
+     - cursors
+     - triggers
+     - XML data type
+
+  - There are a few concepts referred to in the documentation that are not relevant at all to our current architecture or roadmap.  These include
+references to:
+     - locks
+     - any isolation level other than "snapshot isolation", which is the only one we support currently
+
+- Certain DDL actions are not fully complete and/or do not maintain full transactional integrity.  It is best to execute DDL statements separate 
+from DML statements for now.
+
+- For larger data sets, files should be gzipped (.gz) before imported.
+
+- Any reference to any document other than the SQL Reference document is invalid for now.
+
+- The CLOB data type is currently not working
+
+- Complex nested joins (select * from d join (a left outer join (b join c on b1=c1) on a1 = a2) on d3 = b3)
+  can fail.
+
+- You currently cannot create an index on more than 16 columns.
+
+- If you are running the database on a laptop, you will need to stop and restart the database after closing and reopening the laptop
+
+- Restarting the database sometimes takes a couple of attempts.  Check the splice.log.  If you see an exception but no "ready to accept connections",
+please retry the command.  You are ready to go when you see the "ready to accept connections" message
+

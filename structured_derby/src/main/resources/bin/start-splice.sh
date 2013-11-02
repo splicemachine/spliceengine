@@ -2,59 +2,55 @@
 
 # Start with debug logging by passing this script the "-debug" argument
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+LOGFILE="${ROOT_DIR}"/splice.log
+DEBUG=$1
 
-CLASSPATH=""
-
-export MYCLASSPATH="${DIR}"/lib/*
-
-LOG4J_CONFIG="-Dlog4j.configuration=file:${DIR}/lib/info-log4j.properties"
-
-if [[ ! -z "$1" && "$1" -eq "-debug" ]]; then
-    LOG4J_CONFIG="-Dlog4j.configuration=file:${DIR}/lib/hbase-log4j.properties"
+# server still running - must stop first
+SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
+ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+if [[ ! -z ${SPID} && ! -z ${ZPID} ]]; then
+    echo "Splice still running and must be shut down. Run stop-splice.sh"
+    exit 1;
 fi
-
-GEN_SYS_ARGS="-Djava.awt.headless=true ${LOG4J_CONFIG} \
--Djava.net.preferIPv4Stack=true"
-
-ZOO_SYS_ARGS="-Dzookeeper.sasl.client=false -Xmx2g -Xms1g"
-
-ZOO_DIR="${DIR}"/db/zookeeper
-HBASE_DIR="${DIR}"/db/hbase
 
 echo "Starting Splice Machine..."
-echo "Log file is ${DIR}/splice.log"
-(java ${GEN_SYS_ARGS} ${ZOO_SYS_ARGS} -classpath "${MYCLASSPATH}" org.apache.zookeeper.server.ZooKeeperServerMain 2181 "${ZOO_DIR}" 10 0  > "${DIR}"/splice.log 2>&1 &)
+echo "Log file is ${LOGFILE}"
+echo "Waiting for Splice..."
+maxRetries=3
+# save exit value
+rCode=0
+for i in $(eval echo "{1..$maxRetries}"); do
+    # debug
+    #echo
+    #echo "Try $i"
+    ./bin/start.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
+    ./bin/waitfor.sh "${LOGFILE}"
+    rCode=$?
+    if [[ ${rCode} -eq 0 ]]; then
+        echo "Splice Server is ready"
+        exit 0;
+    fi
+    if [[ ${rCode} -eq 1 && ${i} -ne ${maxRetries} ]]; then
+        # debug
+        #echo
+        #echo "Splice Server didn't start properly. Retrying..."
+        #cp "$LOGFILE" "${LOGFILE}_$i"
 
-sleep 15
+        SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
+        if [ -n "${SPID}" ]; then
+            # kill splice, if running (usually not), but let zoo have time to config itself
+            kill -15 ${SPID}
+        fi
+    fi
+done
 
-SPLICE_SYS_ARGS="-Xmx3g -Xms1g"
-
-(java ${GEN_SYS_ARGS} ${SPLICE_SYS_ARGS} -enableassertions -classpath "${MYCLASSPATH}" com.splicemachine.single.SpliceSinglePlatform "${ZOO_DIR}" "${HBASE_DIR}" 60021 60022 60023 60024 >> "${DIR}"/splice.log 2>&1 &)
-
-###
-timeout=100
-interval=5
-# kill -0 pid   Exit code indicates if a signal may be sent to $pid process.
-(
-  ((t = timeout))
-
-  while ((t > 0)); do
-    sleep $interval
-    kill -0 $$ || exit 0
-    ((t -= interval))
-  done
-
-  # Be nice, post SIGTERM first.
-  # The 'exit 0' below will be executed if any preceeding command fails.
-  kill -s SIGTERM $$ && kill -0 $$ || exit 0
-  sleep $delay
-  kill -s SIGKILL $$
-) 2> /dev/null &
-
-exec ./bin/isReady.sh "${DIR}"/splice.log
-
-if [[ $? -eq -1 ]]; then
-    echo "Try again"
+if [[ ${rCode} -ne 0 ]]; then
+    SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
+    ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+    if [[ -n ${SPID} || -n ${ZPID} ]]; then
+        echo "Server didn't start in expected amount of time. Please check ${LOGFILE} and restart." >&2
+        ./bin/stop.sh
+        exit 1;
+    fi
 fi
-

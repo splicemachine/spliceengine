@@ -1,15 +1,5 @@
 package com.splicemachine.single;
 
-import java.io.PrintStream;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.ServerAdminClient;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDerbyCoprocessor;
@@ -21,6 +11,14 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.coprocessors.SIObserver;
+import java.io.PrintStream;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.ServerAdminClient;
 
 public class SpliceSinglePlatform extends ServerAdminClient {
     private static final Logger LOG = Logger.getLogger(SpliceSinglePlatform.class);
@@ -68,8 +66,8 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		SpliceSinglePlatform spliceSinglePlatform;
 		try {
 			if (args.length == 1) {
-				if (args[0].toUpperCase().equals("STOP")) {
-					stop("localhost", 21281);
+				if (args[0].toUpperCase().equals("-STOP")) {
+					stop("127.0.0.1", 21281);
 				} else {
 					spliceSinglePlatform = new SpliceSinglePlatform(args[0]);
 					spliceSinglePlatform.start();
@@ -167,6 +165,8 @@ public class SpliceSinglePlatform extends ServerAdminClient {
         configuration.set("hbase.regionserver.dns.interface", interfaceName);
         configuration.set("hbase.master.dns.interface", interfaceName);
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 128 * 1024 * 1024L);
+// attempt to get server restart working better - didn't seem to help
+//        configuration.set("fail.fast.expired.active.master", "true");
 
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
