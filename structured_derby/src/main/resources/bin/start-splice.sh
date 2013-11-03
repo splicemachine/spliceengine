@@ -9,7 +9,7 @@ DEBUG=$1
 # server still running - must stop first
 SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
 ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
-if [[ ! -z ${SPID} && ! -z ${ZPID} ]]; then
+if [[ -n ${SPID} || -n ${ZPID} ]]; then
     echo "Splice still running and must be shut down. Run stop-splice.sh"
     exit 1;
 fi
