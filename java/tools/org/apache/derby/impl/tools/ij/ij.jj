@@ -2048,8 +2048,6 @@ throws SQLException
 			types = new String[] { "VIEW" };
 		else
 		{
-			// TODO: remove this when SYNONYM is supported
-			return new ijUnsupportedCommandResult("SHOW SYNONYMS");
 			types = new String[] { "SYNONYM" };
 		}
 		return showTables(schema, types);
