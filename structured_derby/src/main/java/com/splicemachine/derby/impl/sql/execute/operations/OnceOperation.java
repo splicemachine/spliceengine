@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -43,7 +44,7 @@ public class OnceOperation extends SpliceBaseOperation {
     // set in constructor and not altered during
     // life of object.
     public SpliceOperation source;
-	protected GeneratedMethod emptyRowFun;
+	protected SpliceMethod<ExecRow> emptyRowFun;
 	protected String emptyRowFunMethodName;	
 	private int cardinalityCheck;
 	public int subqueryNumber;
@@ -63,7 +64,6 @@ public class OnceOperation extends SpliceBaseOperation {
 			SpliceLogUtils.trace(LOG, "instantiated");
 		   this.source = s;
 		   this.emptyRowFunMethodName = (emptyRowFun != null)?emptyRowFun.getMethodName():null;
-           this.emptyRowFun = emptyRowFun;
 		   this.cardinalityCheck = cardinalityCheck;
 		   this.subqueryNumber = subqueryNumber;
 		   this.pointOfAttachment = pointOfAttachment;
@@ -103,8 +103,9 @@ public class OnceOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
 
-        if(emptyRowFun==null)
-            emptyRowFun = context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+        if(emptyRowFun == null) {
+            emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
+        }
     }
 
     @Override
@@ -241,7 +242,6 @@ public class OnceOperation extends SpliceBaseOperation {
 
     private class OnceRowProvider implements RowProvider {
         private final RowProvider delegate;
-        private boolean delegateNext;
         private ExecRow rowToReturn;
 
         public OnceRowProvider(RowProvider delegate) {
@@ -261,18 +261,10 @@ public class OnceOperation extends SpliceBaseOperation {
             return delegate.shuffleRows(instructions);
         }
 
-
         @Override
         public boolean hasNext() throws StandardException, IOException {
-            delegateNext = delegate.hasNext();
-            if(!delegateNext){
-                if(rowWithNulls==null){
-                    rowWithNulls = (ExecRow)emptyRowFun.invoke(activation);
-                    rowToReturn=rowWithNulls;
-                }
-            }else
-                rowToReturn = delegate.next();
-
+            rowToReturn = delegate.hasNext() ? delegate.next() : getRowWithNulls();
+            // OnceOp always has another row…
             return true;
         }
 
@@ -285,6 +277,13 @@ public class OnceOperation extends SpliceBaseOperation {
 		public SpliceRuntimeContext getSpliceRuntimeContext() {
 			return delegate.getSpliceRuntimeContext();
 		}
+
+        public ExecRow getRowWithNulls() throws StandardException {
+            if (rowWithNulls == null){
+                rowWithNulls = emptyRowFun.invoke();
+            }
+            return rowWithNulls;
+        }
     }
 
     @Override
