@@ -54,7 +54,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = new ExternalizableSerializer();
     @Override
     public void register(Kryo instance) {
-        instance.setReferences(false);
+    	instance.setReferences(false);
         instance.setRegistrationRequired(true);
 
         instance.register(ValueRow.class,new ValueRowSerializer());
@@ -374,5 +374,33 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return new ContainerKey(segmentId,containerId);
             }
         });
+ 
+        instance.register(SQLClob.class,new DataValueDescriptorSerializer<SQLClob>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLClob object) throws StandardException {
+                output.writeString(object.getString());
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLClob dvd) {
+                dvd.setValue(input.readString());
+            }
+        });
+        instance.register(SQLBlob.class,new DataValueDescriptorSerializer<SQLBlob>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLBlob object) throws StandardException {
+                byte[] data = object.getBytes();
+                output.writeInt(data.length);
+                output.write(data);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLBlob dvd) throws StandardException {
+                byte[] data = new byte[input.readInt()];
+                input.read(data);
+                dvd.setValue(data);
+            }
+        });
+        instance.register(SynonymAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(CursorTableReference.class, EXTERNALIZABLE_SERIALIZER);
     }
 }
