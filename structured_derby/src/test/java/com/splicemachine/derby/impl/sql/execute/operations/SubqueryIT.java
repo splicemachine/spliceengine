@@ -12,10 +12,7 @@ import org.junit.runner.Description;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
 
@@ -287,7 +284,8 @@ public class SubqueryIT {
                 o("BIRD", 4.5, "title1", "http://url.1"),
                 o("CAR", 4.5, "title1", "http://url.1"));
 
-        ResultSet rs = methodWatcher.executeQuery("SELECT S.DESCRIPTION, FAV.MAXRATE, C.TITLE, C.URL " +
+        ResultSet rs = methodWatcher.executeQuery(
+                "SELECT S.DESCRIPTION, FAV.MAXRATE, C.TITLE, C.URL " +
                 "FROM RATING R, " +
                 "      CONTENT C, " +
                 "      STYLE S, " +
@@ -304,4 +302,26 @@ public class SubqueryIT {
 
         Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
     }
+
+    @Ignore("Bugzilla 626")
+    @Test
+    public void testCorrelatedDoubleNestedNotExists() throws Exception {
+        List<Object[]> expected = Collections.singletonList(o("Alice"));
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "SELECT STAFF.EMPNAME" +
+                "          FROM STAFF" +
+                "          WHERE NOT EXISTS" +
+                "                 (SELECT *" +
+                "                       FROM PROJ" +
+                "                       WHERE NOT EXISTS" +
+                "                             (SELECT *" +
+                "                                   FROM WORKS" +
+                "                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM" +
+                "                                   AND WORKS.PNUM=PROJ.PNUM));" );
+
+        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+
 }
