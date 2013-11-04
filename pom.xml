@@ -144,10 +144,6 @@
             <url>http://repo1.maven.org/maven2</url>
         </repository>
         <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/content/repositories/releases/</url>
-        </repository>
-        <repository>
             <id>mapr-releases</id>
             <name>MapR Releases</name>
             <url>http://repository.mapr.com/maven/</url>
@@ -186,6 +182,10 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
+        </repository>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/content/repositories/releases/</url>
         </repository>
         <repository>
             <id>gson-repo</id>
