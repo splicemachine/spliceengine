@@ -2,7 +2,11 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -55,22 +59,52 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 		});
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	
-	@Test
-	@Ignore("Bug - JL")
-	public void testDistinctGroupedAggregate() throws Exception {			
-			ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation from %s group by oid",this.getTableReference(TABLE_NAME_1)));
-			int j = 0;
-			while (rs.next()) {
-				LOG.info("oid="+rs.getInt(1)+",sum(distinct quantity)="+rs.getInt(2));
-				if (j==0) {
-					Assert.assertEquals(5, rs.getInt(2));
-				} else if (j==1) {
-					Assert.assertEquals(3, rs.getInt(2));
-				} else if (j==2) {
-					Assert.assertEquals(16, rs.getInt(2));
-				}
-				j++;
-			}	
+
+    @Test
+    public void testMultipleDistinctAggregates() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation,count(distinct quantity) as count from %s group by oid",this.getTableReference(TABLE_NAME_1)));
+        int j = 0;
+        Set<Integer> correctOids = Sets.newHashSet(1,2,3);
+        Map<Integer,Integer> correctSums = Maps.newHashMap();
+        correctSums.put(1,5);
+        correctSums.put(2,3);
+        correctSums.put(3,16);
+        Map<Integer,Integer> correctCounts = Maps.newHashMap();
+        correctCounts.put(1,1);
+        correctCounts.put(2,2);
+        correctCounts.put(3,3);
+        while (rs.next()) {
+            int oid = rs.getInt(1);
+            Assert.assertTrue("Duplicate row for oid "+ oid,correctOids.contains(oid));
+            correctOids.remove(oid);
+            int sum = rs.getInt(2);
+            Assert.assertEquals("Incorrect sum for oid "+ oid,correctSums.get(oid).intValue(),sum);
+            int count = rs.getInt(3);
+            Assert.assertEquals("Incorrect count for oid "+ oid,correctCounts.get(oid).intValue(),count);
+            j++;
+        }
+        Assert.assertEquals("Incorrect row count!",3,j);
+        Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
+    }
+
+    @Test
+	public void testDistinctGroupedAggregate() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select oid, sum(distinct quantity) as summation from %s group by oid",this.getTableReference(TABLE_NAME_1)));
+        int j = 0;
+        Set<Integer> correctOids = Sets.newHashSet(1,2,3);
+        Map<Integer,Integer> correctSums = Maps.newHashMap();
+        correctSums.put(1,5);
+        correctSums.put(2,3);
+        correctSums.put(3,16);
+        while (rs.next()) {
+            int oid = rs.getInt(1);
+            Assert.assertTrue("Duplicate row for oid "+ oid,correctOids.contains(oid));
+            correctOids.remove(oid);
+            int sum = rs.getInt(2);
+            Assert.assertEquals("Incorrect sum for oid "+ oid,correctSums.get(oid).intValue(),sum);
+            j++;
+        }
+        Assert.assertEquals("Incorrect row count!",3,j);
+        Assert.assertEquals("Incorrect number of oids returned!",0,correctOids.size());
 	}		
 }

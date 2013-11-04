@@ -131,14 +131,15 @@ public class BytesUtil {
     }
 
     public static byte[] concatenate(byte headerByte,byte[] ... bytes){
-        int length = 1;
+        int length = 2;
         for(byte[] bytes1:bytes){
             length+=bytes1.length;
         }
 
         byte[] concatenatedBytes = new byte[length+bytes.length-1];
         concatenatedBytes[0] = headerByte;
-        copyInto(bytes,concatenatedBytes,1);
+        concatenatedBytes[1] = 0x00;
+        copyInto(bytes,concatenatedBytes,2);
         return concatenatedBytes;
     }
 

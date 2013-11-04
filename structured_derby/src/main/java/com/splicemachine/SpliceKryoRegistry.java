@@ -374,7 +374,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return new ContainerKey(segmentId,containerId);
             }
         });
- 
+
         instance.register(SQLClob.class,new DataValueDescriptorSerializer<SQLClob>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLClob object) throws StandardException {
@@ -403,5 +403,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SynonymAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(CursorTableReference.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(FKInfo.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(DerbyAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

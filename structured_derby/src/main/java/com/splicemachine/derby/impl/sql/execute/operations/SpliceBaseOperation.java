@@ -182,7 +182,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void clearCurrentRow() {
-        activation.clearCurrentRow(operationInformation.getResultSetNumber());
+        if(activation!=null){
+            activation.clearCurrentRow(operationInformation.getResultSetNumber());
+        }
         currentRow=null;
 	}
 
@@ -224,8 +226,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 	@Override
 	public void open() throws StandardException, IOException {
-        this.uniqueSequenceID = SpliceUtils.getUniqueKey();
-        init(SpliceOperationContext.newContext(activation));
+        this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
+//        init(SpliceOperationContext.newContext(activation));
 	}
 //	@Override
 	public double getEstimatedRowCount() {

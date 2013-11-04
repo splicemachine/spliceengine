@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.StandardSupplier;
 import org.apache.derby.iapi.error.StandardException;
@@ -27,18 +29,14 @@ public class AggregateBuffer {
     private int currentSize= 0;
     private GroupedRow groupedRow;
 
-    /*
-     * Performance enhancer--means that evict() will always start close to the lowest filled
-     * entry in the buffer, instead of having to start at the beginning of the array each time.
-     */
-    private int firstFilledPosition=Integer.MAX_VALUE;
+    private int lastEvictedPosition = -1;
 
     public AggregateBuffer(int maxSize,
                            SpliceGenericAggregator[] aggregators,
                            boolean eliminateDuplicates,
                            StandardSupplier<ExecRow> emptyRowSupplier,
                            WarningCollector warningCollector){
-        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,true);
+        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false);
     }
     public AggregateBuffer(int maxSize,
                            SpliceGenericAggregator[] aggregators,
@@ -62,20 +60,30 @@ public class AggregateBuffer {
     }
 
     public GroupedRow add(byte[] groupingKey, ExecRow nextRow) throws StandardException {
-        GroupedRow evicted = evictIfNeeded();
+        GroupedRow evicted = null;
 
         int byteHash = getHash(groupingKey);
 
         boolean found;
         int position = byteHash - 1;
         BufferedAggregator aggregate;
+        int visitedCount=-1;
         do {
+            visitedCount++;
             //linear collision resolution
             position = (position + 1) & (keys.length - 1);
             byte[] key = keys[position];
             aggregate = values[position];
             found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
-        } while (!found);
+        } while (!found && visitedCount<currentSize);
+
+        if(!found){
+            //need to evict an entry
+            evicted = evict();
+            position = lastEvictedPosition;
+            aggregate = values[position];
+        }
+
 
         if (aggregate == null) {
             //empty slot, create one and initialize it
@@ -90,8 +98,6 @@ public class AggregateBuffer {
             currentSize++;
         }else
             aggregate.merge(nextRow);
-        if(position<firstFilledPosition)
-            firstFilledPosition=position;
 
         return evicted;
     }
@@ -107,29 +113,28 @@ public class AggregateBuffer {
 /*********************************************************************************************************************/
     /*private helper functions*/
 
-    private GroupedRow evictIfNeeded()throws StandardException{
-        return currentSize >= keys.length ? evict() : null;
-    }
-
     private GroupedRow evict() throws StandardException {
 
         //evict the first non-null entry in the buffer
-        int evictPos=firstFilledPosition-1;
+        int evictPos=lastEvictedPosition;
         byte[] groupedKey;
         boolean found;
         BufferedAggregator aggregate;
+        int visitedCount=-1;
         do{
-            evictPos++;
+            evictPos = (evictPos + 1) & (keys.length - 1);
+            visitedCount++;
             groupedKey = keys[evictPos];
             aggregate = values[evictPos];
             found = groupedKey!=null && aggregate!=null
                     && aggregate.isInitialized();
-        }while(!found && evictPos<keys.length);
+        }while(!found && visitedCount<values.length);
 
         if(evictPos>=keys.length)
             return null; //empty buffer
 
-        firstFilledPosition = evictPos+1;
+        lastEvictedPosition = evictPos;
+
         if(groupedRow==null)
             groupedRow = new GroupedRow();
         aggregate = values[evictPos];
@@ -159,7 +164,7 @@ public class AggregateBuffer {
         private final WarningCollector warningCollector;
         private final boolean shouldMerge;
 
-        private HashSet<DataValueDescriptor> uniqueValues;
+        private IntObjectMap<HashSet<DataValueDescriptor>> uniqueValues;
         private ExecRow currentRow;
 
         protected BufferedAggregator(SpliceGenericAggregator[] aggregates,
@@ -179,7 +184,9 @@ public class AggregateBuffer {
             for(SpliceGenericAggregator aggregator:aggregates){
                 aggregator.initialize(currentRow);
                 filterDistincts(currentRow, aggregator);
-                aggregator.accumulate(currentRow,currentRow);
+                //if shouldMerge is true, then we don't want to accumulate, it'll mess up the accumulations
+                if(!shouldMerge)
+                    aggregator.accumulate(currentRow,currentRow);
             }
         }
 
@@ -200,13 +207,20 @@ public class AggregateBuffer {
                 if(eliminateDuplicates)
                     return true;
                 if(uniqueValues==null)
-                    uniqueValues = Sets.newHashSet();
+                    uniqueValues = IntObjectOpenHashMap.newInstance();
+
+                int inputColNum = aggregator.getAggregatorInfo().getInputColNum();
+                HashSet<DataValueDescriptor> uniqueVals = uniqueValues.get(inputColNum);
+                if(uniqueVals==null){
+                    uniqueVals = Sets.newHashSet();
+                    uniqueValues.put(inputColNum,uniqueVals);
+                }
 
                 DataValueDescriptor uniqueValue = aggregator.getInputColumnValue(newRow).cloneValue(false);
-                if(uniqueValues.contains(uniqueValue))
+                if(uniqueVals.contains(uniqueValue))
                     return true;
 
-                uniqueValues.add(uniqueValue);
+                uniqueVals.add(uniqueValue);
             }
             return false;
         }

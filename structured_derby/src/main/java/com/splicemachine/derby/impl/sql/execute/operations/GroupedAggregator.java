@@ -56,11 +56,18 @@ public class GroupedAggregator {
             if(!shouldContinue)
                 continue; //iterator exhausted, break from the loop
 
-            rollupRows(nextRow);
-            for(ExecRow rollup:rollupRows){
-                GroupedRow groupedRow = buffer.add(getGroupingKey(rollup),rollup);
+            if(!isRollup){
+                GroupedRow groupedRow = buffer.add(getGroupingKey(nextRow),nextRow.getClone());
                 if(groupedRow!=null&&groupedRow.getRow()!=nextRow)
                     return groupedRow;
+            }else{
+                rollupRows(nextRow);
+                for(ExecRow rollup:rollupRows){
+                    //we don't need to clone, cause rolling up rows does it for us
+                    GroupedRow groupedRow = buffer.add(getGroupingKey(rollup),rollup);
+                    if(groupedRow!=null&&groupedRow.getRow()!=nextRow)
+                        return groupedRow;
+                }
             }
         }while(shouldContinue);
         /*
@@ -107,5 +114,9 @@ public class GroupedAggregator {
             rollUpPos--;
             pos++;
         }while(rollUpPos>=0);
+    }
+
+    public void close() throws IOException, StandardException {
+        source.close();
     }
 }
