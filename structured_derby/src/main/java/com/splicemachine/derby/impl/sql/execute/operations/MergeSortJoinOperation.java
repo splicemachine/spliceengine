@@ -12,10 +12,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -121,7 +118,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-    	SpliceLogUtils.trace(LOG, "nextRow");
+    	SpliceLogUtils.trace(LOG, "next");
         if(joiner==null){
             SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
             SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
@@ -131,7 +128,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
             RowDecoder leftDecoder = getRowEncoder(left, leftNumCols, leftHashKeys).getDual(leftResultSet.getExecRowDefinition());
             RowDecoder rightDecoder = getRowEncoder(right, rightNumCols, rightHashKeys).getDual(rightResultSet.getExecRowDefinition());
-            MergeScanner scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
+            StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
             scanner.open();
             Restriction mergeRestriction = getRestriction();
             joiner = getMergeJoiner(outer, scanner, mergeRestriction);
@@ -371,8 +368,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 /***********************************************************************************************************************************/
     /*private helper methods*/
-    private MergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext, RowDecoder leftDecoder, RowDecoder rightDecoder) {
-        MergeScanner scanner;
+    private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext, RowDecoder leftDecoder, RowDecoder rightDecoder) {
+        StandardIterator<JoinSideExecRow> scanner;
         if(spliceRuntimeContext.isSink()){
             scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region);
         }else{
@@ -381,7 +378,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return scanner;
     }
 
-    private MergeSortJoiner getMergeJoiner(boolean outer, final MergeScanner scanner, final Restriction mergeRestriction) {
+    private MergeSortJoiner getMergeJoiner(boolean outer, final StandardIterator<JoinSideExecRow> scanner, final Restriction mergeRestriction) {
         if(outer){
             StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
                 @Override

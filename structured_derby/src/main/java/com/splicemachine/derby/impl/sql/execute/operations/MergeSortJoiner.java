@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.StandardSuppliers;
 import org.apache.derby.iapi.error.StandardException;
@@ -37,7 +38,7 @@ public class MergeSortJoiner {
     private ExecRow mergedRowTemplate;
     private byte[] currentHash;
 
-    private final MergeScanner scanner;
+    private final StandardIterator<JoinSideExecRow> scanner;
     private final boolean wasRightOuterJoin;
     private final int leftNumCols;
     private final int rightNumCols;
@@ -50,7 +51,7 @@ public class MergeSortJoiner {
     private final StandardSupplier<ExecRow> emptyRowSupplier;
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
-                           MergeScanner scanner,
+                           StandardIterator<JoinSideExecRow> scanner,
                            boolean wasRightOuterJoin,
                            int leftNumCols,
                            int rightNumCols,
@@ -62,7 +63,7 @@ public class MergeSortJoiner {
     }
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
-                           MergeScanner scanner,
+                           StandardIterator<JoinSideExecRow> scanner,
                            Restriction mergeRestriction,
                            boolean wasRightOuterJoin,
                            int leftNumCols,
@@ -108,7 +109,7 @@ public class MergeSortJoiner {
          * 2. The next row is a Right Row.
          */
         do{
-            JoinSideExecRow nextRowToMerge = scanner.nextRow();
+            JoinSideExecRow nextRowToMerge = scanner.next();
             if(nextRowToMerge==null){
                 //we are out of rows in the scanner, just return null;
                 break;

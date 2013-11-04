@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -22,7 +23,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Created on: 10/29/13
  */
-public class ResultMergeScanner implements MergeScanner{
+public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
     private final SpliceResultScanner scanner;
 
     private final RowDecoder leftDecoder;
@@ -50,7 +51,7 @@ public class ResultMergeScanner implements MergeScanner{
     }
 
     @Override
-    public JoinSideExecRow nextRow() throws StandardException, IOException {
+    public JoinSideExecRow next() throws StandardException, IOException {
         Result result = scanner.next();
         if(result==null) return null;
         byte[] rowKey = result.getRow();
@@ -94,7 +95,7 @@ public class ResultMergeScanner implements MergeScanner{
         }
     }
 
-    public static MergeScanner regionAwareScanner(Scan scan,
+    public static ResultMergeScanner regionAwareScanner(Scan scan,
                                                   String txnId,
                                                   RowDecoder leftDecoder,
                                                   RowDecoder rightDecoder,
@@ -104,7 +105,7 @@ public class ResultMergeScanner implements MergeScanner{
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
     }
 
-    public static MergeScanner clientScanner(Scan reduceScan, RowDecoder leftDecoder, RowDecoder rightDecoder) {
+    public static ResultMergeScanner clientScanner(Scan reduceScan, RowDecoder leftDecoder, RowDecoder rightDecoder) {
         ClientResultScanner scanner = new ClientResultScanner(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,true);
         return new ResultMergeScanner(scanner,leftDecoder,rightDecoder);
     }
