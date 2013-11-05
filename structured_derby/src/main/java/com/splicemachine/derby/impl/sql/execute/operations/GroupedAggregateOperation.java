@@ -49,6 +49,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private GroupedAggregateContext groupedAggregateContext;
 
     private Snowflake.Generator uuidGen;
+    private boolean shouldClose;
 
     public GroupedAggregateOperation () {
     	super();
@@ -307,17 +308,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     groupingKeys,groupingKeyOrder,false);
             aggregator.open();
         }
-        GroupedRow row = aggregator.next();
-        if(row==null){
-            clearCurrentRow();
-            aggregator.close();
-            return null;
+        shouldClose=true;
+        try{
+            GroupedRow row = aggregator.next();
+            if(row==null){
+                clearCurrentRow();
+                return null;
+            }
+            shouldClose=false;
+            currentKey = row.getGroupingKey();
+            isCurrentDistinct = row.isDistinct();
+            ExecRow execRow = row.getRow();
+            setCurrentRow(execRow);
+
+            return execRow;
+        }finally{
+            if(shouldClose)
+                aggregator.close();
+            shouldClose=true;
         }
-        currentKey = row.getGroupingKey();
-        isCurrentDistinct = row.isDistinct();
-        ExecRow execRow = row.getRow();
-        setCurrentRow(execRow);
-        return execRow;
     }
 
     private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext) {

@@ -58,6 +58,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
     private MergeSortJoiner joiner;
+    private boolean shouldClose;
 
     public MergeSortJoinOperation() {
 		super();
@@ -134,17 +135,25 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             joiner = getMergeJoiner(outer, scanner, mergeRestriction);
         }
         beginTime = getCurrentTimeMillis();
-        ExecRow joinedRow = joiner.nextRow();
-        if(joinedRow!=null){
-            setCurrentRow(joinedRow);
-            if(currentRowLocation==null)
-                currentRowLocation = new HBaseRowLocation();
-            currentRowLocation.setValue(joiner.lastRowLocation());
-            setCurrentRowLocation(currentRowLocation);
-        }else{
-            clearCurrentRow();
+        shouldClose=true;
+        try{
+            ExecRow joinedRow = joiner.nextRow();
+            if(joinedRow!=null){
+                shouldClose=false;
+                setCurrentRow(joinedRow);
+                if(currentRowLocation==null)
+                    currentRowLocation = new HBaseRowLocation();
+                currentRowLocation.setValue(joiner.lastRowLocation());
+                setCurrentRowLocation(currentRowLocation);
+            }else{
+                clearCurrentRow();
+            }
+            return joinedRow;
+        }finally{
+            if(shouldClose)
+                joiner.close();
+            shouldClose=true;
         }
-        return joinedRow;
     }
 
     @Override

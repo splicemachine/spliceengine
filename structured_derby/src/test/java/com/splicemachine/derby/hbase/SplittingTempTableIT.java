@@ -153,17 +153,17 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                 join(
                     "select a.i, avg(a.j), sum(a.j) from ",
                     TABLE_NAME_1 + " a ",
-                    "inner join " + TABLE_NAME_1 + " b --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n ",
                     "on a.i = b.i ",
-                    "inner join " + TABLE_NAME_1 + " c --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on b.i = c.i ",
-                    "inner join " + TABLE_NAME_1 + " d --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on c.i = d.i ",
-                    "inner join " + TABLE_NAME_1 + " e --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on d.i = e.i ",
-                    "inner join " + TABLE_NAME_1 + " f --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on e.i = f.i ",
-                    "inner join " + TABLE_NAME_1 + " g --SPLICE-PROPERTIES joinStrategy=SORTMERGE ",
+                    "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on f.i = g.i ",
                     "group by a.i"));
         int j = 0;
@@ -218,6 +218,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("Takes forever to run")
     public void testRepeatedScalarAggregate() throws Exception {
         for(int i=0;i<100;i++){
             testScalarAggregate();

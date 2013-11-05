@@ -116,8 +116,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		super.init(context);
 		ExecutionFactory factory = operationInformation.getExecutionFactory();
 		try {
-			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
-			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
+			sortTemplateRow = this.aggregateContext.getSortTemplateRow();
+			sourceExecIndexRow = this.aggregateContext.getSourceIndexRow();
 		} catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
