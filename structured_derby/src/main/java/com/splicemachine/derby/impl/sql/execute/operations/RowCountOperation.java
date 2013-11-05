@@ -14,6 +14,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.AbstractScanProvider;
+import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
@@ -302,9 +303,18 @@ public class RowCountOperation extends SpliceBaseOperation{
             if(provider instanceof SingleScanRowProvider){
                 int fetchSize = (int)fetchLimit;
                 Scan scan = ((SingleScanRowProvider)provider).toScan();
-                int caching = scan.getCaching();
-                if(caching > fetchSize){
-                    scan.setCaching(fetchSize);
+                if(scan!=null){
+                    int caching = scan.getCaching();
+                    if(caching > fetchSize){
+                        scan.setCaching(fetchSize);
+                    }
+                }
+            }else if(provider instanceof MultiScanRowProvider){
+                List<Scan> scans = ((MultiScanRowProvider) provider).getScans();
+                int fetchSize = (int)fetchLimit;
+                for(Scan scan:scans){
+                    if(scan.getCaching()>fetchSize)
+                        scan.setCaching(fetchSize);
                 }
             }
         }

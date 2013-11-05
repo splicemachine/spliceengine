@@ -67,6 +67,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		   this.cardinalityCheck = cardinalityCheck;
 		   this.subqueryNumber = subqueryNumber;
 		   this.pointOfAttachment = pointOfAttachment;
+           init(SpliceOperationContext.newContext(a));
 		   recordConstructorTime(); 
 	   }
 	   

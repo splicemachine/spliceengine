@@ -8,6 +8,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.log4j.Logger;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.HashSet;
  * Created on: 11/1/13
  */
 public class AggregateBuffer {
+    private static final Logger LOG = Logger.getLogger(AggregateBuffer.class);
     private byte[][] keys;
     private BufferedAggregator[] values;
     private final SpliceGenericAggregator[] aggregates;
@@ -60,8 +62,8 @@ public class AggregateBuffer {
     }
 
     public GroupedRow add(byte[] groupingKey, ExecRow nextRow) throws StandardException {
-        if(aggregates==null||aggregates.length==0) //there's nothing to do if we don't have any aggregates
-            return null;
+//        if(aggregates==null||aggregates.length==0) //there's nothing to do if we don't have any aggregates
+//            return null;
         GroupedRow evicted = null;
 
         int byteHash = getHash(groupingKey);
@@ -110,6 +112,10 @@ public class AggregateBuffer {
 
     public int size(){
         return currentSize;
+    }
+
+    public boolean hasAggregates(){
+        return aggregates!=null && aggregates.length>0;
     }
 
 /*********************************************************************************************************************/
@@ -196,7 +202,7 @@ public class AggregateBuffer {
         public void merge(ExecRow newRow) throws StandardException{
             for(SpliceGenericAggregator aggregator:aggregates){
                 boolean shouldAdd = aggregator.isInitialized(newRow);
-                if (!filterDistincts(newRow, aggregator,shouldAdd)){
+                if (!filterDistincts(newRow, aggregator, shouldAdd)){
                     if(!shouldAdd)
                         aggregator.initialize(newRow);
 
@@ -224,8 +230,11 @@ public class AggregateBuffer {
                 }
 
                 DataValueDescriptor uniqueValue = aggregator.getInputColumnValue(newRow).cloneValue(false);
-                if(uniqueVals.contains(uniqueValue))
+                if(uniqueVals.contains(uniqueValue)){
+                    if(LOG.isTraceEnabled())
+                        LOG.trace("Aggregator "+ aggregator+" is removing entry "+ newRow);
                     return true;
+                }
 
                 if(addEntry)
                     uniqueVals.add(uniqueValue);

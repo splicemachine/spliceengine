@@ -84,9 +84,13 @@ public class GroupedAggregateOperationTest {
         ExecIndexRow sortTemplateRow = new IndexValueRow(sourceRowTemplate);
         when(mockAggregateContext.getSourceIndexRow()).thenReturn(sortTemplateRow);
         when(mockAggregateContext.getSourceIndexRow()).thenReturn((ExecIndexRow) sortTemplateRow.getClone());
+        when(mockAggregateContext.getDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{});
+        when(mockAggregateContext.getNonDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{countAgg});
 
         GroupedAggregateContext mockGroupedContext = mock(GroupedAggregateContext.class);
         when(mockGroupedContext.getGroupingKeys()).thenReturn(new int[]{0});
+        when(mockGroupedContext.getGroupingKeyOrder()).thenReturn(new boolean[]{true});
+        when(mockGroupedContext.getNonGroupedUniqueColumns()).thenReturn(new int[]{});
 
         GroupedAggregateOperation operation = new GroupedAggregateOperation(mockSourceOperation,
                 mockOpInformation,mockAggregateContext,mockGroupedContext,false,false);

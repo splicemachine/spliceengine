@@ -114,8 +114,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     @Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
-		ExecutionFactory factory = operationInformation.getExecutionFactory();
-		try {
+        source.init(context);
+        try {
 			sortTemplateRow = this.aggregateContext.getSortTemplateRow();
 			sourceExecIndexRow = this.aggregateContext.getSourceIndexRow();
 		} catch (StandardException e) {

@@ -58,7 +58,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
     private MergeSortJoiner joiner;
-    private boolean shouldClose;
 
     public MergeSortJoinOperation() {
 		super();
@@ -118,6 +117,15 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return next(false,spliceRuntimeContext);
     }
 
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(joiner!=null){
+            joiner.close();
+            joiner = null;
+        }
+    }
+
     protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
     	SpliceLogUtils.trace(LOG, "next");
         if(joiner==null){
@@ -135,11 +143,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             joiner = getMergeJoiner(outer, scanner, mergeRestriction);
         }
         beginTime = getCurrentTimeMillis();
-        shouldClose=true;
+        boolean shouldClose = true;
         try{
             ExecRow joinedRow = joiner.nextRow();
             if(joinedRow!=null){
-                shouldClose=false;
+                rowsSeen++;
+                shouldClose =false;
                 setCurrentRow(joinedRow);
                 if(currentRowLocation==null)
                     currentRowLocation = new HBaseRowLocation();
@@ -150,9 +159,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             }
             return joinedRow;
         }finally{
-            if(shouldClose)
+            if(shouldClose){
+                if(LOG.isInfoEnabled())
+                    LOG.info("Seen "+ rowsSeen+" records");
                 joiner.close();
-            shouldClose=true;
+            }
         }
     }
 
@@ -182,6 +193,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
+        leftResultSet.init(context);
+        rightResultSet.init(context);
         SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);

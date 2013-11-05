@@ -24,30 +24,15 @@ import java.util.List;
  * Created on: 11/5/13
  */
 public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
-    private final AggregateBuffer nonDistinctBuffer;
-    private final AggregateBuffer distinctBuffer;
+    private final DoubleBuffer buffer;
     private final StandardIterator<ExecRow> source;
     private final boolean isRollup;
 
-    /*
-     * This array is of the form
-     * <grouping columns> <non-grouped unique columns>
-     */
-    private final int[] allKeyColumns;
-    private final boolean[] allSortOrders;
-
     private final int[] groupColumns;
-    private final boolean[] groupSortOrder;
 
     private boolean completed = false;
     private List<GroupedRow> evictedRows;
     private ExecRow[] rollupRows;
-
-    //cached fields for performance
-    private MultiFieldEncoder groupKeyEncoder;
-    private MultiFieldEncoder allKeyEncoder;
-    private KeyMarshall keyHasher = KeyType.BARE;
-
 
     public SinkGroupedAggregator(AggregateBuffer nonDistinctBuffer,
                                  AggregateBuffer distinctBuffer,
@@ -56,23 +41,21 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
                                  int[] groupColumns,
                                  boolean[] groupSortOrder,
                                  int[] nonGroupedUniqueColumns) {
-        this.nonDistinctBuffer = nonDistinctBuffer;
-        this.distinctBuffer = distinctBuffer;
         this.source = source;
         isRollup = rollup;
         this.groupColumns = groupColumns;
-        this.groupSortOrder = groupSortOrder;
 
-        allKeyColumns = new int[groupColumns.length+nonGroupedUniqueColumns.length];
-        System.arraycopy(groupColumns,0,allKeyColumns,0,groupColumns.length);
-        System.arraycopy(nonGroupedUniqueColumns,0,allKeyColumns,groupColumns.length,nonGroupedUniqueColumns.length);
+        int[] allKeyColumns = new int[groupColumns.length + nonGroupedUniqueColumns.length];
+        System.arraycopy(groupColumns,0, allKeyColumns,0,groupColumns.length);
+        System.arraycopy(nonGroupedUniqueColumns,0, allKeyColumns,groupColumns.length,nonGroupedUniqueColumns.length);
 
-        allSortOrders = new boolean[groupColumns.length+nonGroupedUniqueColumns.length];
-        System.arraycopy(groupSortOrder,0,allSortOrders,0,groupSortOrder.length);
-        Arrays.fill(allSortOrders,groupSortOrder.length,allSortOrders.length,true);
+        boolean[] allSortOrders = new boolean[groupColumns.length + nonGroupedUniqueColumns.length];
+        System.arraycopy(groupSortOrder,0, allSortOrders,0,groupSortOrder.length);
+        Arrays.fill(allSortOrders,groupSortOrder.length, allSortOrders.length,true);
 
         int maxEvictedSize = isRollup? groupColumns.length: 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvictedSize);
+        this.buffer = new DoubleBuffer(nonDistinctBuffer,distinctBuffer,groupColumns,groupSortOrder, allKeyColumns, allSortOrders,evictedRows);
     }
 
     @Override
@@ -85,14 +68,8 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         if(evictedRows.size()>0)
             return evictedRows.remove(0);
         if(completed){
-            if(nonDistinctBuffer.size()>0){
-                GroupedRow finalizedRow = nonDistinctBuffer.getFinalizedRow();
-                finalizedRow.setDistinct(false);
-                return finalizedRow;
-            } else if(distinctBuffer.size()>0){
-                GroupedRow finalizedRow = distinctBuffer.getFinalizedRow();
-                finalizedRow.setDistinct(true);
-                return finalizedRow;
+            if(buffer.size()>0){
+                return buffer.getFinalizedRow();
             }
             else return null;
         }
@@ -118,10 +95,8 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         completed=true;
 
         //we've exhausted the iterator, so return an entry from the buffer
-        if(nonDistinctBuffer.size()>0)
-            return nonDistinctBuffer.getFinalizedRow();
-        else if(distinctBuffer.size()>0)
-            return distinctBuffer.getFinalizedRow();
+        if(buffer.size()>0)
+            return buffer.getFinalizedRow();
 
         //the buffer has nothing in it either, just return null
         return null;
@@ -130,12 +105,12 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
     private GroupedRow buffer(ExecRow nextRow) throws StandardException {
         GroupedRow firstEvicted = null;
         if(!isRollup){
-            return bufferRow(nextRow.getClone());
+            return buffer.buffer(nextRow.getClone());
         }else{
             rollupRows(nextRow);
             for(ExecRow rollup:rollupRows){
                 //we don't need to clone, cause rolling up rows does it for us
-                GroupedRow groupedRow = bufferRow(rollup);
+                GroupedRow groupedRow = buffer.buffer(rollup);
 
                 if(groupedRow!=null){
                     if(firstEvicted==null)
@@ -176,39 +151,116 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         }while(rollUpPos>=0);
     }
 
-    private GroupedRow bufferRow(ExecRow nextRow) throws StandardException {
-        GroupedRow firstEvicted;
-        ExecRow clone = nextRow.getClone();
-        firstEvicted = nonDistinctBuffer.add(nonDistinctGroupingKey(nextRow), nextRow);
-        GroupedRow distinct = distinctBuffer.add(distinctGroupingKey(clone),clone);
-        if(firstEvicted!=null){
-            firstEvicted.setDistinct(false);
-            if(distinct!=null){
-                distinct.setDistinct(true);
-                evictedRows.add(distinct);
-            }
-        } else if(distinct!=null){
-            distinct.setDistinct(true);
-            firstEvicted = distinct;
+    private static interface Buffer{
+
+        GroupedRow buffer(ExecRow row) throws StandardException;
+
+        int size();
+
+        GroupedRow getFinalizedRow() throws StandardException;
+    }
+
+    private static class DoubleBuffer implements Buffer{
+        private final SingleBuffer nonDistinctBuffer;
+        private final SingleBuffer distinctBuffer;
+        private final List<GroupedRow> evictedRows;
+
+        private DoubleBuffer(AggregateBuffer nonDistinctBuffer,
+                             AggregateBuffer distinctBuffer,
+                             int[] groupKeys,
+                             boolean[] sortOrder,
+                             int[] allKeyColumns,
+                             boolean[] allSortOrders,
+                             List<GroupedRow> evictedRows) {
+            boolean dontAggregateDistinct = !distinctBuffer.hasAggregates() &&nonDistinctBuffer.hasAggregates();
+            boolean dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
+
+            this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer,groupKeys,sortOrder,dontAggregateNonDistinct);
+            this.distinctBuffer = new SingleBuffer(distinctBuffer,allKeyColumns,allSortOrders,dontAggregateDistinct);
+            this.evictedRows = evictedRows;
         }
-        return firstEvicted;
+
+        @Override
+        public GroupedRow buffer(ExecRow row) throws StandardException {
+            ExecRow clone = row.getClone();
+            GroupedRow firstEvicted = nonDistinctBuffer.buffer(row);
+            GroupedRow distinct = distinctBuffer.buffer(clone);
+
+            if(firstEvicted!=null){
+                firstEvicted.setDistinct(false);
+                if(distinct!=null){
+                    distinct.setDistinct(true);
+                    evictedRows.add(distinct);
+                }
+            } else if(distinct!=null){
+                distinct.setDistinct(true);
+                firstEvicted = distinct;
+            }
+            return firstEvicted;
+        }
+
+        @Override
+        public int size() {
+            return nonDistinctBuffer.size()+distinctBuffer.size();
+        }
+
+        @Override
+        public GroupedRow getFinalizedRow() throws StandardException {
+            if(nonDistinctBuffer.size()>0)
+                return nonDistinctBuffer.getFinalizedRow();
+            if(distinctBuffer.size()>0){
+                GroupedRow finalizedRow = distinctBuffer.getFinalizedRow();
+                finalizedRow.setDistinct(true);
+                return finalizedRow;
+            }
+            return null;
+        }
     }
 
-    private byte[] distinctGroupingKey(ExecRow nextRow) throws StandardException{
-        if(allKeyEncoder==null)
-            allKeyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),allKeyColumns.length);
+    private static class SingleBuffer implements Buffer{
+        private final AggregateBuffer aggregateBuffer;
+        private final int[] groupKeys;
+        private final boolean[] sortOrder;
 
-        allKeyEncoder.reset();
-        keyHasher.encodeKey(nextRow.getRowArray(),allKeyColumns,allSortOrders,null,allKeyEncoder);
-        return allKeyEncoder.build();
-    }
+        private MultiFieldEncoder encoder;
+        private final boolean ignoreNonAggregates;
 
-    private byte[] nonDistinctGroupingKey(ExecRow nextRow) throws StandardException {
-        if(groupKeyEncoder==null)
-            groupKeyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupColumns.length);
+        private SingleBuffer(AggregateBuffer aggregateBuffer,
+                             int[] groupKeys,
+                             boolean[] sortOrder,
+                             boolean ignoreNonAggregates) {
+            this.aggregateBuffer = aggregateBuffer;
+            this.groupKeys = groupKeys;
+            this.sortOrder = sortOrder;
+            this.ignoreNonAggregates = ignoreNonAggregates;
+        }
 
-        groupKeyEncoder.reset();
-        keyHasher.encodeKey(nextRow.getRowArray(),groupColumns,groupSortOrder,null,groupKeyEncoder);
-        return groupKeyEncoder.build();
+        @Override
+        public GroupedRow buffer(ExecRow row) throws StandardException {
+            //do nothing if we ignore the non-aggregates
+            if(ignoreNonAggregates && !aggregateBuffer.hasAggregates()) return null;
+
+            return aggregateBuffer.add(groupingKey(row),row);
+        }
+
+        @Override
+        public int size() {
+            return aggregateBuffer.size();
+        }
+
+        @Override
+        public GroupedRow getFinalizedRow() throws StandardException {
+            return aggregateBuffer.getFinalizedRow();
+        }
+
+        private byte[] groupingKey(ExecRow nextRow) throws StandardException {
+            if(encoder==null)
+                encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupKeys.length);
+
+            encoder.reset();
+            //noinspection RedundantCast
+            ((KeyMarshall)KeyType.BARE).encodeKey(nextRow.getRowArray(), groupKeys, sortOrder, null, encoder);
+            return encoder.build();
+        }
     }
 }

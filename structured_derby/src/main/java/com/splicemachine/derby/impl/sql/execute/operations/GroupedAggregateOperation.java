@@ -27,6 +27,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -49,7 +50,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private GroupedAggregateContext groupedAggregateContext;
 
     private Snowflake.Generator uuidGen;
-    private boolean shouldClose;
+    private Scan baseScan;
 
     public GroupedAggregateOperation () {
     	super();
@@ -126,14 +127,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         context.setCacheBlocks(false);
         super.init(context);
         source.init(context);
+        baseScan = context.getScan();
         groupedAggregateContext.init(context,aggregateContext);
 
     }
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        buildReduceScan();
+        if(top!=this && top instanceof SinkingOperation){
+            SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
+            return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+        }else{
+            return RowProviders.openedSourceProvider(top,LOG,spliceRuntimeContext);
+        }
+    }
+
+    private void buildReduceScan() throws StandardException {
+        if(reduceScan!=null) return;
         try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -141,11 +154,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             SuccessFilter filter = new SuccessFilter(failedTasks);
             reduceScan.setFilter(filter);
         }
-        if(top!=this && top instanceof SinkingOperation){
-            SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
-            return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
-        }else{
-            return RowProviders.openedSourceProvider(top,LOG,spliceRuntimeContext);
+    }
+
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(aggregator!=null){
+            aggregator.close();
+            aggregator = null;
         }
     }
 
@@ -166,8 +182,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+        final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
         boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
+        final MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
         return RowEncoder.create(sourceExecIndexRow.nColumns(), groupingKeys, groupingKeyOrder, null, new KeyMarshall() {
             @Override
             public void encodeKey(DataValueDescriptor[] columns,
@@ -183,6 +200,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                  *
                  * <hash> 0x00 <uniqueSequenceId> 0x00
                  *
+                 * Where the hash is computed by looking over the grouping keys.
+                 *
                  * But the grouping keys look different if it's a "distinct" row or not
                  *
                  * If it's distinct, then the remaining key looks like
@@ -194,7 +213,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                  *
                  * <group columns> 0x00 <uuid> 0x00 0x01 0x00 <postfix>
                  */
-                byte hash = (byte)((byte) MurmurHash.murmur3_32(currentKey) & 0xf0);
+                decoder.set(currentKey);
+                int offset = decoder.offset();
+                int length = DerbyBytesUtil.skip(decoder, keyColumns, columns);
+                if(length>currentKey.length-offset)
+                    length = currentKey.length - offset;
+
+                byte hash = (byte)((byte) MurmurHash.murmur3_32(currentKey,offset,length,0) & 0xf0);
                 byte[] key;
                 if(isCurrentDistinct)
                     key = BytesUtil.concatenate(hash,uniqueSequenceID,currentKey,distinctOrdinal);
@@ -277,9 +302,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
         currentKey = row.getGroupingKey();
         isCurrentDistinct = row.isDistinct();
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getNextSinkRow %s",row.getRow());
         ExecRow execRow = row.getRow();
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "getNextSinkRow %s",execRow);
         setCurrentRow(execRow);
         return execRow;
     }
@@ -308,24 +333,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     groupingKeys,groupingKeyOrder,false);
             aggregator.open();
         }
-        shouldClose=true;
+        boolean shouldClose = true;
         try{
             GroupedRow row = aggregator.next();
             if(row==null){
                 clearCurrentRow();
                 return null;
             }
-            shouldClose=false;
+            //don't close the aggregator unless you have no more data
+            shouldClose =false;
             currentKey = row.getGroupingKey();
             isCurrentDistinct = row.isDistinct();
             ExecRow execRow = row.getRow();
             setCurrentRow(execRow);
 
+            if(LOG.isTraceEnabled())
+                LOG.trace("nextRow = "+ execRow);
             return execRow;
         }finally{
             if(shouldClose)
                 aggregator.close();
-            shouldClose=true;
         }
     }
 
@@ -341,7 +368,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
                 fieldDecoder.seek(11); //skip the prefix value
 
-                return DerbyBytesUtil.slice(fieldDecoder,groupColumns,cols);
+                byte[] slice = DerbyBytesUtil.slice(fieldDecoder, groupColumns, cols);
+                fieldDecoder.reset();
+                MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
+                encoder.setRawBytes(fieldDecoder.slice(10));
+                encoder.setRawBytes(slice);
+                return encoder.build();
             }
 
             @Override
@@ -351,7 +383,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(),region,reduceScan,SpliceConstants.TEMP_TABLE_BYTES,boundary);
+        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary);
     }
 
     @Override
