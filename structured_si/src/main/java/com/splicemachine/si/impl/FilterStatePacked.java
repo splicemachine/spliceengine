@@ -21,6 +21,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
+    private boolean siNullSkip = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
@@ -45,10 +46,11 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                 return simpleFilter.filterByColumnType();
             case USER_DATA:
                 if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) {
-                    final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
+                	final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
                     switch (returnCode) {
                         case INCLUDE:
                         case INCLUDE_AND_NEXT_COL:
+                        	siNullSkip = true;
                             return Filter.ReturnCode.NEXT_COL;
                         case SKIP:
                         case NEXT_COL:
@@ -57,8 +59,8 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                         default:
                             throw new RuntimeException("unknown return code");
                     }
-                } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
-                    return accumulateUserData(dataKeyValue);
+                } else if (accumulator.isOfInterest(simpleFilter.keyValue.value()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
+                	return accumulateUserData(dataKeyValue);
                 } else {
                     if (!hasAccumulation) {
                         final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
@@ -139,6 +141,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         hasAccumulation = false;
         excludeRow = false;
         accumulatedKeyValue = null;
+        siNullSkip = false;
     }
 
 }

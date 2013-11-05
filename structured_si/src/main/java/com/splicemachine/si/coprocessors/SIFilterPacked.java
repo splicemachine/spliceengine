@@ -71,7 +71,10 @@ public class SIFilterPacked extends FilterBase {
                     if (extraKeyValueIncluded == null) {
                         extraKeyValueIncluded = true;
                         returnCode = ReturnCode.INCLUDE;
-                    }
+                    } 
+                    break;
+                case NEXT_COL:
+                	returnCode = ReturnCode.SKIP;
                     break;
           // We are still re-seeking - TODO JL
           //      case NEXT_COL:
