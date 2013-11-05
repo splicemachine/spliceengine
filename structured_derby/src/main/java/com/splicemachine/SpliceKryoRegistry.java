@@ -402,5 +402,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         });
         instance.register(SynonymAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(CursorTableReference.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(FKInfo.class, EXTERNALIZABLE_SERIALIZER);
     }
 }
