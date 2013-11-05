@@ -31,4 +31,5 @@ while ((t > 0)); do
 
     ((t -= interval))
 done
-echo
+# did not start in allotted timeout - error
+exit 1;

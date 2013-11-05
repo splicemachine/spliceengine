@@ -135,6 +135,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
+        configuration.set("hbase.tmp.dir", hbaseTargetDirectory + "/tmp");
 		configuration.setInt("hbase.rpc.timeout", 120000);
 		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");
