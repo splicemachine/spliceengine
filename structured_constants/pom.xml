@@ -121,13 +121,33 @@
                     <artifactId>hbase</artifactId>
                     <version>${hbase.version}</version>
                     <classifier>splice</classifier>
+                    <exclusions>
+                        <exclusion>
+                            <artifactId>jsp-api-2.1</artifactId>
+                            <groupId>org.mortbay.jetty</groupId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>jsp-2.1</artifactId>
+                            <groupId>org.mortbay.jetty</groupId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.hbase</groupId>
                     <artifactId>hbase</artifactId>
                     <version>${hbase.version}</version>
                     <classifier>tests</classifier>
-                </dependency>
+                    <exclusions>
+                        <exclusion>
+                            <artifactId>jsp-api-2.1</artifactId>
+                            <groupId>org.mortbay.jetty</groupId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>jsp-2.1</artifactId>
+                            <groupId>org.mortbay.jetty</groupId>
+                        </exclusion>
+                  </exclusions>                
+               </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-common</artifactId>
