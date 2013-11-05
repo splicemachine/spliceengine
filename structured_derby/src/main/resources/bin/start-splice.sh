@@ -24,7 +24,7 @@ for i in $(eval echo "{1..$maxRetries}"); do
     # debug
     #echo
     #echo "Try $i"
-    ./bin/start.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
+    ./bin/_start.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
     ./bin/waitfor.sh "${LOGFILE}"
     rCode=$?
     if [[ ${rCode} -eq 0 ]]; then
@@ -49,7 +49,7 @@ if [[ ${rCode} -ne 0 ]]; then
     SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
     ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
     if [[ -n ${SPID} || -n ${ZPID} ]]; then
-        ./bin/stop.sh
+        ./bin/_stop.sh
     fi
     echo
     echo "Server didn't start in expected amount of time. Please restart with the \"-debug\" option and check ${LOGFILE}." >&2

@@ -1,4 +1,4 @@
 #!/bin/bash
 
 echo "Shutting down Splice Machine..."
-./bin/stop.sh
+./bin/_stop.sh
