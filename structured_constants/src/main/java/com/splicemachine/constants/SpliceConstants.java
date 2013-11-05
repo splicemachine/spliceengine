@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -32,6 +33,16 @@ public class SpliceConstants {
     @Parameter public static final String BASE_TASK_QUEUE_NODE = "splice.task_queue_node";
     @DefaultValue(BASE_TASK_QUEUE_NODE) public static final String DEFAULT_BASE_TASK_QUEUE_NODE = "/spliceTasks";
     public static String zkSpliceTaskPath;
+
+    /**
+     * The Path in zookeeper for manipulating DDL information and coordination.
+     * Defaults to /ddl
+     */
+    @Parameter public static final String DDL_PATH = "splice.ddl_node";
+    @DefaultValue(DDL_PATH) public static final String DEFAULT_DDL_PATH = "/ddl";
+    public static String zkSpliceDDLPath;
+    public static String zkSpliceDDLActiveServersPath;
+    public static String zkSpliceDDLOngoingTransactionsPath;
 
     /**
      * The Path in zookeeper to store job information. Defaults to /spliceJobs
@@ -556,6 +567,7 @@ public class SpliceConstants {
     public static final String TEMP_TABLE = "SPLICE_TEMP";
     public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
+    public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
     public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16;
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
@@ -565,6 +577,7 @@ public class SpliceConstants {
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
+    public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
 
@@ -628,10 +641,14 @@ public class SpliceConstants {
 	}
 	
 	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
-			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,
+			zkSpliceQueryNodePath);
 
 	public static void setParameters() {
-		zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
+        zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
+        zkSpliceDDLPath = config.get(DDL_PATH,DEFAULT_DDL_PATH);
+        zkSpliceDDLActiveServersPath = zkSpliceDDLPath + "/activeServers";
+        zkSpliceDDLOngoingTransactionsPath = zkSpliceDDLPath + "/ongoingChanges";
 		zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 		zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
 		zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);

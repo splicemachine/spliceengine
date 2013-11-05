@@ -72,7 +72,6 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
      * @throws Exception
      */
     @Test
-    @Ignore("Bug 542. Connection 2 is seeing new column before connection 1 commits after adding it.")
     public void testAlterTableIsolation() throws Exception{
         Connection connection1 = methodWatcher.createConnection();
         Connection connection2 = methodWatcher.createConnection();

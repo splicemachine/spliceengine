@@ -137,6 +137,11 @@ public class SpliceUtilities extends SIConstants {
                 admin.createTable(td, generateTransactionSplits());
                 SpliceLogUtils.info(LOG, SpliceConstants.TRANSACTION_TABLE_BYTES+" created");
             }
+            if(!admin.tableExists(SpliceConstants.TENTATIVE_TABLE_BYTES)){
+                HTableDescriptor td = generateDefaultSIGovernedTable(SpliceConstants.TENTATIVE_TABLE);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG, SpliceConstants.TENTATIVE_TABLE_BYTES+" created");
+            }
 
             if(!admin.tableExists(SpliceConstants.CONGLOMERATE_TABLE_NAME_BYTES)){
                 HTableDescriptor td = generateDefaultSIGovernedTable(CONGLOMERATE_TABLE_NAME);
