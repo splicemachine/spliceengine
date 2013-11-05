@@ -22,8 +22,7 @@ import org.apache.zookeeper.ServerAdminClient;
 
 public class SpliceSinglePlatform extends ServerAdminClient {
     private static final Logger LOG = Logger.getLogger(SpliceSinglePlatform.class);
-    private String hbaseTempDir;
-    protected MiniHBaseCluster miniHBaseCluster;
+	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;
 	protected String zookeeperTargetDirectory;
 	protected String hbaseTargetDirectory;
@@ -57,17 +56,9 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 	}
 
     public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort,
-                                Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
+                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
         this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
                 masterInfoPort, regionServerPort, regionServerInfoPort);
-        this.derbyPort = derbyPort;
-    }
-
-    public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, String hbaseTempDirectory,
-                                Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
-                masterInfoPort, regionServerPort, regionServerInfoPort);
-        this.hbaseTempDir = hbaseTempDirectory;
         this.derbyPort = derbyPort;
     }
 
@@ -89,14 +80,10 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 			    spliceSinglePlatform.start();
 
 			}else if (args.length == 7) {
-                spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
-                spliceSinglePlatform.start();
+			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+			    spliceSinglePlatform.start();
 
-            }else if (args.length == 8) {
-                spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], args[2], new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]), new Integer(args[7]));
-                spliceSinglePlatform.start();
-
-            }else{
+			}else{
 				usage("Unknown argument(s)", null);
 				System.exit(1);
 			}
@@ -120,8 +107,8 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		if (t != null) {
 			t.printStackTrace(out);
 		}
-		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseTargetDirectory, String hbaseTempDirectory, "+
-                "Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort )");
+		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, " +
+                              "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort )");
 	}
 	
 	public void start() throws Exception {
@@ -148,7 +135,6 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
 		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
-        configuration.set("hbase.tmp.dir", hbaseTempDir);
 		configuration.setInt("hbase.rpc.timeout", 120000);
 		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");

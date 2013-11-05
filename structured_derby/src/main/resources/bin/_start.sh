@@ -12,7 +12,6 @@ fi
 CLASSPATH="${ROOT_DIR}/lib/*"
 ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_DIR="${ROOT_DIR}"/db/hbase
-HBASE_TMP_DIR="${ROOT_DIR}"/db/hbase/.tmp
 
 CYGWIN=`uname -s`
 if [[ ${CYGWIN} == CYGWIN* ]]; then
@@ -44,4 +43,4 @@ HBASE_REGIONSERVER_PORT=60020
 HBASE_REGIONSERVER_INFO_PORT=60030
 SPLICE_PORT=1527
 
-(java ${GEN_SYS_ARGS} ${SPLICE_SYS_ARGS} -enableassertions com.splicemachine.single.SpliceSinglePlatform "${ZOO_DIR}" "${HBASE_DIR}" "${HBASE_TMP_DIR}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} >> "${LOGFILE}" 2>&1 ) &
+(java ${GEN_SYS_ARGS} ${SPLICE_SYS_ARGS} -enableassertions com.splicemachine.single.SpliceSinglePlatform "${ZOO_DIR}" "${HBASE_DIR}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} >> "${LOGFILE}" 2>&1 ) &
