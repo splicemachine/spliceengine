@@ -9,6 +9,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 class GroupedRow {
     private ExecRow row;
     private byte[] groupingKey;
+    private boolean isDistinct;
 
     GroupedRow() { }
 
@@ -43,5 +44,13 @@ class GroupedRow {
 
     public void setGroupingKey(byte[] groupingKey) {
         this.groupingKey = groupingKey;
+    }
+
+    public boolean isDistinct() {
+        return isDistinct;
+    }
+
+    public void setDistinct(boolean distinct) {
+        isDistinct = distinct;
     }
 }

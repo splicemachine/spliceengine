@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  * Created on: 11/2/13
  */
-public class GroupedAggregatorTest {
+public class ScanGroupedAggregatorTest {
 
 
     @Test
@@ -69,14 +69,14 @@ public class GroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0,1};
         boolean[] groupSortOrder = new boolean[]{true,true};
-        GroupedAggregator aggregator = new GroupedAggregator(buffer,
+        ScanGroupedAggregator aggregator = new ScanGroupedAggregator(buffer,
                 source,groupColumns,groupSortOrder,true);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(21);
-        GroupedRow row = aggregator.nextRow();
+        GroupedRow row = aggregator.next();
         while(row!=null){
             results.add(row.deepCopy());
-            row = aggregator.nextRow();
+            row = aggregator.next();
         }
 
         Assert.assertEquals("Incorrect number of grouped rows returned!",21,results.size());
@@ -147,14 +147,14 @@ public class GroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
-        GroupedAggregator aggregator = new GroupedAggregator(buffer,
+        ScanGroupedAggregator aggregator = new ScanGroupedAggregator(buffer,
                 source,groupColumns,groupSortOrder,false);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(10);
-        GroupedRow row = aggregator.nextRow();
+        GroupedRow row = aggregator.next();
         while(row!=null){
             results.add(row.deepCopy());
-            row = aggregator.nextRow();
+            row = aggregator.next();
         }
 
         Assert.assertEquals("Incorrect number of grouped rows returned!",10,results.size());

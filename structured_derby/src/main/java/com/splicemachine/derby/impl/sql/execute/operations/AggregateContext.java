@@ -21,4 +21,7 @@ public interface AggregateContext extends Externalizable {
 
     ExecIndexRow getSourceIndexRow();
 
+    SpliceGenericAggregator[] getDistinctAggregators();
+
+    SpliceGenericAggregator[] getNonDistinctAggregators();
 }

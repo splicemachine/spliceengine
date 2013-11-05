@@ -25,7 +25,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
@@ -38,12 +37,15 @@ import java.util.Properties;
 public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
+    private static final byte[] nonDistinctOrdinal = {0x01};
+    private static final byte[] distinctOrdinal = {0x00};
 	protected boolean isInSortedOrder;
 	protected boolean isRollup;
 
     protected byte[] currentKey;
+    private boolean isCurrentDistinct;
 
-    private GroupedAggregator aggregator;
+    private StandardIterator<GroupedRow> aggregator;
     private GroupedAggregateContext groupedAggregateContext;
 
     private Snowflake.Generator uuidGen;
@@ -66,23 +68,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         this.groupedAggregateContext = groupedAggregateContext;
     }
 
-    public GroupedAggregateOperation(
-            SpliceOperation s,
-			boolean isInSortedOrder,
-			Activation a,
-			int resultSetNumber,
-		    double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost,
-			boolean isRollup,
-            AggregateContext genericAggregateContext,
-            GroupedAggregateContext groupedAggregateContext) throws StandardException  {
-    	super(s,a,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost,genericAggregateContext);
-    	this.isInSortedOrder = isInSortedOrder;
-    	this.isRollup = isRollup;
-        this.groupedAggregateContext = groupedAggregateContext;
-    	recordConstructorTime();
-    }
-
+    @SuppressWarnings("UnusedParameters")
     public GroupedAggregateOperation(
             SpliceOperation s,
 			boolean isInSortedOrder,
@@ -191,25 +177,39 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 /*
                  * Build the actual row key from the currently set row key, along with a hash byte.
                  *
-                 * The row key looks like
+                 * The row key (of necessity) looks different based on whether or not the GroupedRow
+                 * is tagged as "distinct" or not. Both formats begin with
                  *
-                 * <bucket byte> 0x00 <uniqueSequenceId> 0x00 <grouping keys> 0x00 <uniqueifier> 0x00 postfix
+                 * <hash> 0x00 <uniqueSequenceId> 0x00
                  *
-                 * where bucket byte is a murmur hash of the grouping keys.
+                 * But the grouping keys look different if it's a "distinct" row or not
                  *
-                 * Since there are only 16 different buckets, we use only 4 bits from the murmur hash,
-                 * chosen from the last byte in the int.
+                 * If it's distinct, then the remaining key looks like
+                 *
+                 * <group columns> 0x00 <non grouped, unique columns> 0x00 0x00
+                 * The last 0x00 is an ordinal indicating that this row is distinct
+                 *
+                 * If it's non-distinct, then the remaining key looks like
+                 *
+                 * <group columns> 0x00 <uuid> 0x00 0x01 0x00 <postfix>
                  */
                 byte hash = (byte)((byte) MurmurHash.murmur3_32(currentKey) & 0xf0);
-                if(uuidGen==null)
-                    uuidGen = operationInformation.getUUIDGenerator();
-                byte[] key = BytesUtil.concatenate(hash, uniqueSequenceID, currentKey, uuidGen.nextBytes());
+                byte[] key;
+                if(isCurrentDistinct)
+                    key = BytesUtil.concatenate(hash,uniqueSequenceID,currentKey,distinctOrdinal);
+                else{
+                    if(uuidGen==null)
+                        uuidGen = operationInformation.getUUIDGenerator();
+                    key = BytesUtil.concatenate(hash, uniqueSequenceID, currentKey, uuidGen.nextBytes(), nonDistinctOrdinal);
+                }
                 /*
                  * The key is already encoded elsewhere, so it is safe to setRawBytes()
                  */
                 keyEncoder.setRawBytes(key);
-                //can set the postfix directly, because it has known length, and also will never be directly decoded
-                keyEncoder.setRawBytes(keyPostfix);
+                if(!isCurrentDistinct){
+                    //can set the postfix directly, because it has known length, and also will never be directly decoded
+                    keyEncoder.setRawBytes(keyPostfix);
+                }
             }
 
             @Override
@@ -218,6 +218,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                boolean[] sortOrder,
                                MultiFieldDecoder rowDecoder) throws StandardException {
                 rowDecoder.seek(11); // seek past the hash and the unique identifier
+                //noinspection RedundantCast
                 ((KeyMarshall)KeyType.BARE).decode(columns, reversedKeyColumns, sortOrder, rowDecoder);
             }
 
@@ -242,8 +243,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     return aggregateContext.getSortTemplateRow();
                 }
             };
-            AggregateBuffer buffer = new AggregateBuffer(SpliceConstants.ringBufferSize,
-                    aggregateContext.getAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
 
             StandardIterator<ExecRow> sourceIterator = new StandardIterator<ExecRow>() {
                 @Override public void open() throws StandardException, IOException { }
@@ -256,18 +255,27 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             };
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
-            aggregator = new GroupedAggregator(buffer,sourceIterator,
-                    groupingKeys,groupingKeyOrder,isRollup);
+            int[] nonGroupedUniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
+            AggregateBuffer distinctBuffer = new AggregateBuffer(SpliceConstants.ringBufferSize,
+                    aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
+            AggregateBuffer nonDistinctBuffer = new AggregateBuffer(SpliceConstants.ringBufferSize,
+                    aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
+
+            aggregator = new SinkGroupedAggregator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
+                    groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns);
+            aggregator.open();
         }
 
-        GroupedRow row = aggregator.nextRow();
+        GroupedRow row = aggregator.next();
         if(row==null){
             currentKey=null;
             clearCurrentRow();
+            aggregator.close();
             return null;
         }
 
         currentKey = row.getGroupingKey();
+        isCurrentDistinct = row.isDistinct();
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getNextSinkRow %s",row.getRow());
         ExecRow execRow = row.getRow();
@@ -294,18 +302,19 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
             SpliceResultScanner scanner = getResultScanner(groupingKeys,spliceRuntimeContext);
-            scanner.open();
             StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()));
-            aggregator = new GroupedAggregator(buffer,sourceIterator,
+            aggregator = new ScanGroupedAggregator(buffer,sourceIterator,
                     groupingKeys,groupingKeyOrder,false);
+            aggregator.open();
         }
-        GroupedRow row = aggregator.nextRow();
+        GroupedRow row = aggregator.next();
         if(row==null){
             clearCurrentRow();
             aggregator.close();
             return null;
         }
         currentKey = row.getGroupingKey();
+        isCurrentDistinct = row.isDistinct();
         ExecRow execRow = row.getRow();
         setCurrentRow(execRow);
         return execRow;

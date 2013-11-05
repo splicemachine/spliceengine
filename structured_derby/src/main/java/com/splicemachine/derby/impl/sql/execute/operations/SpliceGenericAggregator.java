@@ -112,6 +112,13 @@ public class SpliceGenericAggregator {
 			aggColumn.setValue(ua);
 		}
 	}
+
+    boolean isInitialized(ExecRow row) throws StandardException{
+        UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
+
+        ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
+        return ua !=null;
+    }
 	
 	void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
 																throws StandardException{

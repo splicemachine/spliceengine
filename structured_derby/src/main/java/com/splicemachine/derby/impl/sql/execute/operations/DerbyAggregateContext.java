@@ -33,6 +33,8 @@ public class DerbyAggregateContext implements AggregateContext {
     private ExecIndexRow sortTemplateRow;
     private ExecIndexRow sourceExecIndexRow;
     private SpliceGenericAggregator[] aggregates;
+    private SpliceGenericAggregator[] distinctAggs;
+    private SpliceGenericAggregator[] nonDistinctAggs;
 
     public DerbyAggregateContext() { }
 
@@ -73,7 +75,37 @@ public class DerbyAggregateContext implements AggregateContext {
         return sourceExecIndexRow;
     }
 
-/*****************************************************************************************/
+    @Override
+    public SpliceGenericAggregator[] getDistinctAggregators() {
+        if(distinctAggs==null){
+            List<SpliceGenericAggregator> distinctAggList = Lists.newArrayListWithExpectedSize(0);
+            for(SpliceGenericAggregator agg:aggregates){
+                if(agg.isDistinct())
+                    distinctAggList.add(agg);
+            }
+            distinctAggs = new SpliceGenericAggregator[distinctAggList.size()];
+            distinctAggList.toArray(distinctAggs);
+        }
+
+        return distinctAggs;
+    }
+
+    @Override
+    public SpliceGenericAggregator[] getNonDistinctAggregators() {
+        if(nonDistinctAggs==null){
+            List<SpliceGenericAggregator> nonDistinctAggList = Lists.newArrayListWithExpectedSize(0);
+            for(SpliceGenericAggregator agg:aggregates){
+                if(!agg.isDistinct())
+                    nonDistinctAggList.add(agg);
+            }
+            nonDistinctAggs = new SpliceGenericAggregator[nonDistinctAggList.size()];
+            nonDistinctAggList.toArray(nonDistinctAggs);
+        }
+
+        return nonDistinctAggs;
+    }
+
+    /*****************************************************************************************/
     /*private helper functions*/
     private SpliceGenericAggregator[] buildAggregates(AggregatorInfoList list,
                                                       boolean eliminateDistincts,

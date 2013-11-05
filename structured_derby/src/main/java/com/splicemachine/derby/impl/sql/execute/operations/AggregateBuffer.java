@@ -60,6 +60,8 @@ public class AggregateBuffer {
     }
 
     public GroupedRow add(byte[] groupingKey, ExecRow nextRow) throws StandardException {
+        if(aggregates==null||aggregates.length==0) //there's nothing to do if we don't have any aggregates
+            return null;
         GroupedRow evicted = null;
 
         int byteHash = getHash(groupingKey);
@@ -70,7 +72,7 @@ public class AggregateBuffer {
         int visitedCount=-1;
         do {
             visitedCount++;
-            //linear collision resolution
+            //use linear probing for collision resolution
             position = (position + 1) & (keys.length - 1);
             byte[] key = keys[position];
             aggregate = values[position];
@@ -122,7 +124,7 @@ public class AggregateBuffer {
         BufferedAggregator aggregate;
         int visitedCount=-1;
         do{
-            evictPos = (evictPos + 1) & (keys.length - 1);
+            evictPos = (evictPos + 1) & (keys.length - 1); //fun optimization because we know the size is a power of 2
             visitedCount++;
             groupedKey = keys[evictPos];
             aggregate = values[evictPos];
@@ -182,8 +184,9 @@ public class AggregateBuffer {
         public void initialize(ExecRow row) throws StandardException{
             this.currentRow = row;
             for(SpliceGenericAggregator aggregator:aggregates){
+                boolean shouldAdd = !shouldMerge ||aggregator.isInitialized(currentRow);
                 aggregator.initialize(currentRow);
-                filterDistincts(currentRow, aggregator);
+                filterDistincts(currentRow, aggregator,shouldAdd);
                 //if shouldMerge is true, then we don't want to accumulate, it'll mess up the accumulations
                 if(!shouldMerge)
                     aggregator.accumulate(currentRow,currentRow);
@@ -192,7 +195,11 @@ public class AggregateBuffer {
 
         public void merge(ExecRow newRow) throws StandardException{
             for(SpliceGenericAggregator aggregator:aggregates){
-                if (!filterDistincts(newRow, aggregator)){
+                boolean shouldAdd = aggregator.isInitialized(newRow);
+                if (!filterDistincts(newRow, aggregator,shouldAdd)){
+                    if(!shouldAdd)
+                        aggregator.initialize(newRow);
+
                     if(shouldMerge)
                         aggregator.merge(newRow,currentRow);
                     else
@@ -202,10 +209,10 @@ public class AggregateBuffer {
         }
 
 
-        private boolean filterDistincts(ExecRow newRow, SpliceGenericAggregator aggregator) throws StandardException {
+        private boolean filterDistincts(ExecRow newRow,
+                                        SpliceGenericAggregator aggregator,
+                                        boolean addEntry) throws StandardException {
             if(aggregator.isDistinct()){
-                if(eliminateDuplicates)
-                    return true;
                 if(uniqueValues==null)
                     uniqueValues = IntObjectOpenHashMap.newInstance();
 
@@ -220,7 +227,8 @@ public class AggregateBuffer {
                 if(uniqueVals.contains(uniqueValue))
                     return true;
 
-                uniqueVals.add(uniqueValue);
+                if(addEntry)
+                    uniqueVals.add(uniqueValue);
             }
             return false;
         }
