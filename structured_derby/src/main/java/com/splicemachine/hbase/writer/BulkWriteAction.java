@@ -44,7 +44,7 @@ final class BulkWriteAction implements Callable<Void> {
     private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
-    private boolean refreshConnectionCache = false;
+    private boolean refreshCache;
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -128,7 +128,7 @@ final class BulkWriteAction implements Callable<Void> {
     private void doRetry(int tries, BulkWrite bulkWrite) throws Exception{
         Configuration configuration = SpliceConstants.config;
         NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshConnectionCache);
+                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
         BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
                 protoClassArray, invoker);
         boolean thrown=false;
@@ -136,7 +136,6 @@ final class BulkWriteAction implements Callable<Void> {
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
             BulkWriteResult response = instance.bulkWrite(bulkWrite);
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
-            refreshConnectionCache = false;
             Map<Integer,WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
@@ -145,14 +144,15 @@ final class BulkWriteAction implements Callable<Void> {
                         thrown=true;
                         throw parseIntoException(response);
                     case RETRY:
+                    	refreshCache=true;
                         if(LOG.isDebugEnabled())
                             LOG.debug(String.format("Retrying write after receiving partial error %s",response));
-                        refreshConnectionCache = true;
                         doPartialRetry(tries,bulkWrite,response);
                     default:
                         //return
                 }
             }
+            refreshCache = false;
         }catch(Exception e){
             if(thrown)
                 throw e;
@@ -162,10 +162,10 @@ final class BulkWriteAction implements Callable<Void> {
                 case THROW_ERROR:
                     throw e;
                 case RETRY:
+                	refreshCache=true;
                     errors.add(e);
                     if(LOG.isDebugEnabled())
                         LOG.debug("Retrying write after receiving global error",e);
-                    refreshConnectionCache = true;
                     retry(tries, bulkWrite);
             }
         }
@@ -238,7 +238,6 @@ final class BulkWriteAction implements Callable<Void> {
             Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-numTries+1, writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
             values = regionCache.getRegions(tableName);
-            refreshConnectionCache = false;
         }while(numTries>=0 && (values==null||values.size()<=0));
 
         if(numTries<0){
