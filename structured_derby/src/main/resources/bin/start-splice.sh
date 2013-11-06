@@ -45,7 +45,7 @@ for i in $(eval echo "{1..$maxRetries}"); do
         if [[ ${CYGWIN} == CYGWIN* ]]; then
             # We can only see if java is running on Cygwin - have to kill everything
             SPID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
-            [[ -n ${PID} ]] && for p in ${PID}; do kill -15 `echo ${p}`; done
+            [[ -n ${SPID} ]] && for p in ${SPID}; do kill -15 `echo ${p}`; done
         else
             SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
             if [ -n "${SPID}" ]; then
@@ -62,9 +62,9 @@ if [[ ${rCode} -ne 0 ]]; then
         SPID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
     else
         ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
-        if [[ -n ${SPID} || -n ${ZPID} ]]; then
-            ./bin/_stop.sh
-        fi
+    fi
+    if [[ -n ${SPID} || -n ${ZPID} ]]; then
+        ./bin/_stop.sh
     fi
     echo
     echo "Server didn't start in expected amount of time. Please restart with the \"-debug\" option and check ${LOGFILE}." >&2
