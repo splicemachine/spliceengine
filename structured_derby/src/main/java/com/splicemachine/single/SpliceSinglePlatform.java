@@ -23,63 +23,30 @@ import org.apache.zookeeper.ServerAdminClient;
 public class SpliceSinglePlatform extends ServerAdminClient {
     private static final Logger LOG = Logger.getLogger(SpliceSinglePlatform.class);
 	protected MiniHBaseCluster miniHBaseCluster;
-	protected MiniHBaseCluster miniHBaseCluster2;
 	protected String zookeeperTargetDirectory;
-	protected String hbaseTargetDirectory;
+	protected String hbaseRootDirUri;
     protected Integer masterPort;
     protected Integer masterInfoPort;
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
     protected Integer derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT;
 
-    public SpliceSinglePlatform() {
-		super();
-	}
-	
-	public SpliceSinglePlatform(String targetDirectory) {
-		this(targetDirectory + "zookeeper",targetDirectory + "hbase");
-	}
-
-    public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, null, null, null, null);
-    }
-
-
-	public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort) {
-		this.zookeeperTargetDirectory = zookeeperTargetDirectory;
-		this.hbaseTargetDirectory = hbaseTargetDirectory;
+    public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort,
+                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
+        this.zookeeperTargetDirectory = zookeeperTargetDirectory;
+        this.hbaseRootDirUri = hbaseRootDirUri;
 
         this.masterPort = masterPort;
         this.masterInfoPort = masterInfoPort;
         this.regionServerPort = regionServerPort;
         this.regionServerInfoPort = regionServerInfoPort;
-	}
-
-    public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort,
-                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
-                masterInfoPort, regionServerPort, regionServerInfoPort);
         this.derbyPort = derbyPort;
     }
 
 	public static void main(String[] args) {
 		SpliceSinglePlatform spliceSinglePlatform;
 		try {
-			if (args.length == 1) {
-				if (args[0].toUpperCase().equals("-STOP")) {
-					stop("127.0.0.1", 21281);
-				} else {
-					spliceSinglePlatform = new SpliceSinglePlatform(args[0]);
-					spliceSinglePlatform.start();
-				}
-			}else if (args.length == 2) {
-				spliceSinglePlatform = new SpliceSinglePlatform(args[0],args[1]);
-				spliceSinglePlatform.start();
-			}else if (args.length == 6) {
-			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
-			    spliceSinglePlatform.start();
-
-			}else if (args.length == 7) {
+			if (args.length == 7) {
 			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
 			    spliceSinglePlatform.start();
 
@@ -107,7 +74,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		if (t != null) {
 			t.printStackTrace(out);
 		}
-		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, " +
+		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort, " +
                               "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort )");
 	}
 	
@@ -129,12 +96,15 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 
     private void setInt(Configuration configuration, String property, Integer intProperty){
         if(intProperty != null){
-            configuration.setInt(property, intProperty.intValue());
+            configuration.setInt(property, intProperty);
         }
     }
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
-		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
+        if (hbaseRootDirUri != null && ! hbaseRootDirUri.equals("CYGWIN")) {
+            // Must allow Cygwin instance to config its own rootURI
+		    configuration.set("hbase.rootdir", hbaseRootDirUri);
+        }
 		configuration.setInt("hbase.rpc.timeout", 120000);
 		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");
@@ -165,8 +135,6 @@ public class SpliceSinglePlatform extends ServerAdminClient {
         configuration.set("hbase.regionserver.dns.interface", interfaceName);
         configuration.set("hbase.master.dns.interface", interfaceName);
         configuration.setLong(HConstants.HREGION_MAX_FILESIZE, 128 * 1024 * 1024L);
-// attempt to get server restart working better - didn't seem to help
-//        configuration.set("fail.fast.expired.active.master", "true");
 
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();

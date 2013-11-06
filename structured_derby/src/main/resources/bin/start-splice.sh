@@ -5,10 +5,15 @@
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 LOGFILE="${ROOT_DIR}"/splice.log
 DEBUG=$1
+CYGWIN=`uname -s`
 
 # server still running - must stop first
 SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
-ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+if [[ ${CYGWIN} == CYGWIN* ]]; then
+    SPID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
+else
+    ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+fi
 if [[ -n ${SPID} || -n ${ZPID} ]]; then
     echo "Splice still running and must be shut down. Run stop-splice.sh"
     exit 1;
@@ -47,9 +52,13 @@ done
 
 if [[ ${rCode} -ne 0 ]]; then
     SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
-    ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
-    if [[ -n ${SPID} || -n ${ZPID} ]]; then
-        ./bin/_stop.sh
+    if [[ ${CYGWIN} == CYGWIN* ]]; then
+        SPID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
+    else
+        ZPID=$(ps ax | grep -v grep | grep 'ZooKeeperServerMain' | awk '{print $1}')
+        if [[ -n ${SPID} || -n ${ZPID} ]]; then
+            ./bin/_stop.sh
+        fi
     fi
     echo
     echo "Server didn't start in expected amount of time. Please restart with the \"-debug\" option and check ${LOGFILE}." >&2
