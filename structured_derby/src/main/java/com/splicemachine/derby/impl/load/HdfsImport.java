@@ -296,15 +296,19 @@ public class HdfsImport extends ParallelVTI {
 			ImportJob importJob;
 	        table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
 	        context.setFilePath(file.getPath());
-			if(codec==null ||codec instanceof SplittableCompressionCodec){
-                try{
-                    importJob = new BlockImportJob(table, context);
-                }catch(IOException ioe){
-                    throw Exceptions.parseException(ioe);
-                }
-			}else{
+            /*
+             * TODO -sf- disabled until we fix the BlockImportJob to work
+             *  correctly for large data sets on the cluster (see Bug 923)
+             */
+//			if(codec==null ||codec instanceof SplittableCompressionCodec){
+//                try{
+//                    importJob = new BlockImportJob(table, context);
+//                }catch(IOException ioe){
+//                    throw Exceptions.parseException(ioe);
+//                }
+//			}else{
 				importJob = new FileImportJob(table,context);
-			}
+//			}
 	        try {
 	            jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(importJob));
 			}  catch (ExecutionException e) {
