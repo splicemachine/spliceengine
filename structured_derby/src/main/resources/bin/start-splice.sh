@@ -42,10 +42,16 @@ for i in $(eval echo "{1..$maxRetries}"); do
         #echo "Splice Server didn't start properly. Retrying..."
         #cp "$LOGFILE" "${LOGFILE}_$i"
 
-        SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
-        if [ -n "${SPID}" ]; then
-            # kill splice, if running (usually not), but let zoo have time to config itself
-            kill -15 ${SPID}
+        if [[ ${CYGWIN} == CYGWIN* ]]; then
+            # We can only see if java is running on Cygwin - have to kill everything
+            SPID=$(ps ax | grep -v grep | grep 'java' | awk '{print $1}')
+            [[ -n ${PID} ]] && for p in ${PID}; do kill -15 `echo ${p}`; done
+        else
+            SPID=$(ps ax | grep -v grep | grep 'SpliceSinglePlatform' | awk '{print $1}')
+            if [ -n "${SPID}" ]; then
+                # kill splice, if running (usually not), but let zoo have time to config itself
+                kill -15 ${SPID}
+            fi
         fi
     fi
 done
