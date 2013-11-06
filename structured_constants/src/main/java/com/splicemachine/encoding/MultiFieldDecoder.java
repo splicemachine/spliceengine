@@ -388,6 +388,18 @@ public class MultiFieldDecoder {
         }
         return currentOffset-offset;
     }
+    
+    public int skipLong() {
+        if(!available())
+            return 0;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
+        int i = ScalarEncoding.toLongLength(data, currentOffset, false);
+        currentOffset+=i+1;        	
+        return i;
+    }
 
 /*******************************************************************************************************************************************************************/
     /*private helper methods*/

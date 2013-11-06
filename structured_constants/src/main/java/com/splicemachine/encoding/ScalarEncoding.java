@@ -346,6 +346,29 @@ final class ScalarEncoding {
         else return data[offset] == 0x01;
     }
 
+    public static int toLongLength(byte[] data, int byteOffset, boolean desc) {
+        assert data.length >0; //need at least one byte
+        byte headerByte = data[byteOffset];
+        if(desc)
+            headerByte ^= 0xff;
+
+        int sign = (headerByte & LONG_SIGN_BIT) !=0 ? 0: Byte.MIN_VALUE;
+        int negSign = ~sign >>Integer.SIZE-1;
+
+        int h = headerByte ^ negSign;
+        int length;
+        if((h&SINGLE_HEADER_BIT)!=0){
+            length =1;
+        }else if((h&DOUBLE_HEADER_BIT)!=0){
+            length =2;
+        }else{
+            length = (headerByte^~negSign)>>>0x2;
+            length &= (1<<0x3)-1;
+            length += 0x3;
+        }
+        return length;
+    }
+    
     public static void toLong(byte[] data, int byteOffset, boolean desc, long[] valueAndLength) {
         assert data.length >0; //need at least one byte
         byte headerByte = data[byteOffset];
