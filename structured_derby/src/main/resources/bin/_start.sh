@@ -32,7 +32,7 @@ ZOO_SYS_ARGS="-Dzookeeper.sasl.client=false -Xmx2g -Xms1g"
 
 (java ${GEN_SYS_ARGS} ${ZOO_SYS_ARGS} org.apache.zookeeper.server.ZooKeeperServerMain 2181 "${ZOO_DIR}" 10 0  > "${LOGFILE}" 2>&1 ) &
 # Give zoo some time
-sleep 45
+sleep 60
 
 SPLICE_SYS_ARGS="-Xmx3g -Xms1g"
 
