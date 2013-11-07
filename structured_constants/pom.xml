@@ -9,6 +9,11 @@
         <version>0.5rc3-SNAPSHOT</version>
     </parent>
     <dependencies>
+        <dependency>
+            <groupId>com.carrotsearch</groupId>
+            <artifactId>hppc</artifactId>
+            <version>0.5.2</version>
+        </dependency>
 
         <dependency>
             <groupId>junit</groupId>
