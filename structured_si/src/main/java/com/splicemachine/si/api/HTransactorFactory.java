@@ -1,7 +1,6 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConfiguration;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
@@ -31,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
@@ -39,7 +37,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +53,7 @@ public class HTransactorFactory extends SIConstants {
     private final static Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
     private final static Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
     private final static Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
-
+    private static volatile boolean loaded;
     private static volatile ManagedTransactor managedTransactor;
 
     public static void setTransactor(ManagedTransactor managedTransactorToUse) {
@@ -80,14 +77,12 @@ public class HTransactorFactory extends SIConstants {
     }
 
     private static ManagedTransactor getTransactorDirect() {
-        if (managedTransactor != null) {
+        if (loaded)
             return managedTransactor;
-        }
         synchronized (HTransactorFactory.class) {
             //double-checked locking--make sure someone else didn't already create it
-            if (managedTransactor != null) {
+            if (loaded)
                 return managedTransactor;
-            }
 
             final Configuration configuration = SpliceConstants.config;
             TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
@@ -130,6 +125,7 @@ public class HTransactorFactory extends SIConstants {
                             new HHasher(), managedTransactor);
             managedTransactor.setTransactor(transactor);
             HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
+            loaded=true;
         }
         return managedTransactor;
     }
