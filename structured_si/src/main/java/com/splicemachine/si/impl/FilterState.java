@@ -139,8 +139,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
         log("processCommitTimestampAsUserData");
         boolean later = false;
-        for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
-            if (tombstoneTimestamp < keyValue.timestamp()) {
+        final long[] buffer = rowState.tombstoneTimestamps.buffer;
+        final int size = rowState.tombstoneTimestamps.size();
+        for (int i = 0; i < size; i++) {
+            if (buffer[i] < keyValue.timestamp()) {
                 later = true;
                 break;
             }
@@ -317,10 +319,12 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() throws IOException {
-        for (long tombstone : rowState.tombstoneTimestamps) {
-            final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
+    	final long[] buffer = rowState.tombstoneTimestamps.buffer;
+    	final int size = rowState.tombstoneTimestamps.size();
+    	for (int i = 0; i < size; i++) {
+            final Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
+            if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
                 return true;
             }
         }

@@ -1,12 +1,13 @@
 package com.splicemachine.si.impl;
 
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.splicemachine.si.data.api.SDataLib;
+
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
@@ -27,13 +28,13 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     /**
      * If a tombstone was detected on the row, then the associated timestamp will be stored here.
      */
-    List<Long> tombstoneTimestamps = new ArrayList<Long>();
-    List<Long> antiTombstoneTimestamps = new ArrayList<Long>();
+    LongArrayList tombstoneTimestamps = new LongArrayList();
+    LongArrayList antiTombstoneTimestamps = new LongArrayList();
 
     /**
      * The transactions that have been loaded as part of processing this row.
      */
-    Map<Long, Transaction> transactionCache = new HashMap<Long, Transaction>();
+    LongObjectOpenHashMap<Transaction> transactionCache = new LongObjectOpenHashMap<Transaction>();
 
     List<KeyValue> commitTimestamps = new ArrayList<KeyValue>();
 
