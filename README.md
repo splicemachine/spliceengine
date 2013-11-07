@@ -10,12 +10,17 @@ mvn package -DskipTests=true
 
 mvn -DskipTests clean javadoc:jar source:jar javadoc:test-jar source:test-jar deploy
 
-Deploy Release (Hopefully we can remove the skipTests portion soon):
+#Deploy Release
 
  mvn -Darguments="-DskipTests" release:prepare
  
  mvn -Darguments="-DskipTests" release:perform
 
+ Checkout Tag that was created and branch:
+
+ git checkout -b branch_name tag_name_from_release_process
+
+ git push master branch_name
  
  
 Setting up HortonWorks for Splice Machine to work 
