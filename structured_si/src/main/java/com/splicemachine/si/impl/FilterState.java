@@ -153,12 +153,14 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         } else {
             final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for (KeyValue kv : rowState.getCommitTimestamps()) {
-                keyValue.setKeyValue(kv);
+            KeyValue[] commits = rowState.getCommitTimestamps().buffer;
+            int commitsSize = rowState.getCommitTimestamps().size();
+            for (int i = 0 ; i < commitsSize; i++) {
+                keyValue.setKeyValue(commits[i]);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
-                }
+                }            	
             }
             keyValue.setKeyValue(oldKeyValue);
             if (include) {

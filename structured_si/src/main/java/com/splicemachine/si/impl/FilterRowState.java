@@ -2,12 +2,9 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.si.data.api.SDataLib;
-
 import org.apache.hadoop.hbase.filter.Filter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
@@ -36,7 +33,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      */
     LongObjectOpenHashMap<Transaction> transactionCache = new LongObjectOpenHashMap<Transaction>();
 
-    List<KeyValue> commitTimestamps = new ArrayList<KeyValue>();
+    ObjectArrayList<KeyValue> commitTimestamps = new ObjectArrayList<KeyValue>();
 
     boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
@@ -89,7 +86,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
         commitTimestamps.add(keyValue);
     }
 
-    public List<KeyValue> getCommitTimestamps() {
+    public ObjectArrayList<KeyValue> getCommitTimestamps() {
         return commitTimestamps;
     }
 
