@@ -3,6 +3,10 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.jmx.ManagedTransactor;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -18,11 +22,13 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.IOException;
 import java.sql.Types;
 import java.util.Map;
 import java.util.NavigableMap;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +39,7 @@ import static org.mockito.Mockito.when;
 public class BlockImportJobTest {
     @Test
     public void testGetTasksGivesOneTaskPerBlock() throws Exception {
+        mockTransactions();
         //simulates importing a file with just 1 column
         ImportContext context = new ImportContext.Builder()
                 .path("/test")
@@ -114,6 +121,29 @@ public class BlockImportJobTest {
             //make sure the start and end keys are the same
             Assert.assertArrayEquals(startKey,endKey);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mockTransactions() throws IOException {
+        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
+        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
+
+        Transactor mockT = mock(Transactor.class);
+        when(mockT.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
+            @Override
+            public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+                return new TransactionId((String) invocation.getArguments()[0]);
+            }
+        });
+        when(mockTransactor.getTransactor()).thenReturn(mockT);
+        when(mockT.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
+            @Override
+            public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+                return (TransactionId) invocation.getArguments()[0];
+            }
+        });
+
+        HTransactorFactory.setTransactor(mockTransactor);
     }
 }
 

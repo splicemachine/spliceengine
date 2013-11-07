@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.Nullable;
+
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -185,7 +187,7 @@ public class SpliceTestPlatform extends TestConstants {
 
         //set a random task failure rate
         configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.05d));
-        configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY,"true");
+        configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, "true");
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);

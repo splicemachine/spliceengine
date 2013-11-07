@@ -314,6 +314,7 @@ public class ZkUtils extends SpliceConstants {
     		recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     	}
 
+        initializeTransactions();
     }
     
     public static void refreshZookeeper() throws InterruptedException, KeeperException {
