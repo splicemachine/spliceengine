@@ -118,7 +118,7 @@ public class HTransactorFactory extends SIConstants {
                     TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
                     TRANSACTION_COUNTER_COLUMN
             );
-            managedTransactor = new ManagedTransactor();
+            ManagedTransactor builderTransactor = new ManagedTransactor();
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
                     immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, 1000, managedTransactor);
 
@@ -130,8 +130,8 @@ public class HTransactorFactory extends SIConstants {
             final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
                     (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
                             new HHasher(), managedTransactor);
-            managedTransactor.setTransactor(transactor);
-            HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
+            builderTransactor.setTransactor(transactor);
+            managedTransactor = builderTransactor;
         }
         return managedTransactor;
     }
