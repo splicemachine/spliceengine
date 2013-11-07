@@ -6,6 +6,7 @@ import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
+
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
@@ -58,4 +59,11 @@ public class ConstraintHandler implements WriteHandler {
     public void finishWrites(final WriteContext ctx) throws IOException {
         //no-op
     }
+
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+		
+	}
 }

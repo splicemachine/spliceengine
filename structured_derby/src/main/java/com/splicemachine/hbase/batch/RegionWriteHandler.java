@@ -18,6 +18,7 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -223,5 +225,11 @@ public class RegionWriteHandler implements WriteHandler {
         }
         return transactor.processPutBatch(new HbRegion(region), queue, mutations);
     }
+
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
 
 }

@@ -12,6 +12,7 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
+
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -273,4 +275,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         ensureBufferReader(delete,ctx);
         indexBuffer.add(delete);
     }
+
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
 }
