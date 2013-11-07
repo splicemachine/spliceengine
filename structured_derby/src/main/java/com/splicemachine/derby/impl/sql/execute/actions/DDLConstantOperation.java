@@ -874,7 +874,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
         executeTransactionalConstantAction(activation);
 
-        notifyMetadataChange();
+        notifyMetadataChange(activation.getTransactionController().getActiveStateTxIdString());
     }
 
     private void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
@@ -893,8 +893,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         }
     }
 
-	private void notifyMetadataChange() throws StandardException {
-	    DDLCoordinationFactory.getController().notifyMetadataChange();
+	private void notifyMetadataChange(String transactionId) throws StandardException {
+	    DDLCoordinationFactory.getController().notifyMetadataChange(transactionId);
     }
 
     /**

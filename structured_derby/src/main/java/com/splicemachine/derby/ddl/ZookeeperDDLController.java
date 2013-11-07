@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -18,7 +18,6 @@ import org.apache.zookeeper.ZooDefs;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 
 public class ZookeeperDDLController implements DDLController, Watcher {
@@ -26,13 +25,13 @@ public class ZookeeperDDLController implements DDLController, Watcher {
 
     private Object lock = new Object();
     private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
-    private static final long MAXIMUM_WAIT = 120000; // maximum wait for everybody to respond, after this we fail the DDL change
+    private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
 
     @Override
-    public void notifyMetadataChange() throws StandardException {
+    public void notifyMetadataChange(String transactionId) throws StandardException {
         String changeId;
         try {
-            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", new byte[0],
+            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", Bytes.toBytes(transactionId),
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
         } catch (KeeperException e) {
             throw Exceptions.parseException(e);
@@ -62,15 +61,24 @@ public class ZookeeperDDLController implements DDLController, Watcher {
                         break;
                     }
                 }
+
+
                 if (!missing) {
-                    // everybody responded
-                    return;
+                    // everybody responded, leave loop
+                    break;
                 }
+
+                
                 if (System.currentTimeMillis() - startTimestamp > MAXIMUM_WAIT) {
                     LOG.error("Maximum wait for all servers exceeded. Waiting response from " + servers
                             + ". Received response from " + children);
-                    throw Exceptions.parseException(new TimeoutException("Wait of "
-                            + (System.currentTimeMillis() - startTimestamp) + " exceeded timeout of " + MAXIMUM_WAIT));
+                    try {
+                        ZkUtils.recursiveDelete(changeId);
+                    } catch (Exception e) {
+                        LOG.error("Couldn't kill transaction " + transactionId + " for DDL change " + changeId, e);
+                    }
+                    throw StandardException.newException(SQLState.LOCK_TIMEOUT,  "Wait of "
+                            + (System.currentTimeMillis() - startTimestamp) + " exceeded timeout of " + MAXIMUM_WAIT);
                 }
                 try {
                     lock.wait(REFRESH_TIMEOUT);
@@ -78,6 +86,11 @@ public class ZookeeperDDLController implements DDLController, Watcher {
                     throw Exceptions.parseException(e);
                 }
             }
+        }
+        try {
+            ZkUtils.recursiveDelete(changeId);
+        } catch (Exception e) {
+            LOG.error("Couldn't remove DDL change " + changeId, e);
         }
     }
 
