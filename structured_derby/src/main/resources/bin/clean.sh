@@ -24,7 +24,7 @@ fi
 /bin/rm -rf "${ROOT_DIR}"/db
 
 if [[ ${CYGWIN} == CYGWIN* ]]; then
-    # These look like the same directories, but not on Cygwihn
+    # These look like the same directories, but not on Cygwin
     /bin/rm -rf /cygdrive/c/tmp/hbase-"${USER}"
     /bin/rm -rf /tmp/hbase-"${USER}"
     /bin/rm -rf /cygdrive/c/tmp/hsperfdata_*
