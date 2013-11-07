@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.writer.*;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
@@ -12,6 +13,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -95,6 +97,12 @@ public class PipelineWriteContext implements WriteContext{
         public String getTransactionId() {
             return PipelineWriteContext.this.getTransactionId();
         }
+
+		@Override
+		public void sendUpstream(List<KVPair> mutation) {
+			// XXX JLEACH TODO
+			throw new RuntimeException("Not Supported");
+		}
     }
 
     private WriteNode head;
@@ -225,4 +233,10 @@ public class PipelineWriteContext implements WriteContext{
     public String getTransactionId() {
         return txnId;
     }
+
+	@Override
+	public void sendUpstream(List<KVPair> mutation) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
 }

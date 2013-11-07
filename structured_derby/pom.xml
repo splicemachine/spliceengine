@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc2-SNAPSHOT</version>
+		<version>0.5rc3-SNAPSHOT</version>
 	</parent>
 
 
@@ -57,7 +57,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>0.5rc2-SNAPSHOT</version>
+			<version>0.5rc3-SNAPSHOT</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
@@ -150,14 +150,6 @@
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.splicemachine</groupId>
-                        <artifactId>structured_si</artifactId>
-                        <version>0.5rc2-SNAPSHOT</version>
-                        <classifier>${envClassifier}</classifier>
-                    </dependency>
-                </dependencies>
 				<configuration>
 					<!-- <parallel>classes</parallel> <threadCount>5</threadCount> <perCoreThreadCount>false</perCoreThreadCount> -->
 					<argLine>-Xms256M -Xmx1024M</argLine>
