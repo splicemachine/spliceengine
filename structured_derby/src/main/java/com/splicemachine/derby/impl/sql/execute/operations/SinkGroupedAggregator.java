@@ -105,7 +105,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
     private GroupedRow buffer(ExecRow nextRow) throws StandardException {
         GroupedRow firstEvicted = null;
         if(!isRollup){
-            return buffer.buffer(nextRow.getClone());
+            return buffer.buffer(nextRow);
         }else{
             rollupRows(nextRow);
             for(ExecRow rollup:rollupRows){
