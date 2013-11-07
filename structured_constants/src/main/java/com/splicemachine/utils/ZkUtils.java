@@ -106,7 +106,7 @@ public class ZkUtils extends SpliceConstants {
     }
     
 
-    private static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
+    public static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
        try{
            zooKeeper.create(path,bytes,acls,createMode);
            return true;
@@ -313,6 +313,12 @@ public class ZkUtils extends SpliceConstants {
     	for (String path: SpliceConstants.zookeeperPaths) {
     		recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
     	}
+
+        //add the transaction node setup
+        recursiveSafeCreate(SpliceConstants.zkSpliceTransactionPath,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+
+        String counterPath = create(SpliceConstants.zkSpliceTransactionPath + "/counter-", new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+        getRecoverableZooKeeper().setData(SpliceConstants.zkSpliceTransactionPath,Bytes.toBytes(counterPath),-1);
     }
     
     public static void refreshZookeeper() throws InterruptedException, KeeperException {

@@ -26,7 +26,9 @@ import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
+import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -90,7 +92,7 @@ public class HTransactorFactory extends SIConstants {
             }
 
             final Configuration configuration = SpliceConstants.config;
-            TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
+            TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
             BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
                     SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
                     SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
