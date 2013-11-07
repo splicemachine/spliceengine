@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc2</version>
+		<version>0.5rc3-SNAPSHOT</version>
 	</parent>
 
 
@@ -57,7 +57,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>0.5rc2</version>
+			<version>0.5rc3-SNAPSHOT</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
