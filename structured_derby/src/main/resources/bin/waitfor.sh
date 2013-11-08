@@ -2,7 +2,14 @@
 
 LOGFILE="$1"
 
+# number of seconds we should allow for isReady to return 0
 timeout=100
+CYGWIN=`uname -s`
+if [[ ${CYGWIN} == CYGWIN* ]]; then
+    # be a more lenient with Cygwin
+    timeout=200
+fi
+# number of seconds we should wait between check on ready status
 interval=2
 ((t = timeout))
 while ((t > 0)); do
