@@ -1,13 +1,10 @@
 package com.splicemachine.si.impl;
 
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
-
 import java.lang.ref.ReferenceQueue;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Intended to be lightweight alternative to a google cache. Holds cache values (but not keys) as soft references
@@ -35,7 +32,7 @@ public class CacheMap implements Map {
      * @return new cache object
      */
     public static Map makeCache(boolean shared, int maxSize) {
-        return new CacheMap(shared ? new NonBlockingHashMap() : new HashMap(), maxSize);
+        return new CacheMap(new NonBlockingHashMap(), maxSize);
     }
 
     private CacheMap(Map delegate, int maxSize) {
