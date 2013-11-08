@@ -175,16 +175,15 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
             boolean dontAggregateDistinct = !distinctBuffer.hasAggregates() &&nonDistinctBuffer.hasAggregates();
             boolean dontAggregateNonDistinct = !nonDistinctBuffer.hasAggregates() && distinctBuffer.hasAggregates();
 
-            this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer,groupKeys,sortOrder,dontAggregateNonDistinct);
-            this.distinctBuffer = new SingleBuffer(distinctBuffer,allKeyColumns,allSortOrders,dontAggregateDistinct);
+            this.nonDistinctBuffer = new SingleBuffer(nonDistinctBuffer,groupKeys,sortOrder,dontAggregateNonDistinct,false);
+            this.distinctBuffer = new SingleBuffer(distinctBuffer,allKeyColumns,allSortOrders,dontAggregateDistinct,true);
             this.evictedRows = evictedRows;
         }
 
         @Override
         public GroupedRow buffer(ExecRow row) throws StandardException {
-            ExecRow clone = row.getClone();
+            GroupedRow distinct = distinctBuffer.buffer(row);
             GroupedRow firstEvicted = nonDistinctBuffer.buffer(row);
-            GroupedRow distinct = distinctBuffer.buffer(clone);
 
             if(firstEvicted!=null){
                 firstEvicted.setDistinct(false);
@@ -221,6 +220,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         private final AggregateBuffer aggregateBuffer;
         private final int[] groupKeys;
         private final boolean[] sortOrder;
+        private final boolean clone;
 
         private MultiFieldEncoder encoder;
         private final boolean ignoreNonAggregates;
@@ -228,11 +228,13 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         private SingleBuffer(AggregateBuffer aggregateBuffer,
                              int[] groupKeys,
                              boolean[] sortOrder,
-                             boolean ignoreNonAggregates) {
+                             boolean ignoreNonAggregates,
+                             boolean clone) {
             this.aggregateBuffer = aggregateBuffer;
             this.groupKeys = groupKeys;
             this.sortOrder = sortOrder;
             this.ignoreNonAggregates = ignoreNonAggregates;
+            this.clone = clone;
         }
 
         @Override
@@ -240,7 +242,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
             //do nothing if we ignore the non-aggregates
             if(ignoreNonAggregates && !aggregateBuffer.hasAggregates()) return null;
 
-            return aggregateBuffer.add(groupingKey(row),row);
+            return aggregateBuffer.add(groupingKey(row),clone? row.getClone():row);
         }
 
         @Override
