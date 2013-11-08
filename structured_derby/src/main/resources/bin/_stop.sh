@@ -26,7 +26,7 @@ if [[ -n "${KILL_PID}" ]]; then
     fi
 
     # DEBUG
-    echo "Killing PID: ${KILL_PID}"
+    #echo "Killing PID: ${KILL_PID}"
 
     if [[ -n "$KILL_PID" ]]; then
         kill -15 ${KILL_PID}
@@ -40,7 +40,6 @@ if [[ -n "${KILL_PID}" ]]; then
         kill -9 ${KILL_PID}
     fi
 else
-    # DEBUG
     echo
     echo "Bad PID: [${KILL_PID}] in ${PID_FILE}"
     # clean up old pid file
