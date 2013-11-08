@@ -16,6 +16,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
+import com.google.gson.Gson;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.ZkUtils;
@@ -26,12 +27,14 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     private Object lock = new Object();
     private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
     private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
+    private static Gson gson = new Gson();
 
     @Override
-    public void notifyMetadataChange(String transactionId) throws StandardException {
+    public void notifyMetadataChange(DDLChange change) throws StandardException {
         String changeId;
+        String jsonChange = gson.toJson(change);
         try {
-            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", Bytes.toBytes(transactionId),
+            changeId = ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/", Bytes.toBytes(jsonChange),
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
         } catch (KeeperException e) {
             throw Exceptions.parseException(e);
@@ -75,7 +78,8 @@ public class ZookeeperDDLController implements DDLController, Watcher {
                     try {
                         ZkUtils.recursiveDelete(changeId);
                     } catch (Exception e) {
-                        LOG.error("Couldn't kill transaction " + transactionId + " for DDL change " + changeId, e);
+                        LOG.error("Couldn't kill transaction " + change.getTransactionId() + " for DDL change "
+                                + change.getType() + " with id "+ changeId, e);
                     }
                     throw StandardException.newException(SQLState.LOCK_TIMEOUT,  "Wait of "
                             + (System.currentTimeMillis() - startTimestamp) + " exceeded timeout of " + MAXIMUM_WAIT);

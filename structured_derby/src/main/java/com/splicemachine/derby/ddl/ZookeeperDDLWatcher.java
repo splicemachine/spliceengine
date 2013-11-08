@@ -26,6 +26,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooDefs;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.gson.Gson;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -37,6 +38,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private static final long REFRESH_TIMEOUT = 30000; // in ms
     private static final long MAXIMUM_DDL_WAIT = 90000; // in ms
 
+    private static Gson gson = new Gson();
     private Map<String, String> currentDDLChanges = new HashMap<String, String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
     private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
@@ -157,8 +159,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 } catch (IOException e) {
                     throw Exceptions.parseException(e);
                 }
-                String transactionId = Bytes.toString(data);
-                currentDDLChanges.put(change, transactionId);
+                String jsonChange = Bytes.toString(data);
+                DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
+                currentDDLChanges.put(change, ddlChange.getTransactionId());
                 changesTimeouts.put(change, System.currentTimeMillis());
                 newChanges.add(change);
             }

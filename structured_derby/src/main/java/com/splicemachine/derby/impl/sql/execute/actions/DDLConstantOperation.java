@@ -50,6 +50,7 @@ import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -874,7 +875,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
         executeTransactionalConstantAction(activation);
 
-        notifyMetadataChange(activation.getTransactionController().getActiveStateTxIdString());
+        notifyMetadataChange(new DDLChange(activation.getTransactionController().getActiveStateTxIdString()));
     }
 
     private void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
@@ -893,8 +894,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         }
     }
 
-	private void notifyMetadataChange(String transactionId) throws StandardException {
-	    DDLCoordinationFactory.getController().notifyMetadataChange(transactionId);
+	private void notifyMetadataChange(DDLChange change) throws StandardException {
+	    DDLCoordinationFactory.getController().notifyMetadataChange(change);
     }
 
     /**
