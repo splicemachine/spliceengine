@@ -66,7 +66,7 @@ public final class CountAggregator
 	}
 
 	public void add(DataValueDescriptor addend) throws StandardException{
-		value+=addend.getInt();
+		value+=addend.getLong();
 	}
 
 	/**
