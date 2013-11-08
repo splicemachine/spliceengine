@@ -25,7 +25,8 @@ import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_
  */
 public class HbRegion implements IHTable {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
-
+    static final Result EMPTY_RESULT = new Result(new ArrayList<KeyValue>());
+    
     final HRegion region;
 
     public HbRegion(HRegion region) {
@@ -57,7 +58,7 @@ public class HbRegion implements IHTable {
     }
 
     private Result emptyResult() {
-        return new Result(new ArrayList<KeyValue>());
+        return EMPTY_RESULT;
     }
 
     @Override
