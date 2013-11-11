@@ -15,7 +15,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
     /**
      * The key of the row currently being processed.
      */
-    private Data currentRowKey = null;
+    private DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> currentRowKey = null;
 
     /**
      * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
@@ -51,7 +51,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      */
     public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue) {
         if (currentRowKey == null) {
-            currentRowKey = keyValue.row();
+            currentRowKey = keyValue;
             lastValidQualifier = null;
             tombstoneTimestamps.clear();
             antiTombstoneTimestamps.clear();

@@ -25,8 +25,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     /**
      * The transactions that have been loaded as part of running this filter.
      */
-    final Map<Long, Transaction> transactionCache;
-    final Map<Long, VisibleResult> visibleCache;
+    final LongPrimitiveCacheMap<Transaction> transactionCache;
+    final LongPrimitiveCacheMap<VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -60,8 +60,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         this.includeSIColumn = includeSIColumn;
         this.myTransaction = myTransaction;
 
-        transactionCache = CacheMap.makeCache(false);
-        visibleCache = CacheMap.makeCache(false);
+        transactionCache = new LongPrimitiveCacheMap<Transaction>();
+        visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
