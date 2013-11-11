@@ -4,17 +4,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.SortedSet;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
+import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
-
 import com.google.common.io.Closeables;
-import com.splicemachine.hbase.ByteBufferArrayUtils;
-
 import org.apache.hadoop.hbase.util.Bytes;
 import org.cliffc.high_scale_lib.Counter;
 
@@ -42,6 +39,11 @@ public class HRegionUtil {
   	  }
 	}
 	
+	
+    
+    
+	
+	
 	/**
 	 * 
 	 * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
@@ -60,9 +62,13 @@ public class HRegionUtil {
 	    List<StoreFile> storeFiles;
 	    try {
 	      storeFiles = store.getStorefiles();
+	      Reader fileReader;
 	      for (StoreFile file: storeFiles) {
-	    	  if (file != null && file.createReader().generalBloomFilter != null && file.createReader().generalBloomFilter.contains(key, 0, key.length, null))
-	    		  return true;
+	    	  if (file != null) {
+	    		  fileReader = file.createReader();
+		    	  if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0, key.length, null))
+		    		  return true;
+	    	  }  
 	      }
 	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
 	      KeyValue placeHolder;
