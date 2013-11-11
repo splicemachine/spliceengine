@@ -282,55 +282,36 @@ public class HdfsImport extends ParallelVTI {
 
 	@Override
 	public void executeShuffle() throws StandardException {
-		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 		List<FileStatus> files;
 		try {
 			files = listStatus(context.getFilePath().toString());
 		} catch (IOException e) {
 			throw Exceptions.parseException(e);
 		}
-		List<JobFuture> jobFutures = new ArrayList<JobFuture>();
-		HTableInterface table = null;
-		for (FileStatus file: files) {
-			CompressionCodec codec = codecFactory.getCodec(file.getPath());
-			ImportJob importJob;
-	        table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
-	        context.setFilePath(file.getPath());
-            /*
-             * TODO -sf- disabled until we fix the BlockImportJob to work
-             *  correctly for large data sets on the cluster (see Bug 923)
-             */
-//			if(codec==null ||codec instanceof SplittableCompressionCodec){
-//                try{
-//                    importJob = new BlockImportJob(table, context);
-//                }catch(IOException ioe){
-//                    throw Exceptions.parseException(ioe);
-//                }
-//			}else{
-				importJob = new FileImportJob(table,context);
-//			}
-	        try {
-	            jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(importJob));
-			}  catch (ExecutionException e) {
-	            throw Exceptions.parseException(e.getCause());
-	        }
-		}
+		HTableInterface table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
+
 		try {
+            CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
+            List<JobFuture> jobFutures = Lists.newArrayListWithCapacity(files.size());
+            for (FileStatus file: files) {
+                context.setFilePath(file.getPath());
+                jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(getImportJob(table,codecFactory,file)));
+            }
+
 			for (JobFuture jobFuture: jobFutures) {
 					jobFuture.completeAll();
 			}
 		} catch (InterruptedException e) {
-            throw Exceptions.parseException(e.getCause());
+            throw Exceptions.parseException(e);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
         } // still need to cancel all other jobs ? // JL
 		finally{
             Closeables.closeQuietly(table);
         }
-
     }
 
-	@Override
+    @Override
 	public void close() {
 		try{
 			admin.close();
@@ -360,6 +341,19 @@ public class HdfsImport extends ParallelVTI {
     /************************************************************************************************************/
 	/*private helper functions*/
 
+    private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,FileStatus file) throws StandardException {
+        CompressionCodec codec = codecFactory.getCodec(file.getPath());
+        ImportJob importJob;
+        if(codec==null ||codec instanceof SplittableCompressionCodec){
+            try{
+                importJob = new BlockImportJob(table, context);
+            }catch(IOException ioe){
+                throw Exceptions.parseException(ioe);
+            }
+        }else
+            importJob = new FileImportJob(table,context);
+        return importJob;
+    }
     private static Connection getDefaultConn() throws SQLException {
         InternalDriver id = InternalDriver.activeDriver();
         if(id!=null){

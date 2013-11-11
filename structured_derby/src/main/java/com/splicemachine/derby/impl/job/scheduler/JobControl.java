@@ -1,7 +1,11 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.job.coprocessor.*;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
 import com.splicemachine.hbase.table.BoundCall;
@@ -12,15 +16,18 @@ import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -168,27 +175,17 @@ class JobControl implements JobFuture {
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
-            zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
-                @Override
-                public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    try{
-                        zooKeeper.delete(jobPath,-1);
-                    }catch(KeeperException ke){
-                        if(ke.code()!= KeeperException.Code.NONODE)
-                            throw ke;
-                    }
-
-                    for(RegionTaskControl task:tasksToWatch){
-                        try{
-                            zooKeeper.delete(task.getTaskNode(),-1);
-                        }catch(KeeperException ke){
-                            if(ke.code()!= KeeperException.Code.NONODE)
-                                throw ke;
-                        }
-                    }
-                    return null;
-                }
-            });
+            ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+            //TODO -sf- asynchronous, rather than multi?
+            List<Op> ops = Lists.newArrayListWithCapacity(tasksToWatch.size()+1);
+            ops.add(Op.delete(jobPath,-1));
+            for(RegionTaskControl task:tasksToWatch){
+                ops.add(Op.delete(task.getTaskNode(),-1));
+            }
+            //TODO -sf- log the op results?
+            zooKeeper.multi(ops);
+        }catch (ZooKeeperConnectionException e) {
+            throw new ExecutionException(e);
         } catch (InterruptedException e) {
             throw new ExecutionException(e);
         } catch (KeeperException e) {

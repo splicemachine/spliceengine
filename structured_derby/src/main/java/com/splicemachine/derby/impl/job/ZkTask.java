@@ -251,24 +251,6 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     @Override
     public void markCompleted() throws ExecutionException {
         setStatus(Status.COMPLETED,false);
-//        commit();
-    }
-
-    private void commit() throws ExecutionException {
-        String txnIdStr = getTaskStatus().getTransactionId();
-        if(txnIdStr==null){
-            if(LOG.isDebugEnabled())
-                LOG.debug("No Transaction to commit for task "+ getTaskType());
-            return;
-        }
-        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
-        TransactionId txnId = txnControl.transactionIdFromString(txnIdStr);
-        try {
-            txnControl.commit(txnId);
-        } catch (IOException e) {
-            LOG.error("Unable to commit task "+ getTaskType()+"with txnId "+txnIdStr,e);
-            throw new ExecutionException(e);
-        }
     }
 
     @Override

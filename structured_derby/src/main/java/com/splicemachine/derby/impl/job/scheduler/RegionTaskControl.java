@@ -56,7 +56,13 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     @Override
     public int compareTo(RegionTaskControl o) {
         if(o==null) return 1;
-        return Bytes.compareTo(startRow,o.startRow);
+        int compare = Bytes.compareTo(startRow, o.startRow);
+        if(compare!=0) return compare;
+
+        //lexicographically sort based on the taskNode
+        String taskNode = taskFutureContext.getTaskNode();
+        String otherTasknode = o.taskFutureContext.getTaskNode();
+        return taskNode.compareTo(otherTasknode);
     }
 
     @Override

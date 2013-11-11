@@ -109,18 +109,14 @@ public class BlockImportJob extends FileImportJob{
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
         //get regions within range
 
-        List<HRegionLocation> regionsInRange;
         final HTable hTable = SpliceHTableUtil.toHTable(table);
         if(hTable != null) {
-            regionsInRange = hTable.getRegionsInRange(taskStartKey,taskEndKey);
+            //force a cache reload to avoid issues with stale caches causing use to submit to multiple regions
+            HRegionInfo info = hTable.getRegionLocation(taskStartKey,true).getRegionInfo();
+            return Pair.newPair(originalTask,getTaskBoundary(info));
         } else {
             throw new IOException("Unexpected Table type: " + table.getClass());
         }
-
-        //take the first, and find its boundaries
-        HRegionInfo info = regionsInRange.get(0).getRegionInfo();
-
-        return Pair.newPair(originalTask,getTaskBoundary(info));
     }
 
     private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
