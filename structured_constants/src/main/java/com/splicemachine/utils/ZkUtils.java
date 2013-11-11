@@ -345,7 +345,7 @@ public class ZkUtils extends SpliceConstants {
         return zkManager;
     }
 
-    public static void initializeTransactions() throws KeeperException, InterruptedException {
+    private static void initializeTransactions() throws KeeperException, InterruptedException {
         //add the transaction node setup
         recursiveSafeCreate(SpliceConstants.zkSpliceTransactionPath,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
 
