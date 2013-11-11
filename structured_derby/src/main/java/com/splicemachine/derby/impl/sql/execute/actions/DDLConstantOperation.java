@@ -863,9 +863,9 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	
 	@Override
     public final void executeConstantAction(Activation activation) throws StandardException {
-        executeTentativeUpdate();
         List<TransactionId> active;
         try {
+            executeTentativeUpdate();
             active = waitForConcurrentTransactions(null);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -894,7 +894,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         }
     }
 
-	private void notifyMetadataChange(DDLChange change) throws StandardException {
+	protected void notifyMetadataChange(DDLChange change) throws StandardException {
 	    DDLCoordinationFactory.getController().notifyMetadataChange(change);
     }
 
@@ -916,8 +916,10 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	 * Executes a tentative metadata update on a separate, top-level transaction.
 	 * This allows concurrent transactions (overlapping the parent DDL transaction) that started after
 	 * the 'tentative' transaction completes to also contribute to the completion of the DDL statement.
+     * @throws IOException 
+     * @throws StandardException 
 	 */
-	protected void executeTentativeUpdate() {
+	protected void executeTentativeUpdate() throws IOException, StandardException {
 	    // no-op
 	}
 

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -8,7 +9,10 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -92,6 +96,13 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
                 columnNames[i] = cdl.elementAt(baseCols[i]-1).getColumnName();
             }
         }
+    }
+
+    @Override
+    protected void executeTentativeUpdate() throws IOException, StandardException {
+        TransactionId transaction = HTransactorFactory.getTransactor().beginTransaction();
+        DDLChange change = new DDLChange(transaction.getTransactionIdString(), DDLChange.TentativeType.CREATE_INDEX);
+        notifyMetadataChange(change);
     }
 
     @Override
