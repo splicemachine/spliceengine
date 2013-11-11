@@ -395,7 +395,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             return dataStore.writeBatch(table, new Pair[0]);
         }
 
-        checkPermission(table, mutations);
+        // TODO add back the check if it is needed for DDL operations
+        // checkPermission(table, mutations);
 
         Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
         Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);

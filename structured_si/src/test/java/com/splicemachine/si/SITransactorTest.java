@@ -3545,6 +3545,7 @@ public class SITransactorTest extends SIConstants {
     // Permission tests
 
     @Test
+    @Ignore("disabled until DDL changes are merged")
     public void forbidWrites() throws IOException {
         final TransactionId t1 = transactor.beginTransaction();
         Assert.assertTrue(transactor.forbidWrites(storeSetup.getPersonTableName(), t1));
@@ -3559,6 +3560,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    @Ignore("disabled until DDL changes are merged")
     public void forbidWritesAfterWritten() throws IOException {
         final TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe69", 20);
