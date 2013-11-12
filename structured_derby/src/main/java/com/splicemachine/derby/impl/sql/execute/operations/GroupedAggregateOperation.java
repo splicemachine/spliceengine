@@ -18,7 +18,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.job.JobStats;
-import com.splicemachine.utils.MurmurHash;
+import com.splicemachine.utils.hash.MurmurHash;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -303,8 +303,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         currentKey = row.getGroupingKey();
         isCurrentDistinct = row.isDistinct();
         ExecRow execRow = row.getRow();
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getNextSinkRow %s",execRow);
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG, "getNextSinkRow %s",execRow);
         setCurrentRow(execRow);
         return execRow;
     }
@@ -347,8 +347,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             ExecRow execRow = row.getRow();
             setCurrentRow(execRow);
 
-            if(LOG.isTraceEnabled())
-                LOG.trace("nextRow = "+ execRow);
+//            if(LOG.isTraceEnabled())
+//                LOG.trace("nextRow = "+ execRow);
             return execRow;
         }finally{
             if(shouldClose)

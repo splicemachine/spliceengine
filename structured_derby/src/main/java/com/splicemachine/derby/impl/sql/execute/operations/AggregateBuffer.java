@@ -4,6 +4,8 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.utils.hash.ByteHash32;
+import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -19,8 +21,14 @@ import java.util.HashSet;
  */
 public class AggregateBuffer {
     private static final Logger LOG = Logger.getLogger(AggregateBuffer.class);
-    private byte[][] keys;
+		private static final ByteHash32[] DEFAULT_HASHES = new ByteHash32[]{
+						HashFunctions.murmur3(0),
+						HashFunctions.murmur3(5),
+						HashFunctions.murmur3(7)
+		};
+		private byte[][] keys;
     private BufferedAggregator[] values;
+		private final ByteHash32[] hashes;
     private final SpliceGenericAggregator[] aggregates;
     //true if we should eliminate duplicates, false if we should not
     private final boolean eliminateDuplicates;
@@ -40,16 +48,28 @@ public class AggregateBuffer {
                            WarningCollector warningCollector){
         this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false);
     }
+
+		public AggregateBuffer(int maxSize,
+													 SpliceGenericAggregator[] aggregators,
+													 boolean eliminateDuplicates,
+													 StandardSupplier<ExecRow> emptyRowSupplier,
+													 WarningCollector warningCollector,
+													 boolean shouldMerge) {
+				this(maxSize,aggregators,eliminateDuplicates,emptyRowSupplier,warningCollector,shouldMerge,DEFAULT_HASHES);
+		}
+
     public AggregateBuffer(int maxSize,
                            SpliceGenericAggregator[] aggregators,
                            boolean eliminateDuplicates,
                            StandardSupplier<ExecRow> emptyRowSupplier,
                            WarningCollector warningCollector,
-                           boolean shouldMerge) {
+                           boolean shouldMerge,
+													 ByteHash32[] hashes) {
         this.aggregates = aggregators;
         this.emptyRowSupplier = emptyRowSupplier;
         this.warningCollector = warningCollector;
         this.shouldMerge = shouldMerge;
+				this.hashes = hashes;
 
         //find smallest power of 2 that contains maxSize
         int bufferSize = 1;
@@ -61,31 +81,61 @@ public class AggregateBuffer {
         this.eliminateDuplicates = eliminateDuplicates;
     }
 
+
     public GroupedRow add(byte[] groupingKey, ExecRow nextRow) throws StandardException {
-//        if(aggregates==null||aggregates.length==0) //there's nothing to do if we don't have any aggregates
-//            return null;
         GroupedRow evicted = null;
 
-        int byteHash = getHash(groupingKey);
-
-        boolean found;
-        int position = byteHash - 1;
-        BufferedAggregator aggregate;
-        int visitedCount=-1;
-        do {
-            visitedCount++;
-            //use linear probing for collision resolution
-            position = (position + 1) & (keys.length - 1);
-            byte[] key = keys[position];
-            aggregate = values[position];
-            found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
-        } while (!found && visitedCount<currentSize);
+				/*
+				 * We use hashing to give us an expected O(1) insertion.
+				 *
+				 * There are lots of hashing strategies: Linear Probing,
+				 * Quadratic Probing, and Double hashing are the three most common
+				 * approaches. However, the naive approach isn't great
+				 *
+				 * Consider the case when the buffer is full. In that situation,
+				 * to find the next position, we have to check EVERY entry in the
+				 * buffer before knowing that we can evict an entry. For large buffers
+				 * this is prohibitive.
+				 *
+				 * But when you think of it, the main reason these were structured this
+				 * way was to support efficient lookups, of which this buffer does not do.
+				 *
+				 * So here we take a bounded-eviction approach to enforce an O(1) insertion
+				 * performance, at the cost of potentially evicting before the buffer is entirely
+				 * full.
+				 *
+				 * What we do is probe a fixed (configurable) number of times. If a collision
+				 * is detected, then the next probe is used to move along, just as in other
+				 * collision resolutions. However, if the fixed number of probes has been
+				 * exhausted and only collisions are seen, then the last seen entry that
+				 * is ALREADY present is evicted, and the new insertion is put in its place.
+				 *
+				 * This ensures a fixed-time insertion and a fixed-time eviction, at the cost
+				 * of potentially evicting an entry before the buffer is full, and also
+				 * making linear evictions more expensive since they must probe through (potentially)
+				 * many empty entries to find the next evictable position.
+				 */
+				boolean found = false;
+				int position =0;
+				BufferedAggregator aggregate;
+				int visitedCount=-1;
+				int hashCount=0;
+				int byteHash = hashes[0].hash(groupingKey,0,groupingKey.length);
+				byte[] key;
+				do{
+						visitedCount++;
+						if(hashCount>0)
+								byteHash+= hashCount*hashes[hashCount].hash(groupingKey,0,groupingKey.length);
+						position = byteHash & (keys.length-1);
+						key = keys[position];
+						aggregate = values[position];
+						found = key==null||Arrays.equals(keys[position],groupingKey) || aggregate==null || !aggregate.isInitialized();
+						hashCount++;
+				} while(!found && hashCount<hashes.length);
 
         if(!found){
-            //need to evict an entry
-            evicted = evict();
-            position = lastEvictedPosition;
-            aggregate = values[position];
+						//evict the last entry
+						evicted = getEvictedRow(key,aggregate);
         }
 
 
@@ -106,7 +156,7 @@ public class AggregateBuffer {
         return evicted;
     }
 
-    public GroupedRow getFinalizedRow() throws StandardException{
+		public GroupedRow getFinalizedRow() throws StandardException{
         return evict();
     }
 
@@ -143,18 +193,20 @@ public class AggregateBuffer {
 
         lastEvictedPosition = evictPos;
 
-        if(groupedRow==null)
-            groupedRow = new GroupedRow();
-        aggregate = values[evictPos];
-        currentSize--;
-        ExecRow row = aggregate.finish();
-        groupedRow.setRow(row);
-        groupedRow.setGroupingKey(groupedKey);
-
-        return groupedRow;
+				return getEvictedRow(groupedKey,values[evictPos]);
     }
 
-    private int getHash(byte[] groupingKey) {
+		private GroupedRow getEvictedRow(byte[] groupedKey,BufferedAggregator aggregate) throws StandardException {
+				if(groupedRow==null)
+						groupedRow = new GroupedRow();
+				currentSize--;
+				ExecRow row = aggregate.finish();
+				groupedRow.setRow(row);
+				groupedRow.setGroupingKey(groupedKey);
+				return groupedRow;
+		}
+
+		private int getHash(byte[] groupingKey) {
         int h = 1;
         for(byte byt:groupingKey){
             h = 31*h + byt;

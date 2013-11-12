@@ -179,18 +179,21 @@ class JobControl implements JobFuture {
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
             //TODO -sf- asynchronous, rather than multi?
-            List<Op> ops = Lists.newArrayListWithCapacity(tasksToWatch.size()+1);
-            ops.add(Op.delete(jobPath,-1));
+						zooKeeper.delete(jobPath,-1,new AsyncCallback.VoidCallback() {
+								@Override
+								public void processResult(int i, String s, Object o) {
+										LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
+								}
+						},this);
             for(RegionTaskControl task:tasksToWatch){
-                ops.add(Op.delete(task.getTaskNode(),-1));
+								zooKeeper.delete(task.getTaskNode(),-1,new AsyncCallback.VoidCallback() {
+										@Override
+										public void processResult(int i, String s, Object o) {
+												LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
+										}
+								},this);
             }
-            //TODO -sf- log the op results?
-            zooKeeper.multi(ops);
         }catch (ZooKeeperConnectionException e) {
-            throw new ExecutionException(e);
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
             throw new ExecutionException(e);
         }
     }

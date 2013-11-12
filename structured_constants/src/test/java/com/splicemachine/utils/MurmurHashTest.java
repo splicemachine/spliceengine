@@ -3,6 +3,7 @@ package com.splicemachine.utils;
 import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import com.splicemachine.utils.hash.MurmurHash;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,7 +43,7 @@ public class MurmurHashTest {
         HashCode hashCode = Hashing.murmur3_32(0).hashBytes(sampleData, 0, sampleData.length);
         int actual =hashCode.asInt();
 
-        int hash = MurmurHash.murmur3_32(sampleData,0,sampleData.length,0);
+        int hash = MurmurHash.murmur3_32(sampleData, 0, sampleData.length, 0);
 
         Assert.assertEquals(actual,hash);
     }

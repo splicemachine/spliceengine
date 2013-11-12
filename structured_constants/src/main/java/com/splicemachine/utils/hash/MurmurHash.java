@@ -1,4 +1,4 @@
-package com.splicemachine.utils;
+package com.splicemachine.utils.hash;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
