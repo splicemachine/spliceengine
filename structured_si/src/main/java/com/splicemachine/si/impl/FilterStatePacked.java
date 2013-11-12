@@ -17,7 +17,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
             Hashable, Mutation, IHTable, Scanner> simpleFilter;
-    private final RowAccumulator<Data> accumulator;
+    private final RowAccumulator<Data,KeyValue> accumulator;
     private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
@@ -26,7 +26,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
                                      OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
-                             RowAccumulator<Data> accumulator) {
+                             RowAccumulator<Data,KeyValue> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
         this.dataStore = dataStore;
@@ -59,7 +59,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                         default:
                             throw new RuntimeException("unknown return code");
                     }
-                } else if (accumulator.isOfInterest(simpleFilter.keyValue.value()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
+                } else if (accumulator.isOfInterest(simpleFilter.keyValue.keyValue()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
                 	return accumulateUserData(dataKeyValue);
                 } else {
                     if (!hasAccumulation) {
@@ -88,7 +88,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         switch (returnCode) {
             case INCLUDE:
             case INCLUDE_AND_NEXT_COL:
-                if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
+                if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
                     excludeRow = true;
                     return Filter.ReturnCode.NEXT_COL;
                 }

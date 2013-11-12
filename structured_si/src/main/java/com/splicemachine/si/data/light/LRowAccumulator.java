@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LRowAccumulator implements RowAccumulator<Map<String, Object>> {
+public class LRowAccumulator implements RowAccumulator< Map<String, Object>,Map<String, Object>> {
     private Map<String, Object> accumulation = new HashMap<String, Object>();
 
     @Override
