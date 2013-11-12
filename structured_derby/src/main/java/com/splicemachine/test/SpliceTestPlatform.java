@@ -41,7 +41,6 @@ public class SpliceTestPlatform extends TestConstants {
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
     protected Integer derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT;
-
     final Random random = new Random();
 
     private boolean randomly(int percent) {
@@ -159,7 +158,7 @@ public class SpliceTestPlatform extends TestConstants {
 		configuration.set("hbase.cluster.distributed", "true");
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
-		configuration.set("hbase.regionserver.handler.count", "40");
+		configuration.set("hbase.regionserver.handler.count", "200");
         setInt(configuration, "hbase.master.port", masterPort);
         setInt(configuration, "hbase.master.info.port", masterInfoPort);
         setInt(configuration, "hbase.regionserver.port", regionServerPort);
@@ -172,6 +171,12 @@ public class SpliceTestPlatform extends TestConstants {
         configuration.setFloat("io.hfile.bloom.error.rate", (float)0.005);
         configuration.setInt("hbase.master.event.waiting.time", 20);
         configuration.setInt("hbase.client.pause", 1000);
+        configuration.setFloat("hbase.store.compaction.ratio", 025f);
+        configuration.setInt("hbase.hstore.compaction.min", 5);
+        configuration.setLong("hbase.hregion.memstore.flush.size", 512 * 1024 * 1024L);
+        configuration.setInt("hbase.hstore.compaction.max", 10);
+        configuration.setLong("hbase.hstore.compaction.min.size", 16 * 1024 * 1024L);
+        configuration.setLong("hbase.hstore.compaction.max.size", 248 * 1024 * 1024L);        
         configuration.setInt("hbase.master.lease.thread.wakefrequency", 3000);
         configuration.setInt("hbase.server.thread.wakefrequency", 1000);
         configuration.setInt("hbase.regionserver.msginterval", 1000);
