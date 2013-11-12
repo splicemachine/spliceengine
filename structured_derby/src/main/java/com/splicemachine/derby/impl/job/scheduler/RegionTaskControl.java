@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
@@ -38,6 +39,11 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private final SpliceZooKeeperManager zkManager;
     private volatile TaskStatus taskStatus = new TaskStatus(Status.PENDING,null);
     private volatile boolean refresh = true;
+    /*
+     * Flag to indicate that this task has been resubmitted and not to
+     * retry resubmissions.
+     */
+    private volatile boolean trashed = false;
 
     RegionTaskControl(byte[] startRow,
                       RegionTask task,
@@ -106,7 +112,8 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                                             SpliceLogUtils.trace(LOG, "Received %s event on node %s",
                                                     event.getType(), event.getPath());
                                             refresh=true;
-                                            jobControl.taskChanged(RegionTaskControl.this);
+                                            if(!trashed)
+                                                jobControl.taskChanged(RegionTaskControl.this);
                                         }
                                     },new Stat());
                         }catch(KeeperException ke){
@@ -281,6 +288,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private void resubmit() throws ExecutionException{
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
+        trashed=true;
 
         if(rollback(5)) //TODO -sf- make this configurable
             jobControl.resubmit(this,tryNum);
@@ -290,5 +298,11 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     public Throwable getError() {
         return taskStatus.getError();
+    }
+
+    public static void main(String... args) throws Exception{
+        for(int i=0;i<16;i++){
+            System.out.println(BytesUtil.toHex(new byte[]{(byte)(i*0x10)}));
+        }
     }
 }

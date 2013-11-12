@@ -19,8 +19,10 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Op;
 import org.apache.zookeeper.ZooKeeper;
@@ -244,7 +246,12 @@ class JobControl implements JobFuture {
         RegionTaskControl next = task;
         do{
             next = tasksToWatch.higher(next);
-        }while(next!=null && next.compareTo(task)==0);
+            /*
+             * Can't do a direct compareTo() call, because the compareTo() method must
+             * distinguish between two regions which have the same start/stop key but are
+             * distinct task nodes, where here we want to treat those the same.
+             */
+        }while(next!=null && Bytes.compareTo(next.getStartRow(),task.getStartRow())==0);
 
         tasksToWatch.remove(task);
 
@@ -263,8 +270,11 @@ class JobControl implements JobFuture {
             Pair<RegionTask,Pair<byte[],byte[]>> newTaskData = job.resubmitTask(task.getTask(), start, endRow);
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "executing submit on resubmitted job %s", job.getJobId());
-            //resubmit the task
-            submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(),tryCount + 1);
+
+            //submit the task again
+            submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(), tryCount + 1);
+
+
         }catch(IOException ioe){
             throw new ExecutionException(ioe);
         }

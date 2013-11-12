@@ -29,6 +29,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.*;
 
 import static org.mockito.Matchers.any;
@@ -201,6 +204,43 @@ public class JobControlTest {
 
         //this should return pretty quickly--rely on the @Test timeout to determine if things are stuck
         future.get();
+    }
+
+    @Test
+    public void testRegionTaskControlSet() throws Exception {
+        NavigableSet<RegionTaskControl> tasks = new ConcurrentSkipListSet<RegionTaskControl>();
+
+        byte[] startRow = HConstants.EMPTY_START_ROW;
+        int i=0;
+        JobControl control =mock(JobControl.class);
+        SpliceZooKeeperManager zkManager = mock(SpliceZooKeeperManager.class);
+        Map<Integer,RegionTaskControl> actualMap = Maps.newHashMap();
+        do{
+            TaskFutureContext tfc = new TaskFutureContext("/test-"+i,Bytes.toBytes(i),0.0d);
+            RegionTaskControl taskControl = new RegionTaskControl(startRow,mock(RegionTask.class),control,tfc,0,zkManager);
+            actualMap.put(i,taskControl);
+            tasks.add(taskControl);
+            i++;
+        }while(i<10);
+
+        Assert.assertEquals("incorrect task size!",10,tasks.size());
+
+        for(int pos=0;pos<10;pos++){
+            RegionTaskControl taskControl = actualMap.get(pos);
+
+            RegionTaskControl next = taskControl;
+            do{
+                next = tasks.higher(next);
+            }while(next!=null && Bytes.compareTo(next.getStartRow(),taskControl.getStartRow())==0);
+
+            tasks.remove(taskControl);
+
+            byte[] start = Encoding.encode(pos);
+            RegionTaskControl newTask = new RegionTaskControl(start,taskControl.getTask(),control,new TaskFutureContext("/test-"+pos+"-2",Bytes.toBytes(pos),0.0d),0,zkManager);
+            tasks.add(newTask);
+            Assert.assertEquals("Incorrect size!",10,tasks.size());
+        }
+
     }
 
     private RegionTask getNewTask(HTableInterface mockTable, RecoverableZooKeeper fakeZk, final Map<String, Watcher> watcherMap, final String taskNode1, byte[] startKey, byte[] endKey) throws Throwable {
