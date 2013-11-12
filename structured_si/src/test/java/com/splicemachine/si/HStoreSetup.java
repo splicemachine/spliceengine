@@ -18,13 +18,11 @@ import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.STableReaderDelegate;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.utils.ZkUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import javax.annotation.Nullable;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -96,8 +94,6 @@ public class HStoreSetup implements StoreSetup {
             setTestingUtilityPorts(testCluster, basePort);
 
             testCluster.startMiniCluster(1);
-            SpliceConstants.config.setInt(HConstants.ZOOKEEPER_CLIENT_PORT, testCluster.getZkCluster().getClientPort());
-            ZkUtils.initializeZookeeper();
             final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
                     new String[]{SpliceConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
             tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{"siFamily", "permissionFamily"});
