@@ -10,7 +10,7 @@ import com.google.common.base.Preconditions;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.HashUtils;
+import com.splicemachine.encoding.HashUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
@@ -170,7 +170,6 @@ public class RowEncoder {
         keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
         byte[] rowKey = keyEncoder.build();
         updateHash(rowKey);
-
         if(rowEncoder!=null)
             rowEncoder.reset();
 
