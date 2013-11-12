@@ -107,12 +107,28 @@ public class BlockImportJob extends FileImportJob{
 
     @Override
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
-        //get regions within range
-
         final HTable hTable = SpliceHTableUtil.toHTable(table);
         if(hTable != null) {
-            //force a cache reload to avoid issues with stale caches causing use to submit to multiple regions
-            HRegionInfo info = hTable.getRegionLocation(taskStartKey,true).getRegionInfo();
+						HRegionLocation location;
+						if(taskStartKey.length<=0){
+								if(taskEndKey.length>0){
+										//force a cache reload to avoid issues with stale caches causing use to submit to multiple regions
+										location = hTable.getRegionLocation(taskStartKey,true);
+								}else{
+										/*
+										 * we are attempting to resubmit [{},{}), which kind of sucks,
+										 * since a naive approach would just load up all retries on to
+										 * a single server. Instead, we want to pick a random region
+										 */
+										byte[] random = new byte[10];
+										new Random(System.currentTimeMillis()).nextBytes(random);
+										//get a random region location--force cache reload to avoid stale cache problems with resubmits
+										location = hTable.getRegionLocation(random,true);
+								}
+						}else
+								location = hTable.getRegionLocation(taskStartKey,true);
+
+            HRegionInfo info = location.getRegionInfo();
             return Pair.newPair(originalTask,getTaskBoundary(info));
         } else {
             throw new IOException("Unexpected Table type: " + table.getClass());
