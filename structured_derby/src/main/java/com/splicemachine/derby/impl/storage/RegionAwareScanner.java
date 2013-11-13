@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -213,7 +214,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
         }
         Scan localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
-        localScanner = region.getScanner(localScan);
+        localScanner = new BufferedRegionScanner(region,region.getScanner(localScan),localScan.getCaching());
         if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
@@ -291,7 +292,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
             RegionScanner localScanner = null;
             try{
-                localScanner = region.getScanner(startScan);
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan.getCaching());
                 List<KeyValue> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
