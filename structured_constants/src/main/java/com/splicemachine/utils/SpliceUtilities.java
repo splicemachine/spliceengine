@@ -59,6 +59,13 @@ public class SpliceUtilities extends SIConstants {
         return desc;
 	}
 
+	public static HTableDescriptor generateTempTable(String tableName) {
+		HTableDescriptor desc = new HTableDescriptor(tableName);
+		desc.addFamily(createTempDataFamily());
+        return desc;
+	}
+
+	
     public static HTableDescriptor generateTransactionTable() {
         HTableDescriptor desc = new HTableDescriptor(SpliceConstants.TRANSACTION_TABLE_BYTES);
         HColumnDescriptor columnDescriptor = new HColumnDescriptor(DEFAULT_FAMILY.getBytes());
@@ -87,11 +94,23 @@ public class SpliceUtilities extends SIConstants {
         snapshot.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
         snapshot.setInMemory(DEFAULT_IN_MEMORY);
         snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-        snapshot.setBloomFilterType(BloomType.ROWCOL);
+        snapshot.setBloomFilterType(BloomType.ROW);
         snapshot.setTimeToLive(DEFAULT_TTL);
         return snapshot;
 	}
-	
+
+    public static HColumnDescriptor createTempDataFamily() {
+        HColumnDescriptor snapshot = new HColumnDescriptor(SpliceConstants.DEFAULT_FAMILY.getBytes());
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setCompressionType(Compression.Algorithm.valueOf(compression.toUpperCase()));
+        snapshot.setInMemory(DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
+        //snapshot.setBloomFilterType(BloomType.ROW); No Temp Bloom Filter, write as quickly as possible
+        snapshot.setTimeToLive(DEFAULT_TTL);
+        return snapshot;
+	}
+
+    
     public static HColumnDescriptor createTransactionFamily() {
         final HColumnDescriptor siFamily = new HColumnDescriptor(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         siFamily.setMaxVersions(Integer.MAX_VALUE);
@@ -165,7 +184,7 @@ public class SpliceUtilities extends SIConstants {
     }
 
     public static void createTempTable(HBaseAdmin admin) throws IOException {
-        HTableDescriptor td = generateDefaultSIGovernedTable(TEMP_TABLE);
+        HTableDescriptor td = generateTempTable(TEMP_TABLE);
         td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
         byte[][] prefixes = getAllPossibleBucketPrefixes();
         byte[][] splitKeys = new byte[prefixes.length - 1][];
