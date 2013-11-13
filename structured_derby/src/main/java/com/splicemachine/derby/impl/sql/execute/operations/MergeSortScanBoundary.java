@@ -1,12 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.hadoop.hbase.client.Result;
@@ -16,12 +14,10 @@ import org.apache.hadoop.hbase.client.Result;
  *         Created on: 10/30/13
  */
 public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
-    private final RowDecoder leftDecoder;
-    private final RowDecoder rightDecoder;
+		private final RowDecoder rightDecoder;
 
-    public MergeSortScanBoundary(byte[] columnFamily,RowDecoder leftDecoder,RowDecoder rightDecoder) {
+    public MergeSortScanBoundary(byte[] columnFamily, RowDecoder rightDecoder) {
         super(columnFamily);
-        this.leftDecoder = leftDecoder;
         this.rightDecoder = rightDecoder;
     }
 
@@ -41,17 +37,12 @@ public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
         byte[] data = result.getRow();
         if(data==null) return null;
 
-        int ordinal = Encoding.decodeInt(data,data.length-19);
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data, SpliceDriver.getKryoPool());
 
         decoder.seek(11); //skip the prefix value
-        byte[] joinData;
-        if(ordinal== JoinUtils.JoinSide.RIGHT.ordinal()){
-            //copy out all the fields from the key until we reach the ordinal
-            joinData = DerbyBytesUtil.slice(decoder,rightDecoder.getKeyColumns(),rightDecoder.getTemplate().getRowArray());
-        }else{
-            joinData = DerbyBytesUtil.slice(decoder,leftDecoder.getKeyColumns(),leftDecoder.getTemplate().getRowArray());
-        }
+				byte[] joinData;
+				//copy out all the fields from the key until we reach the ordinal
+				joinData = DerbyBytesUtil.slice(decoder,rightDecoder.getKeyColumns(),rightDecoder.getTemplate().getRowArray());
         decoder.reset();
         MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
         encoder.setRawBytes(decoder.slice(10));

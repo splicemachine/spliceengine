@@ -65,7 +65,12 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private final String transactionId;
     private final Scan scan;
 
-    private RegionAwareScanner(String transactionId,
+		private int totalRowsSeen=0;
+		private int lookBehindRowsSeen=0;
+		private int lookAheadRowsSeen=0;
+		private int localRowsSeen =0;
+
+		private RegionAwareScanner(String transactionId,
                                HTableInterface table,
                                HRegion region,
                                Scan scan,
@@ -112,7 +117,10 @@ public class RegionAwareScanner implements SpliceResultScanner {
         //get next row from scanner
         if(!lookBehindExhausted){
             currentResult = lookBehindScanner.next();
-            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
+            if(currentResult!=null&&!currentResult.isEmpty()) {
+								lookBehindRowsSeen++;
+								return currentResult;
+						}
             else
                 lookBehindExhausted=true;
         }
@@ -121,14 +129,18 @@ public class RegionAwareScanner implements SpliceResultScanner {
                 keyValues = Lists.newArrayList();
             keyValues.clear();
             localExhausted = !localScanner.next(keyValues);
-            if(keyValues.size()<=0)
-                return null;
-            return new Result(keyValues);
+						if(keyValues.size()>0){
+								localRowsSeen++;
+								return new Result(keyValues);
+						}else
+								localExhausted=true;
         }
         if(!lookAheadExhausted){
             currentResult = lookAheadScanner.next();
-            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
-            else
+            if(currentResult!=null&&!currentResult.isEmpty()){
+								lookAheadRowsSeen++;
+								return currentResult;
+						}else
                 lookAheadExhausted = true;
         }
         return null;
@@ -187,6 +199,11 @@ public class RegionAwareScanner implements SpliceResultScanner {
 
     @Override
     public void close() {
+				if(LOG.isDebugEnabled()){
+						LOG.debug(String.format("Saw %d rows from lookBehind scanner",lookBehindRowsSeen));
+						LOG.debug(String.format("Saw %d rows from local scanner",localRowsSeen));
+						LOG.debug(String.format("Saw %d rows from lookAhead scanner",lookAheadRowsSeen));
+				}
         if(lookBehindScanner !=null) lookBehindScanner.close();
         if(lookAheadScanner!=null) lookAheadScanner.close();
         try{

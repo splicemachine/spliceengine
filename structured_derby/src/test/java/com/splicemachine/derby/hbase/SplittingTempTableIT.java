@@ -3,11 +3,14 @@ package com.splicemachine.derby.hbase;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Pair;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -27,7 +30,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-@Ignore("bug 830")
+@Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
 public class SplittingTempTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = SplittingTempTableIT.class.getSimpleName().toUpperCase();
@@ -147,12 +150,20 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(SCHEMA_NAME);
 
-    @Test
-    @Ignore("Still breaking")
+		@Test
+		public void testRepeatedGroupedAggregate() throws Exception {
+			for(int i=0;i<100;i++){
+				testGroupAggregate();
+					System.out.printf("iteration %d completed successfully%n ",i);
+			}
+		}
+
+		@Test
+//    @Ignore("Still breaking")
     public void testGroupAggregate() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
-                    "select a.i, avg(a.j), sum(a.j) from ",
+                    "select a.i, sum(a.j), avg(a.j) from ",
                     TABLE_NAME_1 + " a ",
                     "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n ",
                     "on a.i = b.i ",
@@ -167,28 +178,22 @@ public class SplittingTempTableIT extends SpliceUnitTest {
                     "inner join " + TABLE_NAME_1 + " g --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                     "on f.i = g.i ",
                     "group by a.i"));
-        int j = 0;
-        boolean saw1 = false;
-        boolean saw2 = false;
-        final int sumFor1 = 4194304; // for a.i = 1 we have 4x1 and 4x3, self joined 6 times => (1+3)*4*(8**6) 
-        final int sumFor2 = 6291456; // (2+4)*4*(8**6)
-        while (rs.next()) {
-            j++;
-            Assert.assertNotNull(rs.getInt(1));
-            if (rs.getInt(1) == 1) {
-                saw1 = true;
-                Assert.assertEquals("sum for 1 doesn't add up", sumFor1, rs.getInt(3));
-                Assert.assertEquals("avg for 1 doesn't add up", 2, rs.getInt(2));
-            } else if (rs.getInt(1) == 2){
-                saw2 = true;
-                Assert.assertEquals("sum for 2 doesn't add up", sumFor2, rs.getInt(3));
-                Assert.assertEquals("avg for 2 doesn't add up", 3, rs.getInt(2));
-            } else {
-                Assert.fail("Unrecognized value");
-            }
-        }
-        Assert.assertEquals(2, j);
-        Assert.assertEquals(saw1, saw2);
+				int j = 0;
+				Map<Integer,Pair<Integer,Integer>> corrects = Maps.newHashMap();
+				corrects.put(1,Pair.newPair(4194304,2));
+				corrects.put(2,Pair.newPair(6291456,3));
+				while (rs.next()) {
+						j++;
+						int key = rs.getInt(1);
+						Assert.assertFalse("Null key found!",rs.wasNull());
+						Pair<Integer,Integer> correctValues = corrects.get(key);
+						Assert.assertNotNull("key "+ key+" was not expected!",correctValues);
+						int sum = rs.getInt(2);
+						int avg = rs.getInt(3);
+						Assert.assertEquals("Incorrect sum for key "+ key,correctValues.getFirst().intValue(),sum);
+						Assert.assertEquals("Incorrect avg for key "+ key,correctValues.getSecond().intValue(),avg);
+				}
+				Assert.assertEquals("Did not see every row!",corrects.size(), j);
     }
 
     @Test
@@ -272,7 +277,7 @@ public class SplittingTempTableIT extends SpliceUnitTest {
     public void testMergeSortJoinFiveJoins() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 join(
-                        "select a.i from ",
+                        "select a.i,a.k,b.k,a.l,b.l from ",
                         TABLE_NAME_1 + " a ",
                         "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
                         "on a.i = b.i "+
@@ -296,6 +301,98 @@ public class SplittingTempTableIT extends SpliceUnitTest {
 
         Assert.assertEquals("No results",524288,count);
         Assert.assertEquals("incorrect sum!",786432,currentSumFor1);
+    }
+
+		@Test
+    public void testRepeatedMergeSortFiveJoins() throws Exception {
+        for(int i=0;i<100;i++){
+            testMergeSortJoinFiveJoins();
+            System.out.printf("Iteration %d succeeded%n",i);
+        }
+    }
+
+		@Test
+		public void testRepeatedGroupedAggregateFiveJoins() throws Exception {
+				for(int i=0;i<100;i++){
+						testGroupAggregateFiveJoins();
+						System.out.printf("Iteration %d succeeded%n",i);
+				}
+		}
+
+		@Test
+    public void testGroupAggregateFiveJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                    "select a.i, sum(a.j), avg(a.j) from ",
+                    TABLE_NAME_1 + " a ",
+                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n ",
+                    "on a.i = b.i ",
+                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on b.i = c.i ",
+                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on c.i = d.i ",
+                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on d.i = e.i ",
+                    "inner join " + TABLE_NAME_1 + " f --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on e.i = f.i ",
+                    "group by a.i"));
+				int j = 0;
+				Map<Integer,Pair<Integer,Integer>> corrects = Maps.newHashMap();
+				corrects.put(1,Pair.newPair(524288,2));
+				corrects.put(2,Pair.newPair(786432,3));
+				while (rs.next()) {
+						j++;
+						int key = rs.getInt(1);
+						Assert.assertFalse("Null key found!",rs.wasNull());
+						Pair<Integer,Integer> correctValues = corrects.get(key);
+						Assert.assertNotNull("key "+ key+" was not expected!",correctValues);
+						int sum = rs.getInt(2);
+						int avg = rs.getInt(3);
+						Assert.assertEquals("Incorrect sum for key "+ key,correctValues.getFirst().intValue(),sum);
+						Assert.assertEquals("Incorrect avg for key "+ key,correctValues.getSecond().intValue(),avg);
+				}
+				Assert.assertEquals("Did not see every row!",corrects.size(), j);
+    }
+
+		@Test
+		public void testRepeatedGroupedAggregateFourJoins() throws Exception {
+				for(int i=0;i<100;i++){
+						testGroupAggregateFourJoins();
+						System.out.printf("iteration %d correct%n",i);
+				}
+		}
+
+		@Test
+    public void testGroupAggregateFourJoins() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(
+                join(
+                    "select a.i, sum(a.j),avg(a.j) from ",
+                    TABLE_NAME_1 + " a ",
+                    "inner join " + TABLE_NAME_1 + " b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n ",
+                    "on a.i = b.i ",
+                    "inner join " + TABLE_NAME_1 + " c --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on b.i = c.i ",
+                    "inner join " + TABLE_NAME_1 + " d --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on c.i = d.i ",
+                    "inner join " + TABLE_NAME_1 + " e --DERBY-PROPERTIES joinStrategy=SORTMERGE \n",
+                    "on d.i = e.i ",
+                    "group by a.i"));
+        int j = 0;
+				Map<Integer,Pair<Integer,Integer>> corrects = Maps.newHashMap();
+				corrects.put(1,Pair.newPair(65536,2));
+				corrects.put(2,Pair.newPair(98304,3));
+        while (rs.next()) {
+            j++;
+						int key = rs.getInt(1);
+						Assert.assertFalse("Null key found!",rs.wasNull());
+						Pair<Integer,Integer> correctValues = corrects.get(key);
+						Assert.assertNotNull("key "+ key+" was not expected!",correctValues);
+						int sum = rs.getInt(2);
+						int avg = rs.getInt(3);
+						Assert.assertEquals("Incorrect sum for key "+ key,correctValues.getFirst().intValue(),sum);
+						Assert.assertEquals("Incorrect avg for key "+ key,correctValues.getSecond().intValue(),avg);
+        }
+        Assert.assertEquals("Did not see every row!",corrects.size(), j);
     }
 
     @Test

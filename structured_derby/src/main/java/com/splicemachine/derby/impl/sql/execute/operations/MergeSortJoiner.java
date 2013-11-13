@@ -50,6 +50,9 @@ public class MergeSortJoiner {
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
 
+		private int leftRowsSeen = 0;
+		private int rightRowsSeen=0;
+
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            StandardIterator<JoinSideExecRow> scanner,
                            boolean wasRightOuterJoin,
@@ -115,9 +118,11 @@ public class MergeSortJoiner {
                 break;
             }
             currentRowKey = nextRowToMerge.getRowKey();
-            if(nextRowToMerge.getJoinSide()== JoinUtils.JoinSide.LEFT){
-               mergedRow = mergeLeftRow(nextRowToMerge);
-            }else{
+						if(nextRowToMerge.getJoinSide()== JoinUtils.JoinSide.LEFT){
+								leftRowsSeen++;
+								mergedRow = mergeLeftRow(nextRowToMerge);
+						}else{
+								rightRowsSeen++;
                 if(nextRowToMerge.sameHash(currentHash))
                     rightSideRows.add(nextRowToMerge.getRow().getClone());
                 else{
@@ -139,6 +144,14 @@ public class MergeSortJoiner {
 
         return mergedRow;
     }
+
+		public int getLeftRowsSeen(){
+				return leftRowsSeen;
+		}
+
+		public int getRightRowsSeen(){
+				return rightRowsSeen;
+		}
 
     private ExecRow mergeLeftRow(JoinSideExecRow nextLeftRow) throws StandardException {
         /*

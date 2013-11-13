@@ -101,7 +101,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
                                                   RowDecoder rightDecoder,
                                                   HRegion region) {
         RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, SpliceConstants.TEMP_TABLE_BYTES,
-                new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES,leftDecoder,rightDecoder));
+                new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder));
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
     }
 
