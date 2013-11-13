@@ -18,6 +18,16 @@ GEN_SYS_ARGS="-Djava.awt.headless=true ${LOG4J_CONFIG}"
 
 IJ_SYS_ARGS="-Djdbc.drivers=org.apache.derby.jdbc.ClientDriver -Dij.connection.splice=jdbc:splice://localhost:1527/splicedb"
 
+if hash rlwrap 2>/dev/null; then
+    echo " ========= rlwrap detected and enabled.  Use up and down arrow keys to scroll through command line history. ======== "
+    echo
+    RLWRAP=rlwrap
+else
+    echo " ========= rlwrap not detected.  Consider installing for command line history capabilities. ========= "
+    echo
+    RLWRAP=
+fi
+
 echo "Running Splice Machine SQL shell"
 echo "For help: \"splice> help;\""
-java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  org.apache.derby.tools.ij $*
+$RLWRAP java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  org.apache.derby.tools.ij $*
