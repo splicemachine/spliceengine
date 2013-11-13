@@ -3,6 +3,7 @@ package com.splicemachine.utils;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.Arrays;
+import java.util.Date;
 
 /**
  * An algorithm for generating compact UUIDs efficiently.
@@ -39,6 +40,7 @@ public class Snowflake {
 
     private static final long TIMESTAMP_MASK = 0x1ffffffffffl;
     private static final int timestampShift = 12;
+		private static final long TIMESTAMP_LOCATION = (TIMESTAMP_MASK<<timestampShift);
 
 
     private static final short COUNTER_MASK = 0x07ff; //looks like 0111 1111 1111 (e.g. 11 bits of 1s)
@@ -62,6 +64,19 @@ public class Snowflake {
         if(machineId==0)
             throw new IllegalArgumentException("Cannot have a machine id with all zeros!");
     }
+
+		/**
+		 * Get the timestamp portion from the UUID.
+		 *
+		 * Recall that the UUID contains only 41 bits of the actual timestamp. This goes until Sep. 7, 2039,
+		 * so be aware.
+		 *
+		 * @param uuid the uuid to get the timestamp from
+		 * @return the timestamp portion of the UUID.
+		 */
+		public static long timestampFromUUID(long uuid){
+			return (uuid & TIMESTAMP_LOCATION)>>timestampShift;
+		}
 
     public byte[] nextUUIDBytes(){
         return Bytes.toBytes(nextUUID());
@@ -208,23 +223,8 @@ public class Snowflake {
     }
 
     public static void main(String... args) throws Exception{
-        long count = (1l<<10)+1;
-        System.out.println(pad(count));
-        long uuid = count << 53;
-        System.out.println(pad(uuid));
-
-        long timestampMask = 0x1ffffffffffl;
-        System.out.println(pad(timestampMask));
-        long timestamp = System.currentTimeMillis();
-        System.out.println(pad(timestamp));
-        uuid |= ((timestamp & timestampMask)<<12);
-        System.out.println(pad(uuid));
-
-        long worker = (1l<<11)+1;
-        System.out.println(pad(worker));
-        uuid |= worker;
-        System.out.println(pad(uuid));
-
+				Date date = new Date(TIMESTAMP_MASK);
+				System.out.println(date);
     }
 
     private static String pad(long number){
