@@ -9,6 +9,7 @@ if [[ ! -e "${PID_FILE}" ]]; then
 fi
 
 KILL_PID=`cat "${PID_FILE}"`
+KILL_PID=$(grep -oE "[0-9]+" <<< "$KILL_PID") # Make sure we get only digits
 
 if [[ -n "${KILL_PID}" ]]; then
 
