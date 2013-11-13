@@ -683,7 +683,7 @@ public class SpliceConstants {
 				maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 
 				long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
-				tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
+				tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,100*1024 * 1024 * 1024L); // 100 Gigs...
 
 				collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
 				pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
