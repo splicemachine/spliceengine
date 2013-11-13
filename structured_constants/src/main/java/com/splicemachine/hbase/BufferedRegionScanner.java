@@ -199,8 +199,7 @@ public class BufferedRegionScanner implements RegionScanner{
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
-
-            return old;
+            return old.isEmpty()?null:old; // We have a null check on the get next and not an empty...
         }
 
         @Override
