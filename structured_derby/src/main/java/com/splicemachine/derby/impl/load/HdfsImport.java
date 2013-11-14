@@ -1,10 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -144,7 +142,6 @@ public class HdfsImport extends ParallelVTI {
         return result;
     }
 
-    @SuppressWarnings("UnusedParameters")
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
                                          String insertColumnList,
                                          String columnIndexes,

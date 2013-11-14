@@ -1,16 +1,11 @@
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;

@@ -5,9 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Preconditions;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 
 /**
  * Decodes a single byte[] into multiple field based on terminator elements.

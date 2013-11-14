@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.hbase.writer.KVPair;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

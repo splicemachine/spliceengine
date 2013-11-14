@@ -46,6 +46,10 @@ import java.sql.Timestamp;
 import java.util.*;
 
 /**
+ * 
+ * TODO Utilize unsafe with Kryo 2.2
+ * https://github.com/EsotericSoftware/kryo
+ * 
  * @author Scott Fines
  * Created on: 8/15/13
  */

@@ -1,7 +1,5 @@
 package com.splicemachine.utils.hash;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
 /**
  * @author Scott Fines
  * Created on: 11/2/13

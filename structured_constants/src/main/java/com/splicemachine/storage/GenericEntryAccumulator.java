@@ -2,8 +2,6 @@ package com.splicemachine.storage;
 
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;

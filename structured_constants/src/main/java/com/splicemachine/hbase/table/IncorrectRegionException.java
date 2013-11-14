@@ -9,7 +9,12 @@ import java.io.IOException;
  * Created on: 10/27/13
  */
 public class IncorrectRegionException extends IOException {
-    public IncorrectRegionException() {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 8085753085647236986L;
+
+	public IncorrectRegionException() {
     }
 
     public IncorrectRegionException(String message) {

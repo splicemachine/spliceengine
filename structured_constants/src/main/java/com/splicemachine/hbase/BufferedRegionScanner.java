@@ -60,7 +60,8 @@ public class BufferedRegionScanner implements RegionScanner{
 
     private ConcurrentRingBuffer<List<KeyValue>> ringBuffer;
 
-    public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
+    @SuppressWarnings("unchecked")
+	public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
         this.delegate = delegate;
         List<KeyValue>[] template = new List[bufferSize];
         this.ringBuffer = new ConcurrentRingBuffer<List<KeyValue>>(bufferSize,template,new ReadFiller(delegate,region));

@@ -227,7 +227,8 @@ public class Snowflake {
 				System.out.println(date);
     }
 
-    private static String pad(long number){
+    @SuppressWarnings("unused")
+	private static String pad(long number){
         String binary = Long.toBinaryString(number);
         char[] zeros = new char[Long.numberOfLeadingZeros(number)];
         for(int i=0;i<zeros.length;i++){

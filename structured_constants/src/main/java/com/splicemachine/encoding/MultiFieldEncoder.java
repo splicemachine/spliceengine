@@ -4,9 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Preconditions;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines

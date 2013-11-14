@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -10,7 +9,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-
 import javax.annotation.Nullable;
 import java.io.FileNotFoundException;
 import java.io.IOException;

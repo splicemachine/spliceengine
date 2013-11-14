@@ -3,8 +3,6 @@ package com.splicemachine.storage;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.*;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.xerial.snappy.Snappy;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;

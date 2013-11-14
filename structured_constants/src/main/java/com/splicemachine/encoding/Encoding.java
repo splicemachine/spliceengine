@@ -2,9 +2,7 @@ package com.splicemachine.encoding;
 
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Date;
 
 /**

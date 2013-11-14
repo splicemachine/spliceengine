@@ -1,17 +1,10 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Scott Fines
