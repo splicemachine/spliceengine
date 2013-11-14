@@ -115,12 +115,12 @@ public class SpliceTableDebugger extends Configured implements Tool {
                 String tableName = args[1];
                 String destinationDirectory = args[2];
 
-                FileSystem fs = FileSystem.get(config);
-                Path path = new Path(destinationDirectory);
-                if(!fs.exists(path)){
-                    System.err.printf("Destination directory %s does not exist%n", destinationDirectory);
-                    return null;
-                }
+//                FileSystem fs = FileSystem.get(config);
+//                Path path = new Path(destinationDirectory);
+//                if(!fs.exists(path)){
+//                    System.err.printf("Destination directory %s does not exist%n", destinationDirectory);
+//                    return null;
+//                }
 
                 return new NonTransactionalCounterJob(destinationDirectory,tableName);
             }

@@ -2,17 +2,22 @@ package com.splicemachine.hbase.debug;
 
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.table.SpliceHTable;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 /**
  * @author Scott Fines
@@ -41,8 +46,8 @@ public class TransactionCountJob implements CoprocessorJob {
     @Override
     public HTableInterface getTable() {
         try {
-            return new HTable(config, table);
-        } catch (IOException e) {
+						return new SpliceHTable(Bytes.toBytes(table), HConnectionManager.getConnection(config), Executors.newCachedThreadPool(), HBaseRegionCache.getInstance());
+				} catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

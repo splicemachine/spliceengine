@@ -12,7 +12,6 @@ import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -21,7 +20,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -42,27 +40,23 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class CreateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 4l;
-    private String transactionId;
+    private static final long serialVersionUID = 5l;
     private long indexConglomId;
     private long baseConglomId;
     private int[] mainColToIndexPosMap;
     private boolean isUnique;
     private BitSet indexedColumns;
-    private BitSet nonUniqueIndexColumns;
-    private BitSet descColumns;
+		private BitSet descColumns;
 
-    private MultiFieldEncoder translateEncoder;
+		private HRegion region;
 
-    private HRegion region;
-    private RegionCoprocessorEnvironment rce;
-
-    //performance improvement
+		//performance improvement
     private KVPair mainPair;
     private long totalTransformTime = 0l;
     private long totalWriteTime = 0l;
 
-    public CreateIndexTask() { }
+    @SuppressWarnings("UnusedDeclaration")
+		public CreateIndexTask() { }
 
     public CreateIndexTask(String transactionId,
                            long indexConglomId,
@@ -73,7 +67,6 @@ public class CreateIndexTask extends ZkTask {
                            String jobId,
                            BitSet descColumns) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
-        this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         this.mainColToIndexPosMap = mainColToIndexPosMap;
@@ -85,8 +78,7 @@ public class CreateIndexTask extends ZkTask {
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
-        this.rce = rce;
-        super.prepareTask(rce, zooKeeper);
+				super.prepareTask(rce, zooKeeper);
     }
 
     @Override
@@ -97,7 +89,6 @@ public class CreateIndexTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
         out.writeObject(indexedColumns);
@@ -109,7 +100,6 @@ public class CreateIndexTask extends ZkTask {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
         indexedColumns = (BitSet)in.readObject();
@@ -124,7 +114,7 @@ public class CreateIndexTask extends ZkTask {
     }
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        Scan regionScan = SpliceUtils.createScan(transactionId);
+        Scan regionScan = SpliceUtils.createScan(status.getTransactionId());
         regionScan.setCaching(DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
@@ -132,9 +122,6 @@ public class CreateIndexTask extends ZkTask {
         //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-
-        nonUniqueIndexColumns = (BitSet)indexedColumns.clone();
-        nonUniqueIndexColumns.set(indexedColumns.length());
 
         long totalReadTime = 0l;
         long numRecordsRead = 0l;
@@ -147,17 +134,16 @@ public class CreateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-//            sourceScanner = new BufferedRegionScanner(region,sourceScanner,1024);
             region.startRegionOperation();
             MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
-                boolean shouldContinue = true;
                 IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
                 byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
                 CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
                 try{
-                    while(shouldContinue){
+										boolean shouldContinue;
+										do{
                         nextRow.clear();
                         long start = System.nanoTime();
                         shouldContinue  = sourceScanner.nextRaw(nextRow,null);
@@ -165,18 +151,18 @@ public class CreateIndexTask extends ZkTask {
                         totalReadTime+=(stop-start);
                         numRecordsRead++;
                         translateResult(nextRow, transformer,writeBuffer);
-                    }
+										}while(shouldContinue);
                 }finally{
                     writeBuffer.flushBuffer();
                     writeBuffer.close();
 
-                    if(LOG.isDebugEnabled()){
-                        SpliceLogUtils.debug(LOG,"Total time to read %d records: %d ns",numRecordsRead,totalReadTime);
-                        SpliceLogUtils.debug(LOG,"Average time to read 1 record: %f ns",(double)totalReadTime/numRecordsRead);
-                        SpliceLogUtils.debug(LOG,"Total time to transform %d records: %d ns",numRecordsRead,totalTransformTime);
-                        SpliceLogUtils.debug(LOG, "Average time to transform 1 record: %f ns", (double) totalTransformTime / numRecordsRead);
-                        SpliceLogUtils.debug(LOG,"Total time to write %d records: %d ns",numRecordsRead,totalWriteTime);
-                        SpliceLogUtils.debug(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
+                    if(LOG.isInfoEnabled()){
+                        SpliceLogUtils.info(LOG,"Total time to read %d records: %d ns",numRecordsRead,totalReadTime);
+                        SpliceLogUtils.info(LOG,"Average time to read 1 record: %f ns",(double)totalReadTime/numRecordsRead);
+                        SpliceLogUtils.info(LOG,"Total time to transform %d records: %d ns",numRecordsRead,totalTransformTime);
+                        SpliceLogUtils.info(LOG, "Average time to transform 1 record: %f ns", (double) totalTransformTime / numRecordsRead);
+                        SpliceLogUtils.info(LOG,"Total time to write %d records: %d ns",numRecordsRead,totalWriteTime);
+                        SpliceLogUtils.info(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
                     }
                 }
             }finally{
@@ -195,8 +181,7 @@ public class CreateIndexTask extends ZkTask {
                                  IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer) throws Exception {
         //we know that there is only one KeyValue for each row
-        Put currentPut;
-        for(KeyValue kv:result){
+				for(KeyValue kv:result){
             //ignore SI CF
             if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
 
