@@ -3,7 +3,9 @@ package com.splicemachine.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+
 import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -12,6 +14,7 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.io.hfile.Compression;
+import org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFile.BloomType;
 import org.apache.log4j.Logger;
@@ -62,6 +65,8 @@ public class SpliceUtilities extends SIConstants {
 	public static HTableDescriptor generateTempTable(String tableName) {
 		HTableDescriptor desc = new HTableDescriptor(tableName);
 		desc.addFamily(createTempDataFamily());
+		desc.setValue(HTableDescriptor.SPLIT_POLICY, ConstantSizeRegionSplitPolicy.class.getName());
+		desc.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
         return desc;
 	}
 
