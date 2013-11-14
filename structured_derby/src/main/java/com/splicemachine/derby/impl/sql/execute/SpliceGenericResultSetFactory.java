@@ -1135,4 +1135,40 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
         return new OperationResultSet(source.getActivation(),treeManager,op);
 	}
+	
+	public NoPutResultSet getLastIndexKeyResultSet
+	(
+		Activation 			activation,
+		int 				resultSetNumber,
+		GeneratedMethod 	resultRowAllocator,
+		long 				conglomId,
+		String 				tableName,
+		String 				userSuppliedOptimizerOverrides,
+		String 				indexName,
+		int 				colRefItem,
+		int 				lockMode,
+		boolean				tableLocked,
+		int					isolationLevel,
+		double				optimizerEstimatedRowCount,
+		double 				optimizerEstimatedCost
+	) throws StandardException
+	{
+		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
+		SpliceOperation op = new LastIndexKeyOperation(
+					activation,
+					resultSetNumber,
+					resultRowAllocator,
+					conglomId,
+					tableName,
+					userSuppliedOptimizerOverrides,
+					indexName,
+					colRefItem,
+					lockMode,
+					tableLocked,
+					isolationLevel,
+					optimizerEstimatedRowCount,
+					optimizerEstimatedCost);
+		
+		return new OperationResultSet(activation, treeManager, op);
+	}
 }

@@ -405,5 +405,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FKInfo.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

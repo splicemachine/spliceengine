@@ -270,4 +270,22 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals("No rows returned!",1,i);
 
     }
+    
+    @Test
+    public void testMinMaxOnIndexedCols() throws Exception {
+       /* Regression test for Bug 922 */
+    	PreparedStatement ps = spliceClassWatcher.prepareStatement("create index idx on " + nullTableWatcher + "(b)");
+    	ps.execute();
+        ResultSet rs = methodWatcher.executeQuery("select min(b),max(b) from "+nullTableWatcher + " --SPLICE-PROPERTIES index=idx");
+        int i=0;
+        while(rs.next()){
+            i++;
+            int min = rs.getInt(1);
+            Assert.assertEquals("Incorrect min returned!",0,min);
+            int max = rs.getInt(2);
+            Assert.assertEquals("Incorrect max returned!",18,max);
+        }
+        Assert.assertEquals("No rows returned!",1,i);
+
+    }
 }
