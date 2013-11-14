@@ -1,24 +1,16 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ByteBufferArrayUtils;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.xerial.snappy.Snappy;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -28,7 +20,6 @@ import java.util.List;
  */
 public class RowMarshaller {
     public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
-    private static final byte[] EMPTY_ROW_COLUMN = Encoding.encode(-101);
 
     private static KeyValue getPackedKv(DataValueDescriptor[] row,
                                         byte[] rowKey,
