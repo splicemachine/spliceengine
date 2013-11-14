@@ -8,6 +8,7 @@ import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import java.io.ByteArrayInputStream;
 import org.apache.derby.iapi.types.SQLDecimal;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -30,65 +31,61 @@ public class KryoTest  {
 
     @Test
     public void testSQLDecimalNull() throws Exception {
-        SQLDecimal nullDec = new SQLDecimal();
-        nullDec.setValue((Number)null);
+        SQLDecimal in = new SQLDecimal();
+        in.setValue((Number) null);
 
         Output output = new Output(new byte[20],20);
         DataValueDescriptorSerializer<SQLDecimal> serializer =
                 (DataValueDescriptorSerializer<SQLDecimal>) kryo.getSerializer(SQLDecimal.class);
-        serializer.write(kryo, output, nullDec);
+        serializer.write(kryo, output, in);
 
         byte[] bytes = output.toBytes();
         Assert.assertNotNull(bytes);
 
         Input input = new Input(bytes);
-        SQLDecimal XNullDec = serializer.read(kryo, input, SQLDecimal.class);
+        SQLDecimal out = serializer.read(kryo, input, SQLDecimal.class);
 
-        Assert.assertNotNull(XNullDec);
-        Assert.assertNull(XNullDec.getObject());
+        Assert.assertNotNull(out);
+        Assert.assertNull(out.getObject());
     }
 
     @Test
     public void testSQLDecimalInt() throws Exception {
-        SQLDecimal sqlDecimal = new SQLDecimal();
-        sqlDecimal.setValue(1234);
+        SQLDecimal in = new SQLDecimal();
+        in.setValue(1234);
 
         Output output = new Output(new byte[20],20);
         KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
-        koo.writeObject(sqlDecimal);
-
-//        DataValueDescriptorSerializer<SQLDecimal> serializer =
-//                (DataValueDescriptorSerializer<SQLDecimal>) kryo.getSerializer(SQLDecimal.class);
-//        serializer.write(kryo, output, sqlDecimal);
+        koo.writeObject(in);
 
         byte[] bytes = output.toBytes();
         Assert.assertNotNull(bytes);
 
         Input input = new Input(bytes);
         KryoObjectInput koi = new KryoObjectInput(input,kryo);
-        SQLDecimal XNullDec = (SQLDecimal) koi.readObject();
+        SQLDecimal out = (SQLDecimal) koi.readObject();
 
-        Assert.assertNotNull(XNullDec);
-        Assert.assertEquals(sqlDecimal, XNullDec.getObject());
+        Assert.assertNotNull(out);
+        Assert.assertEquals(in, out);
     }
 
     @Test
     public void testSQLDecimalDecimal() throws Exception {
-        SQLDecimal sqlDecimal = new SQLDecimal();
-        sqlDecimal.setValue(1234.4567);
+        SQLDecimal in = new SQLDecimal();
+        in.setValue(1234.4567);
 
         Output output = new Output(new byte[20],20);
         DataValueDescriptorSerializer<SQLDecimal> serializer =
                 (DataValueDescriptorSerializer<SQLDecimal>) kryo.getSerializer(SQLDecimal.class);
-        serializer.write(kryo, output, sqlDecimal);
+        serializer.write(kryo, output, in);
 
         byte[] bytes = output.toBytes();
         Assert.assertNotNull(bytes);
 
-        Input input = new Input(bytes);
-        SQLDecimal XNullDec = serializer.read(kryo, input, SQLDecimal.class);
+        Input input = new Input(new ByteArrayInputStream(bytes), bytes.length);
+        SQLDecimal out = serializer.read(kryo, input, SQLDecimal.class);
 
-        Assert.assertNotNull(XNullDec);
-        Assert.assertEquals(sqlDecimal, XNullDec.getObject());
+        Assert.assertNotNull(out);
+        Assert.assertEquals(in, out);
     }
 }

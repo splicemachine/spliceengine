@@ -29,6 +29,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LastIndexKeyOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeDerbyScanInformation;
@@ -169,7 +170,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SQLDecimal.class,new DataValueDescriptorSerializer<SQLDecimal>(){
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLDecimal object) throws StandardException {
-                kryo.writeClassAndObject(output, object.getObject());
+                kryo.writeObjectOrNull(output, object.getObject(), BigDecimal.class);
             }
             @Override
             protected void readValue(Kryo kryo, Input input, SQLDecimal dvd) throws StandardException {
