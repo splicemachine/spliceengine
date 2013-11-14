@@ -29,7 +29,6 @@ dml057
 dml073
 # Bug 601
 dml075
-#dml079
 # dml081 - divide by zero
 dml081
 # dml083 - NULL in column where Max(column)
@@ -77,4 +76,4 @@ drop
 #Bug 662 - dml085, dml087
 #Bug 683 - dml181, dml182
 # Bug 910
-dml079
+# --- TEST --- dml079
