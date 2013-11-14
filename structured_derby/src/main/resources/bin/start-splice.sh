@@ -20,10 +20,10 @@ CYGWIN=`uname -s`
 if [[ ${CYGWIN} == CYGWIN* ]]; then
     # cygwin likes to write in 2 places for /tmp
     # we'll symlink them
-    if [[ -e "/tmp" ]]; then
+    if [[ -e "/tmp" && ! -L "/tmp" ]]; then
         mv "/tmp" "/tmp_bak"
+        ln -s "/cygdrive/c/tmp" "/tmp"
     fi
-    ln -s "/cygdrive/c/tmp" "/tmp"
 fi
 # start zookeeper once
 "${ROOT_DIR}"/bin/_startZoo.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
