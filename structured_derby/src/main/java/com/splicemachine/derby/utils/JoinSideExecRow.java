@@ -38,6 +38,11 @@ public class JoinSideExecRow {
 	public JoinSide getJoinSide() {
 		return joinSide;
 	}
+
+    public boolean isRightSide(){
+        return joinSide.ordinal() == JoinSide.RIGHT.ordinal();
+    }
+
 	public byte[] getHash() {
 		return hash;
 	}
