@@ -23,7 +23,7 @@ import java.util.List;
  * left or right side) and, for every left row, produces a pair of the left row
  * and any right rows with a matching hash.
  *
- * This iterator is not thread-safe, and uses a mutable lists for storing rows. The only
+ * This iterator is not thread-safe, and uses mutable lists for storing rows. The only
  * safe way to consume it is iteratively (i.e. not realizing the sequence) or by copying
  * elements.
  *

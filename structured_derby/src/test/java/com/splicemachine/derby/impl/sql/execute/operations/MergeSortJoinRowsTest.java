@@ -72,25 +72,6 @@ public class MergeSortJoinRowsTest {
     }
 
     @Test
-    @Ignore
-    public void testMergeSortJoinRowsConsuming() throws Exception {
-
-        MergeSortJoinRows pairs = new MergeSortJoinRows(source.iterator());
-        List<Pair<String, List<String>>> stringRows = Lists.transform(Lists.newArrayList((Iterator) pairs),
-                new Function<Pair<ExecRow, Iterator<ExecRow>>, Pair<String, List<String>>>() {
-                    @Override
-                    public Pair<String, List<String>> apply(Pair<ExecRow, Iterator<ExecRow>> input) {
-                        return new Pair<String, List<String>>(execRowToString.apply(input.getFirst()),
-                                Lists.transform(Lists.newArrayList(input.getSecond()), execRowToString));
-                    }
-                });
-
-        Assert.assertTrue("Realizing whole collection from iterator breaks because iterator " +
-                "returns a mutable array for the right rows",
-                !Arrays.equals(expectedStrings.toArray(),  stringRows.toArray()));
-    }
-
-    @Test
     public void testMergeSortJoinRowsIterating() throws Exception {
 
         MergeSortJoinRows pairs = new MergeSortJoinRows(source.iterator());
