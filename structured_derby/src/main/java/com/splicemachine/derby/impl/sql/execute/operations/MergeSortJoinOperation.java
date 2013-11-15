@@ -160,12 +160,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             return joinedRow;
         }finally{
             if(shouldClose){
-                if(LOG.isInfoEnabled())
-                    LOG.info("Saw "+ rowsSeen+" records");
-								if(LOG.isDebugEnabled()){
-										LOG.debug("Saw "+ joiner.getLeftRowsSeen()+" left rows");
-										LOG.debug("Saw "+ joiner.getRightRowsSeen()+" right rows");
-								}
+                if(LOG.isDebugEnabled()){
+                    LOG.debug(String.format("Saw %s records (%s left, %s right)",
+                            rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
+                }
                 joiner.close();
             }
         }
