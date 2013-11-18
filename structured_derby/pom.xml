@@ -651,6 +651,12 @@
 							</execution>
 						</executions>
 						<configuration>
+                            <systemProperties>
+                                <systemProperty>
+                                    <key>ij.connection.splice</key>
+                                    <value>jdbc:splice://localhost:1527/splicedb</value>
+                                </systemProperty>
+                            </systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
 							<includeProjectDependencies>true</includeProjectDependencies>
 							<executable>maven</executable>
