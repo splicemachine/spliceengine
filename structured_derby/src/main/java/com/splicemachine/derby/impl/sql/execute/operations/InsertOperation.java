@@ -10,10 +10,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -26,7 +23,7 @@ import java.io.IOException;
 import java.util.BitSet;
 
 /**
- * 
+ *
  * @author Scott Fines
  *
  * TODO:
@@ -37,110 +34,129 @@ import java.util.BitSet;
  *  5. Secondary Indices (do with Coprocessors)
  */
 public class InsertOperation extends DMLWriteOperation implements HasIncrement {
-    private static final long serialVersionUID = 1l;
-	private static final Logger LOG = Logger.getLogger(InsertOperation.class);
+		private static final long serialVersionUID = 1l;
+		private static final Logger LOG = Logger.getLogger(InsertOperation.class);
 
-    private ExecRow rowTemplate;
-    private HTableInterface sysColumnTable;
+		private ExecRow rowTemplate;
+		private HTableInterface sysColumnTable;
 
-    private int[] pkCols;
-    public InsertOperation(){
-		super();
-	}
-	
-	public InsertOperation(SpliceOperation source,
-							GeneratedMethod generationClauses, 
-							GeneratedMethod checkGM) throws StandardException{
-		super(source, generationClauses, checkGM, source.getActivation());
-		recordConstructorTime(); 
-	}
+		private int[] pkCols;
+		public InsertOperation(){
+				super();
+		}
 
-    public InsertOperation(SpliceOperation source,
-                           OperationInformation opInfo,
-                           DMLWriteInfo writeInfo,
-                           String txnId) throws StandardException {
-        super(source, opInfo, writeInfo);
-        transactionID = txnId;
-    }
+		public InsertOperation(SpliceOperation source,
+													 GeneratedMethod generationClauses,
+													 GeneratedMethod checkGM) throws StandardException{
+				super(source, generationClauses, checkGM, source.getActivation());
+				recordConstructorTime();
+		}
 
-    @Override
-	public void init(SpliceOperationContext context) throws StandardException{
-        super.init(context);
-        heapConglom = writeInfo.getConglomerateId();
+		public InsertOperation(SpliceOperation source,
+													 OperationInformation opInfo,
+													 DMLWriteInfo writeInfo,
+													 String txnId) throws StandardException {
+				super(source, opInfo, writeInfo);
+				transactionID = txnId;
+		}
 
-        pkCols = writeInfo.getPkColumnMap();
-    }
+		@Override
+		public void init(SpliceOperationContext context) throws StandardException{
+				super.init(context);
+				heapConglom = writeInfo.getConglomerateId();
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        KeyMarshall keyType;
-        int[] keyColumns = null;
-        if(pkCols==null){
-            //just need a salted row key
-            keyType = new SaltedKeyMarshall(operationInformation.getUUIDGenerator());
-        }else{
-            keyColumns = new int[pkCols.length];
-            for(int i=0;i<keyColumns.length;i++){
-                keyColumns[i] = pkCols[i] -1;
-            }
-            keyType = KeyType.BARE;
-        }
+				pkCols = writeInfo.getPkColumnMap();
+		}
+
+		@Override
+		public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				KeyMarshall keyType;
+				int[] keyColumns = null;
+				if(pkCols==null){
+						//just need a salted row key
+						keyType = new SaltedKeyMarshall(operationInformation.getUUIDGenerator());
+				}else{
+						keyColumns = new int[pkCols.length];
+						for(int i=0;i<keyColumns.length;i++){
+								keyColumns[i] = pkCols[i] -1;
+						}
+						keyType = KeyType.BARE;
+				}
 
 
-        ExecRow defnRow = getExecRowDefinition();
-        BitSet scalarFields = DerbyBytesUtil.getScalarFields(defnRow.getRowArray());
-        BitSet floatFields = DerbyBytesUtil.getFloatFields(defnRow.getRowArray());
-        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(defnRow.getRowArray());
-        return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
-    }
+				ExecRow defnRow = getExecRowDefinition();
+				BitSet scalarFields = DerbyBytesUtil.getScalarFields(defnRow.getRowArray());
+				BitSet floatFields = DerbyBytesUtil.getFloatFields(defnRow.getRowArray());
+				BitSet doubleFields = DerbyBytesUtil.getDoubleFields(defnRow.getRowArray());
+				return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
+		}
 
-    @Override
-	public String toString() {
-		return "Insert{destTable="+heapConglom+",source=" + source + "}";
-	}
+		public KeyEncoder getKeyEncoder(){
+				HashPrefix prefix;
+				DataHash dataHash;
+				KeyPostfix postfix = NoOpPostfix.INSTANCE;
+				if(pkCols==null){
+						prefix = new SaltedPrefix(operationInformation.getUUIDGenerator());
+						dataHash = NoOpDataHash.INSTANCE;
+				}else{
+						int[] keyColumns = new int[pkCols.length];
+						for(int i=0;i<keyColumns.length;i++){
+								keyColumns[i] = pkCols[i] -1;
+						}
+						prefix = NoOpPrefix.INSTANCE;
+						dataHash = new EntryDataHash(keyColumns,null);
+				}
 
-    @Override
-    public String prettyPrint(int indentLevel) {
-        return "Insert"+super.prettyPrint(indentLevel);
-    }
+				return new KeyEncoder(prefix,dataHash,postfix);
+		}
 
-    @Override
-    public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
-        int index = columnPosition-1;
+		@Override
+		public String toString() {
+				return "Insert{destTable="+heapConglom+",source=" + source + "}";
+		}
 
-        HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation()[index];
+		@Override
+		public String prettyPrint(int indentLevel) {
+				return "Insert"+super.prettyPrint(indentLevel);
+		}
 
-        byte[] rlBytes = rl.getBytes();
+		@Override
+		public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
+				int index = columnPosition-1;
 
-        if(sysColumnTable==null){
-            sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
-        }
+				HBaseRowLocation rl = (HBaseRowLocation)((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation()[index];
 
-        Sequence sequence;
-        try {
-            sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
-                    getTransactionID(),heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary()));
-        } catch (Exception e) {
-            throw Exceptions.parseException(e);
-        }
+				byte[] rlBytes = rl.getBytes();
 
-        long nextValue = sequence.getNext();
+				if(sysColumnTable==null){
+						sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
+				}
 
-        if(rowTemplate==null)
-            rowTemplate = getExecRowDefinition();
-        DataValueDescriptor dvd = rowTemplate.cloneColumn(columnPosition);
-        dvd.setValue(nextValue);
-        return dvd;
-    }
+				Sequence sequence;
+				try {
+						sequence = SpliceDriver.driver().getSequencePool().get(new Sequence.Key(sysColumnTable,rlBytes,
+										getTransactionID(),heapConglom,columnPosition,activation.getLanguageConnectionContext().getDataDictionary()));
+				} catch (Exception e) {
+						throw Exceptions.parseException(e);
+				}
 
-    @Override
-    public void close() throws StandardException {
-        if(sysColumnTable!=null){
-            try{
-                sysColumnTable.close();
-            } catch (IOException e) {
-                SpliceLogUtils.error(LOG,"Unable to close htable, beware of potential memory problems!",e);
-            }
-        }
-    }
+				long nextValue = sequence.getNext();
+
+				if(rowTemplate==null)
+						rowTemplate = getExecRowDefinition();
+				DataValueDescriptor dvd = rowTemplate.cloneColumn(columnPosition);
+				dvd.setValue(nextValue);
+				return dvd;
+		}
+
+		@Override
+		public void close() throws StandardException {
+				if(sysColumnTable!=null){
+						try{
+								sysColumnTable.close();
+						} catch (IOException e) {
+								SpliceLogUtils.error(LOG,"Unable to close htable, beware of potential memory problems!",e);
+						}
+				}
+		}
 }

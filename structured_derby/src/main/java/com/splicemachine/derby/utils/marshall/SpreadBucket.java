@@ -86,7 +86,6 @@ public enum SpreadBucket {
 				throw new UnsupportedOperationException();
 		}
 
-
 		public byte getMask(){
 				throw new UnsupportedOperationException();
 		}
