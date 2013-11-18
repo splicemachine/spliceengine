@@ -88,8 +88,8 @@ public class MergeSortScanBoundaryTest {
 
 				ExecRow row  = new ValueRow(1);
 				row.setRowArray(new DataValueDescriptor[]{new SQLInteger()});
-				RowDecoder decoder = RowDecoder.create(row, KeyType.FIXED_PREFIX,new int[]{0},null, RowMarshaller.sparsePacked(),new int[]{},false);
-				MergeSortScanBoundary scanBoundary = new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, decoder);
+
+				MergeSortScanBoundary scanBoundary = new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, 9);
 				byte[] start = scanBoundary.getStartKey(new Result(new KeyValue[]{new KeyValue(splitPoint,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,splitPoint)}));
 
 				System.out.println(BytesUtil.toHex(start));

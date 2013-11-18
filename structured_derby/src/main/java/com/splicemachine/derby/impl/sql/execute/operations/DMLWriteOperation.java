@@ -141,7 +141,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		/*
 		 * Write the data from the source sequentially. 
@@ -150,8 +150,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 * nodetype, this should be executed in parallel, so *don't* attempt to
 		 * insert here.
 		 */
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext);
 
 		modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
         //modifiedProvider.setRowsModified(rowsSunk);
@@ -169,8 +168,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
-    	JobStats jobStats = super.doShuffle();
+    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    	JobStats jobStats = super.doShuffle(runtimeContext);
         long rowsModified = 0;
         for(TaskStats stats:jobStats.getTaskStats()){
             rowsModified+=stats.getWriteStats().getTotalRecords();

@@ -158,10 +158,10 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
 	@Override
-	public abstract void executeShuffle() throws StandardException;
+	public abstract void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException;
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		throw new UnsupportedOperationException("Scans are not supported in Fully parallel mode");
 	}
 

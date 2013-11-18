@@ -156,7 +156,7 @@ public class InsertOperationTest {
         operation.init(mock(SpliceOperationContext.class));
         when(mockInstructions.getTopOperation()).thenReturn(operation);
 
-        NoPutResultSet resultSet = operation.executeScan();
+        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext());
         resultSet.open();
 
         Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());

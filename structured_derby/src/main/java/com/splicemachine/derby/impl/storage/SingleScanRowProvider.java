@@ -50,6 +50,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     	shuffled=true;
         Scan scan = toScan();
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
+				spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
         if(scan==null){
             //operate locally
             SpliceOperation op = instructions.getTopOperation();

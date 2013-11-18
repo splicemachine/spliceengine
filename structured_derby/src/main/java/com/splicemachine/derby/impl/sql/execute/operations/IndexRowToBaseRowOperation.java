@@ -222,21 +222,20 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG,"executeScan");
         final List<SpliceOperation> operationStack = getOperationStack();
         SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
         SpliceOperation regionOperation = operationStack.get(0);
         SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
         RowProvider provider;
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowDecoder decoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition());
+        RowDecoder decoder = getRowEncoder(runtimeContext).getDual(getExecRowDefinition());
         if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
             SpliceLogUtils.trace(LOG,"Scanning temp tables");
-			provider = regionOperation.getReduceRowProvider(this,decoder,spliceRuntimeContext);
+			provider = regionOperation.getReduceRowProvider(this,decoder,runtimeContext);
 		}else {
 			SpliceLogUtils.trace(LOG,"scanning Map table");
-			provider = regionOperation.getMapRowProvider(this,decoder,spliceRuntimeContext);
+			provider = regionOperation.getMapRowProvider(this,decoder,runtimeContext);
 		}
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}

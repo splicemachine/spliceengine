@@ -193,10 +193,9 @@ public class RowOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext));
 	}
 	
 	@Override

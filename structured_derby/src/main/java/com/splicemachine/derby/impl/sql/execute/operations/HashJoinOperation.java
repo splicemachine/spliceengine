@@ -122,18 +122,17 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "final mergedRow %s",mergedRow);
 	}
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		final RowProvider rowProvider;
 		final ExecRow template = getExecRowDefinition();
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(template),spliceRuntimeContext);
+			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(template),runtimeContext);
 		} else {
-			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(template),spliceRuntimeContext);
+			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(template),runtimeContext);
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}

@@ -87,6 +87,21 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 	}
 
+	@Override
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+		SpliceLogUtils.trace(LOG, "executeScan");
+		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
+		this.generateLeftOperationStack(operationStack);
+		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext));
+	}
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        //push the computation to the left side of the join
+        //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
+        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
+
     @Override
 	public String toString() {
 		return "NestedLoop"+super.toString();
@@ -158,7 +173,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			}
 			else {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-				probeResultSet = (getRightResultSet()).executeScan();
+				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
 			}
 			probeResultSet.openCore();
 			populated=false;

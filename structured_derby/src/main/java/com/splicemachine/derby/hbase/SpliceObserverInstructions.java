@@ -150,7 +150,9 @@ public class SpliceObserverInstructions implements Externalizable {
 
         return new SpliceObserverInstructions(
 				(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-				topOperation,activationContext, transactionID, activation.getLanguageConnectionContext().getSessionUserId(), activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
+				topOperation,activationContext, transactionID,
+								activation.getLanguageConnectionContext().getSessionUserId(),
+								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
 	}
 
     private static String getTransactionId(Activation activation) {

@@ -74,7 +74,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             throw Exceptions.parseException(e);
         }
 
-        delegate = operationTree.executeTree(topOperation);
+				SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+        delegate = operationTree.executeTree(topOperation,runtimeContext);
         //open the delegate
         delegate.openCore();
 

@@ -48,7 +48,7 @@ public class MiscOperation extends NoRowsOperation
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		return new SpliceNoPutResultSet(activation,this,miscRowProvider,false);
 	}

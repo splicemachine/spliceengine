@@ -199,10 +199,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(fromResults),spliceRuntimeContext);
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(fromResults),runtimeContext);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;

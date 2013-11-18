@@ -105,14 +105,14 @@ public interface SpliceOperation  {
 	 * 
 	 * @see com.splicemachine.derby.impl.sql.execute.operations.OperationTree
 	 */
-	public void executeShuffle() throws StandardException;
+	public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException;
 	/**
 	 * 
 	 * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.
 	 * 
 	 * @return
 	 */
-	public NoPutResultSet executeScan() throws StandardException;
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException;
 
 	/**
 	 * 

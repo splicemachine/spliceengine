@@ -5,6 +5,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -47,7 +48,7 @@ public class OperationTree {
         return new OperationTree(executor);
     }
 
-    public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
+    public NoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
@@ -63,7 +64,7 @@ public class OperationTree {
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
-                            opToShuffle.executeShuffle();
+                            opToShuffle.executeShuffle(runtimeContext);
                             return null;
                         }
                     }));
@@ -82,12 +83,12 @@ public class OperationTree {
                 }
             }else{
                 for(SpliceOperation op:levelOps){
-                    op.executeShuffle();
+                    op.executeShuffle(runtimeContext);
                 }
             }
         }
         //operation is the highest level, it has the final scan
-        return operation.executeScan();
+        return operation.executeScan(runtimeContext);
     }
 
     private NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {

@@ -185,11 +185,10 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,spliceRuntimeContext);
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return provider.shuffleRows(soi);
     }
 
@@ -250,9 +249,8 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 

@@ -54,7 +54,7 @@ public class SinkTask extends ZkTask {
                     int priority) {
         super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
-    }
+		}
 
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
@@ -86,6 +86,7 @@ public class SinkTask extends ZkTask {
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
             spliceRuntimeContext.markAsSink();
+						spliceRuntimeContext.setCurrentTaskId(getTaskId());
             opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
             //init the operation stack

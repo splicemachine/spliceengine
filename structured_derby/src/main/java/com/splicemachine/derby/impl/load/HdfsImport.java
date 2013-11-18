@@ -210,7 +210,7 @@ public class HdfsImport extends ParallelVTI {
 		try {
             importer = new HdfsImport(builder.build());
 			importer.open();
-			importer.executeShuffle();
+			importer.executeShuffle(new SpliceRuntimeContext());
 		} catch (StandardException e) {
 			throw PublicAPI.wrapStandardException(e);
 		}
@@ -251,7 +251,7 @@ public class HdfsImport extends ParallelVTI {
 		try {
             importer = new HdfsImport(builder.build());
 			importer.open();
-			importer.executeShuffle();
+			importer.executeShuffle(new SpliceRuntimeContext());
 		} catch(AssertionError ae){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
         } catch(StandardException e) {
@@ -284,7 +284,7 @@ public class HdfsImport extends ParallelVTI {
     }
 
 		@Override
-		public void executeShuffle() throws StandardException {
+		public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
 				ImportFile file = new ImportFile(context.getFilePath().toString());
 				byte[] tableName = context.getTableName().getBytes();
 				try {

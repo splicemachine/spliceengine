@@ -129,9 +129,8 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(source,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        RowProvider provider = getReduceRowProvider(source,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 

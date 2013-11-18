@@ -201,14 +201,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
     public SpliceOperation getLeftOperation() {
 //		SpliceLogUtils.trace(LOG,"getLeftOperation");
-        return (SpliceOperation) this.source;
+        return this.source;
     }
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
-//		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
         if (execRowDefinition == null){
-            execRowDefinition = ((SpliceOperation) source).getExecRowDefinition();
+            execRowDefinition = source.getExecRowDefinition();
         }
         return execRowDefinition;
     }
@@ -226,7 +225,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
+						//be sure and include the hash prefix
+						byte[] range = new byte[uniqueSequenceID.length+1];
+						range[0] = spliceRuntimeContext.getHashBucket();
+						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
+            reduceScan = Scans.buildPrefixRangeScan(range, SpliceUtils.NA_TRANSACTION_ID);
             if (failedTasks.size() > 0 && !distinct) {
                 //we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
                 reduceScan.setFilter(new SuccessFilter(failedTasks));
@@ -241,12 +244,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
-		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
-		nextTime += getCurrentTimeMillis() - beginTime;
-		return rs;
+	public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+			SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
+			nextTime += getCurrentTimeMillis() - beginTime;
+			return rs;
 	}
 
     @Override
@@ -265,12 +267,11 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext);
         nextTime += System.currentTimeMillis() - start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, spliceRuntimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
 

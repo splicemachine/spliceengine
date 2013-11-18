@@ -1,5 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -8,14 +10,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SpliceRuntimeContext implements Externalizable {
-    private static final long serialVersionUID = 1l;
-	private List<Path> paths = new ArrayList<Path>();
-    private boolean isSink = false;
+		private static final long serialVersionUID = 1l;
+		private List<Path> paths = new ArrayList<Path>();
+		private boolean isSink = false;
+		private byte[] currentTaskId;
+		/*
+		 * Hash bucket to use for sink operations which do not spread data themselves.
+		 *
+		 * For example, the SortOperation can't spread data around multiple buckets, so
+		 * it will use this hashBucket to determine which bucket to go to. The
+		 * bucket itself will be generated randomly, to (hopefully) spread data from multiple
+		 * concurrent operations across multiple buckets.
+		 */
+		private byte hashBucket;
 
-	public SpliceRuntimeContext() {
-		
-	}
-	
+		public SpliceRuntimeContext() {
+				this.hashBucket = SpliceDriver.driver().getTempTable().getCurrentSpread().bucket((int)System.currentTimeMillis());
+		}
+
 	public static SpliceRuntimeContext generateLeftRuntimeContext(int resultSetNumber) {
 		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
 		spliceRuntimeContext.addPath(resultSetNumber, 0);
@@ -77,6 +89,7 @@ public class SpliceRuntimeContext implements Externalizable {
 		for (Path path: paths) {
 			out.writeObject(path);
 		}
+			out.writeByte(hashBucket);
 	}
 
 	@Override
@@ -86,6 +99,7 @@ public class SpliceRuntimeContext implements Externalizable {
 		for (int i = 0; i<size; i++) {
 			paths.add((Path) in.readObject());
 		}
+			hashBucket = in.readByte();
 	}
 
 	

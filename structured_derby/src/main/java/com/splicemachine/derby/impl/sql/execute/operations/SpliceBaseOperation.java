@@ -8,23 +8,20 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.execute.*;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -35,6 +32,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -321,19 +319,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     @Override
-    public final void executeShuffle() throws StandardException {
+    public final void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         /*
          * Marked final so that subclasses don't accidentally screw up their error-handling of the
          * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
          */
-        JobStats stats = doShuffle();
+        JobStats stats = doShuffle(runtimeContext);
         JobStatsUtils.logStats(stats);
         failedTasks = new ArrayList<byte[]>(stats.getFailedTasks());
 	}
 
-    protected JobStats doShuffle() throws StandardException {
+    protected JobStats doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
         final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
@@ -351,7 +348,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		throw new RuntimeException("Execute Scan Not Implemented for this node " + this.getClass());														
 	}
 

@@ -171,14 +171,13 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack =getOperationStack();
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		RowProvider provider = getReduceRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+		RowProvider provider = getReduceRowProvider(this, getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext);
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 

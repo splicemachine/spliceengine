@@ -4,6 +4,7 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -14,11 +15,11 @@ import org.apache.hadoop.hbase.client.Result;
  *         Created on: 10/30/13
  */
 public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
-		private final RowDecoder rightDecoder;
+		private final int prefixOffset;
 
-    public MergeSortScanBoundary(byte[] columnFamily, RowDecoder rightDecoder) {
+    public MergeSortScanBoundary(byte[] columnFamily, int prefixOffset) {
         super(columnFamily);
-        this.rightDecoder = rightDecoder;
+				this.prefixOffset = prefixOffset;
     }
 
     @Override
@@ -39,10 +40,11 @@ public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
 
         MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data, SpliceDriver.getKryoPool());
 
-        decoder.seek(11); //skip the prefix value
+        decoder.seek(prefixOffset+1); //skip the prefix value
+				int ordinalOffset = data.length-17;
 				byte[] joinData;
 				//copy out all the fields from the key until we reach the ordinal
-				joinData = DerbyBytesUtil.slice(decoder,rightDecoder.getKeyColumns(),rightDecoder.getTemplate().getRowArray());
+				joinData = decoder.slice(ordinalOffset-prefixOffset);
         decoder.reset();
         MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
         encoder.setRawBytes(decoder.slice(10));

@@ -223,9 +223,8 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext));
     }
 
     @Override

@@ -171,12 +171,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
 

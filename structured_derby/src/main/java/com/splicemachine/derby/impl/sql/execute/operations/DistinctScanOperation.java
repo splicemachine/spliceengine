@@ -224,19 +224,17 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,spliceRuntimeContext);
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,spliceRuntimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
         return provider.shuffleRows(soi);
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
