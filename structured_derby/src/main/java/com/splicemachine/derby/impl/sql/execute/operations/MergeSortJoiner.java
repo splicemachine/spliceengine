@@ -52,9 +52,6 @@ public class MergeSortJoiner {
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
 
-    private int leftRowsSeen = 0;
-	private int rightRowsSeen=0;
-
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            StandardIterator<JoinSideExecRow> scanner,
                            boolean wasRightOuterJoin,
@@ -144,11 +141,11 @@ public class MergeSortJoiner {
     }
 
     public int getLeftRowsSeen() {
-        return leftRowsSeen;
+        return joinRowsSource.getLeftRowsSeen();
     }
 
     public int getRightRowsSeen() {
-        return rightRowsSeen;
+        return joinRowsSource.getRightRowsSeen();
     }
 
     protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {

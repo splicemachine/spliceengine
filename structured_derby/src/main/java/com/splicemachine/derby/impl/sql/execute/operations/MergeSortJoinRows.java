@@ -36,6 +36,8 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
     byte[] currentRightHash;
     Pair<ExecRow,Iterator<ExecRow>> nextBatch;
+    private int leftRowsSeen;
+    private int rightRowsSeen;
 
 
     public MergeSortJoinRows(Iterator<JoinSideExecRow> source){
@@ -46,6 +48,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
         while (source.hasNext()){
             JoinSideExecRow row = source.next();
             if (row.isRightSide()){
+                rightRowsSeen++;
                 if (row.sameHash(currentRightHash)){
                     // must use getRow().getClone() b/c underlying source mutates
                     currentRights.add(row.getRow().getClone());
@@ -65,6 +68,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     Pair<ExecRow,Iterator<ExecRow>> nextLeftAndRights(){
         Pair<byte[],List<ExecRow>> rights = accumulateRights();
         if (source.hasNext()){
+            leftRowsSeen++;
             JoinSideExecRow left = source.next();
             List<ExecRow> rightRows = left.sameHash(rights.getFirst()) ?
                                         rights.getSecond() : (List<ExecRow>)Collections.EMPTY_LIST;
@@ -96,5 +100,15 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     @Override
     public Iterator<Pair<ExecRow, Iterator<ExecRow>>> iterator() {
         return this;
+    }
+
+    @Override
+    public int getLeftRowsSeen() {
+        return leftRowsSeen;
+    }
+
+    @Override
+    public int getRightRowsSeen() {
+        return rightRowsSeen;
     }
 }

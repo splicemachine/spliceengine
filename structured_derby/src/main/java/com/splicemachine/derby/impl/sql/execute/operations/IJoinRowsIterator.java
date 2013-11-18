@@ -13,4 +13,8 @@ import java.util.Iterator;
  *         Date: 15/11/2013
  */
 public interface IJoinRowsIterator<T> extends Iterator<Pair<T,Iterator<T>>>, Iterable<Pair<T,Iterator<T>>>{
+
+    // For debugging: return number of rows processed
+    int getLeftRowsSeen();
+    int getRightRowsSeen();
 }
