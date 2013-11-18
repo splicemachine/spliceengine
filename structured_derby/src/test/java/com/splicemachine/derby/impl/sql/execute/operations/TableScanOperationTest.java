@@ -223,6 +223,8 @@ public class TableScanOperationTest {
             ExecRow row  = template.getNewNullRow();
             int pos=1;
             for(TestingDataType dataType:dataTypes){
+								if(pos == implicitNullPos)
+										continue;
                 if(pos == explicitNullPos){
                     switch (dataType) {
                         case REAL:
@@ -234,8 +236,6 @@ public class TableScanOperationTest {
                         default:
                             encoder.encodeEmpty();
                     }
-                }else if(implicitNullPos==pos){
-                    //do nothing
                 }else{
                     Object o = dataType.newObject(random);
                     dataType.setNext(row.getColumn(pos), o);

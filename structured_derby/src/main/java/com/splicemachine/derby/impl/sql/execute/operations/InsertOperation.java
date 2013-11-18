@@ -8,9 +8,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,7 +22,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.BitSet;
 
 /**
  *
@@ -41,9 +42,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		private HTableInterface sysColumnTable;
 
 		private int[] pkCols;
-		public InsertOperation(){
-				super();
-		}
+
+		@SuppressWarnings("UnusedDeclaration")
+		public InsertOperation(){ super(); }
 
 		public InsertOperation(SpliceOperation source,
 													 GeneratedMethod generationClauses,
@@ -69,29 +70,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				KeyMarshall keyType;
-				int[] keyColumns = null;
-				if(pkCols==null){
-						//just need a salted row key
-						keyType = new SaltedKeyMarshall(operationInformation.getUUIDGenerator());
-				}else{
-						keyColumns = new int[pkCols.length];
-						for(int i=0;i<keyColumns.length;i++){
-								keyColumns[i] = pkCols[i] -1;
-						}
-						keyType = KeyType.BARE;
-				}
-
-
-				ExecRow defnRow = getExecRowDefinition();
-				BitSet scalarFields = DerbyBytesUtil.getScalarFields(defnRow.getRowArray());
-				BitSet floatFields = DerbyBytesUtil.getFloatFields(defnRow.getRowArray());
-				BitSet doubleFields = DerbyBytesUtil.getDoubleFields(defnRow.getRowArray());
-				return RowEncoder.createEntryEncoder(defnRow.nColumns(),keyColumns,null,null,keyType,scalarFields,floatFields,doubleFields);
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
 		}
 
-		public KeyEncoder getKeyEncoder(){
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext){
 				HashPrefix prefix;
 				DataHash dataHash;
 				KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -104,10 +88,18 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 								keyColumns[i] = pkCols[i] -1;
 						}
 						prefix = NoOpPrefix.INSTANCE;
-						dataHash = new EntryDataHash(keyColumns,null);
+						dataHash = BareKeyHash.encoder(keyColumns,null);
 				}
 
 				return new KeyEncoder(prefix,dataHash,postfix);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				//get all columns that are being set
+				ExecRow defnRow = getExecRowDefinition();
+				int[] columns = IntArrays.count(defnRow.nColumns());
+				return new EntryDataHash(columns,null);
 		}
 
 		@Override

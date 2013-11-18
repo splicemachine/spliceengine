@@ -15,9 +15,9 @@ import java.util.BitSet;
  * Date: 11/15/13
  */
 public class EntryDataHash extends BareKeyHash implements DataHash{
-		private EntryEncoder entryEncoder;
-		private ExecRow currentRow;
-		private BitSet notNullFields;
+		protected EntryEncoder entryEncoder;
+		protected ExecRow currentRow;
+		protected BitSet notNullFields;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder) {
 				super(keyColumns, keySortOrder,true);
@@ -31,7 +31,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 		@Override
 		public byte[] encode() throws StandardException, IOException {
 				if(entryEncoder==null)
-						entryEncoder = buildEntryEncoder(currentRow);
+						entryEncoder = buildEntryEncoder();
 
 				entryEncoder.reset(getNotNullFields(currentRow,notNullFields));
 
@@ -39,7 +39,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 				return entryEncoder.encode();
 		}
 
-		private EntryEncoder buildEntryEncoder(ExecRow currentRow) {
+		protected EntryEncoder buildEntryEncoder() {
 				int nCols = currentRow.nColumns();
 				notNullFields = getNotNullFields(currentRow,new BitSet(nCols));
 				DataValueDescriptor[] fields = currentRow.getRowArray();
@@ -54,11 +54,12 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 								floatFields.set(i);
 						else if(DerbyBytesUtil.isDoubleType(field))
 								doubleFields.set(i);
+						i++;
 				}
 				return EntryEncoder.create(SpliceDriver.getKryoPool(),nCols,notNullFields,scalarFields,floatFields,doubleFields);
 		}
 
-		private BitSet getNotNullFields(ExecRow row,BitSet notNullFields) {
+		protected BitSet getNotNullFields(ExecRow row,BitSet notNullFields) {
 				notNullFields.clear();
 				int i=0;
 				for(DataValueDescriptor dvd:row.getRowArray()){
@@ -72,5 +73,10 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 		@Override
 		public KeyHashDecoder getDecoder() {
 				return null;  //To change body of implemented methods use File | Settings | File Templates.
+		}
+
+		public void close() throws IOException {
+				if(entryEncoder!=null)
+						entryEncoder.close();
 		}
 }

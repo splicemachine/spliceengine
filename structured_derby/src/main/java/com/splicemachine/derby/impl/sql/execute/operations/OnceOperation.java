@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -177,7 +178,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider = getReduceRowProvider(this, getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext);
+		RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
@@ -197,13 +198,13 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
         return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getReduceRowProvider");
         return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext));
 	}

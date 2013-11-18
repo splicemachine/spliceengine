@@ -8,12 +8,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
@@ -42,8 +40,7 @@ public class TableScanOperation extends ScanOperation {
 	protected static Logger LOG = Logger.getLogger(TableScanOperation.class);
 	protected static List<NodeType> nodeTypes;
 	protected int indexColItem;
-	protected int[] indexCols;
-	public String userSuppliedOptimizerOverrides;
+		public String userSuppliedOptimizerOverrides;
 	public int rowsPerRead;
     private List<KeyValue> keyValues;
 	protected boolean runTimeStatisticsOn;
@@ -73,7 +70,8 @@ public class TableScanOperation extends ScanOperation {
         super(scanInformation,operationInformation,lockMode,isolationLevel);
     }
 
-    public  TableScanOperation(long conglomId,
+    @SuppressWarnings("UnusedParameters")
+		public  TableScanOperation(long conglomId,
                                StaticCompiledOpenConglomInfo scoci,
                                Activation activation,
                                GeneratedMethod resultRowAllocator,
@@ -145,28 +143,48 @@ public class TableScanOperation extends ScanOperation {
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan();
 		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
-		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
+		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
 		nextTime += System.currentTimeMillis() - beginTime;
 		return provider;
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(), null, null, null, KeyType.BARE, RowMarshaller.packed());
-    }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * Table Scans only use a key encoder when encoding to SpliceOperationRegionScanner,
+				 * in which case, the KeyEncoder should be either the row location of the last emitted
+				 * row, or a random field (if no row location is specified).
+				 */
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								if(currentRowLocation!=null)
+										return currentRowLocation.getBytes();
+								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+						}
+				});
 
-    @Override
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				ExecRow defnRow = getExecRowDefinition();
+				int [] cols = IntArrays.count(defnRow.nColumns());
+				return BareKeyHash.encoder(cols,null);
+		}
+
+		@Override
 	public List<NodeType> getNodeTypes() {
 		return nodeTypes;
 	}
@@ -223,44 +241,44 @@ public class TableScanOperation extends ScanOperation {
 		return currentRow;
 	}
 
-	@Override
-	public String toString() {
-        try {
-            return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,scanInformation.isKeyed(),resultSetNumber);
-        } catch (StandardException e) {
-            LOG.error(e); //shouldn't happen
-            return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s}", tableName, "UNKNOWN", resultSetNumber);
-        }
-    }
-	
-	@Override
-	public void	close() throws StandardException, IOException {
-        if(rowDecoder!=null)
-            rowDecoder.close();
-		SpliceLogUtils.trace(LOG, "close in TableScan");
-		beginTime = getCurrentTimeMillis();
-		if ( isOpen ) {
-		    clearCurrentRow();
-
-			if (runTimeStatisticsOn)
-				{
-					// This is where we get the scan properties for a subquery
-					scanProperties = getScanProperties();
-					startPositionString = printStartPosition();
-					stopPositionString = printStopPosition();
+		@Override
+		public String toString() {
+				try {
+						return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,scanInformation.isKeyed(),resultSetNumber);
+				} catch (StandardException e) {
+						LOG.error(e); //shouldn't happen
+						return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s}", tableName, "UNKNOWN", resultSetNumber);
 				}
-	        	
-                if (forUpdate && scanInformation.isKeyed()) {
-                    activation.clearIndexScanInfo();
-                }
+		}
 
-			super.close();
+		@Override
+		public void	close() throws StandardException, IOException {
+				if(rowDecoder!=null)
+						rowDecoder.close();
+				SpliceLogUtils.trace(LOG, "close in TableScan");
+				beginTime = getCurrentTimeMillis();
+				if ( isOpen ) {
+						clearCurrentRow();
 
-			if (indexCols != null)
-			{
-				//TODO on index
-			}
-	    }
+						if (runTimeStatisticsOn)
+						{
+								// This is where we get the scan properties for a subquery
+								scanProperties = getScanProperties();
+								startPositionString = printStartPosition();
+								stopPositionString = printStopPosition();
+						}
+
+						if (forUpdate && scanInformation.isKeyed()) {
+								activation.clearIndexScanInfo();
+						}
+
+						super.close();
+
+//			if (indexCols != null)
+//			{
+//				//TODO on index
+//			}
+				}
 		
 		closeTime += getElapsedMillis(beginTime);
 	}

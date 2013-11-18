@@ -1,12 +1,17 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceGenericAggregator;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
@@ -18,20 +23,21 @@ import java.util.Arrays;
  * @author Scott Fines
  * Created on: 5/21/13
  */
-public class ScalarAggregateRowProvider extends ClientScanProvider{
+public class ScalarAggregateRowProvider implements RowProvider {
     private boolean defaultReturned = false;
 
     private final ExecAggregator[] execAggregators;
     private final SpliceGenericAggregator[] genericAggregators;
     private final int[] colPosMap;
+		private final RowProvider delegate;
+		private ExecRow templateRow;
+		private boolean populated = false;
 
-    public ScalarAggregateRowProvider(String type,
-                                      byte[] tableName,
-                                      Scan scan,
-                                      RowDecoder decoder,
-                                      SpliceRuntimeContext spliceRuntimeContext,
-                                      SpliceGenericAggregator[] aggregates) throws StandardException {
-        super(type,tableName, scan,decoder, spliceRuntimeContext);
+		public ScalarAggregateRowProvider(ExecRow templateRow,
+                                      SpliceGenericAggregator[] aggregates,
+																			RowProvider delegate) throws StandardException {
+				this.delegate = delegate;
+				this.templateRow =templateRow;
         this.genericAggregators = aggregates;
         this.execAggregators = new ExecAggregator[genericAggregators.length];
         int []columnMap = new int[execAggregators.length];
@@ -50,11 +56,33 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
         }
     }
 
-    @Override
+		/*delegate methods*/
+		@Override public void open() throws StandardException { delegate.open(); }
+		@Override public void close() { delegate.close(); }
+		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
+		@Override public byte[] getTableName() { return delegate.getTableName(); }
+		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
+
+		@Override
+		public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				return delegate.shuffleRows(instructions);
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+				return delegate.getSpliceRuntimeContext();
+		}
+
+		@Override
     public ExecRow next() throws StandardException, IOException {
+				if(populated&&defaultReturned){
+						populated=false;
+						return templateRow;
+				}
+
         ExecRow finalRow = null;
         while(hasNext()){
-            ExecRow row = super.next();
+            ExecRow row = delegate.next();
             if(finalRow==null)
                 finalRow = row.getClone();
             for(int i=0;i<genericAggregators.length;i++){
@@ -83,12 +111,11 @@ public class ScalarAggregateRowProvider extends ClientScanProvider{
 
     @Override
     public boolean hasNext() throws StandardException, IOException {
-        boolean hasNext = super.hasNext();
+        boolean hasNext = delegate.hasNext();
         if(hasNext){
             defaultReturned =true;
             return hasNext;
         }else if(!defaultReturned){
-            currentRow = decoder.getTemplate();
             defaultReturned = true;
             populated = true;
             return true;

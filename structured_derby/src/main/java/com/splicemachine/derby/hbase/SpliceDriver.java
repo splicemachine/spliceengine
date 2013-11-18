@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -117,6 +118,8 @@ public class SpliceDriver extends SIConstants {
     private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
+		//-sf- when we need to, replace this with a list
+		private final TempTable tempTable;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -137,7 +140,6 @@ public class SpliceDriver extends SIConstants {
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("splice-lifecycle-manager").build();
         executor = Executors.newSingleThreadExecutor(factory);
 
-
         try {
             snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);
@@ -145,6 +147,7 @@ public class SpliceDriver extends SIConstants {
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
             tempCleaner = new TempCleaner(SpliceUtils.config);
+						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -166,7 +169,11 @@ public class SpliceDriver extends SIConstants {
         return tempCleaner;
     }
 
-    public <T extends Task> TaskScheduler<T> getTaskScheduler() {
+		public TempTable getTempTable() {
+				return tempTable;
+		}
+
+		public <T extends Task> TaskScheduler<T> getTaskScheduler() {
         return (TaskScheduler<T>)threadTaskScheduler;
     }
 

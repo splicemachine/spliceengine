@@ -4,13 +4,13 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -70,7 +70,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 }else
                     kv = new KVPair(row,value);
             }else{
-                kv = new KVPair(row, RowEncoder.EMPTY_BYTES);
+                kv = new KVPair(row, HConstants.EMPTY_BYTE_ARRAY);
             }
             mutate(e.getEnvironment(), kv, SpliceUtils.getTransactionId(put));
         }

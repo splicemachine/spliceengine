@@ -20,7 +20,9 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -179,7 +181,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] start = uniqueSequenceID;
         byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
         reduceScan = Scans.newScan(start,finish,SpliceUtils.NA_TRANSACTION_ID);
@@ -196,7 +198,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
@@ -230,8 +232,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
 				SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
 				ExecRow template = getExecRowDefinition();
-				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, getRowEncoder(spliceLRuntimeContext).getDual(template),spliceLRuntimeContext);
-				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, getRowEncoder(spliceRRuntimeContext).getDual(template),spliceRRuntimeContext);
+				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceLRuntimeContext),spliceLRuntimeContext);
+				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceRRuntimeContext),spliceRRuntimeContext);
 				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
 				JobStats stats = combined.shuffleRows(soi);
@@ -247,18 +249,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
 
 				ExecRow rowDef = getExecRowDefinition();
-				RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packed());
-				SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-				RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()),spliceRuntimeContext);
+				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 				return new SpliceNoPutResultSet(activation,this,provider);
 	}
-
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-    	if (spliceRuntimeContext.isLeft(resultSetNumber))
-                return getRowEncoder(spliceRuntimeContext,leftNumCols,leftHashKeys);
-    	return getRowEncoder(spliceRuntimeContext,rightNumCols,rightHashKeys);
-    }
 
 		@Override
 		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
@@ -314,95 +307,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				return new KeyEncoder(prefix,hash,keyPostfix);
 		}
 
-		private RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext, final int numCols,int[] keyColumns) throws StandardException {
->>>>>>> ca1adce... Making SpliceRuntimeContext a context driven from the OperationResultSet, instead of spontaneously being created willy-nilly
-        int[] rowColumns;
-        final byte[] joinSideBytes = Encoding.encode(spliceRuntimeContext.isLeft(resultSetNumber)?JoinSide.LEFT.ordinal():JoinSide.RIGHT.ordinal());
-        KeyMarshall keyType = new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
-                                  boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                //noinspection RedundantCast
-                ((KeyMarshall)KeyType.BARE).encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
-                //add ordinal position
-                /*
-                 * add the ordinal position.
-                 *
-                 * We can safely call setRawBytes() here, because we know that joinSideBytes are encoded
-                 * prior to being set here
-                 */
-                keyEncoder.setRawBytes(joinSideBytes);
-                /*
-                 * add a unique id
-                 *
-                 * We can safely call setRawBytes() here because we know that a unique key is 8 bytes, and it will
-                 * never be decoded anyway
-                 */
-                keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
-                /*
-                 * add the postfix
-                 *
-                 * We can safely call setRawBytes() here because we know that the prefix will be a fixed length and
-                 * will also never be outright decoded (it'll be used for correctness checking).
-                 */
-                keyEncoder.setRawBytes(keyPostfix);
-            }
-
-            @Override
-            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                /*
-                 * Some Join columns have key sets like [0,0], where the same field is encoded multiple
-                 * times. We need to only decode the first instance, or else we'll get incorrect answers
-                 */
-                rowDecoder.seek(11); //skip the query prefix
-                int[] decodedColumns = new int[numCols];
-                for(int key:reversedKeyColumns){
-                    if(key==-1) continue;
-                    if(decodedColumns[key]!=-1){
-                        //we can decode this one, as it's not a duplicate
-                        DerbyBytesUtil.decodeInto(rowDecoder,columns[key]);
-                        decodedColumns[key] = -1;
-                    }else{
-                        //skip this one, it's a duplicate of something else
-                        rowDecoder.skip();
-                    }
-                }
-            }
-
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                //noinspection RedundantCast
-                return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
-            }
-        };
-        RowMarshall rowType = RowMarshaller.packed();
-        /*
-         * Because there may be duplicate entries in keyColumns, we need to make sure
-         * that rowColumns deals only with the unique form.
-         */
-        int[] allCols = new int[numCols];
-        int numSet=0;
-        for(int keyCol:keyColumns){
-            int allCol = allCols[keyCol];
-            if(allCol!=-1){
-                //only set it if it hasn't already been set
-                allCols[keyCol] = -1;
-                numSet++;
-            }
-        }
-        int pos=0;
-        rowColumns = new int[numCols-numSet];
-        for(int rowPos=0;rowPos<allCols.length;rowPos++){
-            if(allCols[rowPos]!=-1){
-                rowColumns[pos] = rowPos;
-                pos++;
-            }
-        }
-
-        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType, true);
-    }
-
-    @Override
+		@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
 		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(), (this.rightResultSet).getExecRowDefinition(),

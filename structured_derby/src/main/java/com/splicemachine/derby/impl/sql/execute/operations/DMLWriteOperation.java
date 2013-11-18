@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
@@ -150,7 +151,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 * nodetype, this should be executed in parallel, so *don't* attempt to
 		 * insert here.
 		 */
-		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext);
+		RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 
 		modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
         //modifiedProvider.setRowsModified(rowsSunk);
@@ -158,12 +159,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {    	
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
@@ -199,9 +200,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		return row;
 	}
 
-	public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		return source.nextRow(spliceRuntimeContext);
-	}
+		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				ExecRow row = source.nextRow(spliceRuntimeContext);
+				if(row!=null)
+						currentRow = row;
+				return row;
+		}
 
     @Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {

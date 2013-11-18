@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -12,6 +13,7 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
@@ -277,14 +279,30 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return Long.toString(Bytes.toLong(uniqueSequenceID));
 	}
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),
-                null,null,null,
-                KeyType.BARE, RowMarshaller.packed());
-    }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			/*
+			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
+			 * In this case, we encode with either the current row location or a
+			 * random UUID (if the current row location is null).
+			 */
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								if(currentRowLocation!=null)
+										return currentRowLocation.getBytes();
+								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+						}
+				});
 
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				ExecRow defnRow = getExecRowDefinition();
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+		}
 
     /**
      * Called during the executeShuffle() phase, for the execution of parallel operations.
@@ -298,7 +316,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
@@ -314,7 +332,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
     }
 
@@ -331,7 +349,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected JobStats doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+        final RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);

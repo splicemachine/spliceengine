@@ -135,17 +135,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			}
 			cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
 			if (this.constantRestrictionMethodName != null) {
-				SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
-				DataValueDescriptor restrictBoolean = constantRestriction.invoke();
-				shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+					SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
+					DataValueDescriptor restrictBoolean = constantRestriction.invoke();
+					shortCircuitOpen  = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 
-                if(restrictBoolean != null && !restrictBoolean.isNull()){
-                    alwaysFalse = !restrictBoolean.getBoolean();
-                }else{
-                    alwaysFalse = false;
-                }
+					alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
 
-            }
+			}
 			if (restrictionMethodName != null)
 				restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			if (projectionMethodName != null)
@@ -201,29 +197,24 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(fromResults),runtimeContext);
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow template = getExecRowDefinition();
-        return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packed());
-    }
 
-    @Override
+		@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if(alwaysFalse){
@@ -371,12 +362,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-        return new StringBuilder("ProjectRestrict:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
-                .append(indent).append("projectionMethodName:").append(projectionMethodName)
-                .append(indent).append("doesProjection:").append(doesProjection)
-                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
-                .toString();
+        return "ProjectRestrict:" + indent
+								+ "resultSetNumber:" + resultSetNumber + indent
+								+ "restrictionMethodName:" + restrictionMethodName + indent
+								+ "projectionMethodName:" + projectionMethodName + indent
+								+ "doesProjection:" + doesProjection + indent
+								+ "source:" + source.prettyPrint(indentLevel + 1);
     }
 }

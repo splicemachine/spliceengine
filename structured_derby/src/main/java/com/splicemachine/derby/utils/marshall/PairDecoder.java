@@ -32,4 +32,8 @@ public class PairDecoder {
 		public int getKeyPrefixOffset(){
 				return keyDecoder.getPrefixOffset();
 		}
+
+		public ExecRow getTemplate() {
+				return templateRow;
+		}
 }

@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
@@ -30,7 +31,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
                                         Scan scan,
                                         byte[] tableName,
                                         byte[] columnFamily,
-                                        RowDecoder decoder,
+                                        PairDecoder decoder,
                                         ScanBoundary boundary,
                                         SpliceRuntimeContext spliceRuntimeContext){
         super(decoder, type, spliceRuntimeContext);

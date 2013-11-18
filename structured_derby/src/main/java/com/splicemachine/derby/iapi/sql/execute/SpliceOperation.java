@@ -4,8 +4,8 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 
 import java.io.IOException;
 import java.util.List;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+
+import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -61,21 +61,18 @@ public interface SpliceOperation  {
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 	
 	/**
 	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
 	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
 	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
-    /**
-     * Encoder for writing ExecRows into HBase (temp table or other location).
-     *
-     * @return
-     * @throws StandardException
-     */
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 

@@ -23,6 +23,5 @@
 rebuildAll.sh
 rebuild.sh
 out
-temp
 redeployDerby.sh
 .DS*

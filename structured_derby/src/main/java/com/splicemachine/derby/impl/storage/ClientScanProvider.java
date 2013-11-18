@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -30,7 +30,9 @@ public class ClientScanProvider extends AbstractScanProvider {
     private ResultScanner scanner;
 
 
-	public ClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+	public ClientScanProvider(String type,
+														byte[] tableName, Scan scan,
+														PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
 		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;

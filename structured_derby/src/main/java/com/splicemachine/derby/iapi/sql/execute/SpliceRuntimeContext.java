@@ -45,6 +45,9 @@ public class SpliceRuntimeContext implements Externalizable {
 		for (Path path: paths) {
 			spliceRuntimeContext.addPath(path.copy());
 		}
+			spliceRuntimeContext.hashBucket = this.hashBucket;
+			spliceRuntimeContext.isSink = this.isSink;
+			spliceRuntimeContext.currentTaskId = this.currentTaskId;
 		return spliceRuntimeContext;
 	}
 
@@ -73,14 +76,21 @@ public class SpliceRuntimeContext implements Externalizable {
         throw new IllegalStateException("No Path found for the specified result set!");
     }
 
-	public boolean isLeft(int resultSetNumber) {
-		for (Path path: paths) {
-			if (path.resultSetNumber == resultSetNumber) {
-                return path.state == Side.LEFT;
-            }
+		public boolean containsResult(int resultSetNumber){
+				for(Path path:paths){
+						if(path.resultSetNumber==resultSetNumber)
+								return true;
+				}
+				return false;
 		}
-		Thread.dumpStack();
-		throw new RuntimeException("UnionOperation Not Supported");
+
+	public boolean isLeft(int resultSetNumber) {
+			for (Path path: paths) {
+					if (path.resultSetNumber == resultSetNumber) {
+							return path.state == Side.LEFT;
+					}
+			}
+			return false;
 	}
 
 	@Override
@@ -124,8 +134,23 @@ public class SpliceRuntimeContext implements Externalizable {
         return isSink;
     }
 
+		public byte[] getCurrentTaskId() {
+				return currentTaskId;
+		}
 
-    public static enum Side{
+		public void setCurrentTaskId(byte[] currentTaskId) {
+				this.currentTaskId = currentTaskId;
+		}
+
+		public void setHashBucket(byte hashBucket) {
+				this.hashBucket = hashBucket;
+		}
+
+		public byte getHashBucket() {
+				return hashBucket;
+		}
+
+		public static enum Side{
         LEFT(0),
         RIGHT(1),
         MERGED(2);

@@ -203,8 +203,8 @@ public class TableScanOperationIT extends SpliceUnitTest {
 		while (rs.next()) {
 			i++;
 			LOG.info("a.si="+rs.getString(1)+",c.si="+rs.getString(2));
-			Assert.assertNotNull(rs.getString(1));
-			Assert.assertNotNull(rs.getString(2));
+			Assert.assertNotNull("a.si is null!",rs.getString(1));
+			Assert.assertNotNull("c.si is null!",rs.getString(2));
 		}
 		Assert.assertEquals(10, i);
 	}

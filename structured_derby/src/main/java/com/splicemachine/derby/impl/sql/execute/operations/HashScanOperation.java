@@ -14,9 +14,12 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -170,17 +173,18 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder, spliceRuntimeContext);
+            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
+										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top,decoder, spliceRuntimeContext);
     }
 
@@ -199,7 +203,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 			sequence = new DataValueDescriptor[1];
 			sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 			SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext));
+			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext));
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);
 			return null;
@@ -222,7 +226,12 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
         return nextRow(spliceRuntimeContext);
     }
 
-	@Override
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
+		@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		  SpliceLogUtils.trace(LOG, "nextRow");
 		  List<KeyValue> keyValues = new ArrayList<KeyValue>();	
@@ -250,7 +259,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
     @Override
     public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext);
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 

@@ -3,6 +3,8 @@ package com.splicemachine.derby.utils.marshall;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
@@ -18,15 +20,27 @@ public class KeyEncoder {
 				this.postfix = postfix;
 		}
 
-		public byte[] getKey(ExecRow row) throws StandardException {
+		public byte[] getKey(ExecRow row) throws StandardException, IOException {
 				hash.setRow(row);
 				byte[] hashBytes = hash.encode();
 
 				int prefixLength = prefix.getPrefixLength();
-				byte[] finalRowKey = new byte[prefixLength+hashBytes.length+postfix.getPostfixLength(hashBytes)];
+				int totalLength = prefixLength + hashBytes.length;
+				int postfixOffset = prefixLength+hashBytes.length;
+				int postfixLength = postfix.getPostfixLength(hashBytes);
+				if(hashBytes.length>0 && postfixLength>0){
+						totalLength++;
+						postfixOffset++;
+				}
+				totalLength+=postfixLength;
+				byte[] finalRowKey = new byte[totalLength];
 				prefix.encode(finalRowKey, 0, hashBytes);
-				System.arraycopy(hashBytes,0,finalRowKey,prefixLength,hashBytes.length);
-				postfix.encodeInto(finalRowKey,prefixLength+hashBytes.length,hashBytes);
+				if(hashBytes.length>0){
+						System.arraycopy(hashBytes,0,finalRowKey,prefixLength,hashBytes.length);
+						if(postfixLength>0)
+								finalRowKey[prefixLength+hashBytes.length] = 0x00;
+				}
+				postfix.encodeInto(finalRowKey,postfixOffset,hashBytes);
 
 				return finalRowKey;
 		}

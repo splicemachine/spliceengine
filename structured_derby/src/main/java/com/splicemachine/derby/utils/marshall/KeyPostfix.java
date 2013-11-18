@@ -1,5 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
+import org.apache.derby.iapi.error.StandardException;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
@@ -11,7 +13,7 @@ public interface KeyPostfix {
 		 *
 		 * @return the length of the postfix, in bytes
 		 */
-		public int getPostfixLength(byte[] hashBytes);
+		public int getPostfixLength(byte[] hashBytes) throws StandardException;
 
 		/**
 		 * Encode the postfix into the specified byte[], starting at {@code postfixPosition}.

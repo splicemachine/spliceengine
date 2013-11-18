@@ -31,7 +31,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
@@ -224,16 +223,10 @@ public class RowCountOperation extends SpliceBaseOperation{
 
     @Override
     public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()),runtimeContext));
+        return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),null,null,null, KeyType.BARE,RowMarshaller.packed());
-    }
-
-    @Override
+		@Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
@@ -246,7 +239,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         RowProvider provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
         long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
@@ -258,6 +251,7 @@ public class RowCountOperation extends SpliceBaseOperation{
                         top,
                         scanProvider.toScan(),
                         offset,
+												decoder,
                         operationInformation.getBaseColumnMap(),
                         scanProvider.getTableName(),
                         spliceRuntimeContext);
@@ -324,7 +318,7 @@ public class RowCountOperation extends SpliceBaseOperation{
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
@@ -397,7 +391,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 
         private OffsetScanRowProvider(String type,
                                       SpliceOperation operation,
-                                      RowDecoder rowDecoder,
+                                      PairDecoder rowDecoder,
                                       Scan fullScan,
                                       long totalOffset,
                                       byte[] tableName,
@@ -413,11 +407,10 @@ public class RowCountOperation extends SpliceBaseOperation{
                                                    SpliceOperation operation,
                                             Scan fullScan,
                                             long totalOffset,
+																						PairDecoder rowDecoder,
                                             int[] baseColumnMap,
                                             byte[] tableName,
-                                            SpliceRuntimeContext spliceRuntimeContext){
-            RowDecoder rowDecoder = RowDecoder.create(rowTemplate,
-                    null,null,null, RowMarshaller.packed(),baseColumnMap,false);
+                                            SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
             return new OffsetScanRowProvider("offsetScan",operation,rowDecoder,fullScan,totalOffset,tableName, spliceRuntimeContext);
         }

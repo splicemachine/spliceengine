@@ -346,4 +346,10 @@ public class BytesUtil {
         }
         return Pair.newPair(bitSet,offset+numBytes+4);
     }
+
+		public static byte[] slice(byte[] data, int offset, int length) {
+				byte[] slice = new byte[length];
+				System.arraycopy(data,offset,slice,0,length);
+				return slice;
+		}
 }

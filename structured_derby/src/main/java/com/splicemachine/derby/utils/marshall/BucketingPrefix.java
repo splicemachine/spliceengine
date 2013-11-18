@@ -12,8 +12,8 @@ import com.splicemachine.utils.hash.ByteHash32;
  */
 public class BucketingPrefix implements HashPrefix{
 		private final HashPrefix delegate;
-		private final ByteHash32 hashFunction;
-		private final SpreadBucket spreadBucket;
+		protected final ByteHash32 hashFunction;
+		protected final SpreadBucket spreadBucket;
 
 		public BucketingPrefix(HashPrefix delegate,
 													 ByteHash32 hashFunction,
@@ -32,9 +32,13 @@ public class BucketingPrefix implements HashPrefix{
 
 		@Override
 		public void encode(byte[] bytes, int offset, byte[] hashBytes) {
-				bytes[offset] = spreadBucket.bucket(hashFunction.hash(hashBytes,0,hashBytes.length));
+				bytes[offset] = bucket(hashBytes);
 				if(delegate!=null)
 						delegate.encode(bytes,offset+1,hashBytes);
+		}
+
+		protected byte bucket(byte[] hashBytes) {
+				return spreadBucket.bucket(hashFunction.hash(hashBytes,0,hashBytes.length));
 		}
 
 }

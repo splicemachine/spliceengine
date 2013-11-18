@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -130,21 +131,21 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 		final RowProvider rowProvider;
 		final ExecRow template = getExecRowDefinition();
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && this != regionOperation) {
-			rowProvider = regionOperation.getReduceRowProvider(this,getRowEncoder(runtimeContext).getDual(template),runtimeContext);
+			rowProvider = regionOperation.getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 		} else {
-			rowProvider =regionOperation.getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(template),runtimeContext);
+			rowProvider =regionOperation.getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 		}
 		return new SpliceNoPutResultSet(activation,this, rowProvider);
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         //TODO -sf- is this right?
         return getRightResultSet().getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getLeftOperation().getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 

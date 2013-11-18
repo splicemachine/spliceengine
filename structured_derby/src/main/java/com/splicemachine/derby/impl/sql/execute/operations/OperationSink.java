@@ -1,25 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import javax.annotation.Nonnull;
+
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -62,14 +59,18 @@ public class OperationSink {
 
         CallBuffer<KVPair> writeBuffer;
         byte[] postfix = getPostfix(false);
-        RowEncoder encoder = null;
 				long rowsRead = 0l;
 				long rowsWritten = 0l;
+				PairEncoder encoder;
         try{
-            encoder = operation.getRowEncoder(spliceRuntimeContext);
-            encoder.setPostfix(postfix);
+						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
+						DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
+
+						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
+						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
+						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
             String txnId = transactionId == null ? operation.getTransactionID() : transactionId;
-            writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
+            writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId));
 
             ExecRow row;
 
@@ -90,7 +91,7 @@ public class OperationSink {
                     start = System.nanoTime();
                 }
 
-                encoder.write(row,writeBuffer);
+								writeBuffer.add(encoder.encode(row));
 								rowsWritten++;
 
 //                debugFailIfDesired(writeBuffer);
@@ -116,8 +117,7 @@ public class OperationSink {
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             throw e;
         }finally{
-            if(encoder!=null)
-                encoder.close();
+						operation.close();
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));

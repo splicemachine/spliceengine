@@ -37,18 +37,7 @@ public class MergeSortScanBoundary extends BaseHashAwareScanBoundary{
     private byte[] getKey(Result result) {
         byte[] data = result.getRow();
         if(data==null) return null;
-
-        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data, SpliceDriver.getKryoPool());
-
-        decoder.seek(prefixOffset+1); //skip the prefix value
 				int ordinalOffset = data.length-17;
-				byte[] joinData;
-				//copy out all the fields from the key until we reach the ordinal
-				joinData = decoder.slice(ordinalOffset-prefixOffset);
-        decoder.reset();
-        MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
-        encoder.setRawBytes(decoder.slice(10));
-        encoder.setRawBytes(joinData);
-        return encoder.build();
+				return BytesUtil.slice(data,0,ordinalOffset);
     }
 }

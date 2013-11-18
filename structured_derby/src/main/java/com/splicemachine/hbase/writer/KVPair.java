@@ -1,8 +1,8 @@
 package com.splicemachine.hbase.writer;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -24,7 +24,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     private Type type;
 
     public static KVPair delete(byte[] rowKey) {
-        return new KVPair(rowKey, RowEncoder.EMPTY_BYTES,Type.DELETE);
+        return new KVPair(rowKey, HConstants.EMPTY_BYTE_ARRAY,Type.DELETE);
     }
 
     public long getSize() {

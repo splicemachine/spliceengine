@@ -11,10 +11,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
@@ -229,7 +228,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         SpliceOperation regionOperation = operationStack.get(0);
         SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
         RowProvider provider;
-        RowDecoder decoder = getRowEncoder(runtimeContext).getDual(getExecRowDefinition());
+				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
         if(regionOperation.getNodeTypes().contains(NodeType.REDUCE)&&this!=regionOperation){
             SpliceLogUtils.trace(LOG,"Scanning temp tables");
 			provider = regionOperation.getReduceRowProvider(this,decoder,runtimeContext);
@@ -241,24 +240,41 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow template = getExecRowDefinition();
-        return RowEncoder.create(template.nColumns(),
-                null, null, null,
-                KeyType.BARE, RowMarshaller.packed());
-    }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			/*
+			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
+			 * In this case, we encode with either the current row location or a
+			 * random UUID (if the current row location is null).
+			 */
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								if(currentRowLocation!=null)
+										return currentRowLocation.getBytes();
+								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+						}
+				});
 
-    @Override
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				ExecRow defnRow = getExecRowDefinition();
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+		}
+
+		@Override
 	public SpliceOperation getLeftOperation() {
 		return this.source;
 	}

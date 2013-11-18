@@ -5,13 +5,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
@@ -119,25 +118,28 @@ public class ParallelImporter implements Importer{
         return error!=null;
     }
 
-    public RowEncoder newEntryEncoder(ExecRow row) {
-        BitSet scalarFields = DerbyBytesUtil.getScalarFields(row.getRowArray());
-        BitSet floatFields = DerbyBytesUtil.getFloatFields(row.getRowArray());
-        BitSet doubleFields = DerbyBytesUtil.getDoubleFields(row.getRowArray());
+    public PairEncoder newEntryEncoder(ExecRow row) {
         int[] pkCols = importContext.getPrimaryKeys();
 
-        KeyMarshall keyType = pkCols==null||pkCols.length==0? getSaltedKeyMarshall(): KeyType.BARE;
+				KeyEncoder encoder;
+				if(pkCols==null){
+					encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
+				}else
+					encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 
-        return RowEncoder.createEntryEncoder(row.nColumns(),pkCols,null,null,keyType,scalarFields,floatFields,doubleFields);
+				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null);
+
+				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
     }
 
-    protected KeyMarshall getSaltedKeyMarshall(){
-        return new SaltedKeyMarshall();
-    }
+		protected Snowflake.Generator getRandomGenerator(){
+				return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
+		}
 
     private class Processor implements Callable<Void>{
         private final BlockingQueue<String[]> queue;
         private final CallBuffer<KVPair> writeDestination;
-        private final RowEncoder entryEncoder;
+        private final PairEncoder entryEncoder;
 
         private RowParser importProcessor;
         private int numProcessed;
@@ -215,7 +217,7 @@ public class ParallelImporter implements Importer{
             totalPopulateTime += (stop-start);
 
             start = System.nanoTime();
-            entryEncoder.write(newRow,writeDestination);
+						writeDestination.add(entryEncoder.encode(newRow));
             stop = System.nanoTime();
             totalWriteTime += (stop-start);
         }

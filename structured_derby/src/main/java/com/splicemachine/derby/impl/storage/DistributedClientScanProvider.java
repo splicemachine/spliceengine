@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHa
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -40,7 +41,7 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 	public DistributedClientScanProvider(String type,
 																			 byte[] tableName,
 																			 Scan scan,
-																			 RowDecoder decoder,
+																			 PairDecoder decoder,
 																			 SpliceRuntimeContext spliceRuntimeContext) {
 		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");

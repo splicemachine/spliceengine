@@ -339,4 +339,8 @@ public class MultiFieldEncoder {
     public MultiFieldEncoder encodeEmptyDouble(){
         return setRawBytes(Encoding.encodedNullDouble());
     }
+
+		public int getNumFields() {
+				return fields.length;
+		}
 }

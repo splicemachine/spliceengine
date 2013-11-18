@@ -113,7 +113,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     @Override
     public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
-        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(runtimeContext).getDual(getExecRowDefinition()), runtimeContext));
+        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext));
     }
 
 	@Override

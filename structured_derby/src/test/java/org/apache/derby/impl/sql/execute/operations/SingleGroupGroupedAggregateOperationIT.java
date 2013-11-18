@@ -141,6 +141,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			int row =0;
 			while(rs.next()){
 				String uname = rs.getString(1);
+				Assert.assertTrue("Uname "+ uname+" is unexpected",unameStats.containsKey(uname));
 				int max = rs.getInt(2);
 				int correctMax = unameStats.get(uname).getMax();
 				Assert.assertEquals("Incorrect max for uname "+ uname,correctMax,max);

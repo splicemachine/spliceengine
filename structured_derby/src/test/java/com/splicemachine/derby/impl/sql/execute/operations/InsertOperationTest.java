@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
@@ -296,7 +297,7 @@ public class InsertOperationTest {
             }
         });
 
-        when(rowSourceOp.getMapRowProvider(any(SpliceOperation.class),any(RowDecoder.class),any(SpliceRuntimeContext.class)))
+        when(rowSourceOp.getMapRowProvider(any(SpliceOperation.class),any(PairDecoder.class),any(SpliceRuntimeContext.class)))
                 .thenReturn(mockProvider);
     }
 

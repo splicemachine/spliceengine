@@ -45,8 +45,13 @@ public class Snowflake {
 
     private static final short COUNTER_MASK = 0x07ff; //looks like 0111 1111 1111 (e.g. 11 bits of 1s)
     private static final long counterShift = 53;
+		/**
+		 * Fixed constant to allow consumers of Snowflake UUIDs to allow space in byte[] for
+		 * UUIDs without knowing the exact length of the UUID.
+		 */
+		public static final int UUID_BYTE_SIZE = 8;
 
-    private volatile long lastTimestamp = 0l;
+		private volatile long lastTimestamp = 0l;
     private volatile short counter = 0;
 
     private final long machineId; //only the first counterBits bits are used;

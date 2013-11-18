@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -138,12 +139,12 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
@@ -170,7 +171,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
-        RowDecoder decoder = getRowEncoder(runtimeContext).getDual(getExecRowDefinition());
+				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
             provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext);
         } else {

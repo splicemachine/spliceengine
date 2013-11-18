@@ -8,6 +8,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
@@ -28,7 +30,11 @@ public class BareKeyHash{
 				return new Encoder(keyColumns,keySortOrder);
 		}
 
-		protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException {
+		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder){
+				return new Decoder(keyColumns,keySortOrder);
+		}
+
+		protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException, IOException {
 				encoder.reset();
 				DataValueDescriptor[] dvds = currentRow.getRowArray();
 				if(keySortOrder!=null){
@@ -71,7 +77,7 @@ public class BareKeyHash{
 						DerbyBytesUtil.decodeInto(decoder,field,sortOrder);
 		}
 
-		private void encodeField(MultiFieldEncoder encoder, DataValueDescriptor[] dvds, int position, boolean desc) throws StandardException {
+		protected void encodeField(MultiFieldEncoder encoder, DataValueDescriptor[] dvds, int position, boolean desc) throws StandardException {
 				DataValueDescriptor dvd = dvds[position];
 				if(dvd==null){
 						if(!sparse)
@@ -122,7 +128,7 @@ public class BareKeyHash{
 				}
 
 				@Override
-				public byte[] encode() throws StandardException {
+				public byte[] encode() throws StandardException, IOException {
 						if(encoder==null)
 								encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length);
 

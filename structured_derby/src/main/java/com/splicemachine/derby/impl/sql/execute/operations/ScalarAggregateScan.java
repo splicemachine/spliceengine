@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -18,11 +20,11 @@ import java.util.List;
  */
 class ScalarAggregateScan implements ScalarAggregateSource{
 
-    private final RowDecoder scanDecoder;
+    private final PairDecoder scanDecoder;
     private List<KeyValue> keyValues;
     private final RegionScanner regionScanner;
 
-    ScalarAggregateScan(RowDecoder scanDecoder, RegionScanner regionScanner) {
+    ScalarAggregateScan(PairDecoder scanDecoder, RegionScanner regionScanner) {
         this.scanDecoder = scanDecoder;
         this.regionScanner = regionScanner;
     }
@@ -43,6 +45,6 @@ class ScalarAggregateScan implements ScalarAggregateSource{
 
         if(keyValues.isEmpty())
             return null;
-        return (ExecIndexRow)scanDecoder.decode(keyValues);
+        return (ExecIndexRow)scanDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
     }
 }
