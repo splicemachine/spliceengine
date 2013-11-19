@@ -18,6 +18,9 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 /**
+ * Bug 910 - NPE when inner select uses value for which there is no corresponding
+ * row in the table.
+ *
  * @author Jeff Cunningham
  *         Date: 11/15/13
  */
@@ -39,7 +42,8 @@ public class AnyOperationNullIT extends SpliceUnitTest {
             "INSERT INTO STAFF VALUES ('E4','Don',12,'Deale')",
             "INSERT INTO STAFF VALUES ('E5','Ed',13,'Akron')",
             "INSERT INTO STAFF VALUES ('E6','Joe',13,'Deale')",
-            "INSERT INTO STAFF VALUES ('E7','Fred',13,'Vienna')");
+            "INSERT INTO STAFF VALUES ('E7','Fred',13,'Vienna')",
+            "INSERT INTO STAFF VALUES ('E8','Jane',13,'Akron')");
 
     public static final String CLASS_NAME = AnyOperationNullIT.class.getSimpleName();
 
@@ -87,16 +91,32 @@ public class AnyOperationNullIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
-    public void testAllQueryValidVal() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.PROJ WHERE CITY = ALL (SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E7')", CLASS_NAME, CLASS_NAME));
-        rs.next();
-        Assert.assertNotNull(rs.getString(1));
+    public void testSelectValid() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E8'", CLASS_NAME, CLASS_NAME));
+        Assert.assertEquals("Expecting 1 rows from STAFF table.", 1, resultSetSize(rs));
     }
 
     @Test
-    public void testAllQueryInValidVal() throws Exception {
+    public void testSelectInvalid() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E9'", CLASS_NAME, CLASS_NAME));
+        Assert.assertEquals("Expecting 0 rows from STAFF table for invalid criteria.", 0, resultSetSize(rs));
+    }
+
+    @Test
+    public void testAllQueryValidVal() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.PROJ WHERE CITY = ALL (SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E8')", CLASS_NAME, CLASS_NAME));
-        rs.next();
-        Assert.assertNotNull(rs.getString(1));
+        Assert.assertEquals("Expecting 1 row from PROJ table.", 1, resultSetSize(rs));
+    }
+
+    @Test
+    public void testAllQueryInvalidValAll() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.PROJ WHERE CITY = ALL (SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E9')", CLASS_NAME, CLASS_NAME));
+        Assert.assertEquals("Expecting all rows from PROJ table.", 7, resultSetSize(rs));
+    }
+
+    @Test
+    public void testAllQueryInvalidVal() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("SELECT CITY FROM %s.PROJ WHERE CITY = (SELECT CITY FROM %s.STAFF WHERE EMPNUM = 'E9')", CLASS_NAME, CLASS_NAME));
+        Assert.assertEquals("Expecting no rows from PROJ table.", 0, resultSetSize(rs));
     }
 }
