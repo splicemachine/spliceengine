@@ -112,7 +112,8 @@ public class CallStatementOperation extends NoRowsOperation {
 				for (int i = 0; i < dynamicResults.length; i++)
 				{
 					ResultSet[] param = dynamicResults[i];
-					ResultSet drs = param[0];
+                    ResultSet drs = null;
+                    if (param != null) drs = param[0];
 
 					// Can be null if the procedure never set this parameter
 					// or if the dynamic results were processed by JDBC (EmbedStatement).
