@@ -86,7 +86,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		super.init(context);
 		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-		rightResultSet.init(context);
 	}
 	
 	@Override

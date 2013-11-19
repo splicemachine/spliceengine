@@ -10,7 +10,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -28,43 +27,41 @@ public class MergeSortJoinRowsTest {
                                           "R7e",
                                           "R8f", "L8f");
 
-    static final List<JoinSideExecRow> source = new ArrayList<JoinSideExecRow>(testdata.size());
-
-    static {
-        for (String rowdata: testdata){
+    static final Function<String,JoinSideExecRow> toRow = new Function<String, JoinSideExecRow>() {
+        @Override
+        public JoinSideExecRow apply(String rowdata) {
             ValueRow row = new ValueRow(1);
             row.setColumn(1, new SQLVarchar(rowdata));
-            JoinSideExecRow sideRow = new JoinSideExecRow(
-                    row,
-                    rowdata.charAt(0) == 'R' ? JoinUtils.JoinSide.RIGHT : JoinUtils.JoinSide.LEFT,
-                    rowdata.substring(2).getBytes());
-            source.add(sideRow);
+            return new JoinSideExecRow(row,
+                        rowdata.charAt(0) == 'R' ? JoinUtils.JoinSide.RIGHT : JoinUtils.JoinSide.LEFT,
+                        rowdata.substring(2).getBytes());
         }
-    }
+    };
+
+    static final List<JoinSideExecRow> source = Lists.transform(testdata, toRow);
 
     static final Function<ExecRow,String> execRowToString = new Function<ExecRow, String>() {
         @Override
         public String apply(ExecRow row) {
             try {
                 return row.getColumn(1).toString();
-            } catch (StandardException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
     };
 
     static final List<Pair<String,List<String>>> expectedStrings = Arrays.asList(
-        new Pair<String,List<String>>("L1b", Arrays.asList("R2b", "R3b", "R4b", "R5b")),
-        new Pair<String,List<String>>("L2b", Arrays.asList("R2b", "R3b", "R4b", "R5b")),
-        new Pair<String,List<String>>("L3c", Arrays.asList("R6c")),
-        new Pair<String,List<String>>("L4c", Arrays.asList("R6c")),
-        new Pair<String,List<String>>("L5c", Arrays.asList("R6c")),
-        new Pair<String,List<String>>("L6d", Collections.EMPTY_LIST),
-        new Pair<String,List<String>>("L7d", Collections.EMPTY_LIST),
-        new Pair<String,List<String>>("L8f", Arrays.asList("R8f")));
+        Pair.newPair("L1b", Arrays.asList("R2b", "R3b", "R4b", "R5b")),
+        Pair.newPair("L2b", Arrays.asList("R2b", "R3b", "R4b", "R5b")),
+        Pair.newPair("L3c", Arrays.asList("R6c")),
+        Pair.newPair("L4c", Arrays.asList("R6c")),
+        Pair.newPair("L5c", Arrays.asList("R6c")),
+        Pair.newPair("L6d", (List<String>)Collections.EMPTY_LIST),
+        Pair.newPair("L7d", (List<String>)Collections.EMPTY_LIST),
+        Pair.newPair("L8f", Arrays.asList("R8f")));
 
 
-    @Test
     public void testDataTest() throws Exception {
         for (JoinSideExecRow r: source){
             System.out.println(r.getRow().getColumn(1).getString());

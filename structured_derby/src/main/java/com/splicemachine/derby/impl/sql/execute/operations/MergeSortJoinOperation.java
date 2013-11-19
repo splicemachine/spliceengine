@@ -195,8 +195,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        leftResultSet.init(context);
-        rightResultSet.init(context);
         SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
