@@ -16,8 +16,7 @@ import java.util.List;
  *
  * MergeJoin expects both its left & right resultsets to be sorted on a join key
  * (an equijoin key, specifically). This iterator performs the merge based on equality
- * of the join key, and produces pairs of a left row and any
- * matching right rows.
+ * of the join key, and produces pairs of a left row and any matching right rows.
  *
  * The iterator is not thread safe, uses mutable lists to store rows, & must be consumed iteratively.
  *
@@ -55,7 +54,8 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         assert(leftKeys.length == rightKeys.length);
         joinKeys = new ArrayList<Pair<Integer,Integer>>(leftKeys.length);
         for (int i = 0, s = leftKeys.length; i < s; i++){
-            joinKeys.add(Pair.newPair(leftKeys[i], rightKeys[i]));
+            // add keys for left & right, incremented to work with 1-based ExecRow.getColumn()
+            joinKeys.add(Pair.newPair(leftKeys[i] + 1, rightKeys[i] + 1));
         }
         comparator = new Comparator<ExecRow>() {
             @Override
@@ -86,17 +86,21 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
             return currentRights.iterator();
         }
         // If not, look for the ones that do
-        currentRights.clear();
+        currentRights = new ArrayList<ExecRow>();
         while (rightRS.hasNext()){
             rightRowsSeen++;
             ExecRow right = rightRS.next();
             int compared = comparator.compare(left, right);
+            //LOG.error(String.format("Left \t %s\nRight \t%s\nCompares %s", left, right, compared));
+            // if matches left, add to buffer
             if (compared == 0) {
-                currentRights.add(right);
+                currentRights.add(right.getClone());
+            // if is greater than left, push back & stop
             } else if (compared == -1) {
                 rightRS.pushBack(right);
                 break;
             }
+            // if is less than right, continue
         }
         return currentRights.iterator();
     }

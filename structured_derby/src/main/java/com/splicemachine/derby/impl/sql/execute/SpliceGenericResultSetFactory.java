@@ -905,6 +905,39 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             throw Exceptions.parseException(e);
         }
     }
+
+    @Override
+    public NoPutResultSet getMergeLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
+        try{
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            SpliceOperation op = new MergeSortLeftOuterJoinOperation(left.getOperation(), leftNumCols,
+                    right.getOperation(), rightNumCols,leftHashKeyItem,rightHashKeyItem,
+                    leftResultSet.getActivation(), joinClause,
+                    resultSetNumber,
+                    emptyRowFun,
+                    wasRightOuterJoin,
+                    oneRowRightSide,
+                    notExistsRightSide,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    userSuppliedOptimizerOverrides);
+
+            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
     @Override
     public NoPutResultSet getBroadcastLeftOuterJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
@@ -974,6 +1007,29 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
             ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
             SpliceOperation op =  new MergeSortJoinOperation(left.getOperation(), leftNumCols,
+                    right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
+                    oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
+            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+	}
+
+    @Override
+	public NoPutResultSet getMergeJoinResultSet(
+			NoPutResultSet leftResultSet, int leftNumCols,
+			NoPutResultSet rightResultSet, int rightNumCols,
+			int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+			int resultSetNumber, boolean oneRowRightSide,
+			boolean notExistsRightSide, double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost, String userSuppliedOptimizerOverrides)
+			throws StandardException {
+		SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
+        try{
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            SpliceOperation op =  new MergeJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);

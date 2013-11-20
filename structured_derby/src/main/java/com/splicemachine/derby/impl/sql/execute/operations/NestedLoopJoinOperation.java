@@ -84,38 +84,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	public void init(SpliceOperationContext context) throws StandardException{
 //		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
-		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
 	}
-	
-	@Override
-	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeScan");
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(operationStack);
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
-	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        //push the computation to the left side of the join
-        //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
-        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
-
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
-
-    @Override
-	public ExecRow getExecRowDefinition() throws StandardException {
-		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
-		return mergedRow;
-	}
-	
-	@Override
 	public String toString() {
 		return "NestedLoop"+super.toString();
 	}

@@ -199,7 +199,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         if(uniqueSequenceID!=null){
             byte[] start = new byte[uniqueSequenceID.length];
