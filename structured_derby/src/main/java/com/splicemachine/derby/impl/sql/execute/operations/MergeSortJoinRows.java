@@ -2,13 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.si.impl.PushBackIterator;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.util.Pair;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * IJoinRowsIterator for MergeSortJoin.
@@ -53,7 +52,7 @@ public class MergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
                     // must use getRow().getClone() b/c underlying source mutates
                     currentRights.add(row.getRow().getClone());
                 } else {
-                    currentRights.clear();
+                    currentRights = new ArrayList<ExecRow>();
                     currentRights.add(row.getRow().getClone());
                     currentRightHash = row.getHash();
                 }
