@@ -194,6 +194,7 @@
 						<manifestEntries>
 							<Implementation-Version>${buildNumber}</Implementation-Version>
 							<Release>0.5</Release>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
 							<URL>http://www.splicemachine.com</URL>
 						</manifestEntries>
 					</archive>
