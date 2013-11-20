@@ -258,6 +258,26 @@ public class TernaryOperatorNode extends OperatorNode
 		}
 		return this;
 	}
+	
+	/**
+	 * Return the variant type for the underlying expression.
+	 * The variant type can be:
+	 *		VARIANT				- variant within a scan
+	 *							  (method calls and non-static field access)
+	 *		SCAN_INVARIANT		- invariant within a scan
+	 *							  (column references from outer tables)
+	 *		QUERY_INVARIANT		- invariant within the life of a query
+	 *		CONSTANT			- immutable
+	 *
+	 * @return	The variant type for the underlying expression.
+	 * @exception StandardException	thrown on error
+	 */
+	protected int getOrderableVariantType() throws StandardException {
+		int leftType = leftOperand.getOrderableVariantType();
+		int rightType = rightOperand.getOrderableVariantType();
+		return Math.min(leftType, rightType);
+	}
+	
 	/**
 	 * Do code generation for this ternary operator.
 	 *
