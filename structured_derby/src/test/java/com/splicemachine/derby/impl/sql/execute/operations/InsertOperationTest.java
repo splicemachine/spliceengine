@@ -17,7 +17,10 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
@@ -279,10 +282,10 @@ public class InsertOperationTest {
         when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
-        when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobStats>(){
+        when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
 
             @Override
-            public JobStats answer(InvocationOnMock invocation) throws Throwable {
+            public JobResults answer(InvocationOnMock invocation) throws Throwable {
                 SpliceObserverInstructions observerInstructions = (SpliceObserverInstructions) invocation.getArguments()[0];
 
                 SpliceOperation op = observerInstructions.getTopOperation();
@@ -293,7 +296,10 @@ public class InsertOperationTest {
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 
-                return stats;
+								JobFuture future = mock(JobFuture.class);
+								doNothing().when(future).cleanup();
+
+								return new SimpleJobResults(stats, future);
             }
         });
 

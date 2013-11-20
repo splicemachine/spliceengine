@@ -57,7 +57,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-	public void close() {
+	public void close() throws StandardException {
         super.close();
 		SpliceLogUtils.trace(LOG, "closed after calling hasNext %d times",called);
 		if(scanner!=null)scanner.close();

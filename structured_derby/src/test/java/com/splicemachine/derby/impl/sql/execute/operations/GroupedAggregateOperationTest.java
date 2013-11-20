@@ -83,7 +83,7 @@ public class GroupedAggregateOperationTest {
         when(mockAggregateContext.getAggregators()).thenReturn(new SpliceGenericAggregator[]{countAgg});
         ExecIndexRow sortTemplateRow = new IndexValueRow(sourceRowTemplate);
         when(mockAggregateContext.getSourceIndexRow()).thenReturn(sortTemplateRow);
-        when(mockAggregateContext.getSourceIndexRow()).thenReturn((ExecIndexRow) sortTemplateRow.getClone());
+        when(mockAggregateContext.getSortTemplateRow()).thenReturn((ExecIndexRow) sortTemplateRow.getClone());
         when(mockAggregateContext.getDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{});
         when(mockAggregateContext.getNonDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{countAgg});
 
@@ -99,6 +99,7 @@ public class GroupedAggregateOperationTest {
         operation.init(operationContext);
 
         SpliceRuntimeContext context = new SpliceRuntimeContext();
+				context.setCurrentTaskId(snowflake.nextUUIDBytes());
         context.markAsSink();
 
         final List<KVPair> outputPairs = Lists.newArrayListWithExpectedSize(10);

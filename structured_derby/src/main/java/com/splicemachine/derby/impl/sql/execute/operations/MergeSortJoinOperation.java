@@ -15,10 +15,9 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -226,7 +225,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 
 		@Override
-		protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeShuffle");
 				long start = System.currentTimeMillis();
 				SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
@@ -236,7 +235,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceRRuntimeContext),spliceRRuntimeContext);
 				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
 				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
-				JobStats stats = combined.shuffleRows(soi);
+				JobResults stats = combined.shuffleRows(soi);
 				nextTime+=System.currentTimeMillis()-start;
 				return stats;
 		}
@@ -343,22 +342,28 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in MergeSortJoin");
 		beginTime = getCurrentTimeMillis();
+		super.close();
 
-        if(joiner!=null)
-            joiner.close();
-		if ( isOpen )
-		{
-            //delete from the temp space
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            clearCurrentRow();
-			super.close();
-		}
+//        if(joiner!=null)
+//            joiner.close();
+//		if ( isOpen )
+//		{
+//            //delete from the temp space
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            clearCurrentRow();
+//			super.close();
+//		}
 
 		closeTime += getElapsedMillis(beginTime);
 	}
 
-/***********************************************************************************************************************************/
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		/***********************************************************************************************************************************/
     /*private helper methods*/
     private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext,
 																															PairDecoder leftDecoder,

@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -129,14 +130,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     @Override
     public void close() throws StandardException, IOException {
         super.close();
-        if(reduceScan!=null)
-            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+				source.close();
     }
 
 
 
     @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         long start = System.currentTimeMillis();
         final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;

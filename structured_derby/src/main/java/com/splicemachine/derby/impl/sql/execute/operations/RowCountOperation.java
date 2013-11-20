@@ -22,6 +22,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -487,7 +488,7 @@ public class RowCountOperation extends SpliceBaseOperation{
         }
 
         @Override
-        public void close() {
+        public void close() throws StandardException {
             try{
                 table.close();
             } catch (IOException e) {
@@ -611,13 +612,13 @@ public class RowCountOperation extends SpliceBaseOperation{
         @Override public void open() throws StandardException { 
         	provider.open(); 
         }
-        @Override public void close() { provider.close(); }
+        @Override public void close() throws StandardException { provider.close(); }
         @Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
         @Override public byte[] getTableName() { return provider.getTableName(); }
         @Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 
         @Override
-        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.shuffleRows(instructions);
         }
 

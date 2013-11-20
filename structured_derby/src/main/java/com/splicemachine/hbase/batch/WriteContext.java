@@ -43,4 +43,6 @@ public interface WriteContext {
     boolean canRun(KVPair input);
 
     String getTransactionId();
+
+		long getTransactionTimestamp();
 }

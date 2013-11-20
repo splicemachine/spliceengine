@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -165,10 +166,12 @@ public class OnceOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         if(dataProvider!=null)
             dataProvider.close();
         dataProvider = null;
+				source.close();
+				super.close();
     }
 
 	@Override
@@ -252,13 +255,13 @@ public class OnceOperation extends SpliceBaseOperation {
         @Override public void open() throws StandardException { 
         	delegate.open(); 
         }
-        @Override public void close() { delegate.close(); }
+        @Override public void close() throws StandardException { delegate.close(); }
         @Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
         @Override public byte[] getTableName() { return delegate.getTableName(); }
         @Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
         @Override
-        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return delegate.shuffleRows(instructions);
         }
 

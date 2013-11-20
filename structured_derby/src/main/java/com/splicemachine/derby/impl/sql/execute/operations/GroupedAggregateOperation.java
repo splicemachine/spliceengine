@@ -19,6 +19,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.hash.ByteHash32;
@@ -176,7 +177,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
         long start = System.currentTimeMillis();
         final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
@@ -221,7 +222,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						}
 				};
 
-				final KeyPostfix uniquePostfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
+				final KeyPostfix uniquePostfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId(),operationInformation.getUUIDGenerator());
 				KeyPostfix postfix = new KeyPostfix() {
 						@Override
 						public int getPostfixLength(byte[] hashBytes) throws StandardException {
@@ -458,26 +459,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //    }
     @Override
     public void	close() throws StandardException, IOException {
-//        if(hbs!=null)
-//            hbs.close();
-        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
-        beginTime = getCurrentTimeMillis();
-        if ( isOpen )
-        {
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            // we don't want to keep around a pointer to the
-            // row ... so it can be thrown away.
-            // REVISIT: does this need to be in a finally
-            // block, to ensure that it is executed?
-            clearCurrentRow();
-            source.close();
-
-            super.close();
-        }
-        closeTime += getElapsedMillis(beginTime);
-
-        isOpen = false;
+				super.close();
+				source.close();
+//        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
+//        beginTime = getCurrentTimeMillis();
+//        if ( isOpen )
+//        {
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            // we don't want to keep around a pointer to the
+//            // row ... so it can be thrown away.
+//            // REVISIT: does this need to be in a finally
+//            // block, to ensure that it is executed?
+//            clearCurrentRow();
+//            source.close();
+//
+//            super.close();
+//        }
+//        closeTime += getElapsedMillis(beginTime);
+//
+//        isOpen = false;
     }
 
     public Properties getSortProperties() {

@@ -15,6 +15,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
@@ -168,16 +169,16 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     	return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-    	JobStats jobStats = super.doShuffle(runtimeContext);
-        long rowsModified = 0;
-        for(TaskStats stats:jobStats.getTaskStats()){
-            rowsModified+=stats.getWriteStats().getTotalRecords();
-        }
-        this.rowsSunk = rowsModified;
-        return jobStats;
-    }
+		@Override
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+				JobResults jobResults = super.doShuffle(runtimeContext);
+				long rowsModified = 0;
+				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
+						rowsModified+=stats.getWriteStats().getTotalRecords();
+				}
+				this.rowsSunk = rowsModified;
+				return jobResults;
+		}
 
     @Override
     public void open() throws StandardException, IOException {
@@ -191,9 +192,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     	if (modifiedProvider != null)
     		modifiedProvider.close();
         super.close();
+				source.close();
     }
 
-    @Override
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		ExecRow row = source.getExecRowDefinition();
 		SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
@@ -222,10 +229,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		
 		
 		@Override
-		public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-			JobStats jobStats = rowProvider.shuffleRows(instructions);
+		public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+			JobResults jobStats = rowProvider.shuffleRows(instructions);
 			long i = 0;
-        	for (TaskStats stat: jobStats.getTaskStats()) {
+        	for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
         		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
         	}
         	rowsModified = i;
@@ -304,9 +311,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
                 try {
                 	spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
-                	JobStats stats = rowProvider.shuffleRows(spliceObserverInstructions);
+                	JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
                 	long i = 0;
-                	for (TaskStats stat: stats.getTaskStats()) {
+                	for (TaskStats stat: stats.getJobStats().getTaskStats()) {
                 		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
                 	}
                     //modifiedProvider.setRowsModified(stats.get.getTotalRecords());

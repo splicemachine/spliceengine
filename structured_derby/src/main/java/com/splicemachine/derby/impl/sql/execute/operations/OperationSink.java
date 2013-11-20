@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -58,7 +59,6 @@ public class OperationSink {
         stats.start();
 
         CallBuffer<KVPair> writeBuffer;
-        byte[] postfix = getPostfix(false);
 				long rowsRead = 0l;
 				long rowsWritten = 0l;
 				PairEncoder encoder;
@@ -69,8 +69,8 @@ public class OperationSink {
 						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
 						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
 						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
-            String txnId = transactionId == null ? operation.getTransactionID() : transactionId;
-            writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId));
+            String txnId = getTransactionId(destinationTable);
+						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId));
 
             ExecRow row;
 
@@ -117,7 +117,7 @@ public class OperationSink {
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             throw e;
         }finally{
-						operation.close();
+//						operation.close();
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
@@ -126,7 +126,24 @@ public class OperationSink {
         return stats.finish();
     }
 
-    private byte[] getPostfix(boolean shouldMakUnique) {
+		private String getTransactionId(byte[] destinationTable) {
+				if(Bytes.equals(destinationTable, SpliceConstants.TEMP_TABLE_BYTES)){
+						/*
+						 * We are writing to the TEMP Table.
+						 *
+						 * The timestamp has a useful meaning in the TEMP table, which is that
+						 * it should be the longified version of the job id (to facilitate dropping
+						 * data from TEMP efficiently--See TempTablecompactionScanner for more information).
+						 *
+						 * However, timestamps can't be negative, so we just take the time portion of the
+						 * uuid out and stringify that
+						 */
+						return Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId())));
+				}
+				return transactionId == null ? operation.getTransactionID() : transactionId;
+		}
+
+		private byte[] getPostfix(boolean shouldMakUnique) {
         if(taskId==null && shouldMakUnique)
             return uuidGenerator.nextBytes();
         else if(taskId==null)

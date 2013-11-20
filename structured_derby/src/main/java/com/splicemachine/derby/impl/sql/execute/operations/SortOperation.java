@@ -22,6 +22,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -125,7 +126,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     public List<SpliceOperation> getSubOperations() {
         SpliceLogUtils.trace(LOG, "getSubOperations");
         List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
-        ops.add((SpliceOperation) source);
+        ops.add(source);
         return ops;
     }
 
@@ -134,7 +135,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     	hbs = null;
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        ((SpliceOperation) source).init(context);
+        source.init(context);
 
         FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(orderingItem);
         if (fah == null) {
@@ -150,7 +151,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             keyColumns[i] = order[i].getColumnId();
             descColumns[i] = order[i].getIsAscending();
         }
-//        hbs = new HashBufferSource(uniqueSequenceID, columns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),columns.length + 1));
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
     
@@ -289,7 +289,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         long start = System.currentTimeMillis();
         final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime += System.currentTimeMillis() - start;
@@ -320,21 +320,26 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     public void close() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "close in Sort");
         beginTime = getCurrentTimeMillis();
-        if (isOpen) {
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            clearCurrentRow();
-
-            sortResult = null;
+//        if (isOpen) {
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            clearCurrentRow();
+//
+//            sortResult = null;
             source.close();
 
             super.close();
-        }
+//        }
 
         closeTime += getElapsedMillis(beginTime);
 
         isOpen = false;
     }
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
 
 //    @Override
 //    public long getTimeSpent(int type) {

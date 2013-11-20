@@ -122,7 +122,7 @@ public class ParallelImporter implements Importer{
         int[] pkCols = importContext.getPrimaryKeys();
 
 				KeyEncoder encoder;
-				if(pkCols==null){
+				if(pkCols!=null&& pkCols.length>0){
 					encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
 				}else
 					encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);

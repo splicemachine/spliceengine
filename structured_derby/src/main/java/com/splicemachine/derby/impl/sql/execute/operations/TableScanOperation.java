@@ -257,8 +257,8 @@ public class TableScanOperation extends ScanOperation {
 						rowDecoder.close();
 				SpliceLogUtils.trace(LOG, "close in TableScan");
 				beginTime = getCurrentTimeMillis();
-				if ( isOpen ) {
-						clearCurrentRow();
+//				if ( isOpen ) {
+//						clearCurrentRow();
 
 						if (runTimeStatisticsOn)
 						{
@@ -278,7 +278,7 @@ public class TableScanOperation extends ScanOperation {
 //			{
 //				//TODO on index
 //			}
-				}
+//				}
 		
 		closeTime += getElapsedMillis(beginTime);
 	}

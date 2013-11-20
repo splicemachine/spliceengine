@@ -11,6 +11,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.IntArrays;
@@ -91,8 +93,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     protected int resultSetNumber;
     protected OperationInformation operationInformation;
+		private JobResults jobResults;
 
-    public SpliceBaseOperation() {
+		public SpliceBaseOperation() {
 		super();
 	}
 
@@ -183,23 +186,18 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void clearCurrentRow() {
         if(activation!=null){
-            activation.clearCurrentRow(operationInformation.getResultSetNumber());
+						int resultSetNumber = operationInformation.getResultSetNumber();
+						if(resultSetNumber!=-1)
+								activation.clearCurrentRow(resultSetNumber);
         }
         currentRow=null;
 	}
 
 	@Override
 	public void close() throws StandardException,IOException {
-		if (!isOpen)
-			return;
-
-		/* If this is the top ResultSet then we must  close all of the open subqueries for the
-		 * entire query.
-		 */
-
-
-        isOpen = false;
-
+			clearCurrentRow();
+			if(jobResults!=null)
+					jobResults.cleanup();
 	}
 	
 
@@ -342,18 +340,19 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
          * Marked final so that subclasses don't accidentally screw up their error-handling of the
          * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
          */
-        JobStats stats = doShuffle(runtimeContext);
-        JobStatsUtils.logStats(stats);
-        failedTasks = new ArrayList<byte[]>(stats.getFailedTasks());
+        jobResults = doShuffle(runtimeContext);
+        JobStatsUtils.logStats(jobResults.getJobStats());
+        failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
 	}
 
-    protected JobStats doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         long start = System.currentTimeMillis();
         final RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
-        return rowProvider.shuffleRows(soi);
+				jobResults = rowProvider.shuffleRows(soi);
+        return jobResults;
     }
 
     protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException {

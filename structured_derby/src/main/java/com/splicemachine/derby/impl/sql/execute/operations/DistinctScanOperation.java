@@ -21,6 +21,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
@@ -219,18 +220,20 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         super.close();
         if(hbs!=null)
             hbs.close();
-        if(reduceScan!=null)
-            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-
     }
 
-    @Override
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan();
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 

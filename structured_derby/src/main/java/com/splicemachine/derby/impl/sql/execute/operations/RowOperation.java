@@ -228,19 +228,20 @@ public class RowOperation extends SpliceBaseOperation {
 	@Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"close in RowOp");
-	    
+
 		beginTime = getCurrentTimeMillis();
-		if (isOpen) {
-
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-	    	clearCurrentRow();
-	    	next = false;
-
 			super.close();
-		}
+//		if (isOpen) {
+//
+//			// we don't want to keep around a pointer to the
+//			// row ... so it can be thrown away.
+//			// REVISIT: does this need to be in a finally
+//			// block, to ensure that it is executed?
+//	    	clearCurrentRow();
+	    	next = false;
+//
+//			super.close();
+//		}
 		
 		closeTime += getElapsedMillis(beginTime);
 	}

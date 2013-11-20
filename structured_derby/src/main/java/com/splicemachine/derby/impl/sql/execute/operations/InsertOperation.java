@@ -142,7 +142,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public void close() throws StandardException {
+		public void close() throws StandardException, IOException {
+				super.close();
 				if(sysColumnTable!=null){
 						try{
 								sysColumnTable.close();

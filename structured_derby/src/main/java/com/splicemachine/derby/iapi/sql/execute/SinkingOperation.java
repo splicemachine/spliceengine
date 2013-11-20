@@ -34,4 +34,6 @@ public interface SinkingOperation {
 		CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException;
 
 		void close() throws IOException,StandardException;
+
+		byte[] getUniqueSequenceId();
 }

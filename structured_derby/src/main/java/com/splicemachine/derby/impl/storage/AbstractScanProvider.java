@@ -107,7 +107,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
     @Override
-    public void close() {
+    public void close() throws StandardException {
         if(accumulator!=null){
             TaskStats finish = accumulator.finish();
             JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here

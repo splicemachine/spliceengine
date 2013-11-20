@@ -20,6 +20,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -189,7 +190,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
     }
 
     @Override
-    protected JobStats doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan();
         RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
@@ -274,32 +275,37 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	@Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in HashScan");
-		beginTime = getCurrentTimeMillis();
-		if ( isOpen )
-	    {
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-		    clearCurrentRow();
-		    
-		    //TODO: need to get ScanInfo to store in runtime statistics
-		    scanProperties = getScanProperties();
-			
-			// This is where we get the positioner info for inner tables
-			if (runTimeStatisticsOn)
-			{
-				startPositionString = printStartPosition();
-				stopPositionString = printStopPosition();
-			}
+//		beginTime = getCurrentTimeMillis();
+//		if ( isOpen )
+//	    {
+//			// we don't want to keep around a pointer to the
+//			// row ... so it can be thrown away.
+//			// REVISIT: does this need to be in a finally
+//			// block, to ensure that it is executed?
+//		    clearCurrentRow();
+//
+//		    //TODO: need to get ScanInfo to store in runtime statistics
+//		    scanProperties = getScanProperties();
+//
+//			// This is where we get the positioner info for inner tables
+//			if (runTimeStatisticsOn)
+//			{
+//				startPositionString = printStartPosition();
+//				stopPositionString = printStopPosition();
+//			}
 
 			super.close();
-	    }
+//	    }
 		
 		closeTime += getElapsedMillis(beginTime);
 	}
-	
-	public Properties getScanProperties()
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		public Properties getScanProperties()
 	{
 		//TODO: need to get ScanInfo to store in runtime statistics
 		if (scanProperties == null) 

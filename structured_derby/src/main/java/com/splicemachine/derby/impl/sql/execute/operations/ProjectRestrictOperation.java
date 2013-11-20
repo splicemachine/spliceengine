@@ -334,27 +334,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 		/* Nothing to do if open was short circuited by false constant expression */
-		if (shortCircuitOpen)
-		{
-			isOpen = false;
-			shortCircuitOpen = false;
-			source.close();
-			return;
-		}
-
-		beginTime = getCurrentTimeMillis();
-	    if ( isOpen ) {
-
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-	    	clearCurrentRow();
-
-	        source.close();
-
-			super.close();
-	    }
+				super.close();
+				source.close();
 		closeTime += getElapsedMillis(beginTime);
 	}
 

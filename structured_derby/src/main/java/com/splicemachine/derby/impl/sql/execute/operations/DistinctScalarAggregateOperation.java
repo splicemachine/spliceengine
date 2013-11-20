@@ -178,11 +178,15 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     @Override
     public void close() throws StandardException, IOException {
         super.close();
-        if(reduceScan!=null)
-            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+				source.close();
     }
 
-    @Override
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		@Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
     }

@@ -196,4 +196,9 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
     public boolean isReferencingTable(long tableNumber) {
         return source.isReferencingTable(tableNumber);
     }
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
 }

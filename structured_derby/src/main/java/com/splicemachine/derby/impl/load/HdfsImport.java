@@ -307,9 +307,9 @@ public class HdfsImport extends ParallelVTI {
 				}
 				HTableInterface table = SpliceAccessManager.getHTable(tableName);
 
+				List<JobFuture> jobFutures = Lists.newArrayList();
 				try {
 						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-						List<JobFuture> jobFutures = Lists.newArrayList();
 						for (Path path:file.getPaths()) {
 								context.setFilePath(path);
 								jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(getImportJob(table,codecFactory,path)));
@@ -325,9 +325,15 @@ public class HdfsImport extends ParallelVTI {
 				} // still need to cancel all other jobs ? // JL
 				catch (IOException e) {
 						throw Exceptions.parseException(e);
-				}
-				finally{
+				} finally{
 						Closeables.closeQuietly(table);
+						for(JobFuture future:jobFutures){
+								try {
+										future.cleanup();
+								} catch (ExecutionException e) {
+										LOG.error("Exception cleaning up import future",e);
+								}
+						}
 				}
 		}
 

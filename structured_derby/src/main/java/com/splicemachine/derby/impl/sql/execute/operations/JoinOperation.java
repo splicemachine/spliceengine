@@ -194,13 +194,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 	@Override
 	public void	close() throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "close in Join");
-		if ( isOpen )
-	    {
+			super.close();
+//		SpliceLogUtils.trace(LOG, "close in Join");
+//		if ( isOpen )
+//	    {
 	        leftResultSet.close();
 	        rightResultSet.close();
-			super.close();
-	    }
+//	    }
 		
 		leftRow = null;
 		rightRow = null;

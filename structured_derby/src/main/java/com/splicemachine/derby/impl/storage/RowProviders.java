@@ -1,29 +1,24 @@
 package com.splicemachine.derby.impl.storage;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.kenai.jffi.Array;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
-import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.commons.collections.MultiMap;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Static utility methods for managing RowProviders.
@@ -95,14 +90,14 @@ public class RowProviders {
 		@Override public void open() throws StandardException { 
 			provider.open(); 
 		}
-		@Override public void close() { provider.close(); }
+		@Override public void close() throws StandardException { provider.close(); }
 //		@Override public Scan toScan() { return provider.toScan(); }
 		@Override public byte[] getTableName() { return provider.getTableName(); }
 		@Override public int getModifiedRowCount() { return provider.getModifiedRowCount(); }
 		@Override public boolean hasNext() throws StandardException, IOException { return provider.hasNext(); }
 
         @Override
-        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.shuffleRows(instructions);
         }
 
@@ -249,7 +244,7 @@ public class RowProviders {
         }
 
         @Override
-        public void close() {
+        public void close() throws StandardException {
             //guarantee that both get close() called to avoid leaks
             try{
                 firstRowProvider.close();
@@ -266,10 +261,10 @@ public class RowProviders {
         }
 
         @Override
-        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        	JobStats firstStats = firstRowProvider.shuffleRows(instructions);
-            JobStats secondStats = secondRowProvider.shuffleRows(instructions);
-            return new CombinedJobStats(firstStats,secondStats);
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        	JobResults firstStats = firstRowProvider.shuffleRows(instructions);
+            JobResults secondStats = secondRowProvider.shuffleRows(instructions);
+            return new CombinedJobResults(firstStats,secondStats);
         }
 
         @Override
@@ -312,6 +307,29 @@ public class RowProviders {
 
     }
 
+		private static class CombinedJobResults implements JobResults{
+				private final JobResults firstJobResults;
+				private final JobResults secondJobResults;
+
+				private CombinedJobResults(JobResults firstJobResults, JobResults secondJobResults) {
+						this.firstJobResults = firstJobResults;
+						this.secondJobResults = secondJobResults;
+				}
+
+				@Override
+				public JobStats getJobStats() {
+						return new CombinedJobStats(firstJobResults.getJobStats(),secondJobResults.getJobStats());
+				}
+
+				@Override
+				public void cleanup() throws StandardException {
+						try{
+								firstJobResults.cleanup();
+						}finally{
+								secondJobResults.cleanup();
+						}
+				}
+		}
     private static class CombinedJobStats implements JobStats{
         private final JobStats firstJobStats;
         private final JobStats secondJobStats;

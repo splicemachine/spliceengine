@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
@@ -58,13 +59,13 @@ public class ScalarAggregateRowProvider implements RowProvider {
 
 		/*delegate methods*/
 		@Override public void open() throws StandardException { delegate.open(); }
-		@Override public void close() { delegate.close(); }
+		@Override public void close() throws StandardException { delegate.close(); }
 		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
 		@Override public byte[] getTableName() { return delegate.getTableName(); }
 		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
 
 		@Override
-		public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+		public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
 				return delegate.shuffleRows(instructions);
 		}
 

@@ -1,11 +1,13 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -61,7 +63,7 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
 		return 0;
 	}
 
-	@Override
+		@Override
     public boolean hasNext() throws StandardException {
 
         if(populated)return true;
