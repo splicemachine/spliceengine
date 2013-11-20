@@ -230,7 +230,7 @@ public abstract class Sqlca {
         CallableStatement cs = null;
         synchronized (connection_) {
             try {
-                cs = connection_.prepareMessageProc("call SYSIBM.SQLCAMESSAGE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                cs = connection_.prepareMessageProc("call SYSSPLICE.SQLCAMESSAGE(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
                 String errmc = null;
                 String sqlState = null;

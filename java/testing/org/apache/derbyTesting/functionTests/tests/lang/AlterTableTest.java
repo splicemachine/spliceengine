@@ -820,7 +820,7 @@ public final class AlterTableTest extends BaseJDBCTestCase {
                 "select tablename, " +
                 "SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from " +
                 "sys.systables where tabletype = 'S' and tablename " +
-                "!= 'SYSDUMMY1' order by tablename");
+                "!= 'DUAL' order by tablename");
 
         expRS = new String[][]{
                     {"SYSALIASES", "1"},

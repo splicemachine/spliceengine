@@ -424,7 +424,7 @@ public final class SysDiagVTIMappingTest extends BaseJDBCTestCase {
             { "SYSDEPENDS", "0", "4096", "8000003e-00d0-fd77-3ed8-000a0a0b1900" },
             { "SYSDEPENDS_INDEX1", "1", "4096", "8000003e-00d0-fd77-3ed8-000a0a0b1900" },
             { "SYSDEPENDS_INDEX2", "1", "4096", "8000003e-00d0-fd77-3ed8-000a0a0b1900" },
-            { "SYSDUMMY1", "0", "4096", "c013800d-00f8-5b70-bea3-00000019ed88" },
+            { "DUAL", "0", "4096", "c013800d-00f8-5b70-bea3-00000019ed88" },
             { "SYSFILES", "0", "4096", "80000000-00d3-e222-873f-000a0a0b1900" },
             { "SYSFILES_INDEX1", "1", "4096", "80000000-00d3-e222-873f-000a0a0b1900" },
             { "SYSFILES_INDEX2", "1", "4096", "80000000-00d3-e222-873f-000a0a0b1900" },

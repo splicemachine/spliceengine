@@ -170,34 +170,34 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         { null, "SYSCS_UTIL", "SYSCS_PEEK_AT_SEQUENCE",
           "org.apache.derby.catalog.SystemProcedures." +
           "SYSCS_PEEK_AT_SEQUENCE", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "BLOBCREATELOCATOR",
+        { null, "SYSSPLICE", "BLOBCREATELOCATOR",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "BLOBCREATELOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "BLOBGETBYTES",
+        { null, "SYSSPLICE", "BLOBGETBYTES",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETBYTES", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "BLOBGETLENGTH",
+        { null, "SYSSPLICE", "BLOBGETLENGTH",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETLENGTH", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "BLOBGETPOSITIONFROMBYTES",
+        { null, "SYSSPLICE", "BLOBGETPOSITIONFROMBYTES",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETPOSITIONFROMBYTES", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "BLOBGETPOSITIONFROMLOCATOR",
+        { null, "SYSSPLICE", "BLOBGETPOSITIONFROMLOCATOR",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETPOSITIONFROMLOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "CLOBCREATELOCATOR",
+        { null, "SYSSPLICE", "CLOBCREATELOCATOR",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "CLOBCREATELOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "CLOBGETLENGTH",
+        { null, "SYSSPLICE", "CLOBGETLENGTH",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETLENGTH", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "CLOBGETPOSITIONFROMLOCATOR",
+        { null, "SYSSPLICE", "CLOBGETPOSITIONFROMLOCATOR",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETPOSITIONFROMLOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "CLOBGETPOSITIONFROMSTRING",
+        { null, "SYSSPLICE", "CLOBGETPOSITIONFROMSTRING",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETPOSITIONFROMSTRING", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
-        { null, "SYSIBM", "CLOBGETSUBSTRING",
+        { null, "SYSSPLICE", "CLOBGETSUBSTRING",
           "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETSUBSTRING", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
 
@@ -421,7 +421,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
             { "SYSCS_DIAG", null },
             { "SYSCS_UTIL", null },
             { "SYSFUN", null },
-            { "SYSIBM", null },
+            { "SYSSPLICE", null },
             { "SYSPROC", null },
             { "SYSSTAT", null },
         };
@@ -438,7 +438,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
             { "SYSCS_DIAG", null },
             { "SYSCS_UTIL", null },
             { "SYSFUN", null },
-            { "SYSIBM", null },
+            { "SYSSPLICE", null },
             { "SYSPROC", null },
             { "SYSSTAT", null },
         };
@@ -506,7 +506,7 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         // Use different statements so that both result sets are kept open
         rss[0] = createStatement().executeQuery("VALUES 1, 2, 3, 4");
         rss[1] = createStatement().executeQuery(
-                "SELECT * FROM SYSIBM.SYSDUMMY1");
+                "SELECT * FROM SYSSPLICE.DUAL");
 
         // We want to test holdable result sets
         for (ResultSet rs : rss) {

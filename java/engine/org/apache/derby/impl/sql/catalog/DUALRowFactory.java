@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.sql.catalog.SYSDUMMY1RowFactory
+   Derby - Class org.apache.derby.impl.sql.catalog.DUALRowFactory
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -43,15 +43,15 @@ import org.apache.derby.iapi.services.uuid.UUIDFactory;
 import org.apache.derby.catalog.UUID;
 
 /**
- * Factory for creating a SYSDUMMY1 row.
+ * Factory for creating a DUAL row.
  *
  * @version 0.01
  *
  */
 
-public class SYSDUMMY1RowFactory extends CatalogRowFactory
+public class DUALRowFactory extends CatalogRowFactory
 {
-	protected static final int SYSDUMMY1_COLUMN_COUNT = 1;
+	protected static final int DUAL_COLUMN_COUNT = 1;
 
 	private static final String[] uuids =
 	{
@@ -62,19 +62,19 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
 	/*
 	 *	CONSTRUCTORS
 	 */
-    public SYSDUMMY1RowFactory(UUIDFactory uuidf,
+    public DUALRowFactory(UUIDFactory uuidf,
 									ExecutionFactory ef, 
 									DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
 		
-		initInfo(SYSDUMMY1_COLUMN_COUNT, "SYSDUMMY1", 
+		initInfo(DUAL_COLUMN_COUNT, "DUAL", 
 				 null, null, uuids);
 	}
 
 
   /**
-	 * Make a SYSDUMMY1 row
+	 * Make a DUAL row
 	 *
 	 *
 	 * @return	Row suitable for inserting into SYSSTATISTICS.
@@ -85,7 +85,7 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
 	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException					
 	{
-		ExecRow row = getExecutionFactory().getValueRow(SYSDUMMY1_COLUMN_COUNT);
+		ExecRow row = getExecutionFactory().getValueRow(DUAL_COLUMN_COUNT);
 		
 		row.setColumn(1, new SQLChar("Y"));
 		return row;

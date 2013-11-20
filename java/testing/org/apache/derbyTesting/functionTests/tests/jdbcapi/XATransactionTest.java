@@ -544,7 +544,7 @@ public class XATransactionTest extends BaseJDBCTestCase {
         Connection c = xac.getConnection();
         Statement s = c.createStatement();
         JDBC.assertSingleValueResultSet(
-                s.executeQuery("select * from sysibm.sysdummy1"),
+                s.executeQuery("select * from SYSSPLICE.DUAL"),
                 "Y");
         s.close();
         c.close();
@@ -562,7 +562,7 @@ public class XATransactionTest extends BaseJDBCTestCase {
         c = xac.getConnection();
         s = c.createStatement();
         JDBC.assertSingleValueResultSet(
-                s.executeQuery("select * from sysibm.sysdummy1"),
+                s.executeQuery("select * from SYSSPLICE.DUAL"),
                 "Y");
         s.close();
         c.close();

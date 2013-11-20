@@ -834,12 +834,12 @@ public final class dblook {
 	 * @return true if 1) the user specified a target
 	 *  schema and that target is NOT the same as the
 	 *  received schema name, or 2) the schema is a
-	 *  system schema (SYS, SYSVISUAL, or SYSIBM);
+	 *  system schema (SYS, SYSVISUAL, or SYSSPLICE);
 	 *  false otherwise;
 	 ****/
 
     private static final String[] ignorableSchemaNames = {
-        "SYSIBM",
+        "SYSSPLICE",
         "SYS",
         "SYSVISUAL",
         "SYSCAT",

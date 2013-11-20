@@ -45,7 +45,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     }
 
 
-    protected static final int SYSIBM_PROCEDURES = 1;
+    protected static final int SYSSPLICE_PROCEDURES = 1;
     protected static final int SYSCS_PROCEDURES = 2;
     protected static final int SQLJ_PROCEDURES = 3;
 
@@ -71,9 +71,9 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
         Map/*<UUID,Procedure>*/ procedures = new HashMap/*<UUID,Procedure>*/();
 
-        //add SYSIBM
-        UUID sysIbmUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
-        procedures.put(sysIbmUUID,sysIbmProcedures);
+        //add SYSSPLICE
+        UUID sysSpliceUUID = dictionary.getSysSpliceSchemaDescriptor().getUUID();
+        procedures.put(sysSpliceUUID,sysSpliceProcedures);
 
         //add SQLJ
         UUID sqlJUUID = dictionary.getSchemaDescriptor(
@@ -423,7 +423,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .integer("UNDEPLOY").build()
     });
 
-    private static final List/*<Procedure>*/ sysIbmProcedures = Arrays.asList(new Procedure[]{
+    private static final List/*<Procedure>*/ sysSpliceProcedures = Arrays.asList(new Procedure[]{
             Procedure.newBuilder().name("SQLCAMESSAGE").numOutputParams(2).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)

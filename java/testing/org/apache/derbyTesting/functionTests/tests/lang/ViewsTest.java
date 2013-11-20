@@ -532,7 +532,7 @@ public final class ViewsTest extends BaseJDBCTestCase {
             "select tablename, "
             + "SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from "
             + "sys.systables where CAST(tabletype AS CHAR(1)) = "
-            + "'S' and CAST(tablename AS VARCHAR(128)) != 'SYSDUMMY1' order by tablename");
+            + "'S' and CAST(tablename AS VARCHAR(128)) != 'DUAL' order by tablename");
         
         expColNames = new String [] {"TABLENAME", "2"};
         JDBC.assertColumnNames(rs, expColNames);
@@ -644,7 +644,7 @@ public final class ViewsTest extends BaseJDBCTestCase {
             "select tablename, "
             + "SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from "
             + "sys.systables where CAST(tabletype as CHAR(1)) = "
-            + "'S' and CAST(tablename  as VARCHAR(128)) != 'SYSDUMMY1' order by tablename");
+            + "'S' and CAST(tablename  as VARCHAR(128)) != 'DUAL' order by tablename");
         
         expColNames = new String [] {"TABLENAME", "2"};
         JDBC.assertColumnNames(rs, expColNames);

@@ -67,7 +67,7 @@ public class ExceptionFormatter {
                                     (mysteryException.getErrorCode() == -440 || mysteryException.getErrorCode() == -444)) {
                                 printWriter.println(header + " Unable to obtain message text from server." +
                                         " Only message tokens are available." +
-                                        " The stored procedure SYSIBM.SQLCAMESSAGE is not installed on server." +
+                                        " The stored procedure SYSSPLICE.SQLCAMESSAGE is not installed on server." +
                                         " Contact your DBA.");
                             } else {
                                 printWriter.println(header + " Error occurred while trying to obtain message text from server. " +

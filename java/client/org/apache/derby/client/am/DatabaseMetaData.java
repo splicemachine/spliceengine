@@ -1049,7 +1049,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //------------------------catalog query methods follow--------------------------------------------
 
     // call stored procedure SQLProcedures
-    // SYSIBM.SQLProcedures(
+    // SYSSPLICE.SQLProcedures(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              ProcName    varchar(128),
@@ -1079,7 +1079,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                      String procedureNamePattern) throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPROCEDURES(?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLPROCEDURES(?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1090,7 +1090,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure SQLProcedureCols
-    // SYSIBM.SQLProcedureCols(
+    // SYSSPLICE.SQLProcedureCols(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              ProcName    varchar(128),
@@ -1123,7 +1123,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                            String columnNamePattern) throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPROCEDURECOLS(?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLPROCEDURECOLS(?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1135,7 +1135,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     /** 
      * Get the function names available in the database.  Calls stored
-     * procedure <code>SYSIBM.SQLFunctions(CatalogName
+     * procedure <code>SYSSPLICE.SQLFunctions(CatalogName
      * varchar(128), SchemaName varchar(128), FuncName varchar(128),
      * Options varchar(4000))</code> on the server. This procedure
      * will in turn call
@@ -1146,7 +1146,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * method when connected to an older server, but this will be
      * trigger an exception in
      * <code>checkServerJdbcVersionX()</code>. <p>Upgrade:
-     * <code>SYSIBM.SQLFunctions</code> is added in
+     * <code>SYSSPLICE.SQLFunctions</code> is added in
      * <code>DataDictionaryImpl.create_10_2_system_procedures
      * (TransactionController,UUID)</code> so it will become available
      * in newly created databases and after <b>hard</b> upgrade.
@@ -1200,7 +1200,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         checkServerJdbcVersionX("getFunctions(String,String,String)", 4, 0); 
 
         PreparedStatement cs = 
-            prepareMetaDataQuery("SYSIBM.SQLFUNCTIONS(?,?,?,?)");
+            prepareMetaDataQuery("SYSSPLICE.SQLFUNCTIONS(?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1211,7 +1211,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     /** 
      * Get the function names available in the database.  Calls stored
-     * procedure <code>SYSIBM.SQLFunctionParams(CatalogName
+     * procedure <code>SYSSPLICE.SQLFunctionParams(CatalogName
      * varchar(128), SchemaName varchar(128), FuncName varchar(128),
      * ParamName varchar(128), Options varchar(4000))</code> on the
      * server. This procedure will in turn call
@@ -1222,7 +1222,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
      * be able to call this method when connected to an older server,
      * but this will be trigger an exception in
      * <code>checkServerJdbcVersionX()</code>. <p>Upgrade:
-     * <code>SYSIBM.SQLFunctionParams</code> is added in
+     * <code>SYSSPLICE.SQLFunctionParams</code> is added in
      * <code>DataDictionaryImpl.create_10_2_system_procedures
      * (TransactionController,UUID)</code> so it will become available
      * in newly created databases and after <b>hard</b> upgrade.
@@ -1287,7 +1287,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                 "(String,String,String,String)", 4, 0);
  
         PreparedStatement cs = 
-            prepareMetaDataQuery("SYSIBM.SQLFUNCTIONPARAMS(?,?,?,?,?)");
+            prepareMetaDataQuery("SYSSPLICE.SQLFUNCTIONPARAMS(?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1298,7 +1298,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLTables
-    // SYSIBM.SQLTables(
+    // SYSSPLICE.SQLTables(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1334,7 +1334,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             throw new SqlException(se);
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLTABLES(?,?,?,?,?)");
 
         if (catalog == null) {
             cs.setNullX(1, java.sql.Types.VARCHAR);
@@ -1375,7 +1375,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLTables
-    // SYSIBM.SQLTables(
+    // SYSSPLICE.SQLTables(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1405,7 +1405,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             throw new SqlException(se);
         }
         
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
         return (ResultSet) cs.executeQueryX();
     }
 
@@ -1430,12 +1430,12 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private ResultSet getCatalogsX() throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETCATALOGS=1')");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLTABLES('', '', '', '', 'GETCATALOGS=1')");
         return (ResultSet) cs.executeQueryX();
     }
 
     // call stored procedure SQLTables
-    // SYSIBM.SQLTables(
+    // SYSSPLICE.SQLTables(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1461,7 +1461,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         checkForClosedConnectionX();
 
         PreparedStatement cs = null;
-        cs = prepareMetaDataQuery("SYSIBM.SQLTABLES(?,?,?,?,?)");
+        cs = prepareMetaDataQuery("SYSSPLICE.SQLTABLES(?,?,?,?,?)");
 
         cs.setStringX(1, "");
         cs.setStringX(2, "");
@@ -1479,7 +1479,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure SQLColumns
-    // SYSIBM.SQLColumns(
+    // SYSSPLICE.SQLColumns(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1512,7 +1512,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                   String columnNamePattern) throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLCOLUMNS(?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLCOLUMNS(?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1524,7 +1524,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure SQLColumnPrivileges
-    // SYSIBM.SQLColPrivileges(
+    // SYSSPLICE.SQLColPrivileges(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1562,7 +1562,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLCOLPRIVILEGES(?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLCOLPRIVILEGES(?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schema);
@@ -1574,7 +1574,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure SQLTablePrivileges
-    // SYSIBM.SQLTablePrivileges(
+    // SYSSPLICE.SQLTablePrivileges(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1603,7 +1603,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                           String tableNamePattern) throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLEPRIVILEGES(?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLTABLEPRIVILEGES(?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -1614,7 +1614,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure
-    // SYSIBM.SQLSPECIALCOLUMNS ( IN COLTYPE SMALLINT,
+    // SYSSPLICE.SQLSPECIALCOLUMNS ( IN COLTYPE SMALLINT,
     //                            IN CATALOG_NAME VARCHAR(128),
     //                            IN SCHEMA_NAME  VARCHAR(128),
     //                            IN TABLE_NAME   VARCHAR(128),
@@ -1657,7 +1657,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
 
         cs.setIntX(1, SQL_BEST_ROWID);
         cs.setStringX(2, catalog);
@@ -1703,7 +1703,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLSPECIALCOLUMNS(?,?,?,?,?,?,?)");
 
         cs.setIntX(1, SQL_ROWVER);
         cs.setStringX(2, catalog);
@@ -1717,7 +1717,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLPrimaryKeys
-    // SYSIBM.SQLPrimaryKeys(
+    // SYSSPLICE.SQLPrimaryKeys(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -1752,7 +1752,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLPRIMARYKEYS(?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schema);
@@ -1763,7 +1763,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call storlastGetPrimaryKeysResultSet_ed procedure SQLForeignKeys
-    // SYSIBM.SQLForeignKeys(
+    // SYSSPLICE.SQLForeignKeys(
     //              PKCatalogName varchar(128),
     //              PKSchemaName  varchar(128),
     //              PKTableName   varchar(128),
@@ -1800,7 +1800,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             throw new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
         cs.setStringX(1, "");
         cs.setStringX(2, null);
@@ -1819,7 +1819,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLForeignKeys
-    // SYSIBM.SQLForeignKeys(
+    // SYSSPLICE.SQLForeignKeys(
     //              PKCatalogName varchar(128),
     //              PKSchemaName  varchar(128),
     //              PKTableName   varchar(128),
@@ -1856,7 +1856,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             throw new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
         }        
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schema);
@@ -1875,7 +1875,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLForeignKeys
-    // SYSIBM.SQLForeignKeys(
+    // SYSSPLICE.SQLForeignKeys(
     //              PKCatalogName varchar(128),
     //              PKSchemaName  varchar(128),
     //              PKTableName   varchar(128),
@@ -1928,7 +1928,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
         }
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
 
         cs.setStringX(1, primaryCatalog);
         cs.setStringX(2, primarySchema);
@@ -1941,7 +1941,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
 
     // call stored procedure SQLGetTypeInfo
-    // SYSIBM.SQLGetTypeInfo (IN DATATYPE SMALLINT,
+    // SYSSPLICE.SQLGetTypeInfo (IN DATATYPE SMALLINT,
     //                        IN Options VARCHAR(4000))
     //
     //
@@ -1965,7 +1965,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         checkForClosedConnectionX();
 
         // check if the last call's resultset is closed or not.
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLGETTYPEINFO(?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLGETTYPEINFO(?,?)");
 
         cs.setShortX(1, (short) 0);
         cs.setStringX(2, getOptions());
@@ -1974,7 +1974,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
 
     // call stored procedure SQLStatistics
-    // SYSIBM.SQLStatistics(
+    // SYSSPLICE.SQLStatistics(
     //              CatalogName varchar(128),
     //              SchemaName  varchar(128),
     //              TableName   varchar(128),
@@ -2014,7 +2014,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             throw new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.TABLE_NAME_CANNOT_BE_NULL)); 
         }
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLSTATISTICS(?,?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLSTATISTICS(?,?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schema);
@@ -2064,7 +2064,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                                int[] types) throws SqlException {
         checkForClosedConnectionX();
 
-        PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLUDTS(?,?,?,?,?)");
+        PreparedStatement cs = prepareMetaDataQuery("SYSSPLICE.SQLUDTS(?,?,?,?,?)");
 
         cs.setStringX(1, catalog);
         cs.setStringX(2, schemaPattern);
@@ -2166,7 +2166,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_CAT," +
                 "CAST(NULL AS VARCHAR(128)) AS SUPERTYPE_SCHEM," +
                 "VARCHAR('', 128) AS SUPERTYPE_NAME " +
-                "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR ";
+                "FROM SYSSPLICE.DUAL WHERE 1=0 WITH UR ";
         PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
@@ -2194,7 +2194,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         java.lang.String sql = "SELECT CAST(NULL AS VARCHAR(128)) AS TABLE_CAT," +
                 "CAST(NULL AS VARCHAR(128)) AS TABLE_SCHEM," +
                 "VARCHAR('', 128) AS TABLE_NAME," +
-                "VARCHAR('', 128) AS SUPERTABLE_NAME FROM SYSIBM.SYSDUMMY1 " +
+                "VARCHAR('', 128) AS SUPERTABLE_NAME FROM SYSSPLICE.DUAL " +
                 "WHERE 1=0 WITH UR";
         PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
@@ -2243,7 +2243,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 "CAST(NULL AS VARCHAR(128)) AS SCOPE_SCHEMA," +
                 "CAST(NULL AS VARCHAR(128)) AS SCOPE_TABLE," +
                 "CAST(NULL AS SMALLINT) AS SOURCE_DATA_TYPE " +
-                "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
+                "FROM SYSSPLICE.DUAL WHERE 1=0 WITH UR";
         PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
@@ -2662,7 +2662,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             // These remote calls return a result set containing a single row.
             // Each column in the row corresponds to a particular get meta data info
             // method.
-            PreparedStatement ps = prepareMetaDataQuery("SYSIBM.MetaData()");
+            PreparedStatement ps = prepareMetaDataQuery("SYSSPLICE.MetaData()");
             rs = (ResultSet) ps.executeQueryX();
             rs.nextX();
             int ColumnCount;
@@ -2763,13 +2763,13 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         checkForClosedConnectionX();
 
         // If the server has not implemented support for JDBC 4.0,
-        // SYSIBM.SQLTABLES does not recognize the GETSCHEMAS=2
+        // SYSSPLICE.SQLTABLES does not recognize the GETSCHEMAS=2
         // option, and it will call getTables() instead of
         // getSchemas(). Therefore, check server version and throw an
         // exception if the server does not support JDBC 4.0.
         checkServerJdbcVersionX("getSchemas(String, String)", 4, 0);
 
-        String call = "SYSIBM.SQLTABLES(?, ?, '', '', 'GETSCHEMAS=2')";
+        String call = "SYSSPLICE.SQLTABLES(?, ?, '', '', 'GETSCHEMAS=2')";
         PreparedStatement cs = prepareMetaDataQuery(call);
         if (catalog == null) {
             cs.setNullX(1, java.sql.Types.VARCHAR);
@@ -2833,7 +2833,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "CAST(NULL AS INT) AS MAX_LEN, " +
             "CAST(NULL AS VARCHAR(128)) AS DEFAULT_VALUE, " +
             "CAST(NULL AS VARCHAR(128)) AS DESCRIPTION " +
-            "FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR";
+            "FROM SYSSPLICE.DUAL WHERE 1=0 WITH UR";
         PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();
     }
@@ -2880,7 +2880,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "        CAST(NULL AS VARCHAR(32672)) AS REMARKS, \n" +
             "        CAST(NULL AS INT) AS CHAR_OCTET_LENGTH, \n" +
             "        VARCHAR('NO',128) AS IS_NULLABLE \n" +
-            "    FROM SYSIBM.SYSDUMMY1 WHERE 1=0 WITH UR"
+            "    FROM SYSSPLICE.DUAL WHERE 1=0 WITH UR"
             ;
         PreparedStatement ps = connection_.prepareDynamicCatalogQuery(sql);
         return ps.executeQueryX();

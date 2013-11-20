@@ -72,12 +72,12 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = 0;
         getConnection().setAutoCommit(false);
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBCREATELOCATOR()");
+            ("? = CALL SYSSPLICE.CLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
         cs.close();
-        cs  = prepareCall("CALL SYSIBM.CLOBSETSTRING(?,?,?,?)");
+        cs  = prepareCall("CALL SYSSPLICE.CLOBSETSTRING(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setInt(2, 1);
         cs.setLong(3, testStrLength);
@@ -95,13 +95,13 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the stored procedure SYSIBM.CLOBGETSUBSTRING
+     * Test the stored procedure SYSSPLICE.CLOBGETSUBSTRING
      *
      * @throws an SQLException.
      */
     public void testGetSubStringSP() throws SQLException {
         CallableStatement cs  = prepareCall("? = CALL " +
-            "SYSIBM.CLOBGETSUBSTRING(?,?,?)");
+            "SYSSPLICE.CLOBGETSUBSTRING(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.VARCHAR);
         cs.setInt(2, 1);
         cs.setLong(3, 1);
@@ -113,7 +113,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //from the test string. If found to be equal the stored procedure
         //returns valid values.
         if (testStr.substring(0, 10).compareTo(retVal) != 0) {
-            fail("Error SYSIBM.CLOBGETSUBSTRING returns the wrong string");
+            fail("Error SYSSPLICE.CLOBGETSUBSTRING returns the wrong string");
         }
         cs.close();
     }
@@ -130,7 +130,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = -1;
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBCREATELOCATOR()");
+            ("? = CALL SYSSPLICE.CLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -138,18 +138,18 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //remember in setup a locator is already created
         //hence expected value is 2
         assertEquals("The locator values returned by " +
-            "SYSIBM.CLOBCREATELOCATOR() are incorrect", 2, locator);
+            "SYSSPLICE.CLOBCREATELOCATOR() are incorrect", 2, locator);
         cs.close();
     }
 
     /**
-     * Tests the SYSIBM.CLOBRELEASELOCATOR stored procedure.
+     * Tests the SYSSPLICE.CLOBRELEASELOCATOR stored procedure.
      *
      * @throws SQLException
      */
     public void testClobReleaseLocatorSP() throws SQLException {
         CallableStatement cs  = prepareCall
-            ("CALL SYSIBM.CLOBRELEASELOCATOR(?)");
+            ("CALL SYSSPLICE.CLOBRELEASELOCATOR(?)");
         cs.setInt(1, 1);
         cs.execute();
         cs.close();
@@ -159,7 +159,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //the locator has been properly released.
 
         cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBGETLENGTH(?)");
+            ("? = CALL SYSSPLICE.CLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         try {
@@ -169,35 +169,35 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
             return;
         }
         //The exception was not thrown. The test has failed here.
-        fail("Error the locator was not released by SYSIBM.CLOBRELEASELOCATOR");
+        fail("Error the locator was not released by SYSSPLICE.CLOBRELEASELOCATOR");
         cs.close();
     }
 
     /**
-     * Tests the stored procedure SYSIBM.CLOBGETLENGTH.
+     * Tests the stored procedure SYSSPLICE.CLOBGETLENGTH.
      *
      * @throws SQLException
      */
     public void testClobGetLengthSP() throws SQLException {
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBGETLENGTH(?)");
+            ("? = CALL SYSSPLICE.CLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         cs.executeUpdate();
         //compare the actual length of the test string and the returned length.
-        assertEquals("Error SYSIBM.CLOBGETLENGTH returns " +
+        assertEquals("Error SYSSPLICE.CLOBGETLENGTH returns " +
             "the wrong value for the length of the Clob", testStrLength, cs.getLong(1));
         cs.close();
     }
 
     /**
-     * Tests the stored procedure SYSIBM.CLOBGETPOSITIONFROMSTRING.
+     * Tests the stored procedure SYSSPLICE.CLOBGETPOSITIONFROMSTRING.
      *
      * @throws SQLException.
      */
     public void testClobGetPositionFromStringSP() throws SQLException {
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBGETPOSITIONFROMSTRING(?,?,?)");
+            ("? = CALL SYSSPLICE.CLOBGETPOSITIONFROMSTRING(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         cs.setString(3, new String("simple"));
@@ -206,13 +206,13 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //compare the substring position returned from the stored procedure and that
         //returned from the String class functions. If not found to be equal throw an
         //error.
-        assertEquals("Error SYSIBM.CLOBGETPOSITIONFROMSTRING returns " +
+        assertEquals("Error SYSSPLICE.CLOBGETPOSITIONFROMSTRING returns " +
             "the wrong value for the position of the SUBSTRING", testStr.indexOf("simple")+1, cs.getLong(1));
         cs.close();
     }
 
     /**
-     * Tests the stored procedure SYSIBM.CLOBSETSTRING
+     * Tests the stored procedure SYSSPLICE.CLOBSETSTRING
      *
      * @throws SQLException.
      */
@@ -222,7 +222,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = -1;
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBCREATELOCATOR()");
+            ("? = CALL SYSSPLICE.CLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -233,7 +233,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //been inserted properly.
 
         //Insert the new substring.
-        cs  = prepareCall("CALL SYSIBM.CLOBSETSTRING(?,?,?,?)");
+        cs  = prepareCall("CALL SYSSPLICE.CLOBSETSTRING(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setInt(2, 1);
         cs.setLong(3, newString.length());
@@ -243,7 +243,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
 
         //check the new locator to see if the value has been inserted correctly.
         cs  = prepareCall("? = CALL " +
-            "SYSIBM.CLOBGETSUBSTRING(?,?,?)");
+            "SYSSPLICE.CLOBGETSUBSTRING(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.VARCHAR);
         cs.setInt(2, locator);
         cs.setLong(3, 1);
@@ -254,12 +254,12 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //compare the new string and the string returned by the stored
         //procedure to see of they are the same.
         if (newString.compareTo(retVal) != 0)
-            fail("SYSIBM.CLOBSETSTRING does not insert the right value");
+            fail("SYSSPLICE.CLOBSETSTRING does not insert the right value");
         cs.close();
     }
 
     /**
-     * Test the stored procedure SYSIBM.CLOBGETLENGTH
+     * Test the stored procedure SYSSPLICE.CLOBGETLENGTH
      *
      * @throws SQLException
      */
@@ -271,19 +271,19 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
        //for a not implemented exception being thrown.
        /*
         CallableStatement cs = prepareCall
-            ("CALL SYSIBM.CLOBTRUNCATE(?,?)");
+            ("CALL SYSSPLICE.CLOBTRUNCATE(?,?)");
         cs.setInt(1, 1);
         cs.setLong(2, 10L);
         cs.execute();
         cs.close();
 
         cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBGETLENGTH(?)");
+            ("? = CALL SYSSPLICE.CLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         cs.executeUpdate();
         //compare the actual length of the test string and the returned length.
-        assertEquals("Error SYSIBM.CLOBGETLENGTH returns " +
+        assertEquals("Error SYSSPLICE.CLOBGETLENGTH returns " +
             "the wrong value for the length of the Clob", 10
             , cs.getLong(1));
         cs.close();
@@ -291,7 +291,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         //----------TO BE ENABLED LATER------------------------------
 
         CallableStatement cs = prepareCall
-            ("CALL SYSIBM.CLOBTRUNCATE(?,?)");
+            ("CALL SYSSPLICE.CLOBTRUNCATE(?,?)");
         cs.setInt(1, 1);
         cs.setLong(2, 10L);
         try {
@@ -307,7 +307,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Tests the SYSIBM.CLOBGETPOSITIONFROMLOCATOR stored procedure.
+     * Tests the SYSSPLICE.CLOBGETPOSITIONFROMLOCATOR stored procedure.
      *
      * @throws SQLException.
      */
@@ -317,13 +317,13 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         String newStr = "simple";
 
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBCREATELOCATOR()");
+            ("? = CALL SYSSPLICE.CLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
         cs.close();
 
-        cs  = prepareCall("CALL SYSIBM.CLOBSETSTRING(?,?,?,?)");
+        cs  = prepareCall("CALL SYSSPLICE.CLOBSETSTRING(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setInt(2, 1);
         cs.setLong(3, newStr.length());
@@ -332,7 +332,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
 
         cs.close();
         cs  = prepareCall
-            ("? = CALL SYSIBM.CLOBGETPOSITIONFROMLOCATOR(?,?,?)");
+            ("? = CALL SYSSPLICE.CLOBGETPOSITIONFROMLOCATOR(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         //find the position of the bytes corresponding to
@@ -342,7 +342,7 @@ public class ClobStoredProcedureTest extends BaseJDBCTestCase {
         cs.executeUpdate();
         //check to see that the returned position and the expected position
         //of the substring simple in the string are matching.
-        assertEquals("Error SYSIBM.CLOBGETPOSITIONFROMLOCATOR returns " +
+        assertEquals("Error SYSSPLICE.CLOBGETPOSITIONFROMLOCATOR returns " +
             "the wrong value for the position of the Clob", 8, cs.getLong(1));
         cs.close();
     }

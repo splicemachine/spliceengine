@@ -865,7 +865,7 @@ public class dblook_test {
 	}
 
     private static final String[] ignorableSchemaNames = {
-        "SYSIBM",
+        "SYSSPLICE",
         "SYS",
         "SYSVISUAL",
         "SYSCAT",

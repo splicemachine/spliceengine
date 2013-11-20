@@ -358,16 +358,16 @@ public	class DD_Version implements	Formatable
 	
 		if (fromMajorVersionNumber <= DataDictionary.DD_VERSION_CS_5_1)
 		{
-			// drop sps in SYSIBM, SYSIBM, recreate SYSIBM, SYSDUMMY1, populate SYSDUMMY1, create procs
+			// drop sps in SYSSPLICE, SYSSPLICE, recreate SYSSPLICE, DUAL, populate DUAL, create procs
 			dropJDBCMetadataSPSes(tc, true);
-			SchemaDescriptor sd = bootingDictionary.getSchemaDescriptor("SYSIBM", null, false);
+			SchemaDescriptor sd = bootingDictionary.getSchemaDescriptor("SYSSPLICE", null, false);
 			if (sd != null)
-				bootingDictionary.dropSchemaDescriptor("SYSIBM", tc);
-			sd = bootingDictionary.getSysIBMSchemaDescriptor();
+				bootingDictionary.dropSchemaDescriptor("SYSSPLICE", tc);
+			sd = bootingDictionary.getSysSpliceSchemaDescriptor();
 			bootingDictionary.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
-			bootingDictionary.upgradeMakeCatalog(tc, DataDictionary.SYSDUMMY1_CATALOG_NUM);
-			bootingDictionary.populateSYSDUMMY1(tc);
-			bootingDictionary.create_SYSIBM_procedures(tc);
+			bootingDictionary.upgradeMakeCatalog(tc, DataDictionary.DUAL_CATALOG_NUM);
+			bootingDictionary.populateDUAL(tc);
+			bootingDictionary.create_SYSSPLICE_procedures(tc);
 			bootingDictionary.createSystemSps(tc);
 		}
 		
@@ -465,7 +465,7 @@ public	class DD_Version implements	Formatable
         }
 
         //
-        // Change the return type of SYSIBM.CLOBGETSUBSTRING if necessary. See
+        // Change the return type of SYSSPLICE.CLOBGETSUBSTRING if necessary. See
         // DERBY-4214. That function was added in 10.3 and the return type was
         // changed (but not upgraded) in 10.5. We can't distinguish
         // between databases which were originally created by 10.5 and databases

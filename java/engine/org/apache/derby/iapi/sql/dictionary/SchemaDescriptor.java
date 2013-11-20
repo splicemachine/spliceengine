@@ -72,7 +72,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
      */
     public static final	String	STD_SYSTEM_SCHEMA_NAME      = "SYS";
 
-    public static final	String	IBM_SYSTEM_SCHEMA_NAME      = "SYSIBM";
+    public static final	String	IBM_SYSTEM_SCHEMA_NAME      = "SYSSPLICE";
 
     /*
      * Names of system schemas.
@@ -134,7 +134,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
         "c013800d-00fb-2648-07ec-000000134f30";
 	public static final	String SYSTEM_SCHEMA_UUID =  
         "8000000d-00d0-fd77-3ed8-000a0a0b1900";
-	public static final	String SYSIBM_SCHEMA_UUID =  
+	public static final	String SYSSPLICE_SCHEMA_UUID =  
         "c013800d-00f8-5b53-28a9-00000019ed88";
 	public static final	String DEFAULT_SCHEMA_UUID = 
         "80000000-00d2-b38f-4cda-000a0a412c00";
@@ -161,7 +161,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 	private String			aid;
 
     private boolean isSystem;
-    private boolean isSYSIBM;
+    private boolean isSYSSPLICE;
     
     /**
      * For system schemas, the only possible value for collation type is
@@ -184,7 +184,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
      * @param aid           The authorization id
 	 * @param oid	        The object id
      * @param isSystem	    boolean, true iff this is a system schema, like SYS,
-     *                      SYSIBM, SYSCAT, SYSFUN, ....
+     *                      SYSSPLICE, SYSCAT, SYSFUN, ....
 	 */
 	public SchemaDescriptor(
     DataDictionary  dataDictionary, 
@@ -199,7 +199,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		this.aid = aid;
 		this.oid = oid;
         this.isSystem = isSystem;
-		isSYSIBM = isSystem && IBM_SYSTEM_SCHEMA_NAME.equals(name);
+		isSYSSPLICE = isSystem && IBM_SYSTEM_SCHEMA_NAME.equals(name);
 		if (isSystem)
 			collationType = dataDictionary.getCollationTypeOfSystemSchemas();
 		else
@@ -356,7 +356,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 	 * Indicate whether this is a system schema or not
      *
      * Examples of system schema's include: 
-     *      SYS, SYSIBM, SYSCAT, SYSFUN, SYSPROC, SYSSTAT, and SYSCS_DIAG 
+     *      SYS, SYSSPLICE, SYSCAT, SYSFUN, SYSPROC, SYSSTAT, and SYSCS_DIAG 
 	 *
 	 * @return true/false
 	 */
@@ -381,9 +381,9 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		return false;
 	}
 
-	public boolean isSYSIBM()
+	public boolean isSYSSPLICE()
 	{
-		return isSYSIBM;
+		return isSYSSPLICE;
 	}
 
 	/**
@@ -464,7 +464,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		aid = input.readUTF();
 		oid = (UUID) input.readObject();
 		isSystem = input.readBoolean();
-		isSYSIBM = input.readBoolean();
+		isSYSSPLICE = input.readBoolean();
 		collationType = input.readInt();
 	}
 
@@ -473,7 +473,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		output.writeUTF(aid);
 		output.writeObject(oid);		
 		output.writeBoolean(isSystem);
-		output.writeBoolean(isSYSIBM);
+		output.writeBoolean(isSYSSPLICE);
 		output.writeInt(collationType);		
 	}
 	public void setDataDictionary(DataDictionary dataDictionary) {

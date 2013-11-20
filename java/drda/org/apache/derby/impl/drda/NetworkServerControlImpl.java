@@ -119,7 +119,7 @@ public final class NetworkServerControlImpl {
 	public final static int DASHARG_DATABASE = 1;
 	public final static int DASHARG_USER = 2;
 	public final static int DASHARG_PASSWORD = 3;
-	public final static int DASHARG_LOADSYSIBM = 4;
+	public final static int DASHARG_LOADSYSSPLICE = 4;
 	public final static int DASHARG_ENCALG = 5;
 	public final static int DASHARG_ENCPRV = 6;
 	public final static int DASHARG_BOOTPASSWORD = 7;
@@ -2470,7 +2470,7 @@ public final class NetworkServerControlImpl {
 					consolePropertyMessage("DRDA_MissingValue.U", 
 						"DRDA_EncryptionProvider.I");
 				break;
-			case DASHARG_LOADSYSIBM:
+			case DASHARG_LOADSYSSPLICE:
 				break;
 			case DASHARG_SESSION:
 				if (pos < args.length)

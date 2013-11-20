@@ -125,7 +125,7 @@ public class Changes10_6 extends UpgradeChange {
     }
 
     /**
-     * Make sure that SYSIBM.CLOBGETSUBSTRING has the correct return value.
+     * Make sure that SYSSPLICE.CLOBGETSUBSTRING has the correct return value.
      * See https://issues.apache.org/jira/browse/DERBY-4214
      */
     public void testCLOBGETSUBSTRING() throws Exception
@@ -149,7 +149,7 @@ public class Changes10_6 extends UpgradeChange {
              "select a.aliasinfo\n" +
              "from sys.sysschemas s, sys.sysaliases a\n" +
              "where s.schemaid = a.schemaid\n" +
-             "and s.schemaname = 'SYSIBM'\n" +
+             "and s.schemaname = 'SYSSPLICE'\n" +
              "and alias = 'CLOBGETSUBSTRING'\n"
              );
         rs.next();

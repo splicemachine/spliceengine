@@ -116,7 +116,7 @@ class CallableLocatorProcedures
             if (blobCreateLocatorCall == null ||
                     !blobCreateLocatorCall.openOnClient_) {
                 blobCreateLocatorCall = connection.prepareCallX
-                        ("? = CALL SYSIBM.BLOBCREATELOCATOR()",
+                        ("? = CALL SYSSPLICE.BLOBCREATELOCATOR()",
                         java.sql.ResultSet.TYPE_FORWARD_ONLY,
                         java.sql.ResultSet.CONCUR_READ_ONLY,
                         connection.holdability());
@@ -168,7 +168,7 @@ class CallableLocatorProcedures
         if (blobReleaseLocatorCall == null ||
                 !blobReleaseLocatorCall.openOnClient_) {
             blobReleaseLocatorCall = connection.prepareCallX
-                ("CALL SYSIBM.BLOBRELEASELOCATOR(?)",
+                ("CALL SYSSPLICE.BLOBRELEASELOCATOR(?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -205,7 +205,7 @@ class CallableLocatorProcedures
         if (blobGetPositionFromLocatorCall == null ||
                 !blobGetPositionFromLocatorCall.openOnClient_) {
             blobGetPositionFromLocatorCall = connection.prepareCallX
-                ("? = CALL SYSIBM.BLOBGETPOSITIONFROMLOCATOR(?, ?, ?)",
+                ("? = CALL SYSSPLICE.BLOBGETPOSITIONFROMLOCATOR(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -333,7 +333,7 @@ class CallableLocatorProcedures
         if (blobGetPositionFromBytesCall == null ||
                 !blobGetPositionFromBytesCall.openOnClient_) {
             blobGetPositionFromBytesCall = connection.prepareCallX
-                ("? = CALL SYSIBM.BLOBGETPOSITIONFROMBYTES(?, ?, ?)",
+                ("? = CALL SYSSPLICE.BLOBGETPOSITIONFROMBYTES(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -377,7 +377,7 @@ class CallableLocatorProcedures
     {
         if (blobGetLengthCall == null || !blobGetLengthCall.openOnClient_) {
             blobGetLengthCall = connection.prepareCallX
-                ("? = CALL SYSIBM.BLOBGETLENGTH(?)",
+                ("? = CALL SYSSPLICE.BLOBGETLENGTH(?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -427,7 +427,7 @@ class CallableLocatorProcedures
         
         if (blobGetBytesCall == null || !blobGetBytesCall.openOnClient_) {
             blobGetBytesCall = connection.prepareCallX
-                ("? = CALL SYSIBM.BLOBGETBYTES(?, ?, ?)",
+                ("? = CALL SYSSPLICE.BLOBGETBYTES(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -501,7 +501,7 @@ class CallableLocatorProcedures
     {
         if (blobSetBytesCall == null || !blobSetBytesCall.openOnClient_) {
             blobSetBytesCall = connection.prepareCallX
-                ("CALL SYSIBM.BLOBSETBYTES(?, ?, ?, ?)",
+                ("CALL SYSSPLICE.BLOBSETBYTES(?, ?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -557,7 +557,7 @@ class CallableLocatorProcedures
     {
         if (blobTruncateCall == null || !blobTruncateCall.openOnClient_) {
             blobTruncateCall = connection.prepareCallX
-                ("CALL SYSIBM.BLOBTRUNCATE(?, ?)",
+                ("CALL SYSSPLICE.BLOBTRUNCATE(?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -597,7 +597,7 @@ class CallableLocatorProcedures
             if (clobCreateLocatorCall == null ||
                     !clobCreateLocatorCall.openOnClient_) {
                 clobCreateLocatorCall = connection.prepareCallX
-                        ("? = CALL SYSIBM.CLOBCREATELOCATOR()",
+                        ("? = CALL SYSSPLICE.CLOBCREATELOCATOR()",
                         java.sql.ResultSet.TYPE_FORWARD_ONLY,
                         java.sql.ResultSet.CONCUR_READ_ONLY,
                         java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -649,7 +649,7 @@ class CallableLocatorProcedures
         if (clobReleaseLocatorCall == null ||
                 !clobReleaseLocatorCall.openOnClient_) {
             clobReleaseLocatorCall = connection.prepareCallX
-                ("CALL SYSIBM.CLOBRELEASELOCATOR(?)",
+                ("CALL SYSSPLICE.CLOBRELEASELOCATOR(?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -769,7 +769,7 @@ class CallableLocatorProcedures
         if (clobGetPositionFromStringCall == null ||
                 !clobGetPositionFromStringCall.openOnClient_) {
             clobGetPositionFromStringCall = connection.prepareCallX
-                ("? = CALL SYSIBM.CLOBGETPOSITIONFROMSTRING(?, ?, ?)",
+                ("? = CALL SYSSPLICE.CLOBGETPOSITIONFROMSTRING(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -819,7 +819,7 @@ class CallableLocatorProcedures
         if (clobGetPositionFromLocatorCall == null ||
                 !clobGetPositionFromLocatorCall.openOnClient_) {
             clobGetPositionFromLocatorCall = connection.prepareCallX
-                ("? = CALL SYSIBM.CLOBGETPOSITIONFROMLOCATOR(?, ?, ?)",
+                ("? = CALL SYSSPLICE.CLOBGETPOSITIONFROMLOCATOR(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -853,7 +853,7 @@ class CallableLocatorProcedures
     {
         if (clobGetLengthCall == null || !clobGetLengthCall.openOnClient_) {
             clobGetLengthCall = connection.prepareCallX
-                ("? = CALL SYSIBM.CLOBGETLENGTH(?)",
+                ("? = CALL SYSSPLICE.CLOBGETLENGTH(?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -904,7 +904,7 @@ class CallableLocatorProcedures
         if (clobGetSubStringCall == null ||
                 !clobGetSubStringCall.openOnClient_) {
             clobGetSubStringCall = connection.prepareCallX
-                ("? = CALL SYSIBM.CLOBGETSUBSTRING(?, ?, ?)",
+                ("? = CALL SYSSPLICE.CLOBGETSUBSTRING(?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -980,7 +980,7 @@ class CallableLocatorProcedures
     {
         if (clobSetStringCall == null || !clobSetStringCall.openOnClient_) {
             clobSetStringCall = connection.prepareCallX
-                ("CALL SYSIBM.CLOBSETSTRING(?, ?, ?, ?)",
+                ("CALL SYSSPLICE.CLOBSETSTRING(?, ?, ?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -1032,7 +1032,7 @@ class CallableLocatorProcedures
     {
         if (clobTruncateCall == null || !clobTruncateCall.openOnClient_) {
             clobTruncateCall = connection.prepareCallX
-                ("CALL SYSIBM.CLOBTRUNCATE(?, ?)",
+                ("CALL SYSSPLICE.CLOBTRUNCATE(?, ?)",
                  java.sql.ResultSet.TYPE_FORWARD_ONLY, 
                  java.sql.ResultSet.CONCUR_READ_ONLY, 
                  java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT);

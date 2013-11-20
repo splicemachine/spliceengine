@@ -854,7 +854,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         expRS = new String [][]
         {
-            {"SYSIBM", "TEST_DBO"},
+            {"SYSSPLICE", "TEST_DBO"},
             {"SYS", "TEST_DBO"},
             {"SYSCAT", "TEST_DBO"},
             {"SYSFUN", "TEST_DBO"},
@@ -1014,10 +1014,10 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         // expected fail
         
         assertStatementError("42509", st,
-            "grant execute on procedure sysibm.sqlprocedures to sam");
+            "grant execute on procedure SYSSPLICE.sqlprocedures to sam");
         
         assertStatementError("42509", st,
-            " revoke execute on procedure sysibm.sqlcamessage "
+            " revoke execute on procedure SYSSPLICE.sqlcamessage "
             + "from public restrict");
         
         // Try positive tests
@@ -7798,7 +7798,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
             {"SYSCONGLOMERATES"},
             {"SYSCONSTRAINTS"},
             {"SYSDEPENDS"},
-            {"SYSDUMMY1"},
+            {"DUAL"},
             {"SYSFILES"},
             {"SYSFOREIGNKEYS"},
             {"SYSKEYS"},

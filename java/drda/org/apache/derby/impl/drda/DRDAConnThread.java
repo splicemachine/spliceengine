@@ -6176,7 +6176,7 @@ class DRDAConnThread extends Thread {
 	/**
 	 * Create error message or message argements to return to client.  
 	 * The SQLERRMC will normally be passed back  to the server in a call 
-	 * to the SYSIBM.SQLCAMESSAGE but for severe exceptions the stored procedure 
+	 * to the SYSSPLICE.SQLCAMESSAGE but for severe exceptions the stored procedure 
 	 * call cannot be made. So for Severe messages we will just send the message text.
 	 * 
 	 * This method will also truncate the value according the client capacity.
@@ -6184,7 +6184,7 @@ class DRDAConnThread extends Thread {
 	 * 
      * Server sends the sqlerrmc using UTF8 encoding to the client.
      * To get the message, client sends back information to the server
-     * calling SYSIBM.SQLCAMESSAGE (see Sqlca.getMessage).  Several parameters 
+     * calling SYSSPLICE.SQLCAMESSAGE (see Sqlca.getMessage).  Several parameters 
      * are sent to this procedure including the locale, the sqlerrmc that the 
      * client received from the server. 
      * On server side, the procedure SQLCAMESSAGE in SystemProcedures then calls
@@ -6198,7 +6198,7 @@ class DRDAConnThread extends Thread {
 	 * @param se  SQLException to build SQLERRMC
 	 *  
 	 * @return  String which is either the message arguments to be passed to 
-	 *          SYSIBM.SQLCAMESSAGE or just message text for severe errors.  
+	 *          SYSSPLICE.SQLCAMESSAGE or just message text for severe errors.  
 	 */
 	private String buildSqlerrmc (SQLException se) 
 	{
@@ -6214,7 +6214,7 @@ class DRDAConnThread extends Thread {
             sqlerrmc = buildDataTruncationSqlerrmc((DataTruncation) se);
 		else {
 			// If this is not an EmbedSQLException or is a severe excecption where
-			// we have no hope of succussfully calling the SYSIBM.SQLCAMESSAGE send
+			// we have no hope of succussfully calling the SYSSPLICE.SQLCAMESSAGE send
 			// preformatted message using the server locale
 			sqlerrmc = buildPreformattedSqlerrmc(se);
 			}

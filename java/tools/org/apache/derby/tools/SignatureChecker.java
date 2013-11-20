@@ -72,7 +72,7 @@ public class SignatureChecker
     {
         "SQLJ",
         "SYSCS_UTIL",
-        "SYSIBM",
+        "SYSSPLICE",
     };
 
 

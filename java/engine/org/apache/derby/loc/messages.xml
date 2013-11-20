@@ -197,7 +197,7 @@ Guide.
 
             <msg>
                 <name>01J12</name>
-                <text>Unable to obtain message text from server. See the next exception. The stored procedure SYSIBM.SQLCAMESSAGE is not installed on the server. Please contact your database administrator.</text>
+                <text>Unable to obtain message text from server. See the next exception. The stored procedure SYSSPLICE.SQLCAMESSAGE is not installed on the server. Please contact your database administrator.</text>
             </msg>
 
             <msg>
