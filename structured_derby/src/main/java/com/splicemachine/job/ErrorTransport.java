@@ -95,7 +95,7 @@ public class ErrorTransport implements Externalizable{
 
         try {
             Class<? extends Throwable> errorClazz = (Class<? extends Throwable>) Class.forName(args[0].toString());
-            return errorClazz.getConstructor(String.class).newInstance(messageId);
+            return errorClazz.getConstructor(String.class).newInstance((messageId != null ? messageId : "null"));
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {

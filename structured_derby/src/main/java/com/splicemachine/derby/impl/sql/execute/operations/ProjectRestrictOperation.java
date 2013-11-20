@@ -181,7 +181,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
         // Copy any mapped columns from the source
         for (int index = 0; index < projectMapping.length; index++) {
-            if (projectMapping[index] != -1) {
+            if (sourceRow != null && projectMapping[index] != -1) {
                 DataValueDescriptor dvd = sourceRow.getColumn(projectMapping[index]);
                 // See if the column has been marked for cloning.
                 // If the value isn't a stream, don't bother cloning it.
