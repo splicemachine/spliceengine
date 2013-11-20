@@ -310,8 +310,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
-		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(), (this.rightResultSet).getExecRowDefinition(),
-						wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+				if(mergedRow==null)
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
+		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(),(this.rightResultSet).getExecRowDefinition(),
+                wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
 	}
 

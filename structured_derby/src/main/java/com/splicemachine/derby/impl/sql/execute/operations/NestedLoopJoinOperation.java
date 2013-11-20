@@ -106,13 +106,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
+		}
 
-    @Override
-	public ExecRow getExecRowDefinition() throws StandardException {
-		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
-		return mergedRow;
-	}
+		@Override
+		public ExecRow getExecRowDefinition() throws StandardException {
+				if(mergedRow==null)
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
+				JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
+				return mergedRow;
+		}
 	
 	@Override
 	public String toString() {
