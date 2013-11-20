@@ -66,7 +66,7 @@ public class MiscOperationIT extends SpliceUnitTest {
 	@Test 
 	public void testTimestampFromSysDummy() throws Exception {
 		Statement s = methodWatcher.getStatement();
-		ResultSet rs = s.executeQuery("select current_timestamp from SYSIBM.SYSDUMMY1");
+		ResultSet rs = s.executeQuery("select current_timestamp from SYSSPLICE.DUAL");
 		Assert.assertTrue("No timestamp returned",rs.next());
 	}
 	

@@ -86,7 +86,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
     @Test
 	public void testCallSysSchemas() throws Exception {
     		methodWatcher.getOrCreateConnection().setAutoCommit(true);
-			CallableStatement cs = methodWatcher.prepareCall("CALL SYSIBM.METADATA()");			
+			CallableStatement cs = methodWatcher.prepareCall("CALL SYSSPLICE.METADATA()");			
 			ResultSet rs = cs.executeQuery();			
 			int count = 0;
 			while (rs.next()) {
@@ -99,7 +99,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 
     @Ignore
     public void testCallGetTypeInfo() throws Exception{
-            CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLGETTYPEINFO(0,null)");
+            CallableStatement cs = methodWatcher.prepareCall("call SYSSPLICE.SQLGETTYPEINFO(0,null)");
             ResultSet rs = cs.executeQuery();
             while(rs.next()){ // TODO No test
             }
@@ -108,7 +108,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 
     @Test
     public void testCallSQLTABLES() throws Exception{
-            CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLTABLES(null,'SYS',null,'SYSTEM TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
+            CallableStatement cs = methodWatcher.prepareCall("call SYSSPLICE.SQLTABLES(null,'SYS',null,'SYSTEM TABLE',null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = cs.executeQuery();
             int count =0;
             while(rs.next()){
@@ -123,7 +123,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 	
     @Test
     public void testCallSQLTABLESInAppSchema() throws Exception{
-            CallableStatement cs = methodWatcher.prepareCall("call SYSIBM.SQLTABLES(null,'"+CallStatementOperationIT.class.getSimpleName().toUpperCase()+"',null,null,null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
+            CallableStatement cs = methodWatcher.prepareCall("call SYSSPLICE.SQLTABLES(null,'"+CallStatementOperationIT.class.getSimpleName().toUpperCase()+"',null,null,null)",ResultSet.TYPE_FORWARD_ONLY,ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = cs.executeQuery();
             int count =0;
             while(rs.next()){

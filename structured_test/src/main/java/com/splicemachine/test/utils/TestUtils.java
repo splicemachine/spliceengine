@@ -73,7 +73,7 @@ public class TestUtils {
             " ON (SYS.SYSTABLES.SCHEMAID = SYS.SYSSCHEMAS.SCHEMAID) WHERE SYS.SYSSCHEMAS.SCHEMANAME = '%s'";
 
     private static final Set<String> verbotten =
-            Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT");
+            Sets.newHashSet("SYS", "APP", "NULLID", "SQLJ", "SYSCAT", "SYSCS_DIAG", "SYSCS_UTIL", "SYSFUN", "SYSSPLICE", "SYSPROC", "SYSSTAT");
     
     public static void cleanup(List<TestRunner> runners, PrintStream out) throws Exception {
         // TODO: Still not quite working.  See Derby's JDBC.dropSchema(DatabaseMetaData dmd, String schema)
