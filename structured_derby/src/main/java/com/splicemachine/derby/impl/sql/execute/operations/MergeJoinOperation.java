@@ -99,7 +99,7 @@ public class MergeJoinOperation extends JoinOperation {
     public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if (joiner == null){
             // Upon first call, init up the joined rows source
-            rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(rightResultSet.executeScan()));
+            rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(rightResultSet.executeScan(spliceRuntimeContext)));
             leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>(){
                 @Override
                 public ExecRow call() throws Exception {
