@@ -148,7 +148,7 @@ public class AggregateBuffer {
 
         if (!aggregate.isInitialized()){
             keys[position] = groupingKey;
-            aggregate.initialize(nextRow.getClone()); // Must clone if you are going into the buffer...
+            aggregate.initialize(nextRow);
             currentSize++;
         }else
             aggregate.merge(nextRow);

@@ -105,7 +105,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
     private GroupedRow buffer(ExecRow nextRow) throws StandardException {
         GroupedRow firstEvicted = null;
         if(!isRollup){
-            return buffer.buffer(nextRow);
+            return buffer.buffer(nextRow.getClone());
         }else{
             rollupRows(nextRow);
             for(ExecRow rollup:rollupRows){
@@ -242,7 +242,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
             //do nothing if we ignore the non-aggregates
             if(ignoreNonAggregates && !aggregateBuffer.hasAggregates()) return null;
 
-            return aggregateBuffer.add(groupingKey(row),row);
+            return aggregateBuffer.add(groupingKey(row),clone? row.getClone():row);
         }
 
         @Override
