@@ -1,14 +1,13 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import java.io.IOException;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
