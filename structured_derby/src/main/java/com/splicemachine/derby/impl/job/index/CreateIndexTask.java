@@ -20,7 +20,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
@@ -29,11 +28,9 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -93,10 +90,12 @@ public class CreateIndexTask extends ZkTask {
         super.writeExternal(out);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
-        out.writeObject(indexedColumns);
+        out.writeInt(indexedColumns.wlen);
+        ArrayUtil.writeLongArray(out, indexedColumns.bits);
         ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
-        out.writeObject(descColumns);
+        out.writeInt(descColumns.wlen);
+        ArrayUtil.writeLongArray(out, descColumns.bits);        
     }
 
     @Override
@@ -104,10 +103,13 @@ public class CreateIndexTask extends ZkTask {
         super.readExternal(in);
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
+        int numWords = in.readInt();
+        indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
         indexedColumns = (BitSet)in.readObject();
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
-        descColumns = (BitSet)in.readObject();
+        numWords = in.readInt();
+        descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
     }
 
     @Override
