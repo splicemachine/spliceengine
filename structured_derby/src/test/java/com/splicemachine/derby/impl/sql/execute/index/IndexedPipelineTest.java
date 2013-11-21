@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -16,6 +17,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.Snowflake;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -26,12 +28,14 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -43,7 +47,7 @@ public class IndexedPipelineTest {
 
     @Test
     public void testClosingBeforeFinishWritesNoData() throws Exception {
-        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
 
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
@@ -53,7 +57,7 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
-        final List<KVPair> indexedRows = Lists.newArrayList();
+        final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
@@ -92,7 +96,7 @@ public class IndexedPipelineTest {
 
         EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
-        List<KVPair> mainTablePairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> mainTablePairs = ObjectArrayList.newInstance();
         for(int i=0;i<11;i++){
             fieldEncoder.reset();
             fieldEncoder.encodeNext(i);
@@ -121,7 +125,7 @@ public class IndexedPipelineTest {
     }
     @Test
     public void testClosingInMiddleOfWritesWritesNoData() throws Exception {
-        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getNotServingRegionAnswer());
 
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
@@ -131,7 +135,7 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
-        final List<KVPair> indexedRows = Lists.newArrayList();
+        final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
@@ -170,7 +174,7 @@ public class IndexedPipelineTest {
 
         EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
-        List<KVPair> mainTablePairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> mainTablePairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
             fieldEncoder.reset();
             fieldEncoder.encodeNext(i);
@@ -183,7 +187,7 @@ public class IndexedPipelineTest {
 
         //close the region
         when(testRegion.isClosing()).thenReturn(true);
-        List<KVPair> failedPairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> failedPairs = ObjectArrayList.newInstance();
         for(int i=10;i<20;i++){
             fieldEncoder.reset();
             fieldEncoder.encodeNext(i);
@@ -213,7 +217,7 @@ public class IndexedPipelineTest {
 
     @Test
     public void testWrongRegionRowsDoNotGetWritten() throws Exception {
-        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
         when(testRegion.getRegionInfo().getEndKey()).thenReturn(Encoding.encode(10));
 
@@ -224,7 +228,7 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
-        final List<KVPair> indexedRows = Lists.newArrayList();
+        final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
@@ -263,7 +267,7 @@ public class IndexedPipelineTest {
 
         EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
-        List<KVPair> mainTablePairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> mainTablePairs = ObjectArrayList.newInstance();
         for(int i=0;i<10;i++){
             fieldEncoder.reset();
             fieldEncoder.encodeNext(i);
@@ -305,7 +309,7 @@ public class IndexedPipelineTest {
 
     @Test
     public void testClosingRegionBeforeWritingDoesNotWriteAnywhere() throws Exception {
-        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
         when(testRegion.isClosed()).thenReturn(true);
 
@@ -316,7 +320,7 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
-        final List<KVPair> indexedRows = Lists.newArrayList();
+        final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
@@ -353,7 +357,7 @@ public class IndexedPipelineTest {
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
-        List<KVPair> mainTablePairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> mainTablePairs = ObjectArrayList.newInstance();
         EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
         for(int i=0;i<11;i++){
@@ -384,7 +388,7 @@ public class IndexedPipelineTest {
 
     @Test
     public void testBulkWriteUpdatesBothIndexAndRegion() throws Exception {
-        final List<Mutation> mainTableWrites = Lists.newArrayList();
+        final ObjectArrayList<Mutation> mainTableWrites = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(mainTableWrites));
 
 
@@ -395,7 +399,7 @@ public class IndexedPipelineTest {
 
         //get a fake PipingWriteBuffer
         final String txnId = "1";
-        final List<KVPair> indexedRows = Lists.newArrayList();
+        final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
         final Writer fakeWriter = mockSuccessWriter(indexedRows);
 
         final RegionCache fakeCache = mockRegionCache();
@@ -432,7 +436,7 @@ public class IndexedPipelineTest {
         testCtx.addLast(regionHandler);
         testCtx.addLast(writeHandler);
 
-        List<KVPair> mainTablePairs = Lists.newArrayList();
+        ObjectArrayList<KVPair> mainTablePairs = ObjectArrayList.newInstance();
         EntryEncoder encoder = EntryEncoder.create(SpliceDriver.getKryoPool(), index);
         MultiFieldEncoder fieldEncoder = encoder.getEntryEncoder();
         for(int i=0;i<11;i++){
@@ -468,7 +472,7 @@ public class IndexedPipelineTest {
         assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
     }
 
-    private Writer mockSuccessWriter(final List<KVPair> indexedRows) throws ExecutionException {
+    private Writer mockSuccessWriter(final ObjectArrayList<KVPair> indexedRows) throws ExecutionException {
         Writer fakeWriter = mock(Writer.class);
         when(fakeWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
                 .then(new Answer<Future<Void>>() {
@@ -517,15 +521,19 @@ public class IndexedPipelineTest {
         return writeHandler;
     }
 
-    private void assertMainAndIndexRowsMatch(List<Mutation> mainTableWrites,
-                                             List<KVPair> indexedRows,
-                                             List<KVPair> mainTablePairs,
+    private void assertMainAndIndexRowsMatch(ObjectArrayList<Mutation> mainTableWrites,
+    											ObjectArrayList<KVPair> indexedRows,
+    											ObjectArrayList<KVPair> mainTablePairs,
                                              Map<KVPair, WriteResult> finishedResults,
                                              IndexTransformer transformer) throws IOException {
-        for(KVPair mainTablePair:mainTablePairs){
+    	Object[] pairBuffer = mainTablePairs.buffer;
+    	for (int i = 0; i<mainTablePairs.size();i++) {
+        	KVPair mainTablePair = (KVPair) pairBuffer[i];
             Assert.assertEquals("Incorrect result code!", WriteResult.Code.SUCCESS, finishedResults.get(mainTablePair).getCode());
             boolean found = false;
-            for(Mutation finalMutation:mainTableWrites){
+        	Object[] writeBuffer = mainTableWrites.buffer;
+        	for (int j = 0; j<mainTableWrites.size();j++) {
+        		Mutation finalMutation = (Mutation) writeBuffer[j];
                 found = Bytes.equals(finalMutation.getRow(), mainTablePair.getRow());
                 if(found)
                     break;
@@ -535,18 +543,20 @@ public class IndexedPipelineTest {
             KVPair transformedRow = transformer.translate(mainTablePair);
             byte[] indexRow = transformedRow.getRow();
             int zeroIndex = 0;
-            for(int i=0;i<indexRow.length;i++){
-                if(indexRow[i]==0){
-                    zeroIndex=i;
+            for(int k=0;k<indexRow.length;k++){
+                if(indexRow[k]==0){
+                    zeroIndex=k;
                     break;
                 }
             }
             int numMatches = 0;
-            for(KVPair finalMutation:indexedRows){
+        	Object[] indexBuffer = indexedRows.buffer;
+        	for (int l=0;l<indexedRows.size();l++) {
+        		KVPair finalMutation = (KVPair) indexBuffer[l];
                 byte[] mutationRow = finalMutation.getRow();
                 found=true;
-                for(int i=0;i<zeroIndex&&i<mutationRow.length;i++){
-                    if(indexRow[i]!=mutationRow[i]){
+                for(int m=0;m<zeroIndex&&m<mutationRow.length;m++){
+                    if(indexRow[m]!=mutationRow[m]){
                         found=false;
                         break;
                     }

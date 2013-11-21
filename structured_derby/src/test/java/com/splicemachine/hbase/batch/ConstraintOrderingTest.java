@@ -1,7 +1,7 @@
 package com.splicemachine.hbase.batch;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
@@ -20,11 +20,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
 import static com.splicemachine.hbase.MockRegion.getMockRegion;
 import static com.splicemachine.hbase.MockRegion.getSuccessOnlyAnswer;
 import static org.mockito.Matchers.any;
@@ -42,7 +40,7 @@ public class ConstraintOrderingTest {
 
     @Test
     public void testUniqueConstraintPreventsWrites() throws Exception {
-        final Collection<Mutation> successfulPuts = Sets.newHashSet();
+        final ObjectArrayList<Mutation> successfulPuts = ObjectArrayList.newInstance();
         HRegion testRegion = getMockRegion(getSuccessOnlyAnswer(successfulPuts));
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
         when(rce.getRegion()).thenReturn(testRegion);
@@ -55,7 +53,9 @@ public class ConstraintOrderingTest {
                     @Override
                     public Boolean answer(InvocationOnMock invocation) throws Throwable {
                         KVPair pair = (KVPair) invocation.getArguments()[0];
-                        for (Mutation mutation : successfulPuts) {
+                        Object[] buffer = successfulPuts.buffer;
+                        for (int i =0 ; i<successfulPuts.size(); i++) {
+                        	Mutation mutation = (Mutation) buffer[i];
                             if (Bytes.equals(pair.getRow(), mutation.getRow())) {
                                 return false;
                             }
@@ -111,7 +111,9 @@ public class ConstraintOrderingTest {
                 //make sure that no row exists with that key
                 //find it in the Mutations list
                 int foundCount=0;
-                for(Mutation mutation:successfulPuts){
+                Object[] buffer = successfulPuts.buffer;
+                for (int i = 0 ; i<successfulPuts.size(); i++) {
+                	Mutation mutation = (Mutation) buffer[i];
                     if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
@@ -127,8 +129,10 @@ public class ConstraintOrderingTest {
 
                 //find it in the Mutations list
                 int foundCount=0;
-                for(Mutation mutation:successfulPuts){
-                    if(Bytes.equals(mutation.getRow(),original.getRow())){
+                Object[] buffer = successfulPuts.buffer;
+                for (int i = 0 ; i<successfulPuts.size(); i++) {                
+                	Mutation mutation = (Mutation) buffer[i];
+                	if(Bytes.equals(mutation.getRow(),original.getRow())){
                         foundCount++;
                         //make sure the rows match
                         KeyValue keyValue = ((Put) mutation).get(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY).get(0);

@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -12,11 +14,14 @@ import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
@@ -52,7 +57,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected boolean failed;
 
-    protected final Map<KVPair,KVPair> indexToMainMutationMap = Maps.newHashMap();
+    protected final ObjectObjectOpenHashMap<KVPair,KVPair> indexToMainMutationMap = ObjectObjectOpenHashMap.newInstance();
 
     /*
      * The columns in the main table which are indexed (ordered by the position in the main table).
@@ -107,8 +112,10 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             SpliceLogUtils.error(LOG,e);
             if(e instanceof WriteFailedException){
                 WriteFailedException wfe = (WriteFailedException)e;
-                for(KVPair originalMutation:indexToMainMutationMap.values()){
-                    ctx.failed(originalMutation, WriteResult.failed(wfe.getMessage()));
+                Object[] buffer = indexToMainMutationMap.values;
+                int size = indexToMainMutationMap.size();
+                for (int i = 0; i<size; i++) {
+                	ctx.failed((KVPair)buffer[i], WriteResult.failed(wfe.getMessage()));
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate
@@ -123,14 +130,16 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
         WriteCoordinator.PreFlushHook flushHook = new WriteCoordinator.PreFlushHook() {
             @Override
-            public List<KVPair> transform(List<KVPair> buffer) throws Exception {
-                return Lists.newArrayList(Collections2.filter(buffer,new Predicate<KVPair>() {
-                    @Override
-                    public boolean apply(@Nullable KVPair input) {
-                        KVPair mainInput = indexToMainMutationMap.get(input);
-                        return ctx.canRun(mainInput);
-                    }
-                }));
+            public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception {
+            	ObjectArrayList<KVPair> newList = ObjectArrayList.newInstance();
+            	Object[] array = buffer.buffer;
+            	int size = buffer.size();
+            	for (int i = 0; i< size; i++) {
+                    KVPair mainInput = indexToMainMutationMap.get((KVPair)array[i]);
+                    if (ctx.canRun(mainInput))
+                    	newList.add((KVPair)array[i]);
+            	}
+            	return newList;
             }
         };
         Writer.WriteConfiguration writeConfiguration = new Writer.WriteConfiguration() {
@@ -182,7 +191,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 }
                 if(canRetry) return Writer.WriteResponse.RETRY;
                 else{
-                    List<KVPair> indexMutations = request.getMutations();
+                    ObjectArrayList<KVPair> indexMutations = request.getMutations();
                     for(Integer row:failedRows.keySet()){
                         KVPair kvPair = indexMutations.get(row);
                         ctx.failed(indexToMainMutationMap.get(kvPair),failedRows.get(row));

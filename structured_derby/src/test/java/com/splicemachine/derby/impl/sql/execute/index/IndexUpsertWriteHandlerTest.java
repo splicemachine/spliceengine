@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -14,6 +15,7 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -23,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -30,6 +33,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -218,8 +222,11 @@ public class IndexUpsertWriteHandlerTest {
             }
 
             @Override
-            public void bufferFlushed(List<KVPair> entries, CallBuffer<KVPair> source) throws Exception {
-                for(KVPair pair:entries){
+            public void bufferFlushed(ObjectArrayList<KVPair> entries, CallBuffer<KVPair> source) throws Exception {
+            	Object[] buffer = entries.buffer;
+            	int size = entries.size();
+            	for (int i = 0; i<size; i++) {
+            		KVPair pair = (KVPair) buffer[i];
                     if(pair.getType()== KVPair.Type.DELETE){
                         Iterator<KVPair> itereator = indexPairs.iterator();
                         while(itereator.hasNext()){

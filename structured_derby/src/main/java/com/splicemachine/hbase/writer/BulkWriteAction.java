@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
@@ -8,6 +9,7 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -192,8 +194,8 @@ final class BulkWriteAction implements Callable<Void> {
 
         errors.add(new WriteFailedException(errorMsgs));
 
-        List<KVPair> allWrites = bulkWrite.getMutations();
-        List<KVPair> failedWrites = Lists.newArrayListWithCapacity(rowsToRetry.size());
+        ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
+        ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
         for(Integer rowToRetry:rowsToRetry){
             failedWrites.add(allWrites.get(rowToRetry));
         }
@@ -203,7 +205,7 @@ final class BulkWriteAction implements Callable<Void> {
         }
     }
 
-    private void retryFailedWrites(int tries, String txnId, List<KVPair> failedWrites) throws Exception {
+    private void retryFailedWrites(int tries, String txnId, ObjectArrayList<KVPair> failedWrites) throws Exception {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());

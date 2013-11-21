@@ -1,14 +1,10 @@
 package com.splicemachine.hbase.writer;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
+import com.carrotsearch.hppc.ObjectArrayList;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -17,15 +13,15 @@ import java.util.Set;
 public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
 
-    private List<KVPair> mutations;
+    private ObjectArrayList<KVPair> mutations;
     private String txnId;
     private byte[] regionKey;
     private long bufferSize = -1;
 
     public BulkWrite() { }
 
-    public BulkWrite(List<KVPair> mutations, String txnId,byte[] regionKey) {
-        this.mutations = Lists.newArrayList(mutations);
+    public BulkWrite(ObjectArrayList<KVPair> mutations, String txnId,byte[] regionKey) {
+        this.mutations = ObjectArrayList.from(mutations); // Is this needed?
         this.txnId = txnId;
         this.regionKey = regionKey;
     }
@@ -33,11 +29,11 @@ public class BulkWrite implements Externalizable {
     public BulkWrite(String txnId, byte[] regionKey){
         this.txnId = txnId;
         this.regionKey = regionKey;
-        this.mutations = Lists.newArrayList();
+        this.mutations = ObjectArrayList.newInstance();
     }
 
-    public List<KVPair> getMutations() {
-        return Lists.newArrayList(mutations);
+    public ObjectArrayList<KVPair> getMutations() {
+        return ObjectArrayList.from(mutations);			// Is this needed?
     }
 
     public String getTxnId() {
@@ -55,16 +51,19 @@ public class BulkWrite implements Externalizable {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(txnId);
-        out.writeInt(mutations.size());
-        for(KVPair kvPair:mutations)
-            out.writeObject(kvPair);
+        Object[] buffer = mutations.buffer;
+        int iBuffer = mutations.size();
+        out.writeInt(iBuffer);
+        for (int i = 0; i< iBuffer; i++) {
+        	out.writeObject((KVPair) buffer[i]);
+        }
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         txnId = in.readUTF();
         int size = in.readInt();
-        mutations = Lists.newArrayListWithExpectedSize(size);
+        mutations = ObjectArrayList.newInstanceWithCapacity(size);
         for(int i=0;i<size;i++){
             mutations.add((KVPair)in.readObject());
         }
@@ -82,11 +81,24 @@ public class BulkWrite implements Externalizable {
     public long getBufferSize() {
         if(bufferSize<0){
             long heap = 0l;
-            for(KVPair kvPair:mutations){
+            Object[] buffer = mutations.buffer;
+            int iBuffer = mutations.size();
+            for (int i = 0; i< iBuffer; i++) {
+            KVPair kvPair = (KVPair) buffer[i];
                 heap+=kvPair.getSize();
             }
             bufferSize= heap;
         }
         return bufferSize;
     }
+    
+    public Object[] getBuffer() {
+    	return mutations.buffer;
+    }
+
+    public int getSize() {
+    	return mutations.size();
+    }
+    
+    
 }
