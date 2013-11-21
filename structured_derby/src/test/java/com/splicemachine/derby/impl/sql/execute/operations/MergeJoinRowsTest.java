@@ -60,8 +60,8 @@ public class MergeJoinRowsTest {
                 new MergeJoinRows(
                         Lists.transform(leftRowStrings, toRow).iterator(),
                         Lists.transform(rightRowStrings, toRow).iterator(),
-                        new int[]{2},
-                        new int[]{2});
+                        new int[]{1},
+                        new int[]{1});
         for (Pair<ExecRow,Iterator<ExecRow>> p: pairs){
             System.out.println(String.format("%s: %s", p.getFirst(), Lists.newArrayList(p.getSecond())));
         }
@@ -73,8 +73,8 @@ public class MergeJoinRowsTest {
                 new MergeJoinRows(
                         Lists.transform(leftRowStrings, toRow).iterator(),
                         Lists.transform(rightRowStrings, toRow).iterator(),
-                        new int[]{2},
-                        new int[]{2});
+                        new int[]{1},
+                        new int[]{1});
         int pos = 0;
         for (Pair<ExecRow,Iterator<ExecRow>> pair: pairs){
             Assert.assertEquals(expectedStrings.get(pos).getFirst(), execRowToString.apply(pair.getFirst()));
