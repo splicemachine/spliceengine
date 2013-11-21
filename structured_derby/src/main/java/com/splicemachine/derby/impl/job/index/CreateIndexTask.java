@@ -105,7 +105,6 @@ public class CreateIndexTask extends ZkTask {
         baseConglomId = in.readLong();
         int numWords = in.readInt();
         indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-        indexedColumns = (BitSet)in.readObject();
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
         numWords = in.readInt();
