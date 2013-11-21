@@ -1,13 +1,15 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,19 +18,19 @@ import java.util.List;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter {
-    public static EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), Collections.<Predicate>emptyList());
+    public static EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), new ObjectArrayList<Predicate>());
     private BitSet fieldsToReturn;
-    private List<Predicate> valuePredicates;
+    private ObjectArrayList<Predicate> valuePredicates;
     private boolean returnIndex;
     private BitSet predicateColumns;
 
     public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
-    public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates){
+    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates){
         this(fieldsToReturn, predicates,true);
     }
 
-    public EntryPredicateFilter(BitSet fieldsToReturn, List<Predicate> predicates,boolean returnIndex){
+    public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates,boolean returnIndex){
         this.fieldsToReturn = fieldsToReturn;
         this.valuePredicates = predicates;
         this.returnIndex=returnIndex;
@@ -76,13 +78,12 @@ public class EntryPredicateFilter {
                 limit = array.length-offset;
             }
 
-
-            for(Predicate valuePredicate : valuePredicates){
-                if(valuePredicate.applies(encodedPos) && !valuePredicate.match(encodedPos,array, offset,limit)){
-                    return false;
-                }
+            Object[] buffer = valuePredicates.buffer;
+            int ibuffer = valuePredicates.size();
+            for (int i =0; i<ibuffer; i++) {
+                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit))
+                    return false;            	
             }
-
             entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
         }
         return true;
@@ -91,15 +92,20 @@ public class EntryPredicateFilter {
     public BitSet getCheckedColumns(){
         if(predicateColumns==null){
             predicateColumns = new BitSet();
-            for(Predicate predicate:valuePredicates){
-                predicate.setCheckedColumns(predicateColumns);
+            Object[] buffer = valuePredicates.buffer;
+            int ibuffer = valuePredicates.size();
+            for (int i =0; i<ibuffer; i++) {
+                ((Predicate)buffer[i]).setCheckedColumns(predicateColumns);
             }
         }
         return predicateColumns;
     }
 
     public boolean checkPredicates(ByteBuffer buffer,int position){
-        for(Predicate predicate:valuePredicates){
+        Object[] vpBuffer = valuePredicates.buffer;
+        int ibuffer = valuePredicates.size();
+        for (int i =0; i<ibuffer; i++) {
+        	Predicate predicate = (Predicate) vpBuffer[i];
             if(!predicate.applies(position))
                 continue;
             if(predicate.checkAfter()){
@@ -120,8 +126,11 @@ public class EntryPredicateFilter {
     }
 
     public void reset(){
-        for(Predicate predicate:valuePredicates){
-            predicate.reset();
+        Object[] vpBuffer = valuePredicates.buffer;
+        int ibuffer = valuePredicates.size();
+        for (int i =0; i<ibuffer; i++) {
+        	((Predicate)vpBuffer[i]).reset();
+        	
         }
     }
 
@@ -157,7 +166,7 @@ public class EntryPredicateFilter {
 
         Pair<BitSet,Integer> fieldsToReturn = BytesUtil.fromByteArray(data,0);
         boolean returnIndex = data[fieldsToReturn.getSecond()] > 0;
-        Pair<List<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
+        Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,fieldsToReturn.getSecond()+1);
 
         return new EntryPredicateFilter(fieldsToReturn.getFirst(),predicates.getFirst(),returnIndex);
     }

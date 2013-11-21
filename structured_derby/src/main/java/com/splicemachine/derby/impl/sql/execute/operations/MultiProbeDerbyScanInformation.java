@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.utils.Scans;
@@ -10,7 +11,6 @@ import com.splicemachine.storage.AndPredicate;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -19,11 +19,7 @@ import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -62,7 +58,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
             }
         }
         MultiRangeFilter.Builder builder= new MultiRangeFilter.Builder();
-        List<Predicate> allScanPredicates = Lists.newArrayListWithExpectedSize(probeValues.length);
+        ObjectArrayList<Predicate> allScanPredicates = ObjectArrayList.newInstanceWithCapacity(probeValues.length);
         SpliceConglomerate conglomerate = getConglomerate();
         for(DataValueDescriptor probeValue:probeValues){
             try{
@@ -77,7 +73,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                     stopPosition.getRowArray()[0] = probeValue;
                 }
                 Qualifier[][] scanQualifiers = populateQualifiers();
-                List<Predicate> scanPredicates;
+                ObjectArrayList<Predicate> scanPredicates;
                 if(scanQualifiers!=null){
                     scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
                     if(accessedCols!=null){
@@ -88,7 +84,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                         }
                     }
                 }else{
-                    scanPredicates = Lists.newArrayListWithExpectedSize(0);
+                    scanPredicates = ObjectArrayList.newInstanceWithCapacity(0);
                 }
 
                 //get the start and stop keys for the scan
@@ -109,7 +105,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         Predicate finalPredicate  = new OrPredicate(allScanPredicates);
         Scan scan = SpliceUtils.createScan(txnId);
         scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
-        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn, Arrays.asList(finalPredicate));
+        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn, ObjectArrayList.from(finalPredicate));
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
         MultiRangeFilter filter = builder.build();
         scan.setStartRow(filter.getMinimumStart());

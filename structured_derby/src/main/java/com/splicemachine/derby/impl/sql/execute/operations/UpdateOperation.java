@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -36,9 +38,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 
 /**
@@ -232,7 +232,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				private ResultSupplier(BitSet interestedFields) {
 						//we need the index so that we can transform data without the information necessary to decode it
-						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,Collections.<Predicate>emptyList(),true);
+						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
 						this.filterBytes = predicateFilter.toBytes();
 				}
 

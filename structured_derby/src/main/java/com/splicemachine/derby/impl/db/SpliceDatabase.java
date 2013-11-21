@@ -36,7 +36,7 @@ public class SpliceDatabase extends BasicDatabase {
          */
 //        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
-        if(SpliceConstants.dumpClassFile)
+     //   if(SpliceConstants.dumpClassFile)
     	    SanityManager.DEBUG_SET("DumpClassFile");
         //SanityManager.DEBUG_SET("DumpOptimizedTree");
 		try {

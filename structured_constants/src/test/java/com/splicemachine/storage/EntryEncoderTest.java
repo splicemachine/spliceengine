@@ -5,9 +5,8 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.math.BigDecimal;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines

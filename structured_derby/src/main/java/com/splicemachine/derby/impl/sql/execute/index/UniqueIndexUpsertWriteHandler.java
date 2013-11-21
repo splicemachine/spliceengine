@@ -1,12 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.SparseEntryAccumulator;
-import org.apache.hadoop.hbase.client.Mutation;
-
-import java.util.BitSet;
 
 /**
  * @author Scott Fines

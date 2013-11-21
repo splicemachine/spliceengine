@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils.test;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Charsets;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -7,7 +8,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.sql.execute.ValueRow;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -17,7 +17,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.util.BitSet;
 import java.util.Date;
 import java.util.Random;
 

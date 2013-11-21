@@ -1,11 +1,10 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -17,11 +16,9 @@ public class AndPredicateTest {
     public void testAndPredicateMatchesTwoColumns() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         byte[] testValue = Encoding.encode(5);
         Assert.assertTrue("Does not match value!",andPredicate.match(0,testValue,0,testValue.length));
     }
@@ -30,11 +27,9 @@ public class AndPredicateTest {
     public void testOnePredicateFailsFailsAndPredicate() throws Exception {
             byte[] compareValue = Encoding.encode(10);
             byte[] compareValue2 = Encoding.encode(0);
-            ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,compareValue,true);
-            ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
-
-            AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+            Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,compareValue,true);
+            Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
+            AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
             byte[] testValue = Encoding.encode(5);
             Assert.assertFalse("Erroneously matches value!", andPredicate.match(0, testValue, 0, testValue.length));
     }
@@ -43,11 +38,9 @@ public class AndPredicateTest {
     public void testNoPredicateApplyCausesNoApplies() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,true);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,true);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         byte[] testValue = Encoding.encode(5);
         Assert.assertFalse("Erroneously applies!",andPredicate.applies(2));
     }
@@ -56,11 +49,9 @@ public class AndPredicateTest {
     public void testOnlyOnePredicateAppliesWhenDifferentColumnsApplied() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,true);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,true);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         byte[] testValue = Encoding.encode(5);
         Assert.assertTrue("does not match value!", andPredicate.match(0, testValue, 0, testValue.length));
     }
@@ -69,11 +60,9 @@ public class AndPredicateTest {
     public void testDoesNotApplyWhenNoPredicatesApply() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,compareValue,true);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,compareValue,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,0,compareValue2,true);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         byte[] testValue = Encoding.encode(5);
         Assert.assertTrue("does not match value!", andPredicate.match(1, testValue, 0, testValue.length));
     }
@@ -82,11 +71,9 @@ public class AndPredicateTest {
     public void testCheckAfterAppliesIfOnePredicateChecksAfter() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,false);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,true);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,false);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         Assert.assertTrue(andPredicate.checkAfter());
     }
 
@@ -94,11 +81,9 @@ public class AndPredicateTest {
     public void testDoesNotCheckAfterIfNoPredicatesCheckAfter() throws Exception {
         byte[] compareValue = Encoding.encode(10);
         byte[] compareValue2 = Encoding.encode(0);
-        ValuePredicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,false);
-        ValuePredicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,false);
-
-        AndPredicate andPredicate = new AndPredicate(Arrays.<Predicate>asList(pred1,pred2));
-
+        Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,compareValue,false);
+        Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER,1,compareValue2,false);
+        AndPredicate andPredicate = new AndPredicate(ObjectArrayList.from(pred1,pred2));
         Assert.assertFalse(andPredicate.checkAfter());
     }
 }

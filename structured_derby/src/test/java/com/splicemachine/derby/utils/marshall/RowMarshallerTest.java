@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -14,9 +15,6 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.BitSet;
-import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -40,12 +38,12 @@ public class RowMarshallerTest {
         Predicate p2 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,Encoding.encode(3),true);
         Predicate p3 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,2,Encoding.encode(1155),true);
 
-        Predicate and = new AndPredicate(Lists.newArrayList(p1, p2, p3));
+        Predicate and = new AndPredicate(ObjectArrayList.from(p1, p2, p3));
 
         BitSet fieldsToReturn = new BitSet(1);
         fieldsToReturn.set(0,3);
 
-        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>singletonList(and),true);
+        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn, ObjectArrayList.from(and),true);
 
         EntryAccumulator accumulator = epf.newAccumulator();
 

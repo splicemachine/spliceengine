@@ -3,7 +3,8 @@ package com.splicemachine.storage.index;
 import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * A Sparse implementation of a BitIndex.
@@ -45,7 +46,7 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public int length() {
-        return bitSet.length();
+        return (int) bitSet.length();
     }
 
     @Override
@@ -151,7 +152,7 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public int cardinality() {
-        return bitSet.cardinality();
+        return (int) bitSet.cardinality();
     }
 
     @Override

@@ -1,7 +1,7 @@
 package com.splicemachine.storage;
 
 import java.nio.ByteBuffer;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
@@ -12,13 +12,13 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
     private BitSet allFields;
 
     public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
-        super(predicateFilter,remainingFields.length(),false);
+        super(predicateFilter,(int)remainingFields.length(),false);
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
     }
 
     public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields,boolean returnIndex) {
-        super(predicateFilter,remainingFields.size(),returnIndex);
+        super(predicateFilter,(int)remainingFields.size(),returnIndex);
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
     }

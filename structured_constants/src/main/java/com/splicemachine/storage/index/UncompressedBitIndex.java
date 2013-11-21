@@ -4,7 +4,8 @@ import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
 import java.util.Arrays;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * Uncompressed, variable-length BitIndex.
@@ -47,12 +48,12 @@ class UncompressedBitIndex implements BitIndex {
 
     @Override
     public int length() {
-        return bitSet.length();
+        return (int) bitSet.length();
     }
 
     @Override
     public int cardinality() {
-        return bitSet.cardinality();
+        return (int) bitSet.cardinality();
     }
 
     @Override
@@ -124,7 +125,7 @@ class UncompressedBitIndex implements BitIndex {
          * we have 4 available bits in the header, and 7 bits in each subsequent byte (we use a continuation
          * bit).
          */
-        int numBits = bitSet.length()+2*bitSet.cardinality();
+        int numBits = (int) (bitSet.length()+2*bitSet.cardinality());
         int numBytes = 1;
         numBits-=4;
         if(numBits>0){

@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
@@ -17,6 +19,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -33,7 +36,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -80,7 +88,7 @@ public class IndexRowReaderTest {
         this.indexedColumns = indexedColumns;
 
         this.baseColumnMap = new int[outputDataTypes.length];
-        this.indexCols = new int[indexedColumns.cardinality()];
+        this.indexCols = new int[(int)indexedColumns.cardinality()];
         Arrays.fill(indexCols,-1);
         for(int i=0,pos=0;i<outputDataTypes.length;i++){
             if(!indexedColumns.get(i)){
@@ -145,7 +153,7 @@ public class IndexRowReaderTest {
         for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
             heapCols.clear(i);
         }
-        EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, Collections.<Predicate>emptyList());
+        EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, new ObjectArrayList<Predicate>());
         byte[] epfBytes = epf.toBytes();
         IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
                 1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes);
@@ -250,7 +258,7 @@ public class IndexRowReaderTest {
     }
 
     private ExecRow getIndexTemplate() {
-        ExecRow templateInput = new IndexRow(indexedColumns.cardinality()+1);
+        ExecRow templateInput = new IndexRow((int)indexedColumns.cardinality()+1);
         for(int i=0;i<indexCols.length;i++){
             int position = indexCols[i];
             TestingDataType indexType = outputDataTypes[position];

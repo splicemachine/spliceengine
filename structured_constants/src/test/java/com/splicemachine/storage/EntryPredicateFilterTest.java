@@ -1,6 +1,5 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -10,11 +9,9 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * @author Scott Fines
@@ -35,12 +32,12 @@ public class EntryPredicateFilterTest {
         Predicate p2 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1,Encoding.encode(3),true);
         Predicate p3 = new ValuePredicate(CompareFilter.CompareOp.EQUAL,2,Encoding.encode(1155),true);
 
-        Predicate and = new AndPredicate(Lists.newArrayList(p1,p2,p3));
+        Predicate and = new AndPredicate(ObjectArrayList.from(p1,p2,p3));
 
         BitSet fieldsToReturn = new BitSet(1);
         fieldsToReturn.set(0,3);
 
-        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn,Collections.<Predicate>singletonList(and),true);
+        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn,ObjectArrayList.from(and),true);
 
         EntryAccumulator accumulator = epf.newAccumulator();
 
@@ -87,11 +84,11 @@ public class EntryPredicateFilterTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,Encoding.encode(testField1),true);
         Predicate pred2 = new NullPredicate(false,false,1,false,false);
 
-        Predicate finalPred = new AndPredicate(Arrays.<Predicate>asList(new OrPredicate(Arrays.asList(pred1,pred2))));
+        Predicate finalPred = new AndPredicate(ObjectArrayList.from((Predicate) new OrPredicate(ObjectArrayList.from(pred1,pred2))));
 
         BitSet retCols = new BitSet(2);
         retCols.set(0,2);
-        EntryPredicateFilter epf = new EntryPredicateFilter(retCols,Arrays.asList(finalPred));
+        EntryPredicateFilter epf = new EntryPredicateFilter(retCols,ObjectArrayList.from(finalPred));
 
         EntryDecoder decoder = new EntryDecoder(KryoPool.defaultPool());
         decoder.set(bytes);
@@ -127,7 +124,7 @@ public class EntryPredicateFilterTest {
 
         Predicate pred = new NullPredicate(true,true,2,false,false);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),
-                Collections.singletonList(pred),true);
+        		ObjectArrayList.from(pred),true);
 
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
@@ -163,7 +160,7 @@ public class EntryPredicateFilterTest {
 
         Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,1, Encoding.encode("test2"),true);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn,
-                Collections.singletonList(pred),true);
+        		ObjectArrayList.from(pred),true);
 
         encoder.getEntryEncoder().encodeNext(testType1).encodeNext(testType2);
         byte[] data = encoder.encode();
@@ -183,7 +180,7 @@ public class EntryPredicateFilterTest {
      BigDecimal testType2 = new BigDecimal("2.345");
      Predicate pred = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0, Encoding.encode(testType1),true);
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),
-                Collections.singletonList(pred),true);
+        		ObjectArrayList.from(pred),true);
 
         BitSet setCols = new BitSet(2);
         setCols.set(0);
@@ -238,7 +235,7 @@ public class EntryPredicateFilterTest {
     @Test
     public void testReturnsAllColumnsForEmptyPredicate() throws Exception {
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(new BitSet(),
-                Collections.<Predicate>emptyList(),true);
+        		new ObjectArrayList<Predicate>(),true);
 
         BitSet setCols = new BitSet(2);
         setCols.set(0);
@@ -298,7 +295,7 @@ public class EntryPredicateFilterTest {
         fieldsToReturn.set(0);
 
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn,
-                Collections.<Predicate>emptyList(),true);
+                new ObjectArrayList<Predicate>(),true);
 
         BitSet setCols = new BitSet(2);
         setCols.set(0);

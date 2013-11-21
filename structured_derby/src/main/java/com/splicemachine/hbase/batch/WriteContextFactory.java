@@ -1,10 +1,9 @@
 package com.splicemachine.hbase.batch;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.si.api.RollForwardQueue;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines

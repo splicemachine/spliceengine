@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
@@ -11,6 +12,7 @@ import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -24,7 +26,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
-import java.util.BitSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -425,7 +426,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             for(int indexCol:indexColsToMainColMap){
                 indexedCols.set(indexCol-1);
             }
-            int[] mainColToIndexPosMap = new int[indexedCols.length()];
+            int[] mainColToIndexPosMap = new int[(int)indexedCols.length()];
             for(int indexCol=0;indexCol<indexColsToMainColMap.length;indexCol++){
                 int mainCol = indexColsToMainColMap[indexCol];
                 mainColToIndexPosMap[mainCol-1] = indexCol;

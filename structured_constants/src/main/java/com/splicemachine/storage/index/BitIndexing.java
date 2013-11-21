@@ -1,6 +1,6 @@
 package com.splicemachine.storage.index;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Main class for constructing BitIndices of proper type.

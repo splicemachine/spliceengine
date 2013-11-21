@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.debug;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
 import com.splicemachine.encoding.debug.DataType;
@@ -16,9 +18,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-
-import java.util.BitSet;
-import java.util.Collections;
 
 /**
  * @author Scott Fines
@@ -166,7 +165,7 @@ public class SpliceTableDebugger extends Configured implements Tool {
                 cols.set(colNum);
                 Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,bytes,true);
 
-                EntryPredicateFilter epf = new EntryPredicateFilter(cols, Collections.singletonList(predicate));
+                EntryPredicateFilter epf = new EntryPredicateFilter(cols, ObjectArrayList.from(predicate));
 
                 return new ScanJob(destDir,tableName,epf,config);
             }

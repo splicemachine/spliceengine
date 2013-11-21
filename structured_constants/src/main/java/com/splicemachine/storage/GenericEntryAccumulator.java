@@ -4,7 +4,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
@@ -34,7 +34,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
     protected GenericEntryAccumulator(EntryPredicateFilter filter,boolean returnIndex) {
         this.returnIndex = returnIndex;
         this.predicateFilter =filter;
-
+        
         if(returnIndex){
             scalarFields = new BitSet();
             floatFields = new BitSet();

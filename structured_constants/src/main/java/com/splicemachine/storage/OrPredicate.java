@@ -1,18 +1,19 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
+
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.List;
 
 /**
  * @author Scott Fines
  * Created on: 7/9/13
  */
 public class OrPredicate implements Predicate {
-    private List<Predicate> ors;
+    private ObjectArrayList<Predicate> ors;
 
     /**
      * Once matched, we should return true until reset
@@ -20,14 +21,18 @@ public class OrPredicate implements Predicate {
     private boolean matched;
     private int visitedCount;
 
-    public OrPredicate(List<Predicate> ors) {
+    public OrPredicate(ObjectArrayList<Predicate> ors) {
         this.ors = ors;
     }
 
     @Override
     public boolean applies(int column) {
-        for(Predicate predicate:ors){
-            if(predicate.applies(column)) return true;
+    	Object[] buffer = ors.buffer;
+    	int iBuffer = ors.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
+    		if(predicate.applies(column)) 
+    			return true;
         }
         return false;
     }
@@ -37,7 +42,11 @@ public class OrPredicate implements Predicate {
         if(matched) return true;
         if(visitedCount>=ors.size()) return false; //we've visited all of our fields, and none matched
 
-        for(Predicate predicate:ors){
+        
+    	Object[] buffer = ors.buffer;
+    	int iBuffer = ors.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
             if(!predicate.applies(column))
                 continue;
 
@@ -53,7 +62,10 @@ public class OrPredicate implements Predicate {
 
     @Override
     public boolean checkAfter() {
-        for(Predicate predicate:ors){
+    	Object[] buffer = ors.buffer;
+    	int iBuffer = ors.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
             if(predicate.checkAfter()) return true;
         }
         return false;
@@ -61,8 +73,11 @@ public class OrPredicate implements Predicate {
 
     @Override
     public void setCheckedColumns(BitSet checkedColumns) {
-        for(Predicate or:ors){
-            or.setCheckedColumns(checkedColumns);
+    	Object[] buffer = ors.buffer;
+    	int iBuffer = ors.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
+    		predicate.setCheckedColumns(checkedColumns);
         }
     }
 
@@ -71,7 +86,10 @@ public class OrPredicate implements Predicate {
         matched=false;
         visitedCount=0;
         //reset children
-        for(Predicate predicate:ors){
+    	Object[] buffer = ors.buffer;
+    	int iBuffer = ors.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
             predicate.reset();
         }
     }
@@ -95,7 +113,7 @@ public class OrPredicate implements Predicate {
 
     public static Pair<OrPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
         int size = BytesUtil.bytesToInt(data,offset);
-        Pair<List<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
+        Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.fromBytes(data,offset+4,size);
         return Pair.newPair(new OrPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
 }

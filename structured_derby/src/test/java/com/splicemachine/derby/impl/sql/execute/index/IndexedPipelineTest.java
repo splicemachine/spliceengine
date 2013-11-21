@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -25,15 +26,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 

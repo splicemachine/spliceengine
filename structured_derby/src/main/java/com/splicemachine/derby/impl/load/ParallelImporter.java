@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
@@ -12,11 +13,12 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.*;
 

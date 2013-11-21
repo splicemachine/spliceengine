@@ -1,11 +1,9 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Comparator;
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
@@ -193,7 +191,7 @@ public class Scans extends SpliceUtils {
                                                      int startSearchOperator,
                                                      Qualifier[][] qualifiers,
                                                      FormatableBitSet scanColumnList) throws StandardException {
-        List<Predicate> predicates;
+        ObjectArrayList<Predicate> predicates;
         BitSet colsToReturn = new BitSet();
         if(qualifiers!=null){
             predicates = getQualifierPredicates(qualifiers);
@@ -203,7 +201,7 @@ public class Scans extends SpliceUtils {
                 }
             }
         }else
-            predicates = Lists.newArrayListWithCapacity(1);
+            predicates = ObjectArrayList.newInstanceWithCapacity(1);
 
         if(scanColumnList!=null){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
@@ -228,7 +226,7 @@ public class Scans extends SpliceUtils {
         return new EntryPredicateFilter(colsToReturn,predicates,true);
     }
 
-    public static List<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
+    public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
         /*
          * Qualifiers are set up as follows:
          *
@@ -237,16 +235,16 @@ public class Scans extends SpliceUtils {
          * be satisfied. E.g. for an i in [1:qualifiers.length], qualifiers[i] is a collection of OR clauses,
          * but ALL the OR-clause collections are bound together using an AND clause.
          */
-        List<Predicate> andPreds = Lists.newArrayListWithExpectedSize(qualifiers[0].length);
+    	ObjectArrayList<Predicate> andPreds = ObjectArrayList.newInstanceWithCapacity(qualifiers[0].length);
         for(Qualifier andQual:qualifiers[0]){
             andPreds.add(getPredicate(andQual));
         }
 
 
-        List<Predicate> andedOrPreds = Lists.newArrayList();
+        ObjectArrayList<Predicate> andedOrPreds = new ObjectArrayList<Predicate>();
         for(int i=1;i<qualifiers.length;i++){
             Qualifier[] orQuals = qualifiers[i];
-            List<Predicate> orPreds = Lists.newArrayListWithCapacity(orQuals.length);
+            ObjectArrayList<Predicate> orPreds = ObjectArrayList.newInstanceWithCapacity(orQuals.length);
             for(Qualifier orQual:orQuals){
                 orPreds.add(getPredicate(orQual));
             }
@@ -256,7 +254,7 @@ public class Scans extends SpliceUtils {
             andPreds.addAll(andedOrPreds);
 
         Predicate firstAndPredicate = new AndPredicate(andPreds);
-        return Lists.newArrayList(firstAndPredicate);
+        return ObjectArrayList.from(firstAndPredicate);
     }
 
     private static Predicate getPredicate(Qualifier qualifier) throws StandardException {
@@ -283,7 +281,7 @@ public class Scans extends SpliceUtils {
     }
 
     public static Predicate generateIndexPredicate(DataValueDescriptor[] descriptors, int compareOp) throws StandardException {
-        List<Predicate> predicates = Lists.newArrayListWithCapacity(descriptors.length);
+        ObjectArrayList<Predicate> predicates = ObjectArrayList.newInstanceWithCapacity(descriptors.length);
         for(int i=0;i<descriptors.length;i++){
             DataValueDescriptor dvd = descriptors[i];
             if(dvd!=null &&!dvd.isNull() && 
