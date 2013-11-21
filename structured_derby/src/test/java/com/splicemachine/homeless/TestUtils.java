@@ -7,10 +7,13 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.dbutils.BasicRowProcessor;
@@ -187,6 +190,139 @@ public class TestUtils {
         out.println("--------------------");
         out.println(resultSetSize+" rows");
         return resultSetSize;
+    }
+
+    /**
+     * Create expected and actual results and compare them. Use JUnit's differencing
+     * ("Click to see the difference") to visually compare results.
+     * <p>
+     *  This class was created to make it easier to compare results from another SQL tool
+     *  like Derby ij, sqlfiddle.com to a Splice result (ResultSet). Expected results can be easily
+     *  copied into a list.<br/>
+     *  @see ResultFactory#convert(String, java.util.List, String)
+     *  @see ResultFactory#convert(java.sql.ResultSet)
+     * </p>
+     */
+    public static class FormattedResult implements Comparable<FormattedResult> {
+        private final List<String> columns;
+        private final Map<String, List<String>> rowKeyToRows;
+
+        private FormattedResult(List<String> columns, Map<String, List<String>> rowKeyToRows) {
+            this.columns = columns;
+            this.rowKeyToRows = rowKeyToRows;
+        }
+
+        @Override
+        public int compareTo(FormattedResult that) {
+            int colCompare = ResultFactory.hashList(this.columns).compareTo(ResultFactory.hashList(that.columns));
+            if (colCompare != 0) {
+                return colCompare;
+            }
+            List<String> thisRowKeys = this.getSortedRowKeys();
+            List<String> thatRowKeys = that.getSortedRowKeys();
+            if (thisRowKeys.size() < thatRowKeys.size()) {
+                return -1;
+            } else if (thisRowKeys.size() > thatRowKeys.size()) {
+                return +1;
+            }
+            for (int i=0; i<thisRowKeys.size(); i++) {
+                int comp = thisRowKeys.get(i).compareTo(thatRowKeys.get(i));
+                if (comp != 0) {
+                    return comp;
+                }
+            }
+            return 0;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buf = new StringBuilder();
+            for (String col : this.columns) {
+                buf.append(" ").append(col).append(" ");
+            }
+            buf.append("\n");
+
+            List<String> rowKeys = new ArrayList<String>(this.rowKeyToRows.keySet());
+            Collections.sort(rowKeys);
+            for (String rowKey : rowKeys) {
+                for (String colVal : this.rowKeyToRows.get(rowKey)) {
+                    buf.append(" ").append(colVal).append(" ");
+                }
+                buf.append("\n");
+            }
+            buf.append("\n");
+            return buf.toString();
+        }
+
+        private List<String> getSortedRowKeys() {
+            List<String> rowKeys = new ArrayList<String>(this.rowKeyToRows.keySet());
+            Collections.sort(rowKeys);
+            return rowKeys;
+        }
+
+        public static class ResultFactory {
+
+            /**
+             * Converts expected results to a <code>FormattedResult</code>
+             * @param columnStr the string of column names separated by <code>columnSeparator</code> regex.
+             *                  These are taken "as is" and will not be sorted or otherwise modified.
+             * @param rows the list of strings of row column values separated by <code>columnSeparator</code> regex.
+             *             These rows will be sorted for comparison.
+             * @param columnSeparator regex on which to parse the column and row strings.
+             * @return FormattedResult
+             */
+            public static FormattedResult convert(String columnStr, List<String> rows, String columnSeparator) {
+                List<String> columns = new ArrayList<String>();
+                Map<String,List<String>> rowKeyToRows = new HashMap<String, List<String>>();
+                columns.addAll(Arrays.asList(columnStr.split(columnSeparator)));
+
+                for (String rowStr : rows) {
+                    List<String> row = new ArrayList<String>();
+                    for (String columnValue : rowStr.split(columnSeparator)) {
+                        row.add((columnValue.contains("(null)") ? "NULL" : columnValue.trim()));
+                    }
+                    rowKeyToRows.put(hashList(row), row);
+                }
+                return new FormattedResult(columns, rowKeyToRows);
+            }
+
+            /**
+             * Converts actual results to a <code>FormattedResult</code>
+             * @param rs the JDBC ResultSet to convert.  ResultSet rows will be sorted for comparison.
+             * @return FormattedResult
+             * @throws Exception if there a problem with the ResultSet.
+             */
+            public static FormattedResult convert(ResultSet rs) throws Exception {
+                List<String> columns = new ArrayList<String>();
+                Map<String,List<String>> rowKeyToRows = new HashMap<String, List<String>>();
+                ResultSetMetaData rsmd = rs.getMetaData();
+                int nCols = rsmd.getColumnCount();
+
+                boolean gotColumnNames = false;
+                while (rs.next()) {
+                    List<String> row = new ArrayList<String>();
+                    for (int i = 1; i <= nCols; i++) {
+                        if (! gotColumnNames) {
+                            columns.add(rsmd.getColumnName(i).trim());
+                        }
+                        Object value = rs.getObject(i);
+                        row.add((value != null ? value.toString().trim() : "NULL"));
+                    }
+                    rowKeyToRows.put(hashList(row), row);
+                    gotColumnNames = true;
+                }
+                return new FormattedResult(columns, rowKeyToRows);
+            }
+
+            private static String hashList(List<String> row) {
+                StringBuilder buf = new StringBuilder();
+                for (String colVal : row) {
+                    buf.append(colVal);
+                }
+                return buf.toString();
+            }
+        }
+
     }
 
 }

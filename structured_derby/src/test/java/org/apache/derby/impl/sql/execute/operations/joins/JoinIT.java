@@ -8,9 +8,10 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.ResultSet;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -23,8 +24,8 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  *         Date: 11/19/13
  */
-public class JointIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = JointIT.class.getSimpleName();
+public class JoinIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = JoinIT.class.getSimpleName();
 
     protected static final SpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
@@ -84,10 +85,8 @@ public class JointIT extends SpliceUnitTest {
         String query = format("select a1,b1,c1,c3,d1,d3 from %s.D join (%s.A left outer join (%s.B join %s.C on b2=c2) on a1=b1) on d3=b3 and d1=a2",
                 CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
-        // TODO: Remove this assertion and uncomment below when Bug 976 gets fixed
-        Assert.assertTrue(rs.next());
-//        int nRows = TestUtils.printResult(query, rs, System.out);
-//        Assert.assertEquals("Expecting 2 rows from join.", 2, nRows);
+        int nRows = TestUtils.printResult(query, rs, System.out);
+        Assert.assertEquals("Expecting 2 rows from join.", 2, nRows);
     }
 
     @Test
@@ -95,8 +94,7 @@ public class JointIT extends SpliceUnitTest {
         String query = format("select * from %s.B join %s.C on b2=c2",
                 CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
-        int nRows = resultSetSize(rs);
-//        int nRows = TestUtils.printResult(query, rs, System.out);
+        int nRows = TestUtils.printResult(query, rs, System.out);
         Assert.assertEquals("Expecting 6 rows from join.", 6, nRows);
     }
 
@@ -104,7 +102,6 @@ public class JointIT extends SpliceUnitTest {
      * Bug 976 - getting one less row from splice.
      * @throws Exception
      */
-    @Ignore
     @Test
     public void testLeftOuterJoinBug976() throws Exception {
         String query = format("select * from %s.A left outer join (%s.B join %s.C on b2=c2) on a1=b1",
@@ -112,5 +109,65 @@ public class JointIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(query);
         int nRows = TestUtils.printResult(query, rs, System.out);
         Assert.assertEquals("Expecting 9 rows from outer join.", 9, nRows);
+    }
+
+    @Test
+    public void testLeftOuterJoinBug976Compare() throws Exception {
+        String expectedColumns = "A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
+        List<String> expectedRows = Arrays.asList(
+                "3 4 2 (null) (null) (null) 3 2 3 3 1 4 2 2 5 3 2 4",
+                "7 1 4 2 3 4 7 3 3 3 3 3 8 3 9 1 3 2",
+                "1 1 3 6 (null) 2 1 4 2 (null) (null) (null) 1 4 1 (null) (null) (null)",
+                "6 7 3 2 3 4 6 7 2 3 (null) 1 3 7 7 3 (null) 1",
+                "6 7 3 2 3 4 6 7 2 3 (null) 1 1 7 2 3 1 1",
+                "2 3 2 4 2 2 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)",
+                "5 2 3 5 7 4 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)",
+                "8 8 8 8 8 8 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)",
+                "4 (null) 4 2 5 2 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)");
+
+        String query = format("select * from %s.A left outer join (%s.B join %s.C on b2=c2) on a1=b1",
+                CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
+    }
+
+    @Test
+    public void testJoinBug976Compare() throws Exception {
+        String expectedColumns = "A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
+        List<String> expectedRows = Arrays.asList(
+                "3 4 2 (null) (null) (null) 3 2 3 3 1 4 2 2 5 3 2 4",
+                "7 1 4 2 3 4 7 3 3 3 3 3 8 3 9 1 3 2",
+                "1 1 3 6 (null) 2 1 4 2 (null) (null) (null) 1 4 1 (null) (null) (null)",
+                "6 7 3 2 3 4 6 7 2 3 (null) 1 3 7 7 3 (null) 1",
+                "6 7 3 2 3 4 6 7 2 3 (null) 1 1 7 2 3 1 1");
+
+        String query = format("select * from %s.A join (%s.B join %s.C on b2=c2) on a1=b1",
+                CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
+    }
+
+    @Test
+    public void testSmallJoinBug976Compare() throws Exception {
+        String expectedColumns = "B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
+        List<String> expectedRows = Arrays.asList(
+                "3 2 3 3 1 4 2 2 5 3 2 4",
+                "9 3 3 3 3 3 8 3 9 1 3 2",
+                "7 3 3 3 3 3 8 3 9 1 3 2",
+                "1 4 2 (null) (null) (null) 1 4 1 (null) (null) (null)",
+                "6 7 2 3 (null) 1 3 7 7 3 (null) 1",
+                "6 7 2 3 (null) 1 1 7 2 3 1 1");
+
+        String query = format("select * from %s.B join %s.C on b2=c2",
+                CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+//        System.out.println(actual.toString());
+        Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
 }
