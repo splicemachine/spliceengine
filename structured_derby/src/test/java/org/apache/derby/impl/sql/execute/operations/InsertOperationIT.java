@@ -35,7 +35,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("L",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("Y",InsertOperationIT.class.getSimpleName(),"(name varchar(40))");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher("Z",InsertOperationIT.class.getSimpleName(),"(name varchar(40),count int)");
-	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(16M))");
+	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher("FILES",InsertOperationIT.class.getSimpleName(),"(name varchar(32) not null primary key, doc blob(50M))");
 	protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher("HMM",InsertOperationIT.class.getSimpleName(),"(b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
     protected static SpliceTableWatcher spliceTableWatcher13 = new SpliceTableWatcher("WARNING",InsertOperationIT.class.getSimpleName(),"(a char(1))");
 
@@ -216,7 +216,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 	
 	@Test
 	public void testInsertBlob() throws Exception{
-		InputStream fin = new FileInputStream(getResourceDirectory()+"customer_iso_10k.csv");		
+		InputStream fin = new FileInputStream(getResourceDirectory()+"order_line_500K.csv");		
 		PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("FILES")+"(name, doc) values (?,?)");
 		ps.setString(1, "csv_file");
 	    ps.setBinaryStream(2, fin);
@@ -225,7 +225,7 @@ public class InsertOperationIT extends SpliceUnitTest {
         byte buff[] = new byte[1024];
         while (rs.next()) {
             Blob ablob = rs.getBlob(1);
-            File newFile = new File(getBaseDirectory()+"/target/customer_iso_10k.csv");
+            File newFile = new File(getBaseDirectory()+"/target/order_line_500K.csv");
             if (newFile.exists()) {
             	newFile.delete();
             }
