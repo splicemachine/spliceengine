@@ -35,8 +35,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
             .around(spliceTableWatcher2)
-            .around(spliceTableWatcher3);
-//            .around(spliceTableWatcher4)
+            .around(spliceTableWatcher3)
+            .around(spliceTableWatcher4);
 //            .around(spliceTableWatcher5);
 
     @Rule
@@ -95,28 +95,6 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testAlterTableIsolationInactiveTransaction() throws Exception{
-        Connection connection1 = methodWatcher.createConnection();
-        Connection connection2 = methodWatcher.createConnection();
-        connection1.setAutoCommit(false);
-        connection2.setAutoCommit(false);
-        ResultSet resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));
-        Assert.assertEquals("Read Committed Violated",0, resultSetSize(resultSet));
-        connection2.commit();
-        Assert.assertEquals("Didn't expect to see another column until after commit.", 4, columnWidth(resultSet));
-        connection1.createStatement().execute(String.format("alter table %s add column date timestamp", this.getTableReference(TABLE_NAME_2)));
-        connection1.createStatement().execute(
-                String.format("insert into %1$s (TaskId, empId, StartedAt, FinishedAt, Date) values (%2$d,'JC',09%3$d,09%4$d, '2013-05-28 13:03:20')",
-                        this.getTableReference(TABLE_NAME_2), 1244, 0, 30));
-        resultSet = connection1.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));
-        Assert.assertEquals("Can't read own write",1, resultSetSize(resultSet));
-        connection1.commit();
-        resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));
-        Assert.assertEquals("Expected to see an additional row.",1, resultSetSize(resultSet));
-        Assert.assertEquals("Expected to see another column.", 5, columnWidth(resultSet));
-        connection2.commit();
-    }
-    @Test
     public void testUpdatingAlteredColumns() throws Exception {
 		Statement s = methodWatcher.getStatement();	
 		s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
@@ -130,5 +108,27 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("returned values must match", 5,i);
     }
-    
+
+    @Test
+    public void testAlterTableIsolationInactiveTransaction() throws Exception{
+        Connection connection1 = methodWatcher.createConnection();
+        Connection connection2 = methodWatcher.createConnection();
+        connection1.setAutoCommit(false);
+        connection2.setAutoCommit(false);
+        ResultSet resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_4)));
+        Assert.assertEquals("Read Committed Violated",0, resultSetSize(resultSet));
+        connection2.commit();
+        Assert.assertEquals("Didn't expect to see another column until after commit.", 4, columnWidth(resultSet));
+        connection1.createStatement().execute(String.format("alter table %s add column date timestamp", this.getTableReference(TABLE_NAME_4)));
+        connection1.createStatement().execute(
+                String.format("insert into %1$s (TaskId, empId, StartedAt, FinishedAt, Date) values (%2$d,'JC',09%3$d,09%4$d, '2013-05-28 13:03:20')",
+                        this.getTableReference(TABLE_NAME_4), 1244, 0, 30));
+        resultSet = connection1.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_4)));
+        Assert.assertEquals("Can't read own write",1, resultSetSize(resultSet));
+        connection1.commit();
+        resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_4)));
+        Assert.assertEquals("Expected to see an additional row.",1, resultSetSize(resultSet));
+        Assert.assertEquals("Expected to see another column.", 5, columnWidth(resultSet));
+        connection2.commit();
+    }
 }

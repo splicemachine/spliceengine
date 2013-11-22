@@ -337,7 +337,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         // check tentative indexes
         for (DDLChange indexChange : DDLCoordinationFactory.getWatcher().getTentativeIndexes()) {
             TentativeIndexDesc indexDesc = indexChange.getTentativeIndexDesc();
-            if (indexDesc.getConglomerateNumber() == cd.getConglomerateNumber())
+            if (indexDesc.getBaseConglomerateNumber() == congomId)
                 indexFactories.add(IndexFactory.create(indexChange));
         }
     }
