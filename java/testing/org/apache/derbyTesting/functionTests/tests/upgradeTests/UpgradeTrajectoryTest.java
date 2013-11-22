@@ -582,7 +582,7 @@ public class UpgradeTrajectoryTest extends BaseJDBCTestCase
 
         StringBuffer buffer = new StringBuffer();
 
-        buffer.append( "select tablename from sys.systables where tabletype = 'S' and tablename != 'DUAL'" );
+        buffer.append( "select tablename from sys.systables where tabletype = 'S' and tablename != 'SYSDUMMY1'" );
         int initialTableCount = INITIAL_TABLES.length;
         for ( int i = 0; i < initialTableCount; i++ )
         {

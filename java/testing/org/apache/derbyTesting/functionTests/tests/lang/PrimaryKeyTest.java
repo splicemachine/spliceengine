@@ -210,7 +210,7 @@ public class PrimaryKeyTest extends BaseJDBCTestCase
 	public void testCatalog() throws SQLException {
 		Statement s = createStatement();
 		assertUpdateCount(s , 0 , "create table pos1(c1 int primary key)");
-		ResultSet rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from sys.systables where CAST(tabletype AS CHAR(1)) = 'S'  and CAST(tablename AS VARCHAR(128)) != 'DUAL' order by tablename");
+		ResultSet rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from sys.systables where CAST(tabletype AS CHAR(1)) = 'S'  and CAST(tablename AS VARCHAR(128)) != 'SYSDUMMY1' order by tablename");
                 String[][] expectedCheckTables = new String[][]
                        {
                         {"SYSALIASES","1"},
@@ -240,7 +240,7 @@ public class PrimaryKeyTest extends BaseJDBCTestCase
 		//-- drop tables
 		assertUpdateCount(s , 0 , "drop table pos1");
 		//-- verify it again
-                rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from sys.systables where CAST(tabletype AS CHAR(1)) = 'S'  and CAST(tablename AS VARCHAR(128)) != 'DUAL' order by tablename");
+                rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename) from sys.systables where CAST(tabletype AS CHAR(1)) = 'S'  and CAST(tablename AS VARCHAR(128)) != 'SYSDUMMY1' order by tablename");
                 JDBC.assertFullResultSet(rs, expectedCheckTables);
 	}
 	/**

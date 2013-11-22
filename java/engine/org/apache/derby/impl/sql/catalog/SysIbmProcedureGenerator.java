@@ -13,18 +13,18 @@ import java.util.HashSet;
  * @author Scott Fines
  *         Created on: 2/18/13
  */
-public class SysSpliceProcedureGenerator implements SystemProcedureGenerator {
+public class SysIbmProcedureGenerator implements SystemProcedureGenerator {
     private final DataDictionary dictionary;
 
-    public SysSpliceProcedureGenerator(DataDictionary dictionary) {
+    public SysIbmProcedureGenerator(DataDictionary dictionary) {
         this.dictionary = dictionary;
     }
 
     public void createProcedures(TransactionController tc, HashSet newlyCreatedRoutines) throws StandardException {
-        UUID SYSSPLICEUUID = dictionary.getSysSpliceSchemaDescriptor().getUUID();
+        UUID sysIBMUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
 
         for(int i=0;i<procedures.length;i++){
-            newlyCreatedRoutines.add(procedures[i].createSystemProcedure(SYSSPLICEUUID,dictionary,tc));
+            newlyCreatedRoutines.add(procedures[i].createSystemProcedure(sysIBMUUID,dictionary,tc));
         }
     }
 

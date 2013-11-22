@@ -177,7 +177,7 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 		return null;
 	}
 
-	public SchemaDescriptor getSysSpliceSchemaDescriptor()
+	public SchemaDescriptor getSysIBMSchemaDescriptor()
 			throws StandardException {
 		// Auto-generated method stub
 		return null;

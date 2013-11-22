@@ -188,7 +188,7 @@ public interface DataDictionary
 	public static final int SYSFILES_CATALOG_NUM = 12;
 	public static final int SYSTRIGGERS_CATALOG_NUM = 13;
 	public static final int SYSSTATISTICS_CATALOG_NUM = 14;    
-	public static final int DUAL_CATALOG_NUM = 15;
+	public static final int SYSDUMMY1_CATALOG_NUM = 15;
 	public static final int SYSTABLEPERMS_CATALOG_NUM = 16;
 	public static final int SYSCOLPERMS_CATALOG_NUM = 17;
 	public static final int SYSROUTINEPERMS_CATALOG_NUM = 18;
@@ -426,7 +426,7 @@ public interface DataDictionary
 						throws StandardException;
 
 	/**
-	 * Get the descriptor for the SYSSPLICE schema. Schema descriptors include 
+	 * Get the descriptor for the SYSIBM schema. Schema descriptors include 
      * authorization ids and schema ids.
      *
 	 * SQL92 allows a schema to specify a default character set - we will
@@ -436,7 +436,7 @@ public interface DataDictionary
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public SchemaDescriptor	getSysSpliceSchemaDescriptor( )
+	public SchemaDescriptor	getSysIBMSchemaDescriptor( )
 						throws StandardException;
 
     public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException;

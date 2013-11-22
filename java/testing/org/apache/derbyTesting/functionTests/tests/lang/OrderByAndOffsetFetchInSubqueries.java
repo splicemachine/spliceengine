@@ -302,7 +302,7 @@ public class OrderByAndOffsetFetchInSubqueries extends BaseJDBCTestCase {
         // DERBY-4496
         s.executeUpdate("create table t4496(x varchar(100))");
         s.execute("insert into t4496(x) select ibmreqd from " +
-                  "    (select * from SYSSPLICE.DUAL" +
+                  "    (select * from sysibm.sysdummy1" +
                   "         order by length(ibmreqd)) t1");
 
         JDBC.assertFullResultSet(

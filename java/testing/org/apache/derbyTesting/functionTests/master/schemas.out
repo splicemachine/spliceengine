@@ -156,10 +156,10 @@ splice> create schema sys;
 ERROR 42939: An object cannot be created with the schema name 'SYS'.
 splice> create schema SYS;
 ERROR 42939: An object cannot be created with the schema name 'SYS'.
-splice> create schema SYSSPLICE;
-ERROR 42939: An object cannot be created with the schema name 'SYSSPLICE'.
-splice> create schema SYSSPLICE;
-ERROR 42939: An object cannot be created with the schema name 'SYSSPLICE'.
+splice> create schema sysibm;
+ERROR 42939: An object cannot be created with the schema name 'SYSIBM'.
+splice> create schema SYSIBM;
+ERROR 42939: An object cannot be created with the schema name 'SYSIBM'.
 splice> create schema syscat;
 ERROR 42939: An object cannot be created with the schema name 'SYSCAT'.
 splice> create schema SYSCAT;
@@ -205,8 +205,8 @@ splice> create table syscs_diag.foo6 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSCS_DIAG' schema.
 splice> create table nullid.foo7 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'NULLID' schema.
-splice> create table SYSSPLICE.foo8 (a int);
-ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSSPLICE' schema.
+splice> create table sysibm.foo8 (a int);
+ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSIBM' schema.
 splice> create table sqlj.foo8 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SQLJ' schema.
 splice> create table syscs_util.foo9 (a int);
@@ -221,8 +221,8 @@ splice> create table SYSSTAT.foo4 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSSTAT' schema.
 splice> create table SYSCS_DIAG.foo6 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSCS_DIAG' schema.
-splice> create table SYSSPLICE.foo8 (a int);
-ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSSPLICE' schema.
+splice> create table SYSIBM.foo8 (a int);
+ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSIBM' schema.
 splice> create table SQLJ.foo8 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SQLJ' schema.
 splice> create table SYSCS_UTIL.foo9 (a int);
@@ -236,10 +236,10 @@ splice> drop schema sys RESTRICT;
 ERROR 42Y67: Schema 'SYS' cannot be dropped.
 splice> drop schema SYS RESTRICT;
 ERROR 42Y67: Schema 'SYS' cannot be dropped.
-splice> drop schema SYSSPLICE RESTRICT;
-ERROR 42Y67: Schema 'SYSSPLICE' cannot be dropped.
-splice> drop schema SYSSPLICE RESTRICT;
-ERROR 42Y67: Schema 'SYSSPLICE' cannot be dropped.
+splice> drop schema sysibm RESTRICT;
+ERROR 42Y67: Schema 'SYSIBM' cannot be dropped.
+splice> drop schema SYSIBM RESTRICT;
+ERROR 42Y67: Schema 'SYSIBM' cannot be dropped.
 splice> drop schema syscat RESTRICT;
 ERROR 42Y67: Schema 'SYSCAT' cannot be dropped.
 splice> drop schema SYSCAT RESTRICT;
@@ -327,12 +327,12 @@ splice> create table foo1 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'NULLID' schema.
 splice> create view foo1 as select * from app.test;
 ERROR 42X62: 'CREATE VIEW' is not allowed in the 'NULLID' schema.
-splice> set schema SYSSPLICE;
+splice> set schema sysibm;
 0 rows inserted/updated/deleted
 splice> create table foo1 (a int);
-ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSSPLICE' schema.
+ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSIBM' schema.
 splice> create view foo1 as select * from app.test;
-ERROR 42X62: 'CREATE VIEW' is not allowed in the 'SYSSPLICE' schema.
+ERROR 42X62: 'CREATE VIEW' is not allowed in the 'SYSIBM' schema.
 splice> set schema sqlj;
 0 rows inserted/updated/deleted
 splice> create table foo1 (a int);
@@ -387,12 +387,12 @@ splice> create table foo1 (a int);
 ERROR 42X62: 'CREATE TABLE' is not allowed in the 'NULLID' schema.
 splice> create view foo1 as select * from app.test;
 ERROR 42X62: 'CREATE VIEW' is not allowed in the 'NULLID' schema.
-splice> set schema SYSSPLICE;
+splice> set schema SYSIBM;
 0 rows inserted/updated/deleted
 splice> create table foo1 (a int);
-ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSSPLICE' schema.
+ERROR 42X62: 'CREATE TABLE' is not allowed in the 'SYSIBM' schema.
 splice> create view foo1 as select * from app.test;
-ERROR 42X62: 'CREATE VIEW' is not allowed in the 'SYSSPLICE' schema.
+ERROR 42X62: 'CREATE VIEW' is not allowed in the 'SYSIBM' schema.
 splice> set schema SQLJ;
 0 rows inserted/updated/deleted
 splice> create table foo1 (a int);

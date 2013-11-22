@@ -177,7 +177,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	** are canonical.  We cache them for fast lookup.
 	*/
 	protected SchemaDescriptor systemSchemaDesc;
-	protected SchemaDescriptor SYSSPLICESchemaDesc;
+	protected SchemaDescriptor sysIBMSchemaDesc;
 	protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
 	protected SchemaDescriptor systemUtilSchemaDesc;
 	/** Dictionary version of the on-disk database */
@@ -592,7 +592,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 procedureGenerator.createProcedures(bootingTC,newlyCreatedRoutines);
 
 				//create procedures for network server metadata
-//				create_SYSSPLICE_procedures(bootingTC, newlyCreatedRoutines );
+//				create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
                 // create the SYSCS_UTIL system procedures)
 //                create_SYSCS_procedures(bootingTC, newlyCreatedRoutines );
                 // now grant execute permission on some of these routines
@@ -1261,9 +1261,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		systemSchemaDesc = 
             newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
                 SchemaDescriptor.SYSTEM_SCHEMA_UUID);
-		SYSSPLICESchemaDesc = 
+		sysIBMSchemaDesc = 
             newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
-                SchemaDescriptor.SYSSPLICE_SCHEMA_UUID);
+                SchemaDescriptor.SYSIBM_SCHEMA_UUID);
 		systemUtilSchemaDesc  = 
             newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
                 SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
@@ -1403,7 +1403,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     }
 
 	/**
-	 * Get the descriptor for the SYSSPLICE schema. Schema descriptors include 
+	 * Get the descriptor for the SYSIBM schema. Schema descriptors include 
      * authorization ids and schema ids.
      *
 	 * SQL92 allows a schema to specify a default character set - we will
@@ -1413,10 +1413,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public SchemaDescriptor	getSysSpliceSchemaDescriptor()
+	public SchemaDescriptor	getSysIBMSchemaDescriptor()
 						throws StandardException
     {
-        return SYSSPLICESchemaDesc;
+        return sysIBMSchemaDesc;
     }
 
 	/**
@@ -1490,16 +1490,16 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		{
 			return getSystemSchemaDescriptor();
 		}
-		else if (getSysSpliceSchemaDescriptor().getSchemaName().equals(schemaName))
+		else if (getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName))
 		{
-			// oh you are really asking SYSSPLICE, if this db is soft upgraded 
+			// oh you are really asking SYSIBM, if this db is soft upgraded 
             // from pre 52, I may have 2 versions for you, one on disk 
-            // (user SYSSPLICE), one imaginary (builtin). The
+            // (user SYSIBM), one imaginary (builtin). The
 			// one on disk (real one, if it exists), should always be used.
 			if (dictionaryVersion.checkVersion(
                         DataDictionary.DD_VERSION_CS_5_2, null))
             {
-				return getSysSpliceSchemaDescriptor();
+				return getSysIBMSchemaDescriptor();
             }
 		}
 
@@ -1722,9 +1722,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 			{
 				return getSystemSchemaDescriptor();
 			}
-			else if (getSysSpliceSchemaDescriptor().getUUID().equals(schemaId))
+			else if (getSysIBMSchemaDescriptor().getUUID().equals(schemaId))
 			{
-				return getSysSpliceSchemaDescriptor();
+				return getSysIBMSchemaDescriptor();
 			}
 		}
 
@@ -2457,7 +2457,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
     /**
-     * 10.6 upgrade logic to update the return type of SYSSPLICE.CLOBGETSUBSTRING. The length of the
+     * 10.6 upgrade logic to update the return type of SYSIBM.CLOBGETSUBSTRING. The length of the
      * return type was changed in 10.5 but old versions of the metadata were not
      * upgraded at that time. See DERBY-4214.
      */
@@ -2470,7 +2470,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		DataValueDescriptor	 nameSpaceOrderable = new SQLChar
             ( new String( new char[] { AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR } ) );
         
-		keyRow.setColumn(1, new SQLChar( SchemaDescriptor.SYSSPLICE_SCHEMA_UUID ));
+		keyRow.setColumn(1, new SQLChar( SchemaDescriptor.SYSIBM_SCHEMA_UUID ));
 		keyRow.setColumn(2, aliasNameOrderable);
 		keyRow.setColumn(3, nameSpaceOrderable);
 
@@ -7817,7 +7817,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         authorizationDatabaseOwner = sd.getAuthorizationId();
 
         systemSchemaDesc.setAuthorizationId( authorizationDatabaseOwner );
-        SYSSPLICESchemaDesc.setAuthorizationId( authorizationDatabaseOwner );
+        sysIBMSchemaDesc.setAuthorizationId( authorizationDatabaseOwner );
         systemUtilSchemaDesc.setAuthorizationId( authorizationDatabaseOwner );
     }
     
@@ -7897,11 +7897,11 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 				cm.pushContext(ec);	
 				ContextService.getFactory().setCurrentContextManager(cm);
 				int catalogNumber = noncoreCtr + NUM_CORE;
-				boolean isDummy = (catalogNumber == DUAL_CATALOG_NUM);
+				boolean isDummy = (catalogNumber == SYSDUMMY1_CATALOG_NUM);
 				TabInfoImpl ti = getNonCoreTIByNumber(catalogNumber);
-				makeCatalog(ti, isDummy ? SYSSPLICESchemaDesc : systemSchemaDesc, tc );
+				makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc );
 				if (isDummy)
-					populateDUAL(tc);
+					populateSYSDUMMY1(tc);
 				// Clear the table entry for this non-core table,
 				// to allow it to be garbage-collected. The idea
 				// is that a running database might never need to
@@ -8025,11 +8025,11 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 							((SYSSCHEMASRowFactory) coreInfo[SYSSCHEMAS_CORE_NUM].
 								getCatalogRowFactory()).SYSSCHEMAS_INDEX2_ID)));
 
-		//Add the SYSSPLICE Schema
-		SYSSPLICESchemaDesc = 
+		//Add the SYSIBM Schema
+		sysIBMSchemaDesc = 
             addSystemSchema(
                 SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
-                SchemaDescriptor.SYSSPLICE_SCHEMA_UUID, tc);
+                SchemaDescriptor.SYSIBM_SCHEMA_UUID, tc);
 
 		/* Create the non-core tables and generate the UUIDs for their
 		 * heaps (before creating the indexes).
@@ -8152,7 +8152,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		else
 			ti = coreInfo[catalogNumber];
 		
-		makeCatalog(ti, (catalogNumber == DUAL_CATALOG_NUM) ? getSysSpliceSchemaDescriptor() :
+		makeCatalog(ti, (catalogNumber == SYSDUMMY1_CATALOG_NUM) ? getSysIBMSchemaDescriptor() :
 								getSystemSchemaDescriptor(), tc);
 	}
 
@@ -8914,15 +8914,15 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	}
 
 	/**
-	 *	Populate DUAL table with a single row.
+	 *	Populate SYSDUMMY1 table with a single row.
 	 *
 	 * @exception StandardException Standard Derby error policy
 	 */
-	protected void populateDUAL(
+	protected void populateSYSDUMMY1(
 							TransactionController tc)
 		throws StandardException
 	{
-		TabInfoImpl						ti = getNonCoreTI(DUAL_CATALOG_NUM);
+		TabInfoImpl						ti = getNonCoreTI(SYSDUMMY1_CATALOG_NUM);
 		ExecRow row = ti.getCatalogRowFactory().makeRow(null, null);
 
 		int insertRetCode = ti.insertRow(row, tc);
@@ -9702,8 +9702,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 												 luuidFactory, exFactory, dvf));					 
 				break;
 
-			  case DUAL_CATALOG_NUM:
-				retval = new TabInfoImpl(new DUALRowFactory(
+			  case SYSDUMMY1_CATALOG_NUM:
+				retval = new TabInfoImpl(new SYSDUMMY1RowFactory(
 												 luuidFactory, exFactory, dvf));					 
 				break;
 
@@ -10458,7 +10458,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 		createSPSSet(tc, false, getSystemSchemaDescriptor().getUUID());
 
 		// network server stored plans
-		createSPSSet(tc, true, getSysSpliceSchemaDescriptor().getUUID());
+		createSPSSet(tc, true, getSysIBMSchemaDescriptor().getUUID());
 	}
 
 	/**
@@ -11302,7 +11302,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     }
 
     /**
-     * Create system procedures in SYSSPLICE
+     * Create system procedures in SYSIBM
      * <p>
      * Used to add the system procedures to the database when
      * it is created.  Full upgrade from version 5.1 or earlier also
@@ -11315,19 +11315,19 @@ public class DataDictionaryImpl extends BaseDataDictionary {
      *
 	 * @exception  StandardException  Standard exception policy.
      **/
-    protected final void create_SYSSPLICE_procedures(
+    protected final void create_SYSIBM_procedures(
                                                   TransactionController   tc, HashSet newlyCreatedRoutines )
         throws StandardException
     {
         /*
-		** SYSSPLICE routines.
+		** SYSIBM routines.
 		*/
 
-        // used to put procedure into the SYSSPLICE schema
-		UUID SYSSPLICEUUID = getSysSpliceSchemaDescriptor().getUUID();
+        // used to put procedure into the SYSIBM schema
+		UUID sysIBMUUID = getSysIBMSchemaDescriptor().getUUID();
 
 
-        // SYSSPLICE.SQLCAMESSAGE(
+        // SYSIBM.SQLCAMESSAGE(
         {
 
             // procedure argument names
@@ -11372,7 +11372,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLCAMESSAGE",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				2,
@@ -11384,7 +11384,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLPROCEDURES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLPROCEDURES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11403,7 +11403,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLPROCEDURES",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11415,7 +11415,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLTABLEPRIVILEGES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLTABLEPRIVILEGES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11434,7 +11434,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLTABLEPRIVILEGES",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11446,7 +11446,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLPRIMARYKEYS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLPRIMARYKEYS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11465,7 +11465,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLPRIMARYKEYS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11477,7 +11477,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLTABLES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000), VARCHAR(4000))
+        // SYSIBM.SQLTABLES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11498,7 +11498,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLTABLES",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11511,7 +11511,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         }
 
 
-        // SYSSPLICE.SQLPROCEDURECOLS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLPROCEDURECOLS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11532,7 +11532,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLPROCEDURECOLS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11544,7 +11544,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLCOLUMNS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLCOLUMNS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11565,7 +11565,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLCOLUMNS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11577,7 +11577,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLCOLPRIVILEGES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLCOLPRIVILEGES(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11598,7 +11598,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLCOLPRIVILEGES",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11610,7 +11610,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLUDTS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
+        // SYSIBM.SQLUDTS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11631,7 +11631,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLUDTS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11643,7 +11643,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLFOREIGNKEYS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128),
+        // SYSIBM.SQLFOREIGNKEYS(VARCHAR(128), VARCHAR(128), VARCHAR(128), VARCHAR(128),
 		//						 VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
@@ -11669,7 +11669,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLFOREIGNKEYS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11681,7 +11681,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLSPECIALCOLUMNS(SMALLINT, VARCHAR(128), VARCHAR(128), VARCHAR(128),
+        // SYSIBM.SQLSPECIALCOLUMNS(SMALLINT, VARCHAR(128), VARCHAR(128), VARCHAR(128),
 		//						 	SMALLINT, SMALLINT, VARCHAR(4000))
         {
 
@@ -11707,7 +11707,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLSPECIALCOLUMNS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11719,7 +11719,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLGETTYPEINFO(SMALLINT, VARCHAR(4000))
+        // SYSIBM.SQLGETTYPEINFO(SMALLINT, VARCHAR(4000))
         {
 
             // procedure argument names
@@ -11734,7 +11734,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLGETTYPEINFO",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11746,7 +11746,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLSTATISTICS(VARCHAR(128), VARCHAR(128), VARCHAR(128),
+        // SYSIBM.SQLSTATISTICS(VARCHAR(128), VARCHAR(128), VARCHAR(128),
 		//						 	SMALLINT, SMALLINT, VARCHAR(4000))
         {
 
@@ -11770,7 +11770,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLSTATISTICS",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 arg_names,
                 arg_types,
 				0,
@@ -11782,11 +11782,11 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // void SYSSPLICE.METADATA()
+        // void SYSIBM.METADATA()
         {
             createSystemProcedureOrFunction(
                 "METADATA",
-                SYSSPLICEUUID,
+                sysIBMUUID,
                 null,
                 null,
 				0,
@@ -12037,7 +12037,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLFUNCTIONS(VARCHAR(128), VARCHAR(128), VARCHAR(128), 
+        // SYSIBM.SQLFUNCTIONS(VARCHAR(128), VARCHAR(128), VARCHAR(128), 
 	// VARCHAR(4000))
         {
 
@@ -12057,7 +12057,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLFUNCTIONS",
-                getSysSpliceSchemaDescriptor().getUUID(),
+                getSysIBMSchemaDescriptor().getUUID(),
                 arg_names,
                 arg_types,
 				0,
@@ -12069,7 +12069,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 tc);
         }
 
-        // SYSSPLICE.SQLFUNCTIONPARAMS(VARCHAR(128), VARCHAR(128),
+        // SYSIBM.SQLFUNCTIONPARAMS(VARCHAR(128), VARCHAR(128),
 	// VARCHAR(128), VARCHAR(128), VARCHAR(4000))
         {
 
@@ -12091,7 +12091,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
             createSystemProcedureOrFunction(
                 "SQLFUNCTIONPARAMS",
-                getSysSpliceSchemaDescriptor().getUUID(),
+                getSysIBMSchemaDescriptor().getUUID(),
                 arg_names,
                 arg_types,
 				0,
@@ -12115,12 +12115,12 @@ public class DataDictionaryImpl extends BaseDataDictionary {
      *
      * @throws StandardException  Standard exception policy.
      **/
-    private void create_10_3_system_procedures_SYSSPLICE(
+    private void create_10_3_system_procedures_SYSIBM(
         TransactionController   tc,
         HashSet               newlyCreatedRoutines )
         throws StandardException {
         //create 10.3 functions used by LOB methods.
-        UUID schema_uuid = getSysSpliceSchemaDescriptor().getUUID();
+        UUID schema_uuid = getSysIBMSchemaDescriptor().getUUID();
         {
             String[] arg_names = null;
 
@@ -12642,8 +12642,8 @@ public class DataDictionaryImpl extends BaseDataDictionary {
     throws StandardException {
         // Create the procedures in the SYSCS_UTIL schema.
         create_10_3_system_procedures_SYSCS_UTIL(tc, newlyCreatedRoutines );
-        //create the procedures in the SYSSPLICE schema
-        create_10_3_system_procedures_SYSSPLICE(tc, newlyCreatedRoutines );
+        //create the procedures in the SYSIBM schema
+        create_10_3_system_procedures_SYSIBM(tc, newlyCreatedRoutines );
     }
     /**
      * Create system procedures that are part of the

@@ -54,7 +54,7 @@ import java.util.StringTokenizer;
 
 /**
 	Some system built-in procedures, and help routines.  Now used for network server.
-	These procedures are built-in to the SYSSPLICE schema which match the DB2 SYSSPLICE procedures.
+	These procedures are built-in to the SYSIBM schema which match the DB2 SYSIBM procedures.
 	Currently information on those can be found at url: 
 	ftp://ftp.software.ibm.com/ps/products/db2/info/vr8/pdf/letter/db2l2e80.pdf
 	
@@ -182,7 +182,7 @@ public class SystemProcedures  {
 
 	/**
 	 *  Get the DatabaseMetaData for the current connection for use in
-	 *  mapping the jcc SYSSPLICE.* calls to the Derby DatabaseMetaData methods 
+	 *  mapping the jcc SYSIBM.* calls to the Derby DatabaseMetaData methods 
 	 *
 	 *  @return The DatabaseMetaData object of the current connection
 	 */
@@ -194,10 +194,10 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLProcedures to EmbedDatabaseMetaData.getProcedures
 	 *
-	 *  @param catalogName SYSSPLICE.SQLProcedures CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLProcedures SchemaName  varchar(128),
-	 *  @param procName    SYSSPLICE.SQLProcedures ProcName    varchar(128),
-	 *  @param options     SYSSPLICE.SQLProcedures Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLProcedures CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLProcedures SchemaName  varchar(128),
+	 *  @param procName    SYSIBM.SQLProcedures ProcName    varchar(128),
+	 *  @param options     SYSIBM.SQLProcedures Options     varchar(4000))
 	 *  @param rs          output parameter, the resultset object containing 
      *                     the result of getProcedures
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
@@ -215,10 +215,10 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLFunctions to EmbedDatabaseMetaData.getFunctions
 	 *
-	 *  @param catalogName SYSSPLICE.SQLFunctions CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLFunctions SchemaName  varchar(128),
-	 *  @param funcName    SYSSPLICE.SQLFunctions ProcName    varchar(128),
-	 *  @param options     SYSSPLICE.SQLFunctions Options     varchar(4000)) 
+	 *  @param catalogName SYSIBM.SQLFunctions CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLFunctions SchemaName  varchar(128),
+	 *  @param funcName    SYSIBM.SQLFunctions ProcName    varchar(128),
+	 *  @param options     SYSIBM.SQLFunctions Options     varchar(4000)) 
 	 *                     (not used)
 	 *  @param rs          output parameter, the resultset object containing 
 	 *                     the result of getFunctions
@@ -251,11 +251,11 @@ public class SystemProcedures  {
 	 * <li>otherwise, call getTables()</li>
 	 * </ul>
 	 *
-	 *  @param catalogName SYSSPLICE.SQLTables CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLTables SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLTables TableName   varchar(128),
-	 *  @param tableType   SYSSPLICE.SQLTables TableType   varchar(4000))
-	 *  @param options     SYSSPLICE.SQLTables Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLTables CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLTables SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLTables TableName   varchar(128),
+	 *  @param tableType   SYSIBM.SQLTables TableType   varchar(4000))
+	 *  @param options     SYSIBM.SQLTables Options     varchar(4000))
 	 *  @param rs          output parameter, the resultset object 
 	 */
 	public static void SQLTABLES (String catalogName, String schemaName, String tableName,
@@ -309,13 +309,13 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLForeignKeys to EmbedDatabaseMetaData.getImportedKeys, getExportedKeys, and getCrossReference
 	 *
-	 *  @param pkCatalogName SYSSPLICE.SQLForeignKeys PKCatalogName varchar(128),
-	 *  @param pkSchemaName  SYSSPLICE.SQLForeignKeys PKSchemaName  varchar(128),
-	 *  @param pkTableName   SYSSPLICE.SQLForeignKeys PKTableName   varchar(128),
-	 *  @param fkCatalogName SYSSPLICE.SQLForeignKeys FKCatalogName varchar(128),
-	 *  @param fkSchemaName  SYSSPLICE.SQLForeignKeys FKSchemaName  varchar(128),
-	 *  @param fkTableName   SYSSPLICE.SQLForeignKeys FKTableName   varchar(128),
-	 *  @param options       SYSSPLICE.SQLForeignKeys Options       varchar(4000))
+	 *  @param pkCatalogName SYSIBM.SQLForeignKeys PKCatalogName varchar(128),
+	 *  @param pkSchemaName  SYSIBM.SQLForeignKeys PKSchemaName  varchar(128),
+	 *  @param pkTableName   SYSIBM.SQLForeignKeys PKTableName   varchar(128),
+	 *  @param fkCatalogName SYSIBM.SQLForeignKeys FKCatalogName varchar(128),
+	 *  @param fkSchemaName  SYSIBM.SQLForeignKeys FKSchemaName  varchar(128),
+	 *  @param fkTableName   SYSIBM.SQLForeignKeys FKTableName   varchar(128),
+	 *  @param options       SYSIBM.SQLForeignKeys Options       varchar(4000))
 	 *  @param rs            output parameter, the resultset object 
 	 *                     	 containing the result of the DatabaseMetaData calls
 	 *  			 JCC overloads this method:
@@ -376,11 +376,11 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLProcedureCols to EmbedDatabaseMetaData.getProcedureColumns
 	 *
-	 *  @param catalogName SYSSPLICE.SQLProcedureCols CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLProcedureCols SchemaName  varchar(128),
-	 *  @param procName    SYSSPLICE.SQLProcedureCols ProcName    varchar(128),
-	 *  @param paramName   SYSSPLICE.SQLProcedureCols ParamName   varchar(128),
-	 *  @param options     SYSSPLICE.SQLProcedureCols Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLProcedureCols CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLProcedureCols SchemaName  varchar(128),
+	 *  @param procName    SYSIBM.SQLProcedureCols ProcName    varchar(128),
+	 *  @param paramName   SYSIBM.SQLProcedureCols ParamName   varchar(128),
+	 *  @param options     SYSIBM.SQLProcedureCols Options     varchar(4000))
 	 *  @param rs          output parameter, the resultset object containing 
 	 *			           the result of getProcedureColumns
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
@@ -400,15 +400,15 @@ public class SystemProcedures  {
 	 *  Map SQLFunctionParameters to
 	 *  EmbedDatabaseMetaData.getFunctionColumns()
 	 *
-	 * @param catalogName SYSSPLICE.SQLFunctionParameters CatalogName
+	 * @param catalogName SYSIBM.SQLFunctionParameters CatalogName
 	 * varchar(128),
-	 * @param schemaName SYSSPLICE.SQLFunctionParameters SchemaName
+	 * @param schemaName SYSIBM.SQLFunctionParameters SchemaName
 	 * varchar(128),
-	 * @param funcName SYSSPLICE.SQLFunctionParameters FuncName
+	 * @param funcName SYSIBM.SQLFunctionParameters FuncName
 	 * varchar(128),
-	 * @param paramName SYSSPLICE.SQLFunctionParameters ParamName
+	 * @param paramName SYSIBM.SQLFunctionParameters ParamName
 	 * varchar(128),
-	 * @param options SYSSPLICE.SQLFunctionParameters Options
+	 * @param options SYSIBM.SQLFunctionParameters Options
 	 * varchar(4000))
 	 * @param rs output parameter, the resultset object containing the
 	 * result of getFunctionColumns(). 
@@ -429,11 +429,11 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLColumns to EmbedDatabaseMetaData.getColumns
 	 *
-	 *  @param catalogName SYSSPLICE.SQLColumns CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLColumns SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLColumns TableName   varchar(128),
-	 *  @param columnName  SYSSPLICE.SQLColumns ColumnName  varchar(128),
-	 *  @param options     SYSSPLICE.SQLColumns Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLColumns CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLColumns SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLColumns TableName   varchar(128),
+	 *  @param columnName  SYSIBM.SQLColumns ColumnName  varchar(128),
+	 *  @param options     SYSIBM.SQLColumns Options     varchar(4000))
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
 	 *  	version of this procedure.
 	 *  @param rs          output parameter, the resultset object containing 
@@ -452,11 +452,11 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLColPrivileges to EmbedDatabaseMetaData.getColumnPrivileges
 	 *
-	 *  @param catalogName SYSSPLICE.SQLColPrivileges CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLColPrivileges SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLColPrivileges ProcName    varchar(128),
-	 *  @param columnName  SYSSPLICE.SQLColPrivileges ColumnName  varchar(128),
-	 *  @param options     SYSSPLICE.SQLColPrivileges Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLColPrivileges CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLColPrivileges SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLColPrivileges ProcName    varchar(128),
+	 *  @param columnName  SYSIBM.SQLColPrivileges ColumnName  varchar(128),
+	 *  @param options     SYSIBM.SQLColPrivileges Options     varchar(4000))
 	 *  @param rs          output parameter, the resultset object containing 
      *                     the result of getColumnPrivileges
 	 */
@@ -470,10 +470,10 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLTablePrivileges to EmbedDatabaseMetaData.getTablePrivileges
 	 *
-	 *  @param catalogName SYSSPLICE.SQLTablePrivileges CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLTablePrivileges SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLTablePrivileges ProcName    varchar(128),
-	 *  @param options     SYSSPLICE.SQLTablePrivileges Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLTablePrivileges CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLTablePrivileges SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLTablePrivileges ProcName    varchar(128),
+	 *  @param options     SYSIBM.SQLTablePrivileges Options     varchar(4000))
 	 *  @param rs          output parameter, the resultset object containing 
      *                     the result of getTablePrivileges
 	 */
@@ -487,10 +487,10 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLPrimaryKeys to EmbedDatabaseMetaData.getPrimaryKeys
 	 *
-	 *  @param catalogName SYSSPLICE.SQLPrimaryKeys CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLPrimaryKeys SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLPrimaryKeys TableName   varchar(128),
-	 *  @param options     SYSSPLICE.SQLPrimaryKeys Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLPrimaryKeys CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLPrimaryKeys SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLPrimaryKeys TableName   varchar(128),
+	 *  @param options     SYSIBM.SQLPrimaryKeys Options     varchar(4000))
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
 	 *  	version of this procedure.
 	 *  @param rs          output parameter, the resultset object containing 
@@ -505,8 +505,8 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLGetTypeInfo to EmbedDatabaseMetaData.getTypeInfo
 	 *
-	 *  @param dataType  SYSSPLICE.SQLGetTypeInfo DataType smallint,
-	 *  @param options   SYSSPLICE.SQLGetTypeInfo Options  varchar(4000))
+	 *  @param dataType  SYSIBM.SQLGetTypeInfo DataType smallint,
+	 *  @param options   SYSIBM.SQLGetTypeInfo Options  varchar(4000))
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
 	 *  	version of this procedure.
 	 *  @param rs        output parameter, the resultset object containing the
@@ -523,12 +523,12 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLStatistics to EmbedDatabaseMetaData.getIndexInfo
 	 *
-	 *  @param catalogName SYSSPLICE.SQLStatistics CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLStatistics SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLStatistics TableName   varchar(128),
-	 *  @param unique      SYSSPLICE.SQLStatistics Unique      smallint; 0=SQL_INDEX_UNIQUE(0); 1=SQL_INDEX_ALL(1),
-	 *  @param approximate SYSSPLICE.SQLStatistics Approximate smallint; 1=true; 0=false,
-	 *  @param options     SYSSPLICE.SQLStatistics Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLStatistics CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLStatistics SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLStatistics TableName   varchar(128),
+	 *  @param unique      SYSIBM.SQLStatistics Unique      smallint; 0=SQL_INDEX_UNIQUE(0); 1=SQL_INDEX_ALL(1),
+	 *  @param approximate SYSIBM.SQLStatistics Approximate smallint; 1=true; 0=false,
+	 *  @param options     SYSIBM.SQLStatistics Options     varchar(4000))
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
 	 *  	version of this procedure.
 	 *  @param rs          output parameter, the resultset object containing 
@@ -550,14 +550,14 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLSpecialColumns to EmbedDatabaseMetaData.getBestRowIdentifier and getVersionColumns
 	 *
-	 *  @param colType     SYSSPLICE.SQLSpecialColumns ColType     smallint,
+	 *  @param colType     SYSIBM.SQLSpecialColumns ColType     smallint,
 	 *			where 1 means getBestRowIdentifier and 2 getVersionColumns was called.
-	 *  @param catalogName SYSSPLICE.SQLSpecialColumns CatalogName varchar(128),
-	 *  @param schemaName  SYSSPLICE.SQLSpecialColumns SchemaName  varchar(128),
-	 *  @param tableName   SYSSPLICE.SQLSpecialColumns TableName   varchar(128),
-	 *  @param scope       SYSSPLICE.SQLSpecialColumns Scope       smallint,
-	 *  @param nullable    SYSSPLICE.SQLSpecialColumns Nullable    smallint; 0=false, 1=true,
-	 *  @param options     SYSSPLICE.SQLSpecialColumns Options     varchar(4000))
+	 *  @param catalogName SYSIBM.SQLSpecialColumns CatalogName varchar(128),
+	 *  @param schemaName  SYSIBM.SQLSpecialColumns SchemaName  varchar(128),
+	 *  @param tableName   SYSIBM.SQLSpecialColumns TableName   varchar(128),
+	 *  @param scope       SYSIBM.SQLSpecialColumns Scope       smallint,
+	 *  @param nullable    SYSIBM.SQLSpecialColumns Nullable    smallint; 0=false, 1=true,
+	 *  @param options     SYSIBM.SQLSpecialColumns Options     varchar(4000))
 	 *  	If options contains the string 'DATATYPE='ODBC'', call the ODBC
 	 *  	version of this procedure.
 	 *  @param rs          output parameter, the resultset object containing 
@@ -588,11 +588,11 @@ public class SystemProcedures  {
 	/**
 	 *  Map SQLUDTS to EmbedDatabaseMetaData.getUDTs
 	 *
-	 *  @param catalogName     SYSSPLICE.SQLUDTS CatalogName          varchar(128),
-	 *  @param schemaPattern   SYSSPLICE.SQLUDTS Schema_Name_Pattern  varchar(128),
-	 *  @param typeNamePattern SYSSPLICE.SQLUDTS Type_Name_Pattern    varchar(128),
-	 *  @param udtTypes        SYSSPLICE.SQLUDTS UDTTypes             varchar(128),
-	 *  @param options         SYSSPLICE.SQLUDTS Options              varchar(4000))
+	 *  @param catalogName     SYSIBM.SQLUDTS CatalogName          varchar(128),
+	 *  @param schemaPattern   SYSIBM.SQLUDTS Schema_Name_Pattern  varchar(128),
+	 *  @param typeNamePattern SYSIBM.SQLUDTS Type_Name_Pattern    varchar(128),
+	 *  @param udtTypes        SYSIBM.SQLUDTS UDTTypes             varchar(128),
+	 *  @param options         SYSIBM.SQLUDTS Options              varchar(4000))
 	 *  @param rs              output parameter, the resultset object containing
      *                         the result of getUDTs, which will be empty
 	 */
@@ -630,7 +630,7 @@ public class SystemProcedures  {
 	}
 
 	/*
-	 *  Map SYSSPLICE.METADATA to appropriate EmbedDatabaseMetaData methods 
+	 *  Map SYSIBM.METADATA to appropriate EmbedDatabaseMetaData methods 
 	 *  for now, using the sps in org.apache.derby.iapi.db.jdbc.datadictionary.metadata_net.properties
 	 *
 	 */

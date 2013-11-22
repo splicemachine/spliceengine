@@ -44,7 +44,7 @@ SYS                 |SYSTABLES                     |
 SYS                 |SYSTRIGGERS                   |                    
 SYS                 |SYSUSERS                      |                    
 SYS                 |SYSVIEWS                      |                    
-SYSSPLICE              |DUAL                     |                    
+SYSIBM              |SYSDUMMY1                     |                    
 splice> SET SCHEMA APP;
 0 rows inserted/updated/deleted
 splice> CREATE TABLE t1 (i int generated always as identity, d DECIMAL(5,2), test VARCHAR(20));
@@ -98,7 +98,7 @@ SYS                 |SYSTABLES                     |
 SYS                 |SYSTRIGGERS                   |                    
 SYS                 |SYSUSERS                      |                    
 SYS                 |SYSVIEWS                      |                    
-SYSSPLICE              |DUAL                     |                    
+SYSIBM              |SYSDUMMY1                     |                    
 APP                 |T1                            |                    
 USER1               |T2                            |                    
 splice> SHOW TABLES IN APP;
@@ -141,7 +141,7 @@ SYSCAT
 SYSCS_DIAG                    
 SYSCS_UTIL                    
 SYSFUN                        
-SYSSPLICE                        
+SYSIBM                        
 SYSPROC                       
 SYSSTAT                       
 USER1                         
@@ -168,16 +168,16 @@ SYSCS_UTIL    |SYSCS_GET_USER_ACCESS       |org.apache.derby.catalog.SystemPro&
 SYSCS_UTIL    |SYSCS_GET_XPLAIN_MODE       |org.apache.derby.catalog.SystemPro&
 SYSCS_UTIL    |SYSCS_GET_XPLAIN_SCHEMA     |org.apache.derby.catalog.SystemPro&
 SYSCS_UTIL    |SYSCS_PEEK_AT_SEQUENCE      |org.apache.derby.catalog.SystemPro&
-SYSSPLICE        |BLOBCREATELOCATOR           |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |BLOBGETBYTES                |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |BLOBGETLENGTH               |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |BLOBGETPOSITIONFROMBYTES    |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |BLOBGETPOSITIONFROMLOCATOR  |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |CLOBCREATELOCATOR           |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |CLOBGETLENGTH               |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |CLOBGETPOSITIONFROMLOCATOR  |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |CLOBGETPOSITIONFROMSTRING   |org.apache.derby.impl.jdbc.LOBStor&
-SYSSPLICE        |CLOBGETSUBSTRING            |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |BLOBCREATELOCATOR           |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |BLOBGETBYTES                |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |BLOBGETLENGTH               |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |BLOBGETPOSITIONFROMBYTES    |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |BLOBGETPOSITIONFROMLOCATOR  |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |CLOBCREATELOCATOR           |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |CLOBGETLENGTH               |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |CLOBGETPOSITIONFROMLOCATOR  |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |CLOBGETPOSITIONFROMSTRING   |org.apache.derby.impl.jdbc.LOBStor&
+SYSIBM        |CLOBGETSUBSTRING            |org.apache.derby.impl.jdbc.LOBStor&
 splice> SHOW SYNONYMS IN USER1;
 TABLE_SCHEM         |TABLE_NAME                    |REMARKS             
 ------------------------------------------------------------------------

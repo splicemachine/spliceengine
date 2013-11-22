@@ -447,7 +447,7 @@ class Database
         if (!locatorSupportChecked) {
             // Check if locator procedures exist
             ResultSet rs = getConnection().getMetaData()
-                    .getProcedures(null, "SYSSPLICE", "BLOBTRUNCATE");
+                    .getProcedures(null, "SYSIBM", "BLOBTRUNCATE");
             locatorSupport =  rs.next();  // True if procedure exists
             rs.close();
             locatorSupportChecked = true;

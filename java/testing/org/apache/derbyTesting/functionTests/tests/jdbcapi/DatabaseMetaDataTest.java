@@ -1035,13 +1035,13 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
     }
     
     /**
-     *  Implement ODBC equivalent for getVersionColumns - SYSSPLICE.SQLCOLUMNS
+     *  Implement ODBC equivalent for getVersionColumns - SYSIBM.SQLCOLUMNS
      */
     public ResultSet getVersionColumnsODBC(
             String catalog, String schema, String table)
         throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLSPECIALCOLUMNS " +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLSPECIALCOLUMNS " +
             "(2, ?, ?, ?, 1, 1, 'DATATYPE=''ODBC''')");
 
         cs.setString(1, catalog);
@@ -1089,7 +1089,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
      */
     private static final String[] BUILTIN_SCHEMAS = {
             "APP", "NULLID", "SQLJ", "SYS", "SYSCAT", "SYSCS_DIAG",
-            "SYSCS_UTIL", "SYSFUN", "SYSSPLICE", "SYSPROC", "SYSSTAT"};
+            "SYSCS_UTIL", "SYSFUN", "SYSIBM", "SYSPROC", "SYSSTAT"};
     
     public static String getStoredIdentifier(String sqlIdentifier)
     {
@@ -1432,7 +1432,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         }
 
         CallableStatement cs = prepareCall(
-            "CALL SYSSPLICE.SQLTABLES(?, ?, ?, ?, 'DATATYPE=''ODBC''')");
+            "CALL SYSIBM.SQLTABLES(?, ?, ?, ?, 'DATATYPE=''ODBC''')");
         cs.setString(1, catalog);
         cs.setString(2, schema);
         cs.setString(3, table);
@@ -2039,14 +2039,14 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
     }
     
     /**
-     *  Implement ODBC equivalent for getColumns - SYSSPLICE.SQLCOLUMNS
+     *  Implement ODBC equivalent for getColumns - SYSIBM.SQLCOLUMNS
      */
     private ResultSet getColumnsODBC(
             String catalog, String schemaPattern, String tableNamePattern,
             String columnNamePattern)
         throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLCOLUMNS(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLCOLUMNS(" +
                 "?, ?, ?, ?, 'DATATYPE=''ODBC''')");
 
         cs.setString(1, catalog);
@@ -2489,7 +2489,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         };
 
         CallableStatement cs = prepareCall(
-                "CALL SYSSPLICE.SQLGETTYPEINFO (0, 'DATATYPE=''ODBC''')");
+                "CALL SYSIBM.SQLGETTYPEINFO (0, 'DATATYPE=''ODBC''')");
         
         cs.execute();
         ResultSet odbcrs = cs.getResultSet();
@@ -3066,7 +3066,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
          * that behavior if we want to maintain backward compatibility.
          */
         CallableStatement cs = prepareCall(
-            "CALL SYSSPLICE.SQLFOREIGNKEYS(?, ?, ?, ?, ?, ?, " +
+            "CALL SYSIBM.SQLFOREIGNKEYS(?, ?, ?, ?, ?, ?, " +
             "'DATATYPE=''ODBC''')");
 
         cs.setString(1, pCatalog);
@@ -3454,7 +3454,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         String table, int scope, boolean nullable) throws SQLException 
     {
         CallableStatement cs = prepareCall(
-            "CALL SYSSPLICE.SQLSPECIALCOLUMNS(1, ?, ?, ?, ?, ?, " +
+            "CALL SYSIBM.SQLSPECIALCOLUMNS(1, ?, ?, ?, ?, ?, " +
         "'DATATYPE=''ODBC''')");
         cs.setString(1, catalog);
         cs.setString(2, schema);
@@ -3579,7 +3579,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         String table, String columnNamePattern) throws SQLException 
     {
         CallableStatement cs = prepareCall(
-            "CALL SYSSPLICE.SQLCOLPRIVILEGES(?, ?, ?, ?, 'DATATYPE=''ODBC''')");
+            "CALL SYSIBM.SQLCOLPRIVILEGES(?, ?, ?, ?, 'DATATYPE=''ODBC''')");
         
         cs.setString(1, catalog);
         cs.setString(2, schema);
@@ -3649,7 +3649,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         String tableNamePattern) throws SQLException 
     {
         CallableStatement cs = prepareCall(
-            "CALL SYSSPLICE.SQLTABLEPRIVILEGES(?, ?, ?, 'DATATYPE=''ODBC''')");
+            "CALL SYSIBM.SQLTABLEPRIVILEGES(?, ?, ?, 'DATATYPE=''ODBC''')");
         
         cs.setString(1, catalog);
         cs.setString(2, schema);
@@ -3789,7 +3789,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         String table, boolean unique, boolean approximate) throws SQLException 
     {
         CallableStatement cs = prepareCall(
-                "CALL SYSSPLICE.SQLSTATISTICS(?, ?, ?, ?, ?, " +
+                "CALL SYSIBM.SQLSTATISTICS(?, ?, ?, ?, ?, " +
                 "'DATATYPE=''ODBC''')");
 
         cs.setString(1, catalog);
@@ -3980,7 +3980,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             String catalog, String schema, String table) throws SQLException 
     {
         CallableStatement cs = prepareCall(
-                "CALL SYSSPLICE.SQLPRIMARYKEYS(?, ?, ?, 'DATATYPE=''ODBC''')");
+                "CALL SYSIBM.SQLPRIMARYKEYS(?, ?, ?, 'DATATYPE=''ODBC''')");
         cs.setString(1, catalog);
         cs.setString(2, schema);
         cs.setString(3, table);
@@ -4230,7 +4230,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
     private ResultSet getImportedKeysODBC(
             String catalog, String schema, String table) throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLFOREIGNKEYS(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLFOREIGNKEYS(" +
             "null, null, null, ?, ?, ?, 'IMPORTEDKEY=1;DATATYPE=''ODBC''')");
         cs.setString(1, catalog);
         cs.setString(2, schema);
@@ -4289,7 +4289,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
     private ResultSet getExportedKeysODBC(
             String catalog, String schema, String table) throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLFOREIGNKEYS(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLFOREIGNKEYS(" +
             "?, ?, ?, null, null, null, 'EXPORTEDKEY=1;DATATYPE=''ODBC''')");
         cs.setString(1, catalog);
         cs.setString(2, schema);
@@ -4325,7 +4325,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             String foreigncatalog, String foreignschema, String foreigntable)
         throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLFOREIGNKEYS(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLFOREIGNKEYS(" +
                 "?, ?, ?, ?, ?, ?, 'DATATYPE=''ODBC''')");
 
         cs.setString(1, parentcatalog);
@@ -4675,7 +4675,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             String catalog, String schemaPattern, String procedureNamePattern)
         throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLPROCEDURES(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLPROCEDURES(" +
                 "?, ?, ?, 'DATATYPE=''ODBC''')");
             cs.setString(1, catalog);
             cs.setString(2, schemaPattern);
@@ -4743,7 +4743,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             String schemaPattern, String procedureNamePattern,
             String columnNamePattern) throws SQLException 
     {
-        CallableStatement cs = prepareCall("CALL SYSSPLICE.SQLPROCEDURECOLS(" +
+        CallableStatement cs = prepareCall("CALL SYSIBM.SQLPROCEDURECOLS(" +
                 "?, ?, ?, ?, 'DATATYPE=''ODBC''')");
 
         cs.setString(1, catalog);

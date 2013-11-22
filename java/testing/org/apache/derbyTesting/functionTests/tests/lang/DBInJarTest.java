@@ -80,7 +80,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
                {"SYSCS_DIAG",null},
                {"SYSCS_UTIL",null},
                {"SYSFUN",null},
-               {"SYSSPLICE",null},
+               {"SYSIBM",null},
                {"SYSPROC",null},
                {"SYSSTAT",null}};
        JDBC.assertFullResultSet(rs, expectedRows);
@@ -130,7 +130,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         // the inner table in the hash join.
         JDBC.assertEmpty(stmt.executeQuery(
                 "select * from --DERBY-PROPERTIES joinOrder = FIXED\n" +
-                "SYSSPLICE.DUAL t1(x),\n" +
+                "sysibm.sysdummy1 t1(x),\n" +
                 "d2354 t2 --DERBY-PROPERTIES joinStrategy = HASH\n" +
                 "where t1.x = t2.x"));
 

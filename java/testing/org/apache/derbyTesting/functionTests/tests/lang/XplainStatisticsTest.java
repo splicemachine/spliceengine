@@ -781,7 +781,7 @@ public class XplainStatisticsTest extends BaseJDBCTestCase {
      */
     public void testPlanExporterSpecialCharactersInSchema() throws Exception {
         String schema = "DERBY-4904 \"double\" and 'single' quoted schema";
-        String query = "select * from SYSSPLICE.DUAL";
+        String query = "select * from sysibm.sysdummy1";
 
         PreparedStatement setStats = prepareStatement(
                 "call syscs_util.syscs_set_runtimestatistics(?)");

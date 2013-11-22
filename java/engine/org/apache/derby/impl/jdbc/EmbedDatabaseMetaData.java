@@ -3470,9 +3470,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 	
     /**
      * Get metadata that the client driver will cache. The metadata is
-     * fetched using SYSSPLICE.METADATA (found in metadata_net.properties).
+     * fetched using SYSIBM.METADATA (found in metadata_net.properties).
      *
-     * @return the result set returned by SYSSPLICE.METADATA
+     * @return the result set returned by SYSIBM.METADATA
      * @exception SQLException if a database error occurs
      */
     public ResultSet getClientCachedMetaData() throws SQLException {
@@ -3485,7 +3485,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 
     /**
      * Execute a query in metadata.properties (or SPS in the SYS
-     * schema) or metadata_net.properties (or SPS in the SYSSPLICE
+     * schema) or metadata_net.properties (or SPS in the SYSIBM
      * schema).
      *
      * @param nameKey the name of the query
@@ -3521,7 +3521,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * Get a stored prepared statement from the system tables.
      *
      * @param nameKey the name of the query
-     * @param net if <code>true</code>, find query in SYSSPLICE schema;
+     * @param net if <code>true</code>, find query in SYSIBM schema;
      * otherwise, find query in SYS schema
      * @return a <code>PreparedStatement</code> value
      * @exception SQLException if a database error occurs
@@ -3690,7 +3690,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		DataDictionary dd = getLanguageConnectionContext().getDataDictionary();
 		SPSDescriptor spsd = dd.getSPSDescriptor(
 										spsName, 
-										net ? dd.getSysSpliceSchemaDescriptor() :
+										net ? dd.getSysIBMSchemaDescriptor() :
 										dd.getSystemSchemaDescriptor());
 		lcc.commitNestedTransaction();
 
@@ -3710,7 +3710,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		** the statement into a java.sql.PreparedStatement.
 		*/	
 		String queryText =
-			"EXECUTE STATEMENT " + (net ? "SYSSPLICE" : "SYS") +
+			"EXECUTE STATEMENT " + (net ? "SYSIBM" : "SYS") +
 			".\"" + spsName + "\"";
 		return getEmbedConnection().prepareMetaDataStatement(queryText);
 

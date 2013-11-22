@@ -131,7 +131,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 		ResultSet rs = s.executeQuery("select tablename,gatp('SYS', tablename) from sys.systables order by tablename");
 		boolean nonEmptyResultSet = false;
 		String tablename = null;
-		String sysdummy = "DUAL";
+		String sysdummy = "SYSDUMMY1";
 		String heapResult = "{ derby.storage.initialPages=1, derby.storage.minimumRecordSize=12, derby.storage.pageReservedSpace=0, derby.storage.pageSize=4096, derby.storage.reusableRecordId=false }";
 		while(rs.next()) {
 			nonEmptyResultSet  = true;
@@ -230,7 +230,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSDEPENDS", "DEPENDENTID", "1", "CHAR(36) NOT NULL"},
 				{"SYSDEPENDS", "PROVIDERFINDER", "4", "org.apache.derby.catalog.DependableFinder NOT NULL"},
 				{"SYSDEPENDS", "PROVIDERID", "3", "CHAR(36) NOT NULL"},
-				{"DUAL", "IBMREQD", "1", "CHAR(1)"},
+				{"SYSDUMMY1", "IBMREQD", "1", "CHAR(1)"},
 				{"SYSFILES", "FILEID", "1", "CHAR(36) NOT NULL"},
 				{"SYSFILES", "FILENAME", "3", "VARCHAR(128) NOT NULL"},
 				{"SYSFILES", "GENERATIONID", "4", "BIGINT NOT NULL"},
@@ -370,7 +370,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 				{"SYSDEPENDS", "SYSDEPENDS_HEAP", "false"},
 				{"SYSDEPENDS", "SYSDEPENDS_INDEX2", "true"},
 				{"SYSDEPENDS", "SYSDEPENDS_INDEX1", "true"},
-				{"DUAL", "DUAL_HEAP", "false"},
+				{"SYSDUMMY1", "SYSDUMMY1_HEAP", "false"},
 				{"SYSFILES", "SYSFILES_HEAP", "false"},
 				{"SYSFILES", "SYSFILES_INDEX2", "true"},
 				{"SYSFILES", "SYSFILES_INDEX1", "true"},
@@ -748,7 +748,7 @@ public class SystemCatalogTest extends BaseJDBCTestCase {
 	 */
 	public void testCheckConsistencyOfSystemCatalogs() throws SQLException {
 		Statement s = createStatement();
-		ResultSet rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename)from sys.systables where tabletype = 'S' and tablename != 'DUAL' order by tablename");
+		ResultSet rs = s.executeQuery("select tablename, SYSCS_UTIL.SYSCS_CHECK_TABLE('SYS', tablename)from sys.systables where tabletype = 'S' and tablename != 'SYSDUMMY1' order by tablename");
 		
 		boolean nonEmptyResultSet = false;
 		while(rs.next()) {

@@ -85,7 +85,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         getConnection().setAutoCommit(false);
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBCREATELOCATOR()");
+            ("? = CALL SYSIBM.BLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -95,7 +95,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //been inserted properly.
 
         //Insert the new substring.
-        cs  = prepareCall("CALL SYSSPLICE.BLOBSETBYTES(?,?,?,?)");
+        cs  = prepareCall("CALL SYSIBM.BLOBSETBYTES(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setLong(2, 1L);
         cs.setInt(3, (int)testStrLength);
@@ -130,7 +130,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //procedure BLOBGETBYTES that will get the bytes
         //inserted into the Blob in the setup method.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBGETBYTES(?,?,?)");
+            ("? = CALL SYSIBM.BLOBGETBYTES(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.VARBINARY);
         cs.setInt(2, 1);
         cs.setLong(3, 1);
@@ -141,7 +141,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
 
         for (int i=0;i<10;i++){
             assertEquals
-                ("The Stored procedure SYSSPLICE.BLOBGETBYTES " +
+                ("The Stored procedure SYSIBM.BLOBGETBYTES " +
                 "returns the wrong bytes"
                 , testSubBytes[i], retVal[i]);
         }
@@ -160,7 +160,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = -1;
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBCREATELOCATOR()");
+            ("? = CALL SYSIBM.BLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -168,18 +168,18 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //remember in setup a locator is already created
         //hence expected value is 2
         assertEquals("The locator values returned by " +
-            "SYSSPLICE.BLOBCREATELOCATOR() are incorrect", 2, locator);
+            "SYSIBM.BLOBCREATELOCATOR() are incorrect", 2, locator);
         cs.close();
     }
 
     /**
-     * Tests the SYSSPLICE.BLOBRELEASELOCATOR stored procedure.
+     * Tests the SYSIBM.BLOBRELEASELOCATOR stored procedure.
      *
      * @throws SQLException
      */
     public void testBlobReleaseLocatorSP() throws SQLException {
         CallableStatement cs  = prepareCall
-            ("CALL SYSSPLICE.BLOBRELEASELOCATOR(?)");
+            ("CALL SYSIBM.BLOBRELEASELOCATOR(?)");
         cs.setInt(1, 1);
         cs.execute();
         cs.close();
@@ -188,7 +188,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //locator value will throw an SQLException. This assures that
         //the locator has been properly released.
 
-        cs  = prepareCall("? = CALL SYSSPLICE.BLOBGETLENGTH(?)");
+        cs  = prepareCall("? = CALL SYSIBM.BLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         try {
@@ -198,35 +198,35 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
             return;
         }
         //The exception was not thrown. The test has failed here.
-        fail("Error the locator was not released by SYSSPLICE.BLOBRELEASELOCATOR");
+        fail("Error the locator was not released by SYSIBM.BLOBRELEASELOCATOR");
         cs.close();
     }
 
     /**
-     * Tests the SYSSPLICE.BLOBGETLENGTH stored procedure.
+     * Tests the SYSIBM.BLOBGETLENGTH stored procedure.
      *
      * @throws SQLException.
      */
     public void testBlobGetLengthSP() throws SQLException {
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBGETLENGTH(?)");
+            ("? = CALL SYSIBM.BLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         cs.executeUpdate();
         //compare the actual length of the test string and the returned length.
-        assertEquals("Error SYSSPLICE.BLOBGETLENGTH returns " +
+        assertEquals("Error SYSIBM.BLOBGETLENGTH returns " +
             "the wrong value for the length of the Blob", testStrLength, cs.getLong(1));
         cs.close();
     }
 
     /**
-     * Tests the SYSSPLICE.BLOBGETPOSITIONFROMBYTES stored procedure.
+     * Tests the SYSIBM.BLOBGETPOSITIONFROMBYTES stored procedure.
      *
      * @throws SQLException.
      */
     public void testBlobGetPositionFromBytesSP() throws Exception {
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBGETPOSITIONFROMBYTES(?,?,?)");
+            ("? = CALL SYSIBM.BLOBGETPOSITIONFROMBYTES(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         //find the position of the bytes corresponding to
@@ -236,13 +236,13 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         cs.executeUpdate();
         //check to see that the returned position and the expected position
         //of the substring simple in the string are matching.
-        assertEquals("Error SYSSPLICE.BLOBGETPOSITIONFROMBYTES returns " +
+        assertEquals("Error SYSIBM.BLOBGETPOSITIONFROMBYTES returns " +
             "the wrong value for the position of the Blob", 8, cs.getLong(1));
         cs.close();
     }
 
     /**
-     * Tests the stored procedure SYSSPLICE.BLOBSETBYTES
+     * Tests the stored procedure SYSIBM.BLOBSETBYTES
      * @throws UnsupportedEncodingException 
      *
      * @throws SQLException.
@@ -254,7 +254,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = -1;
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBCREATELOCATOR()");
+            ("? = CALL SYSIBM.BLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -265,7 +265,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //been inserted properly.
 
         //Insert the new substring.
-        cs  = prepareCall("CALL SYSSPLICE.BLOBSETBYTES(?,?,?,?)");
+        cs  = prepareCall("CALL SYSIBM.BLOBSETBYTES(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setLong(2, 1L);
         cs.setInt(3, newString.length());
@@ -275,7 +275,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
 
         //check the new locator to see if the value has been inserted correctly.
         cs  = prepareCall("? = CALL " +
-            "SYSSPLICE.BLOBGETBYTES(?,?,?)");
+            "SYSIBM.BLOBGETBYTES(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.VARBINARY);
         cs.setInt(2, locator);
         cs.setLong(3, 1);
@@ -286,7 +286,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //procedure to see of they are the same.
         for (int i=0;i<newString.length();i++){
             assertEquals
-                ("The Stored procedure SYSSPLICE.BLOBGETBYTES " +
+                ("The Stored procedure SYSIBM.BLOBGETBYTES " +
                 "returns the wrong bytes"
                 , newBytes[i], retVal[i]);
         }
@@ -294,32 +294,32 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test the stored procedure SYSSPLICE.BLOBGETLENGTH
+     * Test the stored procedure SYSIBM.BLOBGETLENGTH
      *
      * @throws SQLException
      */
     public void testBlobTruncateSP() throws SQLException {
         CallableStatement cs = prepareCall
-            ("CALL SYSSPLICE.BLOBTRUNCATE(?,?)");
+            ("CALL SYSIBM.BLOBTRUNCATE(?,?)");
         cs.setInt(1, 1);
         cs.setLong(2, 10L);
         cs.execute();
         cs.close();
 
         cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBGETLENGTH(?)");
+            ("? = CALL SYSIBM.BLOBGETLENGTH(?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         cs.executeUpdate();
         //compare the actual length of the test string and the returned length.
-        assertEquals("Error SYSSPLICE.BLOBGETLENGTH returns " +
+        assertEquals("Error SYSIBM.BLOBGETLENGTH returns " +
             "the wrong value for the length of the Blob", 10L
             , cs.getLong(1));
         cs.close();
      }
 
     /**
-     * Tests the SYSSPLICE.BLOBGETPOSITIONFROMLOCATOR stored procedure.
+     * Tests the SYSIBM.BLOBGETPOSITIONFROMLOCATOR stored procedure.
      * @throws UnsupportedEncodingException 
      *
      * @throws SQLException.
@@ -331,7 +331,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         int locator = -1;
         //call the stored procedure to return the created locator.
         CallableStatement cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBCREATELOCATOR()");
+            ("? = CALL SYSIBM.BLOBCREATELOCATOR()");
         cs.registerOutParameter(1, java.sql.Types.INTEGER);
         cs.executeUpdate();
         locator = cs.getInt(1);
@@ -342,7 +342,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         //been inserted properly.
 
         //Insert the new substring.
-        cs  = prepareCall("CALL SYSSPLICE.BLOBSETBYTES(?,?,?,?)");
+        cs  = prepareCall("CALL SYSIBM.BLOBSETBYTES(?,?,?,?)");
         cs.setInt(1, locator);
         cs.setLong(2, 1L);
         cs.setInt(3, newString.length());
@@ -351,7 +351,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         cs.close();
 
         cs  = prepareCall
-            ("? = CALL SYSSPLICE.BLOBGETPOSITIONFROMLOCATOR(?,?,?)");
+            ("? = CALL SYSIBM.BLOBGETPOSITIONFROMLOCATOR(?,?,?)");
         cs.registerOutParameter(1, java.sql.Types.BIGINT);
         cs.setInt(2, 1);
         //find the position of the bytes corresponding to
@@ -361,7 +361,7 @@ public class BlobStoredProcedureTest extends BaseJDBCTestCase {
         cs.executeUpdate();
         //check to see that the returned position and the expected position
         //of the substring simple in the string are matching.
-        assertEquals("Error SYSSPLICE.BLOBGETPOSITIONFROMLOCATOR returns " +
+        assertEquals("Error SYSIBM.BLOBGETPOSITIONFROMLOCATOR returns " +
             "the wrong value for the position of the Blob", 8, cs.getLong(1));
         cs.close();
     }

@@ -1099,7 +1099,7 @@ SYS                                                                             
 SYS                                                                                                                             |SYSTRIGGERS                                                                                                                     |1          
 SYS                                                                                                                             |SYSUSERS                                                                                                                        |1          
 SYS                                                                                                                             |SYSVIEWS                                                                                                                        |1          
-SYSSPLICE                                                                                                                          |DUAL                                                                                                                       |1          
+SYSIBM                                                                                                                          |SYSDUMMY1                                                                                                                       |1          
 splice> select a, b from xena;
 A          |B          
 -----------------------
