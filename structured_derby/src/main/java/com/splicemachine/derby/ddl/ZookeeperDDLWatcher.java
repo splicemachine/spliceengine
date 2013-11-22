@@ -9,11 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -45,6 +47,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private String id;
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, 
             new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
+    private Set<DDLChange> tentativeIndexes = new CopyOnWriteArraySet<DDLChange>();
     
     @Override
     public void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
@@ -151,19 +154,23 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             }
         }
         for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
-            String change = iterator.next();
-            if (!currentDDLChanges.containsKey(change)) {
+            String changeId = iterator.next();
+            if (!currentDDLChanges.containsKey(changeId)) {
                 byte[] data;
                 try {
-                    data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change);
+                    data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
                 } catch (IOException e) {
                     throw Exceptions.parseException(e);
                 }
                 String jsonChange = Bytes.toString(data);
                 DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
-                currentDDLChanges.put(change, ddlChange.getTransactionId());
-                changesTimeouts.put(change, System.currentTimeMillis());
-                newChanges.add(change);
+                newChanges.add(changeId);
+                if (ddlChange.isTentative()) {
+                    processTentativeDDLChange(ddlChange);
+                } else {
+                    currentDDLChanges.put(changeId, ddlChange.getTransactionId());
+                    changesTimeouts.put(changeId, System.currentTimeMillis());
+                }
             }
         }
 
@@ -200,6 +207,16 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
+    private void processTentativeDDLChange(DDLChange ddlChange) throws StandardException {
+        switch (ddlChange.getType()) {
+            case CREATE_INDEX:
+                tentativeIndexes.add(ddlChange);
+                break;
+            default:
+                throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
+        }
+    }
+
     private void killDDLTransaction(String changeId) {
         String transactionId = currentDDLChanges.get(changeId);
         LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
@@ -217,4 +234,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
+    public Set<DDLChange> getTentativeIndexes() {
+        return tentativeIndexes;
+    }
 }

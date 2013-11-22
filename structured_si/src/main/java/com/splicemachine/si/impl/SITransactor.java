@@ -851,6 +851,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException {
         compactionState.mutate(rawList, results);
     }
+
+    @Override
+    public DDLFilter newDDLFilter(String transactionId) throws IOException {
+        return new DDLFilter(
+                transactionStore.getTransaction(transactionIdFromString(transactionId)),
+                transactionStore
+                );
+    }
 // Helpers
 
     /**

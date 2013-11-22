@@ -407,4 +407,13 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return zeroIndexed;
     }
+
+    public static BitSet bitSetFromBooleanArray(boolean[] array) {
+        BitSet bitSet = new BitSet(array.length);
+        for (int col = 0; col < array.length; col++) {
+            if (array[col])
+                bitSet.set(col);
+        }
+        return bitSet;
+    }
 }
