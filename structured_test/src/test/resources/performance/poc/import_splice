@@ -12,10 +12,10 @@ CREATE TABLE category (
 	cat_name_sch		VARCHAR(128),
 	cat_name_ko		VARCHAR(128));
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql:  call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY', null, null, 'CURRENT_WORKING_DIRECTORY/category.csv', ',', '"', null,null,null);
 --splicetest: derby sql:  call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY', null, null, 'CURRENT_WORKING_DIRECTORY/category.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 
 --splicetest: ignorediff stop
 
@@ -34,10 +34,10 @@ CREATE TABLE category_sub (
 	sbc_desc_ko		VARCHAR(128));
 
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY_SUB', null, null, 'CURRENT_WORKING_DIRECTORY/category_sub.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CATEGORY_SUB', null, null, 'CURRENT_WORKING_DIRECTORY/category_sub.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 -- "CUSTOMER_ID","CUST_LAST_NAME","CUST_FIRST_NAME","GENDER_ID","CUST_BIRTHDATE","EMAIL","ADDRESS","ZIPCODE","INCOME_ID","CUST_CITY_ID","AGE_YEARS","AGERANGE_ID",
@@ -67,10 +67,10 @@ CREATE TABLE customer (
 	cst_status_id		INT);
 
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CUSTOMER', null, null, 'CURRENT_WORKING_DIRECTORY/customer_iso.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'CUSTOMER', null, null, 'CURRENT_WORKING_DIRECTORY/customer_iso.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 -- "ITEM_ID","ITEM_NAME","ITEM_LONG_DESC","ITEM_FOREIGN_NAME","ITEM_URL","DISC_CD","ITEM_UPC","WARRANTY","UNIT_PRICE","UNIT_COST","SUBCAT_ID","SUPPLIER_ID","BRAND_ID",
@@ -107,10 +107,10 @@ CREATE TABLE item (
 	itm_long_desc_sch	VARCHAR(32672),
 	itm_long_desc_ko	VARCHAR(32672));
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ITEM', null, null, 'CURRENT_WORKING_DIRECTORY/item.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ITEM', null, null, 'CURRENT_WORKING_DIRECTORY/item.csv', ',', '"', null,0); 
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 --CREATE TABLE order_header (
@@ -140,10 +140,10 @@ CREATE TABLE order_header (
 		
 -- "ORDER_ID","ORDER_DATE","EMP_ID","ORDER_AMT","ORDER_COST","QTY_SOLD","FREIGHT","SHIP_DATE","RUSH_ORDER","CUSTOMER_ID","PYMT_TYPE","SHIPPER_ID","GROSS_DOLLAR_SALES"
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_HEADER', null, null, 'CURRENT_WORKING_DIRECTORY/order_header.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_HEADER', null, null, 'CURRENT_WORKING_DIRECTORY/order_header.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 -- "ORDER_LINE_ID","ORDER_ID","ITEM_ID","ORDER_DATE","EMP_ID","PROMOTION_ID","QTY_SOLD","UNIT_PRICE","UNIT_COST","DISCOUNT","CUSTOMER_ID"
@@ -160,20 +160,20 @@ CREATE TABLE order_line (
 	orl_discount 		FLOAT, 
 	orl_customer_id 	INT);
 --splicetest: ignorediff start
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Ma.csv', ',', '"', null,null,null);
 --splicetest: derby sql:  call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Ma.csv', ',', '"', null,0);
 
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Mb.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Mb.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Mc.csv', ',', '"', null,null,null);
 --splicetest: derby sql:  call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Mc.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: splice sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Md.csv', ',', '"', null,null,null);
 --splicetest: derby sql: call SYSCS_UTIL.SYSCS_IMPORT_DATA (null, 'ORDER_LINE', null, null, 'CURRENT_WORKING_DIRECTORY/order_line_2Md.csv', ',', '"', null,0);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 --select * from ORD_LINE t1 join ORD_LINE t2 on (t1.orl_item_id = t2.orl_customer_id) GROUP BY t1.orl_order_id;

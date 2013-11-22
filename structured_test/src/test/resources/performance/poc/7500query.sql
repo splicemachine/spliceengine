@@ -5,7 +5,7 @@ CREATE TABLE c(c1 int,c2 int);
 --splicetest: describe: 7500 inserts 
 --splicetest: ignorediff start
 --splicetest: start_time
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
 
 INSERT into a (c1, c2) VALUES (5, 7);
@@ -50,7 +50,7 @@ INSERT into c (c1, c2) VALUES (2, 3);
 INSERT into c (c1, c2) VALUES (7, -2);
 INSERT into c (c1, c2) VALUES (3, 4);
 INSERT into c (c1, c2) VALUES (4, 10);
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 SELECT a.c1, a.c2, b.c1, b.c2, c.c1, c.c2 FROM a JOIN b ON a.c1 = b.c1 JOIN c ON b.c1 = c.c1 WHERE a.c1 = a.c1 ORDER BY a.c1, a.c2, b.c1, b.c2, c.c1, c.c2;
 SELECT a.c1, a.c2, b.c1, b.c2, c.c1, c.c2 FROM a JOIN b ON a.c1 = b.c1 JOIN c ON b.c1 = c.c1 WHERE a.c1 = a.c2 ORDER BY a.c1, a.c2, b.c1, b.c2, c.c1, c.c2;
 SELECT a.c1, a.c2, b.c1, b.c2, c.c1, c.c2 FROM a JOIN b ON a.c1 = b.c1 JOIN c ON b.c1 = c.c1 WHERE a.c1 = b.c1 ORDER BY a.c1, a.c2, b.c1, b.c2, c.c1, c.c2;
@@ -7704,5 +7704,5 @@ SELECT c.c2 FROM c ORDER BY c.c2;
 
 --splicetest: ignorediff start
 --splicetest: start_time
-SELECT CURRENT_TIMESTAMP FROM SYSSPLICE.DUAL;
+SELECT CURRENT_TIMESTAMP FROM SYSIBM.SYSDUMMY1;
 --splicetest: ignorediff stop
