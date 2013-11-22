@@ -1,6 +1,7 @@
 #!/bin/bash
 
-LOGFILE="$1"
+ROOT_DIR="$1"
+LOGFILE="$2"
 
 # number of seconds we should allow for isReady to return 0
 timeout=100
@@ -17,12 +18,9 @@ while ((t > 0)); do
     echo -ne "."
     sleep ${interval}
 
-    ./bin/is-ready.sh "${LOGFILE}"
+    "${ROOT_DIR}"/bin/is-ready.sh "${LOGFILE}"
     # save exit value
     rCode=$?
-
-    # debug
-    #echo "RCode: ${rCode}"
 
     if [[ ${rCode} -eq 0 ]]; then
         # started
@@ -33,7 +31,6 @@ while ((t > 0)); do
         # error starting but processes running - return to retry
         exit 1;
     fi
-    #if [[ ${rCode} -eq 1 ]]; then
     # Still coming up... continue;
 
     ((t -= interval))

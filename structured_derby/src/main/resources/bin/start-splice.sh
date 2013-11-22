@@ -29,19 +29,15 @@ fi
 "${ROOT_DIR}"/bin/_startZoo.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
 rCode=0
 for i in $(eval echo "{1..$maxRetries}"); do
-    # splice/hbase will be retried several times because of timeouts
+    # splice/hbase will be retried several times to accommodate timeouts
     "${ROOT_DIR}"/bin/_startSplice.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
-    "${ROOT_DIR}"/bin/waitfor.sh "${LOGFILE}"
+    "${ROOT_DIR}"/bin/waitfor.sh "${ROOT_DIR}" "${LOGFILE}"
     rCode=$?
     if [[ ${rCode} -eq 0 ]]; then
         echo "Splice Server is ready"
         exit 0;
     fi
     if [[ ${rCode} -eq 1 && ${i} -ne ${maxRetries} ]]; then
-        # debug
-        #echo
-        #echo "Splice Server didn't start properly. Retrying..."
-        #cp "$LOGFILE" "${LOGFILE}_$i"
 
         if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
             # kill splice, if running (usually not), but let zoo have time to config itself
