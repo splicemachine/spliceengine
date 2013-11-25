@@ -39,6 +39,8 @@ public class JoinIT extends SpliceUnitTest {
             "(c1 int not null, c2 int, c3 int not null, c4 int, c5 int, c6 int)");
     protected static final SpliceTableWatcher D_TABLE = new SpliceTableWatcher("D",schemaWatcher.schemaName,
             "(d1 int not null, d2 int, d3 int not null, d4 int, d5 int, d6 int)");
+    protected static final SpliceTableWatcher B_PRIME_TABLE = new SpliceTableWatcher("B_PRIME",schemaWatcher.schemaName,
+            "(b1 int, b2 int, b3 int, b4 int, b5 int, b6 int, c1 int not null, c2 int, c3 int not null, c4 int, c5 int, c6 int)");
 
     private static final String A_VALS =
             "INSERT INTO A VALUES (1,1,3,6,NULL,2),(2,3,2,4,2,2),(3,4,2,NULL,NULL,NULL),(4,NULL,4,2,5,2),(5,2,3,5,7,4),(7,1,4,2,3,4),(8,8,8,8,8,8),(6,7,3,2,3,4)";
@@ -48,6 +50,9 @@ public class JoinIT extends SpliceUnitTest {
             "INSERT INTO C VALUES (3,7,7,3,NULL,1),(8,3,9,1,3,2),(1,4,1,NULL,NULL,NULL),(3,NULL,1,2,4,2),(2,2,5,3,2,4),(1,7,2,3,1,1),(3,8,4,2,4,6)";
     private static final String D_VALS =
             "INSERT INTO D VALUES (1,7,2,3,NULL,3),(2,3,9,1,1,2),(2,2,2,NULL,3,2),(1,NULL,3,2,2,1),(2,2,5,3,2,3),(2,5,6,3,7,2)";
+    private static final String B_PRIME_VALS =
+            "INSERT INTO B_PRIME VALUES (6,7,2,3,NULL,1,3,7,7,3,NULL,1),(4,5,9,6,3,2,8,3,9,1,3,2),(1,4,2,NULL,NULL,NULL,1,4,1,NULL,NULL,NULL),"+
+                    "(5,NULL,2,2,5,2,3,NULL,1,2,4,2),(3,2,3,3,1,4,2,2,5,3,2,4),(7,3,3,3,3,3,1,7,2,3,1,1),(9,3,3,3,3,3,3,8,4,2,4,6)";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -56,6 +61,7 @@ public class JoinIT extends SpliceUnitTest {
             .around(B_TABLE)
             .around(C_TABLE)
             .around(D_TABLE)
+            .around(B_PRIME_TABLE)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -64,6 +70,7 @@ public class JoinIT extends SpliceUnitTest {
                         spliceClassWatcher.getStatement().executeUpdate(B_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(C_VALS);
                         spliceClassWatcher.getStatement().executeUpdate(D_VALS);
+                        spliceClassWatcher.getStatement().executeUpdate(B_PRIME_VALS);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -106,8 +113,10 @@ public class JoinIT extends SpliceUnitTest {
     }
 
     /**
-     * Bug 976 - getting one less row from splice.
-     * @throws Exception
+     * Bug 976 (the original bug)
+     * Getting one less row from splice.
+     *
+     * @throws Exception fail
      */
     @Test
     public void testAllJoinBug976Compare() throws Exception {
@@ -120,14 +129,16 @@ public class JoinIT extends SpliceUnitTest {
                 "7 7 8 9 1 3",
                 "1 1 1 1 1 2");
         ResultSet rs = methodWatcher.executeQuery(query);
-        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
-        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
 
     /**
-     * Bug 976 - getting different results from splice.
-     * @throws Exception
+     * Bug 976
+     * Getting different results from splice for this Left Outer nested join.
+     *
+     * @throws Exception fail
      */
     @Test
     public void testLeftOuterJoinBug976Compare() throws Exception {
@@ -147,11 +158,17 @@ public class JoinIT extends SpliceUnitTest {
                 "8 8 8 8 8 8 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)",
                 "4 (null) 4 2 5 2 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)");
         ResultSet rs = methodWatcher.executeQuery(query);
-        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
-        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
 
+    /**
+     * Bug 976
+     * We get expected results from this (non-outer) join.
+     *
+     * @throws Exception fail
+     */
     @Test
     public void testJoinBug976Compare() throws Exception {
 
@@ -166,11 +183,17 @@ public class JoinIT extends SpliceUnitTest {
                 "6 7 3 2 3 4 6 7 2 3 (null) 1 3 7 7 3 (null) 1",
                 "6 7 3 2 3 4 6 7 2 3 (null) 1 1 7 2 3 1 1");
         ResultSet rs = methodWatcher.executeQuery(query);
-        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
-        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
 
+    /**
+     * Bug 976
+     * Nested join returns expected rows.
+     *
+     * @throws Exception fail
+     */
     @Test
     public void testSmallJoinBug976Compare() throws Exception {
 
@@ -186,8 +209,38 @@ public class JoinIT extends SpliceUnitTest {
                 "6 7 2 3 (null) 1 3 7 7 3 (null) 1",
                 "6 7 2 3 (null) 1 1 7 2 3 1 1");
         ResultSet rs = methodWatcher.executeQuery(query);
-        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(expectedColumns, expectedRows, "\\s+");
-        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(rs);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
+
+    /**
+     * Bug 976
+     * Check to see that the outer join knows what it's doing by setting up the right side
+     * with a table instead of a join.
+     *
+     * @throws Exception fail
+     */
+    @Test
+    public void testLeftOuterJoinWithTable() throws Exception {
+        String query = format("select * from %s.A left outer join %s.B_PRIME on a1=b1",
+                CLASS_NAME, CLASS_NAME);
+
+        String expectedColumns = "A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
+        List<String> expectedRows = Arrays.asList(
+                "6 7 3 2 3 4 6 7 2 3 (null) 1 3 7 7 3 (null) 1",
+                "4 (null) 4 2 5 2 4 5 9 6 3 2 8 3 9 1 3 2",
+                "1 1 3 6 (null) 2 1 4 2 (null) (null) (null) 1 4 1 (null) (null) (null)",
+                "5 2 3 5 7 4 5 (null) 2 2 5 2 3 (null) 1 2 4 2",
+                "3 4 2 (null) (null) (null) 3 2 3 3 1 4 2 2 5 3 2 4",
+                "7 1 4 2 3 4 7 3 3 3 3 3 1 7 2 3 1 1",
+                "8 8 8 8 8 8 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)",
+                "2 3 2 4 2 2 (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null) (null)");
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
+        TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(actual.toString());
+        Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
+    }
+
 }
