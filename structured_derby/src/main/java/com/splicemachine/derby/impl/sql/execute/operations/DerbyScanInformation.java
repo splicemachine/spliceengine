@@ -30,7 +30,7 @@ import java.io.ObjectOutput;
  * @author Scott Fines
  *         Created on: 10/1/13
  */
-public class DerbyScanInformation implements ScanInformation,Externalizable {
+public class DerbyScanInformation implements ScanInformation<ExecRow>,Externalizable {
     private static final long serialVersionUID = 1l;
     //fields marked transient as a documentation tool, so we know which fields aren't set
     private transient GenericStorablePreparedStatement gsps;
@@ -148,8 +148,15 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
 
     @Override
     public Scan getScan(String txnId) throws StandardException {
+        return getScan(txnId, null);
+    }
+
+    @Override
+    public Scan getScan(String txnId, ExecRow startKeyOverride) throws StandardException {
+        boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
-        ExecIndexRow stopPosition = sameStartStopPosition? startPosition: getStopPosition();
+        ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
+        ExecRow overriddenStartPos = startKeyOverride != null ? startKeyOverride : startPosition;
 
         /*
          * if the stop position is the same as the start position, we are
@@ -158,15 +165,22 @@ public class DerbyScanInformation implements ScanInformation,Externalizable {
          * to scan between the start and stop keys and pull back the values which are greater than
          * or equals to the start (e.g. leave startSearchOperator alone).
          */
-        if(sameStartStopPosition)
+        if(sameStartStop){
             startSearchOperator = ScanController.NA;
+        }
+
+        if (startKeyOverride != null){
+            startSearchOperator = ScanController.GE;
+        }
 
         Qualifier[][] qualifiers = populateQualifiers();
 
         getConglomerate();
-        return Scans.setupScan(startPosition==null?null:startPosition.getRowArray(),
+        return Scans.setupScan(
+                overriddenStartPos == null ?
+                            null : overriddenStartPos.getRowArray(),
                 startSearchOperator,
-                stopPosition==null?null:stopPosition.getRowArray(),
+                stopPosition == null ? null : stopPosition.getRowArray(),
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),

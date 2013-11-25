@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -52,7 +53,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         this.rightRS = new PushBackIterator<ExecRow>(rightRS);
 
         assert(leftKeys.length == rightKeys.length);
-        joinKeys = new ArrayList<Pair<Integer,Integer>>(leftKeys.length);
+        joinKeys = Lists.newArrayListWithCapacity(leftKeys.length);
         for (int i = 0, s = leftKeys.length; i < s; i++){
             // add keys for left & right, incremented to work with 1-based ExecRow.getColumn()
             joinKeys.add(Pair.newPair(leftKeys[i] + 1, rightKeys[i] + 1));
@@ -90,13 +91,13 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         while (rightRS.hasNext()){
             rightRowsSeen++;
             ExecRow right = rightRS.next();
-            int compared = comparator.compare(left, right);
-            //LOG.error(String.format("Left \t %s\nRight \t%s\nCompares %s", left, right, compared));
+            //LOG.error(String.format("Left: %s, right: %s", left, right));
+            int comparison = comparator.compare(left, right);
             // if matches left, add to buffer
-            if (compared == 0) {
+            if (comparison == 0) {
                 currentRights.add(right.getClone());
             // if is greater than left, push back & stop
-            } else if (compared == -1) {
+            } else if (comparison == -1) {
                 rightRS.pushBack(right);
                 break;
             }

@@ -125,9 +125,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "initIsolationLevel");
 	}
 
-	protected Scan buildScan() {
+	protected Scan buildScan(SpliceRuntimeContext ctx) {
 		try{
-            return getScan();
+            return getScan(ctx);
         } catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
@@ -135,8 +135,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 	}
 
 
-    protected Scan getScan() throws StandardException {
-        return scanInformation.getScan(getTransactionID());
+    protected Scan getScan(SpliceRuntimeContext ctx) throws StandardException {
+        return scanInformation.getScan(getTransactionID(), ctx.getScanStartOverride());
     }
 
     @Override

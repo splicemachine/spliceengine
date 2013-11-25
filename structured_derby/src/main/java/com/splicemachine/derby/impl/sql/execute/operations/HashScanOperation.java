@@ -191,7 +191,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-        Scan scan = buildScan();
+        Scan scan = buildScan(runtimeContext);
         RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return provider.shuffleRows(soi);

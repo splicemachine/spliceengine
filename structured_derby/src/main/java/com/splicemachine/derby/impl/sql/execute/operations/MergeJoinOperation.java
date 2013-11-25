@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -99,15 +100,22 @@ public class MergeJoinOperation extends JoinOperation {
     public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if (joiner == null){
             // Upon first call, init up the joined rows source
-            rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(rightResultSet.executeScan(spliceRuntimeContext)));
             leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>(){
                 @Override
                 public ExecRow call() throws Exception {
                     return leftResultSet.nextRow(spliceRuntimeContext);
                 }
             }));
+            PushBackIterator<ExecRow> leftPushBack = new PushBackIterator<ExecRow>(leftBridgeIterator);
+            if (leftPushBack.hasNext()){
+                ExecRow firstLeft = leftPushBack.next().getClone();
+                spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys[0]));
+                leftPushBack.pushBack(firstLeft);
+            }
+            rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(
+                    rightResultSet.executeScan(spliceRuntimeContext)));
             rightBridgeIterator.open();
-            mergedRowSource = new MergeJoinRows(leftBridgeIterator, rightBridgeIterator,
+            mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
                                                 leftHashKeys, rightHashKeys);
             joiner = new Joiner(mergedRowSource, getExecRowDefinition(), wasRightOuterJoin,
                                 leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, null);
@@ -116,6 +124,12 @@ public class MergeJoinOperation extends JoinOperation {
         ExecRow next = joiner.nextRow();
         setCurrentRow(next);
         return next;
+    }
+
+    public ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
+        ExecRow keyRow = activation.getExecutionFactory().getValueRow(1);
+        keyRow.setColumn(1, row.getColumn(keyIdx + 1));
+        return keyRow;
     }
 
     @Override

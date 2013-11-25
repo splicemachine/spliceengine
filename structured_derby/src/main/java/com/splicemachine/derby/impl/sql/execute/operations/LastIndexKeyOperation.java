@@ -177,7 +177,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 			HRegionInfo regionInfo = regions.last();
 			byte[] startKey = regionInfo.getStartKey();
 			byte[] endKey = regionInfo.getEndKey();
-			Scan scan = buildScan();
+			Scan scan = buildScan(spliceRuntimeContext);
 			
 		    // Modify scan range
 			if (startKey.length > 0 && Bytes.compareTo(startKey, scan.getStartRow()) > 0) {

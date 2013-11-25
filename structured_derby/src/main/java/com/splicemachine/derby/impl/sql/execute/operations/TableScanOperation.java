@@ -146,7 +146,7 @@ public class TableScanOperation extends ScanOperation {
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
-		Scan scan = buildScan();
+		Scan scan = buildScan(spliceRuntimeContext);
 		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
 		ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan, decoder,spliceRuntimeContext);
 		nextTime += System.currentTimeMillis() - beginTime;

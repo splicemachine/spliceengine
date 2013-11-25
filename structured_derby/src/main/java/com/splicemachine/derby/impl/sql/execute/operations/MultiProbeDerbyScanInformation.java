@@ -14,6 +14,7 @@ import com.splicemachine.storage.Predicate;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -47,6 +48,11 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 
     @Override
     public Scan getScan(String txnId) throws StandardException {
+        return getScan(txnId, null);
+    }
+
+    @Override
+    public Scan getScan(String txnId, ExecRow startKeyOverride) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */

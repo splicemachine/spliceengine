@@ -234,7 +234,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-        Scan scan = buildScan();
+        Scan scan = buildScan(runtimeContext);
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
