@@ -266,6 +266,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
+                                            <arg value="${failTasksRandomly}"/>
                                         </exec>
                                         <sleep seconds="90" />
                                     </target>
@@ -335,6 +336,7 @@
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -501,6 +503,7 @@
 								<argument>60022</argument>
 								<argument>60023</argument>
 								<argument>60024</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 
 						</configuration>
@@ -577,6 +580,7 @@
 							<arguments>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -621,9 +625,14 @@
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
+                                <argument>-Dderby.language.logQueryPlan=true</argument>
+                                <argument>-Dderby.language.logStatementText=true</argument>
+                                <argument>-Dderby.language.useStatistics=true</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>

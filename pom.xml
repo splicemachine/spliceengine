@@ -47,6 +47,7 @@
         <mockito.version>1.9.5</mockito.version>
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
         <skip.integration.tests>true</skip.integration.tests>
+        <failTasksRandomly>true</failTasksRandomly>
     </properties>
     <!-- Lets go with 1.6 compliance -->
 

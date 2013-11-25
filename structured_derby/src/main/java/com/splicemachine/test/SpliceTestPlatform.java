@@ -41,6 +41,8 @@ public class SpliceTestPlatform extends TestConstants {
     protected Integer regionServerPort;
     protected Integer regionServerInfoPort;
     protected Integer derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT;
+    protected boolean failTasksRandomly;
+    
     final Random random = new Random();
 
     private boolean randomly(int percent) {
@@ -84,16 +86,16 @@ public class SpliceTestPlatform extends TestConstants {
 		super();
 	}
 	
-	public SpliceTestPlatform(String targetDirectory) {
-		this(targetDirectory + "zookeeper",targetDirectory + "hbase");
+	public SpliceTestPlatform(String targetDirectory, String failTasksRandomly) {
+		this(targetDirectory + "zookeeper",targetDirectory + "hbase", failTasksRandomly);
 	}
 
-    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, null, null, null, null);
+    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, String failTasksRandomly) {
+        this(zookeeperTargetDirectory, hbaseTargetDirectory, null, null, null, null, failTasksRandomly);
     }
 
 
-	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort) {
+	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, String failTasksRandomly) {
 		this.zookeeperTargetDirectory = zookeeperTargetDirectory;
 		this.hbaseTargetDirectory = hbaseTargetDirectory;
 
@@ -101,29 +103,31 @@ public class SpliceTestPlatform extends TestConstants {
         this.masterInfoPort = masterInfoPort;
         this.regionServerPort = regionServerPort;
         this.regionServerInfoPort = regionServerInfoPort;
+        this.failTasksRandomly = (failTasksRandomly.compareToIgnoreCase("TRUE") == 0)?true:false;
 	}
 
     public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort,
-                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
+                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String failTasksRandomly) {
         this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
-                masterInfoPort, regionServerPort, regionServerInfoPort);
+                masterInfoPort, regionServerPort, regionServerInfoPort, failTasksRandomly);
         this.derbyPort = derbyPort;
     }
 
 	public static void main(String[] args) throws Exception {
+		
 		SpliceTestPlatform spliceTestPlatform;
-		if (args.length == 1) {
-			spliceTestPlatform = new SpliceTestPlatform(args[0]);
-            spliceTestPlatform.start();
-		}else if (args.length == 2) {
+		if (args.length == 2) {
 			spliceTestPlatform = new SpliceTestPlatform(args[0],args[1]);
+            spliceTestPlatform.start();
+		}else if (args.length == 3) {
+			spliceTestPlatform = new SpliceTestPlatform(args[0],args[1],args[2]);
 			spliceTestPlatform.start();
-		}else if (args.length == 6) {
-            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]));
+		}else if (args.length == 7) {
+            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), args[6]);
             spliceTestPlatform.start();
 
-        }else if (args.length == 7) {
-            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+        }else if (args.length == 8) {
+            spliceTestPlatform = new SpliceTestPlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]), args[7]);
             spliceTestPlatform.start();
 
         }else{
@@ -192,7 +196,10 @@ public class SpliceTestPlatform extends TestConstants {
 
         //set a random task failure rate
         configuration.set(SpliceConstants.DEBUG_TASK_FAILURE_RATE,Double.toString(0.05d));
-        configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, "true");
+        if (failTasksRandomly) {
+        	configuration.set(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY,"true");
+        }
+        
         coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SIConstants.reloadConfiguration(configuration);
