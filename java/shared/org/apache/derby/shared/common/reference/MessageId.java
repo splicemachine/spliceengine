@@ -247,5 +247,6 @@ public interface MessageId {
 	  String SPLICE_NOT_SERVING_REGION									   = "SE004";
 	  String SPLICE_REGION_TOO_BUSY									   		 = "SE005";
 	  String ZOOKEEPER_FAILURE									   				 = "SE006.C.3";
+	  String QUERY_TIMEOUT									   				 		 = "SE007";
 
 }

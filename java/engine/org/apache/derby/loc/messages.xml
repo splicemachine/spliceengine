@@ -8394,6 +8394,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance</text>
 						</msg>
 
+						<msg>
+							<name>SE007</name>
+							<text>Query Timed out: {0}</text>
+							<arg>message</arg>
+						</msg>
        </family>
     </section>
 
