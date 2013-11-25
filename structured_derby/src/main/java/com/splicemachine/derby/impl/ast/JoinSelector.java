@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
@@ -11,7 +12,6 @@ import org.apache.derby.impl.sql.compile.*;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -97,7 +97,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
         // Index?
         boolean hasRightIndex = containsClass(rightNodes, IndexToBaseRowNode.class);
 
-        boolean userSupplied = nodesContainStrategyHint(j, RSUtils.getSelfAndDescendants(j));
+        boolean userSupplied = joinContainsStrategyHint(j);
 
         ConglomerateDescriptor cd = ap(j).getConglomerateDescriptor();
         boolean isSystemTable = cd != null &&
@@ -116,7 +116,9 @@ public class JoinSelector extends AbstractSpliceVisitor {
                             rightLeaves);
     }
 
-    public static boolean nodesContainStrategyHint(JoinNode j, List<ResultSetNode> rsns){
+    public static boolean joinContainsStrategyHint(JoinNode j) throws StandardException {
+        Iterable<ResultSetNode> rsns = Iterables.concat(nodesUntilJoin(j.getRightResultSet()),
+                                                        nodesUntilJoin(j.getLeftResultSet()));
         for (ResultSetNode rsn: rsns){
             Properties props = ((Optimizable)rsn).getProperties();
             if (props != null &&
@@ -127,6 +129,10 @@ public class JoinSelector extends AbstractSpliceVisitor {
             }
         }
         return false;
+    }
+
+    public static List<ResultSetNode> nodesUntilJoin(ResultSetNode n) throws StandardException {
+        return RSUtils.collectNodesUntil(n, ResultSetNode.class, Predicates.instanceOf(JoinNode.class));
     }
 
     public static Iterable<Predicate> getRightPreds(JoinNode j) throws StandardException {
