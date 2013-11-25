@@ -282,7 +282,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 				// skip fks
 				if (!constraintActions[conIndex].isForeignKeyConstraint())
 				{
-					constraintActions[conIndex].executeConstantAction(activation);
+					constraintActions[conIndex].executeTransactionalConstantAction(activation);
 				}
 			}
 
@@ -291,7 +291,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 				// only foreign keys
 				if (constraintActions[conIndex].isForeignKeyConstraint())
 				{
-					constraintActions[conIndex].executeConstantAction(activation);
+					constraintActions[conIndex].executeTransactionalConstantAction(activation);
 				}
 			}
 		}
