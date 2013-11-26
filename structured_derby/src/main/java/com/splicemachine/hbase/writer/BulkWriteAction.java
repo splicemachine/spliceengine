@@ -75,9 +75,11 @@ final class BulkWriteAction implements Callable<Void> {
             tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite),false);
         }finally{
             //called no matter what
-            writeConfiguration.writeComplete();
-            long end = System.currentTimeMillis();
-            statusReporter.complete(end - start);
+						long end = System.currentTimeMillis();
+						long timeTakenMs = end - start;
+						int numRecords = bulkWrite.getMutations().size();
+            writeConfiguration.writeComplete(timeTakenMs,numRecords);
+						statusReporter.complete(timeTakenMs, numRecords);
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
              * of the operation. While the Future code will attempt to clean up as much of those futures
@@ -283,8 +285,6 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushTime = new AtomicLong(0l);
 
-        public ActionStatusReporter(){}
-
         public void reset(){
             totalFlushesSubmitted.set(0);
             failedBufferFlushes.set(0);
@@ -308,10 +308,9 @@ final class BulkWriteAction implements Callable<Void> {
             totalFlushEntries.set(0);
         }
 
-        public void complete(long timeTakenMs) {
+        public void complete(long timeTakenMs,int numRecords) {
             totalFlushTime.addAndGet(timeTakenMs);
             numExecutingFlushes.decrementAndGet();
-
         }
     }
 }

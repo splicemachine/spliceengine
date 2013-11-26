@@ -20,7 +20,7 @@ public class RegulatedWriter implements Writer{
     private final Writer delegate;
     private final WriteRejectedHandler writeRejectedHandler;
 
-    private final Valve valve;
+    private final OptimizingValve valve;
 
     public RegulatedWriter(Writer delegate,
                            WriteRejectedHandler writeRejectedHandler,
@@ -118,10 +118,12 @@ public class RegulatedWriter implements Writer{
         @Override public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException { return writeConfiguration.partialFailure(result, request); }
         @Override public long getPause() { return writeConfiguration.getPause(); }
 
-        @Override
-        public void writeComplete() {
-            valve.release();
-            writeConfiguration.writeComplete();
-        }
+				@Override
+				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+						valve.release();
+						//update the valve to take latency and throughput into account
+						valve.update(timeTakenMs,(double)numRecordsWritten/timeTakenMs);
+						writeConfiguration.writeComplete(timeTakenMs,numRecordsWritten);
+				}
     }
 }
