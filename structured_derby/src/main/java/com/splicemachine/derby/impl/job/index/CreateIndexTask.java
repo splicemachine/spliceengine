@@ -22,10 +22,12 @@ import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.services.io.ArrayUtil;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
@@ -117,62 +119,22 @@ public class CreateIndexTask extends ZkTask {
     }
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-        Scan regionScan = SpliceUtils.createScan(status.getTransactionId());
-        regionScan.setCaching(DEFAULT_CACHE_SIZE);
-        regionScan.setStartRow(region.getStartKey());
-        regionScan.setStopRow(region.getEndKey());
-        regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
-        //need to manually add the SIFilter, because it doesn't get added by region.getScanner(
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-        regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-        long totalReadTime = 0l;
-        long numRecordsRead = 0l;
         try{
             //add index to table watcher
             LocalWriteContextFactory contextFactory = SpliceIndexEndpoint.getContextFactory(baseConglomId);
             contextFactory.addIndex(indexConglomId, indexedColumns,mainColToIndexPosMap, isUnique,descColumns);
 
-            //backfill the index with previously committed data
-            RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
-            if(sourceScanner==null)
-                sourceScanner = region.getScanner(regionScan);
-            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,DEFAULT_CACHE_SIZE);            
+						//backfill the index with previously committed data
+						RegionScanner sourceScanner = getScanner();
+            region.startRegionOperation();
+            MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
             try{
-                List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
-                IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
-                byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
-                CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
-                try{
-										boolean shouldContinue;
-										do{
-                        nextRow.clear();
-                        long start = System.nanoTime();
-                        shouldContinue  = brs.nextRaw(nextRow,null);
-                        long stop = System.nanoTime();
-                        totalReadTime+=(stop-start);
-                        numRecordsRead++;
-                        translateResult(nextRow, transformer,writeBuffer);
-										}while(shouldContinue);
-                } 
-                finally{
-                    writeBuffer.flushBuffer();
-                    writeBuffer.close();
-
-                    if(LOG.isInfoEnabled()){
-                        SpliceLogUtils.info(LOG,"Total time to read %d records: %d ns",numRecordsRead,totalReadTime);
-                        SpliceLogUtils.info(LOG,"Average time to read 1 record: %f ns",(double)totalReadTime/numRecordsRead);
-                        SpliceLogUtils.info(LOG,"Total time to transform %d records: %d ns",numRecordsRead,totalTransformTime);
-                        SpliceLogUtils.info(LOG, "Average time to transform 1 record: %f ns", (double) totalTransformTime / numRecordsRead);
-                        SpliceLogUtils.info(LOG,"Total time to write %d records: %d ns",numRecordsRead,totalWriteTime);
-                        SpliceLogUtils.info(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
-                    }
-                }
-            } 
-            finally{
-                brs.close();
+								transformData(sourceScanner);
+            }finally{
+                region.closeRegionOperation();
+                sourceScanner.close();
             }
-
         } catch (IOException e) {
         	SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(e);
@@ -182,7 +144,57 @@ public class CreateIndexTask extends ZkTask {
         }
     }
 
-    private void translateResult(List<KeyValue> result,
+		private RegionScanner getScanner() throws IOException {
+				Scan regionScan = SpliceUtils.createScan(getTaskStatus().getTransactionId());
+				regionScan.setCaching(DEFAULT_CACHE_SIZE);
+				regionScan.setStartRow(HConstants.EMPTY_START_ROW);
+				regionScan.setStopRow(HConstants.EMPTY_END_ROW);
+				regionScan.setCacheBlocks(false);
+				regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
+				EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
+				regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+
+				RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
+				if(sourceScanner==null)
+						sourceScanner = region.getScanner(regionScan);
+				return sourceScanner;
+		}
+
+		private void transformData(RegionScanner sourceScanner) throws Exception {
+				List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
+				IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
+				byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
+				CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
+				long totalReadTime =0l;
+				long numRecordsRead =0l;
+				try{
+						boolean shouldContinue;
+						do{
+								nextRow.clear();
+								long start = System.nanoTime();
+								//bring in a block of records at once
+								shouldContinue  = sourceScanner.nextRaw(nextRow,DEFAULT_CACHE_SIZE,null);
+								long stop = System.nanoTime();
+								totalReadTime+=(stop-start);
+								numRecordsRead++;
+								translateResult(nextRow, transformer,writeBuffer);
+						}while(shouldContinue);
+				}finally{
+						writeBuffer.flushBuffer();
+						writeBuffer.close();
+
+						if(LOG.isInfoEnabled()){
+								SpliceLogUtils.info(LOG, "Total time to read %d records: %d ns", numRecordsRead, totalReadTime);
+								SpliceLogUtils.info(LOG,"Average time to read 1 record: %f ns",(double)totalReadTime/numRecordsRead);
+								SpliceLogUtils.info(LOG,"Total time to transform %d records: %d ns",numRecordsRead,totalTransformTime);
+								SpliceLogUtils.info(LOG, "Average time to transform 1 record: %f ns", (double) totalTransformTime / numRecordsRead);
+								SpliceLogUtils.info(LOG,"Total time to write %d records: %d ns",numRecordsRead,totalWriteTime);
+								SpliceLogUtils.info(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
+						}
+				}
+		}
+
+		private void translateResult(List<KeyValue> result,
                                  IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer) throws Exception {
         //we know that there is only one KeyValue for each row
