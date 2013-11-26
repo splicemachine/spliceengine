@@ -9,16 +9,16 @@ import org.junit.Test;
  * @author Scott Fines
  * Created on: 9/6/13
  */
-public class SingleThreadedValveTest {
+public class SingleThreadedSemaphoreValveTest {
     @Test
     public void testTryAllowAllowsOneThrough() throws Exception {
-        Valve valve = new Valve(new Valve.FixedMaxOpeningPolicy(1));
+        Valve valve = new SemaphoreValve(new SemaphoreValve.FixedMaxOpeningPolicy(1));
         Assert.assertTrue("valve does not allow through entries!",valve.tryAllow()>=0);
     }
 
     @Test
     public void testReleaseAllowsSubsequentAccepts() throws Exception {
-        Valve valve = new Valve(new Valve.FixedMaxOpeningPolicy(1));
+        Valve valve = new SemaphoreValve(new SemaphoreValve.FixedMaxOpeningPolicy(1));
         Assert.assertTrue("valve does not allow through entries!", valve.tryAllow() >= 0);
         //make sure we can't get another
         Assert.assertFalse("valve allows through too many entries!",valve.tryAllow()>=0);
@@ -34,14 +34,14 @@ public class SingleThreadedValveTest {
     public void testAdjustUpwardsWorks() throws Exception {
 
         TestOpeningPolicy openingPolicy = new TestOpeningPolicy(1);
-        Valve valve = new Valve(openingPolicy);
+        SemaphoreValve valve = new SemaphoreValve(openingPolicy);
         Assert.assertTrue("valve does not allow through entries!",valve.tryAllow()>=0);
         //make sure we can't get another
         Assert.assertFalse("valve allows through too many entries!",valve.tryAllow()>=0);
 
         //increase the valve size
         openingPolicy.initialSize = 2;
-        valve.adjustUpwards(0, Valve.OpeningPolicy.SizeSuggestion.INCREMENT);
+        valve.adjustUpwards(0, Valve.SizeSuggestion.INCREMENT);
 
         Assert.assertTrue("valve does not allow through entries!",valve.tryAllow()>=0);
 
@@ -53,14 +53,14 @@ public class SingleThreadedValveTest {
     public void testReduceWorks() throws Exception {
 
         TestOpeningPolicy openingPolicy = new TestOpeningPolicy(2);
-        Valve valve = new Valve(openingPolicy);
+        SemaphoreValve valve = new SemaphoreValve(openingPolicy);
         Assert.assertTrue("valve does not allow through entries!",valve.tryAllow()>=0);
         //make sure we can get two
         Assert.assertTrue("valve does not allow through entries!", valve.tryAllow() >= 0);
 
         //decrease the valve size
         openingPolicy.initialSize = 1;
-        valve.reduceValve(0, Valve.OpeningPolicy.SizeSuggestion.DECREMENT);
+        valve.reduceValve(0, Valve.SizeSuggestion.DECREMENT);
 
         //make sure that we can't get another
         Assert.assertFalse("valve does not allow through entries!",valve.tryAllow()>=0);
@@ -78,7 +78,7 @@ public class SingleThreadedValveTest {
         Assert.assertTrue("valve does not allow through entries!", valve.tryAllow() >= 0);
     }
 
-    private class TestOpeningPolicy implements Valve.OpeningPolicy{
+    private class TestOpeningPolicy implements SemaphoreValve.OpeningPolicy{
 
         private int initialSize;
 
@@ -88,12 +88,12 @@ public class SingleThreadedValveTest {
 
 
         @Override
-        public int reduceSize(int currentSize, SizeSuggestion suggestion) {
+        public int reduceSize(int currentSize, Valve.SizeSuggestion suggestion) {
             return initialSize;
         }
 
         @Override
-        public int allowMore(int currentSize, SizeSuggestion suggestion) {
+        public int allowMore(int currentSize, Valve.SizeSuggestion suggestion) {
             return initialSize;
         }
     }

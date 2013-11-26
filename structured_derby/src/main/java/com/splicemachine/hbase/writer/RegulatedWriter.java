@@ -1,5 +1,8 @@
 package com.splicemachine.hbase.writer;
 
+import com.splicemachine.tools.MovingThreshold;
+import com.splicemachine.tools.OptimizingValve;
+import com.splicemachine.tools.SemaphoreValve;
 import com.splicemachine.tools.Valve;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import javax.management.*;
@@ -24,7 +27,10 @@ public class RegulatedWriter implements Writer{
                            int maxConcurrentWrites ) {
         this.delegate = delegate;
         this.writeRejectedHandler = writeRejectedHandler;
-        this.valve = new Valve(new Valve.PassiveOpeningPolicy(maxConcurrentWrites)); //TODO -sf- make adaptive OpeningPolicy
+				this.valve = new OptimizingValve(maxConcurrentWrites,
+								maxConcurrentWrites,
+								new MovingThreshold(MovingThreshold.OptimizationStrategy.MINIMIZE,16),
+								new MovingThreshold(MovingThreshold.OptimizationStrategy.MAXIMIZE,16));
     }
 
 
@@ -56,7 +62,7 @@ public class RegulatedWriter implements Writer{
     }
 
     public void setCurrentMaxFlushes(int oldMaxFlushes) {
-        valve.setMaxFlushes(oldMaxFlushes);
+        valve.setMaxPermits(oldMaxFlushes);
     }
 
     public static interface WriteRejectedHandler{
@@ -104,7 +110,7 @@ public class RegulatedWriter implements Writer{
              * (hopefully) prevent us from overloading the server again.
              */
             if(t instanceof RegionTooBusyException)
-                valve.reduceValve(version, Valve.OpeningPolicy.SizeSuggestion.HALVE);
+                valve.adjustValve(Valve.SizeSuggestion.HALVE);
 
             return writeConfiguration.globalError(t);
         }
