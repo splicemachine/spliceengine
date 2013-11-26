@@ -78,7 +78,7 @@ class CountingWriteConfiguration implements Writer.WriteConfiguration {
     }
 
     @Override
-    public void writeComplete() {
-        delegate.writeComplete();
+    public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+        delegate.writeComplete(timeTakenMs,numRecordsWritten);
     }
 }

@@ -334,10 +334,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             return delegate.partialFailure(result,request);
         }
 
-        @Override
-        public void writeComplete() {
-            delegate.writeComplete();
-        }
+				@Override
+				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+						delegate.writeComplete(timeTakenMs, numRecordsWritten);
+				}
     }
 
     private class CountingHandler implements RegulatedWriter.WriteRejectedHandler{

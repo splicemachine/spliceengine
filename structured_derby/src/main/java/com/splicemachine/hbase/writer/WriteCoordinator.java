@@ -201,7 +201,8 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     private final Writer.WriteConfiguration defaultWriteConfiguration = new Writer.WriteConfiguration() {
         @Override public int getMaximumRetries() { return monitor.getMaximumRetries(); }
         @Override public long getPause() { return monitor.getPauseTime(); }
-        @Override public void writeComplete() { /*no-op*/ }
+				@Override public void writeComplete(long timeTakenMs, long numRecordsWritten) { } //no-op
+
 
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
