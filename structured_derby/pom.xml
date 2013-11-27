@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>splice_machine</artifactId>
 	<packaging>jar</packaging>
@@ -9,12 +8,11 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.1-SNAPSHOT</version>
+		<version>0.5rc4-SNAPSHOT</version>
 	</parent>
 
 
 	<dependencies>
-
 		<dependency>
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derby</artifactId>
@@ -54,7 +52,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>0.5rc4-SNAPSHOT</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
@@ -147,14 +145,6 @@
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.splicemachine</groupId>
-                        <artifactId>structured_si</artifactId>
-                        <version>1.0.1-SNAPSHOT</version>
-                        <classifier>${envClassifier}</classifier>
-                    </dependency>
-                </dependencies>
 				<configuration>
 					<!-- <parallel>classes</parallel> <threadCount>5</threadCount> <perCoreThreadCount>false</perCoreThreadCount> -->
 					<argLine>-Xms256M -Xmx1024M</argLine>
@@ -198,6 +188,7 @@
 					<source>6</source>
 					<descriptors>
 						<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+						<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
 					</descriptors>
 					<archive>
 						<manifestEntries>
@@ -293,7 +284,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${zookeeper.stop.script}" />
                                         </exec>
-                                        <sleep seconds="120" />
+                                        <sleep seconds="90" />
                                     </target>
                                 </configuration>
                                 <goals>

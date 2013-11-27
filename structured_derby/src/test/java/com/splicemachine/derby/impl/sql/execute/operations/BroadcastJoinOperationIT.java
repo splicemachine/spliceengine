@@ -42,7 +42,7 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
 
     @Test
     public void testSimpleInnerEquijoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select works.empnum from staff inner join works --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+        ResultSet rs = methodWatcher.executeQuery("select works.empnum from staff inner join works --SPLICE-PROPERTIES joinStrategy=broadcast \n" +
                 "on staff.empnum = works.empnum");
         List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(12, results.size());
@@ -55,7 +55,7 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
 
     @Test
     public void testSimpleLeftEquijoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select staff.empnum from staff left join works --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+        ResultSet rs = methodWatcher.executeQuery("select staff.empnum from staff left join works --SPLICE-PROPERTIES joinStrategy=broadcast \n" +
                 "on staff.empnum = works.empnum");
         List<Map> results = TestUtils.resultSetToMaps(rs);
         Assert.assertEquals(13, results.size());
@@ -70,7 +70,7 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
     public void testFailsOnNonEquijoin() throws Exception {
         Exception caught = null;
         try {
-            methodWatcher.executeQuery("select staff.empnum from staff inner join works --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+            methodWatcher.executeQuery("select staff.empnum from staff inner join works --SPLICE-PROPERTIES joinStrategy=broadcast \n" +
                     "on staff.empnum != works.empnum");
         } catch (Exception e) {
             caught = e;
@@ -95,7 +95,7 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
     @Test
     @Ignore("Hinting not working for semijoin")
     public void testInWithCorrelatedSubQueryOrSemijoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select empnum from staff --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+        ResultSet rs = methodWatcher.executeQuery("select empnum from staff --SPLICE-PROPERTIES joinStrategy=broadcast \n" +
                 "where empnum in " +
                 "(select works.empnum from works where staff.empnum = works.empnum)");
         List results = TestUtils.resultSetToMaps(rs);
@@ -105,7 +105,7 @@ public class BroadcastJoinOperationIT extends SpliceUnitTest {
     @Test
     @Ignore("Hinting not working for antijoin")
     public void testNotInWithCorrelatedSubQueryOrAntijoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select empnum from staff --DERBY-PROPERTIES joinStrategy=broadcast \n" +
+        ResultSet rs = methodWatcher.executeQuery("select empnum from staff --SPLICE-PROPERTIES joinStrategy=broadcast \n" +
                 "where empnum not in " +
                 "(select works.empnum from works where staff.empnum = works.empnum)");
         List results = TestUtils.resultSetToMaps(rs);

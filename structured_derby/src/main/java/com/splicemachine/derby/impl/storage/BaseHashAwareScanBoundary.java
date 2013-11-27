@@ -31,7 +31,7 @@ public abstract class BaseHashAwareScanBoundary implements ScanBoundary{
         scan.setStartRow(start);
         scan.setStopRow(finish);
         scan.addFamily(columnFamily);
-        scan.setCaching(100);
+        scan.setCaching(1);
         return scan;
     }
 

@@ -44,7 +44,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 				try {
 					spliceClassWatcher.setAutoCommit(false);
 			        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (username, i) values (?,?)",CLASS_NAME,TABLE_NAME_1));
-			        List<String> users = Arrays.asList("jzhang","sfines","jleach");
+			        List<String> users = Arrays.asList("jzhang","sfines","jleach","steve","george","tompson","alabama","tweak","schnoz","poster","melissa","van","emiko","caution","coco","mack","simba","quinn","zoey","danni");
 			        for(int i=0;i< size;i++){
 			            for(String user:users){
 			                int value = i*10;

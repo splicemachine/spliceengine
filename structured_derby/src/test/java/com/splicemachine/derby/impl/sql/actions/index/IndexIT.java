@@ -366,7 +366,7 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     public static final String HEADER_JOIN = String.format("select distinct a.customer_master_id\n" +
-                "from %s.%s a, %s.%s b --DERBY-PROPERTIES joinStrategy=SORTMERGE\n" +
+                "from %s.%s a, %s.%s b --SPLICE-PROPERTIES joinStrategy=SORTMERGE\n" +
                 "where transaction_dt >= DATE('2011-12-28') and transaction_dt <=\n" +
                 "DATE('2012-03-03')\n" +
                 "and b.customer_master_id=a.customer_master_id",

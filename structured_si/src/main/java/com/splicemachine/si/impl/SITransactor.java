@@ -105,23 +105,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return beginChildTransaction(parent, dependent, allowWrites, false, null, null, null);
     }
 
-    /**
-     * @param parent              The new transaction should be a child of parent.
-     * @param dependent           Whether the commit of the child depends on the parent committing as well.
-     * @param allowWrites         Whether writes can be performed in the new transaction (else it is read only)
-     * @param additive            Whether the new transaction will be used to perform operations that do not incur write conflicts
-     *                            and which are idempotent.
-     * @param readUncommitted     Whether the new transaction should see uncommitted changes from other transactions, setting
-     *                            this to null causes the new transaction to "inherit" this property from its parent.
-     * @param readCommitted       Whether the new transaction should see committed changes from concurrent transactions. Otherwise
-     *                            snapshot isolation semantics apply. Setting this to null causes the new transaction to "inherit"
-     *                            this property from its parent.
-     * @param transactionToCommit The transactionToCommit is committed before starting a new transaction and the commit
-     *                            timestamp is used as the begin timestamp of the new transaction. This allows a transaction
-     *                            to be committed and a new one begun without any gap in the timestamps between them.
-     * @return
-     * @throws IOException
-     */
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
                                                boolean additive, Boolean readUncommitted, Boolean readCommitted,
@@ -412,7 +395,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             return dataStore.writeBatch(table, new Pair[0]);
         }
 
-        checkPermission(table, mutations);
+        // TODO add back the check if it is needed for DDL operations
+        // checkPermission(table, mutations);
 
         Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
         Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);
@@ -587,7 +571,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues) throws IOException {
         if (dataCommitKeyValues == null) {
-            return new ConflictResults(Collections.EMPTY_SET, Collections.EMPTY_SET, null);
+            return new ConflictResults(Collections.<Long>emptySet(),Collections.<Long>emptySet(), null);
         } else {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
@@ -619,6 +603,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                     // Transaction is now in a final state so asynchronously update the data row with the status
                     toRollForward.add(dataTransactionId);
                 }
+                if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
+                    return; //can't conflict with a rolled back transaction
                 final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
                 switch (conflictType) {
                     case CHILD:
@@ -626,7 +612,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw new WriteConflict("write/write conflict");
+                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTransactionId());
                         }
                         break;
                 }
@@ -636,17 +622,17 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 // Committed transaction
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getEffectiveBeginTimestamp()) {
-                    throw new WriteConflict("write/write conflict");
+                    throw new WriteConflict("Write transaction "+ updateTransaction.getTransactionId()+" conflicts with committed transaction " + dataTransactionId);
                 }
             }
         }
     }
 
     /**
-     * @param updateTransaction
-     * @param dataTransaction
+     * @param updateTransaction the transaction for the new change
+     * @param dataTransaction the transaction for the existing data
      * @return true if there is a conflict
-     * @throws IOException
+     * @throws IOException if something goes wrong fetching transaction information
      */
     private boolean doubleCheckConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction) throws IOException {
         // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
@@ -872,9 +858,15 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * Throw an exception if the transaction is not active.
      */
     private void ensureTransactionActive(Transaction transaction) throws IOException {
-        if (transaction.status == TransactionStatus.COMMITTED || transaction.status == TransactionStatus.COMMITTING)
-            return; //don't care if we've already committed
-        else if (transaction.status.isFinished()) {
+        /*
+         * If the transaction is not finished, then it's active, so no worries.
+         *
+         * If it's committed, or COMMITTING, then it's also considered still active, so we
+         * ignore it
+         */
+        if(transaction.status.isFinished()
+                && transaction.status!=TransactionStatus.COMMITTED
+                && transaction.status!=TransactionStatus.COMMITTING){
             String txnIdStr = transaction.getTransactionId().getTransactionIdString();
             throw new DoNotRetryIOException("transaction " + txnIdStr + " is not ACTIVE. State is " + transaction.status);
         }

@@ -1,9 +1,6 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.*;
 

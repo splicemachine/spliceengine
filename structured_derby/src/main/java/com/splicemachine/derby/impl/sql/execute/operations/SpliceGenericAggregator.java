@@ -22,7 +22,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SpliceGenericAggregator {
 	private static Logger LOG = Logger.getLogger(SpliceGenericAggregator.class);
-	private final AggregatorInfo aggInfo;
+	private AggregatorInfo aggInfo;
 	final int aggregatorColumnId;
 	private final int inputColumnId;
 	private final int resultColumnId;
@@ -55,8 +55,12 @@ public class SpliceGenericAggregator {
 	public AggregatorInfo getAggregatorInfo(){
 		return this.aggInfo;
 	}
-	
-	public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
+
+    void setAggInfo(AggregatorInfo aggInfo) {
+        this.aggInfo = aggInfo;
+    }
+
+    public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
 		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
 		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
 		accumulate(nextCol,aggCol);
@@ -108,6 +112,13 @@ public class SpliceGenericAggregator {
 			aggColumn.setValue(ua);
 		}
 	}
+
+    boolean isInitialized(ExecRow row) throws StandardException{
+        UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
+
+        ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
+        return ua !=null;
+    }
 	
 	void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
 																throws StandardException{

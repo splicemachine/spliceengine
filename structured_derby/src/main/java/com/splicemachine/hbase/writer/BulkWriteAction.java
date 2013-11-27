@@ -44,7 +44,7 @@ final class BulkWriteAction implements Callable<Void> {
     private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
-
+    private boolean refreshCache;
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -120,14 +120,15 @@ final class BulkWriteAction implements Callable<Void> {
         if(numTriesLeft<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         for(BulkWrite bulkWrite:bulkWrites){
-            doRetry(numTriesLeft,bulkWrite);
+        	if (!bulkWrite.getMutations().isEmpty()) // Remove calls when writes are put back into buckets and the bucket is empty.
+        		doRetry(numTriesLeft,bulkWrite);
         }
     }
 
     private void doRetry(int tries, BulkWrite bulkWrite) throws Exception{
         Configuration configuration = SpliceConstants.config;
         NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                batchProtocolClass,tableName,bulkWrite.getRegionKey(),tries< writeConfiguration.getMaximumRetries());
+                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
         BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
                 protoClassArray, invoker);
         boolean thrown=false;
@@ -143,6 +144,7 @@ final class BulkWriteAction implements Callable<Void> {
                         thrown=true;
                         throw parseIntoException(response);
                     case RETRY:
+                    	refreshCache=true;
                         if(LOG.isDebugEnabled())
                             LOG.debug(String.format("Retrying write after receiving partial error %s",response));
                         doPartialRetry(tries,bulkWrite,response);
@@ -150,6 +152,7 @@ final class BulkWriteAction implements Callable<Void> {
                         //return
                 }
             }
+            refreshCache = false;
         }catch(Exception e){
             if(thrown)
                 throw e;
@@ -159,6 +162,7 @@ final class BulkWriteAction implements Callable<Void> {
                 case THROW_ERROR:
                     throw e;
                 case RETRY:
+                	refreshCache=true;
                     errors.add(e);
                     if(LOG.isDebugEnabled())
                         LOG.debug("Retrying write after receiving global error",e);

@@ -8,20 +8,15 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.RetriesExhaustedException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
-import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -31,7 +26,7 @@ import java.util.concurrent.ExecutorService;
 
 /**
  * @author Scott Fines
- *         Created on: 10/23/13
+ * Created on: 10/23/13
  */
 public class SpliceHTable extends HTable {
     private final HConnection connection;
@@ -74,7 +69,7 @@ public class SpliceHTable extends HTable {
                                                                    byte[] startKey,
                                                                    byte[] endKey,
                                                                    final Batch.Call<T, R> callable, final Batch.Callback<R> callback) throws Throwable {
-        List<Pair<byte[], byte[]>> keysToUse = getKeys(startKey, endKey,0);
+        List<Pair<byte[], byte[]>> keysToUse = getKeys(startKey, endKey);
 
         KeyedCompletionService<ExecContext,R> completionService = new KeyedCompletionService<ExecContext,R>(tableExecutor);
         int outstandingFutures = 0;
@@ -98,18 +93,18 @@ public class SpliceHTable extends HTable {
                 completedFuture.get();
             }catch(ExecutionException ee){
                 Throwable cause = ee.getCause();
-                if(cause instanceof NotServingRegionException ||
-                        cause instanceof WrongRegionException){
+                if(cause instanceof IncorrectRegionException || cause instanceof NotServingRegionException){
                     /*
                      * We sent it to the wrong place, so we need to resubmit it. But since we
                      * pulled it from the cache, we first invalidate that cache
                      */
+                    ExecContext context = completedFuture.getKey();
+                    wait(context.attemptCount); //wait for a bit to see if it clears up
                     regionCache.invalidate(tableName);
 
-                    ExecContext context = completedFuture.getKey();
                     Pair<byte[],byte[]> failedKeys = context.keyBoundary;
                     context.errors.add(cause);
-                    List<Pair<byte[],byte[]>> resubmitKeys = getKeys(failedKeys.getFirst(),failedKeys.getSecond(),0);
+                    List<Pair<byte[],byte[]>> resubmitKeys = getKeys(failedKeys.getFirst(),failedKeys.getSecond());
                     for(Pair<byte[],byte[]> keys:resubmitKeys){
                         ExecContext newContext = new ExecContext(keys,context.errors,context.attemptCount+1);
                         submit(protocol,callable,callback,completionService,newContext);
@@ -122,10 +117,31 @@ public class SpliceHTable extends HTable {
         }
     }
 
+    List<Pair<byte[],byte[]>> getKeys(byte[] startKey, byte[] endKey) throws IOException{
+        if((startKey.length!=0 || endKey.length!=0) && Arrays.equals(startKey,endKey))
+            return Collections.singletonList(getContainingRegion(startKey, 0));
+        return getKeys(startKey, endKey,0);
+    }
+
+    private Pair<byte[], byte[]> getContainingRegion(byte[] startKey, int attemptCount) throws IOException {
+        HRegionLocation regionLocation = this.connection.getRegionLocation(tableName, startKey, attemptCount > 0);
+        return Pair.newPair(regionLocation.getRegionInfo().getStartKey(), regionLocation.getRegionInfo().getEndKey());
+    }
+
+    private void wait(int attemptCount) {
+        try {
+            Thread.sleep(SpliceHTableUtil.getWaitTime(attemptCount, SpliceConstants.pause));
+        } catch (InterruptedException e) {
+            Logger.getLogger(SpliceHTable.class).info("Interrupted while sleeping");
+        }
+    }
+
     private List<Pair<byte[], byte[]>> getKeys(byte[] startKey, byte[] endKey,int attemptCount) throws IOException {
         if(attemptCount>maxRetries) {
         	SpliceLogUtils.error(LOG, "Unable to obtain full region set from cache");
-            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "+ attemptCount+" attempts on table " + tableName + " with startKey " + startKey + " and end key " + endKey);
+            throw new RetriesExhaustedException("Unable to obtain full region set from cache after "
+                    + attemptCount+" attempts on table " + Bytes.toLong(tableName)
+                    + " with startKey " + Bytes.toStringBinary(startKey) + " and end key " + Bytes.toStringBinary(endKey));
         }
         Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
         byte[][] starts = startEndKeys.getFirst();
@@ -144,6 +160,7 @@ public class SpliceHTable extends HTable {
         if(keysToUse.size()<=0){
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Keys to use miss");
+            wait(attemptCount);
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -159,9 +176,9 @@ public class SpliceHTable extends HTable {
         //make sure the start key of the first pair is the start key of the query
         Pair<byte[],byte[]> start = keysToUse.get(0);
         if(!Arrays.equals(start.getFirst(),startKey)){
-        	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "First Key Miss, invalidate");
-        	regionCache.invalidate(tableName);
+            wait(attemptCount);
+            regionCache.invalidate(tableName);
             return getKeys(startKey,endKey,attemptCount+1);
         }
         for(int i=1;i<keysToUse.size();i++){
@@ -170,6 +187,7 @@ public class SpliceHTable extends HTable {
             if(!Arrays.equals(next.getFirst(),last.getSecond())){
             	if (LOG.isTraceEnabled())
             		SpliceLogUtils.error(LOG, "Keys are not contiguous miss, invalidate");
+                wait(attemptCount);
                 //we are missing some data, so recursively try again
                 regionCache.invalidate(tableName);
                 return getKeys(startKey,endKey,attemptCount+1);
@@ -181,6 +199,7 @@ public class SpliceHTable extends HTable {
         if(!Arrays.equals(end.getSecond(),endKey)){
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.error(LOG, "Last Key Miss, invalidate");
+            wait(attemptCount);
             regionCache.invalidate(tableName);
             return getKeys(startKey, endKey, attemptCount+1);
         }
@@ -193,16 +212,16 @@ public class SpliceHTable extends HTable {
                                                            final Batch.Call<T, R> callable,
                                                            final Batch.Callback<R> callback,
                                                            KeyedCompletionService<ExecContext,R> completionService,
-                                                           ExecContext context) throws RetriesExhaustedWithDetailsException {
+                                                           final ExecContext context) throws RetriesExhaustedWithDetailsException {
         if(context.attemptCount>maxRetries){
-            throw new RetriesExhaustedWithDetailsException(context.errors, null,null);
+            throw new RetriesExhaustedWithDetailsException(context.errors, Collections.<Row>emptyList(),Collections.<String>emptyList());
         }
         final Pair<byte[],byte[]> keys = context.keyBoundary;
         final byte[] startKeyToUse = keys.getFirst();
         completionService.submit(context,new Callable<R>() {
             @Override
             public R call() throws Exception {
-                NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, true);
+                NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(getConfiguration(), connection, protocol, tableName, startKeyToUse, context.attemptCount>0);
                 @SuppressWarnings("unchecked") T instance = (T) Proxy.newProxyInstance(getConfiguration().getClassLoader(), new Class[]{protocol}, invoker);
                 R result;
                 if(callable instanceof BoundCall){

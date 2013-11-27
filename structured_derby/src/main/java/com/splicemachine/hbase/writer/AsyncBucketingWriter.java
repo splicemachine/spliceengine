@@ -1,10 +1,8 @@
 package com.splicemachine.hbase.writer;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.hbase.client.HConnection;
-
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;

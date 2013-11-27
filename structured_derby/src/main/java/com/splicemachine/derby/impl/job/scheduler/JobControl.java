@@ -1,7 +1,11 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.job.coprocessor.*;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.AttemptsExhaustedException;
 import com.splicemachine.hbase.table.BoundCall;
@@ -12,15 +16,20 @@ import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Op;
+import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -150,7 +159,7 @@ class JobControl implements JobFuture {
 
     @Override
     public void cancel() throws ExecutionException {
-        throw new UnsupportedOperationException("Currently unsupported. Implementation needed");
+        //TODO -sf- implement
     }
 
     @Override
@@ -168,30 +177,23 @@ class JobControl implements JobFuture {
     public void cleanup() throws ExecutionException {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
-            zkManager.execute(new SpliceZooKeeperManager.Command<Void>() {
-                @Override
-                public Void execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    try{
-                        zooKeeper.delete(jobPath,-1);
-                    }catch(KeeperException ke){
-                        if(ke.code()!= KeeperException.Code.NONODE)
-                            throw ke;
-                    }
-
-                    for(RegionTaskControl task:tasksToWatch){
-                        try{
-                            zooKeeper.delete(task.getTaskNode(),-1);
-                        }catch(KeeperException ke){
-                            if(ke.code()!= KeeperException.Code.NONODE)
-                                throw ke;
-                        }
-                    }
-                    return null;
-                }
-            });
-        } catch (InterruptedException e) {
-            throw new ExecutionException(e);
-        } catch (KeeperException e) {
+            ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+            //TODO -sf- asynchronous, rather than multi?
+						zooKeeper.delete(jobPath,-1,new AsyncCallback.VoidCallback() {
+								@Override
+								public void processResult(int i, String s, Object o) {
+										LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
+								}
+						},this);
+            for(RegionTaskControl task:tasksToWatch){
+								zooKeeper.delete(task.getTaskNode(),-1,new AsyncCallback.VoidCallback() {
+										@Override
+										public void processResult(int i, String s, Object o) {
+												LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
+										}
+								},this);
+            }
+        }catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
         }
     }
@@ -247,7 +249,12 @@ class JobControl implements JobFuture {
         RegionTaskControl next = task;
         do{
             next = tasksToWatch.higher(next);
-        }while(next!=null && next.compareTo(task)==0);
+            /*
+             * Can't do a direct compareTo() call, because the compareTo() method must
+             * distinguish between two regions which have the same start/stop key but are
+             * distinct task nodes, where here we want to treat those the same.
+             */
+        }while(next!=null && Bytes.compareTo(next.getStartRow(),task.getStartRow())==0);
 
         tasksToWatch.remove(task);
 
@@ -266,8 +273,11 @@ class JobControl implements JobFuture {
             Pair<RegionTask,Pair<byte[],byte[]>> newTaskData = job.resubmitTask(task.getTask(), start, endRow);
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "executing submit on resubmitted job %s", job.getJobId());
-            //resubmit the task
-            submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(),tryCount + 1);
+
+            //submit the task again
+            submit(newTaskData.getFirst(), newTaskData.getSecond(), job.getTable(), tryCount + 1);
+
+
         }catch(IOException ioe){
             throw new ExecutionException(ioe);
         }

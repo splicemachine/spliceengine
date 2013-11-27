@@ -56,7 +56,7 @@ public class JoinSelectorTest {
 
     @Test
     public void rowResultSetTest() throws Exception {
-        Assert.assertEquals(JoinSelector.NLJ, JoinSelector.chooseStrategy(infoRowRS));
+        Assert.assertEquals(JoinSelector.MSJ, JoinSelector.chooseStrategy(infoRowRS));
     }
 
 }

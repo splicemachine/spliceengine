@@ -8,11 +8,30 @@ public class JoinSideExecRow {
 	protected ExecRow row;
 	protected JoinSide joinSide;
 	protected byte[] hash;
+    private byte[] rowKey;
+
+    public JoinSideExecRow (ExecRow row,JoinSide joinSide) {
+        this.row = row;
+        this.joinSide = joinSide;
+    }
+
 	public JoinSideExecRow (ExecRow row,JoinSide joinSide, byte[] hash) {
 		this.row = row;
 		this.joinSide = joinSide;
 		this.hash = hash;
 	}
+
+    public JoinSideExecRow (ExecRow row,JoinSide joinSide, byte[] hash,byte[] rowKey) {
+        this.row = row;
+        this.joinSide = joinSide;
+        this.hash = hash;
+        this.rowKey = rowKey;
+    }
+
+    public byte[] getRowKey(){
+        return rowKey;
+    }
+
 	public ExecRow getRow() {
 		return row;
 	}
@@ -27,7 +46,11 @@ public class JoinSideExecRow {
         this.hash = hash;
     }
 
-	@Override
+    public void setRowKey(byte[] rowKey) {
+        this.rowKey = rowKey;
+    }
+
+    @Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("joinSide = ");

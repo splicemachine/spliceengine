@@ -17,15 +17,16 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
             Hashable, Mutation, IHTable, Scanner> simpleFilter;
-    private final RowAccumulator<Data> accumulator;
+    private final RowAccumulator<Data,KeyValue> accumulator;
     private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
+    private boolean siNullSkip = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
                                      OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
-                             RowAccumulator<Data> accumulator) {
+                             RowAccumulator<Data,KeyValue> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
         this.dataStore = dataStore;
@@ -45,10 +46,11 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                 return simpleFilter.filterByColumnType();
             case USER_DATA:
                 if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) {
-                    final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
+                	final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
                     switch (returnCode) {
                         case INCLUDE:
                         case INCLUDE_AND_NEXT_COL:
+                        	siNullSkip = true;
                             return Filter.ReturnCode.NEXT_COL;
                         case SKIP:
                         case NEXT_COL:
@@ -57,8 +59,8 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                         default:
                             throw new RuntimeException("unknown return code");
                     }
-                } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
-                    return accumulateUserData(dataKeyValue);
+                } else if (accumulator.isOfInterest(simpleFilter.keyValue.keyValue()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
+                	return accumulateUserData(dataKeyValue);
                 } else {
                     if (!hasAccumulation) {
                         final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
@@ -86,7 +88,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         switch (returnCode) {
             case INCLUDE:
             case INCLUDE_AND_NEXT_COL:
-                if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
+                if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
                     excludeRow = true;
                     return Filter.ReturnCode.NEXT_COL;
                 }
@@ -139,6 +141,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         hasAccumulation = false;
         excludeRow = false;
         accumulatedKeyValue = null;
+        siNullSkip = false;
     }
 
 }

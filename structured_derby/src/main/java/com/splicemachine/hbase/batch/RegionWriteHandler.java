@@ -18,6 +18,7 @@ import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -81,23 +83,32 @@ public class RegionWriteHandler implements WriteHandler {
         }
     }
 
-    private Mutation getMutation(KVPair kvPair, WriteContext ctx) throws IOException {
+    private Mutation getMutation(KVPair kvPair, WriteContext ctx, boolean si) throws IOException {
         byte[] rowKey = kvPair.getRow();
         byte[] value = kvPair.getValue();
         Mutation mutation;
         Put put;
         switch (kvPair.getType()) {
             case UPDATE:
-                put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
+            	if (si)
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
+            	else
+            		throw new RuntimeException("Updating a non si table?");
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
                 mutation = put;
                 mutation.setAttribute(Puts.PUT_TYPE,Puts.FOR_UPDATE);
                 break;
             case DELETE:
-                mutation = SpliceUtils.createDeletePut(ctx.getTransactionId(),rowKey);
+            	if (si)
+            		mutation = SpliceUtils.createDeletePut(ctx.getTransactionId(),rowKey);
+            	else
+            		throw new RuntimeException("Deleting a non si table?");
                 break;
             default:
-                put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
+            	if (si)
+            		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
+            	else 
+            		put = new Put(rowKey);
                 put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
                 mutation = put;
         }
@@ -204,7 +215,7 @@ public class RegionWriteHandler implements WriteHandler {
         Pair<Mutation, Integer>[] pairsToProcess = new Pair[toProcess.size()];
         int i=0;
         for(KVPair pair:toProcess){
-            pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,ctx), null);
+            pairsToProcess[i] = new Pair<Mutation, Integer>(getMutation(pair,ctx,false), null);
             i++;
         }
         return region.batchMutate(pairsToProcess);
@@ -218,10 +229,16 @@ public class RegionWriteHandler implements WriteHandler {
         Mutation[] mutations = new Mutation[toProcess.size()];
         int i=0;
         for(KVPair pair:toProcess){
-            mutations[i] = getMutation(pair,ctx);
+            mutations[i] = getMutation(pair,ctx,true);
             i++;
         }
         return transactor.processPutBatch(new HbRegion(region), queue, mutations);
     }
+
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
 
 }

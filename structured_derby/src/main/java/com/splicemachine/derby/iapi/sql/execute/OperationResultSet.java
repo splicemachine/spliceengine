@@ -68,6 +68,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         closed=false;
         if(delegate!=null) delegate.close();
         try {
+            topOperation.init(SpliceOperationContext.newContext(activation));
             topOperation.open();
         } catch (IOException e) {
             throw Exceptions.parseException(e);

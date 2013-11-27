@@ -9,12 +9,12 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+
+import static com.splicemachine.homeless.TestUtils.o;
 
 /**
  * @author Scott Fines
@@ -94,6 +94,7 @@ public class SubqueryIT {
 
             })
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/content.sql", CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "null_int_data.sql", schemaWatcher.schemaName))
             .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
                     "create table s (a int, b int, c int, d int, e int, f int);" +
@@ -254,4 +255,73 @@ public class SubqueryIT {
 
         Assert.assertEquals(8, TestUtils.resultSetToArrays(rs).size());
     }
+
+    @Test
+    public void testAggWithDoublyNestedCorrelatedSubquery() throws Exception {
+        List<Object[]> expected = Arrays.asList(o("P1", BigDecimal.valueOf(80)),
+                                                o("P5", BigDecimal.valueOf(92)));
+
+        ResultSet rs = methodWatcher.executeQuery("SELECT pnum, " +
+                "       Sum(hours) " +
+                "FROM   works c " +
+                "GROUP  BY pnum " +
+                "HAVING EXISTS (SELECT pname " +
+                "               FROM   proj, " +
+                "                      works a " +
+                "               WHERE  proj.pnum = a.pnum " +
+                "                      AND proj.budget / 200 < (SELECT Sum(hours) " +
+                "                                               FROM   works b " +
+                "                                               WHERE  a.pnum = b.pnum " +
+                "                                                      AND a.pnum = c.pnum))" +
+                "ORDER BY pnum");
+
+        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+    @Test
+    public void testJoinOfAggSubquery() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+                o("BIRD", 4.5, "title1", "http://url.1"),
+                o("CAR", 4.5, "title1", "http://url.1"));
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "SELECT S.DESCRIPTION, FAV.MAXRATE, C.TITLE, C.URL " +
+                "FROM RATING R, " +
+                "      CONTENT C, " +
+                "      STYLE S, " +
+                "      CONTENT_STYLE CS, " +
+                "      (select S.ID, max(rating) " +
+                "         from RATING R, CONTENT C, STYLE S," +
+                "            CONTENT_STYLE CS group by S.ID) AS FAV(FID,MAXRATE) " +
+                "WHERE R.ID = C.ID" +
+                "   AND C.ID = CS.CONTENT_ID " +
+                "   AND CS.STYLE_ID = FAV.FID " +
+                "   AND FAV.FID = S.ID AND" +
+                "   FAV.MAXRATE = R.RATING " +
+                "ORDER BY S.DESCRIPTION" );
+
+        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+    @Ignore("Bugzilla 626")
+    @Test
+    public void testCorrelatedDoubleNestedNotExists() throws Exception {
+        List<Object[]> expected = Collections.singletonList(o("Alice"));
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "SELECT STAFF.EMPNAME" +
+                "          FROM STAFF" +
+                "          WHERE NOT EXISTS" +
+                "                 (SELECT *" +
+                "                       FROM PROJ" +
+                "                       WHERE NOT EXISTS" +
+                "                             (SELECT *" +
+                "                                   FROM WORKS" +
+                "                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM" +
+                "                                   AND WORKS.PNUM=PROJ.PNUM));" );
+
+        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+
 }

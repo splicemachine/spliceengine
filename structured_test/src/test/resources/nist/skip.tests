@@ -64,8 +64,6 @@ xts742
 xts752
 yts797
 yts798
-# yts799: bug 494
-yts799
 drop
 # regressions: 7/17/2013
 #Bug 682 - cdr027, dml023 

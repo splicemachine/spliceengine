@@ -3,7 +3,6 @@ package com.splicemachine.hbase;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -15,10 +14,9 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.io.IOException;
-import java.util.Map;
+import java.util.Arrays;
 import java.util.SortedSet;
 import java.util.concurrent.*;
 
@@ -54,7 +52,7 @@ public class HBaseRegionCache implements RegionCache {
     public static RegionCache create(long cacheExpirationPeriod,long cacheUpdatePeriod){
         LoadingCache<Integer,SortedSet<HRegionInfo>> regionCache =
                 CacheBuilder.newBuilder()
-                        .expireAfterWrite(cacheExpirationPeriod, TimeUnit.SECONDS)
+                        .expireAfterAccess(cacheExpirationPeriod,TimeUnit.SECONDS)
                         .build(new RegionLoader(SpliceConstants.config));
 
         ThreadFactory cacheFactory = new ThreadFactoryBuilder()
@@ -108,29 +106,37 @@ public class HBaseRegionCache implements RegionCache {
         @Override
         public void run() {
             SpliceLogUtils.debug(CACHE_LOG, "Refreshing Region cache for all tables");
-            final Map<byte[],SortedSet<HRegionInfo>> regionInfos = Maps.newHashMap();
             MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
+                private byte[] lastByte;
+                private SortedSet<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();            	
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
                     byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
                     if(bytes==null){
-                        //TODO -sf- log a message here
+                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
                         return true;
                     }
                     HRegionInfo info = Writables.getHRegionInfo(bytes);
-                    SortedSet<HRegionInfo> regions = regionInfos.get(info.getTableName());
-                    if(regions==null){
-                        regions = new ConcurrentSkipListSet<HRegionInfo>();
-                        regionInfos.put(info.getTableName(),regions);
+                    if (lastByte==null) {
+                    	lastByte = info.getTableName();
+                    	regionInfos.add(info);
+                    }	
+                    else if (Arrays.equals(lastByte,info.getTableName())) {
+                        if(!(info.isOffline()||info.isSplit()))
+                        	regionInfos.add(info);
+                    } else {
+                    	regionCache.put(Bytes.mapKey(lastByte), regionInfos);
+                    	lastByte = info.getTableName();
+                    	regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
+                        if(!(info.isOffline()||info.isSplit()))
+                        	regionInfos.add(info);
                     }
-                    if(!(info.isOffline()||info.isSplit()))
-                        regions.add(info);
                     return true;
                 }
 
                 @Override
                 public void close() throws IOException {
-                    // not used ... -- JL
+                	regionCache.put(Bytes.mapKey(lastByte), regionInfos);
                 }
             };
 
@@ -138,10 +144,6 @@ public class HBaseRegionCache implements RegionCache {
                 MetaScanner.metaScan(SpliceConstants.config,visitor);
             } catch (IOException e) {
                 SpliceLogUtils.error(CACHE_LOG,"Unable to update region cache",e);
-            }
-            for(byte[] table:regionInfos.keySet()){
-                SpliceLogUtils.trace(CACHE_LOG,"Updating cache for "+ Bytes.toString(table));
-                regionCache.put(Bytes.mapKey(table),regionInfos.get(table));
             }
             cacheUpdatedTimestamp = System.currentTimeMillis();
         }
@@ -163,7 +165,7 @@ public class HBaseRegionCache implements RegionCache {
                 public boolean processRow(Result rowResult) throws IOException {
                     byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
                     if(bytes==null){
-                        //TODO -sf- log a message here
+                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
                         return true;
                     }
                     HRegionInfo info = Writables.getHRegionInfo(bytes);
@@ -176,7 +178,6 @@ public class HBaseRegionCache implements RegionCache {
 
                 @Override
                 public void close() throws IOException {
-                    // We do not use this... -- JL
                 }
             };
 

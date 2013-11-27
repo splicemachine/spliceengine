@@ -1,18 +1,15 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 

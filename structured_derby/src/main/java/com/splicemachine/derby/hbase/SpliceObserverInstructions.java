@@ -10,8 +10,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
-import com.splicemachine.utils.ByteDataInput;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;

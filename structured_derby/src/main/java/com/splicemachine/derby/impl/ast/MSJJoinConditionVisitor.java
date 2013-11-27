@@ -1,10 +1,15 @@
 package com.splicemachine.derby.impl.ast;
 
 
+import com.google.common.base.*;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.util.JBitSet;
+import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.impl.sql.compile.*;
+import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -13,10 +18,10 @@ import java.util.*;
 
 /**
  * This visitor moves join predicates from joined tables to the join nodes themselves for
- * MergeSort joins. During optimization, Derby pushes down the predicates to FromBaseTable
- * nodes, assuming that a table on one side of the join will have access to the "current
- * row" of a table on the other side at query execution time, an assumption which we know
- * to be incorrect for MSJ. This visitor reverses
+ * hashable joins. During optimization, Derby pushes down the predicates to FromBaseTable
+ * (& ProjectRestrict) nodes, assuming that a table on one side of the join will have access
+ * to the "current row" of a table on the other side at query execution time, an assumption
+ * which we know to be incorrect for MSJ. This visitor reverses the pushdown.
  *
  * User: pjt
  * Date: 7/8/13
@@ -26,83 +31,117 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
 
     private static Logger LOG = Logger.getLogger(MSJJoinConditionVisitor.class);
 
-    public static boolean predicateIsEvalable(OptimizablePredicate p, ResultSetNode n) {
-        JBitSet pRefs = (JBitSet) p.getReferencedMap().clone();
-        JBitSet nRefs = n.getReferencedTableMap();
-        // make pRefs represent union of tables referenced
-        pRefs.or(nRefs);
-        // make pRefs represent union of tables referenced minus tables referenced by n
-        pRefs.xor(nRefs);
-        // if all bits in pRefs are zero, then n refers to all tables referred to by p,
-        // & p is therefore evalable in context of n
-        return pRefs.getFirstSetBit() == -1;
-    }
-
-
-    private List<OptimizablePredicate> pulledPreds = new ArrayList<OptimizablePredicate>();
-
-    @Override
-    public FromBaseTable visit(FromBaseTable t) throws StandardException {
-        return pullPredsFromTable(t);
-    }
-
-    @Override
-    public ProjectRestrictNode visit(ProjectRestrictNode pr) throws StandardException {
-        return pullPredsFromPR(pr);
-    }
-
     @Override
     public JoinNode visit(JoinNode j) throws StandardException {
-        return addPredsToJoin(j);
+        AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
+        return RSUtils.isHashableJoin(ap) ?
+                pullUpPreds(j)  : j;
     }
 
     @Override
     public JoinNode visit(HalfOuterJoinNode j) throws StandardException {
-        return addPredsToJoin(j);
+        return visit((JoinNode)j);
     }
 
-    public ProjectRestrictNode pullPredsFromPR(ProjectRestrictNode pr) throws StandardException {
-        if (RSUtils.isHashableJoin(pr.getTrulyTheBestAccessPath()) &&
-                pr.restrictionList != null) {
+    public JoinNode pullUpPreds(JoinNode j) throws StandardException {
+        List<Predicate> toPullUp = new LinkedList<Predicate>();
+
+        // Collect PRs, FBTs until a binary node (Union, Join) found, or end
+        Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
+                RSUtils.collectNodesUntil(j.getRightResultSet(), ResultSetNode.class,
+                        RSUtils.isBinaryRSN),
+                RSUtils.rsnHasPreds);
+
+        com.google.common.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+
+        for (ResultSetNode rsn: rightsUntilBinary) {
+            // Encode whether to pull up predicate to join:
+            //  when can't evaluate on node but can evaluate at join
+            com.google.common.base.Predicate<Predicate> shouldPull =
+                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+            toPullUp.addAll(rsn instanceof ProjectRestrictNode ?
+                                pullPredsFromPR((ProjectRestrictNode)rsn, shouldPull) :
+                                    pullPredsFromTable((FromBaseTable)rsn, shouldPull));
+        }
+
+        for (Predicate p: toPullUp){
+            p = updatePredColRefsToJoin(p, j);
+            j.addOptPredicate(p);
+            LOG.debug(String.format("Added pred %s to Join=%s.",
+                    PredicateUtils.predToString.apply(p), j.getResultSetNumber()));
+        }
+
+        return j;
+    }
+
+    public List<Predicate> pullPredsFromPR(ProjectRestrictNode pr,
+                                           com.google.common.base.Predicate<Predicate> shouldPull)
+            throws StandardException {
+        List<Predicate> pulled = new LinkedList<Predicate>();
+        if (pr.restrictionList != null) {
             for (int i = pr.restrictionList.size() - 1; i >= 0; i--) {
-                OptimizablePredicate p = pr.restrictionList.getOptPredicate(i);
-                if (!predicateIsEvalable(p, pr)) {
-                    pulledPreds.add(p);
+                Predicate p = (Predicate)pr.restrictionList.getOptPredicate(i);
+                if (shouldPull.apply(p)) {
+                    pulled.add(p);
+                    LOG.debug(String.format("Pulled pred %s from PR=%s",
+                            PredicateUtils.predToString.apply(p), pr.getResultSetNumber()));
                     pr.restrictionList.removeOptPredicate(i);
                 }
             }
         }
-        return pr;
+        return pulled;
     }
 
-    public FromBaseTable pullPredsFromTable(FromBaseTable t) throws StandardException {
-        if (RSUtils.isHashableJoin(t.getTrulyTheBestAccessPath())) {
-            PredicateList pl = new PredicateList();
-            t.pullOptPredicates(pl);
-            for (int i = 0, s = pl.size(); i < s; i++) {
-                OptimizablePredicate p = pl.getOptPredicate(i);
-                if (!predicateIsEvalable(p, t)) {
-                    pulledPreds.add(p);
-                } else {
-                    t.pushOptPredicate(p);
+    public List<Predicate> pullPredsFromTable(FromBaseTable t,
+                                              com.google.common.base.Predicate<Predicate> shouldPull)
+            throws StandardException {
+        List<Predicate> pulled = new LinkedList<Predicate>();
+        PredicateList pl = new PredicateList();
+        t.pullOptPredicates(pl);
+        for (int i = 0, s = pl.size(); i < s; i++) {
+            Predicate p = (Predicate)pl.getOptPredicate(i);
+            if (shouldPull.apply(p)) {
+                pulled.add(p);
+                LOG.debug(String.format("Pulled pred %s from Table=%s",
+                        PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
+            } else {
+                t.pushOptPredicate(p);
+            }
+        }
+        return pulled;
+    }
+
+
+    /**
+     * Return the set of ResultSetNode numbers referred to by column references in p
+     */
+    public static Set<Integer> resultSetRefs(Predicate p) throws StandardException {
+        return Sets.newHashSet(
+                Lists.transform(RSUtils.collectNodes(p, ColumnReference.class),
+                    new Function<ColumnReference, Integer>() {
+                        @Override
+                        public Integer apply(ColumnReference cr) {
+                            return ColumnUtils.RSCoordinate(cr.getSource()).getFirst();
+                        }}));
+    }
+
+
+    /**
+     * Returns a fn that returns true if a Predicate can be evaluated at the node rsn
+     */
+    public static com.google.common.base.Predicate<Predicate> evalableAtNode(final ResultSetNode rsn)
+            throws StandardException {
+        final Set<Integer> rsns = Sets.newHashSet(Lists.transform(RSUtils.getSelfAndDescendants(rsn), RSUtils.rsNum));
+        return new com.google.common.base.Predicate<Predicate>() {
+            @Override
+            public boolean apply(Predicate p) {
+                try {
+                    return rsns.containsAll(resultSetRefs(p));
+                } catch (StandardException se){
+                    throw new RuntimeException(se);
                 }
             }
-        }
-        return t;
-    }
-
-    public JoinNode addPredsToJoin(JoinNode j) throws StandardException {
-        int pSize = pulledPreds.size();
-        OptimizablePredicate[] currentPreds = pulledPreds.toArray(new OptimizablePredicate[pSize]);
-
-        for (OptimizablePredicate p : currentPreds) {
-            if (predicateIsEvalable(p, j)) {
-                p = updatePredColRefsToJoin((Predicate) p, j);
-                j.addOptPredicate(p);
-                pulledPreds.remove(p);
-            }
-        }
-        return j;
+        };
     }
 
     /**

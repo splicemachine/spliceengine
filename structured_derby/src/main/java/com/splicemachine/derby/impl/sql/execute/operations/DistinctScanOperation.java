@@ -109,6 +109,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         this.hashKeyItem = hashKeyItem;
         this.tableName = tableName;
         this.indexName = indexName;
+        init(SpliceOperationContext.newContext(activation));
     }
 
     @Override

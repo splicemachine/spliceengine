@@ -180,7 +180,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "nextRow");
         sortResult = getNextRowFromScan(spliceRuntimeContext);
         if (sortResult != null)
@@ -188,18 +188,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         return sortResult;
     }
 
-    private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
-        try {
-            regionScanner.next(keyValues);
-        } catch (IOException ioe) {
-            SpliceLogUtils.logAndThrow(LOG,
-                    StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
-        }
+        regionScanner.next(keyValues);
         if(keyValues.isEmpty()) return null;
 
         if(rowDecoder==null)
-            rowDecoder = getRowEncoder(new SpliceRuntimeContext()).getDual(getExecRowDefinition(),true);
+            rowDecoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition(),true);
         return rowDecoder.decode(keyValues);
     }
 

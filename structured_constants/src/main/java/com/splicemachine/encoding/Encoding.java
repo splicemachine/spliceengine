@@ -1,7 +1,9 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.util.Bytes;
 import java.math.BigDecimal;
-import java.util.Arrays;
+import java.util.Date;
 
 /**
  * Utilities for encoding various values using a sort-order preserving encoding
@@ -681,6 +683,119 @@ public final class Encoding {
     }
 
     public static void main(String... args) throws Exception{
-        System.out.println(Arrays.toString(Encoding.encode("baker")));
+        String binary = "\\xCE\\xD8\\xF5\\xFA\\xA3\\xDF\\x88\\x00\\xC4\\xE2\\x00\\x83\\x00\\xC4\\x83\\x00\\xDFY\\x98\\x00IE\\x00CPVKDCTRTK\\x00|ttkqytfcejlimg\\x00\\xE4`\\x00a \\x00\\xC0$\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x81\\x00\\x80\\x00sprsckzju\\x00fsn|dlzmq{hhvfisfcr\\x00mysvwrw|jnozwihhr{\\x00YP\\x00:72:33333\\x00327:7867;75785;:\\x00\\xEDA\\xBB\\xA2\\x87\\xC8\\x00QG\\x00kvrmxikqjixsggeo{xhhgshhuptzlljsgnnzotyppxmvzvmfld{xqotdikqxrk{trglyolwdipxsqhrtspzpxey{y|xtkiwi|vvfj{kusfgi|ikurrittyqnv|xtyjqe{mdxhswzykydsvlgiqsgp{mjgrivtrkdpny{xhdxlvpr|kyzhodnjm{qdqrsqp|l|pqjfeiktf|uhelf{dvqd{j{wofqlvcllhdf|ypqh|kgjodcfcqduqhvqyudo{isxeneqdykowgqyeupud{vm|sylyf|{lg|{feuqcvnvxu|y|gffjhulnzsd||{dqxuj|p";
+
+        byte[] bytes = Bytes.toBytesBinary(binary);
+
+        MultiFieldDecoder decoder = MultiFieldDecoder.wrap(bytes,KryoPool.defaultPool());
+        decoder.skip();
+        StringBuilder line = new StringBuilder();
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextInt());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextInt());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextInt());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextBigDecimal());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextBigDecimal());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextBigDecimal());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNullDouble())
+            line.append(decoder.decodeNextDouble());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextInt());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextInt());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(new Date(decoder.decodeNextLong()).toString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+        if(!decoder.nextIsNull())
+            line.append(decoder.decodeNextString());
+        else
+            line.append("NULL");
+        line.append(",");
+
+        System.out.println(line.toString());
     }
 }

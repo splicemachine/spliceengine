@@ -45,6 +45,8 @@ public final class SpliceTransactionResourceImpl {
 		username = IdUtil.getUserNameFromURLProps(info); // Static
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null); // Static
 		cm = csf.newContextManager(); // Needed
+        if(csf.getCurrentContextManager()==null)
+            csf.setCurrentContextManager(cm);
 		database = (SpliceDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
         if(database==null){
             SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");

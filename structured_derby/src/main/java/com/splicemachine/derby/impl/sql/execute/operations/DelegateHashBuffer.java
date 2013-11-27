@@ -3,14 +3,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Maps;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class DelegateHashBuffer<K,T extends ExecRow> implements HashBuffer<K,T> {
 	protected int maxCapacity;

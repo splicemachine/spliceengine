@@ -1,4 +1,4 @@
-package com.splicemachine.derby.utils;
+package com.splicemachine.encoding;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
@@ -16,6 +16,7 @@ public class HashUtils {
         for (byte [] field : fields) {
             if (field != null) h.putBytes(field);             
         }
+        
         return (byte) (h.hash().asBytes()[0] & (byte) 0xf0);
     }
 }

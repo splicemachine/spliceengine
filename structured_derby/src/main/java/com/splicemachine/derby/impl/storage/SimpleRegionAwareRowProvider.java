@@ -9,6 +9,8 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
+import java.io.IOException;
+
 /**
  * Simple and obvious Region-Aware RowProvider implementation.
  *
@@ -37,7 +39,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
     }
 
     @Override
-    public Result getResult() throws StandardException {
+    public Result getResult() throws StandardException, IOException {
         return scanner.getNextResult();
     }
 

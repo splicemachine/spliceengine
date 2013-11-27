@@ -130,7 +130,7 @@ public class OuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void testNestedLoopLeftOuterJoin() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select t1.EMPNAME, t1.CITY, t2.PTYPE from STAFF t1 left outer join PROJ t2 --DERBY-PROPERTIES joinStrategy=NESTEDLOOP \n" +
+        ResultSet rs = methodWatcher.executeQuery("select t1.EMPNAME, t1.CITY, t2.PTYPE from STAFF t1 left outer join PROJ t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP \n" +
                 " on t1.CITY = t2.CITY");
 
         List<Map> results = TestUtils.resultSetToMaps(rs);
@@ -140,7 +140,7 @@ public class OuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void testScrollableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc left outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
         int j = 0;
         while (rs.next()) {
             j++;
@@ -157,7 +157,7 @@ public class OuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void testSinkableVarcharLeftOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc left outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
         int j = 0;
         while (rs.next()) {
             j++;
@@ -173,7 +173,7 @@ public class OuterJoinIT extends SpliceUnitTest {
     @Test
     @Ignore("Bug 325")
     public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
         int j = 0;
         while (rs.next()) {
             j++;
@@ -192,7 +192,7 @@ public class OuterJoinIT extends SpliceUnitTest {
     @Test
     @Ignore("Bug 325")
     public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --DERBY-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
         int j = 0;
         while (rs.next()) {
             j++;

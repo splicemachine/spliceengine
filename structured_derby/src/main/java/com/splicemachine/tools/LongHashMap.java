@@ -46,7 +46,7 @@ public abstract class LongHashMap<T> {
         int length = elements.length;
         int i = indexFor(hash,length);
         int visited=0;
-        LongEntry<T> entry = null;
+        LongEntry<T> entry;
         do{
             entry = elements[i];
             if(entry==null){

@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.Task;
@@ -30,14 +29,20 @@ import java.util.*;
  * Created on: 4/5/13
  */
 public class BlockImportJob extends FileImportJob{
-    protected BlockImportJob(HTableInterface table, ImportContext context) {
-        super(table, context);
+    private final FileSystem fs;
+
+    protected BlockImportJob(HTableInterface table, ImportContext context) throws IOException {
+        this(table, context, FileSystem.get(SpliceConstants.config));
+    }
+
+    protected BlockImportJob(HTableInterface table, ImportContext context, FileSystem fs){
+        super(table,context);
+        this.fs = fs;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         Path path = context.getFilePath();
-        FileSystem fs = FileSystem.get(SpliceUtils.config);
         if(!fs.exists(path))
             throw new FileNotFoundException("Unable to find file "
                     + context.getFilePath()+" in FileSystem. Did you put it into HDFS?");
@@ -102,20 +107,32 @@ public class BlockImportJob extends FileImportJob{
 
     @Override
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
-        //get regions within range
-
-        List<HRegionLocation> regionsInRange;
         final HTable hTable = SpliceHTableUtil.toHTable(table);
         if(hTable != null) {
-            regionsInRange = hTable.getRegionsInRange(taskStartKey,taskEndKey);
+						HRegionLocation location;
+						if(taskStartKey.length<=0){
+								if(taskEndKey.length>0){
+										//force a cache reload to avoid issues with stale caches causing use to submit to multiple regions
+										location = hTable.getRegionLocation(taskStartKey,true);
+								}else{
+										/*
+										 * we are attempting to resubmit [{},{}), which kind of sucks,
+										 * since a naive approach would just load up all retries on to
+										 * a single server. Instead, we want to pick a random region
+										 */
+										byte[] random = new byte[10];
+										new Random(System.currentTimeMillis()).nextBytes(random);
+										//get a random region location--force cache reload to avoid stale cache problems with resubmits
+										location = hTable.getRegionLocation(random,true);
+								}
+						}else
+								location = hTable.getRegionLocation(taskStartKey,true);
+
+            HRegionInfo info = location.getRegionInfo();
+            return Pair.newPair(originalTask,getTaskBoundary(info));
         } else {
             throw new IOException("Unexpected Table type: " + table.getClass());
         }
-
-        //take the first, and find its boundaries
-        HRegionInfo info = regionsInRange.get(0).getRegionInfo();
-
-        return Pair.newPair(originalTask,getTaskBoundary(info));
     }
 
     private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {

@@ -1,24 +1,16 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ByteBufferArrayUtils;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.xerial.snappy.Snappy;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -28,7 +20,6 @@ import java.util.List;
  */
 public class RowMarshaller {
     public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
-    private static final byte[] EMPTY_ROW_COLUMN = Encoding.encode(-101);
 
     private static KeyValue getPackedKv(DataValueDescriptor[] row,
                                         byte[] rowKey,
@@ -98,8 +89,7 @@ public class RowMarshaller {
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
             if(!ByteBufferArrayUtils.matchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-            byte[] data = value.getValue();
-            unpack(fields, reversedKeyColumns, rowDecoder, data);
+            unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(), value.getValueOffset(), value.getValueLength());
         }
 
         @Override
@@ -135,8 +125,7 @@ public class RowMarshaller {
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
             if(!ByteBufferArrayUtils.matchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-            byte[] data = value.getValue();
-            unpack(fields, reversedKeyColumns, rowDecoder, data);
+            unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(),value.getValueOffset(), value.getValueLength());
         }
 
         @Override
@@ -152,8 +141,8 @@ public class RowMarshaller {
         }
     };
 
-    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder, byte[] data) throws StandardException {
-        rowDecoder.set(data);
+    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder, byte[] data, int offset, int length) throws StandardException {
+        rowDecoder.set(data, offset, length);
         if(reversedKeyColumns!=null){
             for(int keyCol:reversedKeyColumns){
                 DataValueDescriptor dvd = fields[keyCol];

@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -27,8 +28,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -142,7 +142,6 @@ public class HdfsImport extends ParallelVTI {
         return result;
     }
 
-    @SuppressWarnings("UnusedParameters")
     public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
                                          String insertColumnList,
                                          String columnIndexes,
@@ -280,49 +279,123 @@ public class HdfsImport extends ParallelVTI {
         throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
     }
 
-	@Override
-	public void executeShuffle() throws StandardException {
-		CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-		List<FileStatus> files;
-		try {
-			files = listStatus(context.getFilePath().toString());
-		} catch (IOException e) {
-			throw Exceptions.parseException(e);
-		}
-		List<JobFuture> jobFutures = new ArrayList<JobFuture>();
-		HTableInterface table = null;
-		for (FileStatus file: files) {
-			CompressionCodec codec = codecFactory.getCodec(file.getPath());
-			ImportJob importJob;
-	        table = SpliceAccessManager.getHTable(context.getTableName().getBytes());
-	        context.setFilePath(file.getPath());
-			if(codec==null ||codec instanceof SplittableCompressionCodec){
-				importJob = new BlockImportJob(table, context);
-			}else{
-				importJob = new FileImportJob(table,context);
-			}
-	        try {
-	            jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(importJob));
-			}  catch (ExecutionException e) {
-	            throw Exceptions.parseException(e.getCause());
-	        }
-		}
-		try {
-			for (JobFuture jobFuture: jobFutures) {
-					jobFuture.completeAll();
-			}
-		} catch (InterruptedException e) {
-            throw Exceptions.parseException(e.getCause());
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        } // still need to cancel all other jobs ? // JL
-		finally{
-            Closeables.closeQuietly(table);
-        }
+		@Override
+		public void executeShuffle() throws StandardException {
+				ImportFile file = new ImportFile(context.getFilePath().toString());
+				byte[] tableName = context.getTableName().getBytes();
+				try {
+						splitToFit(tableName,file);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				HTableInterface table = SpliceAccessManager.getHTable(tableName);
 
-    }
+				try {
+						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
+						List<JobFuture> jobFutures = Lists.newArrayList();
+						for (Path path:file.getPaths()) {
+								context.setFilePath(path);
+								jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(getImportJob(table,codecFactory,path)));
+						}
 
-	@Override
+						for (JobFuture jobFuture: jobFutures) {
+								jobFuture.completeAll();
+						}
+				} catch (InterruptedException e) {
+						throw Exceptions.parseException(e);
+				} catch (ExecutionException e) {
+						throw Exceptions.parseException(e.getCause());
+				} // still need to cancel all other jobs ? // JL
+				catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				finally{
+						Closeables.closeQuietly(table);
+				}
+		}
+
+		private void splitToFit(byte[] tableName, ImportFile file) throws IOException {
+				/*
+				 * We want to avoid situations where we have only a single region for a table
+				 * whenever it is possible.
+				 *
+				 * Generally speaking, we don't want to split tables if there is already data
+				 * present, or if the table has already been split a bunch of times. We also
+				 * don't want to split the table if we aren't going to import very much data.
+				 *
+				 * This leads to a few heuristics for determining when a table should be split
+				 * before importing:
+				 *
+				 * 1. Don't split if the total amount of data to be imported fits within
+				 * a fixed number of regions (configurable). The default should be two or three
+				 * regions.
+				 * 2. Don't split if there are already splits present on the table.
+				 *
+				 * When it is decided that the table should be pre-split, the split is determined
+				 * by the "importSizeRatio", which is the ratio of on-disk size to encoded size.
+				 * In most situations, this ratio is pretty close to 1:1. HOWEVER, we have no
+				 * information about the distribution of data within this file, so we are forced
+				 * to assume uniformity (which is almost never true). Because of this, if we
+				 * allow a 1:1 ratio, then when we actually insert data, we will likely end up
+				 * with some regions with very little (if any) data in them, and some regions
+				 * will be forced to split anyway.
+				 *
+				 * There really isn't anything we can do about this, except to not split as much.
+				 * To attempt to minimize any excess regions due to poor distribution of data, we
+				 * assume the size ratio is much smaller than it likely is. It's configurable, but
+				 * should be somewhere in the range of 1:2 or 1:3--That is, 1 GB of data in Splice
+				 * is equivalent to 2 or 3 GB of data in HDFS. This is HIGHLY unlikely to be true,
+				 * but it will result in the creation of many fewer regions than might otherwise happen,
+				 * which will help to avoid having straggler regions which must be cleaned up
+				 * after the fact.
+				 */
+				long onDiskSize = file.getTotalLength();
+				long regionSize = Long.parseLong(SpliceConstants.config.get(HConstants.HREGION_MAX_FILESIZE));
+				int regionSplitFactor = SpliceConstants.importSplitFactor;
+
+				long spliceSize = onDiskSize*regionSplitFactor;
+				int numRegions = (int)(spliceSize/regionSize);
+
+				if(numRegions<regionSplitFactor){
+						//we have too little data to bother splitting
+						return;
+				}
+				//we should split, but only if it hasn't already split
+				List<HRegionInfo> tableRegions = admin.getTableRegions(tableName);
+				if(tableRegions.size()>0) return;
+
+				//initiate splits until we have reached numRegions
+				for(int i=0;i<numRegions;i++){
+						try {
+								admin.split(tableName);
+						} catch (InterruptedException e) {
+								throw new IOException(e);
+						}
+				}
+				//wait for all the splits to complete, but only for so long
+				//we don't want to cause an infinite loop if something goes goofy
+				//wait a total of 10*500 ms = 5 seconds
+				int waitCount = 10;
+				do{
+						try {
+								Thread.sleep(500);
+						} catch (InterruptedException e) {
+								throw new IOException(e);
+						}
+				}while((tableRegions = admin.getTableRegions(tableName)).size()<numRegions && (waitCount--)>0);
+
+				/*
+				 * HBase will be inclined to put all the newly split regions onto a single server.
+				 * This doesn't help us distribute the load. Move them around to be as even as possible.
+				 * If you don't specify a location, the admin will move it randomly, which is good enough
+				 */
+				byte[] destServerName = {};
+				for(HRegionInfo info:tableRegions){
+						admin.move(info.getEncodedNameAsBytes(), destServerName);
+				}
+		}
+
+		@Override
 	public void close() {
 		try{
 			admin.close();
@@ -341,17 +414,30 @@ public class HdfsImport extends ParallelVTI {
         //no-op
     }
 
-    /*no op methods*/
-	@Override public ExecRow getExecRowDefinition() { return null; }
-	@Override public boolean next() { return false; }
-    @Override public SpliceOperation getRightOperation() { return null; } //noop
-    @Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
-    @Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
-    @Override public void setCurrentRowLocation(RowLocation rowLocation) { }
+		/*no op methods*/
+		@Override public ExecRow getExecRowDefinition() { return null; }
+		@Override public boolean next() { return false; }
+		@Override public SpliceOperation getRightOperation() { return null; } //noop
+		@Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
+		@Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
+		@Override public void setCurrentRowLocation(RowLocation rowLocation) { }
 
-    /************************************************************************************************************/
+		/************************************************************************************************************/
 	/*private helper functions*/
 
+		private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,Path file) throws StandardException {
+				CompressionCodec codec = codecFactory.getCodec(file);
+        ImportJob importJob;
+        if(codec==null ||codec instanceof SplittableCompressionCodec){
+            try{
+                importJob = new BlockImportJob(table, context);
+            }catch(IOException ioe){
+                throw Exceptions.parseException(ioe);
+            }
+        }else
+            importJob = new FileImportJob(table,context);
+        return importJob;
+    }
     private static Connection getDefaultConn() throws SQLException {
         InternalDriver id = InternalDriver.activeDriver();
         if(id!=null){

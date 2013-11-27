@@ -135,6 +135,17 @@ public class SpliceConstants {
     @DefaultValue(IMPORT_TASK_PRIORITY) public static final int DEFAULT_OPERATION_PRIORITY = 3;
     public static int importTaskPriority;
 
+		/**
+		 * The number of regions that we much import before we attempt to presplit. In general, when
+		 * importing, if the file is going to require more than this number of regions, we will split
+		 * the table in order to improve overall performance. Turn this number up if it is splitting
+		 * too much on small files. Turn it down if it is not splitting sufficiently often.
+		 * Defaults to 2.
+		 */
+		@Parameter public static final String IMPORT_SPLIT_FACTOR = "splice.import.splitRatio";
+		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final int DEFAULT_IMPORT_SPLIT_FACTOR=2;
+		public static int importSplitFactor;
+
     /**
      * The number of threads which will be used to process rows from import files. Increasing this
      * number will result in a higher number of concurrent table writes, but setting it too high
@@ -202,8 +213,8 @@ public class SpliceConstants {
     @Parameter private static final String POOL_CLEANER_INTERVAL = "splice.table.pool.cleaner.interval";
     @DefaultValue(POOL_CLEANER_INTERVAL) public static final long DEFAULT_POOL_CLEANER_INTERVAL = 60;
 
-    public static final long DEFAULT_CACHE_UPDATE_PERIOD = 30000;
-    public static final long DEFAULT_CACHE_EXPIRATION = 60;
+    public static final long DEFAULT_CACHE_UPDATE_PERIOD = 120000;
+    public static final long DEFAULT_CACHE_EXPIRATION = 180;
 
     /**
      * The maximum size(in bytes) that an individual write buffer will keep in memory before automatically
@@ -414,7 +425,7 @@ public class SpliceConstants {
      * Defaults to 50.
      */
     @Parameter private static final String KRYO_POOL_SIZE = "splice.marshal.kryoPoolSize";
-    @DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=50;
+    @DefaultValue(KRYO_POOL_SIZE) public static final int DEFAULT_KRYO_POOL_SIZE=2000;
     public static int kryoPoolSize;
 
 
@@ -640,6 +651,7 @@ public class SpliceConstants {
 		setParameters();
 	}
 	
+<<<<<<< HEAD
 	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,
 			zkSpliceTransactionPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,
 			zkSpliceQueryNodePath);
@@ -671,6 +683,33 @@ public class SpliceConstants {
         maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
         if(ipcThreads < maxThreads){
+=======
+	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+
+		public static void setParameters() {
+				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
+				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
+				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+				zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+				zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
+				zkSpliceDerbyPropertyPath = config.get(DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
+				zkSpliceQueryNodePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
+				zkLeaderElection = config.get(LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
+				sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
+				zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
+				derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
+				derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);
+				operationTaskPriority = config.getInt(OPERATION_PRIORITY, DEFAULT_OPERATION_PRIORITY);
+				importTaskPriority = config.getInt(IMPORT_TASK_PRIORITY, DEFAULT_IMPORT_TASK_PRIORITY);
+				tablePoolMaxSize = config.getInt(POOL_MAX_SIZE,DEFAULT_POOL_MAX_SIZE);
+				tablePoolCoreSize = config.getInt(POOL_CORE_SIZE, DEFAULT_POOL_CORE_SIZE);
+				tablePoolCleanerInterval = config.getLong(POOL_CLEANER_INTERVAL, DEFAULT_POOL_CLEANER_INTERVAL);
+				writeBufferSize = config.getLong(WRITE_BUFFER_SIZE, DEFAULT_WRITE_BUFFER_SIZE);
+				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
+				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
+				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
+				int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
              * may be located on the same region. Thus, if we allow unbounded writer threads, we face
@@ -688,59 +727,56 @@ public class SpliceConstants {
              * I more or less arbitrarily decided to make it 5 fewer, but that seems like a good balance
              * between having a lot of write threads and still allowing writes through.
              */
-            maxThreads = ipcThreads-5;
-        }
-        if(maxThreads<=0)
-            maxThreads = 1;
-        coreWriteThreads = config.getInt(WRITE_THREADS_CORE,DEFAULT_WRITE_THREADS_CORE);
-        if(coreWriteThreads>maxThreads){
-            //default the core write threads to 10% of the maximum available
-            coreWriteThreads = maxThreads/10;
-        }
-        if(coreWriteThreads<0)
-            coreWriteThreads=0;
+						maxThreads = ipcThreads-5;
+				}
+				if(maxThreads<=0)
+						maxThreads = 1;
+				coreWriteThreads = config.getInt(WRITE_THREADS_CORE,DEFAULT_WRITE_THREADS_CORE);
+				if(coreWriteThreads>maxThreads){
+						//default the core write threads to 10% of the maximum available
+						coreWriteThreads = maxThreads/10;
+				}
+				if(coreWriteThreads<0)
+						coreWriteThreads=0;
 
-        threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
-        numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
-        enableRegionCache = cacheUpdatePeriod>0l;
-        cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
-        compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
-        multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
-        multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
-        rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);
-        rmiRemoteObjectPort = config.getInt(RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
-        dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
-        startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
-        ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
-        indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
-        indexLookupBlocks = config.getInt(INDEX_LOOKUP_BLOCKS,DEFAULT_INDEX_LOOKUP_BLOCKS);
-        kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
-        debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
-        debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
+				threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
+				numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+				cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
+				enableRegionCache = cacheUpdatePeriod>0l;
+				cacheExpirationPeriod = config.getLong(CACHE_EXPIRATION,DEFAULT_CACHE_EXPIRATION);
+				compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
+				multicastGroupAddress = config.get(MULTICAST_GROUP_ADDRESS,DEFAULT_MULTICAST_GROUP_ADDRESS);
+				multicastGroupPort = config.getInt(MULTICAST_GROUP_PORT, DEFAULT_MULTICAST_GROUP_PORT);
+				rmiPort = config.getInt(RMI_PORT, DEFAULT_RMI_PORT);
+				rmiRemoteObjectPort = config.getInt(RMI_REMOTE_OBJECT_PORT, DEFAULT_RMI_REMOTE_OBJECT_PORT);
+				dumpClassFile = config.getBoolean(DEBUG_DUMP_CLASS_FILE, DEFAULT_DUMP_CLASS_FILE);
+				startupLockWaitPeriod = config.getInt(STARTUP_LOCK_WAIT_PERIOD, DEFAULT_STARTUP_LOCK_PERIOD);
+				ringBufferSize = config.getInt(RING_BUFFER_SIZE, DEFAULT_RING_BUFFER_SIZE);
+				indexBatchSize = config.getInt(INDEX_BATCH_SIZE,DEFAULT_INDEX_BATCH_SIZE);
+				indexLookupBlocks = config.getInt(INDEX_LOOKUP_BLOCKS,DEFAULT_INDEX_LOOKUP_BLOCKS);
+				kryoPoolSize = config.getInt(KRYO_POOL_SIZE,DEFAULT_KRYO_POOL_SIZE);
+				debugFailTasksRandomly = config.getBoolean(DEBUG_FAIL_TASKS_RANDOMLY,DEFAULT_DEBUG_FAIL_TASKS_RANDOMLY);
+				debugTaskFailureRate = config.getFloat(DEBUG_TASK_FAILURE_RATE,(float)DEFAULT_DEBUG_TASK_FAILURE_RATE);
 
-        sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
+				sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 
-        maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
-        maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
+				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
+				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
-        maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
+				maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 
-        long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
-        tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,regionMaxFileSize/2);
+				long regionMaxFileSize = config.getLong(HConstants.HREGION_MAX_FILESIZE,HConstants.DEFAULT_MAX_FILE_SIZE);
+				tempTableMaxFileSize = config.getLong(TEMP_MAX_FILE_SIZE,100*1024 * 1024 * 1024L); // 100 Gigs...
 
-        collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
-        pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
+				collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
+				pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
 
-        ddlDrainingInitialWait = config.getLong(DDL_DRAINING_INITIAL_WAIT, DEFAULT_DDL_DRAINING_INITIAL_WAIT);
-        ddlDrainingMaximumWait = config.getLong(DDL_DRAINING_MAXIMUM_WAIT, DEFAULT_DDL_DRAINING_MAXIMUM_WAIT);
-        
-        metadataCacheLease = config.getLong(METADATA_CACHE_LEASE_DURATION, DEFAULT_METADATA_CACHE_LEASE_DURATION);
-	}
-	
-	public static void reloadConfiguration(Configuration configuration) {
-		HBaseConfiguration.merge(config,configuration);
-		setParameters();
-	}
-	
+				importSplitFactor = config.getInt(IMPORT_SPLIT_FACTOR,DEFAULT_IMPORT_SPLIT_FACTOR);
+		}
+
+		public static void reloadConfiguration(Configuration configuration) {
+				HBaseConfiguration.merge(config,configuration);
+				setParameters();
+		}
+
 }

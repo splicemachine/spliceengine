@@ -5,9 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Preconditions;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 
 /**
  * Decodes a single byte[] into multiple field based on terminator elements.
@@ -387,6 +385,18 @@ public class MultiFieldDecoder {
             currentOffset+=5;
         }
         return currentOffset-offset;
+    }
+    
+    public int skipLong() {
+        if(!available())
+            return 0;
+        if(currentOffset>=0 &&data[currentOffset]==0x00){
+            currentOffset++;
+            return 0;
+        }
+        int i = ScalarEncoding.toLongLength(data, currentOffset, false);
+        currentOffset+=i+1;        	
+        return i;
     }
 
 /*******************************************************************************************************************************************************************/

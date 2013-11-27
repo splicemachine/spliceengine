@@ -5,15 +5,15 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.splicemachine.utils.Partition;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.*;
 
 /**
  * Utilities for Derby's ResultSetNodes
@@ -23,23 +23,24 @@ import java.util.Set;
  */
 public class RSUtils {
 
+
     /**
      * Return any instances of clazz at or below node
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
             throws StandardException {
-        return collectNodes(node, clazz, null);
+        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
+        node.accept(v);
+        return v.getCollected();
     }
 
-    /**
-     * Return any instances of clazz at or below node, skipping nodes below skipClass
-     */
-    public static <N> List<N> collectNodes(Visitable node, Class<N> clazz, Class skipClass)
+    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz, Predicate<Visitable> pred)
             throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor(clazz, skipClass);
-        node.accept(v);
-        return (List<N>) v.getList();
+        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
+        node.accept(new VisitUntilVisitor(v, pred));
+        return v.getCollected();
     }
+
 
     public static final Function<ResultSetNode,Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
@@ -65,10 +66,19 @@ public class RSUtils {
         return v.getChildren();
     }
 
-    public static final Set binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class,
+    public static final Set<?> binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class,
             UnionNode.class, IntersectOrExceptNode.class);
 
-    public static final Set leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
+    public static final Predicate<Visitable> isBinaryRSN =
+            Predicates.compose(Predicates.in(binaryRSNs),
+                    new Function<Visitable, Class<?>>() {
+                        @Override
+                        public Class<?> apply(Visitable node) {
+                            return node.getClass();
+                        }
+                    });
+
+    public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
     /**
      * If rsn subtree contains a node with 2 children, return the node above
@@ -76,7 +86,7 @@ public class RSUtils {
      */
     public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
         List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
-        for (List<ResultSetNode> pair : Iterables.paddedPartition(rsns, 2)) {
+        for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
             if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
                 return pair.get(0);
             }
@@ -98,6 +108,9 @@ public class RSUtils {
         }
         return leaves;
     }
+
+    public static final Predicate<ResultSetNode> rsnHasPreds =
+            Predicates.or(Predicates.instanceOf(ProjectRestrictNode.class), Predicates.instanceOf(FromBaseTable.class));
 
     public static PredicateList getPreds(FromBaseTable t) throws StandardException {
         PredicateList pl = new PredicateList();

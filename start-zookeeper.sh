@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mvn exec:exec -Dzoo > zoo.log &
+mvn -e exec:exec -Dzoo > zoo.log &
 
 if ps ax | grep -v grep | grep 'zoo' > /dev/null
 then

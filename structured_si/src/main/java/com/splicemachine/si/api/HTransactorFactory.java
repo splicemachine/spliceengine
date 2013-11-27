@@ -26,7 +26,9 @@ import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
+import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.si.txn.ZooKeeperTimestampSource;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -90,7 +92,7 @@ public class HTransactorFactory extends SIConstants {
             }
 
             final Configuration configuration = SpliceConstants.config;
-            TimestampSource timestampSource = new ZooKeeperTimestampSource(zkSpliceTransactionPath);
+            TimestampSource timestampSource = new ZooKeeperStatTimestampSource(ZkUtils.getRecoverableZooKeeper(),zkSpliceTransactionPath);
             BetterHTablePool hTablePool = new BetterHTablePool(new SpliceHTableFactory(),
                     SpliceConstants.tablePoolCleanerInterval, TimeUnit.SECONDS,
                     SpliceConstants.tablePoolMaxSize,SpliceConstants.tablePoolCoreSize);
@@ -116,9 +118,9 @@ public class HTransactorFactory extends SIConstants {
                     TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
                     TRANSACTION_COUNTER_COLUMN
             );
-            managedTransactor = new ManagedTransactor();
+            ManagedTransactor builderTransactor = new ManagedTransactor();
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-                    immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, 1000, managedTransactor);
+                    immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, 1000, builderTransactor);
 
             final DataStore rowStore = new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE, SI_TRANSACTION_ID_KEY,
@@ -127,9 +129,9 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
             final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
                     (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
-                            new HHasher(), managedTransactor);
-            managedTransactor.setTransactor(transactor);
-            HTransactorFactory.setTransactor(HTransactorFactory.managedTransactor);
+                            new HHasher(), builderTransactor);
+            builderTransactor.setTransactor(transactor);
+            managedTransactor = builderTransactor;
         }
         return managedTransactor;
     }

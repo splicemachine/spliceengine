@@ -25,8 +25,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     /**
      * The transactions that have been loaded as part of running this filter.
      */
-    final Map<Long, Transaction> transactionCache;
-    final Map<Long, VisibleResult> visibleCache;
+    final LongPrimitiveCacheMap<Transaction> transactionCache;
+    final LongPrimitiveCacheMap<VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -60,8 +60,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         this.includeSIColumn = includeSIColumn;
         this.myTransaction = myTransaction;
 
-        transactionCache = CacheMap.makeCache(false);
-        visibleCache = CacheMap.makeCache(false);
+        transactionCache = new LongPrimitiveCacheMap<Transaction>();
+        visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -139,8 +139,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
         log("processCommitTimestampAsUserData");
         boolean later = false;
-        for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
-            if (tombstoneTimestamp < keyValue.timestamp()) {
+        final long[] buffer = rowState.tombstoneTimestamps.buffer;
+        final int size = rowState.tombstoneTimestamps.size();
+        for (int i = 0; i < size; i++) {
+            if (buffer[i] < keyValue.timestamp()) {
                 later = true;
                 break;
             }
@@ -151,12 +153,14 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         } else {
             final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for (KeyValue kv : rowState.getCommitTimestamps()) {
-                keyValue.setKeyValue(kv);
+            KeyValue[] commits = rowState.getCommitTimestamps().buffer;
+            int commitsSize = rowState.getCommitTimestamps().size();
+            for (int i = 0 ; i < commitsSize; i++) {
+                keyValue.setKeyValue(commits[i]);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
-                }
+                }            	
             }
             keyValue.setKeyValue(oldKeyValue);
             if (include) {
@@ -317,10 +321,12 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() throws IOException {
-        for (long tombstone : rowState.tombstoneTimestamps) {
-            final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
+    	final long[] buffer = rowState.tombstoneTimestamps.buffer;
+    	final int size = rowState.tombstoneTimestamps.size();
+    	for (int i = 0; i < size; i++) {
+            final Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
+            if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
                 return true;
             }
         }

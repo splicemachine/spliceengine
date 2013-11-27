@@ -11,6 +11,7 @@ import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.SparseEntryAccumulator;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -119,5 +120,11 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
+
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
 
 }

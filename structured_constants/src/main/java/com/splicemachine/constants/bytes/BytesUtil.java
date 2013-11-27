@@ -1,13 +1,7 @@
 package com.splicemachine.constants.bytes;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
@@ -130,6 +124,19 @@ public class BytesUtil {
         return s;
     }
 
+    public static byte[] concatenate(byte headerByte,byte[] ... bytes){
+        int length = 2;
+        for(byte[] bytes1:bytes){
+            length+=bytes1.length;
+        }
+
+        byte[] concatenatedBytes = new byte[length+bytes.length-1];
+        concatenatedBytes[0] = headerByte;
+        concatenatedBytes[1] = 0x00;
+        copyInto(bytes,concatenatedBytes,2);
+        return concatenatedBytes;
+    }
+
     public static byte[] concatenate(byte[] ... bytes){
         int length = 0;
         for(byte[] bytes1:bytes){
@@ -151,38 +158,8 @@ public class BytesUtil {
         return concatedBytes;
     }
 
-    public static byte[] concatenate(ByteBuffer[] fields){
-        int size = 0;
-        boolean isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else
-                size++;
-
-            if (field != null)
-                size += field.remaining();
-        }
-
-        byte[] bytes = new byte[size];
-        int offset=0;
-        isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else {
-                bytes[offset] = 0x00;
-                offset++;
-            }
-            if (field != null) {
-                int newOffset = offset+field.remaining();
-                field.get(bytes, offset, field.remaining());
-                offset=newOffset;
-            }
-        }
-        return bytes;
-    }
-
-    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
-        int offset = 0;
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
+        int offset = initialPos;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
             if(nextBytes==null) break;
@@ -195,6 +172,10 @@ public class BytesUtil {
             System.arraycopy(nextBytes, 0, concatedBytes, offset, nextBytes.length);
             offset+=nextBytes.length;
         }
+    }
+
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
+        copyInto(bytes,concatedBytes,0);
     }
 
     /**

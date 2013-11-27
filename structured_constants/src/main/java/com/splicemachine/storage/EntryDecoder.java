@@ -3,8 +3,6 @@ package com.splicemachine.storage;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.*;
 import com.splicemachine.utils.kryo.KryoPool;
-import org.xerial.snappy.Snappy;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
@@ -138,7 +136,7 @@ public class EntryDecoder {
             if(decoder.nextIsNull()){
                 decoder.skip();
             }else
-                decoder.decodeNextLong(); //don't need the value, just need to seek past it
+                decoder.skipLong(); //don't need the value, just need to seek past it
         }else if(bitIndex.isFloatType(position)){
             //floats are always 4 bytes, so skip the after delimiter
             decoder.skipFloat();

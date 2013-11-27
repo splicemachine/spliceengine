@@ -60,7 +60,8 @@ public class BufferedRegionScanner implements RegionScanner{
 
     private ConcurrentRingBuffer<List<KeyValue>> ringBuffer;
 
-    public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
+    @SuppressWarnings("unchecked")
+	public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
         this.delegate = delegate;
         List<KeyValue>[] template = new List[bufferSize];
         this.ringBuffer = new ConcurrentRingBuffer<List<KeyValue>>(bufferSize,template,new ReadFiller(delegate,region));
@@ -199,8 +200,7 @@ public class BufferedRegionScanner implements RegionScanner{
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
-
-            return old;
+            return old.isEmpty()?null:old; // We have a null check on the get next and not an empty...
         }
 
         @Override

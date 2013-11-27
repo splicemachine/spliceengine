@@ -63,6 +63,8 @@ public class OperationSink {
         CallBuffer<KVPair> writeBuffer;
         byte[] postfix = getPostfix(false);
         RowEncoder encoder = null;
+				long rowsRead = 0l;
+				long rowsWritten = 0l;
         try{
             encoder = operation.getRowEncoder(spliceRuntimeContext);
             encoder.setPostfix(postfix);
@@ -70,8 +72,6 @@ public class OperationSink {
             writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
 
             ExecRow row;
-            long rowsRead = 0l;
-            long rowsWritten = 0l;
 
             do{
                 long start = 0l;
@@ -81,10 +81,9 @@ public class OperationSink {
                 row = operation.getNextSinkRow(spliceRuntimeContext);
                 if(row==null) continue;
 
+								rowsRead++;
                 if(stats.readAccumulator().shouldCollectStats()){
                     stats.readAccumulator().tick(System.nanoTime()-start);
-                }else{
-                    rowsRead++;
                 }
 
                 if(stats.writeAccumulator().shouldCollectStats()){
@@ -92,13 +91,12 @@ public class OperationSink {
                 }
 
                 encoder.write(row,writeBuffer);
+								rowsWritten++;
 
 //                debugFailIfDesired(writeBuffer);
 
                 if(stats.writeAccumulator().shouldCollectStats()){
                     stats.writeAccumulator().tick(System.nanoTime() - start);
-                }else{
-                    rowsWritten++;
                 }
 
             }while(row!=null);
@@ -120,6 +118,10 @@ public class OperationSink {
         }finally{
             if(encoder!=null)
                 encoder.close();
+						if(LOG.isDebugEnabled()){
+								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
+								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
+						}
         }
         return stats.finish();
     }

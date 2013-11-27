@@ -9,19 +9,13 @@ import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
@@ -77,10 +71,19 @@ public class ParallelImporter implements Importer{
 
     @Override
     public void process(String[] parsedRow) throws Exception {
-        if(error!=null)
-            throw error;
         boolean shouldContinue;
         do{
+            /*
+             * In the event of a processor failing, it will set the error
+             * field atomically, then stop processing entries off the queue. All
+             * other processor threads will then atomically see the error, and stop
+             * processing themselves. If this happens while we are in the process
+             * of offering entries to the processors, then we must be sure that we
+             * don't spin for forever. To prevent that, we look at the error field
+             * ourselves.
+             */
+            if(error!=null)
+                throw error;
             shouldContinue = !processingQueue.offer(parsedRow,200,TimeUnit.MILLISECONDS);
         }while(shouldContinue);
     }

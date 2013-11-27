@@ -2,9 +2,6 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
-import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;

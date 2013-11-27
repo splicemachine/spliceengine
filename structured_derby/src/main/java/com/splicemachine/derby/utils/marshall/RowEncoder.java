@@ -10,7 +10,7 @@ import com.google.common.base.Preconditions;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.HashUtils;
+import com.splicemachine.encoding.HashUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
@@ -35,7 +35,6 @@ public class RowEncoder {
     /*map of columns which are NOT contained in the key*/
     protected final int[] rowColumns;
     protected MultiFieldEncoder rowEncoder;
-    private byte[] hash;
     private boolean bucketed;
 
     public RowEncoder(int[] keyColumns,
@@ -64,9 +63,7 @@ public class RowEncoder {
         int encodedCols = keyType.getFieldCount(keyColumns);
         if (bucketed) {
             this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols + 1);
-            this.hash = new byte[1]; // one-byte hash prefix
-            keyEncoder.setRawBytes(this.hash); // we set it as first field, we rely on being able to update it later
-                                               // it has to be stored as a reference to this.hash
+            keyEncoder.setRawBytes(new byte[1]); // reserve one byte for the hash
         } else {
             this.keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),encodedCols);
         }
@@ -171,9 +168,8 @@ public class RowEncoder {
         //construct the row key
         keyEncoder.reset();
         keyType.encodeKey(row.getRowArray(),keyColumns,keySortOrder,keyPostfix,keyEncoder);
-        updateHash();
         byte[] rowKey = keyEncoder.build();
-
+        updateHash(rowKey);
         if(rowEncoder!=null)
             rowEncoder.reset();
 
@@ -182,7 +178,7 @@ public class RowEncoder {
         return new KVPair(rowKey,value);
     }
 
-    private void updateHash() {
+    private void updateHash(byte[] rowKey) {
         if (!bucketed) {
             return;
         }
@@ -193,7 +189,8 @@ public class RowEncoder {
         for (int i = 0; i <= keyColumns.length; i++) {
             fields[i] = keyEncoder.getEncodedBytes(i + 1); // UUID            
         }
-        this.hash[0] = HashUtils.hash(fields);
+        // the hash is the first byte
+        rowKey[0] = HashUtils.hash(fields);
     }
 
     public void write(ExecRow row,CallBuffer<KVPair> buffer) throws Exception{

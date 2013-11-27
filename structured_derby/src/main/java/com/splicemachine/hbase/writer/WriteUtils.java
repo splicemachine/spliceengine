@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.table.SpliceHTableUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -58,11 +59,7 @@ public class WriteUtils {
     }
 
     public static long getWaitTime(int tryNum,long pause) {
-        long retryWait;
-        if(tryNum>= HConstants.RETRY_BACKOFF.length)
-            retryWait = HConstants.RETRY_BACKOFF[HConstants.RETRY_BACKOFF.length-1];
-        else
-            retryWait = HConstants.RETRY_BACKOFF[tryNum];
-        return retryWait*pause;
+        //refactored to make use of this method elsewhere as well.
+        return SpliceHTableUtil.getWaitTime(tryNum,pause);
     }
 }

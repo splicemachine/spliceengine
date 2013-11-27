@@ -2,12 +2,14 @@ package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.SortedSet;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion.RegionScannerImpl;
+import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.metrics.SchemaMetrics;
 import com.google.common.io.Closeables;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -24,6 +26,24 @@ public class HRegionUtil {
 	public static void startRegionOperation(HRegion region) throws IOException {
 		region.startRegionOperation();
 	}
+
+	public static boolean lastElementIsLesser (KeyValueSkipListSet skipList, byte[] key) {
+  	  try {
+  		  KeyValue placeHolder = skipList.last();
+  		  if (placeHolder != null && Bytes.compareTo(placeHolder.getBuffer(), placeHolder.getKeyOffset(), placeHolder.getKeyLength(), key, 0, key.length) < 0) { // Skip
+  			  return true;
+  		  }
+		return false;
+  	  } catch (NoSuchElementException e) { // Empty KeyValueSkipListSet
+  		  return true;
+  	  }
+	}
+	
+	
+    
+    
+	
+	
 	/**
 	 * 
 	 * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
@@ -42,24 +62,28 @@ public class HRegionUtil {
 	    List<StoreFile> storeFiles;
 	    try {
 	      storeFiles = store.getStorefiles();
+	      Reader fileReader;
 	      for (StoreFile file: storeFiles) {
-	    	  if (file != null && file.createReader().generalBloomFilter != null && file.createReader().generalBloomFilter.contains(key, 0, key.length, null))
-	    		  return true;
+	    	  if (file != null) {
+	    		  fileReader = file.createReader();
+		    	  if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0, key.length, null))
+		    		  return true;
+	    	  }  
 	      }
 	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
 	      KeyValue placeHolder;
-	      if (!store.memstore.kvset.isEmpty()) {
+	      try { 
 		      SortedSet<KeyValue> kvset = store.memstore.kvset.tailSet(kv);
 		      placeHolder = kvset.isEmpty()?null:kvset.first();
 		      if (placeHolder != null && placeHolder.matchingRow(key))
 		    	  return true;
-	      }
-	      if (!store.memstore.snapshot.isEmpty()) {
-		      SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	      
+	      } catch (NoSuchElementException e) {} // This keeps us from constantly performing key value comparisons for empty set
+		  try {
+			  SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	     
 		      placeHolder = snapshot.isEmpty()?null:snapshot.first();
 		      if (placeHolder != null && placeHolder.matchingRow(key))
 	    		  return true;
-	      }
+		  } catch (NoSuchElementException e) {}	    // This keeps us from constantly performing key value comparisons for empty set
 	      return false;  
 	    } catch (IOException ioe) {
 	    	ioe.printStackTrace();

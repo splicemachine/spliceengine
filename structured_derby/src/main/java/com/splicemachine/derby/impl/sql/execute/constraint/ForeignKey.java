@@ -2,11 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.hbase.writer.KVPair;
 import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Collection;

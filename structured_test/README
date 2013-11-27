@@ -9,18 +9,17 @@ This section describes TestNist (NIST Integration Test)
    USAGE: mvn clean install -Dtest=TestNist [-Dnoclean] [-Dscript=<scriptName.sql>] [-P <platform>]
    Where: noclean => do not clean the Derby and Splice DB schema. Default is to remove all foreign schema before and
                 after run.
-          script=<scriptName.sql> => run the Nist script noted (plus schema creation scripts before).
+          script=<scriptName.sql> => run the Nist script given (plus schema creation scripts before).
           platform => build and run the test on the given HBase platform.  Default platform is cloudera-cdh4.3.0.
                 Available platforms are "hdp1.3" - HortonWorks, "mapr-0.94.5" - MapR and "apache-hbase-0.94.5" - vanilla
                 HBase. Note that you must have already built (clean install) the given platform.
           
    Notes:
-    - Test difference report output goes into NistIT.log
-    - To build, in the splicemachine/structured_test directory, run "> mvn clean install -DskipTests"
-    - Note that if you just run "> mvn test", that will run NistIT (the main test) and all tests in
-            the project and Splice tests may fail because schema and tables already exist.
+    - Test difference report output goes into TestNist.log
+    - To build, in the splicemachine/structured_test directory, run "> mvn clean install -DskipTests" first.
+    - Start the Splice server manually then run "> ./run.sh" (or "> mvn clean install -Dtest=TestNist")
 
-This section describes TestNist (NIST Integration Test)
+This section describes SpliceNistIT (NIST Integration Test)
 
    - This runs as a Maven Profile... (starts/stops server for you)
 
@@ -28,6 +27,7 @@ This section describes TestNist (NIST Integration Test)
         Will run all tests, unit and integ, starting and stopping the splice server for you.
 
     Notes:
+     - *** SpliceNistIT, the only IT test, is currently disabled. Run TestNist described above. ***
      - Test difference report output goes into NistIT.log
      - apache-derby profile is given so that Derby test running code has access to vanilla Derby jars.
 

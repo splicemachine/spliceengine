@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -17,10 +18,9 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	private static Logger LOG = Logger.getLogger(MergeSortLeftOuterJoinOperation.class);
 	protected String emptyRowFunMethodName;
 	protected boolean wasRightOuterJoin;
-	protected GeneratedMethod emptyRowFun;
-	protected ExecRow emptyRow;
-	
-	public MergeSortLeftOuterJoinOperation() {
+
+	@SuppressWarnings("UnusedDeclaration")
+    public MergeSortLeftOuterJoinOperation() {
 		super();
 	}
 	
@@ -69,15 +69,15 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 	}
 	
 	@Override
-	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         return next(true, spliceRuntimeContext);
 	}
-	
-	@Override
+
+    @Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init");
 		super.init(context);
-		emptyRowFun = (emptyRowFunMethodName == null) ? null : context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+		emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,context.getActivation());
 	}
 
     @Override
@@ -85,13 +85,4 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
         return "LeftOuter"+super.prettyPrint(indentLevel);
     }
 
-    protected ExecRow getEmptyRow () {
-		if (emptyRow ==null)
-			try {
-				emptyRow =  (ExecRow) emptyRowFun.invoke(activation);
-			} catch (StandardException e) {
-                SpliceLogUtils.error(LOG, e);
-			}
-		return emptyRow;
-	}	
 }
