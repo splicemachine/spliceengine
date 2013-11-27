@@ -51,8 +51,8 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	/** PARAMETER STYLE JAVA */
 	public static final short PS_JAVA = 0;
 
-	/** PARAMETER STYLE DERBY_JDBC_RESULT_SET */
-	public static final short PS_DERBY_JDBC_RESULT_SET = PS_JAVA + 1;
+	/** PARAMETER STYLE SPLICE_JDBC_RESULT_SET */
+	public static final short PS_SPLICE_JDBC_RESULT_SET = PS_JAVA + 1;
 
     /** Masks for the sqlOptions field */
     private static final short SQL_ALLOWED_MASK = (short) 0xF;
@@ -404,7 +404,7 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		switch( parameterStyle )
 		{
 		    case PS_JAVA:    sb.append( "JAVA " ); break;
-		    case PS_DERBY_JDBC_RESULT_SET:    sb.append( "DERBY_JDBC_RESULT_SET " ); break;
+		    case PS_SPLICE_JDBC_RESULT_SET:    sb.append( "SPLICE_JDBC_RESULT_SET " ); break;
 		}
         
         if ( isDeterministic() )

@@ -2154,12 +2154,21 @@ public class SelectNode extends ResultSetNode
 	}
 
     private ColumnReference getJoinColumn(Predicate predicate){
-				BinaryOperatorNode node = predicate.getAndNode();
+				OperatorNode node = predicate.getAndNode();
 				ValueNode left;
 				do{
-					left = node.getLeftOperand();
-					if(left instanceof BinaryOperatorNode)
-						node = (BinaryOperatorNode)left;
+					if(node instanceof UnaryOperatorNode){
+						left = ((UnaryOperatorNode)node).getOperand();	
+					}else if(node instanceof BinaryOperatorNode){
+						left = ((BinaryOperatorNode)node).getLeftOperand();
+					}else if(node instanceof TernaryOperatorNode){
+						left = ((TernaryOperatorNode)node).getLeftOperand();
+					}else
+						throw new IllegalStateException("Unexpected join column type: "+ node.getClass());
+
+					if(left instanceof OperatorNode)
+						node = (OperatorNode)left;
+
 				}while(!(left instanceof ColumnReference));
 				return (ColumnReference)left;
     }

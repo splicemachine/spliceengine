@@ -22,8 +22,6 @@
 package org.apache.derby.impl.services.reflect;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.derby.iapi.util.ByteArray;
 
 /**
@@ -34,7 +32,7 @@ public final class ReflectClassesJava2 extends DatabaseClasses implements java.s
 	protected ByteArrayClassMap preCompiled;
 	private int action = -1;
 
-	LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump) {
+	protected LoadedGeneratedClass loadGeneratedClassFromData(String fullyQualifiedName, ByteArray classDump) {
 		if (preCompiled == null)
 			preCompiled = new ByteArrayClassMap(100);
 		if (classDump == null || classDump.getArray() == null) {
@@ -74,7 +72,7 @@ public final class ReflectClassesJava2 extends DatabaseClasses implements java.s
 		
 	}
 
-	Class loadClassNotInDatabaseJar(String name) throws ClassNotFoundException {
+	protected Class loadClassNotInDatabaseJar(String name) throws ClassNotFoundException {
 		
 		Class foundClass = null;
 		

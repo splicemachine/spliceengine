@@ -566,7 +566,7 @@ public class FromVTI extends FromTable implements VTIEnvironment
         if (
             (routineInfo !=null) &&
             routineInfo.getReturnType().isRowMultiSet() &&
-            (routineInfo.getParameterStyle() == RoutineAliasInfo.PS_DERBY_JDBC_RESULT_SET)
+            (routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET)
             )			{
             isDerbyStyleTableFunction = true;
         }

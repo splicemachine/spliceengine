@@ -1213,6 +1213,21 @@ public interface ResultSetFactory {
 			   String userSuppliedOptimizerOverrides)
 					   throws StandardException;
 
+    public NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
+			   int leftNumCols,
+			   NoPutResultSet rightResultSet,
+			   int rightNumCols,
+			   int leftHashKeyItem,
+			   int rightHashKeyItem,
+			   GeneratedMethod joinClause,
+			   int resultSetNumber,
+			   boolean oneRowRightSide,
+			   boolean notExistsRightSide,
+			   double optimizerEstimatedRowCount,
+			   double optimizerEstimatedCost,
+			   String userSuppliedOptimizerOverrides)
+					   throws StandardException;
+
     public NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
 			   int leftNumCols,
 			   NoPutResultSet rightResultSet,
@@ -1441,6 +1456,23 @@ public interface ResultSetFactory {
 		result set
 	*/
 	public NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+				int leftNumCols,
+				NoPutResultSet rightResultSet,
+				int rightNumCols,
+				int leftHashKeyItem,
+				int rightHashKeyItem,
+				GeneratedMethod joinClause,
+				int resultSetNUmber,
+				GeneratedMethod emptyRowFun,
+				boolean wasRightOuterJoin,
+				boolean oneRowRightSide,
+				boolean noExistsRightSide,
+				double optimizerEstimatedRowCount,
+				double optimizerEstimatedCost,
+				String userSuppliedOptimizerOverrides)
+	throws StandardException;
+
+	public NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 				int leftNumCols,
 				NoPutResultSet rightResultSet,
 				int rightNumCols,

@@ -515,7 +515,8 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				(ContextService.getContext(LanguageConnectionContext.CONTEXT_ID)); 
 
 			// Scale: 31 - left precision + left scale - right scale
-				val = Math.max(NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - lprec + lscale - rscale, 0);
+				val = Math.max(NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - lprec + lscale - rscale, 
+						NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE);
 
 		}
 		else if (TypeCompiler.AVG_OP.equals(operator))
