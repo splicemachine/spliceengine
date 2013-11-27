@@ -34,7 +34,7 @@ public class RSUtils {
         return v.getCollected();
     }
 
-    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz, Predicate<Visitable> pred)
+    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz, Predicate<? super Visitable> pred)
             throws StandardException {
         CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
         node.accept(new VisitUntilVisitor(v, pred));

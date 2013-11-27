@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -9,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
@@ -16,7 +18,10 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
@@ -26,6 +31,7 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -38,8 +44,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -156,7 +166,7 @@ public class InsertOperationTest {
         operation.init(mock(SpliceOperationContext.class));
         when(mockInstructions.getTopOperation()).thenReturn(operation);
 
-        NoPutResultSet resultSet = operation.executeScan();
+        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext());
         resultSet.open();
 
         Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());
@@ -278,10 +288,10 @@ public class InsertOperationTest {
         when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
-        when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobStats>(){
+        when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){
 
             @Override
-            public JobStats answer(InvocationOnMock invocation) throws Throwable {
+            public JobResults answer(InvocationOnMock invocation) throws Throwable {
                 SpliceObserverInstructions observerInstructions = (SpliceObserverInstructions) invocation.getArguments()[0];
 
                 SpliceOperation op = observerInstructions.getTopOperation();
@@ -292,11 +302,14 @@ public class InsertOperationTest {
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 
-                return stats;
+								JobFuture future = mock(JobFuture.class);
+								doNothing().when(future).cleanup();
+
+								return new SimpleJobResults(stats, future);
             }
         });
 
-        when(rowSourceOp.getMapRowProvider(any(SpliceOperation.class),any(RowDecoder.class),any(SpliceRuntimeContext.class)))
+        when(rowSourceOp.getMapRowProvider(any(SpliceOperation.class),any(PairDecoder.class),any(SpliceRuntimeContext.class)))
                 .thenReturn(mockProvider);
     }
 

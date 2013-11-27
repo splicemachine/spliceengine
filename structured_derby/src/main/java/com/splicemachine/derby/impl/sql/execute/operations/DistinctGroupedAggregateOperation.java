@@ -53,4 +53,9 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 		SpliceLogUtils.trace(LOG, "instance");
 		recordConstructorTime();
     }
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
 }

@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
@@ -8,6 +9,7 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -44,7 +46,6 @@ final class BulkWriteAction implements Callable<Void> {
     private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
-    private boolean refreshCache;
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -66,7 +67,7 @@ final class BulkWriteAction implements Callable<Void> {
         reportSize();
         long start = System.currentTimeMillis();
         try{
-            tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite));
+            tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite),false);
         }finally{
             //called no matter what
             writeConfiguration.writeComplete();
@@ -116,16 +117,16 @@ final class BulkWriteAction implements Callable<Void> {
 
     }
 
-    private void tryWrite(int numTriesLeft,List<BulkWrite> bulkWrites) throws Exception {
-        if(numTriesLeft<0)
-            throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
-        for(BulkWrite bulkWrite:bulkWrites){
-        	if (!bulkWrite.getMutations().isEmpty()) // Remove calls when writes are put back into buckets and the bucket is empty.
-        		doRetry(numTriesLeft,bulkWrite);
-        }
+		private void tryWrite(int numTriesLeft,List<BulkWrite> bulkWrites,boolean refreshCache) throws Exception {
+				if(numTriesLeft<0)
+						throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
+				for(BulkWrite bulkWrite:bulkWrites){
+						if (!bulkWrite.getMutations().isEmpty()) // Remove calls when writes are put back into buckets and the bucket is empty.
+								doRetry(numTriesLeft,bulkWrite,refreshCache);
+				}
     }
 
-    private void doRetry(int tries, BulkWrite bulkWrite) throws Exception{
+    private void doRetry(int tries, BulkWrite bulkWrite,boolean refreshCache) throws Exception{
         Configuration configuration = SpliceConstants.config;
         NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
                 batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
@@ -144,7 +145,6 @@ final class BulkWriteAction implements Callable<Void> {
                         thrown=true;
                         throw parseIntoException(response);
                     case RETRY:
-                    	refreshCache=true;
                         if(LOG.isDebugEnabled())
                             LOG.debug(String.format("Retrying write after receiving partial error %s",response));
                         doPartialRetry(tries,bulkWrite,response);
@@ -152,7 +152,6 @@ final class BulkWriteAction implements Callable<Void> {
                         //return
                 }
             }
-            refreshCache = false;
         }catch(Exception e){
             if(thrown)
                 throw e;
@@ -162,7 +161,6 @@ final class BulkWriteAction implements Callable<Void> {
                 case THROW_ERROR:
                     throw e;
                 case RETRY:
-                	refreshCache=true;
                     errors.add(e);
                     if(LOG.isDebugEnabled())
                         LOG.debug("Retrying write after receiving global error",e);
@@ -196,8 +194,8 @@ final class BulkWriteAction implements Callable<Void> {
 
         errors.add(new WriteFailedException(errorMsgs));
 
-        List<KVPair> allWrites = bulkWrite.getMutations();
-        List<KVPair> failedWrites = Lists.newArrayListWithCapacity(rowsToRetry.size());
+        ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
+        ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
         for(Integer rowToRetry:rowsToRetry){
             failedWrites.add(allWrites.get(rowToRetry));
         }
@@ -207,13 +205,13 @@ final class BulkWriteAction implements Callable<Void> {
         }
     }
 
-    private void retryFailedWrites(int tries, String txnId, List<KVPair> failedWrites) throws Exception {
+    private void retryFailedWrites(int tries, String txnId, ObjectArrayList<KVPair> failedWrites) throws Exception {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());
         List<BulkWrite> newBuckets = getWriteBuckets(txnId,regionInfo);
         if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
-            tryWrite(tries-1,newBuckets);
+            tryWrite(tries-1,newBuckets,true);
         }else{
             retryFailedWrites(tries-1,txnId,failedWrites);
         }

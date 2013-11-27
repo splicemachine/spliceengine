@@ -2,7 +2,6 @@ package com.splicemachine.si;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.si.api.TransactionStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
@@ -12,7 +11,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;

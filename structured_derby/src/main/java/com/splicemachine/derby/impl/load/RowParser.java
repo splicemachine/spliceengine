@@ -62,7 +62,8 @@ public class RowParser {
             elem=null;
         DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
         if(elem==null){
-            column.setValue(elem);
+        	elem = columnContext.getColumnDefault();
+        	column.setValue(elem);
             columnContext.validate(column);
             return;
         }
@@ -77,8 +78,9 @@ public class RowParser {
             case StoredFormatIds.SQL_DECIMAL_ID:
                 //treat empty strings as null
                 elem = elem.trim();
-                if(elem.length()==0)
-                    elem = null;
+                if(elem.length()==0) {
+                	elem = columnContext.getColumnDefault();
+                }
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
             case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();

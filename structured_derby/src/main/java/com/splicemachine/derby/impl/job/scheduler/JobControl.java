@@ -178,7 +178,6 @@ class JobControl implements JobFuture {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-            //TODO -sf- asynchronous, rather than multi?
 						zooKeeper.delete(jobPath,-1,new AsyncCallback.VoidCallback() {
 								@Override
 								public void processResult(int i, String s, Object o) {

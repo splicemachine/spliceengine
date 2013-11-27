@@ -1,9 +1,10 @@
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -37,8 +38,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import java.io.*;
-import java.util.BitSet;
-import java.util.Collections;
 
 /**
  * 
@@ -120,19 +119,8 @@ public class SpliceUtils extends SpliceUtilities {
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
             }
-
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-//			if(validColumns!=null){
-//				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-//				}
-//			}else{
-//				for(int i=0;i<destRow.length;i++){
-//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-//				}
-//			}
-
 			return get;
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));

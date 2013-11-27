@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -31,15 +32,13 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
 
-    protected FormatableBitSet fbt;
     protected int called = 0;
-    protected RowDecoder decoder;
+    protected PairDecoder decoder;
 
     protected TaskStats.SinkAccumulator accumulator;
     private final String type;
-    private RowDecoder rowDecoder;
-    
-    protected AbstractScanProvider(RowDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
+
+    protected AbstractScanProvider(PairDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
         this.decoder = decoder;
         this.type = type;
         this.spliceRuntimeContext = spliceRuntimeContext;
@@ -75,7 +74,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            currentRow = decoder.decode(result.raw());
+            currentRow = decoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
@@ -108,7 +107,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
     @Override
-    public void close() {
+    public void close() throws StandardException {
         if(accumulator!=null){
             TaskStats finish = accumulator.finish();
             JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here

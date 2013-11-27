@@ -8,8 +8,11 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.utils.IntArrays;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -83,7 +86,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		super.init(context);
-		((SpliceOperation)source).init(context);
+		source.init(context);
 		this.resultDescription = 
 				(ResultDescription)activation.getPreparedStatement().getSavedObject(erdNumber);
 		numCols = resultDescription.getColumnCount();
@@ -93,16 +96,15 @@ public class NormalizeOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return ((SpliceOperation)source).getMapRowProvider(top, decoder,spliceRuntimeContext);
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     
-    
     @Override
 	public RowProvider getReduceRowProvider(SpliceOperation top,
-			RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return ((SpliceOperation)source).getReduceRowProvider(top, decoder,spliceRuntimeContext);
+			PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
 	}
 
 	private int computeStartColumn(boolean forUpdate,
@@ -123,7 +125,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		return (SpliceOperation)source;
+		return source;
 	}
 
 	@Override
@@ -138,17 +140,46 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
     @Override
     public int[] getRootAccessedCols(long tableNumber) {
-        return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+        return source.getRootAccessedCols(tableNumber);
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+        return source.isReferencingTable(tableNumber);
     }
 
-    @Override
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			/*
+			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
+			 * In this case, we encode with either the current row location or a
+			 * random UUID (if the current row location is null).
+			 *
+			 * Note (-sf-): I believe that this method is never actually called, because
+			 * Normalize doesn't really make sense unless it is underneath another operation
+			 * like Union
+			 */
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								if(currentRowLocation!=null)
+										return currentRowLocation.getBytes();
+								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+						}
+				});
+
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				ExecRow defnRow = getExecRowDefinition();
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+		}
+
+		@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		ExecRow sourceRow = null;
+		ExecRow sourceRow;
 		ExecRow result = null;
 		
 		sourceRow = source.nextRow(spliceRuntimeContext);
@@ -201,25 +232,25 @@ public class NormalizeOperation extends SpliceBaseOperation {
 			}
 		}
 
-		if (source.isNull())
-		{
-			if (requireNonNull && !destType.isNullable())
-				throw StandardException.newException(org.apache.derby.iapi.reference.SQLState.LANG_NULL_INTO_NON_NULL,"");
+			if (source.isNull())
+			{
+					if (requireNonNull && !destType.isNullable())
+							throw StandardException.newException(org.apache.derby.iapi.reference.SQLState.LANG_NULL_INTO_NON_NULL,"");
 
-			cachedDest.setToNull();
-		} else {
+					cachedDest.setToNull();
+			} else {
 
-			int jdbcId = destType.getJDBCTypeId();
+					int jdbcId = destType.getJDBCTypeId();
 
-			cachedDest.normalize(destType, source);
-			//doing the following check after normalize so that normalize method would get called on long varchs and long varbinary
-			//Need normalize to be called on long varchar for bug 5592 where we need to enforce a lenght limit in db2 mode
-			if ((jdbcId == Types.LONGVARCHAR) || (jdbcId == Types.LONGVARBINARY)) {
-				// special case for possible streams
-				if (source.getClass() == cachedDest.getClass())
-					return source;
+					cachedDest.normalize(destType, source);
+					//doing the following check after normalize so that normalize method would get called on long varchs and long varbinary
+					//Need normalize to be called on long varchar for bug 5592 where we need to enforce a lenght limit in db2 mode
+					if ((jdbcId == Types.LONGVARCHAR) || (jdbcId == Types.LONGVARBINARY)) {
+							// special case for possible streams
+							if (source.getClass() == cachedDest.getClass())
+									return source;
+					}
 			}
-		}
 		return cachedDest;
 	}
 

@@ -1,11 +1,14 @@
 package com.splicemachine.tools;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
@@ -16,7 +19,6 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.Arrays;
-import java.util.BitSet;
 
 /**
  * Debugging utility that allows one to scan a table and look for any row which has an entry in a specific column.
@@ -66,7 +68,7 @@ public class HBaseFinder {
         }
 
         Predicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,colNum,dataBytes,false);
-        EntryPredicateFilter edf = new EntryPredicateFilter(new BitSet(),Arrays.asList(predicate));
+        EntryPredicateFilter edf = new EntryPredicateFilter(new BitSet(),ObjectArrayList.from(predicate));
 
         Scan scan = new Scan();
         scan.addFamily(SpliceConstants.DEFAULT_FAMILY_BYTES);

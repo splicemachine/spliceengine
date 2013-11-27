@@ -1,8 +1,9 @@
 package com.splicemachine.hbase.writer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * Thread-unsafe implementation of a CallBuffer. Useful for single-threaded operations,
@@ -13,7 +14,7 @@ import java.util.List;
  */
 public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     private static final int BUFFER_SIZE_CHECK=10;
-    private final List<E> buffer;
+    private final ObjectArrayList<E> buffer;
     private final Listener<E> listener;
     private long currentHeapSize;
 
@@ -24,9 +25,9 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
         this.bufferConfiguration = bufferConfiguration;
 
         if(bufferConfiguration.getMaxEntries()>0)
-            buffer = new ArrayList<E>(bufferConfiguration.getMaxEntries());
+            buffer = new ObjectArrayList<E>(bufferConfiguration.getMaxEntries());
         else
-            buffer = new ArrayList<E>();
+            buffer = new ObjectArrayList<E>();
     }
 
     @Override
@@ -54,9 +55,12 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     }
 
     @Override
-    public void addAll(Collection<? extends E> elements) throws Exception {
+    public void addAll(ObjectArrayList<E> elements) throws Exception {
         int n=0;
-        for(E element:elements){
+        Object[] elementsBuffer = elements.buffer;
+        int size = elements.size();
+        for (int i = 0; i< size; i++) {
+        	E element = (E) elementsBuffer[i];
             n++;
             currentHeapSize+=listener.heapSize(element);
             buffer.add(element);
@@ -72,7 +76,7 @@ public class UnsafeCallBuffer<E> implements CallBuffer<E>{
     public void flushBuffer() throws Exception {
         if(buffer.size()<=0) return; //nothing to do
 
-        List<E> elements = new ArrayList<E>(buffer);
+        ObjectArrayList<E> elements = ObjectArrayList.from(buffer);
         buffer.clear();
         currentHeapSize=0l;
         listener.bufferFlushed(elements,this);

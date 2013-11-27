@@ -1,10 +1,15 @@
 package com.splicemachine.constants.bytes;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * 
@@ -321,8 +326,8 @@ public class BytesUtil {
     }
 
     public static byte[] toByteArray(BitSet bits) {
-        byte[] bytes = new byte[(bits.length()+7)/8+4];
-        intToBytes((bits.length()+7)/8,bytes,0);
+        byte[] bytes = new byte[ (int) ((bits.length()+7)/8+4)];
+        intToBytes((int)(bits.length()+7)/8,bytes,0);
         for (int i=0; i<bits.length(); i++) {
             if (bits.get(i)) {
                 bytes[(bytes.length-4)-i/8-1+4] |= 1<<(i%8);
@@ -346,4 +351,10 @@ public class BytesUtil {
         }
         return Pair.newPair(bitSet,offset+numBytes+4);
     }
+
+		public static byte[] slice(byte[] data, int offset, int length) {
+				byte[] slice = new byte[length];
+				System.arraycopy(data,offset,slice,0,length);
+				return slice;
+		}
 }

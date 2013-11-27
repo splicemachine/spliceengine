@@ -15,10 +15,13 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -126,32 +129,39 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
     }
 
-    protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-    	SpliceLogUtils.trace(LOG, "next");
-        if(joiner==null){
-            SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
-            SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
-            if(spliceRuntimeContext.isSink()){
-                left.markAsSink();
-                right.markAsSink();
-            }
-            RowDecoder leftDecoder = getRowEncoder(left, leftNumCols, leftHashKeys).getDual(leftResultSet.getExecRowDefinition());
-            RowDecoder rightDecoder = getRowEncoder(right, rightNumCols, rightHashKeys).getDual(rightResultSet.getExecRowDefinition());
-            StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
-            scanner.open();
-            Restriction mergeRestriction = getRestriction();
-            joiner = getMergeJoiner(outer, scanner, mergeRestriction);
-        }
-        beginTime = getCurrentTimeMillis();
-        boolean shouldClose = true;
-        try{
-            ExecRow joinedRow = joiner.nextRow();
-            if(joinedRow!=null){
-                rowsSeen++;
-                shouldClose =false;
-                setCurrentRow(joinedRow);
-                if(currentRowLocation==null)
-                    currentRowLocation = new HBaseRowLocation();
+		protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				SpliceLogUtils.trace(LOG, "next");
+				if(joiner==null){
+						SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+						SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+						if(spliceRuntimeContext.isSink()){
+								left.markAsSink();
+								right.markAsSink();
+						}
+						byte[] currentTaskId = spliceRuntimeContext.getCurrentTaskId();
+						KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT,leftHashKeys, currentTaskId).getDecoder();
+						KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys,leftNumCols),null).getDecoder();
+						PairDecoder leftDecoder = new PairDecoder(leftKeyDecoder,leftRowDecoder,leftRow);
+
+						KeyDecoder rightKeyDecoder = getKeyEncoder(JoinSide.RIGHT,rightHashKeys, currentTaskId).getDecoder();
+						KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys,rightNumCols),null).getDecoder();
+						PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder,rightRowDecoder,rightRow);
+
+						StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
+						scanner.open();
+						Restriction mergeRestriction = getRestriction();
+						joiner = getMergeJoiner(outer, scanner, mergeRestriction);
+				}
+				beginTime = getCurrentTimeMillis();
+				boolean shouldClose = true;
+				try{
+						ExecRow joinedRow = joiner.nextRow();
+						if(joinedRow!=null){
+								rowsSeen++;
+								shouldClose =false;
+								setCurrentRow(joinedRow);
+								if(currentRowLocation==null)
+										currentRowLocation = new HBaseRowLocation();
                 currentRowLocation.setValue(joiner.lastRowLocation());
                 setCurrentRowLocation(currentRowLocation);
             }else{
@@ -160,19 +170,17 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             return joinedRow;
         }finally{
             if(shouldClose){
-                if(LOG.isInfoEnabled())
-                    LOG.info("Saw "+ rowsSeen+" records");
-								if(LOG.isDebugEnabled()){
-										LOG.debug("Saw "+ joiner.getLeftRowsSeen()+" left rows");
-										LOG.debug("Saw "+ joiner.getRightRowsSeen()+" right rows");
-								}
+                if(LOG.isDebugEnabled()){
+                    LOG.debug(String.format("Saw %s records (%s left, %s right)",
+                            rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
+                }
                 joiner.close();
             }
         }
     }
 
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] start = uniqueSequenceID;
         byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
         reduceScan = Scans.newScan(start,finish,SpliceUtils.NA_TRANSACTION_ID);
@@ -189,7 +197,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
@@ -197,13 +205,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        leftResultSet.init(context);
-        rightResultSet.init(context);
         SpliceLogUtils.trace(LOG,"leftHashkeyItem=%d,rightHashKeyItem=%d",leftHashKeyItem,rightHashKeyItem);
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         if(uniqueSequenceID!=null){
             byte[] start = new byte[uniqueSequenceID.length];
@@ -219,133 +224,93 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	}
 
 
-    @Override
-    protected JobStats doShuffle() throws StandardException {
-        SpliceLogUtils.trace(LOG, "executeShuffle");
-        long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
-        SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
-        ExecRow template = getExecRowDefinition();
-        RowProvider leftProvider = leftResultSet.getMapRowProvider(this, getRowEncoder(spliceLRuntimeContext).getDual(template),spliceLRuntimeContext);
-        RowProvider rightProvider = rightResultSet.getMapRowProvider(this, getRowEncoder(spliceRRuntimeContext).getDual(template),spliceRRuntimeContext);
-        RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
-        JobStats stats = combined.shuffleRows(soi);
-        nextTime+=System.currentTimeMillis()-start;
-        return stats;
-    }
+		@Override
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+				SpliceLogUtils.trace(LOG, "executeShuffle");
+				long start = System.currentTimeMillis();
+				SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+				SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+				ExecRow template = getExecRowDefinition();
+				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceLRuntimeContext),spliceLRuntimeContext);
+				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceRRuntimeContext),spliceRRuntimeContext);
+				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
+				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
+				JobResults stats = combined.shuffleRows(soi);
+				nextTime+=System.currentTimeMillis()-start;
+				return stats;
+		}
 
-    @Override
-	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG,"executeScan");
-		final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(opStack);
-		SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
-		
-        ExecRow rowDef = getExecRowDefinition();
-        RowEncoder encoder = RowEncoder.create(rowDef.nColumns(),null,null,null,KeyType.BARE,RowMarshaller.packed());
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,encoder.getDual(getExecRowDefinition()),spliceRuntimeContext);
-		return new SpliceNoPutResultSet(activation,this,provider);
+		@Override
+		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+				SpliceLogUtils.trace(LOG,"executeScan");
+				final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
+				this.generateLeftOperationStack(opStack);
+				SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
+
+				ExecRow rowDef = getExecRowDefinition();
+				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
+				return new SpliceNoPutResultSet(activation,this,provider);
 	}
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-    	if (spliceRuntimeContext.isLeft(resultSetNumber))
-                return getRowEncoder(spliceRuntimeContext,leftNumCols,leftHashKeys);
-    	return getRowEncoder(spliceRuntimeContext,rightNumCols,rightHashKeys);
-    }
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
 
-    private RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext, final int numCols,int[] keyColumns) throws StandardException {
-        int[] rowColumns;
-        final byte[] joinSideBytes = Encoding.encode(spliceRuntimeContext.isLeft(resultSetNumber)?JoinSide.LEFT.ordinal():JoinSide.RIGHT.ordinal());
-        KeyMarshall keyType = new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns,
-                                  boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                //noinspection RedundantCast
-                ((KeyMarshall)KeyType.BARE).encodeKey(columns,keyColumns,sortOrder,keyPostfix,keyEncoder);
-                //add ordinal position
-                /*
-                 * add the ordinal position.
-                 *
-                 * We can safely call setRawBytes() here, because we know that joinSideBytes are encoded
-                 * prior to being set here
-                 */
-                keyEncoder.setRawBytes(joinSideBytes);
-                /*
-                 * add a unique id
-                 *
-                 * We can safely call setRawBytes() here because we know that a unique key is 8 bytes, and it will
-                 * never be decoded anyway
-                 */
-                keyEncoder.setRawBytes(SpliceUtils.getUniqueKey());
-                /*
-                 * add the postfix
-                 *
-                 * We can safely call setRawBytes() here because we know that the prefix will be a fixed length and
-                 * will also never be outright decoded (it'll be used for correctness checking).
-                 */
-                keyEncoder.setRawBytes(keyPostfix);
-            }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				if(spliceRuntimeContext.isLeft(resultSetNumber)){
+						return getKeyEncoder(JoinSide.LEFT,leftHashKeys,spliceRuntimeContext.getCurrentTaskId());
+				}else
+						return getKeyEncoder(JoinSide.RIGHT,rightHashKeys,spliceRuntimeContext.getCurrentTaskId());
+		}
 
-            @Override
-            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                /*
-                 * Some Join columns have key sets like [0,0], where the same field is encoded multiple
-                 * times. We need to only decode the first instance, or else we'll get incorrect answers
-                 */
-                rowDecoder.seek(11); //skip the query prefix
-                int[] decodedColumns = new int[numCols];
-                for(int key:reversedKeyColumns){
-                    if(key==-1) continue;
-                    if(decodedColumns[key]!=-1){
-                        //we can decode this one, as it's not a duplicate
-                        DerbyBytesUtil.decodeInto(rowDecoder,columns[key]);
-                        decodedColumns[key] = -1;
-                    }else{
-                        //skip this one, it's a duplicate of something else
-                        rowDecoder.skip();
-                    }
-                }
-            }
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				if(spliceRuntimeContext.isLeft(resultSetNumber)){
+						return BareKeyHash.encoder(IntArrays.complement(leftHashKeys,leftNumCols),null);
+				}else
+						return BareKeyHash.encoder(IntArrays.complement(rightHashKeys,rightNumCols),null);
+		}
 
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                //noinspection RedundantCast
-                return ((KeyMarshall)KeyType.FIXED_PREFIX_UNIQUE_POSTFIX).getFieldCount(keyColumns)+1;
-            }
-        };
-        RowMarshall rowType = RowMarshaller.packed();
-        /*
-         * Because there may be duplicate entries in keyColumns, we need to make sure
-         * that rowColumns deals only with the unique form.
-         */
-        int[] allCols = new int[numCols];
-        int numSet=0;
-        for(int keyCol:keyColumns){
-            int allCol = allCols[keyCol];
-            if(allCol!=-1){
-                //only set it if it hasn't already been set
-                allCols[keyCol] = -1;
-                numSet++;
-            }
-        }
-        int pos=0;
-        rowColumns = new int[numCols-numSet];
-        for(int rowPos=0;rowPos<allCols.length;rowPos++){
-            if(allCols[rowPos]!=-1){
-                rowColumns[pos] = rowPos;
-                pos++;
-            }
-        }
+		private KeyEncoder getKeyEncoder(JoinSide joinSide,int[] keyColumns,byte[] taskId) throws StandardException{
+				HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID),
+								HashFunctions.murmur3(0),
+								SpliceDriver.driver().getTempTable().getCurrentSpread());
+				final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
 
-        return new RowEncoder(keyColumns,null,rowColumns,uniqueSequenceID,keyType,rowType, true);
-    }
+				DataHash hash = BareKeyHash.encoder(keyColumns, null);
 
-    @Override
+				/*
+				 *The postfix looks like
+				 *
+				 * 0x00 <ordinal bytes> <uuid> <taskId>
+				 *
+				 * The last portion is just a unique postfix, so we extend that to prepend
+				 * the join ordinal to it
+				 */
+				KeyPostfix keyPostfix =  new UniquePostfix(taskId){
+						@Override
+						public int getPostfixLength(byte[] hashBytes) throws StandardException {
+								return 1+joinSideBytes.length+super.getPostfixLength(hashBytes);
+						}
+
+						@Override
+						public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
+								keyBytes[postfixPosition]=0x00;
+								System.arraycopy(joinSideBytes,0,keyBytes,postfixPosition+1,joinSideBytes.length);
+								super.encodeInto(keyBytes, postfixPosition+1+joinSideBytes.length, hashBytes);
+						}
+				};
+
+				return new KeyEncoder(prefix,hash,keyPostfix);
+		}
+
+		@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
+				if(mergedRow==null)
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
 		JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(),(this.rightResultSet).getExecRowDefinition(),
                 wasRightOuterJoin,rightNumCols,leftNumCols,mergedRow);
 		return mergedRow;
@@ -377,24 +342,32 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in MergeSortJoin");
 		beginTime = getCurrentTimeMillis();
+		super.close();
 
-        if(joiner!=null)
-            joiner.close();
-		if ( isOpen )
-		{
-            //delete from the temp space
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            clearCurrentRow();
-			super.close();
-		}
+//        if(joiner!=null)
+//            joiner.close();
+//		if ( isOpen )
+//		{
+//            //delete from the temp space
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            clearCurrentRow();
+//			super.close();
+//		}
 
 		closeTime += getElapsedMillis(beginTime);
 	}
 
-/***********************************************************************************************************************************/
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		/***********************************************************************************************************************************/
     /*private helper methods*/
-    private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext, RowDecoder leftDecoder, RowDecoder rightDecoder) {
+    private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext,
+																															PairDecoder leftDecoder,
+																															PairDecoder rightDecoder) {
         StandardIterator<JoinSideExecRow> scanner;
         if(spliceRuntimeContext.isSink()){
             scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region);

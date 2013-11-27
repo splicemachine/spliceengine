@@ -18,10 +18,12 @@ AUTOCOMMIT OFF;
 
 -- TEST:7531 <subquery> as <row val constr> in <null predicate>!
 
+-- splicetest: ignore-order start
 
    SELECT TTA, TTB, TTC FROM CTS1.TT
      WHERE (SELECT TUD FROM TU WHERE TU.TUE = TT.TTA)
      IS NULL ORDER BY TTA DESC;
+-- splicetest: ignore-order stop
 -- PASS:7531 If 3 rows are selected in the following order?
 --                  col1     col2     col3
 --                  ====     ====     ====
@@ -29,9 +31,11 @@ AUTOCOMMIT OFF;
 -- PASS:7531 If     2        98       NULL?
 -- PASS:7531 If     1        NULL     99  ?
 
+-- splicetest: ignore-order start
    SELECT TTA, TTB, TTC FROM CTS1.TT
      WHERE (SELECT TUD FROM TU WHERE TU.TUE = TT.TTA)
      IS NOT NULL ORDER BY TTA;
+-- splicetest: ignore-order stop
 -- PASS:7531 If 2 rows are selected in the following order?
 --                 col1     col1     col3
 --                 ====     ====     ====
@@ -39,18 +43,24 @@ AUTOCOMMIT OFF;
 -- PASS:7531 If    4        NULL     NULL?
 
 --O   SELECT COUNT (*) FROM CTS1.TT
+-- splicetest: ignore-order start
    SELECT * FROM CTS1.TT
      WHERE TTB IS NULL OR TTC IS NULL;
+-- splicetest: ignore-order stop
 -- PASS:7531 If COUNT = 3?
 
 --O   SELECT COUNT (*) FROM CTS1.TT
+-- splicetest: ignore-order start
    SELECT * FROM CTS1.TT
      WHERE TTB IS NOT NULL AND TTC IS NOT NULL;
+-- splicetest: ignore-order stop
 -- PASS:7531 If COUNT = 2?
 
 --O   SELECT COUNT (*) FROM CTS1.TT
+-- splicetest: ignore-order start
    SELECT * FROM CTS1.TT
      WHERE NOT (TTB IS NULL AND TTC IS NULL);
+-- splicetest: ignore-order stop
 -- PASS:7531 If COUNT = 4?
 
    ROLLBACK WORK;

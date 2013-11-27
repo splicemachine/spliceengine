@@ -2,10 +2,8 @@ package com.splicemachine.hbase.batch;
 
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.si.api.RollForwardQueue;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines

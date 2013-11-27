@@ -1,14 +1,18 @@
 package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
+
 import com.google.common.io.Closeables;
 import com.google.common.primitives.Longs;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.util.LineReader;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 
@@ -18,6 +22,7 @@ import java.io.*;
  */
 public class BlockImportReader implements ImportReader {
     private static final long serialVersionUID = 1l;
+    private static final Logger LOG = Logger.getLogger(BlockImportReader.class);
 
     private BlockLocation location;
 
@@ -40,17 +45,14 @@ public class BlockImportReader implements ImportReader {
 
     @Override
     public String[] nextRow() throws IOException {
-        String line;
-        do{
-            long newSize = reader.readLine(text);
-            if(newSize==0)
-                return null; //nothing more to read
-            pos+=newSize;
-            line = text.toString();
-        }while(pos<end &&(line==null||line.length()==0));
-
+    	if (pos >= end) // Pass Block Check
+    		return null;
+        long newSize = reader.readLine(text);
+        if(newSize==0)
+        	return null; //nothing more to read
+        pos+=newSize;
+        String line = text.toString();
         if(line==null||line.length()==0) return null; //may have reached the end of the file without finding a record
-
         return parser.parseLine(line);
     }
 
@@ -64,15 +66,12 @@ public class BlockImportReader implements ImportReader {
         start = location.getOffset();
         end = start+location.getLength();
         is.seek(start);
-
         stream = codec !=null? codec.createInputStream(is): is;
         reader = new LineReader(stream);
         text=  new Text();
         if(skipFirstLine)
             start+= reader.readLine(text);
-
         pos = start;
-
         parser = getCsvParser(importContext);
     }
 

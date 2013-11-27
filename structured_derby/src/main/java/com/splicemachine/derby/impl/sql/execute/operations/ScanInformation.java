@@ -14,7 +14,7 @@ import org.apache.hadoop.hbase.client.Scan;
  * @author Scott Fines
  * Created on: 10/1/13
  */
-interface ScanInformation {
+interface ScanInformation<T> {
 
     void initialize(SpliceOperationContext opContext);
 
@@ -25,6 +25,7 @@ interface ScanInformation {
     FormatableBitSet getAccessedColumns() throws StandardException;
 
     Scan getScan(String txnId) throws StandardException;
+    Scan getScan(String txnId, T startKeyHint) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 

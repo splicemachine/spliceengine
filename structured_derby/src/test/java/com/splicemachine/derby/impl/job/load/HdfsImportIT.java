@@ -27,7 +27,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_8 = "H";
 	protected static String TABLE_9 = "I";
 	protected static String TABLE_10 = "J";
-
+	protected static String TABLE_11 = "K";
 	
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
@@ -42,6 +42,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_8,spliceSchemaWatcher.schemaName,"(cust_city_id int, cust_city_name varchar(64), cust_state_id int)");
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(order_date TIMESTAMP)");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(i int, j float, k varchar(20), l TIMESTAMP)");
+	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName,"(i int default 10, j int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -55,7 +56,8 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
-            .around(spliceTableWatcher10);
+            .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -259,7 +261,6 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
     }
 
-	
 	@Test
 	public void testCallScript() throws Exception{
 		ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getColumns(null, "SYS","SYSSCHEMAS",null);
@@ -311,5 +312,21 @@ public class HdfsImportIT extends SpliceUnitTest {
             }
         }
     }
+    
+    @Test
+    public void testImportTabWithDefaultColumnValue() throws Exception{
+        String location = getResourceDirectory()+"default_column.txt";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
+                "'%s',',',null,null,null,null)",spliceSchemaWatcher.schemaName,TABLE_11,location));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,TABLE_11));
+        while(rs.next()){
+            int i = rs.getInt(1);
+            System.out.println("i = " + i);
+            Assert.assertEquals(i, 10);
+        }
+    }
+    
 	
 }

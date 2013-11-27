@@ -5,8 +5,8 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
+import com.carrotsearch.hppc.BitSet;
 
-import java.util.BitSet;
 
 /**
  * @author Scott Fines

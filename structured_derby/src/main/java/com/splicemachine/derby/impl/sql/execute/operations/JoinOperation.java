@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
@@ -80,8 +85,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("readExternal");
 		super.readExternal(in);
 		leftResultSetNumber = in.readInt();
 		leftNumCols = in.readInt();
@@ -99,8 +102,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("writeExternal");
 		super.writeExternal(out);
 		out.writeInt(leftResultSetNumber);
 		out.writeInt(leftNumCols);
@@ -136,6 +137,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         SpliceLogUtils.trace(LOG, "leftResultSet=%s,rightResultSet=%s", leftResultSet, rightResultSet);
         leftRow = ((SpliceOperation) this.leftResultSet).getExecRowDefinition();
         rightRow = ((SpliceOperation) this.rightResultSet).getExecRowDefinition();
+        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         SpliceLogUtils.trace(LOG, "leftRow=%s,rightRow=%s", leftRow, rightRow);
     }
 
@@ -158,13 +160,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public SpliceOperation getLeftOperation() {
-//		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return leftResultSet;
 	}
 
 	@Override
 	public SpliceOperation getRightOperation() {
-//		SpliceLogUtils.trace(LOG,"getRightOperation");
 		return rightResultSet;
 	}
 
@@ -195,13 +195,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 	@Override
 	public void	close() throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "close in Join");
-		if ( isOpen )
-	    {
+			super.close();
+//		SpliceLogUtils.trace(LOG, "close in Join");
+//		if ( isOpen )
+//	    {
 	        leftResultSet.close();
 	        rightResultSet.close();
-			super.close();
-	    }
+//	    }
 		
 		leftRow = null;
 		rightRow = null;
@@ -250,4 +250,28 @@ public abstract class JoinOperation extends SpliceBaseOperation {
                 .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
                 .toString();
     }
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
+
+		@Override
+		public ExecRow getExecRowDefinition() throws StandardException {
+				if(mergedRow==null)
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
+				JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
+				return mergedRow;
+		}
+
+		@Override
+		public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				SpliceLogUtils.trace(LOG, "executeScan");
+				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext));
+		}
 }

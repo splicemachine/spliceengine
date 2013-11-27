@@ -1,6 +1,8 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.encoding.Encoding;
+
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -19,7 +21,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertTrue("Does not match null!",orPred.match(0,null,0,0));
         Assert.assertTrue("Does not match empty byte[]!",orPred.match(0,new byte[]{},0,0));
@@ -31,7 +33,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertTrue("Does not match null!",orPred.match(0,null,0,0));
         orPred.reset();
@@ -45,7 +47,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
         Predicate pred2 = new NullPredicate(true,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertTrue("Does not match null!",orPred.match(0,null,0,0));
 
@@ -66,7 +68,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         byte[] testValue = Encoding.encode(11000);
         Assert.assertFalse("Erroneously matches value!", orPred.match(0, testValue, 0, testValue.length));
@@ -78,7 +80,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,0,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertTrue("Check after incorrect!",orPred.checkAfter());
     }
@@ -89,7 +91,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS_OR_EQUAL,0,encoded1,false);
         Predicate pred2 = new ValuePredicate(CompareFilter.CompareOp.GREATER_OR_EQUAL,0,encoded1,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertFalse("Check after incorrect!",orPred.checkAfter());
     }
@@ -100,7 +102,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,0,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertTrue("Application incorrect!",orPred.applies(0));
     }
@@ -111,7 +113,7 @@ public class OrPredicateTest {
         Predicate pred1 = new ValuePredicate(CompareFilter.CompareOp.LESS,1,encoded1,true);
         Predicate pred2 = new NullPredicate(false,false,2,false,false);
 
-        OrPredicate orPred = new OrPredicate(Arrays.asList(pred1,pred2));
+        OrPredicate orPred = new OrPredicate(ObjectArrayList.from(pred1,pred2));
 
         Assert.assertFalse("Application incorrect!",orPred.applies(0));
     }

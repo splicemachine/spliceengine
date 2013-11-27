@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.util.*;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -100,12 +101,22 @@ public class GroupedAggregateOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select distinct month(swh_date), count(distinct(i)) from %s " +
                 "group by month(swh_date) order by month(swh_date)",
                 spliceTableWatcher.toString()));
-        int i = 0;
+				Map<Integer,Integer> correctResults = Maps.newHashMap();
+				correctResults.put(1,1);
+				correctResults.put(2,1);
+				correctResults.put(3,3);
+				correctResults.put(4,1);
+				correctResults.put(5,1);
+				int i = 0;
         while (rs.next()) {
         	i++;
-        	if (rs.getInt(1) == 3 && rs.getInt(2) != 3) {
-        		Assert.assertTrue("count distinct did not return 3 for month 3",false);
-        	}
+						int groupKey = rs.getInt(1);
+						Assert.assertFalse("Group key was null!",rs.wasNull());
+						Assert.assertTrue("Group key "+ groupKey+" was unexpected",correctResults.containsKey(groupKey));
+						int count = rs.getInt(2);
+						Assert.assertFalse("Count was null!",rs.wasNull());
+						int correct = correctResults.get(groupKey);
+						Assert.assertEquals("Incorrect count for group key "+ groupKey,correct,count);
         }
         Assert.assertEquals("Should return only rows for the group by columns",5, i);	
     }

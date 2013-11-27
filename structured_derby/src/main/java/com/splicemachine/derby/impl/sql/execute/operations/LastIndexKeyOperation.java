@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.log4j.Logger;
 
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -166,7 +167,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 
@@ -176,7 +177,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 			HRegionInfo regionInfo = regions.last();
 			byte[] startKey = regionInfo.getStartKey();
 			byte[] endKey = regionInfo.getEndKey();
-			Scan scan = buildScan();
+			Scan scan = buildScan(spliceRuntimeContext);
 			
 		    // Modify scan range
 			if (startKey.length > 0 && Bytes.compareTo(startKey, scan.getStartRow()) > 0) {
@@ -188,7 +189,8 @@ public class LastIndexKeyOperation extends ScanOperation{
 				scan.setStopRow(endKey);
 			}
 			SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
-			ClientScanProvider provider = new ClientScanProvider("LastIndexKey",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
+			ClientScanProvider provider = new ClientScanProvider("LastIndexKey",Bytes.toBytes(tableName),scan,
+							OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
 			nextTime += System.currentTimeMillis() - beginTime;
 			return provider;
 		} catch (ExecutionException e) {
@@ -198,7 +200,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 	}
 	
 	@Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 	

@@ -35,13 +35,13 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
         
         for (int i = 0; i< 10; i++) {
         	Configuration configuration = new Configuration(SpliceConstants.config);
-        	configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
-        	try {
-        		connections.put(i, HConnectionManager.getConnection(configuration));
-            } catch (ZooKeeperConnectionException e) {
-                throw new RuntimeException(e);
-            }
-         }
+						configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
+						try {
+								connections.put(i, SpliceHConnection.createConnection(configuration));
+						} catch (ZooKeeperConnectionException e) {
+								throw new RuntimeException(e);
+						}
+				}
 	}
 
     private ThreadPoolExecutor getExecutor(Configuration config) {

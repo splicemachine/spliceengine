@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.index;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
@@ -10,7 +11,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 
@@ -46,7 +46,7 @@ public class PopulateIndexJob implements CoprocessorJob{
         for(int indexCol:indexColToMainColPosMap){
             indexedColumns.set(indexCol-1);
         }
-        this.mainColToIndexPosMap = new int[indexedColumns.length()];
+        this.mainColToIndexPosMap = new int[(int) indexedColumns.length()];
         for(int indexCol=0;indexCol<indexColToMainColPosMap.length;indexCol++){
             int mainCol = indexColToMainColPosMap[indexCol];
             mainColToIndexPosMap[mainCol-1] = indexCol;

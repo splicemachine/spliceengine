@@ -1,29 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.ScalarAggregateRowProvider;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 
@@ -84,30 +85,33 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		out.writeBoolean(singleInputRow);
 	}
 
-	@Override
-	public void open() throws StandardException, IOException {
-        super.open();
-		source.open();
-		isOpen=true;
-	}
-	
-	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-		try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
-            //make sure that we filter out failed tasks
-            SuccessFilter filter = new SuccessFilter(failedTasks);
-            reduceScan.setFilter(filter);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-        return new ScalarAggregateRowProvider("scalarAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,
-                reduceScan,rowDecoder, spliceRuntimeContext,aggregates);
-	}
+		@Override
+		public void open() throws StandardException, IOException {
+				super.open();
+				source.open();
+				isOpen=true;
+		}
+
+		@Override
+		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				try {
+						byte[] range = new byte[uniqueSequenceID.length+1];
+						range[0] = spliceRuntimeContext.getHashBucket();
+						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
+						reduceScan = Scans.buildPrefixRangeScan(range, SpliceUtils.NA_TRANSACTION_ID);
+						//make sure that we filter out failed tasks
+						SuccessFilter filter = new SuccessFilter(failedTasks);
+						reduceScan.setFilter(filter);
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder,spliceRuntimeContext);
+				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate);
+		}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
@@ -126,26 +130,24 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     @Override
     public void close() throws StandardException, IOException {
         super.close();
-        if(reduceScan!=null)
-            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+				source.close();
     }
 
 
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+        final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
     
     @Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if(scanAggregator==null){
-            RowDecoder decoder = getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition());
+						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
             scanAggregator = new ScalarAggregator(new ScalarAggregateScan(decoder,regionScanner),
                     aggregates,true,false);
         }
@@ -212,38 +214,30 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return row;
 	}
 
-	protected void initializeScalarAggregation(ExecRow aggResult) throws StandardException{
-		for(SpliceGenericAggregator aggregator: aggregates){
-			aggregator.initialize(aggResult);
-			aggregator.accumulate(aggResult,aggResult);
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
 		}
-	}
-	
-	protected void accumulateScalarAggregation(ExecRow nextRow,
-									ExecRow aggResult,
-									boolean hasDistinctAggregates,boolean isScan) throws StandardException{
-		int size = aggregates.length;
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG,"accumulateScalarAggregation");
-		for(int i=0;i<size;i++){
-			SpliceGenericAggregator currAggregate = aggregates[i];
-			if(isScan||hasDistinctAggregates && !currAggregate.isDistinct()){
-				currAggregate.merge(nextRow, aggResult);
-			}else{
-				currAggregate.accumulate(nextRow,aggResult);
-			}
+
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * Keys for ScalarAggregates are fixed as
+				 * <hashBucket> <uniqueSequenceId> <uuid><taskId>
+				 */
+				byte[] taskId = spliceRuntimeContext.getCurrentTaskId();
+				KeyPostfix uniquePostfix = new UniquePostfix(taskId);
+				HashPrefix prefix = new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(),new FixedPrefix(uniqueSequenceID));
+
+				return new KeyEncoder(prefix,NoOpDataHash.INSTANCE,uniquePostfix);
 		}
-	}
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return RowEncoder.create(sourceExecIndexRow.nColumns(),null,null,
-                uniqueSequenceID,
-                KeyType.PREFIX_UNIQUE_POSTFIX_ONLY,
-                RowMarshaller.packed());
-    }
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return BareKeyHash.encoder(IntArrays.count(getExecRowDefinition().nColumns()),null);
+		}
 
-    @Override
+		@Override
 	public String toString() {
 		return "ScalarAggregateOperation {source=" + source + "}";
 	}

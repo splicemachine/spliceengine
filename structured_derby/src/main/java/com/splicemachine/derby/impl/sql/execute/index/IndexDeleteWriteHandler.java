@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -17,7 +19,6 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,7 +93,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          */
         try {
             Get get = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){

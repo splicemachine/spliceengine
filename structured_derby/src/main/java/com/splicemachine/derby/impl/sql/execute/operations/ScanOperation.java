@@ -111,11 +111,11 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext));
+        return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext));
     }
+
 	@Override
 	public SpliceOperation getLeftOperation() {
 		return null;
@@ -125,114 +125,19 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "initIsolationLevel");
 	}
 
-	protected Scan buildScan() {
+	protected Scan buildScan(SpliceRuntimeContext ctx) {
 		try{
-            return getScan();
+            return getScan(ctx);
         } catch (StandardException e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG,e);
 		}
 		return null;
 	}
 
-//    private Qualifier[][] createAutoCastedQualifiers(Qualifier[][] scanQualifiers, ExecRow candidateRow) throws StandardException{
-//        DataValueDescriptor[] dvds = candidateRow.getRowArray();
-//
-//        Qualifier[][] castedQualifiers = new Qualifier[scanQualifiers.length][];
-//
-//        for(int i = 0; i < scanQualifiers.length; i++){
-//
-//            castedQualifiers[i] = new Qualifier[scanQualifiers[i].length];
-//
-//            for(int j = 0; j < scanQualifiers[i].length; j++){
-//                int column = scanQualifiers[i][j].getColumnId();
-//                DataValueDescriptor newDvd = dvds[column].cloneValue(false);
-//                DataValueDescriptor filterDvd = scanQualifiers[i][j].getOrderable();
-//
-//                if(isIntegerType(newDvd) && isFloatType(filterDvd)){
-//                    newDvd.setValue(filterDvd.getInt());
-//                    castedQualifiers[i][j] = new AutoCastedQualifier(scanQualifiers[i][j],newDvd);
-//                }else if(isIntegerType(filterDvd) && isFloatType(newDvd)){
-//                    newDvd.setValue(filterDvd.getDouble());
-//                    castedQualifiers[i][j] = new AutoCastedQualifier(scanQualifiers[i][j],newDvd);
-//                }else{
-//                    castedQualifiers[i][j] = scanQualifiers[i][j];
-//                }
-//            }
-//        }
-//
-//        return castedQualifiers;
-//    }
 
-    protected Scan getScan() throws StandardException {
-        return scanInformation.getScan(getTransactionID());
-//        Qualifier[][] autoCastedQuals = null;
-//
-////        try{
-////            if(isCastingNeeded(scanQualifiers, candidate)){
-////                autoCastedQuals = createAutoCastedQualifiers(scanQualifiers, candidate);
-////            }else{
-////                autoCastedQuals = scanQualifiers;
-////            }
-////        }catch(StandardException e){
-////            SpliceLogUtils.logAndThrowRuntime(LOG, e);
-////        }
-//
-//        //TODO -sf- push in the column information so that we can do scan casting for correctness
-//        return Scans.setupScan(startPosition == null ? null : startPosition.getRowArray(), startSearchOperator,
-//                stopPosition == null ? null : stopPosition.getRowArray(), stopSearchOperator,
-//                scanQualifiers, conglomerate.getAscDescInfo(), accessedCols,
-//                getTransactionID());
+    protected Scan getScan(SpliceRuntimeContext ctx) throws StandardException {
+        return scanInformation.getScan(getTransactionID(), ctx.getScanStartOverride());
     }
-
-//    protected void populateQualifiers() throws StandardException {
-//        if (scanQualifiersField != null){
-//            try {
-//                scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
-//            } catch (Exception e) {
-//            	throw StandardException.unexpectedUserException(e);
-//            }
-//            //convert types of filters against column type
-//            if(scanQualifiers!=null){
-//                int[] format_ids = conglomerate.getFormat_ids();
-//                for(Qualifier[] qualifiers:scanQualifiers){
-//                    for(int qualPos=0;qualPos<qualifiers.length;qualPos++){
-//                        Qualifier qualifier = qualifiers[qualPos];
-//                        int columnFormat = format_ids[qualifier.getColumnId()];
-//                        DataValueDescriptor dvd = qualifier.getOrderable();
-//                        if (dvd==null)
-//                        	continue;
-//                        if(dvd.getTypeFormatId()!=columnFormat){
-//                            //we need to convert the types to match
-//                            qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat,activation.getDataValueFactory());
-//                            qualifiers[qualPos] = qualifier;
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-
-
-//    protected void populateStartAndStopPositions() throws StandardException {
-//        if(startKeyGetter!=null){
-//            startPosition = startKeyGetter.invoke();
-//            if(sameStartStopPosition){
-//                /*
-//                 * if the stop position is the same as the start position, we are
-//                 * right at the position where we should return values, and so we need to make sure that
-//                 * we only return values which match an equals filter. Otherwise, we'll need
-//                 * to scan between the start and stop keys and pull back the values which are greater than
-//                 * or equals to the start (e.g. leave startSearchOperator alone).
-//                 */
-//                stopPosition = startPosition;
-//                startSearchOperator= ScanController.NA; //ensure that we put in an EQUALS filter
-//            }
-//        }
-//        if(stopKeyGetter!=null){
-//            stopPosition = stopKeyGetter.invoke();
-//        }
-//    }
 
     @Override
 	public int[] getRootAccessedCols(long tableNumber) {

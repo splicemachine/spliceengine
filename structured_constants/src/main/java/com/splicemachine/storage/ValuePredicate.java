@@ -4,7 +4,8 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * @author Scott Fines

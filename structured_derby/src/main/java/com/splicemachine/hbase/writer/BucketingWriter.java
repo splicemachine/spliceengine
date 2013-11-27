@@ -1,7 +1,9 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -31,7 +33,7 @@ public abstract class BucketingWriter implements Writer{
     }
 
 //    @Override
-    public final Future<Void> write(byte[] tableName, List<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
+    public final Future<Void> write(byte[] tableName, ObjectArrayList<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
         try {
             List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
             List<BulkWrite> bulkWrites = bucketWrites(writeConfiguration.getMaximumRetries(),tableName,buffer,transactionId,errors, writeConfiguration);
@@ -47,7 +49,7 @@ public abstract class BucketingWriter implements Writer{
     }
 
 
-    protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,List<KVPair> buffer,String txnId,List<Throwable> errors,WriteConfiguration writeConfiguration) throws Exception{
+    protected final List<BulkWrite> bucketWrites(int tries,byte[] tableName,ObjectArrayList<KVPair> buffer,String txnId,List<Throwable> errors,WriteConfiguration writeConfiguration) throws Exception{
         if(tries<=0)
             throw getError(errors);
 

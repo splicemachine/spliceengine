@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -32,7 +33,7 @@ public class DistinctScalarAggregateScan implements ScalarAggregateSource {
 
     public DistinctScalarAggregateScan(HRegion region,
                                        Scan scan,
-                                       RowDecoder decoder,
+                                       PairDecoder decoder,
                                        final int[] keyCols,
                                        ExecIndexRow toIndexRow,
                                        SpliceRuntimeContext spliceRuntimeContext,

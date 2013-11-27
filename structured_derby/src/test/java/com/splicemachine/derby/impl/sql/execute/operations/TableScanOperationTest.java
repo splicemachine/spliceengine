@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -24,10 +25,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
-import java.util.*;
-
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -223,6 +227,8 @@ public class TableScanOperationTest {
             ExecRow row  = template.getNewNullRow();
             int pos=1;
             for(TestingDataType dataType:dataTypes){
+								if(pos == implicitNullPos)
+										continue;
                 if(pos == explicitNullPos){
                     switch (dataType) {
                         case REAL:
@@ -234,8 +240,6 @@ public class TableScanOperationTest {
                         default:
                             encoder.encodeEmpty();
                     }
-                }else if(implicitNullPos==pos){
-                    //do nothing
                 }else{
                     Object o = dataType.newObject(random);
                     dataType.setNext(row.getColumn(pos), o);

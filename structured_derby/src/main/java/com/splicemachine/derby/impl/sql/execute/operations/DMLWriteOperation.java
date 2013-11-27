@@ -13,7 +13,9 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
@@ -141,7 +143,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		/*
 		 * Write the data from the source sequentially. 
@@ -150,8 +152,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		 * nodetype, this should be executed in parallel, so *don't* attempt to
 		 * insert here.
 		 */
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		RowProvider rowProvider = getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext);
+		RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 
 		modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
         //modifiedProvider.setRowsModified(rowsSunk);
@@ -159,25 +160,25 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {    	
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    protected JobStats doShuffle() throws StandardException {
-    	JobStats jobStats = super.doShuffle();
-        long rowsModified = 0;
-        for(TaskStats stats:jobStats.getTaskStats()){
-            rowsModified+=stats.getWriteStats().getTotalRecords();
-        }
-        this.rowsSunk = rowsModified;
-        return jobStats;
-    }
+		@Override
+		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+				JobResults jobResults = super.doShuffle(runtimeContext);
+				long rowsModified = 0;
+				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
+						rowsModified+=stats.getWriteStats().getTotalRecords();
+				}
+				this.rowsSunk = rowsModified;
+				return jobResults;
+		}
 
     @Override
     public void open() throws StandardException, IOException {
@@ -191,18 +192,27 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     	if (modifiedProvider != null)
     		modifiedProvider.close();
         super.close();
+				source.close();
     }
 
-    @Override
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 		ExecRow row = source.getExecRowDefinition();
 		SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 		return row;
 	}
 
-	public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		return source.nextRow(spliceRuntimeContext);
-	}
+		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				ExecRow row = source.nextRow(spliceRuntimeContext);
+				if(row!=null)
+						currentRow = row;
+				return row;
+		}
 
     @Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -219,10 +229,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		
 		
 		@Override
-		public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-			JobStats jobStats = rowProvider.shuffleRows(instructions);
+		public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+			JobResults jobStats = rowProvider.shuffleRows(instructions);
 			long i = 0;
-        	for (TaskStats stat: jobStats.getTaskStats()) {
+        	for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
         		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
         	}
         	rowsModified = i;
@@ -301,9 +311,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
                 try {
                 	spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
-                	JobStats stats = rowProvider.shuffleRows(spliceObserverInstructions);
+                	JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
                 	long i = 0;
-                	for (TaskStats stat: stats.getTaskStats()) {
+                	for (TaskStats stat: stats.getJobStats().getTaskStats()) {
                 		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
                 	}
                     //modifiedProvider.setRowsModified(stats.get.getTotalRecords());

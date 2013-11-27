@@ -6,6 +6,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation.NodeType;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.utils.marshall.KeyDecoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -45,7 +48,7 @@ public class OperationUtils {
 		SpliceLogUtils.trace(log,"regionOperation=%s",regionOperation);
 		RowProvider provider;
         SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		RowDecoder decoder = operation.getRowEncoder(spliceRuntimeContext).getDual(operation.getExecRowDefinition());
+			PairDecoder decoder = OperationUtils.getPairDecoder(operation,spliceRuntimeContext);
 		if (regionOperation.getNodeTypes().contains(NodeType.REDUCE) && operation != regionOperation) {
 			SpliceLogUtils.trace(log,"scanning Temp Table");
 			provider = regionOperation.getReduceRowProvider(operation,decoder,spliceRuntimeContext);
@@ -55,4 +58,10 @@ public class OperationUtils {
 		}
 		return new SpliceNoPutResultSet(operation.getActivation(),operation, provider);
 	}
+
+		public static PairDecoder getPairDecoder(SpliceOperation operation,SpliceRuntimeContext runtimeContext) throws StandardException {
+				KeyDecoder keyDecoder = operation.getKeyEncoder(runtimeContext).getDecoder();
+				KeyHashDecoder rowDecoder = operation.getRowHash(runtimeContext).getDecoder();
+				return new PairDecoder(keyDecoder,rowDecoder,operation.getExecRowDefinition());
+		}
 }

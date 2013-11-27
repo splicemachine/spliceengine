@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import java.util.Collection;
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * @author Scott Fines
@@ -36,7 +36,7 @@ public class ListenerRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
     }
 
     @Override
-    public void addAll(Collection<? extends E> elements) throws Exception {
+    public void addAll(ObjectArrayList<E> elements) throws Exception {
         delegate.addAll(elements);
     }
 

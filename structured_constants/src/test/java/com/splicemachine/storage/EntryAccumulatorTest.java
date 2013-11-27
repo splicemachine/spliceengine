@@ -5,10 +5,9 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Test;
-
 import java.nio.ByteBuffer;
-import java.util.BitSet;
-import java.util.Collections;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * @author Scott Fines
@@ -20,7 +19,7 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, Collections.<Predicate>emptyList());
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
         SparseEntryAccumulator accumulator = new SparseEntryAccumulator(predicateFilter,fields);
         accumulator.add(2, ByteBuffer.wrap(Encoding.encode(1)));
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));
@@ -36,7 +35,7 @@ public class EntryAccumulatorTest {
         BitSet fields = new BitSet();
         fields.set(0);
         fields.set(2);
-        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, Collections.<Predicate>emptyList());
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fields, new ObjectArrayList<Predicate>());
         EntryAccumulator accumulator = new AlwaysAcceptEntryAccumulator(predicateFilter);
         accumulator.add(2, ByteBuffer.wrap(Encoding.encode(1)));
         accumulator.add(0, ByteBuffer.wrap(Encoding.encode(2)));

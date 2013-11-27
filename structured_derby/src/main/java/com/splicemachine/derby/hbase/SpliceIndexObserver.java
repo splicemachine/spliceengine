@@ -1,16 +1,19 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.KeyValueInternalScanner;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -19,12 +22,16 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.WritableByteArrayComparable;
+import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Region Observer for managing indices.
@@ -36,7 +43,9 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
 
     private long conglomId;
-    @Override
+		private boolean isTemp;
+
+		@Override
     public void postOpen(ObserverContext<RegionCoprocessorEnvironment> e) {
         //get the Conglomerate Id. If it's not a table that we can index (e.g. META, ROOT, SYS_TEMP,__TXN_LOG, etc)
         //then don't bother with setting things up
@@ -46,6 +55,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
         }catch(NumberFormatException nfe){
             SpliceLogUtils.debug(LOG, "Unable to parse Conglomerate Id for table %s, indexing is will not be set up", tableName);
             conglomId=-1;
+						isTemp = SpliceConstants.TEMP_TABLE.equals(tableName);
             return;
         }
 
@@ -70,7 +80,7 @@ public class SpliceIndexObserver extends BaseRegionObserver {
                 }else
                     kv = new KVPair(row,value);
             }else{
-                kv = new KVPair(row, RowEncoder.EMPTY_BYTES);
+                kv = new KVPair(row, HConstants.EMPTY_BYTE_ARRAY);
             }
             mutate(e.getEnvironment(), kv, SpliceUtils.getTransactionId(put));
         }
@@ -98,7 +108,32 @@ public class SpliceIndexObserver extends BaseRegionObserver {
     	return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
-    /*******************************************************************************************************************/
+
+		@Override
+		public InternalScanner preCompactScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<? extends KeyValueScanner> scanners, ScanType scanType, long earliestPutTs, InternalScanner s) throws IOException {
+				if(!isTemp ||(s==null && scanners.size()<=0))
+						return super.preCompactScannerOpen(c, store, scanners,scanType,earliestPutTs,s);
+
+				c.complete();
+				return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
+		}
+
+		@Override
+		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates, CompactionRequest request) throws IOException {
+				if(!isTemp ||candidates.size()<=0){
+						super.preCompactSelection(c,store,candidates,request);
+						return;
+				}
+				try {
+						SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(),candidates);
+						c.bypass();
+						c.complete();
+				} catch (ExecutionException e) {
+						throw new IOException(e.getCause());
+				}
+		}
+
+		/*******************************************************************************************************************/
     /*private helper methods*/
 
 

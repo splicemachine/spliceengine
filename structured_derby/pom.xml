@@ -194,6 +194,7 @@
 						<manifestEntries>
 							<Implementation-Version>${buildNumber}</Implementation-Version>
 							<Release>0.5</Release>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
 							<URL>http://www.splicemachine.com</URL>
 						</manifestEntries>
 					</archive>
@@ -265,6 +266,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
+                                            <arg value="${failTasksRandomly}"/>
                                         </exec>
                                         <sleep seconds="90" />
                                     </target>
@@ -331,9 +333,14 @@
 								<argument>-Xms1g</argument>
 								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
+								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
+                        <argument>-Dderby.language.logQueryPlan=true</argument>
+                        <argument>-Dderby.language.logStatementText=true</argument>
+                        <argument>-Dderby.language.useStatistics=true</argument>
+				            <argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                        <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -500,6 +507,7 @@
 								<argument>60022</argument>
 								<argument>60023</argument>
 								<argument>60024</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 
 						</configuration>
@@ -576,6 +584,7 @@
 							<arguments>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -623,6 +632,7 @@
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -651,6 +661,12 @@
 							</execution>
 						</executions>
 						<configuration>
+                            <systemProperties>
+                                <systemProperty>
+                                    <key>ij.connection.splice</key>
+                                    <value>jdbc:splice://localhost:1527/splicedb</value>
+                                </systemProperty>
+                            </systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
 							<includeProjectDependencies>true</includeProjectDependencies>
 							<executable>maven</executable>

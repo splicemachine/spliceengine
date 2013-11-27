@@ -2,7 +2,8 @@ package com.splicemachine.storage.index;
 
 import com.splicemachine.storage.BitReader;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * BitIndex which lazily decodes entries as needed, and which does not re-encode entries.
@@ -36,7 +37,7 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public int length() {
         decodeAll();
-        return decodedBits.length();
+        return (int) decodedBits.length();
     }
 
     private void decodeAll() {
@@ -97,7 +98,7 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public int cardinality() {
         decodeAll();
-        return decodedBits.cardinality();
+        return (int) decodedBits.cardinality();
     }
 
     @Override
@@ -112,7 +113,7 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public boolean intersects(BitSet bitSet) {
-        decodeUntil(bitSet.length());
+        decodeUntil((int) bitSet.length());
         return decodedBits.intersects(bitSet);
     }
 
@@ -124,7 +125,7 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public BitSet and(BitSet bitSet) {
-        decodeUntil(bitSet.length());
+        decodeUntil((int)bitSet.length());
         final BitSet bits = (BitSet) decodedBits.clone();
         bits.and(bitSet);
         return bits;

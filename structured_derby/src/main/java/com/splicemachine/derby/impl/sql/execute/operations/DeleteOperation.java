@@ -3,18 +3,18 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 
 /**
  * 
@@ -45,34 +45,40 @@ public class DeleteOperation extends DMLWriteOperation {
 		heapConglom = writeInfo.getConglomerateId();
 	}
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        KeyMarshall marshall = new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns, int[] keyColumns, boolean[] sortOrder, byte[] keyPostfix, MultiFieldEncoder keyEncoder) throws StandardException {
-                RowLocation location = (RowLocation)columns[columns.length-1].getObject();
-                /*
-                 * We can set the bytes directly, because we're not going to be decoding them ever,
-                 * so there's no chance of us mis-decoding them.
-                 */
-                keyEncoder.setRawBytes(location.getBytes());
-            }
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
 
-            @Override
-            public void decode(DataValueDescriptor[] columns, int[] reversedKeyColumns, boolean[] sortOrder, MultiFieldDecoder rowDecoder) throws StandardException {
-                //no-op
-            }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash(){
+						private ExecRow currentRow;
 
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                return 1;
-            }
-        };
+						@Override
+						public void setRow(ExecRow rowToEncode) {
+								this.currentRow = rowToEncode;
+						}
 
-        return RowEncoder.createDeleteEncoder(marshall);
-    }
+						@Override
+						public byte[] encode() throws StandardException, IOException {
+								RowLocation location = (RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject();
+								return location.getBytes();
+						}
 
-    @Override
+						@Override
+						public KeyHashDecoder getDecoder() {
+								return NoOpKeyHashDecoder.INSTANCE;
+						}
+				},NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return new FixedDataHash(new byte[]{});
+		}
+
+		@Override
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
 	}

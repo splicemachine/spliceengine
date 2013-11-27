@@ -6,7 +6,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexValueRow;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.Snowflake;
@@ -27,9 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Scott Fines
@@ -83,7 +83,7 @@ public class GroupedAggregateOperationTest {
         when(mockAggregateContext.getAggregators()).thenReturn(new SpliceGenericAggregator[]{countAgg});
         ExecIndexRow sortTemplateRow = new IndexValueRow(sourceRowTemplate);
         when(mockAggregateContext.getSourceIndexRow()).thenReturn(sortTemplateRow);
-        when(mockAggregateContext.getSourceIndexRow()).thenReturn((ExecIndexRow) sortTemplateRow.getClone());
+        when(mockAggregateContext.getSortTemplateRow()).thenReturn((ExecIndexRow) sortTemplateRow.getClone());
         when(mockAggregateContext.getDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{});
         when(mockAggregateContext.getNonDistinctAggregators()).thenReturn(new SpliceGenericAggregator[]{countAgg});
 
@@ -99,6 +99,7 @@ public class GroupedAggregateOperationTest {
         operation.init(operationContext);
 
         SpliceRuntimeContext context = new SpliceRuntimeContext();
+				context.setCurrentTaskId(snowflake.nextUUIDBytes());
         context.markAsSink();
 
         final List<KVPair> outputPairs = Lists.newArrayListWithExpectedSize(10);
@@ -111,7 +112,10 @@ public class GroupedAggregateOperationTest {
             }
         }).when(mockBuffer).add(any(KVPair.class));
 
-        RowEncoder rowEncoder = operation.getRowEncoder(context);
+				KeyEncoder keyEncoder = operation.getKeyEncoder(context);
+				DataHash rowHash = operation.getRowHash(context);
+				PairEncoder rowEncoder = new PairEncoder(keyEncoder,rowHash, KVPair.Type.INSERT);
+
         ExecRow nextSinkRow = operation.getNextSinkRow(context);
         Set<Integer> keysSeen = Sets.newHashSetWithExpectedSize(20);
         while(nextSinkRow!=null){
@@ -119,7 +123,7 @@ public class GroupedAggregateOperationTest {
             Assert.assertFalse("Key already seen!",keysSeen.contains(groupKeyValue));
             keysSeen.add(groupKeyValue);
 
-            rowEncoder.write(nextSinkRow,mockBuffer);
+						mockBuffer.add(rowEncoder.encode(nextSinkRow));
             nextSinkRow = operation.getNextSinkRow(context);
         }
         Assert.assertEquals("Incorrect number of rows output!",20,outputPairs.size());

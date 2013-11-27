@@ -504,10 +504,10 @@ public class ImportTaskTest {
                 1,
                 100,
                 fakeBufferFactory){
-            @Override
-            protected KeyMarshall getSaltedKeyMarshall() {
-                return new SaltedKeyMarshall(snowflake.newGenerator(lines.size()));
-            }
+						@Override
+						protected Snowflake.Generator getRandomGenerator() {
+								return snowflake.newGenerator(lines.size());
+						}
         };
 
         ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN");

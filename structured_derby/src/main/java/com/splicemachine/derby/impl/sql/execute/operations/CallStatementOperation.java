@@ -62,7 +62,7 @@ public class CallStatementOperation extends NoRowsOperation {
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		return new SpliceNoPutResultSet(activation,this,callableRowProvider,false);
 	}
@@ -112,7 +112,8 @@ public class CallStatementOperation extends NoRowsOperation {
 				for (int i = 0; i < dynamicResults.length; i++)
 				{
 					ResultSet[] param = dynamicResults[i];
-					ResultSet drs = param[0];
+                    ResultSet drs = null;
+                    if (param != null) drs = param[0];
 
 					// Can be null if the procedure never set this parameter
 					// or if the dynamic results were processed by JDBC (EmbedStatement).

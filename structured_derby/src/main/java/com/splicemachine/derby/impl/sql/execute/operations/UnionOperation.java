@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -89,11 +90,11 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
     	SpliceRuntimeContext spliceLeftRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
     	SpliceRuntimeContext spliceRightRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);    	
-        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,firstResultSet.getRowEncoder(spliceLeftRuntimeContext).getDual(getExecRowDefinition()),spliceLeftRuntimeContext);
-        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,secondResultSet.getRowEncoder(spliceRightRuntimeContext).getDual(getExecRowDefinition()),spliceRightRuntimeContext);
+        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(firstResultSet,spliceLeftRuntimeContext),spliceLeftRuntimeContext);
+        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(secondResultSet,spliceRightRuntimeContext),spliceRightRuntimeContext);
         return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
     }
 
@@ -157,22 +158,22 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	SpliceRuntimeContext left = spliceRuntimeContext.copy();
     	SpliceRuntimeContext right = spliceRuntimeContext.copy();
-    	left.addPath(resultSetNumber, 0);
-    	right.addPath(resultSetNumber, 1);
+    	left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+    	right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
     	RowProvider firstProvider = firstResultSet.getMapRowProvider(top,decoder,left);
         RowProvider secondProvider = secondResultSet.getMapRowProvider(top,decoder,right);
         return RowProviders.combine(firstProvider, secondProvider);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
     	SpliceRuntimeContext left = spliceRuntimeContext.copy();
     	SpliceRuntimeContext right = spliceRuntimeContext.copy();
-    	left.addPath(resultSetNumber, 0);
-    	right.addPath(resultSetNumber, 1);
+    	left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+    	right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
     	RowProvider firstProvider = firstResultSet.getReduceRowProvider(top,decoder,left);
         RowProvider secondProvider = secondResultSet.getReduceRowProvider(top,decoder,right);
         return RowProviders.combine(firstProvider, secondProvider);

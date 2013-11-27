@@ -12,4 +12,5 @@ public interface JobScheduler<J extends Job> {
 
     JobSchedulerManagement getJobMetrics();
 
+		long[] getActiveOperations() throws ExecutionException;
 }

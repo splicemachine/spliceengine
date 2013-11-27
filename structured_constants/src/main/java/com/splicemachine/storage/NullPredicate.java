@@ -2,7 +2,7 @@ package com.splicemachine.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Pair;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines

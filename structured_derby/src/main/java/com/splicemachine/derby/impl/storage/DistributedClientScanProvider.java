@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DistributedScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHashPrefix;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.BucketHasher;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -35,12 +38,16 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
     private ResultScanner scanner;
 
 
-	public DistributedClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+	public DistributedClientScanProvider(String type,
+																			 byte[] tableName,
+																			 Scan scan,
+																			 PairDecoder decoder,
+																			 SpliceRuntimeContext spliceRuntimeContext) {
 		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;
-		this.keyDistributor = new RowKeyDistributorByHashPrefix(new RowKeyDistributorByHashPrefix.OneByteSimpleHash());
+		this.keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(SpliceDriver.driver().getTempTable().getCurrentSpread()));
 	}
 
 	@Override

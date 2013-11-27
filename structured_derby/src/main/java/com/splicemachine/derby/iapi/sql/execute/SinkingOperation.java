@@ -1,6 +1,9 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
@@ -24,5 +27,13 @@ public interface SinkingOperation {
 
     String getTransactionID();
 
-    RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+		CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException;
+
+		void close() throws IOException,StandardException;
+
+		byte[] getUniqueSequenceId();
 }

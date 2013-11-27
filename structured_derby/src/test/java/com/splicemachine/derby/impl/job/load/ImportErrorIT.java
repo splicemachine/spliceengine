@@ -49,10 +49,12 @@ public class ImportErrorIT {
 
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date,g time, h timestamp)");
+    private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schema)
-            .around(tableWatcher);
+            .around(tableWatcher)
+            .around(decimalTable);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -213,6 +215,20 @@ public class ImportErrorIT {
         });
     }
 
+    @Test(expected = SQLException.class)
+    public void testDecimalTable() throws Exception {
+        runImportTest("DECIMALTABLE","bad_decimal.csv",new ErrorCheck() {
+            @Override
+            public void check(String table, String location, SQLException se) {
+                //make sure the error code is correct
+                Assert.assertEquals("Incorrect sql state!", "22003",se.getSQLState());
+
+                String correctErrorMessage = "The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
+                Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
+            }
+        });
+
+    }
     private interface ErrorCheck{
         void check(String table, String location, SQLException se);
     }

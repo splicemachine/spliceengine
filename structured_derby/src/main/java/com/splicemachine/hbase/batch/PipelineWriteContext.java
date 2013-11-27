@@ -26,8 +26,9 @@ public class PipelineWriteContext implements WriteContext{
 
     private final Map<byte[],HTableInterface> tableCache = Maps.newHashMapWithExpectedSize(0);
     private static final Logger LOG = Logger.getLogger(PipelineWriteContext.class);
+		private long timestamp;
 
-    private class WriteNode implements WriteContext{
+		private class WriteNode implements WriteContext{
         private WriteHandler handler;
         private WriteNode next;
 
@@ -98,7 +99,12 @@ public class PipelineWriteContext implements WriteContext{
             return PipelineWriteContext.this.getTransactionId();
         }
 
-		@Override
+				@Override
+				public long getTransactionTimestamp() {
+						return PipelineWriteContext.this.getTransactionTimestamp();
+				}
+
+				@Override
 		public void sendUpstream(List<KVPair> mutation) {
 			// XXX JLEACH TODO
 			throw new RuntimeException("Not Supported");
@@ -234,7 +240,15 @@ public class PipelineWriteContext implements WriteContext{
         return txnId;
     }
 
-	@Override
+		@Override
+		public long getTransactionTimestamp() {
+				if(timestamp<=0)
+					timestamp = Long.parseLong(txnId);
+
+				return timestamp;
+		}
+
+		@Override
 	public void sendUpstream(List<KVPair> mutation) {
 		// XXX JLEACH TODO
 		throw new RuntimeException("Not Supported");

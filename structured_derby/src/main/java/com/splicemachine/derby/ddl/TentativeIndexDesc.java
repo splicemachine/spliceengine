@@ -1,7 +1,8 @@
 package com.splicemachine.derby.ddl;
 
+import com.carrotsearch.hppc.BitSet;
+
 import java.io.Serializable;
-import java.util.BitSet;
 
 public class TentativeIndexDesc implements Serializable {
     long conglomerateNumber;

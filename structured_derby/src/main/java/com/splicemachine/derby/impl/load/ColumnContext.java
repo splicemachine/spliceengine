@@ -1,14 +1,17 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.utils.ErrorState;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.StringDataValue;
+import org.apache.derby.iapi.types.SQLDecimal;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Types;
 
 /**
  * @author Scott Fines
@@ -23,6 +26,8 @@ public class ColumnContext implements Externalizable {
     private boolean isNullable;
     private String colName;
     private int length;
+    private int decimalDigits;
+    private String columnDefault;
 
     @Deprecated
     public ColumnContext(){}
@@ -32,13 +37,17 @@ public class ColumnContext implements Externalizable {
                           int pkPos,
                           boolean isNullable,
                           String colName,
-                          int length){
+                          int length,
+                          int decimalDigits,
+                          String columnDefault) {
         this.colNumber = colNumber;
         this.columnType = colType;
         this.isNullable = isNullable;
         this.pkPos = pkPos;
         this.colName = colName;
         this.length = length;
+        this.decimalDigits = decimalDigits;
+        this.columnDefault = columnDefault;
     }
 
     @Override
@@ -51,6 +60,12 @@ public class ColumnContext implements Externalizable {
         out.writeBoolean(length>0);
         if(length>0)
             out.writeInt(length);
+        out.writeBoolean(decimalDigits>0);
+        if (decimalDigits>0) 
+        	out.writeInt(decimalDigits);
+        out.writeBoolean(columnDefault!=null);
+        if (columnDefault != null) 
+        	out.writeUTF(columnDefault);
     }
 
     @Override
@@ -62,6 +77,11 @@ public class ColumnContext implements Externalizable {
         this.isNullable = in.readBoolean();
         if(in.readBoolean())
             length = in.readInt();
+        if(in.readBoolean())
+        	decimalDigits = in.readInt();
+        if (in.readBoolean())
+        	columnDefault = in.readUTF();
+        	
     }
 
     public int getColumnNumber() {
@@ -87,7 +107,15 @@ public class ColumnContext implements Externalizable {
     public String getColumnName() {
         return colName;
     }
+    
+    public int getDecimalDigits() {
+    	return decimalDigits;
+    }
 
+    public String getColumnDefault() {
+    	return columnDefault;
+    }
+    
     public void validate(DataValueDescriptor column) throws StandardException {
         if(!isNullable && column.isNull())
            throw ErrorState.LANG_NULL_INTO_NON_NULL.newException(colName);
@@ -97,6 +125,11 @@ public class ColumnContext implements Externalizable {
             if(sdv.getLength()>length)
                 throw ErrorState.LANG_STRING_TRUNCATION.newException(column.getTypeName(),column.getString(),length);
         }
+        else if (columnType == Types.DECIMAL) {
+        	SQLDecimal d = (SQLDecimal)column;
+        	d.setWidth(length, decimalDigits, true);
+        }
+        	
     }
 
     public static class Builder{
@@ -106,7 +139,9 @@ public class ColumnContext implements Externalizable {
         private int pkPos = -1;
         private String colName;
         private int length = -1;
-
+        private int decimalDigits;
+        private String columnDefault;
+        
         public Builder length(int length){
             this.length = length;
             return this;
@@ -141,8 +176,17 @@ public class ColumnContext implements Externalizable {
             return this;
         }
 
+        public Builder decimalDigits(int decimalDigits) {
+        	this.decimalDigits = decimalDigits;
+        	return this;
+        }
+        
+        public Builder columnDefault(String columnDefault) {
+        	this.columnDefault = columnDefault;
+        	return this;
+        }
         public ColumnContext build(){
-            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length);
+            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, columnDefault);
         }
     }
 }

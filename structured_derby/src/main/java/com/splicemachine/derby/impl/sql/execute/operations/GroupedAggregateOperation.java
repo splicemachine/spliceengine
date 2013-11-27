@@ -17,7 +17,13 @@ import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.hash.ByteHash32;
+import com.splicemachine.utils.hash.HashFunctions;
 import com.splicemachine.utils.hash.MurmurHash;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -133,7 +139,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         buildReduceScan();
         if(top!=this && top instanceof SinkingOperation){
             SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -166,96 +172,131 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getReduceRowProvider(top,decoder,spliceRuntimeContext);
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        final RowProvider rowProvider = source.getMapRowProvider(this, getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+        final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
-        boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
-        final MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-        return RowEncoder.create(sourceExecIndexRow.nColumns(), groupingKeys, groupingKeyOrder, null, new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns,
-                                  int[] keyColumns,
-                                  boolean[] sortOrder,
-                                  byte[] keyPostfix,
-                                  MultiFieldEncoder keyEncoder) throws StandardException {
-                /*
-                 * Build the actual row key from the currently set row key, along with a hash byte.
-                 *
-                 * The row key (of necessity) looks different based on whether or not the GroupedRow
-                 * is tagged as "distinct" or not. Both formats begin with
-                 *
-                 * <hash> 0x00 <uniqueSequenceId> 0x00
-                 *
-                 * Where the hash is computed by looking over the grouping keys.
-                 *
-                 * But the grouping keys look different if it's a "distinct" row or not
-                 *
-                 * If it's distinct, then the remaining key looks like
-                 *
-                 * <group columns> 0x00 <non grouped, unique columns> 0x00 0x00
-                 * The last 0x00 is an ordinal indicating that this row is distinct
-                 *
-                 * If it's non-distinct, then the remaining key looks like
-                 *
-                 * <group columns> 0x00 <uuid> 0x00 0x01 0x00 <postfix>
-                 */
-                decoder.set(currentKey);
-                int offset = decoder.offset();
-                int length = DerbyBytesUtil.skip(decoder, keyColumns, columns);
-                if(length>currentKey.length-offset)
-                    length = currentKey.length - offset;
+		@Override
+		public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * We use the cached currentKey, with some extra fun bits to determine the hash
+				 * prefix.
+				 *
+				 * Our currentKey is also the grouping key, which makes life easy. However,
+				 * our Postfix is different depending on whether or not the row is "distinct".
+				 *
+				 * All rows look like:
+				 *
+				 * <hash> <uniqueSequenceId> <grouping key> 0x00 <postfix>
+				 *
+				 * if the row is distinct, then <postfix> = 0x00 which indicates a distinct
+ 				 * row. This allows multiple distinct rows to be written into the same
+ 				 * location on TEMP, which will eliminate duplicates.
+ 				 *
+ 				 * If the row is NOT distinct, then <postfix> = <uuid> <taskId>
+ 				 * The row looks this way so that the SuccessFilter can be applied
+ 				 * correctly to strip out rows from failed tasks. Be careful when considering
+ 				 * the row as a whole to recognize that this row has a 16-byte postfix
+				 */
+				HashPrefix prefix = getHashPrefix();
 
-                byte hash = (byte)((byte) MurmurHash.murmur3_32(currentKey,offset,length,0) & 0xf0);
-                byte[] key;
-                if(isCurrentDistinct)
-                    key = BytesUtil.concatenate(hash,uniqueSequenceID,currentKey,distinctOrdinal);
-                else{
-                    if(uuidGen==null)
-                        uuidGen = operationInformation.getUUIDGenerator();
-                    key = BytesUtil.concatenate(hash, uniqueSequenceID, currentKey, uuidGen.nextBytes(), nonDistinctOrdinal);
-                }
-                /*
-                 * The key is already encoded elsewhere, so it is safe to setRawBytes()
-                 */
-                keyEncoder.setRawBytes(key);
-                if(!isCurrentDistinct){
-                    //can set the postfix directly, because it has known length, and also will never be directly decoded
-                    keyEncoder.setRawBytes(keyPostfix);
-                }
-            }
+				DataHash dataHash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								return currentKey;
+						}
+				}){
+						@Override
+						public KeyHashDecoder getDecoder() {
+								return BareKeyHash.decoder(groupedAggregateContext.getGroupingKeys(),
+												groupedAggregateContext.getGroupingKeyOrder());
+						}
+				};
 
-            @Override
-            public void decode(DataValueDescriptor[] columns,
-                               int[] reversedKeyColumns,
-                               boolean[] sortOrder,
-                               MultiFieldDecoder rowDecoder) throws StandardException {
-                rowDecoder.seek(11); // seek past the hash and the unique identifier
-                //noinspection RedundantCast
-                ((KeyMarshall)KeyType.BARE).decode(columns, reversedKeyColumns, sortOrder, rowDecoder);
-            }
+				final KeyPostfix uniquePostfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId(),operationInformation.getUUIDGenerator());
+				KeyPostfix postfix = new KeyPostfix() {
+						@Override
+						public int getPostfixLength(byte[] hashBytes) throws StandardException {
+								if(isCurrentDistinct) return distinctOrdinal.length;
+								else
+										return uniquePostfix.getPostfixLength(hashBytes);
+						}
 
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                return 2;
-            }
-        }, RowMarshaller.packed());
-    }
+						@Override
+						public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
+								if(isCurrentDistinct){
+										System.arraycopy(distinctOrdinal,0,keyBytes,postfixPosition,distinctOrdinal.length);
+								}else{
+										uniquePostfix.encodeInto(keyBytes,postfixPosition,hashBytes);
+								}
+						}
+				};
+				return new KeyEncoder(prefix,dataHash,postfix);
+		}
 
-    @Override
+		private HashPrefix getHashPrefix() {
+				return new AggregateBucketingPrefix(new FixedPrefix(uniqueSequenceID),
+										HashFunctions.murmur3(0),
+										SpliceDriver.driver().getTempTable().getCurrentSpread());
+		}
+
+		private class AggregateBucketingPrefix extends BucketingPrefix{
+				private MultiFieldDecoder decoder;
+				private final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+				private final DataValueDescriptor[] fields = sortTemplateRow.getRowArray();
+
+				public AggregateBucketingPrefix(HashPrefix delegate, ByteHash32 hashFunction, SpreadBucket spreadBucket) {
+						super(delegate, hashFunction, spreadBucket);
+				}
+
+				@Override
+				protected byte bucket(byte[] hashBytes) {
+						if(!isCurrentDistinct)
+								return super.bucket(hashBytes);
+
+						/*
+						 * If the row is distinct, then the grouping key is a combination of <actual grouping keys> <distinct column>
+						 * So to get the proper bucket, we need to hash only the grouping keys, so we have to first strip out
+						 * the excess grouping keys
+						 */
+						if(decoder==null)
+								decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+
+						decoder.set(hashBytes);
+						int offset = decoder.offset();
+						int length = DerbyBytesUtil.skip(decoder, groupingKeys, fields);
+
+						if(offset+length>hashBytes.length)
+							length = hashBytes.length-offset;
+						return spreadBucket.bucket(hashFunction.hash(hashBytes,offset,length));
+				}
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * Only encode the fields which aren't grouped into the row.
+				 */
+				ExecRow defn = getExecRowDefinition();
+				int[] nonGroupedFields = IntArrays.complement(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
+				return BareKeyHash.encoder(nonGroupedFields,null);
+		}
+
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
+		@Override
     public void cleanup() {
 
     }
@@ -327,8 +368,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
-            SpliceResultScanner scanner = getResultScanner(groupingKeys,spliceRuntimeContext);
-            StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()));
+            SpliceResultScanner scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
+            StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
             aggregator = new ScanGroupedAggregator(buffer,sourceIterator,
                     groupingKeys,groupingKeyOrder,false);
             aggregator.open();
@@ -356,7 +397,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
     }
 
-    private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext) {
+    private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext, final int prefixOffset) {
         if(!spliceRuntimeContext.isSink())
             return new ClientResultScanner(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,true);
 
@@ -366,12 +407,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             @Override
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-                fieldDecoder.seek(11); //skip the prefix value
+                fieldDecoder.seek(prefixOffset+1); //skip the prefix value
 
                 byte[] slice = DerbyBytesUtil.slice(fieldDecoder, groupColumns, cols);
                 fieldDecoder.reset();
                 MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
-                encoder.setRawBytes(fieldDecoder.slice(10));
+                encoder.setRawBytes(fieldDecoder.slice(prefixOffset+1));
                 encoder.setRawBytes(slice);
                 return encoder.build();
             }
@@ -418,26 +459,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 //    }
     @Override
     public void	close() throws StandardException, IOException {
-//        if(hbs!=null)
-//            hbs.close();
-        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
-        beginTime = getCurrentTimeMillis();
-        if ( isOpen )
-        {
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            // we don't want to keep around a pointer to the
-            // row ... so it can be thrown away.
-            // REVISIT: does this need to be in a finally
-            // block, to ensure that it is executed?
-            clearCurrentRow();
-            source.close();
-
-            super.close();
-        }
-        closeTime += getElapsedMillis(beginTime);
-
-        isOpen = false;
+				super.close();
+				source.close();
+//        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
+//        beginTime = getCurrentTimeMillis();
+//        if ( isOpen )
+//        {
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            // we don't want to keep around a pointer to the
+//            // row ... so it can be thrown away.
+//            // REVISIT: does this need to be in a finally
+//            // block, to ensure that it is executed?
+//            clearCurrentRow();
+//            source.close();
+//
+//            super.close();
+//        }
+//        closeTime += getElapsedMillis(beginTime);
+//
+//        isOpen = false;
     }
 
     public Properties getSortProperties() {

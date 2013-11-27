@@ -2,10 +2,6 @@ package com.splicemachine.homeless;
 
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.apache.commons.dbutils.BasicRowProcessor;
-import org.apache.commons.io.IOUtils;
-import org.junit.runner.Description;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -14,8 +10,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.dbutils.BasicRowProcessor;
+import org.apache.commons.io.IOUtils;
+import org.junit.runner.Description;
 
 public class TestUtils {
 
@@ -164,13 +164,28 @@ public class TestUtils {
         int resultSetSize = 0;
         out.println();
         out.println(statement);
-        for (Map map : TestUtils.resultSetToMaps(rs)) {
-            out.println("--- "+(++resultSetSize));
-            for (Object entryObj : map.entrySet()) {
-                Map.Entry entry = (Map.Entry) entryObj;
-                out.println(entry.getKey() + ": " + entry.getValue());
+        List<Map> maps = TestUtils.resultSetToMaps(rs);
+        if (maps.size() > 0) {
+            List<String> keys = new ArrayList<String>(maps.get(0).keySet());
+            Collections.sort(keys);
+            for (String col : keys) {
+                out.print(" "+col+" |");
+            }
+            out.println();
+            for (int i=0; i<keys.size(); ++i) {
+                out.print("-----");
+            }
+            out.println();
+            for (Map map : maps) {
+                ++resultSetSize;
+                for (String key : keys) {
+                    out.print(" "+map.get(key)+" |");
+                }
+                out.println();
             }
         }
+        out.println("--------------------");
+        out.println(resultSetSize+" rows");
         return resultSetSize;
     }
 

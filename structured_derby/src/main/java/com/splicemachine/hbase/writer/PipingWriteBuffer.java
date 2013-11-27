@@ -1,7 +1,9 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -167,9 +169,12 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     }
 
     @Override
-    public void addAll(Collection<? extends KVPair> elements) throws Exception {
-        for(KVPair element:elements)
-            add(element);
+    public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
+    	Object[] elementArray = elements.buffer;
+    	int size = elements.size();
+    	for (int i = 0; i< size; i++) {
+            add((KVPair)elementArray[i]);        		
+    	}
     }
 
     @Override
@@ -197,7 +202,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
     private class PreMappedBuffer implements CallBuffer<KVPair> {
         private final Writer writer;
-        private final List<KVPair> buffer;
+        private final ObjectArrayList<KVPair> buffer;
         private int heapSize;
         private final byte[] regionStartKey;
         private final List<Future<Void>> outstandingRequests = Lists.newArrayList();
@@ -211,16 +216,15 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             this.preFlushHook = preFlushHook;
             this.maxEntries = maxEntries;
             if(maxEntries<0)
-                this.buffer = Lists.newArrayList();
+                this.buffer = ObjectArrayList.newInstance();
             else
-                this.buffer = Lists.newArrayListWithCapacity(maxEntries);
+                this.buffer = ObjectArrayList.newInstanceWithCapacity(maxEntries);
         }
 
         @Override
         public void add(KVPair element) throws Exception {
             buffer.add(element);
             heapSize+=element.getSize();
-
             if(buffer.size()>maxEntries)
                 flushBuffer();
         }
@@ -232,9 +236,12 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
 
         @Override
-        public void addAll(Collection<? extends KVPair> elements) throws Exception {
-            for(KVPair element:elements)
-                add(element);
+        public void addAll(ObjectArrayList<KVPair> elements) throws Exception {
+        	Object[] elementArray = elements.buffer;
+        	int size = elements.size();
+        	for (int i = 0; i< size; i++) {
+                add((KVPair)elementArray[i]);        		
+        	}
         }
 
         @Override
@@ -250,7 +257,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 }
             }
             if(buffer.size()>0){
-                List<KVPair> copy = Lists.newArrayList(buffer);
+                ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer); // XXX-TODO is this copy necessary?
                 buffer.clear();
                 //update heap size metrics
                 if(LOG.isTraceEnabled())
@@ -273,14 +280,15 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             }
         }
 
-        public List<KVPair> removeAllAfter(final byte[] startKey) {
-            List<KVPair> removed = Lists.newArrayList();
-            Iterator<KVPair> iterator = buffer.iterator();
-            while(iterator.hasNext()){
-                KVPair pair = iterator.next();
+        public ObjectArrayList<KVPair> removeAllAfter(final byte[] startKey) {
+            ObjectArrayList<KVPair> removed = ObjectArrayList.newInstance();
+            int size = buffer.size();
+            Object[] array = buffer.buffer;
+            for (int i = 0; i< size;i++) {
+            	KVPair pair = (KVPair) array[i];
                 if(Bytes.compareTo(startKey,pair.getRow())<=0){
                     removed.add(pair);
-                    iterator.remove();
+//                    iterator.remove(); POSSIBLE ISSUE
                 }
             }
             return removed;

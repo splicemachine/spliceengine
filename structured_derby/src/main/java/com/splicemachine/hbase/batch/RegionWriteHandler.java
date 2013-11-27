@@ -109,7 +109,7 @@ public class RegionWriteHandler implements WriteHandler {
             		put = SpliceUtils.createPut(rowKey,ctx.getTransactionId());
             	else 
             		put = new Put(rowKey);
-                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
+                put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,ctx.getTransactionTimestamp(),value);
                 mutation = put;
         }
         mutation.setAttribute(SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);

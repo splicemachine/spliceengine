@@ -1,12 +1,10 @@
 package com.splicemachine.storage;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -32,13 +30,13 @@ public class Predicates {
         }
     }
 
-    public static Pair<List<Predicate>,Integer> allFromBytes(byte[] bytes, int offset) throws IOException{
+    public static Pair<ObjectArrayList<Predicate>,Integer> allFromBytes(byte[] bytes, int offset) throws IOException{
         int length = BytesUtil.bytesToInt(bytes,offset);
         return fromBytes(bytes,offset+4,length);
     }
 
-    public static Pair<List<Predicate>,Integer> fromBytes(byte[] bytes, int offset, int length) throws IOException{
-        List<Predicate> predicates = Lists.newArrayListWithCapacity(length);
+    public static Pair<ObjectArrayList<Predicate>,Integer> fromBytes(byte[] bytes, int offset, int length) throws IOException{
+    	ObjectArrayList<Predicate> predicates = ObjectArrayList.newInstanceWithCapacity(length);
         int currentOffset = offset;
         for(int i=0;i<length;i++){
             Pair<? extends Predicate,Integer> next = fromBytes(bytes,currentOffset);
@@ -64,7 +62,7 @@ public class Predicates {
         return finalData;
     }
 
-    public static byte[] toBytes(List<Predicate> predicates){
+    public static byte[] toBytes(ObjectArrayList<Predicate> predicates){
         byte[][] data = new byte[predicates.size()][];
         int size = 0;
         for(int i=0;i<predicates.size();i++){

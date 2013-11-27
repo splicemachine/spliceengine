@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -33,12 +34,21 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/3/13
  */
 public class SinkTask extends ZkTask {
-    private static final long serialVersionUID = 2l;
+    private static final long serialVersionUID = 3l;
     private static final Logger LOG = Logger.getLogger(SinkTask.class);
     private HRegion region;
 
     private Scan scan;
     private SpliceObserverInstructions instructions;
+		/*
+		 * Hash bucket to use for sink operations which do not spread data themselves.
+		 *
+		 * For example, the SortOperation can't spread data around multiple buckets, so
+		 * it will use this hashBucket to determine which bucket to go to. The
+		 * bucket itself will be generated randomly, to (hopefully) spread data from multiple
+		 * concurrent operations across multiple buckets.
+		 */
+		private byte hashBucket;
 
     /**
      * Serialization Constructor.
@@ -54,7 +64,7 @@ public class SinkTask extends ZkTask {
                     int priority) {
         super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
-    }
+		}
 
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce,SpliceZooKeeperManager zooKeeper) throws ExecutionException {
@@ -86,6 +96,7 @@ public class SinkTask extends ZkTask {
             Activation activation = instructions.getActivation(impl.getLcc());
             SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
             spliceRuntimeContext.markAsSink();
+						spliceRuntimeContext.setCurrentTaskId(getTaskId());
             opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
             //init the operation stack
@@ -158,6 +169,7 @@ public class SinkTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         scan.write(out);
+				out.writeByte(hashBucket);
     }
 
     @Override
@@ -165,6 +177,7 @@ public class SinkTask extends ZkTask {
         super.readExternal(in);
         scan  = new Scan();
         scan.readFields(in);
+				hashBucket = in.readByte();
     }
 
     @Override

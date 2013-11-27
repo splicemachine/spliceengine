@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
@@ -24,11 +26,8 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -121,7 +120,7 @@ class IndexRowReader {
         for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
             fieldsToReturn.set(i);
         }
-        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
+        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
         byte[] predicateFilterBytes = epf.toBytes();
         return new IndexRowReader(backgroundService,
                 sourceOperation,

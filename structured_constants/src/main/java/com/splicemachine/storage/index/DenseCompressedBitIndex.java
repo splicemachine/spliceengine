@@ -4,7 +4,8 @@ import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
 import java.util.Arrays;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * Represents a Dense, Compressed BitSet.
@@ -298,7 +299,7 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public int cardinality() {
-        return bitSet.cardinality();
+        return (int) bitSet.cardinality();
     }
 
     @Override

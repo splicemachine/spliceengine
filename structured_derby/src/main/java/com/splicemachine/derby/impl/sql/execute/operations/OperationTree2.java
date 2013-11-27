@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
@@ -41,7 +42,7 @@ public class OperationTree2 {
         return new OperationTree2(executor);
     }
 
-    public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
+    public NoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
 
@@ -55,7 +56,7 @@ public class OperationTree2 {
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
-                            opToShuffle.executeShuffle();
+                            opToShuffle.executeShuffle(runtimeContext);
                             return null;
                         }
                     }));
@@ -75,13 +76,13 @@ public class OperationTree2 {
             }else{
                 //execute on this thread so we don't use up a parallel thread for someone else
                 for(SpliceOperation opToShuffle:levelOps){
-                    opToShuffle.executeShuffle();
+                    opToShuffle.executeShuffle(runtimeContext);
                 }
             }
         }
 
         //operation is the highest level, it has the final scan
-        return operation.executeScan();
+        return operation.executeScan(runtimeContext);
     }
 
     private NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {

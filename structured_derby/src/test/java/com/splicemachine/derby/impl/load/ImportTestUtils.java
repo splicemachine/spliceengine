@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.load;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.junit.Assert;
 
 import java.util.Comparator;
 
@@ -16,6 +18,17 @@ public class ImportTestUtils {
     public static Comparator<ExecRow> columnComparator(int columnPosition){
         return new ExecRowComparator(columnPosition);
     }
+
+		public static void assertRowsEquals(ExecRow correctRow, ExecRow actualRow)  {
+				DataValueDescriptor [] correctRowArray = correctRow.getRowArray();
+				DataValueDescriptor [] actualRowArray = actualRow.getRowArray();
+				for(int dvdPos=0;dvdPos<correctRow.nColumns();dvdPos++){
+						Assert.assertEquals("Incorrect column at position " + dvdPos,
+										correctRowArray[dvdPos],
+										actualRowArray[dvdPos]);
+
+				}
+		}
 
     private static class ExecRowComparator implements Comparator<ExecRow> {
         private final int colNumber;

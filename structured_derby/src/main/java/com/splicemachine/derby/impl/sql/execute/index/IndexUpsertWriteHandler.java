@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -12,14 +14,10 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
-
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -140,7 +138,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try{
             Get oldGet = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
             //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
-            EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+            EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
 
             Result r = ctx.getRegion().get(oldGet);
@@ -237,7 +235,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             //delete the old record
             if(!transformer.isUnique()){
-                oldKeyAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(mutation.getRow()));
+                oldKeyAccumulator.add((int)translatedIndexColumns.length(),ByteBuffer.wrap(mutation.getRow()));
             }
 
             byte[] existingIndexRowKey = oldKeyAccumulator.finish();
@@ -247,7 +245,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             //insert the new
             byte[] newIndexRowKey = transformer.getIndexRowKey(mutation.getRow());
 
-            newRowAccumulator.add(translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
+            newRowAccumulator.add((int)translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexValue = newRowAccumulator.finish();
             KVPair newPut = new KVPair(newIndexRowKey,indexValue);
 

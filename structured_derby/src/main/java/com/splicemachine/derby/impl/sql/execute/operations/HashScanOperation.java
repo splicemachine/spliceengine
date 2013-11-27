@@ -14,9 +14,13 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -170,26 +174,26 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder, spliceRuntimeContext);
+            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
+										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top,decoder, spliceRuntimeContext);
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
-        Scan scan = buildScan();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,spliceRuntimeContext);
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+        Scan scan = buildScan(runtimeContext);
+        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return provider.shuffleRows(soi);
     }
 
@@ -200,7 +204,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 			sequence = new DataValueDescriptor[1];
 			sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
 			SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext));
+			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext));
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);
 			return null;
@@ -223,7 +227,12 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
         return nextRow(spliceRuntimeContext);
     }
 
-	@Override
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
+		@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		  SpliceLogUtils.trace(LOG, "nextRow");
 		  List<KeyValue> keyValues = new ArrayList<KeyValue>();	
@@ -250,9 +259,8 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-    	SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()), spliceRuntimeContext);
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
@@ -267,32 +275,37 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	@Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in HashScan");
-		beginTime = getCurrentTimeMillis();
-		if ( isOpen )
-	    {
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-		    clearCurrentRow();
-		    
-		    //TODO: need to get ScanInfo to store in runtime statistics
-		    scanProperties = getScanProperties();
-			
-			// This is where we get the positioner info for inner tables
-			if (runTimeStatisticsOn)
-			{
-				startPositionString = printStartPosition();
-				stopPositionString = printStopPosition();
-			}
+//		beginTime = getCurrentTimeMillis();
+//		if ( isOpen )
+//	    {
+//			// we don't want to keep around a pointer to the
+//			// row ... so it can be thrown away.
+//			// REVISIT: does this need to be in a finally
+//			// block, to ensure that it is executed?
+//		    clearCurrentRow();
+//
+//		    //TODO: need to get ScanInfo to store in runtime statistics
+//		    scanProperties = getScanProperties();
+//
+//			// This is where we get the positioner info for inner tables
+//			if (runTimeStatisticsOn)
+//			{
+//				startPositionString = printStartPosition();
+//				stopPositionString = printStopPosition();
+//			}
 
 			super.close();
-	    }
+//	    }
 		
 		closeTime += getElapsedMillis(beginTime);
 	}
-	
-	public Properties getScanProperties()
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		public Properties getScanProperties()
 	{
 		//TODO: need to get ScanInfo to store in runtime statistics
 		if (scanProperties == null) 

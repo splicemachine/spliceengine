@@ -27,9 +27,6 @@ if [[ -n "${KILL_PID}" ]]; then
         exit 1;
     fi
 
-    # DEBUG
-    #echo "Killing PID: ${KILL_PID}"
-
     if [[ -n "$KILL_PID" ]]; then
         kill -15 ${KILL_PID}
         sleep ${TIMEOUT}

@@ -215,6 +215,7 @@
 										<exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
+                                            <arg value="${failTasksRandomly}"/>
 										</exec>
 										<sleep seconds="90" />
 									</target>
@@ -363,6 +364,7 @@
 								<argument>60027</argument>
                                 <argument>60028</argument>
                                 <argument>1530</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 
 						</configuration>

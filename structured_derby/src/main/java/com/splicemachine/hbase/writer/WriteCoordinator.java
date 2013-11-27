@@ -1,23 +1,21 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,7 +35,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
     public static PreFlushHook noOpFlushHook = new PreFlushHook() {
         @Override
-        public List<KVPair> transform(List<KVPair> buffer) throws Exception {
+        public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception {
             return buffer;
         }
     };
@@ -81,7 +79,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
     public interface PreFlushHook{
-        public List<KVPair> transform(List<KVPair> buffer) throws Exception;
+        public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception;
     }
 
     public void start(){

@@ -1,35 +1,47 @@
 package com.splicemachine.storage;
 
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Scott Fines
  * Created on: 7/9/13
  */
 public class AndPredicate implements Predicate{
-    private List<Predicate> ands;
+    private ObjectArrayList<Predicate> ands;
 
 
-    public AndPredicate(List<Predicate> ands) {
-        this.ands = Collections.unmodifiableList(new LinkedList<Predicate>(ands));
+    public AndPredicate(ObjectArrayList<Predicate> ands) {
+        this.ands = new ObjectArrayList<Predicate>(ands);
     }
 
     @Override
     public boolean applies(int column) {
-        for(Predicate predicate:ands){
-            if(predicate.applies(column)) return true;
-        }
+    	Object[] buffer = ands.buffer;
+    	int iBuffer = ands.size();
+    	for (int i = 0; i < iBuffer; i++) {
+            if( ((Predicate)buffer[i]).applies(column)) 
+            	return true;    		
+    	}
         return false;
     }
 
     @Override
     public boolean match(int column, byte[] data, int offset, int length) {
         if(ands != null){
-            for(Predicate predicate : ands){
-                if(!predicate.applies(column)) continue; //skip non-applicable columns
-
+        	Object[] buffer = ands.buffer;
+        	int iBuffer = ands.size();
+        	for (int i = 0; i < iBuffer; i++) {
+        		Predicate predicate = (Predicate) buffer[i];
+                if(!predicate.applies(column)) 
+                	continue; //skip non-applicable columns
                 if(!predicate.match(column, data, offset, length)){
                     return false;
                 }
@@ -40,7 +52,10 @@ public class AndPredicate implements Predicate{
 
     @Override
     public boolean checkAfter() {
-        for(Predicate and:ands){
+    	Object[] buffer = ands.buffer;
+    	int iBuffer = ands.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate and = (Predicate) buffer[i];
             if(and.checkAfter()) return true;
         }
         return false;
@@ -48,7 +63,10 @@ public class AndPredicate implements Predicate{
 
     @Override
     public void setCheckedColumns(BitSet checkedColumns) {
-        for(Predicate predicate:ands){
+    	Object[] buffer = ands.buffer;
+    	int iBuffer = ands.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
             predicate.setCheckedColumns(checkedColumns);
         }
     }
@@ -56,7 +74,10 @@ public class AndPredicate implements Predicate{
     @Override
     public void reset() {
         //reset children
-        for(Predicate predicate:ands){
+    	Object[] buffer = ands.buffer;
+    	int iBuffer = ands.size();
+    	for (int i = 0; i < iBuffer; i++) {
+    		Predicate predicate = (Predicate) buffer[i];
             predicate.reset();
         }
     }
@@ -78,7 +99,7 @@ public class AndPredicate implements Predicate{
     }
 
     public static Pair<AndPredicate,Integer> fromBytes(byte[] data, int offset) throws IOException {
-        Pair<List<Predicate>,Integer> predicates = Predicates.allFromBytes(data,offset);
+        Pair<ObjectArrayList<Predicate>,Integer> predicates = Predicates.allFromBytes(data,offset);
         return Pair.newPair(new AndPredicate(predicates.getFirst()),predicates.getSecond()-offset+1);
     }
 

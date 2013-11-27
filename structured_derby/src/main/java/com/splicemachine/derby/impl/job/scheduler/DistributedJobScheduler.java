@@ -9,12 +9,15 @@ import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -27,7 +30,8 @@ import java.util.concurrent.ExecutionException;
  */
 public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     private static final int DEFAULT_MAX_RESUBMISSIONS = 20;
-    protected final SpliceZooKeeperManager zkManager;
+		private static final Logger LOG = Logger.getLogger(DistributedJobScheduler.class);
+		protected final SpliceZooKeeperManager zkManager;
     private final int maxResubmissionAttempts;
 
     private final JobMetrics jobMetrics = new JobMetrics();
@@ -58,7 +62,37 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
         return jobMetrics;
     }
 
- /********************************************************************************************/
+		@Override
+		public long[] getActiveOperations() throws ExecutionException {
+				/*
+				 *Look at ZooKeeper for the job list
+				 */
+				try {
+						List<String> children = zkManager.getRecoverableZooKeeper().getChildren(CoprocessorTaskScheduler.getJobPath(), false);
+						long[] jobs = new long[children.size()];
+						int i=0;
+						for(String child:children){
+								try{
+										jobs[i] = Long.parseLong(child);
+								}catch(NumberFormatException nfe){
+										jobs[i] = -1;
+									if(LOG.isDebugEnabled()){
+										LOG.debug("job "+ child+" ignored, because it is not an operation job");
+									}
+								}
+								i++;
+						}
+						return jobs;
+				} catch (ZooKeeperConnectionException e) {
+						throw new ExecutionException(e);
+				} catch (InterruptedException e) {
+						throw new ExecutionException(e);
+				} catch (KeeperException e) {
+						throw new ExecutionException(e);
+				}
+		}
+
+		/********************************************************************************************/
     /*Private helper methods*/
 
     private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{

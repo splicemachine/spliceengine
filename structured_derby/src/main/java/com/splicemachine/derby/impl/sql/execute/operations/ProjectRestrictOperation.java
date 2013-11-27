@@ -135,17 +135,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 			}
 			cloneMap = ((boolean[])statement.getSavedObject(cloneMapItem));
 			if (this.constantRestrictionMethodName != null) {
-				SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
-				DataValueDescriptor restrictBoolean = constantRestriction.invoke();
-				shortCircuitOpen  = (restrictBoolean == null) || ((restrictBoolean!=null)&&(! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+					SpliceMethod<DataValueDescriptor> constantRestriction = new SpliceMethod<DataValueDescriptor>(constantRestrictionMethodName,activation);
+					DataValueDescriptor restrictBoolean = constantRestriction.invoke();
+					shortCircuitOpen  = (restrictBoolean == null) || ((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 
-                if(restrictBoolean != null && !restrictBoolean.isNull()){
-                    alwaysFalse = !restrictBoolean.getBoolean();
-                }else{
-                    alwaysFalse = false;
-                }
+					alwaysFalse = restrictBoolean != null && !restrictBoolean.isNull() && !restrictBoolean.getBoolean();
 
-            }
+			}
 			if (restrictionMethodName != null)
 				restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 			if (projectionMethodName != null)
@@ -181,7 +177,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         }
         // Copy any mapped columns from the source
         for (int index = 0; index < projectMapping.length; index++) {
-            if (projectMapping[index] != -1) {
+            if (sourceRow != null && projectMapping[index] != -1) {
                 DataValueDescriptor dvd = sourceRow.getColumn(projectMapping[index]);
                 // See if the column has been marked for cloning.
                 // If the value isn't a stream, don't bother cloning it.
@@ -199,32 +195,26 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         ExecRow fromResults = getExecRowDefinition();
-        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(fromResults),spliceRuntimeContext);
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
         SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 		nextTime += getCurrentTimeMillis() - beginTime;
 		return rs;
 	}
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return source.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
-    @Override
-    public RowEncoder getRowEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        ExecRow template = getExecRowDefinition();
-        return RowEncoder.create(template.nColumns(),null,null,null, KeyType.BARE, RowMarshaller.packed());
-    }
 
-    @Override
+		@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if(alwaysFalse){
@@ -285,7 +275,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 //		SpliceLogUtils.trace(LOG, "getExecRowDefinition with source %s",source);
 		ExecRow def = source.getExecRowDefinition();
         try {
-            SpliceUtils.populateDefaultValues(def.getRowArray(),1);
+            if (def != null) SpliceUtils.populateDefaultValues(def.getRowArray(),1);
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG,e);
         }
@@ -344,27 +334,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 		/* Nothing to do if open was short circuited by false constant expression */
-		if (shortCircuitOpen)
-		{
-			isOpen = false;
-			shortCircuitOpen = false;
-			source.close();
-			return;
-		}
-
-		beginTime = getCurrentTimeMillis();
-	    if ( isOpen ) {
-
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-	    	clearCurrentRow();
-
-	        source.close();
-
-			super.close();
-	    }
+				super.close();
+				source.close();
 		closeTime += getElapsedMillis(beginTime);
 	}
 
@@ -372,12 +343,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-        return new StringBuilder("ProjectRestrict:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
-                .append(indent).append("projectionMethodName:").append(projectionMethodName)
-                .append(indent).append("doesProjection:").append(doesProjection)
-                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
-                .toString();
+        return "ProjectRestrict:" + indent
+								+ "resultSetNumber:" + resultSetNumber + indent
+								+ "restrictionMethodName:" + restrictionMethodName + indent
+								+ "projectionMethodName:" + projectionMethodName + indent
+								+ "doesProjection:" + doesProjection + indent
+								+ "source:" + source.prettyPrint(indentLevel + 1);
     }
 }

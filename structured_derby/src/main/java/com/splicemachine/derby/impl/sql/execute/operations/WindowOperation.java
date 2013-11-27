@@ -167,12 +167,12 @@ public class WindowOperation extends SpliceBaseOperation {
     public void close() throws StandardException, IOException {
     	beginTime = getCurrentTimeMillis();
 
-    	if (isOpen) {
+//    	if (isOpen) {
     		clearCurrentRow();
     		source.close();
     		super.close();
 
-    	} 
+//    	}
 
     	closeTime += getElapsedMillis(beginTime);
     }

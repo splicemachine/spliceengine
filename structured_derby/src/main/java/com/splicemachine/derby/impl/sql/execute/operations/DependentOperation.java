@@ -452,33 +452,27 @@ public class DependentOperation extends ScanOperation {
 	  Close the all the opens we did in this result set.
 	  */
 	public void close()
-        throws StandardException
-	{
+					throws StandardException, IOException {
 		//save the information for the runtime stastics
 		// This is where we get the scan properties for the reference index scans
-		if (runTimeStatisticsOn)
-		{
+		if (runTimeStatisticsOn) {
 			startPositionString = printStartPosition();
 			stopPositionString = printStopPosition();
 			scanProperties = getScanProperties();
 		}
 
-		if (indexSC != null) 
-		{
+		if (indexSC != null)  {
 			indexSC.close();
 			indexSC = null;
 		}
 
-		if ( heapCC != null )
-		{
+		if ( heapCC != null ) {
 			heapCC.close();
 			heapCC = null;
 		}
-		if(isOpen)
-		{
-			source.close();  
-		}
-		
+			super.close();
+			source.close();
+
 	}
 
 	public void	finish() throws StandardException {

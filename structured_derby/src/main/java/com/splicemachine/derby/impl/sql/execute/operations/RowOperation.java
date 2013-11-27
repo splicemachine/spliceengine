@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -193,14 +194,13 @@ public class RowOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
 
@@ -210,7 +210,7 @@ public class RowOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 	}
 
@@ -228,19 +228,20 @@ public class RowOperation extends SpliceBaseOperation {
 	@Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"close in RowOp");
-	    
+
 		beginTime = getCurrentTimeMillis();
-		if (isOpen) {
-
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-	    	clearCurrentRow();
-	    	next = false;
-
 			super.close();
-		}
+//		if (isOpen) {
+//
+//			// we don't want to keep around a pointer to the
+//			// row ... so it can be thrown away.
+//			// REVISIT: does this need to be in a finally
+//			// block, to ensure that it is executed?
+//	    	clearCurrentRow();
+	    	next = false;
+//
+//			super.close();
+//		}
 		
 		closeTime += getElapsedMillis(beginTime);
 	}

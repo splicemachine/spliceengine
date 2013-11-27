@@ -7,6 +7,7 @@ import com.splicemachine.job.*;
 import com.splicemachine.tools.BalancedBlockingQueue;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -124,14 +125,14 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
                 SchedulerTracer.traceTaskEnd();
                 completeTask();
             }catch(ExecutionException ee){
-                    SpliceLogUtils.error(WORKER_LOG,"task "+ task.getTaskId()+" had an unexpected error",ee.getCause());
+                    SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toString(task.getTaskId())+" had an unexpected error",ee.getCause());
                     try{
                         task.markFailed(ee.getCause());
                     }catch(ExecutionException failEx){
                         SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
                     }
             }catch(Throwable t){
-                SpliceLogUtils.error(WORKER_LOG, "task " + task.getTaskId() + " had an unexpected error while setting state", t);
+                SpliceLogUtils.error(WORKER_LOG, "task " + Bytes.toString(task.getTaskId()) + " had an unexpected error while setting state", t);
                 try{
                     task.markFailed(t);
                 }catch(ExecutionException failEx){

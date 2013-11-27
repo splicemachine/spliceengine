@@ -1,13 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -16,12 +12,12 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.utils.SpliceLogUtils;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class NestedLoopJoinOperation extends JoinOperation {
 	private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
@@ -62,64 +58,31 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	
 	@Override
 	public List<NodeType> getNodeTypes() {
-//		SpliceLogUtils.trace(LOG, "getNodeTypes");
 		return nodeTypes;
 	}
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
 		isHash = in.readBoolean();
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
 		out.writeBoolean(isHash);
 	}
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
-//		SpliceLogUtils.trace(LOG,"init called");
 		super.init(context);
-		mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
 		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-		rightResultSet.init(context);
-	}
-	
-	@Override
-	public NoPutResultSet executeScan() throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeScan");
-		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
-		this.generateLeftOperationStack(operationStack);
-		SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
-		return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this,getRowEncoder(spliceRuntimeContext).getDual(getExecRowDefinition()),spliceRuntimeContext));
 	}
 
-    @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        //push the computation to the left side of the join
-        //TODO -sf- push this to the largest table in the join (or make the largest table always be the left)
-        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
-
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
-    }
-
-    @Override
-	public ExecRow getExecRowDefinition() throws StandardException {
-		JoinUtils.getMergedRow(((SpliceOperation)this.leftResultSet).getExecRowDefinition(),((SpliceOperation)this.rightResultSet).getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
-		return mergedRow;
-	}
-	
-	@Override
-	public String toString() {
-		return "NestedLoop"+super.toString();
-	}
+		@Override
+		public String toString() {
+				return "NestedLoop"+super.toString();
+		}
 
 	@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -187,7 +150,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			}
 			else {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-				probeResultSet = (getRightResultSet()).executeScan();
+				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
 			}
 			probeResultSet.openCore();
 			populated=false;

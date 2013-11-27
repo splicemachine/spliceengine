@@ -8,11 +8,14 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -85,6 +88,10 @@ public class HdfsImport extends ParallelVTI {
     private static final int COLNULLABLE_POSITION = 11;
     private static final int COLSIZE_POSITION = 7;
     private static final int COLNUM_POSITION = 17;
+    private static final int DECIMALDIGITS_POSIITON = 9;
+    private static final int COLUMNDEFAULT_POSIITON = 13;
+    private static final int ISAUTOINCREMENT_POSIITON = 23;
+    private static final String AUTOINCREMENT_PREFIX = "AUTOINCREMENT: start ";
     private HBaseAdmin admin;
 
     public HdfsImport(ImportContext context){
@@ -206,7 +213,7 @@ public class HdfsImport extends ParallelVTI {
 		try {
             importer = new HdfsImport(builder.build());
 			importer.open();
-			importer.executeShuffle();
+			importer.executeShuffle(new SpliceRuntimeContext());
 		} catch (StandardException e) {
 			throw PublicAPI.wrapStandardException(e);
 		}
@@ -247,7 +254,7 @@ public class HdfsImport extends ParallelVTI {
 		try {
             importer = new HdfsImport(builder.build());
 			importer.open();
-			importer.executeShuffle();
+			importer.executeShuffle(new SpliceRuntimeContext());
 		} catch(AssertionError ae){
             throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
         } catch(StandardException e) {
@@ -269,7 +276,17 @@ public class HdfsImport extends ParallelVTI {
 		}
 	}
 
-    @Override
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				throw new UnsupportedOperationException();
+		}
+
+		@Override
     public int[] getRootAccessedCols(long tableNumber) {
         throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
     }
@@ -280,7 +297,7 @@ public class HdfsImport extends ParallelVTI {
     }
 
 		@Override
-		public void executeShuffle() throws StandardException {
+		public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
 				ImportFile file = new ImportFile(context.getFilePath().toString());
 				byte[] tableName = context.getTableName().getBytes();
 				try {
@@ -290,9 +307,9 @@ public class HdfsImport extends ParallelVTI {
 				}
 				HTableInterface table = SpliceAccessManager.getHTable(tableName);
 
+				List<JobFuture> jobFutures = Lists.newArrayList();
 				try {
 						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-						List<JobFuture> jobFutures = Lists.newArrayList();
 						for (Path path:file.getPaths()) {
 								context.setFilePath(path);
 								jobFutures.add(SpliceDriver.driver().getJobScheduler().submit(getImportJob(table,codecFactory,path)));
@@ -308,9 +325,15 @@ public class HdfsImport extends ParallelVTI {
 				} // still need to cancel all other jobs ? // JL
 				catch (IOException e) {
 						throw Exceptions.parseException(e);
-				}
-				finally{
+				} finally{
 						Closeables.closeQuietly(table);
+						for(JobFuture future:jobFutures){
+								try {
+										future.cleanup();
+								} catch (ExecutionException e) {
+										LOG.error("Exception cleaning up import future",e);
+								}
+						}
 				}
 		}
 
@@ -549,9 +572,21 @@ public class HdfsImport extends ParallelVTI {
         colBuilder.columnType(colType);
         boolean isNullable = rs.getInt(COLNULLABLE_POSITION)!=0;
         colBuilder.nullable(isNullable);
-        if(colType== Types.CHAR||colType==Types.VARCHAR||colType==Types.LONGVARCHAR){
+        if(colType== Types.CHAR||colType==Types.VARCHAR||colType==Types.LONGVARCHAR||colType == Types.DECIMAL){
             int colSize = rs.getInt(COLSIZE_POSITION);
             colBuilder.length(colSize);
+        }
+        if (colType == Types.DECIMAL)
+        {
+        	int decimalDigits = rs.getInt(DECIMALDIGITS_POSIITON);
+        	colBuilder.decimalDigits(decimalDigits);
+        }
+        // The default column value is NOT valid if autoincrement is true and and result default column value
+        // is something like "AUTOINCREMENT: start x increment y"
+        String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
+        String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
+        if (isAutoIncrement.compareTo("YES") != 0 || !colDefault.startsWith(AUTOINCREMENT_PREFIX)) {
+        	colBuilder.columnDefault(colDefault);
         }
         return colBuilder;
     }

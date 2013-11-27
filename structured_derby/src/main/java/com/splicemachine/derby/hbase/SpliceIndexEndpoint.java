@@ -1,5 +1,6 @@
 package com.splicemachine.derby.hbase;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
@@ -18,6 +19,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -137,17 +139,23 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 //we're done, someone else will have to write this batch
                 throw new IOException(e);
             }
-            for(KVPair mutation:bulkWrite.getMutations()){
-                context.sendUpstream(mutation); //send all writes along the pipeline
+            
+            
+            Object[] bufferArray = bulkWrite.getBuffer();
+            int size = bulkWrite.getSize();
+            for (int i = 0; i<size; i++) {
+                context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
             }
             Map<KVPair,WriteResult> resultMap = context.finish();
 
             BulkWriteResult response = new BulkWriteResult();
-            List<KVPair> mutations = bulkWrite.getMutations();
+            ObjectArrayList<KVPair> mutations = bulkWrite.getMutations();
             int pos=0;
             int failed=0;
-            for(KVPair mutation:mutations){
-                WriteResult result = resultMap.get(mutation);
+            bufferArray = bulkWrite.getBuffer();
+            size = bulkWrite.getSize();
+            for (int i = 0; i<size; i++) {
+                WriteResult result = resultMap.get((KVPair)bufferArray[i]);
                 if(result.getCode()== WriteResult.Code.FAILED){
                     failed++;
                 }
