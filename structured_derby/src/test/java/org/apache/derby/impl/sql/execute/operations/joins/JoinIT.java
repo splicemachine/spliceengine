@@ -93,7 +93,8 @@ public class JoinIT extends SpliceUnitTest {
                 CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
 
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertTrue("Expecting rows from join.", rs.next());
+        int nRows = resultSetSize(rs);
+        Assert.assertEquals("Expecting 2 rows from join.", 2, nRows);
     }
 
     /**
@@ -143,8 +144,9 @@ public class JoinIT extends SpliceUnitTest {
     @Test
     public void testLeftOuterJoinBug976Compare() throws Exception {
 
-        String query = format("select * from %s.A left outer join (%s.B join %s.C on b2=c2) on a1=b1",
-                CLASS_NAME, CLASS_NAME, CLASS_NAME, CLASS_NAME);
+//        String query = format("select * from %s.A left outer join (%s.B join %s.C on b2=c2) --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on a1=b1",
+//                CLASS_NAME, CLASS_NAME, CLASS_NAME);
+        String query = "select * from JoinIT.A left outer join (JoinIT.B join JoinIT.C on b2=c2) on a1=b1";
 
         String expectedColumns = "A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
         List<String> expectedRows = Arrays.asList(
@@ -239,7 +241,6 @@ public class JoinIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult expected = TestUtils.FormattedResult.ResultFactory.convert(query, expectedColumns, expectedRows, "\\s+");
         TestUtils.FormattedResult actual = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(actual.toString());
         Assert.assertEquals("Actual results didn't match expected.", expected.toString(), actual.toString());
     }
 

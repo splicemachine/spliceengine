@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.StandardSuppliers;
+import java.io.IOException;
+import java.util.Iterator;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.Iterator;
 
 import static com.splicemachine.derby.utils.StandardIterators.StandardIteratorIterator;
 
@@ -51,6 +54,7 @@ public class MergeSortJoiner {
     private byte[] currentRowKey;
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
+    private boolean isClosed;
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            StandardIterator<JoinSideExecRow> scanner,
@@ -89,11 +93,14 @@ public class MergeSortJoiner {
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right){
+        System.out.println(">>>     MSJr Right: "+(right != null ? right.toString() : "NULL RIGHT ROW"));
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
     }
 
     private void addLeftAndRights(Pair<ExecRow,Iterator<ExecRow>> leftAndRights){
         currentLeftRow = leftAndRights.getFirst();
+        System.out.println(">>>     MSJr Left: "+(currentLeftRow != null ? currentLeftRow.toString() : "NULL LEFT ROW"));
+
         rightSideRowIterator = leftAndRights.getSecond();
         rightSideReturned = false;
     }
@@ -105,15 +112,18 @@ public class MergeSortJoiner {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row
+                    System.out.println(">>>       MSJr Right Discarded");
                     continue;
                 }
                 if (antiJoin){
                     // if antijoin, discard row but remember that we found a match
+                    System.out.println(">>>        MSJr Antijoin ");
                     foundRows = true;
                     continue;
                 }
                 if (oneRowRightSide){
                     // before we return a row: if we need to return only one, ignore the rest
+                    System.out.println(">>>       MSJr Nulling RightSideRowIterator ");
                     rightSideRowIterator = null;
                 }
                 rightSideReturned = true;
@@ -123,6 +133,7 @@ public class MergeSortJoiner {
                 // if we've consumed right side iterator without finding a match & we return empty rows,
                 // return with empty right side
                 rightSideReturned = true;
+                System.out.println(">>>       MSJr Consumed all rights. Returning empty right side.");
                 return getMergedRow(currentLeftRow, emptyRowSupplier.get());
             }
         }
@@ -136,6 +147,7 @@ public class MergeSortJoiner {
             addLeftAndRights(joinRowsSource.next());
             row = getNextFromBuffer();
         }
+        System.out.println(">>>     MSJr Emit: "+(row != null ? row.toString() : "NULL TOP ROW"));
         return row;
 
     }
@@ -157,10 +169,16 @@ public class MergeSortJoiner {
     }
 
     public void close() throws IOException, StandardException {
+        System.out.println(">>>     MSJr closing");
+        isClosed = true;
         scanner.close();
         if (bridgeScanner.hasException()){
             bridgeScanner.throwExceptions();
         }
+    }
+
+    public boolean isClosed() {
+        return isClosed;
     }
 }
 

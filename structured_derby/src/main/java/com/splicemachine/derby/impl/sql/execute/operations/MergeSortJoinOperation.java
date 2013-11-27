@@ -4,7 +4,11 @@ import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
@@ -12,16 +16,35 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.BucketingPrefix;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.FixedPrefix;
+import com.splicemachine.derby.utils.marshall.HashPrefix;
+import com.splicemachine.derby.utils.marshall.KeyDecoder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.KeyPostfix;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.UniquePostfix;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -31,13 +54,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
@@ -122,6 +138,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public void open() throws StandardException, IOException {
+        System.out.println(">>>     MSJ Opening: joiner "+(joiner != null ? "not " : "")+"null");
         super.open();
         if(joiner!=null){
             joiner.close();
@@ -129,39 +146,27 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
     }
 
-		protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "next");
-				if(joiner==null){
-						SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
-						SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
-						if(spliceRuntimeContext.isSink()){
-								left.markAsSink();
-								right.markAsSink();
-						}
-						byte[] currentTaskId = spliceRuntimeContext.getCurrentTaskId();
-						KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT,leftHashKeys, currentTaskId).getDecoder();
-						KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys,leftNumCols),null).getDecoder();
-						PairDecoder leftDecoder = new PairDecoder(leftKeyDecoder,leftRowDecoder,leftRow);
-
-						KeyDecoder rightKeyDecoder = getKeyEncoder(JoinSide.RIGHT,rightHashKeys, currentTaskId).getDecoder();
-						KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys,rightNumCols),null).getDecoder();
-						PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder,rightRowDecoder,rightRow);
-
-						StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
-						scanner.open();
-						Restriction mergeRestriction = getRestriction();
-						joiner = getMergeJoiner(outer, scanner, mergeRestriction);
-				}
-				beginTime = getCurrentTimeMillis();
-				boolean shouldClose = true;
-				try{
-						ExecRow joinedRow = joiner.nextRow();
-						if(joinedRow!=null){
-								rowsSeen++;
-								shouldClose =false;
-								setCurrentRow(joinedRow);
-								if(currentRowLocation==null)
-										currentRowLocation = new HBaseRowLocation();
+    protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG, "next");
+        if(joiner==null){
+            joiner = createJoiner(outer, spliceRuntimeContext);
+        } else if (joiner.isClosed()) {
+            init(SpliceOperationContext.newContext(activation));
+            joiner = createJoiner(outer, spliceRuntimeContext);
+        }
+        beginTime = getCurrentTimeMillis();
+        boolean shouldClose = true;
+        try{
+            ExecRow joinedRow = null;
+            if (joiner != null) {
+                joinedRow = joiner.nextRow();
+            }
+            if(joinedRow!=null){
+                rowsSeen++;
+                shouldClose =false;
+                setCurrentRow(joinedRow);
+                if(currentRowLocation==null)
+                        currentRowLocation = new HBaseRowLocation();
                 currentRowLocation.setValue(joiner.lastRowLocation());
                 setCurrentRowLocation(currentRowLocation);
             }else{
@@ -170,7 +175,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             return joinedRow;
         }finally{
             if(shouldClose){
-                if(LOG.isDebugEnabled()){
+                if(LOG.isDebugEnabled() && joiner != null){
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
                             rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
@@ -179,8 +184,30 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
     }
 
+    private MergeSortJoiner createJoiner(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        SpliceRuntimeContext left = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+        SpliceRuntimeContext right = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+        if(spliceRuntimeContext.isSink()){
+                left.markAsSink();
+                right.markAsSink();
+        }
+        byte[] currentTaskId = spliceRuntimeContext.getCurrentTaskId();
+        KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT,leftHashKeys, currentTaskId).getDecoder();
+        KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null).getDecoder();
+        PairDecoder leftDecoder = new PairDecoder(leftKeyDecoder,leftRowDecoder,leftRow);
+
+        KeyDecoder rightKeyDecoder = getKeyEncoder(JoinSide.RIGHT,rightHashKeys, currentTaskId).getDecoder();
+        KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys,rightNumCols),null).getDecoder();
+        PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder,rightRowDecoder,rightRow);
+
+        StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext, leftDecoder, rightDecoder);
+        scanner.open();
+        Restriction mergeRestriction = getRestriction();
+        return getMergeJoiner(outer, scanner, mergeRestriction);
+    }
+
     @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] start = uniqueSequenceID;
         byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
         reduceScan = Scans.newScan(start,finish,SpliceUtils.NA_TRANSACTION_ID);
@@ -341,11 +368,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     @Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in MergeSortJoin");
+        System.out.println(">>>     MSJ Close: joiner " + (joiner != null ? "not " : "") + "null");
 		beginTime = getCurrentTimeMillis();
 		super.close();
 
-//        if(joiner!=null)
-//            joiner.close();
+        if(joiner!=null)
+            joiner.close();
 //		if ( isOpen )
 //		{
 //            //delete from the temp space
@@ -366,7 +394,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		/***********************************************************************************************************************************/
     /*private helper methods*/
     private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext,
-																															PairDecoder leftDecoder,
+                PairDecoder leftDecoder,
 																															PairDecoder rightDecoder) {
         StandardIterator<JoinSideExecRow> scanner;
         if(spliceRuntimeContext.isSink()){
@@ -378,6 +406,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     }
 
     private MergeSortJoiner getMergeJoiner(boolean outer, final StandardIterator<JoinSideExecRow> scanner, final Restriction mergeRestriction) {
+        System.out.println(">>>     MSJ Getting MS Joiner for "+(outer ? "Outer " : "")+"join");
         if(outer){
             StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
                 @Override
