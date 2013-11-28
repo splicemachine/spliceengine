@@ -2,14 +2,18 @@ package com.splicemachine.derby.ddl;
 
 import com.carrotsearch.hppc.BitSet;
 
-import java.io.Serializable;
+import java.io.*;
 
-public class TentativeIndexDesc implements Serializable {
+public class TentativeIndexDesc implements Externalizable {
     long conglomerateNumber;
     long baseConglomerateNumber;
     int[] indexColsToMainColMap;
     boolean unique;
     BitSet descColumns;
+
+    /** For serialization, don't use */
+    public TentativeIndexDesc() {
+    }
 
     public TentativeIndexDesc(long conglomerateNumber, long baseConglomerateNumber, int[] indexColsToMainColMap, boolean unique, BitSet descColumns) {
         super();
@@ -38,5 +42,26 @@ public class TentativeIndexDesc implements Serializable {
 
     public long getBaseConglomerateNumber() {
         return baseConglomerateNumber;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeLong(conglomerateNumber);
+        out.writeLong(baseConglomerateNumber);
+        out.writeObject(indexColsToMainColMap);
+        out.writeBoolean(unique);
+        out.writeInt(descColumns.wlen);
+        out.writeObject(descColumns.bits);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        conglomerateNumber = in.readLong();
+        baseConglomerateNumber = in.readLong();
+        indexColsToMainColMap = (int[]) in.readObject();
+        unique = in.readBoolean();
+        int length = in.readInt();
+        long[] bits = (long[]) in.readObject();
+        descColumns = new BitSet(bits, length);
     }
 }

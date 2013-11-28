@@ -43,20 +43,16 @@ import java.util.concurrent.ExecutionException;
  * Created on: 4/5/13
  */
 public class PopulateIndexTask extends ZkTask {
-    private static final long serialVersionUID = 4l;
+    private static final long serialVersionUID = 5l;
     private String transactionId;
     private long indexConglomId;
     private long baseConglomId;
     private int[] mainColToIndexPosMap;
     private boolean isUnique;
     private BitSet indexedColumns;
-    private BitSet nonUniqueIndexColumns;
     private BitSet descColumns;
 
-    private MultiFieldEncoder translateEncoder;
-
     private HRegion region;
-    private RegionCoprocessorEnvironment rce;
 
     //performance improvement
     private KVPair mainPair;
@@ -86,7 +82,6 @@ public class PopulateIndexTask extends ZkTask {
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper) throws ExecutionException {
         this.region = rce.getRegion();
-        this.rce = rce;
         super.prepareTask(rce, zooKeeper);
     }
 
@@ -101,10 +96,12 @@ public class PopulateIndexTask extends ZkTask {
         out.writeUTF(transactionId);
         out.writeLong(indexConglomId);
         out.writeLong(baseConglomId);
-        out.writeObject(indexedColumns);
+        out.writeInt(indexedColumns.wlen);
+        ArrayUtil.writeLongArray(out, indexedColumns.bits);
         ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
-        out.writeObject(descColumns);
+        out.writeInt(descColumns.wlen);
+        ArrayUtil.writeLongArray(out, descColumns.bits);
     }
 
     @Override
@@ -113,10 +110,12 @@ public class PopulateIndexTask extends ZkTask {
         transactionId = in.readUTF();
         indexConglomId = in.readLong();
         baseConglomId = in.readLong();
-        indexedColumns = (BitSet)in.readObject();
+        int numWords = in.readInt();
+        indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
-        descColumns = (BitSet)in.readObject();
+        numWords = in.readInt();
+        descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
     }
 
     @Override
@@ -134,9 +133,6 @@ public class PopulateIndexTask extends ZkTask {
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
-        nonUniqueIndexColumns = (BitSet)indexedColumns.clone();
-        nonUniqueIndexColumns.set(indexedColumns.length());
-
         long totalReadTime = 0l;
         long numRecordsRead = 0l;
         try{
@@ -145,7 +141,6 @@ public class PopulateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-//            sourceScanner = new BufferedRegionScanner(region,sourceScanner,1024);
             region.startRegionOperation();
             MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
             try{
@@ -193,7 +188,6 @@ public class PopulateIndexTask extends ZkTask {
                                  IndexTransformer transformer,
                                  CallBuffer<KVPair> writeBuffer) throws Exception {
         //we know that there is only one KeyValue for each row
-        Put currentPut;
         for(KeyValue kv:result){
             //ignore SI CF
             if(kv.matchingFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)) continue;
