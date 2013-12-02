@@ -146,7 +146,7 @@ public class CreateIndexTask extends ZkTask {
 
 		private RegionScanner getScanner() throws IOException {
 				Scan regionScan = SpliceUtils.createScan(getTaskStatus().getTransactionId());
-				regionScan.setCaching(DEFAULT_CACHE_SIZE);
+				regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
 				regionScan.setStartRow(HConstants.EMPTY_START_ROW);
 				regionScan.setStopRow(HConstants.EMPTY_END_ROW);
 				regionScan.setCacheBlocks(false);
@@ -173,7 +173,7 @@ public class CreateIndexTask extends ZkTask {
 								nextRow.clear();
 								long start = System.nanoTime();
 								//bring in a block of records at once
-								shouldContinue  = sourceScanner.nextRaw(nextRow,DEFAULT_CACHE_SIZE,null);
+								shouldContinue  = sourceScanner.nextRaw(nextRow,SpliceConstants.DEFAULT_CACHE_SIZE,null);
 								long stop = System.nanoTime();
 								totalReadTime+=(stop-start);
 								numRecordsRead++;

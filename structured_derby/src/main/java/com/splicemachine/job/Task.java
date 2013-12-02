@@ -37,4 +37,12 @@ public interface Task {
      * @return true if this task should be treated as transactional
      */
     boolean isTransactional();
+
+		/**
+		 * @return the parent task id (if this is a child task), or {@code null}
+		 * if this has no parent task (e.g. if it is not a subtask)
+		 */
+		byte[] getParentTaskId();
+
+		String getJobId();
 }
