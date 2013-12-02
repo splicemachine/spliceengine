@@ -5,6 +5,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.StandardSuppliers;
+import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 import java.util.Iterator;
 import org.apache.derby.iapi.error.StandardException;
@@ -93,13 +94,13 @@ public class MergeSortJoiner {
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right){
-        System.out.println(">>>     MSJr Right: "+(right != null ? right.toString() : "NULL RIGHT ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Right: "+(right != null ? right.toString() : "NULL RIGHT ROW"));
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
     }
 
     private void addLeftAndRights(Pair<ExecRow,Iterator<ExecRow>> leftAndRights){
         currentLeftRow = leftAndRights.getFirst();
-        System.out.println(">>>     MSJr Left: "+(currentLeftRow != null ? currentLeftRow.toString() : "NULL LEFT ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Left: "+(currentLeftRow != null ? currentLeftRow.toString() : "NULL LEFT ROW"));
 
         rightSideRowIterator = leftAndRights.getSecond();
         rightSideReturned = false;
@@ -112,18 +113,18 @@ public class MergeSortJoiner {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row
-                    System.out.println(">>>       MSJr Right Discarded");
+                    SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Right Discarded");
                     continue;
                 }
                 if (antiJoin){
                     // if antijoin, discard row but remember that we found a match
-                    System.out.println(">>>        MSJr Antijoin ");
+                    SpliceLogUtils.debug(LOG, ">>>        MergeSortJoiner Antijoin ");
                     foundRows = true;
                     continue;
                 }
                 if (oneRowRightSide){
                     // before we return a row: if we need to return only one, ignore the rest
-                    System.out.println(">>>       MSJr Nulling RightSideRowIterator ");
+                    SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Nulling RightSideRowIterator ");
                     rightSideRowIterator = null;
                 }
                 rightSideReturned = true;
@@ -133,7 +134,7 @@ public class MergeSortJoiner {
                 // if we've consumed right side iterator without finding a match & we return empty rows,
                 // return with empty right side
                 rightSideReturned = true;
-                System.out.println(">>>       MSJr Consumed all rights. Returning empty right side.");
+                SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Consumed all rights. Returning empty right side.");
                 return getMergedRow(currentLeftRow, emptyRowSupplier.get());
             }
         }
@@ -147,7 +148,7 @@ public class MergeSortJoiner {
             addLeftAndRights(joinRowsSource.next());
             row = getNextFromBuffer();
         }
-        System.out.println(">>>     MSJr Emit: "+(row != null ? row.toString() : "NULL TOP ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: " + (row != null ? row.toString() : "NULL TOP ROW"));
         return row;
 
     }
@@ -169,12 +170,16 @@ public class MergeSortJoiner {
     }
 
     public void close() throws IOException, StandardException {
-        System.out.println(">>>     MSJr closing");
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner closing");
         isClosed = true;
         scanner.close();
         if (bridgeScanner.hasException()){
             bridgeScanner.throwExceptions();
         }
+    }
+
+    public void open() {
+        this.isClosed = false;
     }
 
     public boolean isClosed() {

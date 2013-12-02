@@ -143,9 +143,6 @@ public class JoinIT extends SpliceUnitTest {
      */
     @Test
     public void testLeftOuterJoinBug976Compare() throws Exception {
-
-//        String query = format("select * from %s.A left outer join (%s.B join %s.C on b2=c2) --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on a1=b1",
-//                CLASS_NAME, CLASS_NAME, CLASS_NAME);
         String query = "select * from JoinIT.A left outer join (JoinIT.B join JoinIT.C on b2=c2) on a1=b1";
 
         String expectedColumns = "A1 A2 A3 A4 A5 A6 B1 B2 B3 B4 B5 B6 C1 C2 C3 C4 C5 C6";
