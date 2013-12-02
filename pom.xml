@@ -48,6 +48,7 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
         <skip.integration.tests>true</skip.integration.tests>
         <failTasksRandomly>true</failTasksRandomly>
+        <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
     </properties>
     <!-- Lets go with 1.6 compliance -->
 

@@ -103,7 +103,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             }
             leftResultSet.setCurrentRow(leftRow);
             rowsSeenLeft++;
-            System.out.println(">>>  NLJ: new NLIterator");
+            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
             nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
         }
         if (leftRow == null){
@@ -111,10 +111,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
             setCurrentRow(mergedRow);
             return mergedRow;
         } else {
-            SpliceLogUtils.trace(LOG, "nextRow loop iterate next ");
             ExecRow next = nestedLoopIterator.next();
-            System.out.println(">>>  NLJ: Next: "+(next != null ? next : "NULL Next Row"));
-            SpliceLogUtils.trace(LOG,"nextRow returning %s",next);
+            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: "+(next != null ? next : "NULL Next Row"));
             setCurrentRow(next);
             nextTime += getElapsedMillis(beginTime);
             rowsReturned++;
@@ -154,7 +152,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
 				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
 			}
-            System.out.println(">>> NLJ: Opening "+(outerJoin?"Outer ":"")+"join. Left: "+(leftRow != null ? leftRow : "NULL Left Row"));
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening "+(outerJoin?"Outer ":"")+"join. Left: "+(leftRow != null ? leftRow : "NULL Left Row"));
 			probeResultSet.openCore();
 			populated=false;
             this.outerJoin = outerJoin;
@@ -162,8 +160,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		
 		@Override
 		public boolean hasNext() {
-			SpliceLogUtils.trace(LOG, "hasNext called");
-            System.out.println(">>> NLJ hasNext() "+(restriction != null?"with ":"without ")+"restriction");
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() "+(restriction != null?"with ":"without ")+"restriction");
             if(populated)return true;
 			rightResultSet.clearCurrentRow();
 			try {
@@ -176,7 +173,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     rightRow = (rightRow == null) ? rightTemplate : null;
                 }
                 if (outerJoin && rightRow == null){
-                    System.out.println(">>> NLJ: Outer join with empty right row");
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");
 
                     rightRow = getEmptyRightRow();
                 }
@@ -188,8 +185,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                         return false;
                     }
 
-                    System.out.println(">>> NLJ Right: "+rightRow);
-                    SpliceLogUtils.trace(LOG, "right has result %s", rightRow);
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: "+rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
@@ -203,8 +199,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
                     mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
                 }else {
-                    System.out.println(">>> NLJ Right: "+rightRow);
-					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: "+rightRow);
 					populated = false;
 					return false;
 				}
@@ -251,8 +246,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
-			SpliceLogUtils.trace(LOG, "close, closing probe result set");
-            System.out.println(">>> NLJ: Closing "+(isOpen? "": "closed ")+(outerJoin?"Outer ":"")+"join.");
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing "+(isOpen? "": "closed ")+(outerJoin?"Outer ":"")+"join.");
 			beginTime = getCurrentTimeMillis();
 			if (!isOpen)
 				return;
