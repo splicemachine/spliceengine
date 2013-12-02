@@ -5,7 +5,7 @@ import java.util.concurrent.FutureTask;
 
 /**
  * @author Scott Fines
- *         Created on: 4/12/13
+ * Created on: 4/12/13
  */
 public class CallableAccessibleFutureTask<V> extends FutureTask<V> {
     private final Callable<V> callable;

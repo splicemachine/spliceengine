@@ -36,8 +36,8 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 5/9/13
  */
-public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
-    private static final long serialVersionUID = 5l;
+public abstract class ZkTask implements RegionTask,Externalizable {
+    private static final long serialVersionUID = 6l;
     protected final Logger LOG;
     protected TaskStatus status;
     //job scheduler creates the task id
@@ -48,6 +48,8 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     private String parentTxnId;
     private boolean readOnly;
     private String taskPath;
+
+		private byte[] parentTaskId = null;
 
     protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -62,13 +64,20 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
      * @param readOnly
      */
     protected ZkTask(String jobId, int priority,String parentTxnId,boolean readOnly) {
-        this.LOG = Logger.getLogger(this.getClass());
-        this.jobId = jobId;
-        this.priority = priority;
-        this.status = new TaskStatus(Status.PENDING,null);
-        this.parentTxnId = parentTxnId;
-        this.readOnly = readOnly;
+				this(jobId,priority,parentTxnId,readOnly,null);
     }
+
+		protected ZkTask(String jobId, int priority,
+										 String parentTxnId,
+										 boolean readOnly,byte[] parentTaskId) {
+				this.LOG = Logger.getLogger(this.getClass());
+				this.jobId = jobId;
+				this.priority = priority;
+				this.status = new TaskStatus(Status.PENDING,null);
+				this.parentTxnId = parentTxnId;
+				this.readOnly = readOnly;
+				this.parentTaskId = parentTaskId;
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -82,6 +91,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             taskId = new byte[taskIdSize];
             in.readFully(taskId);
         }
+				if(in.readBoolean()){
+						parentTaskId = new byte[in.readInt()];
+						in.readFully(parentTaskId);
+				}
     }
 
     @Override
@@ -97,6 +110,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             out.write(taskId);
         }else
             out.writeInt(0);
+				out.writeBoolean(parentTaskId!=null);
+				if(parentTaskId!=null){
+						out.writeInt(parentTaskId.length);
+						out.write(parentTaskId);
+				}
     }
 
     @Override
@@ -315,4 +333,14 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     public boolean isTransactional() {
         return true;
     }
+
+		@Override
+		public byte[] getParentTaskId() {
+				return parentTaskId;
+		}
+
+		@Override
+		public String getJobId() {
+				return jobId;
+		}
 }
