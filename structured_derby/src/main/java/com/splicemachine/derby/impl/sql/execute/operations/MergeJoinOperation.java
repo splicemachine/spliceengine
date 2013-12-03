@@ -147,11 +147,9 @@ public class MergeJoinOperation extends JoinOperation {
     public void close() throws StandardException, IOException {
         if (rightBridgeIterator != null) {
             rightBridgeIterator.close();
-            rightBridgeIterator.throwExceptions();
-            leftBridgeIterator.throwExceptions();
+            leftBridgeIterator.close();
         }
         super.close();
     }
-
 
 }

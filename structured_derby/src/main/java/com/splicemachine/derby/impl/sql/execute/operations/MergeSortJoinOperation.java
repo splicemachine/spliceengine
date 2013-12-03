@@ -16,11 +16,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.JoinSideExecRow;
-import com.splicemachine.derby.utils.Scans;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.BucketingPrefix;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -55,6 +51,8 @@ import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
+import static com.splicemachine.derby.utils.StandardIterators.StandardIteratorIterator;
+
 public class MergeSortJoinOperation extends JoinOperation implements SinkingOperation {
     private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(MergeSortJoinOperation.class);
@@ -76,7 +74,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SCAN,NodeType.SINK);
 	}
 
-    private MergeSortJoiner joiner;
+    private StandardIteratorIterator<JoinSideExecRow> bridgeIterator;
+    private Joiner joiner;
 
     public MergeSortJoinOperation() {
 		super();
@@ -161,7 +160,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner ",(joiner != null ? "not " : ""),"null");
         super.open();
         if(joiner!=null){
-            joiner.close();
+            isOpen = false;
         }
     }
 
@@ -169,11 +168,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.trace(LOG, "next");
         if(joiner==null){
             joiner = createMergeJoiner(outer, spliceRuntimeContext);
-        } else if (joiner.isClosed() && ! spliceRuntimeContext.isSink()) {
+        } else if ( !isOpen && !spliceRuntimeContext.isSink()) {
             init(SpliceOperationContext.newContext(activation));
             joiner = createMergeJoiner(outer, spliceRuntimeContext);
         }
-        joiner.open();
+        isOpen = true;
         beginTime = getCurrentTimeMillis();
         boolean shouldClose = true;
         try{
@@ -184,7 +183,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 setCurrentRow(joinedRow);
                 if(currentRowLocation==null)
                         currentRowLocation = new HBaseRowLocation();
-                currentRowLocation.setValue(joiner.lastRowLocation());
+                //currentRowLocation.setValue(joiner.lastRowLocation());
                 setCurrentRowLocation(currentRowLocation);
             }else{
                 clearCurrentRow();
@@ -196,7 +195,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
                             rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
-                joiner.close();
+                isOpen = false;
+                bridgeIterator.close();
             }
         }
     }
@@ -344,9 +344,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Close: joiner ", (joiner != null ? "not " : ""), "null");
 		beginTime = getCurrentTimeMillis();
 		super.close();
+        isOpen = false;
 
-        if(joiner!=null)
-            joiner.close();
 //		if ( isOpen )
 //		{
 //            //delete from the temp space
@@ -368,9 +367,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     /*private helper methods*/
 
 
-        private MergeSortJoiner createMergeJoiner(boolean outer, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        private Joiner createMergeJoiner(boolean outer, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
             StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext);
             scanner.open();
+            bridgeIterator = StandardIterators.asIter(scanner);
+            MergeSortJoinRows joinRows = new MergeSortJoinRows(bridgeIterator);
             Restriction mergeRestriction = getRestriction();
 
             SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");
@@ -384,7 +385,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                         return emptyRow;
                     }
                 };
-                return new MergeSortJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,leftNumCols,rightNumCols,
+                return new Joiner(joinRows,mergedRow,mergeRestriction,wasRightOuterJoin,leftNumCols,rightNumCols,
                         oneRowRightSide,notExistsRightSide, emptyRowSupplier){
                     @Override
                     protected boolean shouldMergeEmptyRow(boolean noRecordsFound) {
@@ -398,7 +399,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                         return rightTemplate;
                     }
                 };
-                return new MergeSortJoiner(mergedRow,scanner,mergeRestriction,wasRightOuterJoin,
+                return new Joiner(joinRows,mergedRow,mergeRestriction,wasRightOuterJoin,
                         leftNumCols,rightNumCols,oneRowRightSide, notExistsRightSide,emptyRowSupplier);
             }
         }

@@ -10,10 +10,11 @@ import java.io.IOException;
 import java.util.Iterator;
 
 public class Joiner {
-    private static Logger LOG = Logger.getLogger(MergeSortJoiner.class);
+    private static Logger LOG = Logger.getLogger(Joiner.class);
 
     private Iterator<ExecRow> rightSideRowIterator;
     private ExecRow currentLeftRow;
+    private boolean rightSideReturned;
     private ExecRow mergedRowTemplate;
 
     private final IJoinRowsIterator<ExecRow> joinRowsSource;
@@ -23,9 +24,8 @@ public class Joiner {
     private final Restriction mergeRestriction;
     private final boolean oneRowRightSide;
     private final boolean antiJoin;
-
-    private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
+
 
     public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
                   ExecRow mergedRowTemplate,

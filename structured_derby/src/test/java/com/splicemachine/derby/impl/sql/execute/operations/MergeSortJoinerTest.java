@@ -141,7 +141,7 @@ public class MergeSortJoinerTest {
         }
     }
 
-    private List<ExecRow> populateFromJoiner(List<ExecRow> correctResults, MergeSortJoiner joiner) throws StandardException, IOException {
+    private List<ExecRow> populateFromJoiner(List<ExecRow> correctResults, Joiner joiner) throws StandardException, IOException {
         List<ExecRow> joinedAnswers = Lists.newArrayListWithExpectedSize(correctResults.size());
         ExecRow row;
         do{
@@ -387,10 +387,12 @@ public class MergeSortJoinerTest {
         //now for the actual test
 
         StandardIterator<JoinSideExecRow> scanner = getCollectionScanner(joinedRows);
+        StandardIterators.StandardIteratorIterator<JoinSideExecRow> bridgeIterator = StandardIterators.asIter(scanner);
+        IJoinRowsIterator<ExecRow> joinRows = new MergeSortJoinRows(bridgeIterator);
 
-        MergeSortJoiner joiner;
+        Joiner joiner;
         if(outer){
-            joiner = new MergeSortJoiner(mergedRowTemplate,scanner,false,2,2,false,false,new StandardSupplier<ExecRow>() {
+            joiner = new Joiner(joinRows, mergedRowTemplate,false,2,2,false,false,new StandardSupplier<ExecRow>() {
                 @Override
                 public ExecRow get() throws StandardException {
                     return emptyRightRow;
@@ -402,7 +404,7 @@ public class MergeSortJoinerTest {
                 }
             };
         }else
-            joiner = new MergeSortJoiner(mergedRowTemplate,scanner,false,2,2,false, false,null);
+            joiner = new Joiner(joinRows, mergedRowTemplate,false,2,2,false, false,null);
 
         List<ExecRow> joinedAnswers = populateFromJoiner(correctResults, joiner);
         assertReturnedRowsCorrect(correctResults, joinedAnswers);
