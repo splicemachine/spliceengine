@@ -129,7 +129,8 @@ public class StaticMethodCallNode extends MethodCallNode
 
 	AliasDescriptor	ad;
 
-
+	private AggregateNode   resolvedAggregate;
+	
 	/**
 	 * Intializer for a NonStaticMethodCallNode
 	 *
@@ -147,6 +148,11 @@ public class StaticMethodCallNode extends MethodCallNode
 
 		this.javaClassName = (String) javaClassName;
 	}
+	/**
+     * Get the aggregate, if any, which this method call resolves to.
+     */
+    public  AggregateNode   getResolvedAggregate() { return resolvedAggregate; }
+    
 
 	/**
 	 * Bind this expression.  This means binding the sub-expressions,
@@ -194,6 +200,21 @@ public class StaticMethodCallNode extends MethodCallNode
             // The field methodName is used by resolveRoutine and
             // is set to the name of the routine (procedureName.getTableName()).
 			resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+			if ( (ad != null) && (ad.getAliasType() == AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR) )
+			{
+			    resolvedAggregate = (AggregateNode) getNodeFactory().getNode
+			                         (
+				                     C_NodeTypes.AGGREGATE_NODE,
+				                     ((SQLToJavaValueNode) methodParms[ 0 ]).getSQLValueNode(),
+				                     new UserAggregateDefinition( ad ), 
+				                     Boolean.FALSE,
+				                     ad.getJavaClassName(),
+				                     getContextManager()
+				                     );
+				
+			    return this;
+			}
+				
 
 			if (ad == null && noSchema && !forCallStatement)
 			{
@@ -660,7 +681,12 @@ public class StaticMethodCallNode extends MethodCallNode
 
 			break;
 		}
-}
+		}
+		
+		if ( (ad == null) && (methodParms.length == 1) )
+		{
+			ad = AggregateNode.resolveAggregate( getDataDictionary(), sd, methodName );
+		}
 	}
 
 	/**

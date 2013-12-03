@@ -213,6 +213,7 @@ public interface SQLState {
 	String GENERATED_CLASS_INSTANCE_ERROR	= "XBCM2.S";
 	String GENERATED_CLASS_NO_SUCH_METHOD	= "XBCM3.S";
 	String GENERATED_CLASS_LIMIT_EXCEEDED	= "XBCM4.S";
+	String VM_LEVEL_TOO_LOW	                = "XBCM5.S";
 
 	/*
 	** Cryptography
@@ -1128,7 +1129,12 @@ public interface SQLState {
 	String LANG_NO_SUCH_WINDOW                                         = "42ZC0";
 	String LANG_WINDOW_LIMIT_EXCEEDED                                  = "42ZC1";
 	String LANG_WINDOW_FUNCTION_CONTEXT_ERROR                          = "42ZC2";
-
+	String LANG_ILLEGAL_UDA_NAME                                       = "42ZC3";
+	String LANG_ILLEGAL_UDA_CLASS                                      = "42ZC4";
+	String LANG_UDA_WRONG_INPUT_TYPE                                   = "42ZC6";
+	String LANG_UDA_WRONG_RETURN_TYPE                                  = "42ZC7";
+	String LANG_UDA_INSTANTIATION                                      = "42ZC8";
+	
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
 	String LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE = "42995";
@@ -1391,7 +1397,7 @@ public interface SQLState {
     String LANG_TOO_MUCH_CONTENTION_ON_SEQUENCE                 = "X0Y84.T";
 	String LANG_UNKNOWN_SEQUENCE_PREALLOCATOR                                = "X0Y85.S";
 	String LANG_CANT_FLUSH_PREALLOCATOR                                = "X0Y86.S";
-
+	String LANG_BAD_UDA_OR_FUNCTION_NAME                                = "X0Y87.S";
 
 	// TEMPORARY EXECUTION RESTRICTIONS
 

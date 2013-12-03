@@ -871,7 +871,8 @@ public class BasicDependencyManager implements DependencyManager {
 
             case DROP_UDT:
 				return "DROP TYPE";
-
+            case DROP_AGGREGATE:
+       			return "DROP DERBY AGGREGATE";
             default:
 				if (SanityManager.DEBUG)
 				{

@@ -59,6 +59,11 @@ public class DB_GrantRevoke {
                                    "SYS.SYSPERMS P, SYS.SYSSEQUENCES SEQ, SYS.SYSSCHEMAS S WHERE SEQ.SCHEMAID = " +
                                    "S.SCHEMAID AND P.OBJECTID = SEQ.SEQUENCEID");
             generateSequencePrivs(rs);
+            // Generate aggregate privilege statements
+            rs = stmt.executeQuery("SELECT P.GRANTEE, S.SCHEMANAME, A.ALIAS, P.PERMISSION, P.OBJECTTYPE FROM " +
+                                   "SYS.SYSPERMS P, SYS.SYSALIASES A, SYS.SYSSCHEMAS S WHERE A.SCHEMAID = " +
+                                   "S.SCHEMAID AND P.OBJECTID = A.ALIASID AND A.ALIASTYPE='G'");
+            generateAggregatePrivs(rs);
         }
 
         rs = stmt.executeQuery("SELECT GRANTEE, SCHEMANAME, TABLENAME, SELECTPRIV, " +
@@ -387,6 +392,40 @@ public class DB_GrantRevoke {
 			firstTime = false;
 		}
 	}
+	/** ************************************************
+	 * Generate aggregate privilege statements
+	 *
+	 * @param rs ResultSet holding required information
+	 ****/
+	public static void generateAggregatePrivs(ResultSet rs) throws SQLException
+	{
+		boolean firstTime = true;
+		while (rs.next()) {
+			String authName = dblook.addQuotes
+				(dblook.expandDoubleQuotes(rs.getString(1)));
+			String schemaName = dblook.addQuotes
+				(dblook.expandDoubleQuotes(rs.getString(2)));
+			String aliasName = dblook.addQuotes
+				(dblook.expandDoubleQuotes(rs.getString(3)));
+			String fullName = schemaName + "." + aliasName;
+			String permission = rs.getString(4);
+			String objectType = rs.getString(5);
+	
+			if (dblook.isIgnorableSchema(schemaName))
+				continue;
+	
+			if (firstTime) {
+				Logs.reportString("----------------------------------------------");
+				Logs.reportMessage("DBLOOK_AggregatePrivHeader");
+				Logs.reportString("----------------------------------------------\n");
+			}
+	
+			Logs.writeToNewDDL(genericPrivStatement(fullName, authName, permission, objectType ));
+			Logs.writeStmtEndToNewDDL();
+			Logs.writeNewlineToNewDDL();
+			firstTime = false;
+		}
+	}	
 	private static String genericPrivStatement(String fullName, String authName, String permission, String objectType )
 		throws SQLException
 	{

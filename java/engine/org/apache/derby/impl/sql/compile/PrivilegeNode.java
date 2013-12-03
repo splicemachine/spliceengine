@@ -49,7 +49,7 @@ public class PrivilegeNode extends QueryTreeNode
     public static final int ROUTINE_PRIVILEGES = 1;
     public static final int SEQUENCE_PRIVILEGES = 2;
     public static final int UDT_PRIVILEGES = 3;
-
+    public static final int AGGREGATE_PRIVILEGES = 4;
     //
     // State initialized when the node is instantiated
     //
@@ -259,6 +259,16 @@ public class PrivilegeNode extends QueryTreeNode
             routineDesignator.setAliasDescriptor( proc);
             dependencyProvider = proc;
             break;
+        case AGGREGATE_PRIVILEGES:
+                   
+            dependencyProvider = getDataDictionary().getAliasDescriptor
+            ( sd.getUUID().toString(), objectName.getTableName(), AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR  );
+            if ( dependencyProvider == null )
+            {
+                 throw StandardException.newException
+                 (SQLState.LANG_OBJECT_NOT_FOUND, "DERBY AGGREGATE", objectName.getFullTableName());
+            }
+            break;           
 
         case SEQUENCE_PRIVILEGES:
             
@@ -307,7 +317,7 @@ public class PrivilegeNode extends QueryTreeNode
 
         case ROUTINE_PRIVILEGES:
             return routineDesignator.makePrivilegeInfo();
-
+        case AGGREGATE_PRIVILEGES:
         case SEQUENCE_PRIVILEGES:
         case UDT_PRIVILEGES:
             return new GenericPrivilegeInfo( (PrivilegedSQLObject) dependencyProvider, privilege, restrict );

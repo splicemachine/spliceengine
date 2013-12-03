@@ -375,7 +375,7 @@ String[] TwoByte = {
         /* 320 */       "org.apache.derby.impl.sql.catalog.CoreDDFinderClassInfo",             // InstanceGetter
         /* 321 */       null,
         /* 322 */       null,
-        /* 323 */       null,
+        /* 323 */       "org.apache.derby.impl.sql.execute.UserDefinedAggregator",
         /* 324 */       null,
         /* 325 */       "org.apache.derby.impl.sql.catalog.CoreDDFinderClassInfo",             // InstanceGetter
         /* 326 */       "org.apache.derby.catalog.types.DefaultInfoImpl",
@@ -536,5 +536,6 @@ String[] TwoByte = {
         /* 472 */       "org.apache.derby.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 473 */       "org.apache.derby.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 474 */       "org.apache.derby.catalog.types.UDTAliasInfo",
+        /* 475 */       "org.apache.derby.catalog.types.AggregateAliasInfo",
 };
 }
