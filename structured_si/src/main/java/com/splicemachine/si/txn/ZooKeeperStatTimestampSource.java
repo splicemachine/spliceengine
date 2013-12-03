@@ -1,5 +1,6 @@
 package com.splicemachine.si.txn;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TimestampSource;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -56,6 +57,8 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
     private volatile String counterTransactionPath;
     private volatile long highBits; //the high 31-bits of the transaction id
 
+    private String minimumTransactionPath;
+
     public ZooKeeperStatTimestampSource(RecoverableZooKeeper rzk, String transactionPath) {
         this.rzk = rzk;
         this.highBitsTransactionPath = transactionPath;
@@ -92,12 +95,25 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
 
     @Override
     public void rememberTimestamp(long timestamp) {
-        throw new UnsupportedOperationException();
+        byte[] data = Bytes.toBytes(timestamp);
+        try {
+            rzk.setData(SpliceConstants.zkSpliceMinimumActivePath, data, -1);
+        } catch (Exception e) {
+            LOG.error("Couldn't remember timestamp", e);
+            throw new RuntimeException("Couldn't remember timestamp",e);
+        }
     }
 
     @Override
     public long retrieveTimestamp() {
-        throw new UnsupportedOperationException();
+        byte[] data;
+        try {
+            data = rzk.getData(SpliceConstants.zkSpliceMinimumActivePath, false, null);
+        } catch (Exception e) {
+            LOG.error("Couldn't retrieve minimum timestamp", e);
+            return 0;
+        }
+        return Bytes.toLong(data);
     }
 
 /******************************************************************************/

@@ -60,6 +60,14 @@ public class SpliceConstants {
     public static String zkSpliceTransactionPath;
 
     /**
+     * The Path in zookeeper for storing the minimum active transaction.
+     * Defaults to /transactions/minimumActive
+     */
+    @Parameter public static final String MINIMUM_ACTIVE_PATH = "splice.minimum_active_node";
+    @DefaultValue(MINIMUM_ACTIVE_PATH) public static final String DEFAULT_MINIMUM_ACTIVE_PATH = "/transactions/minimum";
+    public static String zkSpliceMinimumActivePath;
+
+    /**
      * Path in ZooKeeper for manipulating Conglomerate information.
      * Defaults to /conglomerates
      */
@@ -651,7 +659,9 @@ public class SpliceConstants {
 		setParameters();
 	}
 	
-	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+	public static List<String> zookeeperPaths =
+            Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,
+                    zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceMinimumActivePath);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
@@ -660,6 +670,7 @@ public class SpliceConstants {
                 zkSpliceDDLOngoingTransactionsPath = zkSpliceDDLPath + "/ongoingChanges";
 				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+                zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
 				zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 				zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
 				zkSpliceDerbyPropertyPath = config.get(DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);
