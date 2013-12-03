@@ -601,6 +601,8 @@ public class SpliceConstants {
 		setParameters();
 	}
 	
+	public static int ipcThreads;
+	
 	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
 
 		public static void setParameters() {
@@ -625,7 +627,7 @@ public class SpliceConstants {
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
-				int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
