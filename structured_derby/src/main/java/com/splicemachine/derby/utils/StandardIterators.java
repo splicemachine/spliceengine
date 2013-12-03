@@ -99,7 +99,10 @@ public class StandardIterators {
         }
 
         public void open() throws StandardException, IOException { delegate.open(); }
-        public void close() throws StandardException, IOException { delegate.close(); }
+        public void close() throws StandardException, IOException {
+            throwExceptions();
+            delegate.close();
+        }
 
         @Override
         public boolean hasNext(){
