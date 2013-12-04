@@ -128,14 +128,11 @@ public class UngroupedAggregatesNegativeTest extends BaseJDBCTestCase {
                 } catch (SQLException se)
                 {
                     String  actualSQLState = se.getSQLState();
-                    if ( !"XBCM5".equals( actualSQLState ) && !"XJ001".equals( actualSQLState ) )
+                    if ( !"XBCM5".equals( actualSQLState ) && !"XJ001".equals( actualSQLState )  && !"42ZC8".equals( actualSQLState ) )
                     {
                         fail( "Unexpected SQLState: " + actualSQLState );
                     }
                 }
 
-        
-        assertStatementError("XBCM5", st,
-                             "select bad_mode( columnnumber ) from sys.syscolumns" );
     }
 }

@@ -33,6 +33,7 @@ import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.reference.JDBC30Translation;
+import org.apache.derby.iapi.reference.JDBC40Translation;
 
 import org.apache.derby.iapi.error.StandardException;
 
@@ -160,9 +161,17 @@ public class CreateAliasNode extends DDLStatementNode
 		    	this.javaClassName = (String) targetObject;
 			
 				Object[] aggElements = (Object[]) aliasSpecificInfo;
-			    TypeDescriptor  aggForType = (TypeDescriptor) aggElements[ AGG_FOR_TYPE ];
-			    TypeDescriptor  aggReturnType = (TypeDescriptor) aggElements[ AGG_RETURN_TYPE ];
-			
+				TypeDescriptor  aggForType = bindUserCatalogType( (TypeDescriptor) aggElements[ AGG_FOR_TYPE ] );
+				TypeDescriptor  aggReturnType = bindUserCatalogType( (TypeDescriptor) aggElements[ AGG_RETURN_TYPE ] );
+				// XML not allowed because SQLXML support has not been implemented
+				if (
+				    (aggForType.getJDBCTypeId() == JDBC40Translation.SQLXML) ||
+				    (aggReturnType.getJDBCTypeId() == JDBC40Translation.SQLXML)
+				   )
+				{
+				    throw StandardException.newException( SQLState.LANG_XML_NOT_ALLOWED_DJRS );
+				}
+
 			    aliasInfo = new AggregateAliasInfo( aggForType, aggReturnType );
 				implicitCreateSchema = true;
 			    break;
@@ -526,6 +535,11 @@ public class CreateAliasNode extends DDLStatementNode
 	    {
 	        if ( NON_RESERVED_AGGREGATES[ i ].equals( unqualifiedName ) )  { throw illegalAggregate(); }
 	    }
+	    
+	    // now bind the input and return types
+	    AggregateAliasInfo  aai = (AggregateAliasInfo) aliasInfo;
+	    
+	    aai.setCollationTypeForAllStringTypes( getSchemaDescriptor().getCollationType() );
 	}
 	
 	/** Construct an exception flagging an illegal aggregate name */
@@ -546,14 +560,8 @@ public class CreateAliasNode extends DDLStatementNode
         {
             TypeDescriptor td = parameterTypes[ i ];
 
-            // if this is a user defined type, resolve the Java class name
-            if ( td.isUserDefinedType() )
-            {
-                DataTypeDescriptor dtd = DataTypeDescriptor.getType( td );
+            parameterTypes[ i ] = bindUserCatalogType( parameterTypes[ i ] );
 
-                dtd = bindUserType( dtd );
-                parameterTypes[ i ] = dtd.getCatalogType();
-            }
         }
     }
 

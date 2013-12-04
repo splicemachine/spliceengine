@@ -85,8 +85,11 @@
       	<pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
+      <exclude name="${this.dir}/FullName.java"/>
+      <exclude name="${this.dir}/LongMagnitude.java"/>
       <exclude name="${this.dir}/GenericMode.java"/>
       <exclude name="${this.dir}/ModeAggregate.java"/> 	
+      <exclude name="${this.dir}/LobMode.java"/>
       <exclude name="${this.dir}/declareGlobalTempTableJavaJDBC30.java"/>
       <exclude name="${this.dir}/UpdatableResultSetTest.java"/>
       <exclude name="${this.dir}/holdCursorJavaReflection.java"/>
@@ -163,8 +166,11 @@
 	      <classpath>
 	        <pathelement path="${java15compile.classpath}"/>
 	      </classpath>
+	      <include name="${this.dir}/FullName.java"/>
 	      <include name="${this.dir}/GenericMode.java"/>
+	      <include name="${this.dir}/LongMagnitude.java"/>
 	      <include name="${this.dir}/ModeAggregate.java"/>
+	      <include name="${this.dir}/LobMode.java"/>
 	    </javac>
 	  </target> 
 

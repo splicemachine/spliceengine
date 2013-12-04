@@ -22,11 +22,13 @@
 package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.context.ContextManager;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.types.JSQLType;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.StringDataValue;
@@ -130,7 +132,7 @@ public class StaticMethodCallNode extends MethodCallNode
 	AliasDescriptor	ad;
 
 	private AggregateNode   resolvedAggregate;
-	
+	private boolean appearsInGroupBy = false;
 	/**
 	 * Intializer for a NonStaticMethodCallNode
 	 *
@@ -153,6 +155,8 @@ public class StaticMethodCallNode extends MethodCallNode
      */
     public  AggregateNode   getResolvedAggregate() { return resolvedAggregate; }
     
+    /** Flag that this function invocation appears in a GROUP BY clause */
+    public  void    setAppearsInGroupBy() { appearsInGroupBy = true; }
 
 	/**
 	 * Bind this expression.  This means binding the sub-expressions,
@@ -211,7 +215,13 @@ public class StaticMethodCallNode extends MethodCallNode
 				                     ad.getJavaClassName(),
 				                     getContextManager()
 				                     );
-				
+			                    // The parser may have noticed that this aggregate is invoked in a
+			                    // GROUP BY clause. That is not allowed.
+			                    if ( appearsInGroupBy )
+			                    {
+			                        throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
+			                    }
+			                   
 			    return this;
 			}
 				
@@ -626,18 +636,15 @@ public class StaticMethodCallNode extends MethodCallNode
 							getContextManager());
 					}
 
-					ValueNode castNode = (ValueNode) getNodeFactory().getNode(
-						C_NodeTypes.CAST_NODE,
-						sqlParamNode, 
-						paramdtd,
-						getContextManager());
+					ValueNode castNode = makeCast
+							                        (
+							                         sqlParamNode,
+							                         paramdtd,
+							                         getNodeFactory(),
+							                         getContextManager()
+							                         );
 
-                    // Argument type has the same semantics as assignment:
-                    // Section 9.2 (Store assignment). There, General Rule 
-                    // 2.b.v.2 says that the database should raise an exception
-                    // if truncation occurs when stuffing a string value into a
-                    // VARCHAR, so make sure CAST doesn't issue warning only.
-                    ((CastNode)castNode).setAssignmentSemantics();
+                 
 
 					methodParms[p] = (JavaValueNode) getNodeFactory().getNode(
 							C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
@@ -688,7 +695,31 @@ public class StaticMethodCallNode extends MethodCallNode
 			ad = AggregateNode.resolveAggregate( getDataDictionary(), sd, methodName );
 		}
 	}
-
+	    /**
+	     * Wrap a parameter in a CAST node.
+	     */
+	    public  static  ValueNode   makeCast
+	        ( ValueNode parameterNode, DataTypeDescriptor targetType, NodeFactory nodeFactory, ContextManager cm )
+	        throws StandardException
+	    {
+	        ValueNode castNode = (ValueNode) nodeFactory.getNode
+	            (
+	             C_NodeTypes.CAST_NODE,
+	             parameterNode, 
+	             targetType,
+	             cm
+	             );
+	
+	        // Argument type has the same semantics as assignment:
+	        // Section 9.2 (Store assignment). There, General Rule 
+	        // 2.b.v.2 says that the database should raise an exception
+	        // if truncation occurs when stuffing a string value into a
+	        // VARCHAR, so make sure CAST doesn't issue warning only.
+	        ((CastNode)castNode).setAssignmentSemantics();
+	
+	        return castNode;
+	    }
+	
 	/**
 	 * Add code to set up the SQL session context for a stored
 	 * procedure or function which needs a nested SQL session
