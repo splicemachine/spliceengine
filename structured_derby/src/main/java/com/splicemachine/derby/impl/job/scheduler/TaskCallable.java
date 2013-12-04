@@ -113,7 +113,7 @@ public class TaskCallable<T extends Task> implements Callable<Void> {
 				return task.getJobId();
 		}
 
-		public Task getTask() {
+		public T getTask() {
 				return task;
 		}
 }

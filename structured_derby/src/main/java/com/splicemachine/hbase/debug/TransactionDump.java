@@ -33,7 +33,7 @@ public class TransactionDump extends DebugTask {
         scan.setStartRow(region.getStartKey());
         scan.setStopRow(region.getEndKey());
         scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
         scan.setCaching(100);
         scan.setBatch(100);
         //we leave the blocks cached cause we want to keep SI stuff in the cache if possible

@@ -57,7 +57,7 @@ public class ColumnDumpTask extends DebugTask{
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
-        scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        scan.setAttribute(SpliceConstants.SI_EXEMPT, Bytes.toBytes(true));
 
         Writer writer;
         RegionScanner scanner;
