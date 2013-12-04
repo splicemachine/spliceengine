@@ -9,15 +9,14 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -164,7 +163,12 @@ final class BulkWriteAction implements Callable<Void> {
                     errors.add(e);
                     if(LOG.isDebugEnabled())
                         LOG.debug("Retrying write after receiving global error",e);
-                    retry(tries, bulkWrite);
+                    if (e instanceof RegionTooBusyException) {
+                        Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1, writeConfiguration.getPause()));
+                        doRetry(tries,bulkWrite,false);
+                    } else {
+                    	retry(tries, bulkWrite);
+                    }
             }
         }
     }
