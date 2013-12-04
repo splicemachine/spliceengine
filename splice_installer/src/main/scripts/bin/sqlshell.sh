@@ -6,7 +6,7 @@ ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 CLASSPATH=""
 
 # sets VM specific env vars
-. "${ROOT_DIR}"/setEnv
+source "${ROOT_DIR}"/setEnv
 
 echo "Running Splice Machine SQL shell"
 

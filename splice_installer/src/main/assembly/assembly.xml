@@ -7,7 +7,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>splicemachine/lib</outputDirectory>
+            <outputDirectory>splicemachine/bin</outputDirectory>
             <useTransitiveDependencies>false</useTransitiveDependencies>
         </dependencySet>
     </dependencySets>
@@ -38,8 +38,8 @@
             <directoryMode>0755</directoryMode>
         </fileSet>
         <fileSet>
-            <directory>src/main/scripts/lib</directory>
-            <outputDirectory>splicemachine/lib</outputDirectory>
+            <directory>src/main/scripts/bin</directory>
+            <outputDirectory>splicemachine/bin</outputDirectory>
             <fileMode>0755</fileMode>
             <directoryMode>0755</directoryMode>
         </fileSet>
