@@ -36,7 +36,7 @@ import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.ClassName;
 import org.apache.derby.iapi.services.loader.GeneratedClass;
-
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.util.ByteArray;
 import org.apache.derby.iapi.services.classfile.VMOpcode;
 
@@ -63,7 +63,14 @@ public abstract class StatementNode extends QueryTreeNode
     /** Cached empty list object. */
     static final TableDescriptor[] EMPTY_TD_LIST = new TableDescriptor[0];
 
-	/**
+    StatementNode(ContextManager cm) {
+        super(cm);
+    }
+
+    StatementNode() {
+    }
+
+    /**
 	 * By default, assume StatementNodes are atomic.
 	 * The rare statements that aren't atomic (e.g.
 	 * CALL method()) override this.

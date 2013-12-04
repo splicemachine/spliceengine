@@ -640,7 +640,6 @@ public class StaticMethodCallNode extends MethodCallNode
 							                        (
 							                         sqlParamNode,
 							                         paramdtd,
-							                         getNodeFactory(),
 							                         getContextManager()
 							                         );
 
@@ -698,29 +697,25 @@ public class StaticMethodCallNode extends MethodCallNode
 	    /**
 	     * Wrap a parameter in a CAST node.
 	     */
-	    public  static  ValueNode   makeCast
-	        ( ValueNode parameterNode, DataTypeDescriptor targetType, NodeFactory nodeFactory, ContextManager cm )
-	        throws StandardException
-	    {
-	        ValueNode castNode = (ValueNode) nodeFactory.getNode
-	            (
-	             C_NodeTypes.CAST_NODE,
-	             parameterNode, 
-	             targetType,
-	             cm
-	             );
-	
-	        // Argument type has the same semantics as assignment:
-	        // Section 9.2 (Store assignment). There, General Rule 
-	        // 2.b.v.2 says that the database should raise an exception
-	        // if truncation occurs when stuffing a string value into a
-	        // VARCHAR, so make sure CAST doesn't issue warning only.
-	        ((CastNode)castNode).setAssignmentSemantics();
-	
-	        return castNode;
-	    }
-	
-	/**
+        public static ValueNode makeCast (ValueNode parameterNode,
+                                          DataTypeDescriptor targetType,
+                                          ContextManager cm)
+                throws StandardException
+        {
+            ValueNode castNode = new CastNode(parameterNode, targetType, cm);
+
+            // Argument type has the same semantics as assignment:
+            // Section 9.2 (Store assignment). There, General Rule
+            // 2.b.v.2 says that the database should raise an exception
+            // if truncation occurs when stuffing a string value into a
+            // VARCHAR, so make sure CAST doesn't issue warning only.
+            ((CastNode)castNode).setAssignmentSemantics();
+
+            return castNode;
+        }
+
+
+    /**
 	 * Add code to set up the SQL session context for a stored
 	 * procedure or function which needs a nested SQL session
 	 * context (only needed for those which can contain SQL).

@@ -38,7 +38,7 @@ import org.apache.derby.iapi.reference.JDBC40Translation;
 import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.TypeDescriptor;
 import org.apache.derby.catalog.types.AggregateAliasInfo;
@@ -127,8 +127,35 @@ public class CreateAliasNode extends DDLStatementNode
 
 	private AliasInfo aliasInfo;
 
+    /**
+     * Constructor
+     *
+     * @param aliasName				The name of the alias
+     * @param targetObject          Target name string or, if
+     *        aliasType == ALIAS_TYPE_SYNONYM_AS_CHAR, a TableName
+     * @param methodName		    The method name
+     * @param aliasSpecificInfo     An array of objects, see code for
+     *                              interpretation
+     * @param cm                    The context manager
+     * @exception StandardException Thrown on error
+     */
+    CreateAliasNode() {}
 
-	/**
+    CreateAliasNode(TableName aliasName,
+                    Object targetObject,
+                    String methodName,
+                    Object aliasSpecificInfo,
+                    char aliasType,
+                    ContextManager cm)
+            throws StandardException
+    {
+        super(aliasName, cm);
+        init(aliasName, targetObject, methodName,
+                aliasSpecificInfo, new Character(aliasType), (Object)Boolean.FALSE);
+    }
+
+
+    /**
 	 * Initializer for a CreateAliasNode
 	 *
 	 * @param aliasName				The name of the alias

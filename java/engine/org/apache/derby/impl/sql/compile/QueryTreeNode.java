@@ -112,7 +112,20 @@ public abstract class QueryTreeNode implements Node, Visitable
 	 */
 	boolean isPrivilegeCollectionRequired = true;
 
-	/**
+    QueryTreeNode() {
+    }
+
+    QueryTreeNode(ContextManager cm) {
+        this.cm = cm;
+
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(cm != null,
+                    "cm not expected to be null");
+        }
+    }
+
+    /**
 	 * Set the ContextManager for this node.
 	 * 
 	 * @param cm	The ContextManager.

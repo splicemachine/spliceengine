@@ -23,6 +23,7 @@ package	org.apache.derby.impl.sql.compile;
 
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
 import org.apache.derby.iapi.services.compiler.LocalField;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
@@ -91,7 +92,53 @@ public class CastNode extends ValueNode
      */
     private boolean assignmentSemantics = false;
 
-	/**
+    /**
+     * Constructor for a CastNode
+     *
+     * @param castOperand	The operand of the node
+     * @param castTarget	DataTypeServices (target type of cast)
+     * @param cm            The context manager
+     *
+     * @exception StandardException		Thrown on error
+     */
+
+    public CastNode(ValueNode castOperand,
+                    DataTypeDescriptor castTarget,
+                    ContextManager cm) throws StandardException {
+        super(cm);
+        this.castOperand = castOperand;
+        setType(castTarget);
+    }
+
+    /**
+     * Constructor for a CastNode
+     *
+     * @param castOperand	The operand of the node
+     * @param charType		CHAR or VARCHAR JDBC type as target
+     * @param charLength	target type length
+     * @param cm            The context manager
+     *
+     * @exception StandardException		Thrown on error
+     */
+
+    public CastNode(ValueNode castOperand,
+                    int charType,
+                    int charLength,
+                    ContextManager cm) throws StandardException {
+        super(cm);
+        this.castOperand = castOperand;
+        int charLen = charLength;
+        targetCharType = charType;
+        if (charLen < 0)	// unknown, figure out later
+            return;
+        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
+    }
+
+    public CastNode() {
+
+    }
+
+    /**
 	 * Initializer for a CastNode
 	 *
 	 * @param castOperand	The operand of the node

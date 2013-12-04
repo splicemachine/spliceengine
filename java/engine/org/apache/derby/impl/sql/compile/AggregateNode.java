@@ -428,7 +428,7 @@ public class AggregateNode extends UnaryOperatorNode
 		if ( isUserDefinedAggregate() )
 		{
 		     ValueNode   castNode = ((UserAggregateDefinition) uad).castInputValue
-		     ( operand, getNodeFactory(), getContextManager() );
+		     ( operand, getContextManager() );
 		     if ( castNode != null )
 		     {
 		         operand = castNode.bindExpression( fromList, subqueryList, aggregateVector );
