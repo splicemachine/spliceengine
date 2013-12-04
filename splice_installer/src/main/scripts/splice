@@ -6,7 +6,7 @@ usage() {
         then
         echo "Error: $1"
     fi
-    echo "Usage: $0 {-readme | -state | -install | -start | -stop | -restart | -clean | -splice}"
+    echo "Usage: $0 {-readme | -state | -install | -start | -stop | -restart | -clean | -sqlshell}"
     echo "Where: "
     echo "  -readme => display platform-specific geting started doc"
     echo "  -state => check the service state"
@@ -15,7 +15,7 @@ usage() {
     echo "  -stop => stop HBase"
     echo "  -restart => bounce HBase"
     echo "  -clean => clean the splice DB"
-    echo "  -splice => start the splice SQL shell"
+    echo "  -sqlshell => start the splice SQL shell"
 }
 
 case $1 in
@@ -52,9 +52,9 @@ case $1 in
      # call DB cleaner
      ./lib/clean
      ;;
- -splice)
+ -sqlshell)
      # call splice shell
-     ./lib/splice
+     ./lib/sqlshell
      ;;
  *)
      usage "Unknown option (ignored): $1"
