@@ -65,7 +65,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     protected static AtomicInteger activeWriteThreads = new AtomicInteger(0); 
     public static int ipcReserved = 10;
     private static int maxWorkers = 10;
-    private static int compactionQueueBlockSize = 10;
+    private static int flushQueueSizeBlock = 10;
     private RegionServerMetrics metrics;
 
     
@@ -147,7 +147,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         region.startRegionOperation();
         long start = System.nanoTime();
         try{
-        	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueBlockSize) // Too Busy For Splice...
+        	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.flushQueueSize.get() > flushQueueSizeBlock) // Too Busy For Splice...
         		throw new RegionTooBusyException("Too many active ipc threads, backing off on " + region.getRegionNameAsString());
             WriteContext context;
             if(queue==null)
@@ -308,13 +308,13 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 		@Override
-		public int getCompactionBlockSize() {
-			return compactionQueueBlockSize;
+		public int getFlushQueueSizeLimit() {
+			return flushQueueSizeBlock;
 		}
 
 		@Override
-		public void setCompactionBlockSize(int compactionBlockSize) {
-			compactionQueueBlockSize = compactionBlockSize;			
+		public void setFlushQueueSizeLimit(int flushQueueSizeLimit) {
+			flushQueueSizeBlock = flushQueueSizeLimit;			
 		}
     	
     }
@@ -324,8 +324,8 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         public int getActiveWriteThreads();
         public int getIpcReservedPool();
         public void setIpcReservedPool(int rpcReservedPool);
-        public int getCompactionBlockSize();
-        public void setCompactionBlockSize(int compactionBlockSize);
+        public int getFlushQueueSizeLimit();
+        public void setFlushQueueSizeLimit(int flushQueueSizeLimit);
     }
     
 }
