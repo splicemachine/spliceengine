@@ -233,7 +233,7 @@ class CreateAliasConstantAction extends DDLConstantAction
 
 		// perform duplicate rule checking
 		switch (aliasType) {
-		{
+		
 		case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
 			
 			AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
