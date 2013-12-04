@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -758,23 +759,28 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             }
         }
 
+        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute()));
+        TransactionId indexTransaction;
         try {
-            transactor.commit(tentativeTransaction);
+            indexTransaction = transactor.beginChildTransaction(parentTransactionId, true, true, false, false, false, tentativeTransaction);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
             // TODO must cleanup tentative DDL change
             throw Exceptions.parseException(e);
         }
 
-
-        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
         // Wait for past transactions to die
+        List<TransactionId> active;
+        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, indexTransaction);
         try {
-            waitForConcurrentTransactions(new TransactionId(transactionId));
+            active = waitForConcurrentTransactions(indexTransaction, toIgnore);
         } catch (IOException e) {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
+        List<String> tables = getBlockedTables();
+        forbidActiveTransactionsTableAccess(active, tables);
+
 
         /*
          * Backfill the index with any existing data.
@@ -783,7 +789,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
          * This means that there
          */
         try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new PopulateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique,descColumns));
+            future = SpliceDriver.driver().getJobScheduler().submit(new PopulateIndexJob(table,indexTransaction.getTransactionIdString(),
+                    conglomId,tableConglomId,baseColumnPositions,unique,descColumns));
             future.completeAll();
         } catch (ExecutionException e) {
         	e.printStackTrace();
@@ -792,6 +799,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         	e.printStackTrace();
             throw Exceptions.parseException(e);
         }finally {
+            try {
+                transactor.commit(indexTransaction);
+            } catch (IOException e) {
+                LOG.error("Couldn't commit transaction populating index", e);
+                throw Exceptions.parseException(e.getCause());
+            }
             if (future!=null) {
                 try {
                     future.cleanup();
@@ -806,21 +819,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
             }
         }
-        
-		/*
-		CardinalityCounter cCount = (CardinalityCounter)rowSource;
-
-        long numRows = cCount.getRowCount();
-        if (addStatistics(dd, indexRowGenerator, numRows)) {
-            SpliceLogUtils.trace(LOG,"In if?");
-			long[] c = cCount.getCardinality();
-			for (int i = 0; i < c.length; i++) {
-				StatisticsDescriptor statDesc = 
-					new StatisticsDescriptor(dd, dd.getUUIDFactory().createUUID(), conglomerateUUID, td.getUUID(), "I",new StatisticsImpl(numRows, c[i]), i + 1);
-				dd.addDescriptor(statDesc, null, DataDictionary.SYSSTATISTICS_CATALOG_NUM, true, tc);
-			}
-		}
-		*/
 	}
 
     /**
@@ -902,6 +900,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
     @Override
     protected boolean waitsForConcurrentTransactions() {
-        return false;
+        return true;
     }
 }

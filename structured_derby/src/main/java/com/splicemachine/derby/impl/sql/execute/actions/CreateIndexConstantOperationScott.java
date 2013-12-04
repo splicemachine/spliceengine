@@ -100,13 +100,6 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
     }
 
     @Override
-    protected void executeTentativeUpdate() throws IOException, StandardException {
-        TransactionId transaction = HTransactorFactory.getTransactor().beginTransaction();
-        DDLChange change = new DDLChange(transaction.getTransactionIdString(), DDLChange.TentativeType.CREATE_INDEX);
-        notifyMetadataChange(change);
-    }
-
-    @Override
     public void executeTransactionalConstantAction(final Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();

@@ -863,22 +863,12 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	
 	@Override
     public final void executeConstantAction(Activation activation) throws StandardException {
-        List<TransactionId> active;
-        try {
-            executeTentativeUpdate();
-            active = waitForConcurrentTransactions(null);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        List<String> tables = getBlockedTables();
-        forbidActiveTransactionsTableAccess(active, tables);
-
         executeTransactionalConstantAction(activation);
 
         notifyMetadataChange(new DDLChange(activation.getTransactionController().getActiveStateTxIdString()));
     }
 
-    private void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
+    protected void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
             throws StandardException {
         if (tables.isEmpty() || active.isEmpty()) {
             return;
@@ -913,17 +903,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     }
 
     /**
-	 * Executes a tentative metadata update on a separate, top-level transaction.
-	 * This allows concurrent transactions (overlapping the parent DDL transaction) that started after
-	 * the 'tentative' transaction completes to also contribute to the completion of the DDL statement.
-     * @throws IOException 
-     * @throws StandardException 
-	 */
-	protected void executeTentativeUpdate() throws IOException, StandardException {
-	    // no-op
-	}
-
-    /**
      * Waits for concurrent transactions that started before the tentative
      * change completed.
      * 
@@ -939,14 +918,15 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException 
      */
-	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum) throws IOException {
+	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore) throws IOException {
 	    if (!waitsForConcurrentTransactions()) {
 	        return Collections.emptyList();
 	    }
 	    List<TransactionId> active = transactor.getActiveTransactionIds(maximum);
+        active.removeAll(toIgnore);
 	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
 	    long totalWait = 0;
-	    while (!active.isEmpty() && totalWait <= SpliceConstants.ddlDrainingMaximumWait) {
+	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
 	        try {
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
@@ -955,6 +935,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	        totalWait += waitTime;
 	        waitTime *= 10;
 	        active = transactor.getActiveTransactionIds(maximum);
+            active.removeAll(toIgnore);
 	    }
 	    if (!active.isEmpty()) {
 	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));
