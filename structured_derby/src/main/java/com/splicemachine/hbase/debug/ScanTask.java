@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.debug;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -74,7 +75,7 @@ public class ScanTask extends DebugTask{
         scan.setCaching(100);
         scan.setBatch(100);
         scan.setFilter(new HBaseEntryPredicateFilter(predicateFilter));
-        scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
 
         Writer writer;
         RegionScanner scanner;

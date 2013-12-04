@@ -395,5 +395,15 @@ public class JobControlTest {
         public boolean isTransactional() {
             return false;
         }
-    }
+
+				@Override
+				public byte[] getParentTaskId() {
+						return null;
+				}
+
+				@Override
+				public String getJobId() {
+						return null;
+				}
+		}
 }
