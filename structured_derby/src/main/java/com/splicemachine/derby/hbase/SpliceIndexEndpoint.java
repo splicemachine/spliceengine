@@ -66,6 +66,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public static int ipcReserved = 10;
     private static int maxWorkers = 10;
     private static int flushQueueSizeBlock = 10;
+    private static int compactionQueueSizeBlock = 10;
     private RegionServerMetrics metrics;
 
     
@@ -147,7 +148,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         region.startRegionOperation();
         long start = System.nanoTime();
         try{
-        	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.flushQueueSize.get() > flushQueueSizeBlock) // Too Busy For Splice...
+        	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) // Too Busy For Splice...
         		throw new RegionTooBusyException("Too many active ipc threads, backing off on " + region.getRegionNameAsString());
             WriteContext context;
             if(queue==null)
@@ -316,6 +317,16 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		public void setFlushQueueSizeLimit(int flushQueueSizeLimit) {
 			flushQueueSizeBlock = flushQueueSizeLimit;			
 		}
+
+		@Override
+		public int getCompactionQueueSizeLimit() {
+			return compactionQueueSizeBlock;
+		}
+
+		@Override
+		public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit) {
+			compactionQueueSizeBlock = compactionQueueSizeLimit;
+		}
     	
     }
    
@@ -326,6 +337,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         public void setIpcReservedPool(int rpcReservedPool);
         public int getFlushQueueSizeLimit();
         public void setFlushQueueSizeLimit(int flushQueueSizeLimit);
+        public int getCompactionQueueSizeLimit();
+        public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit);
+
     }
     
 }
