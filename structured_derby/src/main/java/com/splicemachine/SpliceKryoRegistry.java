@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
@@ -49,6 +50,7 @@ import org.apache.derby.catalog.types.RowMultiSetImpl;
 import org.apache.derby.catalog.types.SynonymAliasInfo;
 import org.apache.derby.catalog.types.TypeDescriptorImpl;
 import org.apache.derby.catalog.types.UserDefinedTypeIdImpl;
+import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -102,7 +104,7 @@ import org.apache.derby.impl.sql.execute.MaxMinAggregator;
 import org.apache.derby.impl.sql.execute.SumAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
-
+import org.apache.derby.agg.stddev;
 /**
  * 
  * TODO Utilize unsafe with Kryo 2.2
@@ -481,5 +483,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(stddev.class);
     }
 }

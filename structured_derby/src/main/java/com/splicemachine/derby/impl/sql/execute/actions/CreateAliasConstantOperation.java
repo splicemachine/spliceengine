@@ -52,6 +52,9 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 		this.aliasInfo = aliasInfo;
 		this.aliasType = aliasType;
 		switch (aliasType) {
+            case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+                nameSpace = AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR;
+                break;
 			case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
 				nameSpace = AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR;
 				break;
@@ -75,6 +78,9 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 	public	String	toString() {
 		String type = null;
 		switch (aliasType) {
+            case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+                type = "CREATE DERBY AGGREGATE ";
+                break;
 			case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
 				type = "CREATE PROCEDURE ";
 				break;
@@ -169,7 +175,30 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 
 		// perform duplicate rule checking
 		switch (aliasType) {
-		case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
+        case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+
+            AliasDescriptor duplicateAlias = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
+            if ( duplicateAlias != null )
+            {
+                throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName );
+            }
+
+            // also don't want to collide with 1-arg functions by the same name
+            java.util.List funcList = dd.getRoutineList( sd.getUUID().toString(), aliasName, AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR );
+            for ( int i = 0; i < funcList.size(); i++ )
+            {
+                AliasDescriptor func = (AliasDescriptor) funcList.get(i);
+
+                RoutineAliasInfo funcInfo = (RoutineAliasInfo) func.getAliasInfo();
+                if ( funcInfo.getParameterCount() == 1 )
+                {
+                    throw StandardException.newException
+                            ( SQLState.LANG_BAD_UDA_OR_FUNCTION_NAME, schemaName, aliasName );
+                }
+            }
+            break;
+
+            case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 
             AliasDescriptor duplicateUDT = dd.getAliasDescriptor( sd.getUUID().toString(), aliasName, nameSpace );
             if ( duplicateUDT != null ) { throw StandardException.newException( SQLState.LANG_OBJECT_ALREADY_EXISTS, ads.getDescriptorType(), aliasName ); }
