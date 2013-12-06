@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.debug;
 
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -57,7 +58,12 @@ public abstract class DebugTask extends ZkTask {
         return true;
     }
 
-    @Override
+		@Override
+		public int getPriority() {
+				return SchedulerPriorities.INSTANCE.getMaxPriority();
+		}
+
+		@Override
     public boolean isTransactional() {
         return false;
     }

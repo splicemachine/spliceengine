@@ -25,16 +25,110 @@ import static org.mockito.Mockito.*;
 public class BoundTierTaskSchedulerTest {
 
 		@Test(timeout= 1000)
-		public void testLowerPriorityStealsFromHigher() throws Exception {
+		public void testLowerPriorityTierStealsFromHigher() throws Exception {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
-				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(new int[]{1,1},new BoundTierTaskScheduler.OverflowHandler() {
+
+				final AtomicBoolean overflowCheck = new AtomicBoolean(false);
+				BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
+						@Override
+						public OverflowPolicy shouldOverflow(Task t) {
+								Assert.assertTrue("Overflow was called twice!",overflowCheck.compareAndSet(false,true));
+								return OverflowPolicy.ENQUEUE;
+						}
+				};
+				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(
+								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
+				try{
+
+						final CountDownLatch latch = new CountDownLatch(3);
+						final CyclicBarrier startLatch = new CyclicBarrier(2);
+
+						TaskStatus taskStatus1 = createTaskStatus();
+
+						final byte[] testTaskId = Bytes.toBytes(1l);
+						final Task testTask1 = mock(Task.class);
+						when(testTask1.getPriority()).thenReturn(0);
+						when(testTask1.getTaskStatus()).thenReturn(taskStatus1);
+						doAnswer(new Answer<Void>() {
+
+								@Override
+								public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+										startLatch.await();
+										Logger.getRootLogger().trace("Executing task");
+
+										latch.countDown();
+										return null;
+								}
+						}).when(testTask1).execute();
+
+						TaskStatus taskStatus2 = createTaskStatus();
+
+						Task testTask2 = mock(Task.class);
+						when(testTask2.getTaskId()).thenReturn(testTaskId);
+						when(testTask2.getTaskStatus()).thenReturn(taskStatus2);
+						when(testTask2.getPriority()).thenReturn(0);
+
+						doAnswer(new Answer<Void>() {
+								@Override
+								public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+										startLatch.await();
+
+										latch.countDown();
+										return null;
+								}
+						}).when(testTask2).execute();
+
+						TaskStatus taskStatus3 = createTaskStatus();
+						Task testTask3 = mock(Task.class);
+						when(testTask3.getTaskId()).thenReturn(testTaskId);
+						when(testTask3.getTaskStatus()).thenReturn(taskStatus3);
+						when(testTask3.getPriority()).thenReturn(1);
+
+						final CountDownLatch stealLatch = new CountDownLatch(1);
+						doAnswer(new Answer<Void>() {
+								@Override
+								public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+										stealLatch.await();
+
+										latch.countDown();
+										return null;
+								}
+						}).when(testTask3).execute();
+
+
+						taskScheduler.submit(testTask2);
+						taskScheduler.submit(testTask1);
+
+						taskScheduler.submit(testTask3);
+
+						//tell the lower-priority task that he can complete, which will allow
+						//the higher priority tasks to complete also
+						stealLatch.countDown();
+
+						latch.await();
+
+						Assert.assertTrue("Overflow was never called!",overflowCheck.get());
+
+				}finally{
+						taskScheduler.shutdown();
+				}
+		}
+
+		@Test(timeout= 1000)
+		public void testHigherPriorityTasksShrugToLowerPriorityTiers() throws Exception {
+				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
+								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
+
+				BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
 						@Override
 						public OverflowPolicy shouldOverflow(Task t) {
 								Assert.fail("Overflow should not be called");
 								return OverflowPolicy.REJECT;
 						}
-				},cScheduler);
+				};
+				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(
+								new PresetTieredTaskSchedulerSetup(new int[]{0,1},new int[]{1,1}), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(2);
@@ -44,7 +138,7 @@ public class BoundTierTaskSchedulerTest {
 
 						final byte[] testTaskId = Bytes.toBytes(1l);
 						final Task testTask1 = mock(Task.class);
-						when(testTask1.getPriority()).thenReturn(1);
+						when(testTask1.getPriority()).thenReturn(0);
 						when(testTask1.getTaskStatus()).thenReturn(taskStatus1);
 						doAnswer(new Answer<Void>() {
 
@@ -63,7 +157,7 @@ public class BoundTierTaskSchedulerTest {
 						Task testTask = mock(Task.class);
 						when(testTask.getTaskId()).thenReturn(testTaskId);
 						when(testTask.getTaskStatus()).thenReturn(taskStatus);
-						when(testTask.getPriority()).thenReturn(1);
+						when(testTask.getPriority()).thenReturn(0);
 
 						doAnswer(new Answer<Void>() {
 								@Override
@@ -93,14 +187,16 @@ public class BoundTierTaskSchedulerTest {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
 				final AtomicBoolean queued = new AtomicBoolean(false);
-				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(new int[]{1},new BoundTierTaskScheduler.OverflowHandler() {
+				BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
 						@Override
 						public OverflowPolicy shouldOverflow(Task t) {
-								boolean set = queued.compareAndSet(false,true);
-								Assert.assertTrue("overflow called multiple times!",set);
+								boolean set = queued.compareAndSet(false, true);
+								Assert.assertTrue("overflow called multiple times!", set);
 								return OverflowPolicy.ENQUEUE;
 						}
-				},cScheduler);
+				};
+				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(1);
@@ -158,15 +254,17 @@ public class BoundTierTaskSchedulerTest {
 		public void testSubtaskSubmissionOverflows() throws Exception {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
-				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(new int[]{1},new BoundTierTaskScheduler.OverflowHandler() {
+				BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
 						@Override
 						public OverflowPolicy shouldOverflow(Task t) {
-								if(t.getParentTaskId()!=null)
+								if (t.getParentTaskId() != null)
 										return OverflowPolicy.OVERFLOW;
 								else
 										return OverflowPolicy.REJECT;
 						}
-				},cScheduler);
+				};
+				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 						final CountDownLatch subLatch = new CountDownLatch(1);
 
@@ -221,12 +319,14 @@ public class BoundTierTaskSchedulerTest {
 		public void testSubmissionWorks() throws Exception {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
-				BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(new int[]{1},new BoundTierTaskScheduler.OverflowHandler() {
+				BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
 						@Override
 						public OverflowPolicy shouldOverflow(Task t) {
 								return OverflowPolicy.REJECT;
 						}
-				},cScheduler);
+				};
+				final BoundTierTaskScheduler<Task> taskScheduler = new BoundTierTaskScheduler<Task>(
+								new PresetTieredTaskSchedulerSetup(new int[]{1},new int[]{1}), overflowHandler,cScheduler);
 				try{
 
 						final CountDownLatch latch = new CountDownLatch(1);
@@ -268,4 +368,8 @@ public class BoundTierTaskSchedulerTest {
 						}
 				}).when(mockStatus).setStatus(any(Status.class));
 				return mockStatus;
-		}}
+		}
+
+
+}
+

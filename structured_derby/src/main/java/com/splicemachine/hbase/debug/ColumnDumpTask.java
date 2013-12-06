@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
@@ -125,4 +126,9 @@ public class ColumnDumpTask extends DebugTask{
             writer.write(data);
         }
     }
+
+		@Override
+		public int getPriority() {
+				return SchedulerPriorities.INSTANCE.getMaxPriority();
+		}
 }
