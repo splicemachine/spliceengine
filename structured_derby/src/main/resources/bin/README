@@ -1,290 +1,253 @@
-Welcome to the Splice Machine Private Beta Test Program.  This README file will help you get started,
-and contains the following information:
+Welcome to the Splice Machine Private Beta Test Program.  This README file contains supplementary material
+to the Getting Started Guide, found at http://doc.splicemachine.com
 
-1. A brief introduction to the Splice Machine SQL Database
-2. How to download and launch the Splice Machine Database
-3. Connecting to the database and performing simple SQL commands
-4. (Optional) How to import the provided sample data into the database
-5. (Optional) How to run sample queries on the provided sample data
-6. How to access the online or downloadable (PDF) documentation
-7. How to shut down the database
-8. How to clean the database
-9. Useful tips and tricks
-10. A list of known bugs and other errata
-11. Installing the JDK on Ubuntu
-12. Installing the rlwrap utility
+The Getting Started Guide currently presents instructions for setting up and testing the Splice Machine on
+a single unclustered instance.  See the section below for instructions to deploy in a cluster.
 
 Please visit http://support.splicemachine.com for any problems, questions, or comments, or to
 report a bug.
 
-==========================================================
-1. A brief introduction to the Splice Machine SQL Database
-==========================================================
-
-The Splice Machine Database is just that - a SQL database.  This means that from a SQL perspective, 
-relational tables can be created, data inserted/modified/deleted, and queried, all using standard SQL.  
-Additionally, the Splice Machine Database enforces ACID properties and supports transaction processing,
-indexing, and a number of other capabilities you come to expect from a full relational database.
-
-What makes the Splice Machine Database unique is that the back end storage is Hadoop and HBase.  Further,
-the Database engine has been tuned to leverage parallel processing across the multiple HBase Regions and
-Region Servers in your Hadoop deployment.  This enables a scalable database solution that can easily handle 
-billions of rows of data.
 
 =========================================================
-2. How to download and launch the Splice Machine Database
+Download URL - Single Unclustered Instance
 =========================================================
 
-The following describes how you can download a self-contained package to run the Splice Machine Database.  This is
-a terminal-based (command-line) installer, so you will need to bring up a terminal/shell window in order to perform
-the installation.
-
-Note: these installation instructions are for setting up and running a single (unclustered) instance of the 
-database.  For instructions to set up on a cluster, contact Splice Machine at http://support.splicemachine.com.
-
-Prerequisites:
-  On Linux or Mac systems:
-   - JDK 1.6 or greater needs to be on your system - use the "java -version" command to check what you have
-     (see section 11 for Java installation instructions on Ubuntu)
-   - 4GB or more of available memory
-   - 500+ MB available disk space for download package and sample data
-  On Windows:
-   - Cygwin needs to be installed (see www.cygwin.com).  All commands will be issued within a Cygwin shell window.
-   - JDK 1.6 or greater needs to be on your system - use the "java -version" command to check what you have
-   - 4GB or more of available memory
-   - 500+ MB available disk space for download package and sample data
-
-To download the Cloudera package, use a web browser to navigate to the following (approx. 80 MB):
-   http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc3-cloudera-cdh4.3.0_simple.tar.gz
+To download the setup for the unclustered instance, use a web browser to navigate to the following (approx. 80 MB):
+   http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc4-cloudera-cdh4.3.0_simple.tar.gz
    
    	If you use Linux without a web browser, you can use the "wget <file>" command to get the file:
-	$ wget http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc3-cloudera-cdh4.3.0_simple.tar.gz
+	$ wget http://d10sdxe2fhfs9c.cloudfront.net/splice_machine-0.5rc4-cloudera-cdh4.3.0_simple.tar.gz
 	
-Once you have downloaded the package, put the gz file in a working directory, then unzip:
-$ tar -xzf splice_machine-0.5rc2-cloudera-cdh4.3.0_simple.tar.gz
 
-Navigate to the bin directory:
-$ cd splicemachine
-
-Start up the database processes:
-$ ./bin/start-splice.sh
-
-When you see the message "Splice Server is ready", the database is available for use.  This may take a couple
-of minutes while the database is initialized. (On Windows this might take a few minutes.)
-
-While the database is running, it will write to the splice.log file found in the splicemachine directory.
-
-================================================================
-3. Connecting to the database and performing simple SQL commands
-================================================================
-
-Once the database is running, you can bring up the interactive query interface:
-
-a.  cd to the splicemachine directory that was installed
-
-b.  launch the query interface using the shell command ./bin/sqlshell.sh  This
-also connects you to the splice database.
-
-NOTE: the sqlshell script checks to see if your system has the "rlwrap" command, and if
-so starts the query interface with it.  This gives the query interface a command-line history capability
-you can access using up-arrow and down-arrow keys.  While rlwrap is NOT required to use the shell, having
-a command-line history can be quite useful.  If you don't have rlwrap installed and want to get it, see 
-Section 12 for installing the rlwrap utility.
-
-Now you can issue SQL commands at the splice> prompt.  Note that all commands END
-with a semicolon (;).
-c.  create a table:
-splice> create table test (i int);
-
-d.  add data to the table:
-splice> insert into test values 1,2,3,4,5;
-
-e.  query data in that table:
-splice> select * from test;
-
-f.  drop the table:
-splice> drop table test;
-
-g.  exit the query interface:
-splice> exit;
-
-======================================================================
-4. (Optional) How to import the provided sample data into the Database
-======================================================================
-
-At this point you have enough information to start running queries against your own data.  Refer to
-the SQL Reference (see documentation link below) for command and syntax details and examples.
-
-To help you get started we have also made available sample data to load and run queries against, as
-well as a load script to import this data.  Four tables will be created, each with one million records:
-
-TRANSACTION_HEADER  - standard "headers" from a transaction system
-TRANSACTION_DETAIL - standard "detail" records from a transaction system
-PRODUCT_DIVISION_SUMMARY - aggregated customer sales data by date
-TARGETS - a list of "target" customers
+=====================================
+Download URL - Sample Data
+=====================================
 
 Compressed, this is about 200MB of data.  The link to access this data is at:
 	http://d10sdxe2fhfs9c.cloudfront.net/demodata.tar.gz
 
-To import the data:
-a. (IMPORTANT) navigate to the spicemachine directory created when downloading the software. Copy the downloaded .gz
-file to this location, then unzip:
-$ tar -xvf demodata.tar.gz
-(you will see that this creates a demodata directory, with data and sql directories underneath.)
 
-b. Start up the database if it isn't started already, and launch the query interface (using ./bin/sqlshell.sh)
+=====================================
+Deploying on a Cluster
+=====================================
 
-c. From the splice> prompt, "run" the file that will load the data, using single quotes around the path/filename:
-splice> run 'demodata/sql/loadall.sql';
+The instructions for deploying to the cluster are very different (and more involved) than the instructions to test 
+on a single instance.  See the Getting Started Guide for single instance installation instructions.
 
-This will take a few minutes. The loadall.sql file will create the schema, load the data,
-and create indexes for the tables.
+At this time the only supported configuration during the Private Beta Test Program is a Cloudera Manager-managed 
+cluster based on Cloudera's CDH 4.3.0 on Ubuntu Linux as its base starting point.
 
-===================================================================
-5. (Optional) How to run sample queries on the provided sample data
-===================================================================
+Step 1:  Install Cloudera Manager.  On a vanilla Ubuntu machine, Cloudera Manager can be installed as follows:
+
+$ wget http://archive.cloudera.com/cm4/installer/latest/cloudera-manager-installer.bin
+$ chmod +x cloudera-manager-installer.bin
+$ sudo ./cloudera-manager-installer.bin
+
+Answer prompts, etc., and let the installer finish.  You can test it by navigating to <host-address>:7180, 
+logging in with username = admin, password = admin
+
+Step 2: Create your cluster through the Cloudera Manager interface.  Note: You must use the Classic Wizard.  This will put you through 
+the following steps:
+
+a.  Specify hosts for cluster: select and validate the IP addresses of the cluster nodes
+
+b.  Select the Repository.  Under "Use Parcels", click "More Options" and paste the following into the Custom Repository:
+
+http://d1xswz7jccf7m5.cloudfront.net
+
+IMPORTANT: Hit the "Add" button.  This will give an option for a new CDH parcel:
+
+CDH-4.3.0-1.cdh4.3.0.splice0.5rc4.22
+
+Choose None for Impala and Solr, and leave the default for Cloudera Manager Agent
+(Matched release).  Click Continue.
+
+c.  Provide security credentials as appropriate for your organization
+d.  When prompted for the CDH4 services to install, select "Custom Services".  Afterward, select HDFS, Zookeeper, and HBase
+e.  Database setup is for monitoring.  Click Test Connection, then Continue once the test is complete
+f.  Review the Configuration Changes page.  Services will now start up.  
+
+Step 3: Finalize installation of Splice Machine
+
+While still in Cloudera Manager, we need to do some additional configurations in order for
+Splice Machine's installation to be completed.
+
+a.  Navigate to All Services (Services->All Services)
+b.  To the right of your cluster's HBase configuration (it might be "hbase1"), select Actions->Stop.  Click Close
+  once complete.
+c.  Click on "Hbase" (or "hbase1") link on the Left.
+d.  Navigate to Configuration->View and Edit->Service-Wide->Advanced and paste in the following into the 
+"HBase Service Configuration Safety Valve for hbase-site.xml" (then click "Save Changes"):
+
+<property> 
+<name>hbase.coprocessor.region.classes</name> 
+<value>com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,
+com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,
+com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,
+com.splicemachine.si.coprocessors.SIObserver</value> 
+<description>These are the coprocessors used to run the Splice Machine.</description> 
+</property> 
+<property> 
+<name>hbase.coprocessor.master.classes</name> 
+<value>com.splicemachine.derby.hbase.SpliceMasterObserver</value> 
+<description>Master coprocessors for the Splice Machine.</description> 
+</property> 
+<property> 
+<name>splice.compression</name> <value>snappy</value> 
+</property> 
+<property> <name>hbase.htable.threads.max</name> <value>20</value> 
+</property> 
+<property> <name>splice.task.maxWorkers</name> <value>20</value> 
+</property> 
+<property> <name>splice.ring.bufferSize</name> <value>100000</value> 
+</property> 
+<property> <name>hbase.master.loadbalance.bytable</name> 
+<value>true</value> 
+</property> 
+<property> 
+<name>hbase.balancer.period</name> 
+<value>60000</value> 
+</property> 
+<property> 
+<name>hbase.regions.slop</name> 
+<value>0.01</value> 
+</property> 
+<property> <name>zookeeper.session.timeout</name> 
+<value>1200000</value> 
+</property> 
+<property> 
+<name>hbase.zookeeper.property.tickTime</name> 
+<value>6000</value> 
+</property> 
+<property> 
+<name>splice.marshal.kryoPoolSize</name> 
+<value>1100</value> 
+</property> 
+<property>   
+<name>splice.table.pool.coresize</name>     
+<value>100</value> 
+</property> 
+<property> 
+<name>hbase.hregion.memstore.block.multiplier</name> 
+<value>4</value> 
+</property> 
+<property> <name>hbase.hstore.blockingStoreFiles</name> <value>200</value> 
+</property>
+
+e. Additional HBase Changes, Service-Wide:
+
+  Maximum HBase Client Retries 40
+  HBase Client Scanner Caching 1000
+
+  (be sure to hit Save Changes before continuing)
+
+f. Additional HBase Changes, RegionServer:
+  (Note that you may have more than one "Region Server" heading on the left.  If so, 
+   change them all)
+
+   HBase RegionServer Handler Count 200
+   Resource Management -> Heap Size 8GB.
+
+   (be sure to hit Save Changes before continuing)
+
+Step 4: Make the following HDFS setting changes:
+
+ Namenode -> Resource Management -> Java Heap Size=2GB
+ Namenode -> Performance -> NameNode Handler Count=60
+ Namenode -> Performance -> NameNode Service Handler Count=60
  
-Here are some queries to try against the sample data loaded in Step 4.  First, start up the
-query interface if it isn't already running (using ./bin/sqlshell.sh) - Note that "splice>" is
-omitted so you can copy and paste right at  the splice> prompt - be sure to include (or press) 
-carriage return afterward if you do this:
+ Datanode -> Resource Management -> Java Heap Size=2GB
+ Datanode -> Performance -> Handler Count=20
 
-1. Select the customer ids of a subset of transaction_detail records based on category_id and transaction_dt:
+Step 5: Make the following Zookeeper setting changes:
 
-select customer_master_id
-from transaction_detail d
-where TRANSACTION_DT >= DATE('2010-01-01') and TRANSACTION_DT <= DATE('2013-12-31')
-AND ORIGINAL_SKU_CATEGORY_ID >= 44427 and original_sku_category_id <= 44431;
+ Server -> Maximum Client Connections = 0 
+ Server -> Maximum Session Timeout = 60000
 
-2. Header and targets table queried with a join:
+ 
+Step 6: Stop and Restart Zookeeper and HDFS (but not HBase yet), and Delete existing /hbase directory:
 
-select t.transaction_header_key, t.transaction_dt, t.store_nbr, t.geocapture_flg, t.exchange_rate_percent 
-from targets e, transaction_header t
-where e.customer_master_id=t.customer_master_id
-and t.customer_master_id > 14000 and t.customer_master_id < 15000;
+From a command line:
+$ sudo -su hdfs hadoop fs -rmr /hbase
 
+Step 7: Create a new /hbase directory:
 
-===============================================================
-6. How to access the online or downloadable (PDF) documentation
-===============================================================
+In Cloudera Manager, from the HBase window:  Actions->Create Root Directory
 
-Splice Documentation can be found at http://doc.splicemachine.com.  It is available 
-online, and can be downloaded as a PDF.
+Step 8: Restart HBase
 
-================================
-7. How to shut down the database
-================================
+from HBase: Actions/Start
 
-To shut down the database:
+Step 9: Connect to the Splice Database
 
-a. First make sure you have "quit;" from any splice> prompts:
-splice> quit;
+Start by using the splice.sh script provided:
 
-b. cd to the splicemachine directory that was installed
-
-c. run the following:
-$ ./bin/stop-splice.sh
-
-================================
-8. How to clean the database
-================================
-
-To clean the database (essentially wiping out any existing tables, indexes, etc):
-
-a. First make sure you have "quit;" from any splice> prompts:
-splice> quit;
-
-b. cd to the splicemachine directory that was installed
-
-c. run the following:
-$ ./bin/stop-splice.sh
-$ ./bin/clean.sh
-$ ./bin/start-splice.sh
-
-
-=========================
-9. Useful tips and tricks
-=========================
-
-- At the splice> prompt, remember to always end any SQL statement with a semicolon (;):
-splice> select * from a;
-
-- SQL statements can go across multiple lines at the splice> prompt.  Just be sure to end 
-the last line with a semicolon.  Note that incomplete statements will cause the query
-interface to put a ">" at the beginning of the next line for you to continue to type on:
-splice> select * from a
-> where i > 1;
-
-- You can run collections of sql statements in a file.  To do so use "run":
-splice> run 'path/to/file.sql';
-
-- Comments can be entered either into a file or at the query interface.  Use "--" - any
-text to the right will be ignored by the SQL parser.
-
-- Some useful commands from the splice> prompt include (also note use of comments):
-splice> show tables; -- shows a list of all tables and their schemas in the database
-splice> describe <table>; -- shows columns and attributes of the specified table
-
-- To limit the number of rows returned, use { limit <numrows> };
-splice> select * from a { limit 10 };
-
-- The following command is useful to put into scripts to print a current timestamp
-(in order to time query performance, for example):
-splice> values current_timestamp;
-
-- For HBase veterans (or people new to HBase who are curious to see a little of what is going on under
-the covers), the default HBase URL can be used to access HBase Master:
-http://localhost:60010 
-
-You will see that if you look at the data in any tables that it is virtually unreadable.  This is because we
-encode/compress the data to be very space-efficient.
-
-- As with any database, you can very easily write slow queries.  Here are some tips to help avoid this:
-  - Use a WHERE clause to restrict how much data is scanned
-  - If there is an index on the criteria used in the WHERE clause (or if the where clause is using a primary key), 
-this helps speed up the query.  Composite indexes work well here.
-  - Indexing doesn't yet help for MAX(), MIN(), and IN() criteria.  If you can change these to =, >, BETWEEN,
-the index will help 
-
-- The query optimizer logic is in its earliest stages.  Therefore it may be required to provide "hints" to help
-make queries run faster by giving it a correct strategy.
-
-- Hints can provide the following information:
-  - which index to use (index=<index name>).  You can use index=NULL if you want NO index to be used.
-  - which table join order to use (joinOrder = { FIXED | UNFIXED })
-  - which join strategy to use (joinStrategy = { NESTEDLOOP | SORTMERGE | BROADCAST })
-
-- Hints are provided in well-formatted "comments" starting with --SPLICE-PROPERTIES, and need to be placed 
-at the end of SPECIFIC LINES of a multi-line query:
-  - joinOrder after the word FROM
-  - index and join strategy after the table listing
-  
-Here are some examples:
-
--- use idx1
-select i
-from a --SPLICE-PROPERTIES index=idx1
-where i > 500;
-
--- use joinOrder and joinStrategy
-select a.i, b.j
-from  --SPLICE-PROPERTIES joinOrder=FIXED
-a,b --SPLICE-PROPERTIES joinStrategy=SORTMERGE
-where a.i = b.i;
-
+$ ./splice.sh
 
 
 =========================================
-10. A list of known bugs and other issues
+Cluster Operations
+=========================================
+
+You can use Cloudera Manager to perform most cluster operations once your Splice Machine 
+is completely configured. 
+ 
+There are however a couple of commands that will require shell script commands:
+
+1.  Dropping and recreating the database
+
+Should you wish to start over with a clean Splice database, do the following:
+
+a. Stop HBase using Cloudera Manager
+b. At a command line prompt on one of the servers, run the following:
+
+$ ./dropdb.sh
+
+c. Restart HBase
+
+
+2.  Verifying that the Splice Database is up
+
+
+ 
+
+=========================================
+Connect with JDBC/ODBC Tools
+=========================================
+
+Business Intelligence and Query Visualization tools (such as Tableau and DbVisualizer) can
+also be connected to the Splice Machine.  This is achieved through the use of our embedded JDBC driver 
+or through the use of a third-party Apache Derby ODBC Driver.
+
+a.  JDBC Connectivity Example
+
+DbVisualizer (http://www.dbvis.com) is a simple example of a database visualization tool that connects
+to Splice Machine via JDBC.  Once you have downloaded DbVisualizer (there is a free version):
+
+1. Use Tools->Connection Wizard to start the process
+2. Give the connection a name (e.g. Splice Machine Connection)
+3. Under Select Database Driver, select "JavaDB/Derby Server"
+4. Enter "app" for userid and password
+5. For database server, leave as localhost if Splice Machine is running locally, otherwise enter the IP address
+ of the machine that Splice is running on
+6. For database enter splicedb
+7. Do not check "Create Database"
+8. Hit "Finish"
+
+You will now see your connection listed in the left panel under Connections, and can explore the database
+schema, enter queries, etc.
+
+b.  ODBC Connectivity Example
+
+Tableau (www.tableausoftware.com) 
+  
+
+=========================================
+A list of known bugs and other issues
 =========================================
 
 - IMPORTANT NOTE FOR LAPTOP USERS: If you are running the database on a laptop, you will need to stop and 
 restart the database after closing and reopening the laptop.
-
-- For the location of the Splice download - please put in a directory where there are no spaces in the
-directory name (or in the name of any parent directories).
-
-- Windows users - be sure to run the clean.sh script every time before running the start-splice.sh script.
 
 - The scripts used to start and stop the Splice database do NOT handle directories with spaces in them. 
 Please be sure to create directories without spaces or other special characters.
@@ -313,58 +276,8 @@ execute DDL statements separately from DML statements for now.
 does not occur, check the splice.log.  If you see an exception but no "ready to accept connections", please retry the command.  
 You are ready to go when you see the "ready to accept connections" message.
 
-- On Windows, you will need to clean the database between stopping and restarting.
-
 To report a bug, and for more hints, tips, and a Splice Developer Forum, please visit http://support.splicemachine.com
 
-
-=====================================
-11. Installing the Java JDK on Ubuntu
-=====================================
-
-If your Ubuntu system does not yet have the Java JDK, the following steps can be used:
-
-For Java 6:
-
-$ sudo add-apt-repository ppa:webupd8team/java
-$ sudo apt-get update
-$ sudo apt-get install oracle-java6-installer
-$ sudo apt-get install oracle-java6-set-default
-
-For Java 7:
-
-$ sudo add-apt-repository ppa:webupd8team/java
-$ sudo apt-get update
-$ sudo apt-get install oracle-java7-installer
-$ sudo apt-get install oracle-java7-set-default
-
-=====================================
-12. Installing the rlwrap utility
-=====================================
-
-The sqlshell.sh script checks to see if your system has the "rlwrap" command, and if so starts the 
-query interface with it.  This gives the query interface a command-line history capability you can 
-access using up-arrow and down-arrow keys.  While rlwrap is NOT required to use the shell, having
-a command-line history can be quite useful.  
-
-If you don't have rlwrap installed and want to install it, use the following (and remember in ALL cases
-that you will need to start a new shell window for the command to be available for use after installation):
-
-a.  Ubuntu Linux
-
-This is installed similar to any other package on the system:
-$ sudo apt-get install rlwrap
-
-b.  Windows
-
-Using your setup.exe installer for Cygwin, search for rlwrap and toggle it to enable its installation.  If
-you have already installed Cygwin, you can rerun setup.exe, toggle the rlwrap, and it will be added.
-
-c.  Mac OS/X
-
-Install a project that can install open source packages.  One example is MacPorts (http://www.macports.org/)
-If MacPorts is used, once installed you can run the following from a terminal:
-$ sudo port install rlwrap  
 
 
 
