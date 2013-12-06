@@ -66,7 +66,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     public static int ipcReserved = 10;
     private static int maxWorkers = 10;
     private static int flushQueueSizeBlock = 10;
-    private static int compactionQueueSizeBlock = 10;
+    private static int compactionQueueSizeBlock = 1000;
     private RegionServerMetrics metrics;
 
     
@@ -78,6 +78,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private static MetricName receptionName = new MetricName("com.splicemachine","receiverStats","time");
     private static MetricName throughputMeterName = new MetricName("com.splicemachine","receiverStats","success");
     private static MetricName failedMeterName = new MetricName("com.splicemachine","receiverStats","failed");
+    private static MetricName rejectedMeterName = new MetricName("com.splicemachine","receiverStats","rejected");
 
     private long conglomId;
 
@@ -85,6 +86,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
+    private Meter rejectedMeter =SpliceDriver.driver().getRegistry().newMeter(rejectedMeterName,"rejectedRows",TimeUnit.SECONDS);
     
     @Override
     public void start(CoprocessorEnvironment env) {
@@ -145,12 +147,21 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
         HRegion region = rce.getRegion();
-        region.startRegionOperation();
+    	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) {// Too Busy For Splice... 
+    		activeWriteThreads.decrementAndGet();
+    		rejectedMeter.mark();
+    		throw new RegionTooBusyException("Too many active ipc threads, backing off on " + region.getRegionNameAsString());
+    	}
         long start = System.nanoTime();
+        try {
+        	region.startRegionOperation();
+        } catch (IOException ioe) {
+        	activeWriteThreads.decrementAndGet();
+        	throw ioe;
+        }
+        
         try{
-        	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) // Too Busy For Splice...
-        		throw new RegionTooBusyException("Too many active ipc threads, backing off on " + region.getRegionNameAsString());
-            WriteContext context;
+        	WriteContext context;
             if(queue==null)
                 queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
             try {
