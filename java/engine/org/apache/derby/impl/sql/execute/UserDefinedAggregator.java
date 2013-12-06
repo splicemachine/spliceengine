@@ -225,7 +225,7 @@ public final class UserDefinedAggregator  implements ExecAggregator
     }
 
     public void add(DataValueDescriptor addend) throws StandardException {
-
+    	_aggregator.add(addend);
     }
 
 }

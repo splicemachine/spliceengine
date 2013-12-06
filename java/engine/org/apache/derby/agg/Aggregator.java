@@ -21,6 +21,8 @@
 package org.apache.derby.agg;
 
 import java.io.Serializable;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 
 /**
  * <p>
@@ -60,5 +62,8 @@ public interface Aggregator<V,R,A extends Aggregator<V,R,A>>    extends Serializ
 
     /** Return the result scalar value */
     public  R   terminate();
+    
+    public void add (DataValueDescriptor addend) throws StandardException;
+
 }
 
