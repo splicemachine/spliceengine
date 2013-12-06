@@ -5,12 +5,14 @@
         <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
+    <!-- Was pulling in splice_machine-0.5rc4-SNAPSHOT-<profile>-cdh4.3.0_complete.jar
     <dependencySets>
         <dependencySet>
-            <outputDirectory>splicemachine/bin</outputDirectory>
+            <outputDirectory>splicemachine/lib</outputDirectory>
             <useTransitiveDependencies>false</useTransitiveDependencies>
         </dependencySet>
     </dependencySets>
+    -->
     <fileSets>
         <fileSet>
             <directory>src/main/scripts/</directory>
@@ -33,7 +35,7 @@
         </fileSet>
         <fileSet>
             <directory>src/main/scripts/${envClassifier}</directory>
-            <outputDirectory>splicemachine/lib</outputDirectory>
+            <outputDirectory>splicemachine/bin</outputDirectory>
             <fileMode>0755</fileMode>
             <directoryMode>0755</directoryMode>
         </fileSet>

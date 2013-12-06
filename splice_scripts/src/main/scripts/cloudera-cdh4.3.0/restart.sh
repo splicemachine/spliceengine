@@ -2,7 +2,9 @@
 
 # Cloudera VM Splice Machine restarter
 
-. ./lib/setEnv
+ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+# sets VM specific env vars
+source "${ROOT_DIR}"/setEnv
 
 echo "Restarting Splice Machine on $SPLICE_ENV"
 
@@ -10,6 +12,3 @@ curl -X POST -u admin:admin 'http://localhost:7180/api/v1/clusters/Cluster%201%2
 
 echo "To check the state of the active command:"
 echo "> curl -u admin:admin 'http://localhost:7180/api/v1/commands/<cmdId>'"
-
-# Wait 400 sec for cmd to complete checking every 10 sec. Kill it if time expires.
-./lib/execwait -t 400 -i 10 ./lib/spliceReady /var/log/hbase/*-REGIONSERVER-*

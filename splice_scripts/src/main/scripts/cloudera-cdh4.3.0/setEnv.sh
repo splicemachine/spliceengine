@@ -1,3 +1,4 @@
+#!/bin/sh
 # Cloudera specific environment properties
 
 export SPLICE_ENV=cloudera

@@ -1,3 +1,4 @@
+#!/bin/sh
 # MapR specific environment properties
 
 export SPLICE_ENV=mapr
