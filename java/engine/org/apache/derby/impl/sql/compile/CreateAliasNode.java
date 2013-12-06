@@ -139,9 +139,9 @@ public class CreateAliasNode extends DDLStatementNode
      * @param cm                    The context manager
      * @exception StandardException Thrown on error
      */
-    CreateAliasNode() {}
+    public CreateAliasNode() {}
 
-    CreateAliasNode(TableName aliasName,
+    public CreateAliasNode(TableName aliasName,
                     Object targetObject,
                     String methodName,
                     Object aliasSpecificInfo,
