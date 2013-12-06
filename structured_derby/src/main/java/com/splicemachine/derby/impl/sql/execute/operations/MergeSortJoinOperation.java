@@ -158,7 +158,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public void open() throws StandardException, IOException {
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner "+(joiner != null ? "not " : "")+"null");
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner ",(joiner != null ? "not " : ""),"null");
         super.open();
         if(joiner!=null){
             joiner.close();
@@ -337,7 +337,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
 	public void	close() throws StandardException, IOException {
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Close: joiner " + (joiner != null ? "not " : "") + "null");
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Close: joiner ", (joiner != null ? "not " : ""), "null");
 		beginTime = getCurrentTimeMillis();
 		super.close();
 
@@ -369,7 +369,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             scanner.open();
             Restriction mergeRestriction = getRestriction();
 
-            SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for "+(outer ? "" : "non ")+"outer join");
+            SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");
             if(outer){
                 StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
                     @Override

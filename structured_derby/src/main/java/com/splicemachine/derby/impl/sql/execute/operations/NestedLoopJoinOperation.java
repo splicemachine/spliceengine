@@ -112,7 +112,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             return mergedRow;
         } else {
             ExecRow next = nestedLoopIterator.next();
-            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: "+(next != null ? next : "NULL Next Row"));
+            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: ",(next != null ? next : "NULL Next Row"));
             setCurrentRow(next);
             nextTime += getElapsedMillis(beginTime);
             rowsReturned++;
@@ -152,7 +152,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
 				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
 			}
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening "+(outerJoin?"Outer ":"")+"join. Left: "+(leftRow != null ? leftRow : "NULL Left Row"));
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
 			probeResultSet.openCore();
 			populated=false;
             this.outerJoin = outerJoin;
@@ -160,7 +160,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		
 		@Override
 		public boolean hasNext() {
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() "+(restriction != null?"with ":"without ")+"restriction");
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
             if(populated)return true;
 			rightResultSet.clearCurrentRow();
 			try {
@@ -185,7 +185,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                         return false;
                     }
 
-                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: "+rightRow);
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
@@ -199,7 +199,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
                     mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
                 }else {
-                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: "+rightRow);
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 					populated = false;
 					return false;
 				}
@@ -246,7 +246,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing "+(isOpen? "": "closed ")+(outerJoin?"Outer ":"")+"join.");
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing ",(isOpen? "": "closed "),(outerJoin?"Outer ":""),"join.");
 			beginTime = getCurrentTimeMillis();
 			if (!isOpen)
 				return;

@@ -94,13 +94,13 @@ public class MergeSortJoiner {
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right){
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Right: "+(right != null ? right.toString() : "NULL RIGHT ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Right: ",(right != null ? right : "NULL RIGHT ROW"));
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
     }
 
     private void addLeftAndRights(Pair<ExecRow,Iterator<ExecRow>> leftAndRights){
         currentLeftRow = leftAndRights.getFirst();
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Left: "+(currentLeftRow != null ? currentLeftRow.toString() : "NULL LEFT ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Left: ",(currentLeftRow != null ? currentLeftRow : "NULL LEFT ROW"));
 
         rightSideRowIterator = leftAndRights.getSecond();
         rightSideReturned = false;
@@ -148,7 +148,7 @@ public class MergeSortJoiner {
             addLeftAndRights(joinRowsSource.next());
             row = getNextFromBuffer();
         }
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: " + (row != null ? row.toString() : "NULL TOP ROW"));
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: ", (row != null ? row : "NULL TOP ROW"));
         return row;
 
     }
