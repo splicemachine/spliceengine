@@ -2,15 +2,19 @@ package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Array;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A Bounded, Tiered, cooperative Task Scheduler.
@@ -67,6 +71,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>When the overflow policy is {@code OVERFLOW}, then the task is forcibly submitted to the Overflow Tier.
  *
+ * <h3>Task Prioritization</h3>
+ * <p>Tiers are associated with a histogram of priority levels( e.g. there is a minimum and a maximum priority for a tier).
+ * If the task's priority falls within that min and max priority level, then it is associated with that tier.
+ *
+ * <p>For example, suppose that tasks can take a priority between 0 and 100, and it is to be separated into three
+ * even tiers. Then the first tier will handle priorities [0-33), the second [33,66), and the third [66,100). When
+ * a task with priority 42 is submitted, it will be assigned to the second tier.</p>
+ *
+ * <p>Within a given tier, tasks are ordered according to their priority. Thus, if tasks T and S are both
+ * assigned and submitted to the same region, if T has a higher priority than S, it will be prioritized. This is
+ * similar to the Linux process scheduler, and it allows for fine-grained prioritization of tasks based on more
+ * than just an operation-specific tier.</p>
+ *
+ * <p>Note: Tasks are ordered in an inverted prioritization schedule. In that sense, T has a <em>higher priority</em>
+ * than S if T's priority number is <em>smaller</em> than S. For example, if T has priority 4, and S has priority 6,
+ * then T is considered to be a higher priority than S. This is noteworthy mostly because english language discussions
+ * are directly opposite--we like to think a higher priority has a higher number, but the opposite is true in
+ * this implementation. This makes the mathematics of determining a priority simpler, since one could easily
+ * adopt a shortest-first priority schedule by just comparing the length of the task. However, it <em>does</em> make
+ * english-language conversations somewhat more complicated, so it's worth remembering.
+ *
  * <h3>WorkStealing and Idle Workers</h3>
  *
  * <p>It is always possible that a worker for a given tier becomes idle and has no additional work to do. In this
@@ -93,12 +118,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  * threads, as the high-priority tasks can always take medium priority threads, but medium priority tasks will not
  * be able to take high-priority threads.
  *
+ * <h2>Future work</h2>
+ *
+ * <h3>Task Preemption</h3>
+ * <p>It is sometimes desirable to "pause" a task, and switch it out for a different task within the same thread, similar
+ * in effect to how the Linux process scheduler works. This is complex and difficult to acheive within a cooperative
+ * threading model like Java's, but would enable strict quality of service guarantees (such as some tasks being
+ * guaranteed to execute immediately, even if a lower-priority task must be pre-empted).
+ *
  * @author Scott Fines
  * Date: 12/3/13
  */
 public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> {
+		private static final Logger SCHEDULER_LOG = Logger.getLogger(BoundTierTaskScheduler.class);
 
-		private final int numPriorityLevels;
 		private final Tier[] tiers;
 		private final OverflowHandler overflowHandler;
 		private final StealableTaskScheduler<T> overflowScheduler;
@@ -130,31 +163,35 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 				public OverflowPolicy shouldOverflow(Task t);
 		}
 
-
 		public final RejectionHandler<T> rejectionHandler;
+		private final AtomicLong totalOverflowedTasks = new AtomicLong(0l);
+		private final AtomicLong totalRejectedTasks = new AtomicLong(0l);
 
-
-		public BoundTierTaskScheduler(int[] threadCounts,
+		public BoundTierTaskScheduler(TieredTaskSchedulerSetup schedulerSetup,
 																	OverflowHandler overflowHandler,
 																	StealableTaskScheduler<T> overflowScheduler){
-				this(threadCounts, overflowHandler,overflowScheduler,TaskScheduler.ExceptionRejectionHandler.<T>instance());
+				this(schedulerSetup, overflowHandler,overflowScheduler,TaskScheduler.ExceptionRejectionHandler.<T>instance());
 		}
 
- 		public BoundTierTaskScheduler(int[] threadCounts,
+ 		public BoundTierTaskScheduler(TieredTaskSchedulerSetup schedulerSetup,
 																	OverflowHandler overflowHandler,
 																	StealableTaskScheduler<T> overflowScheduler,
 																	RejectionHandler<T> rejectionHandler) {
 				this.overflowHandler = overflowHandler;
 				this.rejectionHandler = rejectionHandler;
-				this.numPriorityLevels = threadCounts.length;
 				this.overflowScheduler = overflowScheduler;
 
+				int[] priorityTiers = schedulerSetup.getPriorityTiers();
+				int numPriorityLevels = priorityTiers.length;
+
 				//noinspection unchecked
-				this.tiers = (Tier[])Array.newInstance(Tier.class,numPriorityLevels);
+				this.tiers = (Tier[])Array.newInstance(Tier.class, numPriorityLevels);
 				List<Tier> allTiers = Lists.newArrayListWithCapacity(numPriorityLevels);
-				for(int i=tiers.length-1;i>=0;i--){
+				for(int i=0;i<priorityTiers.length;i++){
+						int minPriority = priorityTiers[i];
+						int numThreads = schedulerSetup.maxThreadsForPriority(minPriority);
 						List<Tier> higherTiers = Lists.newArrayList(allTiers);
-						Tier tier = new Tier(i,threadCounts[i],higherTiers);
+						Tier tier = new Tier(minPriority,numThreads,higherTiers);
 						tiers[i] = tier;
 						allTiers.add(tier);
 				}
@@ -166,19 +203,30 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 				}
 		}
 
+		public BoundTierTaskSchedulerManagment getStats(){
+				return new Stats();
+		}
+
 		@Override
 		public TaskFuture submit(T task) throws ExecutionException {
 				int priority = task.getPriority();
-				if(priority>=numPriorityLevels){
-						priority = numPriorityLevels/2;
+				//find the highest-priority tier whose priority level is lower than this
+				Tier tier = tiers[0];
+				for(Tier checkTier: tiers){
+					if(checkTier.minTierPriority>priority)
+							break;
+					else
+							tier = checkTier;
 				}
-				Tier tier = tiers[priority];
+
 				if(tier.trySubmit(task))
 						return new ListeningTaskFuture<T>(task,tier.stats.numPending.get());
 
-				for(int lowerP=0;lowerP<priority;lowerP++){
+				Tier oldTier = tier;
+				for(int lowerP=tiers.length-1;lowerP>priority;lowerP--){
 						tier = tiers[lowerP];
 						if(tier.trySubmit(task)){
+								oldTier.stats.shruggedCount.incrementAndGet();
 								return new ListeningTaskFuture<T>(task,tier.stats.numPending.get());
 						}
 				}
@@ -186,13 +234,14 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 				OverflowHandler.OverflowPolicy overflowPolicy = overflowHandler.shouldOverflow(task);
 				switch (overflowPolicy) {
 						case REJECT:
+								totalRejectedTasks.incrementAndGet();
 								rejectionHandler.rejected(task);
 								return null;
 						case OVERFLOW:
+								totalOverflowedTasks.incrementAndGet();
 								return overflowScheduler.submit(task);
 						default:
-								tier = tiers[priority];
-								tier.forceQueue(task);
+								oldTier.forceQueue(task);
 								return new ListeningTaskFuture<T>(task,tier.stats.numPending.get());
 				}
 		}
@@ -203,20 +252,42 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 				tiers[priorityLevel].setNumThreads(newThreadCount);
 		}
 
+		public void setMinTierPriority(int currentMinPriority, int newMinPriority){
+				for(Tier tier:tiers){
+						if(tier.minTierPriority==currentMinPriority){
+								tier.minTierPriority = newMinPriority;
+								return;
+						}
+				}
+				SCHEDULER_LOG.warn("Attempted to change the minimum priority " +
+								"for a priority level which does not exist: " +
+								""+currentMinPriority+ " was to be set to "+ newMinPriority);
+		}
+
 		private class Tier{
 				private final ThreadPoolExecutor tierExecutor;
 				public final TierStats stats = new TierStats();
 
 				private final AtomicInteger queueSize = new AtomicInteger(0);
-				private final BlockingDeque<T> outstandingTasks = new LinkedBlockingDeque<T>();
+				private final BlockingQueue<T> outstandingTasks;
 				private final List<Future<?>> tasks;
 				private final List<Tier> higherTiers;
 
+				private volatile int minTierPriority;
+
 				@SuppressWarnings("unchecked")
-				public Tier(int tierId,int numThreads,List<Tier> higherTiers){
+				public Tier(int minTierPriority,int numThreads,List<Tier> higherTiers){
 						this.higherTiers = higherTiers;
+						this.minTierPriority = minTierPriority;
+						Comparator<T> comparator = new Comparator<T>() {
+								@Override
+								public int compare(T o1, T o2) {
+										return o1.getPriority() - o2.getPriority();
+								}
+						};
+						this.outstandingTasks = new PriorityBlockingQueue<T>(numThreads, comparator);
 						ThreadFactory factory = new ThreadFactoryBuilder()
-										.setNameFormat("tier-"+tierId+"-thread-%d")
+										.setNameFormat("tier-"+minTierPriority+"-thread-%d")
 										.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
 												@Override
 												public void uncaughtException(Thread t, Throwable e) {
@@ -283,13 +354,16 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 		}
 
 		private class TierStats implements TaskStatus.StatusListener{
-				public final AtomicInteger tasksSubmitted = new AtomicInteger(0);
-				public final AtomicInteger completedCount = new AtomicInteger(0);
-				public final AtomicInteger failedCount = new AtomicInteger(0);
-				public final AtomicInteger cancelledCount = new AtomicInteger(0);
-				public final AtomicInteger invalidatedCount = new AtomicInteger(0);
+				public final AtomicLong tasksSubmitted = new AtomicLong(0l);
+				public final AtomicLong completedCount = new AtomicLong(0);
+				public final AtomicLong failedCount = new AtomicLong(0);
+				public final AtomicLong cancelledCount = new AtomicLong(0);
+				public final AtomicLong invalidatedCount = new AtomicLong(0);
 				public final AtomicInteger numExecuting = new AtomicInteger(0);
 				public final AtomicInteger numPending = new AtomicInteger(0);
+
+				public final AtomicLong stolenCount = new AtomicLong(0l);
+				public final AtomicLong shruggedCount = new AtomicLong(0l);
 
 				@Override
 				public void statusChanged(Status oldStatus, Status newStatus, TaskStatus taskStatus) {
@@ -373,6 +447,8 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 										WORKER_LOG.trace("No work found, attempting to steal from overflow queue");
 										next = overflowScheduler.steal();
 										queue = null;
+										if(next!=null)
+												mainTier.stats.stolenCount.incrementAndGet();
 								}
 								int pos=0;
 								Tier nextTier;
@@ -382,6 +458,8 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 										if(WORKER_LOG.isTraceEnabled())
 												WORKER_LOG.trace("Attempting to steal from higher tier");
 										next = queue.poll();
+										if(next!=null)
+												mainTier.stats.stolenCount.incrementAndGet();
 										pos++;
 								}
 
@@ -412,7 +490,7 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 								next.getTaskStatus().attachListener(mainTier.stats);
 								new TaskCallable<T>(next).call();
 						}catch(InterruptedException ie){
-							//we've been told to cancel, so put the task back on it's queue
+								//we've been told to cancel, so put the task back on it's queue
 								resetToQueue(next, sourceQueue);
 						} catch (Exception e) {
 								WORKER_LOG.error("Unexpected exception calling task " + Bytes.toString(next.getTaskId()), e);
@@ -424,16 +502,214 @@ public class BoundTierTaskScheduler<T extends Task> implements TaskScheduler<T> 
 
 				private void resetToQueue(T next, BlockingQueue<T> sourceQueue) {
 						try{
-						if(sourceQueue==null){
-								//it was stolen from the overflow tier, put it back
-								overflowScheduler.submit(next);
-						}else
-								sourceQueue.offer(next);
-						Thread.currentThread().interrupt();
+								if(sourceQueue==null){
+										//it was stolen from the overflow tier, put it back
+										overflowScheduler.submit(next);
+								}else
+										sourceQueue.offer(next);
+								Thread.currentThread().interrupt();
 						}catch(ExecutionException e){
 								WORKER_LOG.error("Unable to restore task " + Bytes.toString(next.getTaskId())+ " after interrupt", e);
 						}
 				}
 		}
 
+		private class Stats implements BoundTierTaskSchedulerManagment{
+
+				@Override public int getNumTiers() { return tiers.length; }
+
+				@Override
+				public long getTotalTasksStolen() {
+						long totalStolen = 0l;
+						for(Tier tier:tiers){
+								totalStolen+=tier.stats.stolenCount.get();
+						}
+						return totalStolen;
+				}
+
+				@Override
+				public Map<Integer, Long> getTasksStolen() {
+						Map<Integer,Long> stolenCount = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								stolenCount.put(tier.minTierPriority,tier.stats.stolenCount.get());
+						}
+						return stolenCount;
+				}
+
+				@Override
+				public long getTotalTasksShrugged() {
+						long totalShrugged = 0l;
+						for(Tier tier:tiers){
+								totalShrugged+=tier.stats.shruggedCount.get();
+						}
+						return totalShrugged;
+				}
+
+				@Override
+				public Map<Integer, Long> getTasksShrugged() {
+						Map<Integer,Long> shruggedCount = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								shruggedCount.put(tier.minTierPriority, tier.stats.shruggedCount.get());
+						}
+						return shruggedCount;
+				}
+
+				@Override
+				public int getTotalWorkers() {
+						int totalWorkers = 0;
+						for(Tier tier:tiers){
+								totalWorkers+=tier.tierExecutor.getPoolSize();
+						}
+						return totalWorkers;
+				}
+
+				@Override
+				public Map<Integer, Integer> getWorkerCount() {
+						Map<Integer,Integer> workerCount = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								workerCount.put(tier.minTierPriority,tier.tierExecutor.getPoolSize());
+						}
+						return workerCount;
+				}
+
+				@Override
+				public void setWorkerCount(int priorityLevel, int newWorkerCount) {
+						for(Tier tier:tiers){
+								if(tier.minTierPriority==priorityLevel){
+										tier.setNumThreads(newWorkerCount);
+										return;
+								}
+						}
+						SCHEDULER_LOG.warn("Attempt made to set a worker count for unknown priority "+ priorityLevel);
+				}
+
+				@Override
+				public long getTotalSubmittedTasks() {
+						long totalSubmitted = 0l;
+						for(Tier tier:tiers){
+								totalSubmitted+=tier.stats.tasksSubmitted.get();
+						}
+						return totalSubmitted;
+				}
+
+				@Override
+				public Map<Integer, Long> getSubmittedTasks() {
+						Map<Integer,Long> submitted = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								submitted.put(tier.minTierPriority,tier.stats.tasksSubmitted.get());
+						}
+						return submitted;
+				}
+
+				@Override
+				public int getTotalPendingTasks() {
+						int totalPending = 0;
+						for(Tier tier:tiers){
+								totalPending+=tier.stats.numPending.get();
+						}
+						return totalPending;
+				}
+
+				@Override
+				public Map<Integer, Integer> getPendingTasks() {
+						Map<Integer,Integer> pending = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								pending.put(tier.minTierPriority,tier.stats.numPending.get());
+						}
+						return pending;
+				}
+
+				@Override
+				public int getTotalExecutingTasks() {
+						int totalExecuting = 0;
+						for(Tier tier:tiers){
+								totalExecuting+=tier.stats.numExecuting.get();
+						}
+						return totalExecuting;
+				}
+
+				@Override
+				public Map<Integer, Integer> getExecutingTasks() {
+						Map<Integer,Integer> executing = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								executing.put(tier.minTierPriority,tier.stats.numExecuting.get());
+						}
+						return executing;
+				}
+
+				@Override
+				public long getTotalCompletedTasks() {
+						long totalCompleted = 0l;
+						for(Tier tier:tiers){
+								totalCompleted+=tier.stats.completedCount.get();
+						}
+						return totalCompleted;
+				}
+
+				@Override
+				public Map<Integer, Long> getCompletedTasks() {
+						Map<Integer,Long> completed = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								completed.put(tier.minTierPriority,tier.stats.completedCount.get());
+						}
+						return completed;
+				}
+
+				@Override
+				public long getTotalFailedTasks() {
+						long totalFailed = 0l;
+						for(Tier tier:tiers){
+								totalFailed+=tier.stats.failedCount.get();
+						}
+						return totalFailed;
+				}
+
+				@Override
+				public Map<Integer, Long> getFailedTasks() {
+						Map<Integer,Long> failed = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								failed.put(tier.minTierPriority,tier.stats.failedCount.get());
+						}
+						return failed;
+				}
+
+				@Override
+				public long getTotalCancelledTasks() {
+						long totalCancelled = 0l;
+						for(Tier tier:tiers){
+								totalCancelled+=tier.stats.cancelledCount.get();
+						}
+						return totalCancelled;
+				}
+
+				@Override
+				public Map<Integer, Long> getCancelledTasks() {
+						Map<Integer,Long> cancelled = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								cancelled.put(tier.minTierPriority,tier.stats.cancelledCount.get());
+						}
+						return cancelled;
+				}
+
+				@Override
+				public long getTotalInvalidatedTasks() {
+						long totalInvalidated = 0l;
+						for(Tier tier:tiers){
+								totalInvalidated+=tier.stats.invalidatedCount.get();
+						}
+						return totalInvalidated;
+				}
+
+				@Override
+				public Map<Integer, Long> getInvalidatedTasks() {
+						Map<Integer,Long> invalidated = Maps.newHashMapWithExpectedSize(tiers.length);
+						for(Tier tier:tiers){
+								invalidated.put(tier.minTierPriority,tier.stats.invalidatedCount.get());
+						}
+						return invalidated;
+				}
+
+				@Override public long getTotalOverflowedTasks() { return totalOverflowedTasks.get(); }
+				@Override public long getTotalRejectedTasks() { return totalRejectedTasks.get(); }
+		}
 }

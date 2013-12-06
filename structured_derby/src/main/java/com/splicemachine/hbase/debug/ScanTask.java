@@ -152,7 +152,7 @@ public class ScanTask extends DebugTask{
         return true;
     }
 
-    private class HBaseEntryPredicateFilter extends FilterBase {
+		private class HBaseEntryPredicateFilter extends FilterBase {
         private EntryPredicateFilter epf;
         private EntryAccumulator accumulator;
         private EntryDecoder decoder;

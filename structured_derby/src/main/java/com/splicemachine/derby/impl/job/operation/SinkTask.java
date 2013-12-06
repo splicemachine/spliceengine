@@ -1,30 +1,31 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.TaskStatus;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -54,9 +55,8 @@ public class SinkTask extends ZkTask {
     /**
      * Serialization Constructor.
      */
-    public SinkTask(){
-        super();
-    }
+    @SuppressWarnings("UnusedDeclaration")
+		public SinkTask(){ super(); }
 
     public SinkTask(String jobId,
                     Scan scan,
@@ -81,14 +81,13 @@ public class SinkTask extends ZkTask {
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-    	SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
         SpliceTransactionResourceImpl impl = null;
-        ContextManager ctxManager = null;
         boolean prepared=false;
         SpliceOperationContext opContext = null;
         try {
             impl = new SpliceTransactionResourceImpl();
-            ctxManager = impl.getContextManager();
             impl.prepareContextManager();
             prepared=true;
             if(instructions==null)
@@ -116,7 +115,8 @@ public class SinkTask extends ZkTask {
 						}
             status.setStats(stats);
 
-            SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
+						if(LOG.isTraceEnabled())
+								SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing", Bytes.toString(getTaskId()));
         } catch (Exception e) {
             if(e instanceof ExecutionException)
                 throw (ExecutionException)e;
@@ -164,7 +164,16 @@ public class SinkTask extends ZkTask {
         return status.getStatus()==Status.CANCELLED;
     }
 
-    public HRegion getRegion() {
+		@Override
+		public int getPriority() {
+				if(instructions==null)
+						instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+				//TODO -sf- make this also add priority values to favor shorter tasks over longer ones
+				//TODO -sf- detect system table operations and give them a different priority
+				return SchedulerPriorities.INSTANCE.getBasePriority(instructions.getTopOperation().getClass());
+		}
+
+		public HRegion getRegion() {
         return region;
     }
 

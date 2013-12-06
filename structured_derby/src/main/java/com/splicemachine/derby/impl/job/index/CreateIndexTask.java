@@ -10,6 +10,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -218,4 +219,9 @@ public class CreateIndexTask extends ZkTask {
             totalWriteTime+= (end-start);
         }
     }
+
+		@Override
+		public int getPriority() {
+				return SchedulerPriorities.INSTANCE.getBasePriority(CreateIndexTask.class);
+		}
 }

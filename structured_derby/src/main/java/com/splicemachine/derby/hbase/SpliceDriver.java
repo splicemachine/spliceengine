@@ -8,9 +8,8 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.scheduler.*;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -18,14 +17,8 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskMonitor;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.job.ZkTaskMonitor;
+import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -38,28 +31,6 @@ import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.Nullable;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
 import net.sf.ehcache.Cache;
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
@@ -68,6 +39,19 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
+
+import javax.annotation.Nullable;
+import javax.management.*;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Scott Fines
@@ -114,8 +98,7 @@ public class SpliceDriver extends SIConstants {
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
-    private TempCleaner tempCleaner;
-    private SnowflakeLoader snowLoader;
+		private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
 		//-sf- when we need to, replace this with a list
@@ -143,10 +126,20 @@ public class SpliceDriver extends SIConstants {
         try {
             snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);
-            threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
+						TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
+						BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
+								@Override
+								public OverflowPolicy shouldOverflow(Task t) {
+										if(t.getParentTaskId()!=null) return OverflowPolicy.OVERFLOW;
+										else return OverflowPolicy.ENQUEUE;
+								}
+						};
+						StealableTaskScheduler<RegionTask> overflowScheduler = new ConstrainedTaskScheduler<RegionTask>(
+										new ExpandingTaskScheduler<RegionTask>(),
+										Collections.<ConstrainedTaskScheduler.Constraint<RegionTask>>emptyList(),true);
+            threadTaskScheduler = new BoundTierTaskScheduler<RegionTask>(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
-            tempCleaner = new TempCleaner(SpliceUtils.config);
 						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
@@ -163,10 +156,6 @@ public class SpliceDriver extends SIConstants {
 
     public Properties getProperties() {
         return props;
-    }
-
-    public TempCleaner getTempCleaner() {
-        return tempCleaner;
     }
 
 		public TempTable getTempTable() {
@@ -376,8 +365,10 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(ErrorReporter.get(),errorReporterName);
 
             //register TaskScheduler
-            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
-            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+						ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=BoundTierTaskSchedulerManagement");
+						mbs.registerMBean(((BoundTierTaskScheduler)threadTaskScheduler).getStats(),taskSchedulerName);
+//            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
+//            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
 
             //register TaskMonitor
             ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");

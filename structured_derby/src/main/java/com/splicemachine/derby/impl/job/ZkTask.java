@@ -118,11 +118,6 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     }
 
     @Override
-    public int getPriority() {
-        return priority;
-    }
-
-    @Override
     public void execute() throws ExecutionException, InterruptedException {
         /*
          * Create the Child transaction.
