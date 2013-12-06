@@ -14,23 +14,20 @@ import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
-import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -140,8 +137,7 @@ public class CreateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            region.startRegionOperation();
-            MultiVersionConsistencyControl.setThreadReadPoint(sourceScanner.getMvccReadPoint());
+            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,DEFAULT_CACHE_SIZE);            
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
@@ -152,13 +148,14 @@ public class CreateIndexTask extends ZkTask {
 										do{
                         nextRow.clear();
                         long start = System.nanoTime();
-                        shouldContinue  = sourceScanner.nextRaw(nextRow,null);
+                        shouldContinue  = brs.nextRaw(nextRow,null);
                         long stop = System.nanoTime();
                         totalReadTime+=(stop-start);
                         numRecordsRead++;
                         translateResult(nextRow, transformer,writeBuffer);
 										}while(shouldContinue);
-                }finally{
+                } 
+                finally{
                     writeBuffer.flushBuffer();
                     writeBuffer.close();
 
@@ -171,15 +168,16 @@ public class CreateIndexTask extends ZkTask {
                         SpliceLogUtils.info(LOG,"Average time to write 1 record: %f ns",(double)totalWriteTime/numRecordsRead);
                     }
                 }
-            }finally{
-            	HRegionUtil.updateReadRequests(region,numRecordsRead);
-                region.closeRegionOperation();
-                sourceScanner.close();
+            } 
+            finally{
+                brs.close();
             }
 
         } catch (IOException e) {
+        	SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(e);
         } catch (Exception e) {
+        	SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(Throwables.getRootCause(e));
         }
     }
