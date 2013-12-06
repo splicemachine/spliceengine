@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc4-SNAPSHOT</version>
+		<version>0.5rc4</version>
 	</parent>
 
 
@@ -52,7 +52,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>0.5rc4-SNAPSHOT</version>
+			<version>0.5rc4</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
@@ -266,7 +266,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
-                                            <arg value="${failTasksRandomly}"/>
+                                            <arg value="${failTasksRandomly}" />
                                         </exec>
                                         <sleep seconds="90" />
                                     </target>

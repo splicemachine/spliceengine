@@ -8,14 +8,14 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc4-SNAPSHOT</version>
+		<version>0.5rc4</version>
 	</parent>
   
 	<dependencies>
         		<dependency>
         			<groupId>com.splicemachine</groupId>
         			<artifactId>structured_constants</artifactId>
-        			<version>0.5rc4-SNAPSHOT</version>
+        			<version>0.5rc4</version>
           			<classifier>${envClassifier}</classifier>
         			<type>jar</type>
         			<scope>compile</scope>
