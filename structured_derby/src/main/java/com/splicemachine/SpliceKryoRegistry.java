@@ -21,10 +21,13 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -35,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.TreeMap;
+
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.DecimalTypeIdImpl;
 import org.apache.derby.catalog.types.DefaultInfoImpl;
@@ -377,6 +381,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
