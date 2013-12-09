@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.storage;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import com.splicemachine.derby.impl.temp.TempTable;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 

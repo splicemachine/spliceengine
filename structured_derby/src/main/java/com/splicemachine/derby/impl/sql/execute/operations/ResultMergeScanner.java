@@ -109,7 +109,8 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
                                                   PairDecoder leftDecoder,
                                                   PairDecoder rightDecoder,
                                                   HRegion region) {
-        RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, SpliceConstants.TEMP_TABLE_BYTES,
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+        RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, tempTableBytes,
                 new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder.getKeyPrefixOffset()));
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
     }
@@ -117,7 +118,8 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
     public static ResultMergeScanner clientScanner(Scan reduceScan,
 																									 PairDecoder leftDecoder,
 																									 PairDecoder rightDecoder) {
-        ClientResultScanner scanner = new ClientResultScanner(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,true);
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+        ClientResultScanner scanner = new ClientResultScanner(tempTableBytes,reduceScan,true);
         return new ResultMergeScanner(scanner,leftDecoder,rightDecoder);
     }
 }

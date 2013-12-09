@@ -156,7 +156,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         buildReduceScan();
         SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-				RowProvider delegate = new DistributedClientScanProvider("distinctScalarAggregateReduce",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder,spliceRuntimeContext);
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				RowProvider delegate = new DistributedClientScanProvider("distinctScalarAggregateReduce",tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
         return new ScalarAggregateRowProvider(rowDecoder.getTemplate(), aggregates, delegate);
     }
 
