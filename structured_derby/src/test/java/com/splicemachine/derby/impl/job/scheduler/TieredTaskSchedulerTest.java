@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * @author Scott Fines
- *         Date: 12/8/13
+ * Date: 12/8/13
  */
 public class TieredTaskSchedulerTest {
 		@Test(timeout= 1000)
