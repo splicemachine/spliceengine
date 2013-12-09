@@ -97,6 +97,10 @@ public class TempTable {
 				return Longs.min(activeTimestamps)-maxClockSkew;
 		}
 
+		public byte[] getTempTableName() {
+				return tempTableName;
+		}
+
 		private static class NoOpInternalScanner implements InternalScanner{
 
 				@Override public boolean next(List<KeyValue> results) throws IOException { return false;   }

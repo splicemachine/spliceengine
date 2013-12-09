@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -109,8 +110,10 @@ public class SinkTask extends ZkTask {
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
                 stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext);
-            else
-                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES, spliceRuntimeContext);
+            else{
+								TempTable table = SpliceDriver.driver().getTempTable();
+                stats = opSink.sink(table.getTempTableName(), spliceRuntimeContext);
+						}
             status.setStats(stats);
 
             SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());

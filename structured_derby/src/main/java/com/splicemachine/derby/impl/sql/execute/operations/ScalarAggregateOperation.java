@@ -106,7 +106,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						throw Exceptions.parseException(e);
 				}
 				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", SpliceConstants.TEMP_TABLE_BYTES,reduceScan,rowDecoder,spliceRuntimeContext);
+
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
 				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate);
 		}
 
