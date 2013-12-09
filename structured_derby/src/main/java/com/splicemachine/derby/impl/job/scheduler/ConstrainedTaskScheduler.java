@@ -102,6 +102,16 @@ public class ConstrainedTaskScheduler<T extends Task> implements StealableTaskSc
 		}
 
 		@Override
+		public TaskFuture tryExecute(T task) throws ExecutionException {
+						throw new UnsupportedOperationException("Implement!");
+		}
+
+		@Override
+		public void resubmit(T task) {
+				throw new UnsupportedOperationException("Implement!");
+		}
+
+		@Override
 		public T steal() {
 				//steal from the overflow queue
 				return overflowConstraint.anyDeferredTask(Predicates.<T>alwaysTrue());

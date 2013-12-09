@@ -10,4 +10,5 @@ public interface TieredTaskSchedulerSetup {
 
 		int maxThreadsForPriority(int minPriorityForTier);
 
+		long pollTimeForPriority(int minPriority);
 }

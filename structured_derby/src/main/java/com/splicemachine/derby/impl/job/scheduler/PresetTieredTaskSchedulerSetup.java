@@ -8,9 +8,16 @@ public class PresetTieredTaskSchedulerSetup implements TieredTaskSchedulerSetup 
 		private final int[] priorityLevels;
 		private final int[] threads;
 
+		private final long pollTimeMs;
+
 		public PresetTieredTaskSchedulerSetup(int[] priorityLevels, int[] threads) {
+				this(priorityLevels, threads,200l);
+		}
+
+		public PresetTieredTaskSchedulerSetup(int[] priorityLevels, int[] threads, long pollTimeMs) {
 				this.priorityLevels = priorityLevels;
 				this.threads = threads;
+				this.pollTimeMs = pollTimeMs;
 		}
 
 		@Override
@@ -28,5 +35,10 @@ public class PresetTieredTaskSchedulerSetup implements TieredTaskSchedulerSetup 
 								pos++;
 				}
 				return threads[pos];
+		}
+
+		@Override
+		public long pollTimeForPriority(int minPriority) {
+				return pollTimeMs;
 		}
 }
