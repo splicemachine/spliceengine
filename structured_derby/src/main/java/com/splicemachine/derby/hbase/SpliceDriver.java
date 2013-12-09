@@ -127,7 +127,7 @@ public class SpliceDriver extends SIConstants {
             snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);
 						TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
-						BoundTierTaskScheduler.OverflowHandler overflowHandler = new BoundTierTaskScheduler.OverflowHandler() {
+						TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
 								@Override
 								public OverflowPolicy shouldOverflow(Task t) {
 										if(t.getParentTaskId()!=null) return OverflowPolicy.OVERFLOW;
@@ -137,7 +137,7 @@ public class SpliceDriver extends SIConstants {
 						StealableTaskScheduler<RegionTask> overflowScheduler = new ConstrainedTaskScheduler<RegionTask>(
 										new ExpandingTaskScheduler<RegionTask>(),
 										Collections.<ConstrainedTaskScheduler.Constraint<RegionTask>>emptyList(),true);
-            threadTaskScheduler = new BoundTierTaskScheduler<RegionTask>(setup,overflowHandler,overflowScheduler);
+            threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
 						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
@@ -365,8 +365,7 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(ErrorReporter.get(),errorReporterName);
 
             //register TaskScheduler
-						ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=BoundTierTaskSchedulerManagement");
-						mbs.registerMBean(((BoundTierTaskScheduler)threadTaskScheduler).getStats(),taskSchedulerName);
+						((TieredTaskScheduler)threadTaskScheduler).registerJMX(mbs);
 //            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
 //            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
 

@@ -5,6 +5,9 @@ import com.splicemachine.job.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import javax.management.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.*;
@@ -12,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * TaskScheduler that Steals Work from other Schedulers when it is empty.
+ *
  * @author Scott Fines
  * Date: 12/8/13
  */
@@ -20,8 +25,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		private final ThreadPoolExecutor executor;
 		private final Stats stats = new Stats();
 
-		private final BlockingQueue<T> outstandingTasks;
-		private final BlockingQueue<Future<?>> workerFutures;
+		private final BlockingQueue<T> pendingTasks;
+		private final List<Future<?>> workerFutures;
 		private final List<StealableTaskScheduler<T>> otherSchedulers;
 		private final long pollTimeout;
 
@@ -29,18 +34,17 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 		public WorkStealingTaskScheduler(int numThreads,
 																		 long pollTimeoutMs,
+																		 Comparator<T> taskComparator,
 																		 List<StealableTaskScheduler<T>> otherSchedulers,
 																		 String schedulerName) {
 				this.otherSchedulers = otherSchedulers;
 				this.pollTimeout = pollTimeoutMs;
 
-				Comparator<T> comparator = new Comparator<T>() {
-						@Override
-						public int compare(T o1, T o2) {
-								return o1.getPriority() - o2.getPriority();
-						}
-				};
-				this.outstandingTasks = new PriorityBlockingQueue<T>(numThreads,comparator);
+				if(taskComparator!=null)
+						this.pendingTasks = new PriorityBlockingQueue<T>(numThreads,taskComparator);
+				else
+						this.pendingTasks = new LinkedBlockingQueue<T>();
+
 				ThreadFactory factory = new ThreadFactoryBuilder()
 								.setNameFormat(schedulerName+"-thread-%d")
 								.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
@@ -53,7 +57,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								60l,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(),factory);
 				executor.allowCoreThreadTimeOut(true);
 
-				this.workerFutures =  new ArrayBlockingQueue<Future<?>>(numThreads);
+				this.workerFutures =  Collections.synchronizedList(new ArrayList<Future<?>>());
 				for(int i=0;i<numThreads;i++){
 						workerFutures.add(executor.submit(new Worker()));
 				}
@@ -61,10 +65,15 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 		@Override
 		public TaskFuture submit(T task) throws ExecutionException {
-				stats.numPending.incrementAndGet();
-				int waitTime = queueSize.getAndIncrement();
-				outstandingTasks.offer(task);
+				int waitTime = doSubmit(task);
 				return new ListeningTaskFuture<T>(task,waitTime);
+		}
+
+		private int doSubmit(T task) {
+				stats.submittedCount.incrementAndGet();
+				int waitTime = queueSize.getAndIncrement();
+				pendingTasks.offer(task);
+				return waitTime;
 		}
 
 		@Override
@@ -81,19 +90,19 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						return null; //queue isn't empty, so can't execute
 				}
 
-				return submit(task);
+				stats.submittedCount.incrementAndGet();
+				pendingTasks.offer(task);
+				return new ListeningTaskFuture<T>(task,0);
 		}
 
 		@Override
 		public void resubmit(T task) {
-				stats.numPending.incrementAndGet();
-				queueSize.getAndIncrement();
-				outstandingTasks.offer(task);
+				doSubmit(task);
 		}
 
 		@Override
 		public T steal() {
-				T last = outstandingTasks.poll();
+				T last = pendingTasks.poll();
 				if(last!=null)
 						queueSize.decrementAndGet();
 				return last;
@@ -101,38 +110,42 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 		public void shutdown(){
 				Future<?> future;
-				while((future = workerFutures.poll())!=null){
+				while((future = workerFutures.remove(0))!=null){
 						future.cancel(true);
 				}
 				executor.shutdownNow();
 		}
 
 		public void setNumWorkers(int newNumWorkers){
-				executor.setMaximumPoolSize(newNumWorkers);
 				executor.setCorePoolSize(newNumWorkers);
+				executor.setMaximumPoolSize(newNumWorkers);
 
 				while(workerFutures.size()>newNumWorkers){
 						//TODO -sf- ensure that running tasks are resubmitted without cancellation
 						//or failure
-						workerFutures.poll().cancel(true);
+						workerFutures.remove(0).cancel(true);
 				}
 
 				while(workerFutures.size()<newNumWorkers){
 						workerFutures.add(executor.submit(new Worker()));
 				}
-				stats.numWorkers = newNumWorkers;
 		}
 
 		public StealableTaskSchedulerManagement getManagement(){
 				return stats;
 		}
 
+		public void registerJMX(MBeanServer mbs, String baseJmx) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
+				ObjectName name = new ObjectName(baseJmx+":type=StealableTaskSchedulerManagement");
+				mbs.registerMBean(stats,name);
+		}
 
 		private class Stats implements TaskStatus.StatusListener,
 						StealableTaskSchedulerManagement{
 				private final AtomicInteger numPending = new AtomicInteger(0);
 				private final AtomicInteger numExecuting = new AtomicInteger(0);
 				private final AtomicLong failedCount = new AtomicLong(0l);
+				private final AtomicLong submittedCount = new AtomicLong(0l);
 				private final AtomicLong invalidatedCount = new AtomicLong(0l);
 				private final AtomicLong cancelledCount = new AtomicLong(0l);
 				private final AtomicLong successCount = new AtomicLong(0l);
@@ -140,9 +153,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				private final AtomicLong stolenCount = new AtomicLong(0l);
 				private final AtomicLong executeFailureCount = new AtomicLong(0l);
 
-				private volatile int numWorkers;
-
-				@Override public int getCurrentWorkers() { return numWorkers; }
+				@Override public int getCurrentWorkers() { return executor.getActiveCount(); }
 				@Override public void setCurrentWorkers(int maxWorkers) { setNumWorkers(maxWorkers); }
 				@Override public long getTotalCompletedTasks() { return successCount.get(); }
 				@Override public long getTotalFailedTasks() { return failedCount.get(); }
@@ -152,18 +163,21 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				@Override public int getNumPendingTasks() { return numPending.get(); }
 				@Override public long getTotalStolenTasks() { return stolenCount.get(); }
 				@Override public long getTotalSubmitFailures() { return executeFailureCount.get(); }
+				@Override public long getTotalSubmittedTasks() { return submittedCount.get(); }
 
 				@Override
 				public void statusChanged(Status oldStatus,
 																	Status newStatus,
 																	TaskStatus taskStatus) {
-						switch (oldStatus) {
-								case PENDING:
-										numPending.decrementAndGet();
-										break;
-								case EXECUTING:
-										numExecuting.decrementAndGet();
-										break;
+						if(oldStatus!=null){
+								switch (oldStatus) {
+										case PENDING:
+												numPending.decrementAndGet();
+												break;
+										case EXECUTING:
+												numExecuting.decrementAndGet();
+												break;
+								}
 						}
 						switch (newStatus) {
 								case INVALID:
@@ -193,7 +207,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				public void run() {
 						interruptLoop:
 						while(!Thread.currentThread().isInterrupted()){
-								T next = outstandingTasks.poll();
+								T next = pendingTasks.poll();
 								if(next!=null){
 										queueSize.decrementAndGet();
 										execute(next,WorkStealingTaskScheduler.this);
@@ -223,7 +237,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								if(WORKER_LOG.isTraceEnabled())
 										WORKER_LOG.trace("No tasks available to steal, waiting on our queue");
 								try{
-										next = outstandingTasks.poll(pollTimeout,TimeUnit.MILLISECONDS);
+										next = pendingTasks.poll(pollTimeout,TimeUnit.MILLISECONDS);
 										if(next!=null){
 												queueSize.decrementAndGet();
 												execute(next,WorkStealingTaskScheduler.this);
@@ -240,6 +254,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				}
 
 				private void execute(T next, StealableTaskScheduler<T> usedScheduler) {
+						if(WORKER_LOG.isDebugEnabled())
+								WORKER_LOG.debug("Executing task "+ Bytes.toString(next.getTaskId()));
 						next.getTaskStatus().attachListener(stats);
 						try {
 								new TaskCallable<T>(next).call();

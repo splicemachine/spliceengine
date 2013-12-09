@@ -21,4 +21,6 @@ public interface StealableTaskSchedulerManagement {
 
 		long getTotalStolenTasks();
 		long getTotalSubmitFailures();
+
+		long getTotalSubmittedTasks();
 }
