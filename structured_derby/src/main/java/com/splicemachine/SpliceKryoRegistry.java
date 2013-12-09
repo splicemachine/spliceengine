@@ -381,8 +381,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER);
@@ -481,5 +479,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
     }
 }
