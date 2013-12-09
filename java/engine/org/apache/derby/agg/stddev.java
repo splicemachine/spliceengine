@@ -5,6 +5,7 @@ import java.util.Collections;
 import org.apache.derby.agg.Aggregator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.error.StandardException;
+import java.lang.Math;
 
 public class stddev<K extends Double> 
         implements Aggregator<K,K,stddev<K>>
@@ -54,7 +55,7 @@ public class stddev<K extends Double>
     private double var(double a) {
         double v = 0.0;
         for(int i = 0; i < _values.size(); i++) {
-            v = v + (_values.get(i).doubleValue() - a) * (_values.get(i).doubleValue() - a);
+            v = v + Math.pow((_values.get(i).doubleValue() - a), 2);
         }
         return v/_values.size();
     }
