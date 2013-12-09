@@ -127,7 +127,8 @@ public class OperationSink {
     }
 
 		private String getTransactionId(byte[] destinationTable) {
-				if(Bytes.equals(destinationTable, SpliceConstants.TEMP_TABLE_BYTES)){
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.
 						 *
