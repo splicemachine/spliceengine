@@ -29,6 +29,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -42,6 +43,7 @@ public class SinkTask extends ZkTask {
 
     private Scan scan;
     private SpliceObserverInstructions instructions;
+
 		/*
 		 * Hash bucket to use for sink operations which do not spread data themselves.
 		 *
@@ -65,6 +67,11 @@ public class SinkTask extends ZkTask {
                     int priority) {
         super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
+
+				List<byte[]> taskChain = OperationSink.taskChain.get();
+				if(taskChain!=null){
+						parentTaskId = taskChain.get(taskChain.size()-1);
+				}
 		}
 
     @Override

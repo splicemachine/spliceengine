@@ -50,7 +50,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     private boolean readOnly;
     private String taskPath;
 
-		private byte[] parentTaskId = null;
+		protected byte[] parentTaskId = null;
 		private TaskWatcher taskWatcher;
 
 		protected ZkTask() {
