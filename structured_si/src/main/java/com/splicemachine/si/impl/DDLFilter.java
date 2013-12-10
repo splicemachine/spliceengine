@@ -24,4 +24,8 @@ public class DDLFilter {
             }
         }).visible;
     }
+
+    public Transaction getTransaction() {
+        return myTransaction;
+    }
 }

@@ -7,7 +7,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.index.ForbidPastWritesJob;
+import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.job.JobFuture;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.UUID;
@@ -47,6 +53,7 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -873,12 +880,25 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         if (tables.isEmpty() || active.isEmpty()) {
             return;
         }
-        for (String table : tables) {
+        for (String tableName : tables) {
             for (TransactionId transactionId : active) {
-                try {
-                    transactor.forbidWrites(table, transactionId);
-                } catch (IOException e) {
+                JobFuture future = null;
+                try{
+                    HTableInterface table = SpliceAccessManager.getHTable(tableName.getBytes());
+                    future = SpliceDriver.driver().getJobScheduler().submit(new ForbidPastWritesJob(table,null));
+                    future.completeAll();
+                } catch (Exception e) {
+                    e.printStackTrace();
                     throw Exceptions.parseException(e);
+                }finally {
+                    if (future!=null) {
+                        try {
+                            future.cleanup();
+                        } catch (ExecutionException e) {
+                            LOG.error("Couldn't cleanup future", e);
+                            throw Exceptions.parseException(e.getCause());
+                        }
+                    }
                 }
             }
         }

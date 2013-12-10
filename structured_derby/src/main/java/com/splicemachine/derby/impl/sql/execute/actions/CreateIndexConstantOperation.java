@@ -781,7 +781,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         List<String> tables = getBlockedTables();
         forbidActiveTransactionsTableAccess(active, tables);
 
-
         /*
          * Backfill the index with any existing data.
          *
