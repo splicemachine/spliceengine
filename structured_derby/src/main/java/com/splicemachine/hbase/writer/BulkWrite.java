@@ -2,12 +2,20 @@ package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
+import java.util.EnumMap;
+import java.util.LinkedList;
+import java.util.List;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.SpliceUtils;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.SnappyCodec;
+import org.xerial.snappy.Snappy;
 
 /**
  * @author Scott Fines
@@ -55,26 +63,7 @@ public class BulkWrite implements Externalizable {
         mutations.add(write);
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-    	out.writeUTF(txnId);
-        Object[] buffer = mutations.buffer;
-        int iBuffer = mutations.size();
-        out.writeInt(iBuffer);
-        for (int i = 0; i< iBuffer; i++) {
-        	out.writeObject((KVPair) buffer[i]);
-        }
-    }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        txnId = in.readUTF();
-        int size = in.readInt();
-        mutations = ObjectArrayList.newInstanceWithCapacity(size);
-        for(int i=0;i<size;i++){
-            mutations.add((KVPair)in.readObject());
-        }
-    }
 
     @Override
     public String toString() {
@@ -106,6 +95,86 @@ public class BulkWrite implements Externalizable {
     public int getSize() {
     	return mutations.size();
     }
-    
-    
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				out.writeUTF(txnId);
+				Object[] buffer = mutations.buffer;
+				int iBuffer = mutations.size();
+				out.writeInt(iBuffer);
+				for (int i = 0; i< iBuffer; i++) {
+						out.writeObject((KVPair) buffer[i]);
+				}
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				txnId = in.readUTF();
+				int size = in.readInt();
+				mutations = ObjectArrayList.newInstanceWithCapacity(size);
+				for(int i=0;i<size;i++){
+						mutations.add((KVPair)in.readObject());
+				}
+		}
+
+		public byte[] toBytes() throws IOException {
+				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+//				Output output = new Output(byteArrayOutputStream);
+				CompressionCodec snappy = SpliceUtils.getCompressionFactory().getCodecByName("snappy");
+				OutputStream stream;
+				if(snappy!=null)
+						stream = snappy.createOutputStream(byteArrayOutputStream);
+				else
+					stream = byteArrayOutputStream;
+				Output output = new Output(stream);
+				output.writeString(txnId);
+				List<KVPair> inserts = Lists.newArrayList();
+				List<KVPair> updates = Lists.newArrayList();
+				List<KVPair> deletes = Lists.newArrayList();
+				Object[] buffer = mutations.buffer;
+				int size = mutations.size();
+				for(int i=0;i< size;i++){
+						KVPair pair = (KVPair)buffer[i];
+						switch (pair.getType()) {
+								case INSERT:
+										inserts.add(pair);
+										break;
+								case UPDATE:
+										updates.add(pair);
+										break;
+								case DELETE:
+										deletes.add(pair);
+										break;
+						}
+				}
+				if(inserts.size()>0){
+						output.writeAscii("I");
+						writeKvs(output, inserts);
+				}
+				if(updates.size()>0){
+						output.writeAscii("U");
+						writeKvs(output,updates);
+				}
+				if(deletes.size()>0){
+						output.writeAscii("U");
+						writeKvs(output,updates);
+				}
+				output.flush();
+				return byteArrayOutputStream.toByteArray();
+		}
+
+		private void writeKvs(Output output, List<KVPair> kvs) {
+				output.writeInt(kvs.size());
+				for(KVPair kvPair:kvs){
+						byte[] key = kvPair.getRow();
+						byte[] value = kvPair.getValue();
+						output.writeInt(key.length);
+						output.write(key);
+						output.writeInt(value.length);
+						output.write(value);
+				}
+		}
+
+		public static BulkWrite fromBytes(byte[] bulkWriteBytes) {
+				return null;  //To change body of created methods use File | Settings | File Templates.
+		}
 }

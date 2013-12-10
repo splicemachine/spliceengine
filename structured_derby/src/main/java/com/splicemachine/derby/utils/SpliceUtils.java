@@ -34,6 +34,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
@@ -395,4 +396,10 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return zeroIndexed;
     }
+
+		private static final CompressionCodecFactory compressionFactory
+						= new CompressionCodecFactory(SpliceConstants.config);
+		public static CompressionCodecFactory getCompressionFactory() {
+				return compressionFactory;
+		}
 }
