@@ -27,9 +27,9 @@ import java.util.List;
 public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeJoinRows.class);
 
-    Iterator<ExecRow> leftRS;
-    PushBackIterator<ExecRow> rightRS;
-    Comparator<ExecRow> comparator;
+    final Iterator<ExecRow> leftRS;
+    final PushBackIterator<ExecRow> rightRS;
+    final Comparator<ExecRow> comparator;
     final List<Pair<Integer,Integer>> joinKeys;
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
 
@@ -91,7 +91,6 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         while (rightRS.hasNext()){
             rightRowsSeen++;
             ExecRow right = rightRS.next();
-            //LOG.error(String.format("Left: %s, right: %s", left, right));
             int comparison = comparator.compare(left, right);
             // if matches left, add to buffer
             if (comparison == 0) {
@@ -101,7 +100,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
                 rightRS.pushBack(right);
                 break;
             }
-            // if is less than right, continue
+            // if is less than left, read next right
         }
         return currentRights.iterator();
     }
@@ -135,7 +134,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
         return this;
     }
 
-     @Override
+    @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
