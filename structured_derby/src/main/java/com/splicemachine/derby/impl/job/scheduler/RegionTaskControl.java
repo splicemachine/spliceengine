@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
@@ -44,8 +45,9 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      * retry resubmissions.
      */
     private volatile boolean trashed = false;
+		private ControlWatcher statusWatcher;
 
-    RegionTaskControl(byte[] startRow,
+		RegionTaskControl(byte[] startRow,
                       RegionTask task,
                       JobControl jobControl,
                       TaskFutureContext taskFutureContext,
@@ -100,22 +102,15 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
                  */
             refresh=false;
             try{
+								statusWatcher = new ControlWatcher(RegionTaskControl.this);
                 byte[] data = zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<byte[]>() {
                     @Override
                     public byte[] execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
                         try{
                             return zooKeeper.getData(
                                     taskFutureContext.getTaskNode(),
-                                    new org.apache.zookeeper.Watcher() {
-                                        @Override
-                                        public void process(WatchedEvent event) {
-                                            SpliceLogUtils.trace(LOG, "Received %s event on node %s",
-                                                    event.getType(), event.getPath());
-                                            refresh=true;
-                                            if(!trashed)
-                                                jobControl.taskChanged(RegionTaskControl.this);
-                                        }
-                                    },new Stat());
+																		statusWatcher
+                                    ,new Stat());
                         }catch(KeeperException ke){
                             if(ke.code()== KeeperException.Code.NONODE){
                                     /*
@@ -166,15 +161,19 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
             Status runningStatus = getStatus();
             switch (runningStatus) {
                 case INVALID:
+										statusWatcher.regionTaskControl=null;
                     jobControl.markInvalid(this);
                     resubmit();
                     break;
                 case FAILED:
+										statusWatcher.regionTaskControl=null;
                     dealWithError();
                     break;
                 case COMPLETED:
+										statusWatcher.regionTaskControl=null;
                     return;
                 case CANCELLED:
+										statusWatcher.regionTaskControl=null;
                     throw new CancellationException();
             }
 
@@ -207,7 +206,10 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     //convenience method for setting the state to failed
     void fail(Throwable cause) {
-        taskStatus.setError(cause);
+				if(statusWatcher!=null)
+						statusWatcher.regionTaskControl=null;
+
+				taskStatus.setError(cause);
         taskStatus.setStatus(Status.FAILED);
     }
 
@@ -221,6 +223,8 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         if(taskStatus.shouldRetry()) {
             resubmit();
         } else {
+						//dereference us so that we can be garbage collected
+						statusWatcher.regionTaskControl=null;
             throw new ExecutionException(taskStatus.getError());
         }
     }
@@ -300,9 +304,35 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         return taskStatus.getError();
     }
 
+		public void cleanup() {
+				/*
+				 * Dereference our watch to prevent memory leaks
+				 */
+				if(statusWatcher!=null)
+						statusWatcher.regionTaskControl=null;
+		}
+
+		private static class ControlWatcher implements Watcher {
+				private volatile RegionTaskControl regionTaskControl;
+
+				private ControlWatcher(RegionTaskControl regionTaskControl) {
+						this.regionTaskControl = regionTaskControl;
+				}
+
+				@Override
+				public void process(WatchedEvent event) {
+						SpliceLogUtils.trace(LOG, "Received %s event on node %s",
+										event.getType(), event.getPath());
+						if(regionTaskControl==null) return; //if we're dereferenced, then we don't care
+						regionTaskControl.refresh=true;
+						if(!regionTaskControl.trashed)
+								regionTaskControl.jobControl.taskChanged(regionTaskControl);
+				}
+		}
     public static void main(String... args) throws Exception{
         for(int i=0;i<16;i++){
             System.out.println(BytesUtil.toHex(new byte[]{(byte)(i*0x10)}));
         }
     }
+
 }

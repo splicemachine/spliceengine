@@ -106,6 +106,7 @@ class JobControl implements JobFuture {
             Status status = changedFuture.getStatus();
             switch (status) {
                 case INVALID:
+										changedFuture.cleanup();
                     SpliceLogUtils.trace(LOG,"[%s] Task %s is invalid, resubmitting",job.getJobId(),changedFuture.getTaskNode());
                     stats.invalidTaskCount.incrementAndGet();
                     if(changedFuture.rollback(maxResubmissionAttempts)){
@@ -117,6 +118,7 @@ class JobControl implements JobFuture {
                     }
                     break;
                 case FAILED:
+										changedFuture.cleanup();
                     try{
                         SpliceLogUtils.trace(LOG, "[%s] Task %s failed",job.getJobId(),changedFuture.getTaskNode());
                         stats.addFailedTask(changedFuture.getTaskId());
@@ -129,6 +131,7 @@ class JobControl implements JobFuture {
                     break;
                 case COMPLETED:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s completed successfully",job.getJobId(),changedFuture.getTaskNode());
+										changedFuture.cleanup();
                     if(changedFuture.commit(maxResubmissionAttempts)){
                         TaskStats taskStats = changedFuture.getTaskStats();
                         if(taskStats!=null)
@@ -143,6 +146,7 @@ class JobControl implements JobFuture {
                     break;
                 case CANCELLED:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s is cancelled",job.getJobId(),changedFuture.getTaskNode());
+										changedFuture.cleanup();
                     cancelledTasks.add(changedFuture);
                     throw new CancellationException();
                 default:
@@ -194,7 +198,12 @@ class JobControl implements JobFuture {
             }
         }catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
-        }
+        }finally{
+						completedTasks.clear();
+						failedTasks.clear();
+						tasksToWatch.clear();
+						changedTasks.clear();
+				}
     }
 
     @Override public JobStats getJobStats() { return stats; }

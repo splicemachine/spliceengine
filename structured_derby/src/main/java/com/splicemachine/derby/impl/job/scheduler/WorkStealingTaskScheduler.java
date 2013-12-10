@@ -211,7 +211,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								if(next!=null){
 										queueSize.decrementAndGet();
 										execute(next,WorkStealingTaskScheduler.this);
-										continue;
+										continue interruptLoop;
 								}
 								if(WORKER_LOG.isTraceEnabled())
 										WORKER_LOG.trace("No work found, attempting to steal from other schedulers");
