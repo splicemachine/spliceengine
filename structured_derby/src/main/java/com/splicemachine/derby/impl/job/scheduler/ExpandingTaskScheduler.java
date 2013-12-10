@@ -13,7 +13,7 @@ import java.util.concurrent.*;
  * @author Scott Fines
  * Date: 12/4/13
  */
-public class ExpandingTaskScheduler<T extends Task> implements TaskScheduler<T> {
+public class ExpandingTaskScheduler<T extends Task> implements StealableTaskScheduler<T> {
 		private final ExecutorService executor;
 
 		public ExpandingTaskScheduler() {
@@ -27,4 +27,15 @@ public class ExpandingTaskScheduler<T extends Task> implements TaskScheduler<T> 
 				executor.submit(new TaskCallable<T>(task));
 				return new ListeningTaskFuture<T>(task,0);
 		}
+
+		@Override public TaskFuture tryExecute(T task) throws ExecutionException { return submit(task); }
+		@Override
+		public void resubmit(T task)  {
+				try {
+						submit(task);
+				} catch (ExecutionException e) {
+						throw new RuntimeException(e); //should never happen
+				}
+		}
+		@Override public T steal() { return null; }
 }

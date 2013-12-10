@@ -94,6 +94,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
 																LOG.trace("Removing task "+Bytes.toString(task.getTaskId())+" from running task list");
 
 														runningTasks.remove(task);
+														status.detachListener(this);
                             break;
                     }
                 }

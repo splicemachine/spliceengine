@@ -93,7 +93,7 @@ public class SinkTask extends ZkTask {
             if(instructions==null)
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             impl.marshallTransaction(instructions);
-            Activation activation = instructions.getActivation(impl.getLcc());
+						Activation activation = instructions.getActivation(impl.getLcc());
             SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
             spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());

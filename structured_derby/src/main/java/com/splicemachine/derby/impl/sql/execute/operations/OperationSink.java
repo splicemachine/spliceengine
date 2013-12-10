@@ -117,7 +117,8 @@ public class OperationSink {
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             throw e;
         }finally{
-//						operation.close();
+						operation.close();
+
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));

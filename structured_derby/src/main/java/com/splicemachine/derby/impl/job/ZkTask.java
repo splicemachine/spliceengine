@@ -16,6 +16,7 @@ import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -50,8 +51,9 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     private String taskPath;
 
 		private byte[] parentTaskId = null;
+		private TaskWatcher taskWatcher;
 
-    protected ZkTask() {
+		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
         this.status = new TaskStatus(Status.PENDING,null);
     }
@@ -137,7 +139,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             }
         }
 
-        doExecute();
+				try{
+						doExecute();
+				}finally{
+						taskWatcher.task=null;
+				}
     }
 
     protected abstract void doExecute() throws ExecutionException, InterruptedException;
@@ -177,29 +183,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     private void checkNotCancelled() throws ExecutionException{
         Stat stat;
         try {
+						taskWatcher = new TaskWatcher(this);
             stat = zkManager.execute(new SpliceZooKeeperManager.Command<Stat>() {
                 @Override
                 public Stat execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,new Watcher() {
-                        @Override
-                        public void process(WatchedEvent event) {
-                            if(event.getType()!= Event.EventType.NodeDeleted)
-                                return;
-
-                            switch(status.getStatus()){
-                                case FAILED:
-                                case COMPLETED:
-                                case CANCELLED:
-                                    return;
-                            }
-
-                            try{
-                                markCancelled(false);
-                            }catch(ExecutionException ee){
-                                SpliceLogUtils.error(LOG,"Unable to cancel task with id "+ getTaskId(),ee.getCause());
-                            }
-                        }
-                    });
+                    return zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,taskWatcher);
                 }
             });
             if(stat==null)
@@ -302,6 +290,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
     @Override
     public void markInvalid() throws ExecutionException {
+				if(taskWatcher!=null)
+						taskWatcher.task = null;
         //only invalidate if we are in the PENDING state, otherwise let it go through or fail
         if(getTaskStatus().getStatus()!=Status.PENDING)
             return;
@@ -315,6 +305,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
     @Override
     public void cleanup() throws ExecutionException {
+				taskWatcher.task= null;
         throw new UnsupportedOperationException(
                 "Tasks can not be cleaned up on the Task side--use JobScheduler.cleanupJob() instead");
     }
@@ -337,5 +328,41 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		@Override
 		public String getJobId() {
 				return jobId;
+		}
+
+		private static class TaskWatcher implements Watcher {
+				private volatile ZkTask task;
+
+				private TaskWatcher(ZkTask task) {
+						this.task = task;
+				}
+
+				@Override
+				public void process(WatchedEvent event) {
+						if(event.getType()!= Event.EventType.NodeDeleted)
+								return;
+
+						/*
+						 * If the watch was triggered after
+						 * dereferencing us, then we don't care about it
+						 */
+						if(task==null) return;
+
+						switch(task.status.getStatus()){
+								case FAILED:
+								case COMPLETED:
+								case CANCELLED:
+										task = null;
+										return;
+						}
+
+						try{
+								task.markCancelled(false);
+						}catch(ExecutionException ee){
+								SpliceLogUtils.error(task.LOG,"Unable to cancel task with id "+ Bytes.toString(task.getTaskId()),ee.getCause());
+						}finally{
+								task = null;
+						}
+				}
 		}
 }

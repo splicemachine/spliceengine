@@ -275,28 +275,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	@Override
 	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in HashScan");
-//		beginTime = getCurrentTimeMillis();
-//		if ( isOpen )
-//	    {
-//			// we don't want to keep around a pointer to the
-//			// row ... so it can be thrown away.
-//			// REVISIT: does this need to be in a finally
-//			// block, to ensure that it is executed?
-//		    clearCurrentRow();
-//
-//		    //TODO: need to get ScanInfo to store in runtime statistics
-//		    scanProperties = getScanProperties();
-//
-//			// This is where we get the positioner info for inner tables
-//			if (runTimeStatisticsOn)
-//			{
-//				startPositionString = printStartPosition();
-//				stopPositionString = printStopPosition();
-//			}
-
 			super.close();
-//	    }
-		
 		closeTime += getElapsedMillis(beginTime);
 	}
 

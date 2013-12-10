@@ -463,24 +463,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public void	close() throws StandardException, IOException {
 				super.close();
 				source.close();
-//        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
-//        beginTime = getCurrentTimeMillis();
-//        if ( isOpen )
-//        {
-//            if(reduceScan!=null)
-//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-//            // we don't want to keep around a pointer to the
-//            // row ... so it can be thrown away.
-//            // REVISIT: does this need to be in a finally
-//            // block, to ensure that it is executed?
-//            clearCurrentRow();
-//            source.close();
-//
-//            super.close();
-//        }
-//        closeTime += getElapsedMillis(beginTime);
-//
-//        isOpen = false;
     }
 
     public Properties getSortProperties() {

@@ -134,9 +134,7 @@ public class SpliceDriver extends SIConstants {
 										else return OverflowPolicy.ENQUEUE;
 								}
 						};
-						StealableTaskScheduler<RegionTask> overflowScheduler = new ConstrainedTaskScheduler<RegionTask>(
-										new ExpandingTaskScheduler<RegionTask>(),
-										Collections.<ConstrainedTaskScheduler.Constraint<RegionTask>>emptyList(),true);
+						StealableTaskScheduler<RegionTask> overflowScheduler =new ExpandingTaskScheduler<RegionTask>();
             threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());

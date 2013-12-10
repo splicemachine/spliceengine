@@ -20,17 +20,18 @@ public class RegulatedWriter implements Writer{
     private final Writer delegate;
     private final WriteRejectedHandler writeRejectedHandler;
 
-    private final OptimizingValve valve;
+    private final Valve valve;
 
     public RegulatedWriter(Writer delegate,
                            WriteRejectedHandler writeRejectedHandler,
                            int maxConcurrentWrites ) {
         this.delegate = delegate;
         this.writeRejectedHandler = writeRejectedHandler;
-				this.valve = new OptimizingValve(maxConcurrentWrites,
-								maxConcurrentWrites,
-								new MovingThreshold(MovingThreshold.OptimizationStrategy.MINIMIZE,16),
-								new MovingThreshold(MovingThreshold.OptimizationStrategy.MAXIMIZE,16));
+				this.valve = new SemaphoreValve(new SemaphoreValve.PassiveOpeningPolicy(maxConcurrentWrites));
+//				this.valve = new OptimizingValve(maxConcurrentWrites,
+//								maxConcurrentWrites,
+//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MINIMIZE,16),
+//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MAXIMIZE,16));
     }
 
 
@@ -122,7 +123,7 @@ public class RegulatedWriter implements Writer{
 				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
 						valve.release();
 						//update the valve to take latency and throughput into account
-						valve.update(timeTakenMs,(double)numRecordsWritten/timeTakenMs);
+//						valve.update(timeTakenMs,(double)numRecordsWritten/timeTakenMs);
 						writeConfiguration.writeComplete(timeTakenMs,numRecordsWritten);
 				}
     }
