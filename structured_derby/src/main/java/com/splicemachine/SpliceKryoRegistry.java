@@ -104,7 +104,7 @@ import org.apache.derby.impl.sql.execute.MaxMinAggregator;
 import org.apache.derby.impl.sql.execute.SumAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
-import org.apache.derby.agg.stddev;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceUDAStd;
 /**
  * 
  * TODO Utilize unsafe with Kryo 2.2
@@ -484,8 +484,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
         instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER);
-        instance.register(stddev.class);
         instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceUDAStd.class);
     }
 }

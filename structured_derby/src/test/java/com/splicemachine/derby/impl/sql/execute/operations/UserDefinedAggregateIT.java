@@ -46,7 +46,7 @@ public class UserDefinedAggregateIT extends SpliceUnitTest {
         Assert.assertEquals(10, resultSetSize(resultSet));
 
         conn.createStatement().execute(
-                String.format("create derby aggregate stddev for double external name \'org.apache.derby.agg.stddev\'"));
+                String.format("create derby aggregate stddev for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceUDAStd\'"));
     }
     
     @Test
