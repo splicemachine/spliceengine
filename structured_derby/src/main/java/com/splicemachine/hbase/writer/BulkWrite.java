@@ -8,11 +8,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.xerial.snappy.Snappy;
@@ -118,8 +120,8 @@ public class BulkWrite implements Externalizable {
 
 		public byte[] toBytes() throws IOException {
 				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-//				Output output = new Output(byteArrayOutputStream);
-				CompressionCodec snappy = SpliceUtils.getCompressionFactory().getCodecByName("snappy");
+				CompressionCodec snappy = SpliceUtils.getSnappyCodec();
+				byteArrayOutputStream.write(Encoding.encode(snappy!=null));
 				OutputStream stream;
 				if(snappy!=null)
 						stream = snappy.createOutputStream(byteArrayOutputStream);
@@ -147,15 +149,12 @@ public class BulkWrite implements Externalizable {
 						}
 				}
 				if(inserts.size()>0){
-						output.writeAscii("I");
 						writeKvs(output, inserts);
 				}
 				if(updates.size()>0){
-						output.writeAscii("U");
 						writeKvs(output,updates);
 				}
 				if(deletes.size()>0){
-						output.writeAscii("U");
 						writeKvs(output,updates);
 				}
 				output.flush();
@@ -174,7 +173,32 @@ public class BulkWrite implements Externalizable {
 				}
 		}
 
-		public static BulkWrite fromBytes(byte[] bulkWriteBytes) {
-				return null;  //To change body of created methods use File | Settings | File Templates.
+		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
+				boolean compressed = Encoding.decodeBoolean(bulkWriteBytes);
+				InputStream stream = new ByteArrayInputStream(bulkWriteBytes,1,bulkWriteBytes.length);
+				if(compressed){
+					stream = SpliceUtils.getSnappyCodec().createInputStream(stream);
+				}
+				Input input = new Input(stream);
+				String txnId = input.readString();
+				int insertLength = input.readInt();
+				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>(insertLength);
+				readKvs(input, insertLength, mutations, KVPair.Type.INSERT);
+				int updateLength = input.readInt();
+				readKvs(input,updateLength,mutations, KVPair.Type.UPDATE);
+				int deleteLength = input.readInt();
+				readKvs(input,deleteLength,mutations, KVPair.Type.DELETE);
+
+				return new BulkWrite(mutations,txnId,null);
+		}
+
+		private static void readKvs(Input input, int insertLength, ObjectArrayList<KVPair> mutations, KVPair.Type type) {
+				for(int i=0;i<insertLength;i++){
+						byte[] key = new byte[input.readInt()];
+						input.read(key);
+						byte[] row = new byte[input.readInt()];
+						input.read(row);
+						mutations.add(new KVPair(key,row, type));
+				}
 		}
 }

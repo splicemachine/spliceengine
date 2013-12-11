@@ -34,6 +34,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -401,5 +402,25 @@ public class SpliceUtils extends SpliceUtilities {
 						= new CompressionCodecFactory(SpliceConstants.config);
 		public static CompressionCodecFactory getCompressionFactory() {
 				return compressionFactory;
+		}
+
+		private static final CompressionCodec snappyCodec;
+		static {
+				CompressionCodec codec;
+				try{
+						codec = compressionFactory.getCodecByName("snappy");
+				}catch(UnsatisfiedLinkError ule){
+						/*
+						 * This can happen if there's a problem with how
+						 * the native libraries are built (particularly on
+						 * Macs). In that case, default back to an
+						 * uncompressed format.
+						 */
+						codec = null;
+				}
+				snappyCodec = codec;
+		}
+		public static CompressionCodec getSnappyCodec(){
+				return snappyCodec;
 		}
 }

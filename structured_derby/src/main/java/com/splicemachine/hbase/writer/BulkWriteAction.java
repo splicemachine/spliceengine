@@ -1,6 +1,9 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
@@ -17,6 +20,8 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.log4j.Logger;
+import org.jruby.util.collections.IntHashMap;
+
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.*;
@@ -136,7 +141,7 @@ final class BulkWriteAction implements Callable<Void> {
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
             BulkWriteResult response = BulkWriteResult.fromBytes(instance.bulkWrite(bulkWrite.toBytes()));
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
-            Map<Integer,WriteResult> failedRows = response.getFailedRows();
+            IntHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
                 switch (writeResponse) {
@@ -174,7 +179,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private Exception parseIntoException(BulkWriteResult response) {
-        Map<Integer,WriteResult> failedRows = response.getFailedRows();
+        IntHashMap<WriteResult> failedRows = response.getFailedRows();
         List<Throwable> errors = Lists.newArrayList();
         for(Integer failedRow:failedRows.keySet()){
             errors.add(Exceptions.fromString(failedRows.get(failedRow)));
@@ -184,11 +189,14 @@ final class BulkWriteAction implements Callable<Void> {
 
     private void doPartialRetry(int tries, BulkWrite bulkWrite, BulkWriteResult response) throws Exception {
 
-        List<Integer> notRunRows = response.getNotRunRows();
-        Map<Integer,WriteResult> failedRows = response.getFailedRows();
-        Set<Integer> rowsToRetry = Sets.newHashSet();
-        rowsToRetry.addAll(notRunRows);
-        rowsToRetry.addAll(failedRows.keySet());
+        IntArrayList notRunRows = response.getNotRunRows();
+        IntHashMap<WriteResult> failedRows = response.getFailedRows();
+        Set<Integer> rowsToRetry = Sets.newHashSet(failedRows.keySet());
+
+				int size = notRunRows.size();
+				for(int i=0;i<size;i++){
+					rowsToRetry.add(notRunRows.buffer[i]);
+				}
 
         Collection<WriteResult> results = failedRows.values();
         List<String> errorMsgs = Lists.newArrayListWithCapacity(results.size());
@@ -200,7 +208,7 @@ final class BulkWriteAction implements Callable<Void> {
 
         ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
         ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
-        for(Integer rowToRetry:rowsToRetry){
+				for(int rowToRetry:rowsToRetry){
             failedWrites.add(allWrites.get(rowToRetry));
         }
 

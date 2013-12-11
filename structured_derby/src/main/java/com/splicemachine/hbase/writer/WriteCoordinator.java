@@ -13,6 +13,8 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
+import org.jruby.util.collections.IntHashMap;
+
 import javax.management.*;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -217,7 +219,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
         @Override
         public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-            Map<Integer,WriteResult> failedRows = result.getFailedRows();
+            IntHashMap<WriteResult> failedRows = result.getFailedRows();
             for(WriteResult writeResult:failedRows.values()){
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
