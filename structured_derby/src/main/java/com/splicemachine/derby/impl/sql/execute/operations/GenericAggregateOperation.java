@@ -138,8 +138,10 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
                 eliminatedNulls = true;
         }
 
+        /*
 		if (eliminatedNulls)
 			addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+	    */
 	
 		return row;
 	}
