@@ -4,6 +4,7 @@ import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 
+import com.splicemachine.derby.utils.SpliceAdmin;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -77,6 +78,37 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure splitTemp = Procedure.newBuilder().name("SYSCS_SPLIT_TEMP")
                             .numOutputParams(0).numResultSets(0).ownerClass(TempSplit.class.getCanonicalName()).build();
                     procedures.add(splitTemp);
+
+                    /*
+                     * Procedure get all active services
+                     */
+                    Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
+                            .numOutputParams(0).numResultSets(1).ownerClass(SpliceAdmin.class.getCanonicalName()).build();
+                    procedures.add(getActiveServers);
+
+                    /*
+                     * Procedure get all active requests
+                     */
+                    Procedure getRequests = Procedure.newBuilder().name("SYSCS_GET_REQUESTS")
+                            .numOutputParams(0).numResultSets(1).ownerClass(SpliceAdmin.class.getCanonicalName()).build();
+                    procedures.add(getRequests);
+
+                    /*
+                     * Procedure to perform major compaction on all tables in a schema
+                     * TODO: finish ipml
+                     */
+                    Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
+                            .numOutputParams(0).numResultSets(0).ownerClass(SpliceAdmin.class.getCanonicalName()).catalog("schemaName").build();
+                    procedures.add(majorComactionOnSchema);
+
+                    /*
+                     * Procedure to perform major compaction on a table in a schema
+                     */
+                    Procedure majorComactionOnTable = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE")
+                            .numOutputParams(0).numResultSets(0).ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName").build();
+                    procedures.add(majorComactionOnTable);
                 }
             }
         }
