@@ -32,9 +32,8 @@ public class SpliceAdmin {
      *
      * @return
      * @throws IOException
-     *  TODO: Rename to SYSCS_GET_ACTIVE_SERVERS() ?
      */
-    public static ResultSet getActiveServers() throws IOException {
+    public static ResultSet SYSCS_GET_ACTIVE_SERVERS() throws IOException {
         List<String> colNames = Arrays.asList("hostname","servername", "port", "startcode");
         List<List<String>> rows = new ArrayList<List<String>>();
         for (ServerName serverName : getServers()) {
@@ -48,7 +47,7 @@ public class SpliceAdmin {
        return new MBeanResultSet(rows, colNames);
     }
 
-    public static ResultSet getRequests() throws IOException {
+    public static ResultSet SYSCS_GET_REQUESTS() throws IOException {
         List<String> colNames = Arrays.asList("hostname","servername", "total requests");
         List<List<String>> rows = new ArrayList<List<String>>();
         for (Map.Entry<ServerName,HServerLoad> serverLoad : getLoad().entrySet()) {
@@ -61,7 +60,7 @@ public class SpliceAdmin {
         return new MBeanResultSet(rows, colNames);
     }
 
-    public static void performMajorCompactionOnSchema(String schemaName) throws IOException, InterruptedException {
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws IOException, InterruptedException {
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
@@ -80,7 +79,7 @@ public class SpliceAdmin {
         }
     }
 
-    public static void performMajorCompactionOnTable(String schemaName, String tableName)
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName, String tableName)
             throws IOException, InterruptedException, SQLException {
         HBaseAdmin admin = null;
         try {
