@@ -127,7 +127,8 @@ public class BulkWrite implements Externalizable {
 						stream = snappy.createOutputStream(byteArrayOutputStream);
 				else
 					stream = byteArrayOutputStream;
-				Output output = new Output(stream);
+				Output output = new Output(1024,-1);
+				output.setOutputStream(stream);
 				output.writeString(txnId);
 				List<KVPair> inserts = Lists.newArrayList();
 				List<KVPair> updates = Lists.newArrayList();
@@ -149,12 +150,15 @@ public class BulkWrite implements Externalizable {
 						}
 				}
 				if(inserts.size()>0){
+						output.writeByte(KVPair.Type.INSERT.asByte());
 						writeKvs(output, inserts);
 				}
 				if(updates.size()>0){
+						output.writeByte(KVPair.Type.UPDATE.asByte());
 						writeKvs(output,updates);
 				}
 				if(deletes.size()>0){
+						output.writeByte(KVPair.Type.DELETE.asByte());
 						writeKvs(output,updates);
 				}
 				output.flush();
@@ -180,15 +184,14 @@ public class BulkWrite implements Externalizable {
 					stream = SpliceUtils.getSnappyCodec().createInputStream(stream);
 				}
 				Input input = new Input(stream);
-				String txnId = input.readString();
-				int insertLength = input.readInt();
-				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>(insertLength);
-				readKvs(input, insertLength, mutations, KVPair.Type.INSERT);
-				int updateLength = input.readInt();
-				readKvs(input,updateLength,mutations, KVPair.Type.UPDATE);
-				int deleteLength = input.readInt();
-				readKvs(input,deleteLength,mutations, KVPair.Type.DELETE);
 
+				String txnId = input.readString();
+				ObjectArrayList<KVPair> mutations = new ObjectArrayList<KVPair>();
+				while(input.available()>0){
+						byte typeByte = input.readByte();
+						int length = input.readInt();
+						readKvs(input, length, mutations, KVPair.Type.decode(typeByte));
+				}
 				return new BulkWrite(mutations,txnId,null);
 		}
 

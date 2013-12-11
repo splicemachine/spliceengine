@@ -112,7 +112,8 @@ public class BulkWriteResult implements Externalizable {
 				baos.write(Encoding.encode(codec!=null));
 
 				OutputStream os = codec==null?baos:codec.createOutputStream(baos);
-				Output out = new Output(os);
+				Output out = new Output(1024,-1);
+				out.setOutputStream(os);
 				int size = notRunRows.size();
 				int[] notRunBuffer = notRunRows.buffer;
 				out.writeInt(size);

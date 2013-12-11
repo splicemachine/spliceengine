@@ -1,9 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.SpliceConstants;
@@ -24,7 +22,10 @@ import org.jruby.util.collections.IntHashMap;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;

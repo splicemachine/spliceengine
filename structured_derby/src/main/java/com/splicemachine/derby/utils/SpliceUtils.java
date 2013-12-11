@@ -39,6 +39,8 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
+import org.codehaus.jackson.util.ByteArrayBuilder;
+
 import java.io.*;
 
 /**
@@ -409,6 +411,7 @@ public class SpliceUtils extends SpliceUtilities {
 				CompressionCodec codec;
 				try{
 						codec = compressionFactory.getCodecByName("snappy");
+						codec.createOutputStream(new ByteArrayOutputStream());
 				}catch(UnsatisfiedLinkError ule){
 						/*
 						 * This can happen if there's a problem with how
@@ -416,6 +419,8 @@ public class SpliceUtils extends SpliceUtilities {
 						 * Macs). In that case, default back to an
 						 * uncompressed format.
 						 */
+						codec = null;
+				} catch (IOException e) {
 						codec = null;
 				}
 				snappyCodec = codec;
