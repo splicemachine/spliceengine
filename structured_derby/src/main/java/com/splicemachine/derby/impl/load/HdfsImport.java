@@ -13,25 +13,41 @@ import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.Util;
-import org.apache.derby.jdbc.InternalDriver;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.MasterNotRunningException;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -39,12 +55,6 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.SplittableCompressionCodec;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -157,7 +167,7 @@ public class HdfsImport extends ParallelVTI {
                                          String timestampFormat,
                                          String dateFormat,
                                          String timeFormat) throws SQLException {
-    	Connection conn = getDefaultConn();
+    	Connection conn = SpliceAdmin.getDefaultConn();
         try {
             LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
             final String transactionId = SpliceObserverInstructions.getTransactionId(lcc);
@@ -207,7 +217,7 @@ public class HdfsImport extends ParallelVTI {
 
 		buildColumnInformation(connection,schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,builder);
 
-		long conglomId = getConglomid(connection,tableName.toUpperCase(),schemaName.toUpperCase());
+		long conglomId = SpliceAdmin.getConglomid(connection, schemaName.toUpperCase(), tableName.toUpperCase());
 		builder = builder.destinationTable(conglomId);
         HdfsImport importer;
 		try {
@@ -248,7 +258,7 @@ public class HdfsImport extends ParallelVTI {
             throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
         }
 
-		long conglomId = getConglomid(connection,tableName,schemaName);
+		long conglomId = SpliceAdmin.getConglomid(connection, schemaName, tableName);
 		builder = builder.destinationTable(conglomId);
         HdfsImport importer;
 		try {
@@ -461,53 +471,6 @@ public class HdfsImport extends ParallelVTI {
             importJob = new FileImportJob(table,context);
         return importJob;
     }
-    private static Connection getDefaultConn() throws SQLException {
-        InternalDriver id = InternalDriver.activeDriver();
-        if(id!=null){
-            Connection conn = id.connect("jdbc:default:connection",null);
-            if(conn!=null)
-                return conn;
-        }
-        throw Util.noCurrentConnection();
-    }
-
-    private static long getConglomid(Connection conn, String tableName, String schemaName) throws SQLException {
-		/*
-		 * gets the conglomerate id for the specified human-readable table name
-		 *
-		 * TODO -sf- make this a stored procedure?
-		 */
-        if (schemaName == null)
-            schemaName = "APP";
-        ResultSet rs = null;
-        PreparedStatement s = null;
-        try{
-            s = conn.prepareStatement(
-                    "select " +
-                            "conglomeratenumber " +
-                            "from " +
-                            "sys.sysconglomerates c, " +
-                            "sys.systables t, " +
-                            "sys.sysschemas s " +
-                            "where " +
-                            "t.tableid = c.tableid and " +
-                            "t.schemaid = s.schemaid and " +
-                            "s.schemaname = ? and " +
-                            "t.tablename = ?");
-            s.setString(1,schemaName.toUpperCase());
-            s.setString(2,tableName.toUpperCase());
-            rs = s.executeQuery();
-            if(rs.next()){
-                return rs.getLong(1);
-            }else{
-                throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
-            }
-        }finally{
-            if(rs!=null) rs.close();
-            if(s!=null) s.close();
-        }
-    }
-
     private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
                                                String insertColumnList, ImportContext.Builder builder) throws SQLException {
         DatabaseMetaData dmd = connection.getMetaData();
