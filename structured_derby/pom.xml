@@ -622,7 +622,10 @@
 								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Dzookeeper.sasl.client=false</argument>								
+								<argument>-Dzookeeper.sasl.client=false</argument>			
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=128M</argument>
