@@ -123,6 +123,7 @@ public class BulkWriteResult implements Externalizable {
 				}
 				out.writeInt(failedRows.size());
 				for(int row:failedRows.keySet()){
+						out.writeInt(row);
 						WriteResult result = failedRows.get(row);
 						result.write(out);
 				}

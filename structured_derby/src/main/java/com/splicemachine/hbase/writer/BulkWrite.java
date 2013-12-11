@@ -159,7 +159,7 @@ public class BulkWrite implements Externalizable {
 				}
 				if(deletes.size()>0){
 						output.writeByte(KVPair.Type.DELETE.asByte());
-						writeKvs(output,updates);
+						writeKvs(output,deletes);
 				}
 				output.flush();
 				return byteArrayOutputStream.toByteArray();

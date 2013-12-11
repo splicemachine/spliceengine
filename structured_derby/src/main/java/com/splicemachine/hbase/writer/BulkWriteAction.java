@@ -140,7 +140,8 @@ final class BulkWriteAction implements Callable<Void> {
         boolean thrown=false;
         try{
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
-            BulkWriteResult response = BulkWriteResult.fromBytes(instance.bulkWrite(bulkWrite.toBytes()));
+						byte[] bytes = instance.bulkWrite(bulkWrite.toBytes());
+						BulkWriteResult response = BulkWriteResult.fromBytes(bytes);
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
             IntHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
