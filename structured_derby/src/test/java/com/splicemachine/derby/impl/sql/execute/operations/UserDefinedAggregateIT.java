@@ -46,14 +46,14 @@ public class UserDefinedAggregateIT extends SpliceUnitTest {
         Assert.assertEquals(10, resultSetSize(resultSet));
 
         conn.createStatement().execute(
-                String.format("create derby aggregate stddev for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceUDAStd\'"));
+                String.format("create derby aggregate stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
     }
     
     @Test
     public void test() throws Exception {
     	Connection conn = methodWatcher.createConnection();
     	ResultSet rs = conn.createStatement().executeQuery(
-                String.format("select stddev(i) from %s", this.getTableReference(TABLE_NAME)));
+                String.format("select stddevpop(i) from %s", this.getTableReference(TABLE_NAME)));
         Assert.assertEquals(1, resultSetSize(rs));
         while(rs.next()){
         	Assert.assertEquals((int)rs.getDouble(1), 2);

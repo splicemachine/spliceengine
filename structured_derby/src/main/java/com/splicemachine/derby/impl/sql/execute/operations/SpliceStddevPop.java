@@ -1,16 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.apache.derby.agg.Aggregator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.error.StandardException;
 import java.lang.Math;
 
-public class SpliceUDAStd<K extends Double> extends SpliceUDAVariance<K>
+public class SpliceStddevPop<K extends Double> extends SpliceUDAVariance<K>
 {
 
     Double result;
 
-    public SpliceUDAStd() {
+    public SpliceStddevPop() {
 
     }
 
