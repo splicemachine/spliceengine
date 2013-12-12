@@ -68,14 +68,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
                             .catalog("schemaName")
                             .catalog("tableName")
-                            .varchar("splitPoints", 32672).build();
+                            .varchar("splitPoints", 32672)
+                            .build();
                     procedures.add(splitProc);
 
                     Procedure splitProc2 = Procedure.newBuilder().name("SYSCS_SPLIT_TABLE_EVENLY")
                             .numOutputParams(0).numResultSets(0).ownerClass(TableSplit.class.getCanonicalName())
                             .catalog("schemaName")
                             .catalog("tableName")
-                            .integer("numSplits").build();
+                            .integer("numSplits")
+                            .build();
                     procedures.add(splitProc2);
 
                 /*
@@ -90,21 +92,106 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                  */
                     Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
                             .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName()).build();
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
                     procedures.add(getActiveServers);
 
                 /*
                  * Procedure get all active requests
                  */
-                    Procedure getRequests = Procedure.newBuilder().name("SYSCS_GET_REQUESTS")
-                            .numOutputParams(0)
-                            .numResultSets(0).ownerClass(SpliceAdmin.class.getCanonicalName()).build();
-                    procedures.add(getRequests);
+                Procedure getRequests = Procedure.newBuilder().name("SYSCS_GET_REQUESTS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getRequests);
+
+                /*
+                 * Procedure get info for the write pipeline
+                 */
+                Procedure getWritePipelineInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_PIPELINE_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getWritePipelineInfo);
+
+                /*
+                 * Procedure get task info for region servers
+                 */
+                Procedure getRegionServerTaskInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_TASK_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getRegionServerTaskInfo);
+
+                /*
+                 * Procedure get stats info for region servers
+                 */
+                Procedure getRegionServerStatsInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_STATS_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getRegionServerStatsInfo);
+
+                /*
+                 * Procedure get write pipeline intake info
+                 */
+                Procedure getWriteIntakeInfo = Procedure.newBuilder().name("SYSCS_GET_WRITE_INTAKE_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getWriteIntakeInfo);
+
+                /*
+                 * Procedure set the max task workers
+                 */
+                Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .integer("maxWorkers")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(setMaxTasks);
+
+                /*
+                 * Procedure set the max task workers
+                 */
+                Procedure getMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getMaxTasks);
+
+                /*
+                 * Procedure set max write thread pool count
+                 */
+                Procedure setWritePool = Procedure.newBuilder().name("SYSCS_SET_WRITE_POOL")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .integer("writePool")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(setWritePool);
+
+                /*
+                 * Procedure get the max write pool threads
+                 */
+                Procedure getWritePool = Procedure.newBuilder().name("SYSCS_GET_WRITE_POOL")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getWritePool);
 
                 /*
                  * Procedure to perform major compaction on all tables in a schema
-                 * TODO: finish ipml
+                 * TODO: finish impl
                  */
                     Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
                             .numOutputParams(0)

@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import org.junit.Assert;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -34,7 +35,113 @@ public class SpliceAdminIT {
     public void testGetActiveServers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()");
         ResultSet rs = cs.executeQuery();
-        TestUtils.printResult("", rs, System.out);
+        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_ACTIVE_SERVERS", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetWritePipelineInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_WRITE_PIPELINE_INFO", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetWriteIntakeInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()");
+        ResultSet rs = cs.executeQuery();
+        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_WRITE_INTAKE_INFO", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetRequests() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REQUESTS()");
+        ResultSet rs = cs.executeQuery();
+        Assert.assertEquals(1, TestUtils.printResult("SYSCS_GET_REQUESTS", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetRegionServerTaskInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()");
+        ResultSet rs = cs.executeQuery();
+        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_REGION_SERVER_TASK_INFO", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetRegionServerStatsInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()");
+        ResultSet rs = cs.executeQuery();
+        Assert.assertEquals(1, TestUtils.printResult("SYSCS_GET_REGION_SERVER_STATS_INFO", rs, System.out));
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testSetMaxTasks() throws Exception {
+        int origMax = -1;
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS()");
+        ResultSet rs = cs.executeQuery();
+        while (rs.next()) {
+            origMax = rs.getInt(2);
+        }
+        Assert.assertNotEquals(-1,origMax);
+
+        try {
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
+            cs.setInt(1, origMax+1);
+            cs.execute();
+
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS()");
+            rs = cs.executeQuery();
+            int currentMax = -1;
+            while (rs.next()) {
+                currentMax = rs.getInt(2);
+            }
+            Assert.assertNotEquals(-1,currentMax);
+            Assert.assertEquals(origMax+1,currentMax);
+        } finally {
+            // reset to orig value
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
+            cs.setInt(1, origMax);
+            cs.execute();
+        }
+
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testSetWritePool() throws Exception {
+        int origMax = -1;
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
+        ResultSet rs = cs.executeQuery();
+        while (rs.next()) {
+            origMax = rs.getInt(2);
+        }
+        Assert.assertNotEquals(-1,origMax);
+
+        try {
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(?)");
+            cs.setInt(1, origMax+1);
+            cs.execute();
+
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
+            rs = cs.executeQuery();
+            int currentMax = -1;
+            while (rs.next()) {
+                currentMax = rs.getInt(2);
+            }
+            Assert.assertNotEquals(-1,currentMax);
+            Assert.assertEquals(origMax+1,currentMax);
+        } finally {
+            // reset to orig value
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
+            cs.setInt(1, origMax);
+            cs.execute();
+        }
+
         DbUtils.closeQuietly(rs);
     }
 
