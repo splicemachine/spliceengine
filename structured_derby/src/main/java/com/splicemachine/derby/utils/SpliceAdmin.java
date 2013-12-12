@@ -22,6 +22,7 @@ import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
+import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -60,241 +61,331 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_WRITE_INTAKE_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<ActiveWriteHandlersIface> activeWriteHandler = null;
+            try {
+                activeWriteHandler = JMXUtils.getActiveWriteHandlers(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }  catch (IOException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (ActiveWriteHandlersIface activeWrite : activeWriteHandler) {
+                if (i != 0)
+                    sb.append(", ");
+                sb.append(String.format("('%s',%d,%d,%d,%d)",servers.get(i).getHostname(),
+                        activeWrite.getActiveWriteThreads(),
+                        activeWrite.getCompactionQueueSizeLimit(),
+                        activeWrite.getFlushQueueSizeLimit(),
+                        activeWrite.getIpcReservedPool()));
+                i++;
+            }
+            sb.append(") foo (hostname, activeWriteThreads, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
-        List<ActiveWriteHandlersIface> activeWriteHandler = null;
-        try {
-            activeWriteHandler = JMXUtils.getActiveWriteHandlers(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (ActiveWriteHandlersIface activeWrite : activeWriteHandler) {
-            if (i != 0)
-                sb.append(", ");
-            sb.append(String.format("('%s',%d,%d,%d,%d)",servers.get(i).getHostname(),
-                    activeWrite.getActiveWriteThreads(),
-                    activeWrite.getCompactionQueueSizeLimit(),
-                    activeWrite.getFlushQueueSizeLimit(),
-                    activeWrite.getIpcReservedPool()));
-            i++;
-        }
-        sb.append(") foo (hostname, activeWriteThreads, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
-        resultSet[0] = executeStatement(sb);
     }
 
     public static void SYSCS_SET_MAX_TASKS(int maxWorkers) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<TaskSchedulerManagement> taskSchedulers = null;
+            try {
+                taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
+                taskScheduler.setMaxWorkers(maxWorkers);
+            }
         } catch (IOException e) {
             throw new SQLException(e);
-        }
-        List<TaskSchedulerManagement> taskSchedulers = null;
-        try {
-            taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
-            taskScheduler.setMaxWorkers(maxWorkers);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
     }
 
     public static void SYSCS_GET_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+
+            List<TaskSchedulerManagement> taskSchedulers = null;
+            try {
+                taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
+                if (i != 0)
+                    sb.append(", ");
+                sb.append(String.format("('%s',%d)",
+                        servers.get(i).getHostname(),
+                        taskScheduler.getMaxWorkers()));
+                i++;
+            }
+            sb.append(") foo (hostname, maxTaskWorkers)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
-        List<TaskSchedulerManagement> taskSchedulers = null;
-        try {
-            taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
-            if (i != 0)
-                sb.append(", ");
-            sb.append(String.format("('%s',%d)",
-                    servers.get(i).getHostname(),
-                    taskScheduler.getMaxWorkers()));
-            i++;
-        }
-        sb.append(") foo (hostname, maxTaskWorkers)");
-        resultSet[0] = executeStatement(sb);
     }
 
     
     public static void SYSCS_SET_WRITE_POOL(int writePool) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<ThreadPoolStatus> threadPools = null;
+            try {
+                threadPools = JMXUtils.getMonitoredThreadPools(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            for (ThreadPoolStatus threadPool : threadPools) {
+                threadPool.setMaxThreadCount(writePool);
+            }
         } catch (IOException e) {
             throw new SQLException(e);
-        }
-        List<ThreadPoolStatus> threadPools = null;
-        try {
-            threadPools = JMXUtils.getMonitoredThreadPools(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        for (ThreadPoolStatus threadPool : threadPools) {
-            threadPool.setMaxThreadCount(writePool);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
     }
 
     public static void SYSCS_GET_WRITE_POOL(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<ThreadPoolStatus> threadPools = null;
+            try {
+                threadPools = JMXUtils.getMonitoredThreadPools(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (ThreadPoolStatus threadPool : threadPools) {
+                if (i != 0)
+                    sb.append(", ");
+                sb.append(String.format("('%s',%d)",
+                        servers.get(i).getHostname(),
+                        threadPool.getMaxThreadCount()));
+                i++;
+            }
+            sb.append(") foo (hostname, maxTaskWorkers)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
-        List<ThreadPoolStatus> threadPools = null;
-        try {
-            threadPools = JMXUtils.getMonitoredThreadPools(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (ThreadPoolStatus threadPool : threadPools) {
-            if (i != 0)
-                sb.append(", ");
-            sb.append(String.format("('%s',%d)",
-                    servers.get(i).getHostname(),
-                    threadPool.getMaxThreadCount()));
-            i++;
-        }
-        sb.append(") foo (hostname, maxTaskWorkers)");
-        resultSet[0] = executeStatement(sb);
     }
 
 
     public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<ThreadPoolStatus> threadPools = null;
+            try {
+                threadPools = JMXUtils.getMonitoredThreadPools(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (ThreadPoolStatus threadPool : threadPools) {
+                if (i != 0)
+                    sb.append(", ");
+                sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d)",
+                        servers.get(i).getHostname(),
+                        threadPool.getActiveThreadCount(),
+                        threadPool.getMaxThreadCount(),
+                        threadPool.getPendingTaskCount(),
+                        threadPool.getTotalSuccessfulTasks(),
+                        threadPool.getTotalFailedTasks(),
+                        threadPool.getTotalRejectedTasks()));
+                i++;
+            }
+            sb.append(") foo (hostname, activeThreadCount, maxThreadCount, pendingTaskCount, totalSuccessfulTasks, totalFailedTasks, totalRejectedTasks)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
-        List<ThreadPoolStatus> threadPools = null;
-        try {
-            threadPools = JMXUtils.getMonitoredThreadPools(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (ThreadPoolStatus threadPool : threadPools) {
-            if (i != 0)
-                sb.append(", ");
-            sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d)",
-                    servers.get(i).getHostname(),
-                    threadPool.getActiveThreadCount(),
-                    threadPool.getMaxThreadCount(),
-                    threadPool.getPendingTaskCount(),
-                    threadPool.getTotalSuccessfulTasks(),
-                    threadPool.getTotalFailedTasks(),
-                    threadPool.getTotalRejectedTasks()));
-            i++;
-        }
-        sb.append(") foo (hostname, activeThreadCount, maxThreadCount, pendingTaskCount, totalSuccessfulTasks, totalFailedTasks, totalRejectedTasks)");
-        resultSet[0] = executeStatement(sb);
     }
     
     public static void SYSCS_GET_REGION_SERVER_TASK_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<TaskSchedulerManagement> taskSchedulers = null;
+            try {
+                taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (TaskSchedulerManagement taskSchedule : taskSchedulers) {
+                if (i !=0)
+                    sb.append(", ");
+                sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d)",
+                        servers.get(i).getHostname(),
+                        taskSchedule.getCurrentWorkers(),
+                        taskSchedule.getMaxWorkers(),
+                        taskSchedule.getNumPendingTasks(),
+                        taskSchedule.getNumRunningTasks(),
+                        taskSchedule.getTotalCancelledTasks(),
+                        taskSchedule.getTotalCompletedTasks(),
+                        taskSchedule.getTotalFailedTasks(),
+                        taskSchedule.getTotalInvalidatedTasks(),
+                        taskSchedule.getTotalSubmittedTasks()));
+                i++;
+            }
+            sb.append(") foo (hostname, currentWorkers, maxWorkers, pending, running, totalCancelled, "
+                    + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
         }
-        List<TaskSchedulerManagement> taskSchedulers = null;
-        try {
-            taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (TaskSchedulerManagement taskSchedule : taskSchedulers) {
-            if (i !=0)
-                sb.append(", ");
-            sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d)",servers.get(i).getHostname(),
-                    taskSchedule.getCurrentWorkers(), taskSchedule.getMaxWorkers(),
-                    taskSchedule.getNumPendingTasks(), taskSchedule.getNumRunningTasks(),
-                    taskSchedule.getTotalCancelledTasks(), taskSchedule.getTotalCompletedTasks(),
-                    taskSchedule.getTotalFailedTasks(), taskSchedule.getTotalInvalidatedTasks(),
-                    taskSchedule.getTotalSubmittedTasks()));
-            i++;
-        }
-        sb.append(") foo (hostname, currentWorkers, maxWorkers, pending, running, totalCancelled, "
-                + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted)");
-        resultSet[0] = executeStatement(sb);
     }
     
     public static void SYSCS_GET_REGION_SERVER_STATS_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<MBeanServerConnection> connections = null;
+        List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            ObjectName regionServerStats = null;
+            try {
+                regionServerStats = JMXUtils.getRegionServerStatistics();
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (JMXConnector mxc : connections) {
+                MBeanServerConnection mbsc = mxc.getMBeanServerConnection();
+                if (i !=0)
+                    sb.append(", ");
+                try {
+                    sb.append(String.format("('%s','%s','%s','%s','%s','%s','%s','%s','%s')",
+                        servers.get(i).getHostname(),
+                        mbsc.getAttribute(regionServerStats,"regions"),
+                        mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime"),
+                        mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime"),
+                        mbsc.getAttribute(regionServerStats,"writeRequestsCount"),
+                        mbsc.getAttribute(regionServerStats,"readRequestsCount"),
+                        mbsc.getAttribute(regionServerStats,"requests"),
+                        mbsc.getAttribute(regionServerStats,"compactionQueueSize"),
+                        mbsc.getAttribute(regionServerStats,"flushQueueSize")));
+                } catch (MBeanException e) {
+                    throw new SQLException(e);
+                } catch (AttributeNotFoundException e) {
+                    throw new SQLException(e);
+                } catch (InstanceNotFoundException e) {
+                    throw new SQLException(e);
+                } catch (ReflectionException e) {
+                    throw new SQLException(e);
+                } catch (IOException e) {
+                    throw new SQLException(e);
+                }
+                i++;
+            }
+            sb.append(") foo (hostname, regions, fsReadLatencyAvgTime, fsWriteLatencyAvgTime, "
+                    + "writeRequestsCount, readRequestsCount, "
+                    + "requests, compactionQueueSize, flushQueueSize)");
+            resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
-        }
-        ObjectName regionServerStats = null;
-        try {
-            regionServerStats = JMXUtils.getRegionServerStatistics();
-        } catch (MalformedObjectNameException e) {
-            throw new SQLException(e);
-        }
-        StringBuilder sb = new StringBuilder("select * from (values ");
-        int i = 0;
-        for (MBeanServerConnection mbsc : connections) {
-            if (i !=0)
-                sb.append(", ");
-            try {
-                sb.append(String.format("('%s','%s','%s','%s','%s','%s','%s','%s','%s')",servers.get(i).getHostname(),
-                    mbsc.getAttribute(regionServerStats,"regions"),
-                    mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime"),
-                    mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime"),
-                    mbsc.getAttribute(regionServerStats,"writeRequestsCount"),
-                    mbsc.getAttribute(regionServerStats,"readRequestsCount"),
-                    mbsc.getAttribute(regionServerStats,"requests"),
-                    mbsc.getAttribute(regionServerStats,"compactionQueueSize"),
-                    mbsc.getAttribute(regionServerStats,"flushQueueSize")));
-            } catch (MBeanException e) {
-                e.printStackTrace();
-            } catch (AttributeNotFoundException e) {
-                e.printStackTrace();
-            } catch (InstanceNotFoundException e) {
-                e.printStackTrace();
-            } catch (ReflectionException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
             }
-            i++;
         }
-        sb.append(") foo (hostname, regions, fsReadLatencyAvgTime, fsWriteLatencyAvgTime, "
-                + "writeRequestsCount, readRequestsCount, "
-                + "requests, compactionQueueSize, flushQueueSize)");
-        resultSet[0] = executeStatement(sb);
     }
 
     public static void SYSCS_GET_REQUESTS(ResultSet[] resultSet) throws SQLException {
