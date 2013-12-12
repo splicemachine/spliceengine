@@ -77,7 +77,7 @@ public class JMXUtils {
 	    return JMX.newMBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
 	}
 
-	public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException, NullPointerException {
+	public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException {
 	    return new ObjectName(mbeanName);
 	}
 

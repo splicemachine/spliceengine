@@ -4,12 +4,14 @@ import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import org.apache.derby.impl.sql.catalog.Procedure;
 
@@ -202,26 +204,51 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                  * Procedure to perform major compaction on all tables in a schema
                  * TODO: finish impl
                  */
-                    Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .catalog("schemaName").build();
-                    procedures.add(majorComactionOnSchema);
+                Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .catalog("schemaName").build();
+                procedures.add(majorComactionOnSchema);
 
                 /*
                  * Procedure to perform major compaction on a table in a schema
                  */
-                    Procedure majorComactionOnTable = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .catalog("schemaName")
-                            .catalog("tableName").build();
-                    procedures.add(majorComactionOnTable);
+                Procedure majorComactionOnTable = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .catalog("schemaName")
+                        .catalog("tableName").build();
+                procedures.add(majorComactionOnTable);
+
+                /*
+                 * TODO: add to derby parser so that schema prefix for user is not necessary
+                 * Procedure to compute STDDEV
+                 */
+                Procedure stddev = Procedure.newBuilder().name("STDDEV")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .arg("value", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .ownerClass("com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop")
+                        .build();
+                procedures.add(stddev);
+
+                /*
+                 * TODO: add to derby parser so that schema prefix for user is not necessary
+                 * Procedure to compute STDDEVSAMP
+                 */
+                Procedure stddevsamp = Procedure.newBuilder().name("STDDEVSAMP")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .arg("value", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                        .ownerClass("com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp")
+                        .build();
+                procedures.add(stddevsamp);
             }
         }
-
 
         return sysProcedures;
     }
