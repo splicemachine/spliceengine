@@ -1,11 +1,9 @@
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlers;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.TaskSchedulerManagement;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,16 +15,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.management.AttributeNotFoundException;
-import javax.management.DynamicMBean;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
-
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -35,7 +30,6 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.regionserver.metrics.RegionServerStatistics;
 
 /**
  * @author Jeff Cunningham
@@ -105,6 +99,38 @@ public class SpliceAdmin {
     			connection.close();
     	}
     }
+
+    public static void SYSCS_SET_MAX_TASKS(int maxWorkers) throws IOException, MalformedObjectNameException, NullPointerException, SQLException {
+    	Connection connection = null;
+    	try {    	
+	    	List<ServerName> servers = getServers();
+	    	List<MBeanServerConnection> connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+	    	List<TaskSchedulerManagement> taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
+	    	for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
+	    		taskScheduler.setMaxWorkers(maxWorkers);
+	    	}
+    	} finally {
+    		if (connection != null)	
+    			connection.close();
+    	}
+    }
+
+    
+    public static void SYSCS_SET_WRITE_POOL(int writePool) throws IOException, MalformedObjectNameException, NullPointerException, SQLException {
+    	Connection connection = null;
+    	try {    	
+	    	List<ServerName> servers = getServers();
+	    	List<MBeanServerConnection> connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+	    	List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(connections);
+	    	for (ThreadPoolStatus threadPool : threadPools) {
+	    		threadPool.setMaxThreadCount(writePool);
+	    	}
+    	} finally {
+    		if (connection != null)	
+    			connection.close();
+    	}
+    }
+
     
     public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSet) throws IOException, MalformedObjectNameException, NullPointerException, SQLException {
     	Connection connection = null;
