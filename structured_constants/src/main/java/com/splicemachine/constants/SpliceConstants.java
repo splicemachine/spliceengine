@@ -35,6 +35,16 @@ public class SpliceConstants {
     public static String zkSpliceTaskPath;
 
     /**
+     * The Path in zookeeper for broadcasting messages to all servers
+     * Defaults to /broadcast
+     */
+    @Parameter public static final String BROADCAST_PATH = "splice.broadcast_node";
+    @DefaultValue(BROADCAST_PATH) public static final String DEFAULT_BROADCAST_PATH = "/broadcast";
+    public static String zkSpliceBroadcastPath;
+    public static String zkSpliceBroadcastActiveServersPath;
+    public static String zkSpliceBroadcastMessagesPath;
+
+    /**
      * The Path in zookeeper for manipulating DDL information and coordination.
      * Defaults to /ddl
      */
@@ -668,6 +678,9 @@ public class SpliceConstants {
                 zkSpliceDDLPath = config.get(DDL_PATH,DEFAULT_DDL_PATH);
                 zkSpliceDDLActiveServersPath = zkSpliceDDLPath + "/activeServers";
                 zkSpliceDDLOngoingTransactionsPath = zkSpliceDDLPath + "/ongoingChanges";
+                zkSpliceBroadcastPath = config.get(BROADCAST_PATH,DEFAULT_BROADCAST_PATH);
+                zkSpliceBroadcastActiveServersPath = zkSpliceBroadcastPath + "/activeServers";
+                zkSpliceBroadcastMessagesPath = zkSpliceBroadcastPath + "/messages";
 				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
                 zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
