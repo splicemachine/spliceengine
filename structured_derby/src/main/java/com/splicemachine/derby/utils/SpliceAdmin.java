@@ -346,7 +346,7 @@ public class SpliceAdmin {
                 if (i !=0)
                     sb.append(", ");
                 try {
-                    sb.append(String.format("('%s','%s','%s','%s','%s','%s','%s','%s','%s')",
+                    sb.append(String.format("('%s','%d','%d','%d','%d','%d','%f','%d','%d')",
                         servers.get(i).getHostname(),
                         mbsc.getAttribute(regionServerStats,"regions"),
                         mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime"),
