@@ -2,7 +2,7 @@ package com.splicemachine.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
-
+import com.esotericsoftware.kryo.io.UnsafeOutput;
 import java.io.IOException;
 import java.io.ObjectOutput;
 
@@ -11,11 +11,11 @@ import java.io.ObjectOutput;
  *         Created on: 8/15/13
  */
 public class KryoObjectOutput implements ObjectOutput {
-    private final Output output;
+    private final UnsafeOutput output;
     private final Kryo kryo;
 
     public KryoObjectOutput(Output output, Kryo kryo) {
-        this.output = output;
+        this.output = new UnsafeOutput(output);
         this.kryo = kryo;
     }
 
