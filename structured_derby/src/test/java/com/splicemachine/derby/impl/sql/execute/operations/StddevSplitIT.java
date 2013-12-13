@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.actions;
+package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
