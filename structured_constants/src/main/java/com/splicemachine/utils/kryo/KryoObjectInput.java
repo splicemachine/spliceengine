@@ -2,6 +2,7 @@ package com.splicemachine.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.UnsafeInput;
 import java.io.IOException;
 import java.io.ObjectInput;
 
@@ -10,11 +11,11 @@ import java.io.ObjectInput;
  *         Created on: 8/15/13
  */
 public class KryoObjectInput implements ObjectInput {
-    private final Input input;
+    private final UnsafeInput input;
     private final Kryo kryo;
-
+    
     public KryoObjectInput(Input input, Kryo kryo) {
-        this.input = input;
+        this.input = new UnsafeInput(input);
         this.kryo = kryo;
     }
 
