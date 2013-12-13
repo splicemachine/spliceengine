@@ -11,11 +11,11 @@ import java.io.ObjectInput;
  *         Created on: 8/15/13
  */
 public class KryoObjectInput implements ObjectInput {
-    private final UnsafeInput input;
+    private final Input input;
     private final Kryo kryo;
     
     public KryoObjectInput(Input input, Kryo kryo) {
-        this.input = new UnsafeInput(input);
+        this.input = input;
         this.kryo = kryo;
     }
 
