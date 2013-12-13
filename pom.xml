@@ -146,6 +146,13 @@
             <url>http://repo1.maven.org/maven2</url>
         </repository>
         <repository>
+            <id>inciteretail</id>
+            <url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
             <id>mapr-releases</id>
             <name>MapR Releases</name>
             <url>http://repository.mapr.com/maven/</url>
@@ -178,13 +185,6 @@
             <url>http://www.smartclient.com/maven2/</url>
         </repository>
 
-        <repository>
-            <id>inciteretail</id>
-            <url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
         <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/content/repositories/releases/</url>
