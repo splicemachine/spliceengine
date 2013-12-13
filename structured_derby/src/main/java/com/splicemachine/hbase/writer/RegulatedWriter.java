@@ -2,12 +2,9 @@ package com.splicemachine.hbase.writer;
 
 import com.splicemachine.tools.Valve;
 import org.apache.hadoop.hbase.RegionTooBusyException;
-
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicLongArray;
 
 /**
  * Writer which regulates how many concurrent writes are allowed, gating flushes as necessary (forcing flushes
