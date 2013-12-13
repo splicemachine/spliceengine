@@ -13,9 +13,10 @@ import java.io.ObjectInput;
 import java.io.IOException;
 
 /**     
- *     @author jessiezhang: currently we use an UUIDHexGenerator to generate RowKey (not use PrimaryKey from
- *     						the base table so I will comment out primary key impl). I am making this class as byte[] DataType
- **/
+ * 
+ * 
+ * 
+ */
 
 public class HBaseRowLocation extends DataType implements RowLocation {
 
@@ -31,18 +32,15 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 		this.rowKey = rowKey;
 	}
 	
-    public int estimateMemoryUsage()
-    {
+    public int estimateMemoryUsage() {
         return BASE_MEMORY_USAGE;
-    } // end of estimateMemoryUsage
+    } 
 
-    public final void setValue(byte[] theValue)
-	{
+    public final void setValue(byte[] theValue) {
 		this.rowKey = theValue;
 	}
     
-    public final byte[]	getBytes() throws StandardException
-	{
+    public final byte[]	getBytes() throws StandardException {
 		return this.rowKey;
 	}
     
@@ -150,52 +148,22 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     	return rowKey == null;
     }
 
-	public void writeExternal(ObjectOutput out) 
-        throws IOException
-    {
-		//Need it? This is already byte array
-		//int len = this.rowKey.length;
-        //writeLength( out, len );
-		//out.write(this.rowKey, 0, this.rowKey.length);
+	public void writeExternal(ObjectOutput out) throws IOException {
+		throw new IOException("Not Implemented");
     }
-
-	/*private void writeLength( ObjectOutput out, int len ) throws IOException
-    {
-		if (len <= 31)
-		{
-			out.write((byte) (0x80 | (len & 0xff)));
-		}
-		else if (len <= 0xFFFF)
-		{
-			out.write((byte) 0xA0);
-			out.writeShort((short) len);
-		}
-		else
-		{
-			out.write((byte) 0xC0);
-			out.writeInt(len);
-
-		}
-    }*/
 	/**
 	  @exception java.lang.ClassNotFoundException A class needed to read the
 	  stored form of this object could not be found.
 	  @see java.io.Externalizable#readExternal
 	  */
-	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
-    {
-        //FIXME: need it?
+	public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
+		throw new IOException("Not Implemented");
     }
-	public void readExternalFromArray(ArrayInputStream in) 
-        throws IOException, ClassNotFoundException
-    {
-        //FIXME: need it?
+	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
+		throw new IOException("Not Implemented");
     }
 
     public void restoreToNull() {
-	//	if (SanityManager.DEBUG) 
-	//		SanityManager.THROWASSERT("HBaseRowLocation is never null");
     }
     
 	protected void setFrom(DataValueDescriptor theValue)  {
@@ -203,8 +171,6 @@ public class HBaseRowLocation extends DataType implements RowLocation {
             SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
                     "Should only be set from another HeapRowLocation");
         HBaseRowLocation that = (HBaseRowLocation) theValue;
-        //this.primaryKey = that.primaryKey;
-        //this.primaryKeyType = that.primaryKeyType;
         this.rowKey = that.rowKey;
 	}
 	/*
@@ -232,17 +198,14 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 		<BR>
 		MT - thread safe
 	*/
-	public int hashCode() 
-    {
+	public int hashCode()  {
 		return this.rowKey.hashCode();
 	}
 
     /*
      * Standard toString() method.
      */
-    public String toString()
-    {
-        //return ("(" + this.primaryKey + " of type " + this.primaryKeyType + ")";
+    public String toString() {
         return("(row key "+this.rowKey+")");
     }
 }
