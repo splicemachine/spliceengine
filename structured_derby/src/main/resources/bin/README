@@ -35,25 +35,28 @@ The instructions for deploying to the cluster are very different (and more invol
 on a single instance.  See the Getting Started Guide for single instance installation instructions.
 
 At this time the only supported configuration during the Private Beta Test Program is a Cloudera Manager-managed 
-cluster based on Cloudera's CDH 4.3.0 on Ubuntu Linux as its base starting point.
+cluster based on Cloudera's CDH 4.3.0 on Ubuntu Linux (12.04 LTS) as its base starting point.
 
-Step 1:  Install Cloudera Manager.  On a vanilla Ubuntu machine, Cloudera Manager can be installed as follows:
+Step 1: Identify machines (and the IP addresses) that will be your cluster.
+Step 2:  Install Cloudera Manager on a Linux machine.  This can be one of the machines in your cluster, but does
+not have to be.  On a vanilla Ubuntu machine, Cloudera Manager can be installed as follows:
 
 $ wget http://archive.cloudera.com/cm4/installer/latest/cloudera-manager-installer.bin
 $ chmod +x cloudera-manager-installer.bin
 $ sudo ./cloudera-manager-installer.bin
 
-Answer prompts, etc., and let the installer finish.  You can test it by navigating to <host-address>:7180, 
-logging in with username = admin, password = admin
+Answer prompts, etc., and let the installer finish.  You can test it by navigating to <host-address>:7180
+with a web browser (where host-address is the ip address of the machine where Cloudera Manager was installed), 
+then logging in with username = admin, password = admin
 
-Step 2: Create your cluster through the Cloudera Manager interface.  Note: You must use the Classic Wizard.  This will put you through 
+Step 3: Create your cluster through the Cloudera Manager interface.  Note: You must use the Classic Wizard.  This will put you through 
 the following steps:
 
 a.  Specify hosts for cluster: select and validate the IP addresses of the cluster nodes
 
 b.  Select the Repository.  Under "Use Parcels", click "More Options" and paste the following into the Custom Repository:
 
-http://d1xswz7jccf7m5.cloudfront.net
+http://d10sdxe2fhfs9c.cloudfront.net
 
 IMPORTANT: Hit the "Add" button.  This will give an option for a new CDH parcel:
 
@@ -63,11 +66,16 @@ Choose None for Impala and Solr, and leave the default for Cloudera Manager Agen
 (Matched release).  Click Continue.
 
 c.  Provide security credentials as appropriate for your organization
-d.  When prompted for the CDH4 services to install, select "Custom Services".  Afterward, select HDFS, Zookeeper, and HBase
+d.  When prompted for the CDH4 services to install, select "Custom Services".  Afterward, select HDFS, Zookeeper, 
+and HBase.  Click Continue.
 e.  Database setup is for monitoring.  Click Test Connection, then Continue once the test is complete
-f.  Review the Configuration Changes page.  Services will now start up.  
+f.  Review the "Review Configuration Changes page", then click Continue.  Services will now start up.
+After you see "Completed 9 of 9 steps", click Continue.
 
-Step 3: Finalize installation of Splice Machine
+You will now see a "Congratulations!" message - click Continue - but you are not done yet.  HBase is now up, 
+but the Splice Machine isn't.  Continue with the following steps to complete the Splice setup:  
+
+Step 4: Set Splice Machine-specific properties in HBase
 
 While still in Cloudera Manager, we need to do some additional configurations in order for
 Splice Machine's installation to be completed.
@@ -150,7 +158,7 @@ f. Additional HBase Changes, RegionServer:
 
    (be sure to hit Save Changes before continuing)
 
-Step 4: Make the following HDFS setting changes:
+Step 5: Make the following HDFS setting changes:
 
  Namenode -> Resource Management -> Java Heap Size=2GB
  Namenode -> Performance -> NameNode Handler Count=60
@@ -159,26 +167,26 @@ Step 4: Make the following HDFS setting changes:
  Datanode -> Resource Management -> Java Heap Size=2GB
  Datanode -> Performance -> Handler Count=20
 
-Step 5: Make the following Zookeeper setting changes:
+Step 6: Make the following Zookeeper setting changes:
 
  Server -> Maximum Client Connections = 0 
  Server -> Maximum Session Timeout = 60000
 
  
-Step 6: Stop and Restart Zookeeper and HDFS (but not HBase yet), and Delete existing /hbase directory:
+Step 7: Stop and Restart Zookeeper and HDFS (but not HBase yet), and Delete existing /hbase directory:
 
 From a command line:
 $ sudo -su hdfs hadoop fs -rmr /hbase
 
-Step 7: Create a new /hbase directory:
+Step 8: Create a new /hbase directory:
 
 In Cloudera Manager, from the HBase window:  Actions->Create Root Directory
 
-Step 8: Restart HBase
+Step 9: Restart HBase
 
 from HBase: Actions/Start
 
-Step 9: Connect to the Splice Database
+Step 10: Connect to the Splice Database
 
 Start by using the splice.sh script provided:
 
@@ -192,24 +200,12 @@ Cluster Operations
 You can use Cloudera Manager to perform most cluster operations once your Splice Machine 
 is completely configured. 
  
-There are however a couple of commands that will require shell script commands:
+There are however some commands that will require shell script commands:
 
-1.  Dropping and recreating the database
+1.  Dropping and recreating the database <instructions coming in RC5>
 
-Should you wish to start over with a clean Splice database, do the following:
+2.  Checking that the database is running <instructions coming in RC5>
 
-a. Stop HBase using Cloudera Manager
-b. At a command line prompt on one of the servers, run the following:
-
-$ ./dropdb.sh
-
-c. Restart HBase
-
-
-2.  Verifying that the Splice Database is up
-
-
- 
 
 =========================================
 Connect with JDBC/ODBC Tools
@@ -239,12 +235,30 @@ schema, enter queries, etc.
 
 b.  ODBC Connectivity Example
 
-Tableau (www.tableausoftware.com) 
+Tableau (www.tableausoftware.com) is a reporting/BI tool that runs on Windows and connects vis ODBC.  You will first need
+an Apache Derby ODBC Driver or ODBC/JDBC bridge.  These can be downloaded for evaluation or purchased at
+Easysoft (www.easysoft.com).  Once this Driver or bridge is installed, you create a DSN:
+
+
+  From Start menu - find CMD - right click on CMD - choose "Run as administrator"
+  Run: %windir%\syswow64\odbcad32.exe
   
+  Now specify a DSN name, description, leave User Name and Password blank.  Driver Class is org.apache.derby.jdbc.ClientDriver.
+  Copy the derbyclient.jar to the client machine, and include its path in the Class Path.
+  
+  The URL should be "jdbc:splice://<hostname>:1527/splicedb" - where hostname is a server where SpliceMachine is running.
+  
+Now from Tableau, connect using "Connect to data->Other Databases (ODBC)".  Select the DSN created.  After you have finish the 
+Connection setup, Tableau will be interacting with Splice Machine.
+
 
 =========================================
 A list of known bugs and other issues
 =========================================
+
+- IMPORTANT NOTE FOR CLUSTER USERS: If you import data like the examples shown with the sample data, you must FIRST
+copy your sample data into HDFS (using copyFromLocal, etc), then change the paths to the HDFS path specified.
+
 
 - IMPORTANT NOTE FOR LAPTOP USERS: If you are running the database on a laptop, you will need to stop and 
 restart the database after closing and reopening the laptop.
