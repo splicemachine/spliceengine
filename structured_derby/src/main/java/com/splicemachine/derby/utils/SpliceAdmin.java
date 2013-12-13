@@ -516,13 +516,19 @@ public class SpliceAdmin {
     }
 
     private static ResultSet executeStatement(StringBuilder sb) throws SQLException {
+        ResultSet result = null;
         Connection connection = getDefaultConn();
         try {
             PreparedStatement ps = connection.prepareStatement(sb.toString());
-            return ps.executeQuery();
+            result = ps.executeQuery();
+            connection.commit();
+        } catch (SQLException e){
+            connection.rollback();
+            throw e;
         } finally {
             connection.close();
         }
+        return result;
     }
 
     public static void sendSMTP(
