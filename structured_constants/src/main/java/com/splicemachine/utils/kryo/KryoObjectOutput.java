@@ -11,11 +11,11 @@ import java.io.ObjectOutput;
  *         Created on: 8/15/13
  */
 public class KryoObjectOutput implements ObjectOutput {
-    private final UnsafeOutput output;
+    private final Output output;
     private final Kryo kryo;
 
     public KryoObjectOutput(Output output, Kryo kryo) {
-        this.output = new UnsafeOutput(output);
+        this.output = output;
         this.kryo = kryo;
     }
 
