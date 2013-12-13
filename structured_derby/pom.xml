@@ -494,9 +494,10 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-                                <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
-                                <argument>-Djava.awt.headless=true</argument>
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
+                <argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
