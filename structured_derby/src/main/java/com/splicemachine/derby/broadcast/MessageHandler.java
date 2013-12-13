@@ -7,5 +7,6 @@ import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import java.util.Set;
 
 public interface MessageHandler {
-    public void handleMessage(byte[] message) throws StandardException;
+    public void handleMessage(String msgId, byte[] message) throws StandardException;
+    public void messageAcknowledged(String msgId) throws StandardException;
 }

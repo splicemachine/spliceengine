@@ -69,10 +69,19 @@ public class ZookeeperBroadcast {
         Set<String> messagesForTopic = receivedMessages.get(topic);
         Set<String> newMessages = new HashSet<String>();
 
+        MessageHandler handler = handlers.get(topic);
+        if (handler == null) {
+            LOG.warn("No handler for topic " + topic);
+            return;
+        }
+
         // remove broadcasted messages
         for (Iterator<String> iterator = messagesForTopic.iterator(); iterator.hasNext();) {
             String msgId = iterator.next();
             if (!children.contains(msgId)) {
+                // notify acknowledgement
+                handler.messageAcknowledged(msgId);
+
                 iterator.remove();
             }
         }
@@ -88,13 +97,7 @@ public class ZookeeperBroadcast {
                 messagesForTopic.add(msgId);
 
                 // handle message
-                MessageHandler handler = handlers.get(topic);
-                if (handler == null) {
-                    LOG.warn("No handler for topic " + topic + ". Message: " + Arrays.toString(data));
-                    return;
-                }
-
-                handler.handleMessage(data);
+                handler.handleMessage(msgId, data);
             }
             // notify broadcaster we processed the message
             try {
