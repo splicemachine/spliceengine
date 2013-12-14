@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.StandardSuppliers;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import java.io.IOException;
 import java.util.Iterator;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -52,7 +55,7 @@ public class MergeSortJoiner {
     private final boolean oneRowRightSide;
     private final boolean antiJoin;
 
-    private byte[] currentRowKey;
+    private ByteArraySlice currentRowKey;
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
     private boolean isClosed;
@@ -148,7 +151,8 @@ public class MergeSortJoiner {
             addLeftAndRights(joinRowsSource.next());
             row = getNextFromBuffer();
         }
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: ", (row != null ? row : "NULL TOP ROW"));
+        if (LOG.isDebugEnabled())
+        	SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: ", (row != null ? row : "NULL TOP ROW"));
         return row;
 
     }
@@ -165,7 +169,7 @@ public class MergeSortJoiner {
         return noRecordsFound && antiJoin;
     }
 
-    public byte[] lastRowLocation() {
+    public ByteArraySlice lastRowLocation() {
         return currentRowKey;
     }
 
