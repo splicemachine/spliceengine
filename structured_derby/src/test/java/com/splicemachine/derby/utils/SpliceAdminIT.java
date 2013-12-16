@@ -82,7 +82,8 @@ public class SpliceAdminIT {
     @Test
     public void testSetMaxTasks() throws Exception {
         int origMax = -1;
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS()");
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
+				cs.setInt(1,25);
         ResultSet rs = cs.executeQuery();
         while (rs.next()) {
             origMax = rs.getInt(2);
@@ -90,11 +91,13 @@ public class SpliceAdminIT {
         Assert.assertNotEquals(-1,origMax);
 
         try {
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
-            cs.setInt(1, origMax+1);
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
+						cs.setInt(1,25);
+            cs.setInt(2, origMax+1);
             cs.execute();
 
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS()");
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
+						cs.setInt(1,25);
             rs = cs.executeQuery();
             int currentMax = -1;
             while (rs.next()) {
@@ -104,8 +107,9 @@ public class SpliceAdminIT {
             Assert.assertEquals(origMax+1,currentMax);
         } finally {
             // reset to orig value
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
-            cs.setInt(1, origMax);
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
+						cs.setInt(1,25);
+            cs.setInt(2, origMax);
             cs.execute();
         }
 
@@ -137,7 +141,7 @@ public class SpliceAdminIT {
             Assert.assertEquals(origMax+1,currentMax);
         } finally {
             // reset to orig value
-            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?)");
+            cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_WRITE_POOL(?)");
             cs.setInt(1, origMax);
             cs.execute();
         }

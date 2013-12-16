@@ -153,20 +153,29 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
                         .numOutputParams(0)
                         .numResultSets(0)
+												.integer("workerTier")
                         .integer("maxWorkers")
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
                 procedures.add(setMaxTasks);
 
+								Procedure getMaxTasks = Procedure.newBuilder().name("SYSCS_GET_GLOBAL_MAX_TASKS")
+												.numOutputParams(0)
+												.numResultSets(1)
+												.ownerClass(SpliceAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(getMaxTasks);
+
                 /*
                  * Procedure set the max task workers
                  */
-                Procedure getMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
+                Procedure getTieredMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
                         .numOutputParams(0)
                         .numResultSets(1)
+												.integer("workerTier")
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
-                procedures.add(getMaxTasks);
+                procedures.add(getTieredMaxTasks);
 
                 /*
                  * Procedure set max write thread pool count

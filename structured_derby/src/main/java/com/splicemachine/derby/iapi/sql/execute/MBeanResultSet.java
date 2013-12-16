@@ -61,7 +61,21 @@ public class MBeanResultSet extends SpliceAbstractResultSet {
         throw new SQLException();
     }
 
-    private Object getColumnValue(String columnLabel) throws SQLException {
+		/*
+		 * Put into place to make compiling under Java 7 easier--not truly
+		 * implemented
+		 */
+//		@Override
+		public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+				return (T) getObject(columnIndex);
+		}
+
+//		@Override
+		public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+				return (T) getObject(columnLabel);
+		}
+
+		private Object getColumnValue(String columnLabel) throws SQLException {
         int index = findColumn(columnLabel);
         return this.rows.get(this.currentIndex).get(index);
     }
