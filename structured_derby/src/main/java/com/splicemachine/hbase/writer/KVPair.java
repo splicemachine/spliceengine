@@ -32,10 +32,25 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     }
 
     public enum Type{
-        INSERT,
-        UPDATE,
-        DELETE
-    }
+        INSERT((byte)0x01),
+        UPDATE((byte)0x02),
+        DELETE((byte)0x03);
+
+				private final byte typeCode;
+
+				private Type(byte typeCode) { this.typeCode = typeCode; }
+
+				public static Type decode(byte typeByte) {
+						for(Type type:values()){
+								if(type.typeCode==typeByte) return type;
+						}
+						throw new IllegalArgumentException("Incorrect typeByte "+ typeByte);
+				}
+
+				public byte asByte() {
+						return typeCode;
+				}
+		}
 
     public KVPair(){
         this.type = Type.INSERT;
