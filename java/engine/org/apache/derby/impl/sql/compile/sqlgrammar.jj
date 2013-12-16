@@ -1153,6 +1153,56 @@ public class SQLParser
 		return retval;
 	}
 
+    /**
+	 * Return true if a builtin aggregate follows.
+	 */
+    private    boolean builtinAggregateFollows()
+    {
+		switch (getToken(1).kind)
+		{
+		  case MAX:
+		  case AVG:
+		  case MIN:
+		  case SUM:
+		  case COUNT:
+			// This is a built-in aggregate
+			return true;
+
+		  default:
+			return false;
+		}
+     }
+
+	/**
+	 * Return true if the following tokens are the start of a
+     * distinct user defined aggregate invocation. These have
+     * the form
+     *
+     * aggName( distinct
+     *
+     * or
+     *
+     *  schemaName.aggName( distinct
+	 *
+	 */
+	private boolean distinctUDAFollows()
+	{
+        if ( builtinAggregateFollows() ) { return false; }
+
+        if (
+           (getToken(2).kind == LEFT_PAREN) &&
+           (getToken(3).kind == DISTINCT)
+           )
+        { return true; }
+        else if (
+           (getToken(2).kind == PERIOD) &&
+           (getToken(4).kind == LEFT_PAREN) &&
+           (getToken(5).kind == DISTINCT)
+           )
+        { return true; }
+
+		return false;
+	}
 
 	/**
 	 * Determine whether the next sequence of tokens can be the beginning of a
@@ -1162,6 +1212,8 @@ public class SQLParser
 	 */
 	private boolean windowOrAggregateFunctionFollows()
 	{
+	    if ( distinctUDAFollows() ) { return false; }
+	    
 		boolean retval = false;
 
 		switch (getToken(1).kind) {
@@ -1672,6 +1724,58 @@ public class SQLParser
 		return retval;
 	}
 
+    /**
+     * Get one of the several types of create alias nodes.
+     *
+     * @param aliasName	The name of the alias
+     * @param targetName TableName for target, or the full path/method name
+     * @param aliasSpecificInfo	 Information specific to the type of alias being created.
+     * @param aliasType	The type of alias to create
+     * @return      A CreateAliasNode matching the given parameters
+     *
+     * @exception StandardException		Thrown on error
+     */
+     StatementNode
+     getCreateAliasNode(
+        TableName aliasName,
+    	Object targetName,
+    	Object aliasSpecificInfo,
+        char aliasType) throws StandardException
+     {
+        String methodName = null;
+
+        if (
+            (aliasType != AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) &&
+            (aliasType != AliasInfo.ALIAS_TYPE_UDT_AS_CHAR) &&
+            (aliasType != AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR)
+            )
+        {
+            int lastPeriod;
+            String fullStaticMethodName = (String) targetName;
+            int paren = fullStaticMethodName.indexOf('(');
+            if (paren == -1) {
+                // not a Java signature - split based on last period
+                lastPeriod = fullStaticMethodName.lastIndexOf('.');
+            } else {
+                // a Java signature - split on last period before the '('
+                lastPeriod = fullStaticMethodName.substring(0, paren).lastIndexOf('.');
+            }
+            if (lastPeriod == -1 || lastPeriod == fullStaticMethodName.length()-1) {
+                throw StandardException.newException(SQLState.LANG_INVALID_FULL_STATIC_METHOD_NAME, fullStaticMethodName);
+            }
+            String javaClassName = fullStaticMethodName.substring(0, lastPeriod);
+            methodName = fullStaticMethodName.substring(lastPeriod + 1);
+            targetName = javaClassName;
+        }
+
+        return new CreateAliasNode(
+            aliasName,
+            targetName,
+            methodName,
+            aliasSpecificInfo,
+            aliasType,
+            cm );
+    }
 	/**
 	 * Get one of the several types of create alias nodes.
 	 *
@@ -1701,7 +1805,8 @@ public class SQLParser
 
         if (
             (aliasType != AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) &&
-            (aliasType != AliasInfo.ALIAS_TYPE_UDT_AS_CHAR)
+            (aliasType != AliasInfo.ALIAS_TYPE_UDT_AS_CHAR) &&
+            (aliasType != AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR)
             )
         {
             int lastPeriod;
@@ -2557,6 +2662,7 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {	/* Additional JSQL keywords -- non-SQL92 non-reserved Keywords */
 	<AFTER: "after">
+|	<AGGREGATE: "aggregate">
 |	<BEFORE: "before">
 |	<CLASS: "class">
 |	<COMPRESS: "compress">
@@ -2564,6 +2670,7 @@ TOKEN [IGNORE_CASE] :
 |   <CS: "cs">
 |	<CURSORS: "cursors">
 |	<DB2SQL: "db2sql">
+|   <DERBY: "derby">
 |	<SPLICE_JDBC_RESULT_SET: "splice_jdbc_result_set">
 |	<DEFRAGMENT: "defragment">
 |       <DIRTY: "dirty">
@@ -3090,6 +3197,7 @@ createStatements() throws StandardException :
         }
 |		statementNode = procedureDefinition()
 |		statementNode = functionDefinition()
+|		statementNode = aggregateDefinition()
 |		statementNode = udtDefinition()
 |
 		statementNode = indexDefinition()
@@ -7873,6 +7981,29 @@ void methodCallParameterList(Vector parameterList) throws StandardException :
 ValueNode
 routineInvocation() throws StandardException :
 {
+	ValueNode	valueNode;
+}
+{
+	LOOKAHEAD( { !distinctUDAFollows() } )
+    valueNode = routineExpression()
+    {
+        return valueNode;
+    }
+|
+	LOOKAHEAD( { distinctUDAFollows() } )
+    valueNode = distinctUDA()
+    {
+        return valueNode;
+    }
+}
+
+/*
+ * <A NAME="routineExpression">routineExpression</A>
+ */
+ValueNode
+routineExpression() throws StandardException :
+{
+
 	Vector	parameterList = new Vector();
 	TableName	routineName;
 	MethodCallNode	methodNode;
@@ -7897,6 +8028,36 @@ routineInvocation() throws StandardException :
 		return (ValueNode) nodeFactory.getNode(
 								C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
 								methodNode,
+								getContextManager());
+	}
+}
+
+/*
+ * <A NAME="distinctUDA">distinctUDA</A>
+ */
+ValueNode
+distinctUDA() throws StandardException :
+{
+	ValueNode		value;
+	TableName  aggName;
+}
+{
+	aggName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+	<LEFT_PAREN>
+        <DISTINCT> value = additiveExpression(null, 0)
+	<RIGHT_PAREN>
+	{
+        //
+        // The parser can't distinguish one-arg function calls from
+        // non-distinct aggregates. That has to be figured out at
+        // bind() time.
+        //
+		return (ValueNode) nodeFactory.getNode(
+								C_NodeTypes.AGGREGATE_NODE,
+								value,
+								aggName, 
+								Boolean.TRUE,
+								"",
 								getContextManager());
 	}
 }
@@ -10044,6 +10205,20 @@ groupingColumnReference(GroupByList groupingCols) throws StandardException :
 		{
 			throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
 		}
+		
+        // Look for user-defined aggregates too. At the parsing stage,
+        // they appear as function calls. Look for function calls
+        // inside the expression and mark them so that at bind() time
+        // we can reject them if they turn out to be user-defined aggregates
+        // rather than ordinary function calls.
+        CollectNodesVisitor  functionSniffer = new CollectNodesVisitor( StaticMethodCallNode.class );
+        columnExpression.accept( functionSniffer );
+        Vector    functionNodes = functionSniffer.getList();
+        for ( int i = 0; i < functionNodes.size(); i++ )
+        {
+            ((StaticMethodCallNode) functionNodes.elementAt( i )).setAppearsInGroupBy();
+        }
+		
 		if (columnExpression.isParameterNode()) 
 	    	{
 			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "?");
@@ -11039,6 +11214,37 @@ udtDefinition() throws StandardException :
 							null,
 							AliasInfo.ALIAS_TYPE_UDT_AS_CHAR,
 							Boolean.FALSE);
+		}
+}
+
+StatementNode
+aggregateDefinition() throws StandardException :
+{
+	TableName aggregateName;
+    DataTypeDescriptor  forType;
+    DataTypeDescriptor  returnType = null;
+	Object[] aggElements = new Object[CreateAliasNode.AGG_ELEMENT_COUNT];
+	String externalName;
+}
+{
+		<DERBY> <AGGREGATE> aggregateName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+        <FOR> forType = dataTypeDDL()
+        [ <RETURNS> returnType = dataTypeDDL() ]
+		<EXTERNAL> <NAME> externalName = string()
+		{
+            checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, "CREATE DERBY AGGREGATE");
+
+            if ( returnType == null ) { returnType = forType; }
+            aggElements[ CreateAliasNode.AGG_FOR_TYPE ] = forType.getCatalogType();
+            aggElements[ CreateAliasNode.AGG_RETURN_TYPE ] = returnType.getCatalogType();
+
+            return getCreateAliasNode
+            (
+                aggregateName,
+                externalName,
+                aggElements,
+                AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR
+            );
 		}
 }
 
@@ -13724,6 +13930,12 @@ dropAliasStatement() throws StandardException :
 
 		return dropAliasNode(aliasName, AliasInfo.ALIAS_TYPE_UDT_AS_CHAR);
 	}
+|	<DERBY> <AGGREGATE> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <RESTRICT>
+	{
+		checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, "DROP DERBY AGGREGATE");
+
+		return dropAliasNode(aliasName, AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR);
+	}
 }
 
 StatementNode
@@ -13959,6 +14171,10 @@ usableObjects() throws StandardException :
 {
 }
 {
+<DERBY> <AGGREGATE>
+   {
+       return ReuseFactory.getInteger( PrivilegeNode.AGGREGATE_PRIVILEGES);
+   }
     <SEQUENCE>
     {
         return ReuseFactory.getInteger( PrivilegeNode.SEQUENCE_PRIVILEGES);
@@ -14668,6 +14884,7 @@ nonReservedKeyword()  :
 	|	tok = <ABSVAL>  
 	|	tok = <ACTION>
 	|	tok = <AFTER>
+	|	tok = <AGGREGATE>
 	|	tok = <ALWAYS>
 	|	tok = <BEFORE>
 	|	tok = <BINARY>
@@ -14697,6 +14914,7 @@ nonReservedKeyword()  :
 	|	tok = <DYNAMIC>
     |   tok = <DATABASE>
 	|	tok = <DB2SQL>
+	|	tok = <DERBY>
 	|	tok = <SPLICE_JDBC_RESULT_SET>
 	|	tok = <DOCUMENT>
 	|	tok = <EACH>

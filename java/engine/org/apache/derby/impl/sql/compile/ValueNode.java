@@ -27,6 +27,7 @@ import java.util.Vector;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
@@ -67,7 +68,11 @@ public abstract class ValueNode extends QueryTreeNode
 	public ValueNode()
 	{
 	}
-    
+
+    ValueNode(ContextManager cm) {
+        super(cm);
+    }
+
     /**
      * Set this node's type from type components.
      */
@@ -443,7 +448,12 @@ public abstract class ValueNode extends QueryTreeNode
 									C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
 									stjvn,
 									getContextManager());
-		jtsvn.setType(DataTypeDescriptor.getSQLDataTypeDescriptor(stjvn.getJavaTypeName()));
+		DataTypeDescriptor  resultType;
+		if ( (getTypeServices() != null) && getTypeId().userType() ) { resultType = getTypeServices(); }
+		else { resultType = DataTypeDescriptor.getSQLDataTypeDescriptor(stjvn.getJavaTypeName()); }
+		
+		jtsvn.setType( resultType );
+
 		return jtsvn;
 	}
 

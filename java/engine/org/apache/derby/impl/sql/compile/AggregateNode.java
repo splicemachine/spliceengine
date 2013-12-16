@@ -28,8 +28,9 @@ import org.apache.derby.iapi.services.loader.ClassInspector;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 
 import org.apache.derby.iapi.error.StandardException;
-
+import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.C_NodeTypes;
@@ -54,6 +55,7 @@ import org.apache.derby.impl.sql.compile.CountAggregateDefinition;
 import org.apache.derby.impl.sql.compile.MaxMinAggregateDefinition;
 import org.apache.derby.impl.sql.compile.SumAvgAggregateDefinition;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -67,6 +69,7 @@ public class AggregateNode extends UnaryOperatorNode
 	private boolean					distinct;
 
 	private AggregateDefinition		uad;
+	private TableName           userAggregateName;
 	private StringBuffer			aggregatorClassName;
 	private String					aggregateDefinitionClassName;
 	private Class					aggregateDefinitionClass;
@@ -108,23 +111,36 @@ public class AggregateNode extends UnaryOperatorNode
 		super.init(operand);
 		this.aggregateName = (String) aggregateName;
 
-		if (uadClass instanceof String)
+		if ( uadClass instanceof UserAggregateDefinition )
 		{
-			this.aggregateDefinitionClassName = (String) uadClass;
+			setUserDefinedAggregate( (UserAggregateDefinition) uadClass );
+			this.distinct = ((Boolean) distinct).booleanValue();
+		}
+		else if ( uadClass instanceof TableName )
+		{
+			this.userAggregateName = (TableName) uadClass;
 			this.distinct = ((Boolean) distinct).booleanValue();
 		}
 		else
 		{
 			this.aggregateDefinitionClass = (Class) uadClass;
-			this.aggregateDefinitionClassName =
-										aggregateDefinitionClass.getName();
+			
 
 			// Distinct is meaningless for min and max
 			if (!aggregateDefinitionClass.equals(MaxMinAggregateDefinition.class))
 			{
 				this.distinct = ((Boolean) distinct).booleanValue();
 			}
+			this.aggregateDefinitionClassName = aggregateDefinitionClass.getName();
 		}
+	}
+	/** initialize fields for user defined aggregate */
+	private void setUserDefinedAggregate( UserAggregateDefinition userAgg )
+	{
+	    this.uad = userAgg;
+	    this.aggregateDefinitionClass = uad.getClass();
+
+		this.aggregateDefinitionClassName = aggregateDefinitionClass.getName();
 	}
 
 	/**
@@ -267,14 +283,50 @@ public class AggregateNode extends UnaryOperatorNode
 					Vector				aggregateVector)
 			throws StandardException
 	{
+		DataDictionary  dd = getDataDictionary();
 		DataTypeDescriptor 	dts = null;
 		ClassFactory		cf;
 
 		cf = getClassFactory();
 		classInspector = cf.getClassInspector();
-
+		if ( userAggregateName != null )
+		{
+		     userAggregateName.bind( dd );
+		     AliasDescriptor ad = resolveAggregate
+		          (
+		             dd,
+		             getSchemaDescriptor( userAggregateName.getSchemaName(), true ),
+		             userAggregateName.getTableName()
+		           );
+		     if ( ad == null )
+		     {
+		          throw StandardException.newException
+		               (
+		                   SQLState.LANG_OBJECT_NOT_FOUND,
+	                       AliasDescriptor.getAliasType( AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR ),
+		                   userAggregateName.getTableName()
+		                );
+		      }
+		          
+		      setUserDefinedAggregate( new UserAggregateDefinition( ad ) );
+		      aggregateName = ad.getJavaClassName();
+		}
+	
 		instantiateAggDef();
-
+		// if this is a user-defined aggregate
+		if ( isUserDefinedAggregate() )
+		{
+		       AliasDescriptor ad = ((UserAggregateDefinition) uad).getAliasDescriptor();
+		
+		       // set up dependency on the user-defined aggregate and compile a check for USAGE
+		       // priv if needed
+		       getCompilerContext().createDependency( ad );
+		
+		       if ( isPrivilegeCollectionRequired() )
+		       {
+		           getCompilerContext().addRequiredUsagePriv( ad );
+		       }
+		 }
 		/* Add ourselves to the aggregateVector before we do anything else */
 		aggregateVector.add(this);
 
@@ -296,8 +348,12 @@ public class AggregateNode extends UnaryOperatorNode
 			operand.accept(visitor);
 			if (visitor.hasNode())
 			{
-				throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_CONTAINS_AGGREGATE, 
-						aggregateName);
+				throw StandardException.newException
+				                    (
+				                     SQLState.LANG_USER_AGGREGATE_CONTAINS_AGGREGATE, 
+				                     getSQLName()
+				                    );
+
 			}
 
 			// Also forbid any window function inside an aggregate unless in
@@ -344,7 +400,9 @@ public class AggregateNode extends UnaryOperatorNode
 			*/
 			if (operand instanceof UntypedNullConstantNode)
 			{
-				throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_BAD_TYPE_NULL, aggregateName);
+				throw StandardException.newException
+				                  (SQLState.LANG_USER_AGGREGATE_BAD_TYPE_NULL, getSQLName());
+
 			}
 		}
 
@@ -357,18 +415,47 @@ public class AggregateNode extends UnaryOperatorNode
 
 		if (resultType == null)
 		{
-			throw StandardException.newException(SQLState.LANG_USER_AGGREGATE_BAD_TYPE, 
-						aggregateName, 
-						operand.getTypeId().getSQLTypeName());
-		}
+			throw StandardException.newException
+			         (
+			          SQLState.LANG_USER_AGGREGATE_BAD_TYPE, 
+			          getSQLName(), 
+			          operand.getTypeId().getSQLTypeName()
+			          );
 
+		}
+		// For user-defined aggregates, the input operand may need to be
+		// coerced to the expected input type of the aggregator.
+		if ( isUserDefinedAggregate() )
+		{
+		     ValueNode   castNode = ((UserAggregateDefinition) uad).castInputValue
+		     ( operand, getContextManager() );
+		     if ( castNode != null )
+		     {
+		         operand = castNode.bindExpression( fromList, subqueryList, aggregateVector );
+		     }
+		}
+		
 		checkAggregatorClassName(aggregatorClassName.toString());
 
 		setType(resultType);
 
 		return this;
 	}
+	/**
+	 * Resolve a user-defined aggregate.
+	 */
+	public  static AliasDescriptor resolveAggregate
+        ( DataDictionary dd, SchemaDescriptor sd, String rawName )
+        throws StandardException
+    {
+		java.util.List list = dd.getRoutineList
+            ( sd.getUUID().toString(), rawName, AliasInfo.ALIAS_NAME_SPACE_AGGREGATE_AS_CHAR );
 
+        if ( list.size() > 0 ) { return (AliasDescriptor) list.get( 0 ); }
+
+        return null;
+    }
+    
 	/*
 	** Make sure the aggregator class is ok
 	*/
@@ -380,7 +467,7 @@ public class AggregateNode extends UnaryOperatorNode
 		{
 			throw StandardException.newException(SQLState.LANG_BAD_AGGREGATOR_CLASS2, 
 													className, 
-													aggregateName,
+													getSQLName(),
 													operand.getTypeId().getSQLTypeName());
 		}
 	}
@@ -391,23 +478,26 @@ public class AggregateNode extends UnaryOperatorNode
 	*/
 	private void instantiateAggDef() throws StandardException
 	{
-		Class theClass = aggregateDefinitionClass;
+		if ( uad == null )
+	    {
+			Class theClass = aggregateDefinitionClass;
 
-		// get the class
-		if (theClass == null)
-		{
-			String aggClassName = aggregateDefinitionClassName;
-			verifyClassExist(aggClassName);
+			// get the class
+			if (theClass == null)
+			{
+			    String aggClassName = aggregateDefinitionClassName;
+			    verifyClassExist(aggClassName);
 
-			try
-			{
-				theClass = classInspector.getClass(aggClassName);
+			    try
+			    {
+			         theClass = classInspector.getClass(aggClassName);
+			    }
+			    catch (Throwable t)
+			    {
+			         throw StandardException.unexpectedUserException(t);
+			    }
 			}
-			catch (Throwable t)
-			{
-				throw StandardException.unexpectedUserException(t);
-			}
-		}
+
 
 		// get an instance
 		Object instance = null;
@@ -444,7 +534,7 @@ public class AggregateNode extends UnaryOperatorNode
 		}
 
 		this.uad = (AggregateDefinition)instance;
-	
+	    }
 		setOperator(aggregateName);
 		setMethodName(aggregateDefinitionClassName);
 
@@ -605,7 +695,7 @@ public class AggregateNode extends UnaryOperatorNode
 	{
 		if (SanityManager.DEBUG)
 		{
-			return "aggregateName: " + aggregateName + "\n" +
+			return "aggregateName: " + getSQLName() + "\n" +
 				"distinct: " + distinct + "\n" +
 				super.toString();
 		}
@@ -624,4 +714,24 @@ public class AggregateNode extends UnaryOperatorNode
 	{
 		return false;
 	}
+	
+	/** Get the SQL name of the aggregate */
+	public  String  getSQLName()
+	     
+	{
+		if ( isUserDefinedAggregate() )
+	    {
+			return ((UserAggregateDefinition) uad).
+					getAliasDescriptor().getQualifiedName();
+	    }
+	    else { return aggregateName; }
+	}
+	    
+	/** Return true if this is a user-defined aggregate */
+	private boolean isUserDefinedAggregate()
+	{
+		return uad instanceof UserAggregateDefinition;
+	}
+	
+
 }

@@ -29,22 +29,25 @@ import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.StringDataValue;
-
+import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.reference.JDBC30Translation;
+import org.apache.derby.iapi.reference.JDBC40Translation;
 
 import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.TypeDescriptor;
+import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.catalog.types.SynonymAliasInfo;
 import org.apache.derby.catalog.types.TypeDescriptorImpl;
 import org.apache.derby.catalog.types.UDTAliasInfo;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -73,6 +76,50 @@ public class CreateAliasNode extends DDLStatementNode
     public static final int ROUTINE_ELEMENT_COUNT =
         ROUTINE_SECURITY_DEFINER + 1;
 
+    //
+    // These are the names of 1-arg builtin functions which are represented in the
+    // grammar as non-reserved keywords. These names may not be used as
+    // the unqualified names of user-defined aggregates.
+    //
+    // If additional 1-arg builtin functions are added to the grammar, they should
+    // be put in this table.
+    //
+    private static  final   String[]  NON_RESERVED_FUNCTION_NAMES =
+    {
+        "ABS",
+        "ABSVAL",
+        "DATE",
+        "DAY",
+        "LCASE",
+        "LENGTH",
+        "MONTH",
+        "SQRT",
+        "TIME",
+        "TIMESTAMP",
+        "UCASE",
+    };
+    //
+    // These are aggregate names defined by the SQL Standard which do not
+    // behave as reserved keywords in Derby.
+    //
+    private static  final   String[]    NON_RESERVED_AGGREGATES =
+    {
+        "COLLECT",
+        "COUNT",
+        "EVERY",
+        "FUSION",
+        "INTERSECTION",
+        "STDDEV_POP",
+        "STDDEV_SAMP",
+        "VAR_POP",
+        "VAR_SAMP",
+    };
+    
+    // aggregate arguments
+    public  static  final   int AGG_FOR_TYPE = 0;
+    public  static  final   int AGG_RETURN_TYPE = AGG_FOR_TYPE + 1;
+    public  static  final   int AGG_ELEMENT_COUNT = AGG_RETURN_TYPE + 1;
+   
 	private String				javaClassName;
 	private String				methodName;
 	private char				aliasType; 
@@ -80,8 +127,35 @@ public class CreateAliasNode extends DDLStatementNode
 
 	private AliasInfo aliasInfo;
 
+    /**
+     * Constructor
+     *
+     * @param aliasName				The name of the alias
+     * @param targetObject          Target name string or, if
+     *        aliasType == ALIAS_TYPE_SYNONYM_AS_CHAR, a TableName
+     * @param methodName		    The method name
+     * @param aliasSpecificInfo     An array of objects, see code for
+     *                              interpretation
+     * @param cm                    The context manager
+     * @exception StandardException Thrown on error
+     */
+    public CreateAliasNode() {}
 
-	/**
+    public CreateAliasNode(TableName aliasName,
+                    Object targetObject,
+                    String methodName,
+                    Object aliasSpecificInfo,
+                    char aliasType,
+                    ContextManager cm)
+            throws StandardException
+    {
+        super(aliasName, cm);
+        init(aliasName, targetObject, methodName,
+                aliasSpecificInfo, new Character(aliasType), (Object)Boolean.FALSE);
+    }
+
+
+    /**
 	 * Initializer for a CreateAliasNode
 	 *
 	 * @param aliasName				The name of the alias
@@ -110,6 +184,25 @@ public class CreateAliasNode extends DDLStatementNode
 
 		switch (this.aliasType)
 		{
+		    case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+		    	this.javaClassName = (String) targetObject;
+			
+				Object[] aggElements = (Object[]) aliasSpecificInfo;
+				TypeDescriptor  aggForType = bindUserCatalogType( (TypeDescriptor) aggElements[ AGG_FOR_TYPE ] );
+				TypeDescriptor  aggReturnType = bindUserCatalogType( (TypeDescriptor) aggElements[ AGG_RETURN_TYPE ] );
+				// XML not allowed because SQLXML support has not been implemented
+				if (
+				    (aggForType.getJDBCTypeId() == JDBC40Translation.SQLXML) ||
+				    (aggReturnType.getJDBCTypeId() == JDBC40Translation.SQLXML)
+				   )
+				{
+				    throw StandardException.newException( SQLState.LANG_XML_NOT_ALLOWED_DJRS );
+				}
+
+			    aliasInfo = new AggregateAliasInfo( aggForType, aggReturnType );
+				implicitCreateSchema = true;
+			    break;
+			               
 			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 				this.javaClassName = (String) targetObject;
 				aliasInfo = new UDTAliasInfo();
@@ -279,6 +372,8 @@ public class CreateAliasNode extends DDLStatementNode
 	{
 		switch (this.aliasType)
 		{
+		case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+			return "CREATE DERBY AGGREGATE";
 		case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 			return "CREATE TYPE";
 		case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
@@ -401,7 +496,10 @@ public class CreateAliasNode extends DDLStatementNode
             return;
         }
 
-		// Procedures and functions do not check class or method validity until
+		// validity checking for aggregates
+        if ( aliasType == AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR ) { bindAggregate(); }
+               
+        // Aggregates, procedures and functions do not check class or method validity until
 		// runtime execution. Synonyms do need some validity checks.
 		if (aliasType != AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR)
 			return;
@@ -423,7 +521,60 @@ public class CreateAliasNode extends DDLStatementNode
 			throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
 
 	}
-
+	/** Extra logic for binding user-defined aggregate definitions */
+	private void    bindAggregate() throws StandardException
+	{
+	    String                      unqualifiedName = getRelativeName();
+	
+	    //
+	    // A user-defined aggregate cannot have the name of a builtin function which takes 1 argument.
+	    //
+	    SchemaDescriptor    sysfun = getSchemaDescriptor( "SYSFUN", true );
+	    List                        systemFunctions = getDataDictionary().getRoutineList
+	        (
+	         sysfun.getUUID().toString(), unqualifiedName,
+	         AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR
+	         );
+	
+	    for ( int i = 0; i < systemFunctions.size(); i++ )
+	    {
+			AliasDescriptor function = (AliasDescriptor) systemFunctions.get(i);
+	
+			RoutineAliasInfo routineInfo = (RoutineAliasInfo) function.getAliasInfo();
+			int parameterCount = routineInfo.getParameterCount();
+			if ( parameterCount == 1 )  { throw illegalAggregate(); }
+	    }
+        
+	    //
+	    // Additional builtin 1-arg functions which are represented in the grammar
+	    // as non-reserved keywords.
+	    //
+	    for ( int i = 0; i < NON_RESERVED_FUNCTION_NAMES.length; i++ )
+	    {
+	        if ( NON_RESERVED_FUNCTION_NAMES[ i ].equals( unqualifiedName ) )  { throw illegalAggregate(); }
+	    }
+	
+	    //
+	    // Additional SQL Standard aggregate names which are not represented in
+	    // the Derby grammar as reserved keywords.
+	    //
+	    for ( int i = 0; i < NON_RESERVED_AGGREGATES.length; i++ )
+	    {
+	        if ( NON_RESERVED_AGGREGATES[ i ].equals( unqualifiedName ) )  { throw illegalAggregate(); }
+	    }
+	    
+	    // now bind the input and return types
+	    AggregateAliasInfo  aai = (AggregateAliasInfo) aliasInfo;
+	    
+	    aai.setCollationTypeForAllStringTypes( getSchemaDescriptor().getCollationType() );
+	}
+	
+	/** Construct an exception flagging an illegal aggregate name */
+	private StandardException   illegalAggregate()
+	{
+	    return StandardException.newException( SQLState.LANG_ILLEGAL_UDA_NAME, getRelativeName() );
+	}
+	
     /** Bind the class names for UDTs */
     private void bindParameterTypes( RoutineAliasInfo aliasInfo ) throws StandardException
     {
@@ -436,14 +587,8 @@ public class CreateAliasNode extends DDLStatementNode
         {
             TypeDescriptor td = parameterTypes[ i ];
 
-            // if this is a user defined type, resolve the Java class name
-            if ( td.isUserDefinedType() )
-            {
-                DataTypeDescriptor dtd = DataTypeDescriptor.getType( td );
+            parameterTypes[ i ] = bindUserCatalogType( parameterTypes[ i ] );
 
-                dtd = bindUserType( dtd );
-                parameterTypes[ i ] = dtd.getCatalogType();
-            }
         }
     }
 

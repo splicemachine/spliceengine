@@ -2908,7 +2908,7 @@ Guide.
 
             <msg>
                 <name>42ZB3</name>
-                <text>XML is not allowed as the datatype of a column returned by a table function.</text>
+                <text>XML is not allowed as the datatype of a user-defined aggregate or of a column returned by a table function.</text>
             </msg>
 
             <msg>
@@ -2945,7 +2945,45 @@ Guide.
                 <text>Window function is illegal in this context: '{0}' clause</text>
                 <arg>clauseName</arg>
             </msg>
+            <msg>
+                <name>42ZC3</name>
+                <text>A user defined aggregate may not have the name of an aggregate defined by the SQL Standard or the name of a builtin Derby function having one argument: '{0}'</text>
+                <arg>aggregateName</arg>
+            </msg>
+            <msg>
+                <name>42ZC4</name>
+                <text>User defined aggregate '{0}'.'{1}' is bound to external class '{2}'. The parameter types of that class could not be resolved.</text>
+                <arg>schemaName</arg>
+                <arg>aggregateName</arg>
+                <arg>className</arg>
+            </msg>
 
+            <msg>
+                <name>42ZC6</name>
+                <text>User defined aggregate '{0}'.'{1}' was declared to have this input Java type: '{2}'. This does not extend the following actual bounding input Java type: '{3}'.</text>
+                <arg>schemaName</arg>
+                <arg>aggregateName</arg>
+                <arg>javaDataType</arg>
+                <arg>javaDataType</arg>
+            </msg>
+
+            <msg>
+                <name>42ZC7</name>
+                <text>User defined aggregate '{0}'.'{1}' was declared to have this return Java type: '{2}'. This does not extend the following actual bounding return Java type: '{3}'.</text>
+                <arg>schemaName</arg>
+                <arg>aggregateName</arg>
+                <arg>javaDataType</arg>
+                <arg>javaDataType</arg>
+            </msg>
+
+            <msg>
+                <name>42ZC8</name>
+                <text>Implementing class '{0}' for user defined aggregate '{1}'.'{2}' could not be instantiated or was malformed. Detailed message follows: {3}</text>
+                <arg>className</arg>
+                <arg>schemaName</arg>
+                <arg>aggregateName</arg>
+                <arg>detailedMessage</arg>
+            </msg>    
         </family>
 
 
@@ -3516,7 +3554,12 @@ Guide.
                 <arg>schemaName</arg>
                 <arg>sequenceName</arg>
             </msg>
-
+            <msg>
+                <name>X0Y87.S</name>
+                <text>There is already an aggregate or function with one argument whose name is '{0}'.'{1}'.</text>
+                <arg>schemaName</arg>
+                <arg>aggregateOrFunctionName</arg>
+            </msg>
         </family>
 
 
@@ -3561,7 +3604,11 @@ Guide.
                 <arg>value</arg>
                 <arg>className</arg>
             </msg>
-
+            <msg>
+                <name>XBCM5.S</name>
+                <text>This operation requires that the JVM level be at least {0}.</text>
+                <arg>vmLevel</arg>
+            </msg>
         </family>
 
 
@@ -7598,7 +7645,12 @@ MessageId.java.
                 <arg>value</arg>
                 <arg>value</arg>
             </msg>
-
+            <msg>
+                <name>C008</name>
+                <text>Exception loading class {0}: {1}</text>
+                <arg>className</arg>
+                <arg>detailedError</arg>
+            </msg>
         </family>
 
 

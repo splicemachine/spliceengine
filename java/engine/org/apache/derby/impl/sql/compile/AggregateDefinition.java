@@ -22,7 +22,7 @@
 package	org.apache.derby.impl.sql.compile;
 
 import java.sql.SQLException;
-
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 
 /**
@@ -81,6 +81,7 @@ interface AggregateDefinition
 	 * @see org.apache.derby.catalog.TypeDescriptor
 	 *
 	 */
-	public	DataTypeDescriptor getAggregator(DataTypeDescriptor inputType,
-							StringBuffer aggregatorClassName);
+	public	DataTypeDescriptor getAggregator
+       ( DataTypeDescriptor inputType, StringBuffer aggregatorClassName )
+       throws StandardException;
 }

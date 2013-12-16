@@ -306,8 +306,13 @@ public class GenericAggregator {
 				Object agg = aggregatorClass.newInstance();
 				aggregatorInstance = (ExecAggregator)agg;
 				cachedAggregator = aggregatorInstance;
-				aggregatorInstance.setup(aggInfo.getAggregateName());
-
+				aggregatorInstance.setup
+				                    (
+				                     cf,
+				                     aggInfo.getAggregateName(),
+				                     aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+				                     );
+				
 			} catch (Exception e)
 			{
 				throw StandardException.unexpectedUserException(e);

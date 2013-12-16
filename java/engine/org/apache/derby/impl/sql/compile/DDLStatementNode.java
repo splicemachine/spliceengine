@@ -35,7 +35,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.error.StandardException;
 
 import org.apache.derby.impl.sql.compile.ActivationClassBuilder;
-
+import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.reference.ClassName;
 
@@ -87,7 +87,17 @@ abstract class DDLStatementNode extends StatementNode
 	//
 	/////////////////////////////////////////////////////////////////////////
 
-	public void init(Object objectName)
+    public DDLStatementNode(TableName tableName, ContextManager cm) {
+        super(cm);
+        this.objectName = tableName;
+        initOk = true;
+    }
+
+    public DDLStatementNode() {
+    }
+
+
+    public void init(Object objectName)
 		throws StandardException {
 		initAndCheck(objectName);
 	}

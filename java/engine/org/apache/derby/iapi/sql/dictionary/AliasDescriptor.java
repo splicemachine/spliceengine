@@ -31,6 +31,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
 import	org.apache.derby.catalog.AliasInfo;
+import	org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import	org.apache.derby.catalog.types.UDTAliasInfo;
 
@@ -130,6 +131,10 @@ public final class AliasDescriptor
         {
             return PermDescriptor.UDT_TYPE;
         }
+        else if ( aliasInfo instanceof AggregateAliasInfo )
+        {
+            return PermDescriptor.AGGREGATE_TYPE;
+        }
         else
         {
             if( SanityManager.DEBUG)
@@ -177,7 +182,7 @@ public final class AliasDescriptor
 	 * @return	A String containing the name of the schema that the alias
 	 *		lives in.
 	 */
-	public String	getSchemaName() throws StandardException
+	public String getSchemaName()
 	{
 		return schemaDescriptor.getSchemaName();
 	}
@@ -187,7 +192,7 @@ public final class AliasDescriptor
 	 *
 	 * @return	A String containing the name of the table.
 	 */
-	public String	getQualifiedName() throws StandardException
+	public String getQualifiedName()
 	{
         return IdUtil.mkQualifiedName(getSchemaName(), aliasName);
 	}
@@ -374,6 +379,8 @@ public final class AliasDescriptor
 				return "SYNONYM";
 			case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
 				return "TYPE";
+			case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+				return "DERBY AGGREGATE";
 		}
 		return  null;
 	}
@@ -452,6 +459,9 @@ public final class AliasDescriptor
         case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
             invalidationType = DependencyManager.DROP_UDT;
             break;
+        case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+            invalidationType = DependencyManager.DROP_AGGREGATE;
+            break;    
         }
         
         dm.invalidateFor(this, invalidationType, lcc);

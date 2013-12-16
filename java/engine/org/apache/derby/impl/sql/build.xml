@@ -112,8 +112,8 @@
   	<ivy:cachepath pathid="lib.path.id"/>
   	
   	<javac
-      source="1.4"
-      target="1.4"
+      source="1.5"
+      target="1.5"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"

@@ -107,7 +107,7 @@ public abstract class DatabaseClasses
 		throws StandardException
 	{
 
-		classInspector = new ClassInspector(this);
+		classInspector = makeClassInspector( this );
 
 		//
 		//The ClassFactory runs per service (database) mode (booted as a service module after AccessFactory).
@@ -134,6 +134,15 @@ public abstract class DatabaseClasses
 	public void stop() {
 		if (applicationLoader != null)
 			applicationLoader.close();
+	}
+
+	/**
+     * For creating the class inspector. On Java 5 and higher, we have a more
+	 * capable class inspector.
+	 */
+	protected   ClassInspector  makeClassInspector( DatabaseClasses dc )
+	{
+	    return new ClassInspector( dc );
 	}
 
 	/*
