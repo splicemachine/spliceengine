@@ -61,6 +61,14 @@ public class MBeanResultSet extends SpliceAbstractResultSet {
         throw new SQLException();
     }
 
+    public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+        return (T) getObject(columnIndex);
+    }
+
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        return (T) getObject(columnLabel);
+    }
+
     private Object getColumnValue(String columnLabel) throws SQLException {
         int index = findColumn(columnLabel);
         return this.rows.get(this.currentIndex).get(index);
