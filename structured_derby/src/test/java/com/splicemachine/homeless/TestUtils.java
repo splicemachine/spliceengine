@@ -241,6 +241,10 @@ public class TestUtils {
             return 0;
         }
 
+        public int size() {
+            return this.rowKeyToRows.size();
+        }
+
         @Override
         public String toString() {
             Map<Integer,Integer> colWidth = new HashMap<Integer, Integer>(this.columns.size());
