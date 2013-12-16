@@ -1,12 +1,10 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
-import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.job.TaskSchedulerManagement;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -49,16 +47,16 @@ public class SpliceAdmin {
         StringBuilder sb = new StringBuilder("select * from (values ");
         int i = 0;
         for (ServerName serverName : getServers()) {
-            if (i!=0)
+            if (i!=0) {
                 sb.append(", ");
-            sb.append(String.format("('%s','%s',%d,%d)",
-                    serverName.getHostname(),
-                    serverName.getServerName(),
-                    serverName.getPort(),
-                    serverName.getStartcode()));
+            }
+            sb.append(String.format("('%s',%d,%d)",
+                serverName.getHostname(),
+                serverName.getPort(),
+                serverName.getStartcode()));
             i++;
         }
-        sb.append(") foo (hostname, servername, port, startcode)");
+        sb.append(") foo (hostname, port, startcode)");
         resultSet[0] = executeStatement(sb);
     }
 
@@ -78,13 +76,14 @@ public class SpliceAdmin {
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
             for (ActiveWriteHandlersIface activeWrite : activeWriteHandler) {
-                if (i != 0)
+                if (i != 0) {
                     sb.append(", ");
+                }
                 sb.append(String.format("('%s',%d,%d,%d,%d)",servers.get(i).getHostname(),
-                        activeWrite.getActiveWriteThreads(),
-                        activeWrite.getCompactionQueueSizeLimit(),
-                        activeWrite.getFlushQueueSizeLimit(),
-                        activeWrite.getIpcReservedPool()));
+                    activeWrite.getActiveWriteThreads(),
+                    activeWrite.getCompactionQueueSizeLimit(),
+                    activeWrite.getFlushQueueSizeLimit(),
+                    activeWrite.getIpcReservedPool()));
                 i++;
             }
             sb.append(") foo (hostname, activeWriteThreads, compactionQueueSizeLimit, flushQueueSizeLimit, ipcReserverdPool)");
@@ -134,44 +133,45 @@ public class SpliceAdmin {
     }
 
 		public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
-				List<ServerName> servers = getServers();
-				List<JMXConnector> connections = null;
-				try {
-						connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+            List<ServerName> servers = getServers();
+            List<JMXConnector> connections = null;
+            try {
+                connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
-						List<StealableTaskSchedulerManagement> taskSchedulers;
-						try {
-								taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
-						} catch (MalformedObjectNameException e) {
-								throw new SQLException(e);
-						}
-						StringBuilder sb = new StringBuilder("select * from (values ");
-						int i = 0;
-						for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
-								if (i != 0)
-										sb.append(", ");
-								sb.append(String.format("('%s',%d)",
-												servers.get(i).getHostname(),
-												taskScheduler.getCurrentWorkers()));
-								i++;
-						}
-						sb.append(") foo (hostname, maxTaskWorkers)");
-						resultSet[0] = executeStatement(sb);
-				} catch (IOException e) {
-						throw new SQLException(e);
-				} finally {
-						if (connections != null) {
-								for (JMXConnector connector : connections) {
-										try {
-												connector.close();
-										} catch (IOException e) {
-												// ignore
-										}
-								}
-						}
-				}
+                List<StealableTaskSchedulerManagement> taskSchedulers;
+                try {
+                    taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
+                } catch (MalformedObjectNameException e) {
+                    throw new SQLException(e);
+                }
+                StringBuilder sb = new StringBuilder("select * from (values ");
+                int i = 0;
+                for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
+                    if (i != 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(String.format("('%s',%d)",
+                                    servers.get(i).getHostname(),
+                                    taskScheduler.getCurrentWorkers()));
+                    i++;
+                }
+                sb.append(") foo (hostname, maxTaskWorkers)");
+                resultSet[0] = executeStatement(sb);
+            } catch (IOException e) {
+                    throw new SQLException(e);
+            } finally {
+                if (connections != null) {
+                    for (JMXConnector connector : connections) {
+                        try {
+                            connector.close();
+                        } catch (IOException e) {
+                            // ignore
+                        }
+                    }
+                }
+            }
 
-		}
+        }
 
     public static void SYSCS_GET_GLOBAL_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
@@ -188,11 +188,12 @@ public class SpliceAdmin {
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
             for (TieredSchedulerManagement taskScheduler : taskSchedulers) {
-                if (i != 0)
+                if (i != 0) {
                     sb.append(", ");
+                }
                 sb.append(String.format("('%s',%d)",
-                        servers.get(i).getHostname(),
-                        taskScheduler.getTotalWorkerCount()));
+                    servers.get(i).getHostname(),
+                    taskScheduler.getTotalWorkerCount()));
                 i++;
             }
             sb.append(") foo (hostname, maxTaskWorkers)");
@@ -256,11 +257,12 @@ public class SpliceAdmin {
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
             for (ThreadPoolStatus threadPool : threadPools) {
-                if (i != 0)
+                if (i != 0) {
                     sb.append(", ");
+                }
                 sb.append(String.format("('%s',%d)",
-                        servers.get(i).getHostname(),
-                        threadPool.getMaxThreadCount()));
+                    servers.get(i).getHostname(),
+                    threadPool.getMaxThreadCount()));
                 i++;
             }
             sb.append(") foo (hostname, maxTaskWorkers)");
@@ -295,16 +297,17 @@ public class SpliceAdmin {
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
             for (ThreadPoolStatus threadPool : threadPools) {
-                if (i != 0)
+                if (i != 0) {
                     sb.append(", ");
+                }
                 sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d)",
-                        servers.get(i).getHostname(),
-                        threadPool.getActiveThreadCount(),
-                        threadPool.getMaxThreadCount(),
-                        threadPool.getPendingTaskCount(),
-                        threadPool.getTotalSuccessfulTasks(),
-                        threadPool.getTotalFailedTasks(),
-                        threadPool.getTotalRejectedTasks()));
+                    servers.get(i).getHostname(),
+                    threadPool.getActiveThreadCount(),
+                    threadPool.getMaxThreadCount(),
+                    threadPool.getPendingTaskCount(),
+                    threadPool.getTotalSuccessfulTasks(),
+                    threadPool.getTotalFailedTasks(),
+                    threadPool.getTotalRejectedTasks()));
                 i++;
             }
             sb.append(") foo (hostname, activeThreadCount, maxThreadCount, pendingTaskCount, totalSuccessfulTasks, totalFailedTasks, totalRejectedTasks)");
@@ -338,22 +341,23 @@ public class SpliceAdmin {
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
             for (TieredSchedulerManagement taskSchedule : taskSchedulers) {
-                if (i !=0)
+                if (i !=0) {
                     sb.append(", ");
-								sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
-                        servers.get(i).getHostname(),
-                        taskSchedule.getTotalWorkerCount(),
-                        taskSchedule.getPending(),
-                        taskSchedule.getExecuting(),
-                        taskSchedule.getTotalCancelledTasks(),
-                        taskSchedule.getTotalCompletedTasks(),
-                        taskSchedule.getTotalFailedTasks(),
-                        taskSchedule.getTotalInvalidatedTasks(),
-                        taskSchedule.getTotalSubmittedTasks(),
-												taskSchedule.getTotalShruggedTasks(),
-												taskSchedule.getTotalStolenTasks(),
-												taskSchedule.getMostLoadedTier(),
-												taskSchedule.getLeastLoadedTier()));
+                }
+                sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
+                    servers.get(i).getHostname(),
+                    taskSchedule.getTotalWorkerCount(),
+                    taskSchedule.getPending(),
+                    taskSchedule.getExecuting(),
+                    taskSchedule.getTotalCancelledTasks(),
+                    taskSchedule.getTotalCompletedTasks(),
+                    taskSchedule.getTotalFailedTasks(),
+                    taskSchedule.getTotalInvalidatedTasks(),
+                    taskSchedule.getTotalSubmittedTasks(),
+                    taskSchedule.getTotalShruggedTasks(),
+                    taskSchedule.getTotalStolenTasks(),
+                    taskSchedule.getMostLoadedTier(),
+                    taskSchedule.getLeastLoadedTier()));
                 i++;
             }
             sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
@@ -389,8 +393,9 @@ public class SpliceAdmin {
             int i = 0;
             for (JMXConnector mxc : connections) {
                 MBeanServerConnection mbsc = mxc.getMBeanServerConnection();
-                if (i !=0)
+                if (i !=0) {
                     sb.append(", ");
+                }
                 try {
                     sb.append(String.format("('%s','%d','%d','%d','%d','%d','%f','%d','%d')",
                         servers.get(i).getHostname(),
@@ -415,9 +420,9 @@ public class SpliceAdmin {
                 }
                 i++;
             }
-            sb.append(") foo (hostname, regions, fsReadLatencyAvgTime, fsWriteLatencyAvgTime, "
-                    + "writeRequestsCount, readRequestsCount, "
-                    + "requests, compactionQueueSize, flushQueueSize)");
+            sb.append(") foo (hostname, regions, fsReadLatencyAvgTime, fsWriteLatencyAvgTime, ");
+            sb.append("writeRequestsCount, readRequestsCount, ");
+            sb.append("requests, compactionQueueSize, flushQueueSize)");
             resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
@@ -438,15 +443,17 @@ public class SpliceAdmin {
         StringBuilder sb = new StringBuilder("select * from (values ");
         int i =0;
         for (Map.Entry<ServerName,HServerLoad> serverLoad : getLoad().entrySet()) {
-            if ( i != 0)
+            if ( i != 0) {
                 sb.append(", ");
-            sb.append(String.format("('%s','%s',%d)",
-                    serverLoad.getKey().getHostname(),
-                    serverLoad.getKey().getServerName(),
-                    serverLoad.getValue().getTotalNumberOfRequests()));
+            }
+            ServerName sn = serverLoad.getKey();
+            sb.append(String.format("('%s',%d,%d)",
+                sn.getHostname(),
+                    sn.getPort(),
+                serverLoad.getValue().getTotalNumberOfRequests()));
             i++;
         }
-        sb.append(") foo (hostname, servername, totalRequests)");
+        sb.append(") foo (hostname, port, totalRequests)");
         resultSet[0] = executeStatement(sb);
     }
 
@@ -473,7 +480,7 @@ public class SpliceAdmin {
                 try {
                     admin.close();
                 } catch (IOException e) {
-                    throw new SQLException(e);
+                    // ignore
                 }
             }
         }
@@ -499,7 +506,7 @@ public class SpliceAdmin {
                 try {
                     admin.close();
                 } catch (IOException e) {
-                    throw new SQLException(e);
+                    // ignore
                 }
             }
         }
@@ -525,17 +532,8 @@ public class SpliceAdmin {
         PreparedStatement s = null;
         try{
             s = conn.prepareStatement(
-                    "select " +
-                            "conglomeratenumber " +
-                            "from " +
-                            "sys.sysconglomerates c, " +
-                            "sys.systables t, " +
-                            "sys.sysschemas s " +
-                            "where " +
-                            "t.tableid = c.tableid and " +
-                            "t.schemaid = s.schemaid and " +
-                            "s.schemaname = ? and " +
-                            "t.tablename = ?");
+                    "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
+                        "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?");
             s.setString(1,schemaName.toUpperCase());
             s.setString(2,tableName.toUpperCase());
             rs = s.executeQuery();
@@ -553,7 +551,7 @@ public class SpliceAdmin {
 
     public static Connection getDefaultConn() throws SQLException {
         InternalDriver id = InternalDriver.activeDriver();
-        if(id!=null){
+        if(id!=null) {
             Connection conn = id.connect("jdbc:default:connection",null);
             if(conn!=null)
                 return conn;
