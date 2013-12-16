@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * @author Scott Fines
@@ -59,8 +60,10 @@ public class FileImportJob extends ImportJob{
         	Closeables.close(admin, false);
         }
         HRegionInfo regionToSubmit = null;
-        if(regions!=null&&regions.size()>0)
-            regionToSubmit = regions.get(0);
+        if(regions!=null&&regions.size()>0) {
+        	Random random = new Random(); // Assign random regions for submission (spray)
+            regionToSubmit = regions.get(random.nextInt(regions.size()));            
+        }
 
         byte[] start = regionToSubmit!=null?regionToSubmit.getStartKey(): new byte[]{};
         byte[] end = regionToSubmit!=null?regionToSubmit.getEndKey(): new byte[]{};

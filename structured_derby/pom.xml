@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc4-SNAPSHOT</version>
+		<version>0.5rc6-SNAPSHOT</version>
 	</parent>
 
 
@@ -52,7 +52,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>0.5rc4-SNAPSHOT</version>
+			<version>0.5rc6-SNAPSHOT</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
@@ -96,11 +96,6 @@
 			<groupId>net.sf.ehcache</groupId>
 			<artifactId>ehcache-core</artifactId>
 			<version>2.6.6</version>
-		</dependency>
-		<dependency>
-			<groupId>com.esotericsoftware.kryo</groupId>
-			<artifactId>kryo</artifactId>
-			<version>2.21</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -266,7 +261,7 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
-                                            <arg value="${failTasksRandomly}"/>
+                                            <arg value="${failTasksRandomly}" />
                                         </exec>
                                         <sleep seconds="90" />
                                     </target>
@@ -494,7 +489,10 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-                                <argument>-Djava.awt.headless=true</argument>
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
+                <argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
@@ -544,7 +542,7 @@
 								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
-								<argument>-Xmx2g</argument>
+                                <argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
@@ -619,10 +617,13 @@
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
 								<argument>-XX:+UseConcMarkSweepGC</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
 								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Djava.awt.headless=true</argument>
-								<argument>-Dzookeeper.sasl.client=false</argument>								
+								<argument>-Dzookeeper.sasl.client=false</argument>			
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=128M</argument>

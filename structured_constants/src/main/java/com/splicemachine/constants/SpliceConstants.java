@@ -452,7 +452,7 @@ public class SpliceConstants {
 	 *
 	 * This determines the default number of rows that will be cached on each scan returned.
 	 */
-	public static final int DEFAULT_CACHE_SIZE = 100;
+	public static final int DEFAULT_CACHE_SIZE = 1000;
 
     
     /*
@@ -669,9 +669,9 @@ public class SpliceConstants {
 		setParameters();
 	}
 	
-	public static List<String> zookeeperPaths =
-            Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,
-                    zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceMinimumActivePath);
+	public static int ipcThreads;
+	
+	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
@@ -702,7 +702,7 @@ public class SpliceConstants {
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
-				int ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
+				ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 				if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which

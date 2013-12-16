@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# MapR VM Splice Machine state of the service
-
-. ./lib/setEnv
-
-echo "Checking the state of Splice Machine on $SPLICE_ENV"
-

@@ -8,7 +8,7 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>0.5rc4-SNAPSHOT</version>
+		<version>0.5rc6-SNAPSHOT</version>
 	</parent>
 	<properties>
 		<guava.version>11.0.2</guava.version>
@@ -17,7 +17,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_constants</artifactId>
-			<version>0.5rc4-SNAPSHOT</version>
+			<version>0.5rc6-SNAPSHOT</version>
 			<classifier>${envClassifier}</classifier>
 		</dependency>
 		<dependency>
@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine</artifactId>
-			<version>0.5rc4-SNAPSHOT</version>
+			<version>0.5rc6-SNAPSHOT</version>
 			<classifier>${envClassifier}</classifier>
 		</dependency>		
 
@@ -215,7 +215,7 @@
 										<exec executable="${run.command}" dir="${basedir}" spawn="true">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${envClassifier}" />
-                                            <arg value="${failTasksRandomly}"/>
+                                            <arg value="${failTasksRandomly}" />
 										</exec>
 										<sleep seconds="90" />
 									</target>

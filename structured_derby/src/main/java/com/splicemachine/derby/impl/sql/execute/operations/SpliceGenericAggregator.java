@@ -137,7 +137,11 @@ public class SpliceGenericAggregator {
 				Object agg = aggClass.newInstance();
 				aggInstance = (ExecAggregator)agg;
 				cachedAggregator = aggInstance;
-				aggInstance.setup(aggInfo.getAggregateName());
+				aggInstance.setup(
+                        cf,
+                        aggInfo.getAggregateName(),
+                        aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+                );
 			}catch(Exception e){
 				throw StandardException.unexpectedUserException(e);
 			}

@@ -1,9 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import javax.management.*;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 

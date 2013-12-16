@@ -204,15 +204,6 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
             if(t instanceof RegionTooBusyException){
-                /*
-                 * We need to wait an extra 2 seconds or so, to give the server a chance to calm down
-                 */
-                try {
-                    Thread.sleep(2*getPause());
-                } catch (InterruptedException e) {
-                    //ignore the interrupt, and just continue on
-                    Logger.getLogger(WriteCoordinator.class).info("Interrupted while sleeping due to a RegionTooBusyException",e);
-                }
                 return Writer.WriteResponse.RETRY;
             }
             if(t instanceof ConnectException
@@ -227,21 +218,10 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         @Override
         public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
             Map<Integer,WriteResult> failedRows = result.getFailedRows();
-            boolean isRegionTooBusy = false;
             for(WriteResult writeResult:failedRows.values()){
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
-                if(writeResult.getCode()== WriteResult.Code.REGION_TOO_BUSY)
-                    isRegionTooBusy = true;
             }
-            if(isRegionTooBusy){
-                try{
-                    Thread.sleep(2*getPause());
-                } catch (InterruptedException e) {
-                    Logger.getLogger(WriteCoordinator.class).info("Interrupted while sleeping due to a RegionTooBusyException",e);
-                }
-            }
-
             return Writer.WriteResponse.RETRY;
         }
     };
