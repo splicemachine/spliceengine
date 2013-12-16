@@ -140,8 +140,9 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
     }
 
     @Override
-    public BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException {
-        assert bulkWrite!=null;
+    public byte[] bulkWrite(byte[] bulkWriteBytes) throws IOException {
+        assert bulkWriteBytes!=null;
+				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes);
         assert bulkWrite.getTxnId()!=null;
         
         SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
@@ -198,7 +199,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             int numSuccessWrites = bulkWrite.getMutations().size()-failed;
             throughputMeter.mark(numSuccessWrites);
             failedMeter.mark(failed);
-            return response;
+            return response.toBytes();
         }finally{
             region.closeRegionOperation();
         	activeWriteThreads.decrementAndGet();
