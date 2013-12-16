@@ -24,12 +24,17 @@ public class ZookeeperBroadcastIT {
         AtomicInteger failures = new AtomicInteger();
 
         @Override
-        public void handleMessage(byte[] message) throws StandardException {
+        public void handleMessage(String msgId, byte[] message) throws StandardException {
             if (Arrays.equals(message, TEST_MESSAGE)) {
                 count.incrementAndGet();
             } else {
                 failures.incrementAndGet();
             }
+        }
+
+        @Override
+        public void messageAcknowledged(String msgId) throws StandardException {
+
         }
     }
 
@@ -89,7 +94,7 @@ public class ZookeeperBroadcastIT {
         Map<String, MessageHandler> handlers = new HashMap();
         MessageHandler blockingHandler = new MessageHandler() {
             @Override
-            public void handleMessage(byte[] message) throws StandardException {
+            public void handleMessage(String msgId, byte[] message) throws StandardException {
                 count.incrementAndGet();
                 launchServerLatch.countDown();
                 try {
@@ -98,6 +103,10 @@ public class ZookeeperBroadcastIT {
                     LOG.error("Unexpected exception", e);
                     failure.set(true);
                 }
+            }
+
+            @Override
+            public void messageAcknowledged(String msgId) throws StandardException {
             }
         };
         handlers.put("test", blockingHandler);
@@ -113,8 +122,12 @@ public class ZookeeperBroadcastIT {
                     Map<String, MessageHandler> handlers = new HashMap();
                     handlers.put("test", new MessageHandler() {
                         @Override
-                        public void handleMessage(byte[] message) throws StandardException {
+                        public void handleMessage(String msgId, byte[] message) throws StandardException {
                             count.incrementAndGet();
+                        }
+
+                        @Override
+                        public void messageAcknowledged(String msgId) throws StandardException {
                         }
                     });
                     ZookeeperBroadcast zb2 = new ZookeeperBroadcast(handlers);

@@ -71,7 +71,7 @@ public class SpliceConstants {
 
     /**
      * The Path in zookeeper for storing the minimum active transaction.
-     * Defaults to /transactions/minimumActive
+     * Defaults to /transactions/minimum
      */
     @Parameter public static final String MINIMUM_ACTIVE_PATH = "splice.minimum_active_node";
     @DefaultValue(MINIMUM_ACTIVE_PATH) public static final String DEFAULT_MINIMUM_ACTIVE_PATH = "/transactions/minimum";
@@ -671,7 +671,8 @@ public class SpliceConstants {
 	
 	public static int ipcThreads;
 	
-	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,
+            zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceTransactionPath,zkSpliceMinimumActivePath);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
