@@ -4,15 +4,12 @@ import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import org.apache.derby.impl.sql.catalog.Procedure;
 
@@ -222,34 +219,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .catalog("schemaName")
                         .catalog("tableName").build();
                 procedures.add(majorComactionOnTable);
-
-                /*
-                 * TODO: figure out how to add so that schema prefix for user is not necessary
-                 * Procedure to compute STDDEVPOP
-                 */
-                Procedure stddev = Procedure.newBuilder().name("STDDEVPOP")
-                        .numOutputParams(0)
-                        .numResultSets(0)
-                        .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                        .arg("value", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                        .ownerClass("com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop")
-                        .build();
-                procedures.add(stddev);
-
-                /*
-                 * TODO: figure out how to add so that schema prefix for user is not necessary
-                 * Procedure to compute STDDEVSAMP
-                 */
-                Procedure stddevsamp = Procedure.newBuilder().name("STDDEVSAMP")
-                        .numOutputParams(0)
-                        .numResultSets(0)
-                        .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-                        .arg("value", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                        .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
-                        .ownerClass("com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp")
-                        .build();
-                procedures.add(stddevsamp);
             }
         }
 
