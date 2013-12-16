@@ -6,7 +6,7 @@ import org.junit.Test;
 
 public class SpliceUDAVarianceTest {
     @Test
-    public void varianceSmallDataset() {                                             crec
+    public void varianceSmallDataset() {
         SpliceStddevSamp<Double> stddevSamp = new SpliceStddevSamp<Double>();
         for (Double val : new double[]{4, 7, 13, 16}) {
             stddevSamp.accumulate(val);
