@@ -6,10 +6,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -78,6 +75,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 		@Override
 		public TaskFuture tryExecute(T task) throws ExecutionException {
+				if(WORKER_LOG.isTraceEnabled())
+						WORKER_LOG.trace("Attempting to submit task "+ Bytes.toString(task.getTaskId()));
 				/*
 				 * We can only accept this task if there are idle workers.
 				 * An idle worker corresponds to an empty queue, so check
@@ -85,10 +84,16 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				 * operation is not atomic, we cannot rely on that as a
 				 * safety valve. Instead, we keep an atomic counter in sync.
 				 */
-				if(!queueSize.compareAndSet(0,1)){
-						stats.executeFailureCount.incrementAndGet();
-						return null; //queue isn't empty, so can't execute
-				}
+				boolean success;
+				do{
+						int currentQueueSize = queueSize.get();
+						int maxWorkers = executor.getMaximumPoolSize();
+						if(currentQueueSize>=maxWorkers){
+								stats.executeFailureCount.incrementAndGet();
+								return null; //queue isn't empty, so can't execute
+						}
+						success = queueSize.compareAndSet(currentQueueSize,currentQueueSize+1);
+				}while(!success);
 
 				stats.submittedCount.incrementAndGet();
 				pendingTasks.offer(task);
@@ -109,9 +114,11 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		}
 
 		public void shutdown(){
-				Future<?> future;
-				while((future = workerFutures.remove(0))!=null){
+				Iterator<Future<?>> workerIter = workerFutures.iterator();
+				while(workerIter.hasNext()){
+						Future<?> future = workerIter.next();
 						future.cancel(true);
+						workerIter.remove();
 				}
 				executor.shutdownNow();
 		}
@@ -209,9 +216,12 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						while(!Thread.currentThread().isInterrupted()){
 								T next = pendingTasks.poll();
 								if(next!=null){
-										queueSize.decrementAndGet();
-										execute(next,WorkStealingTaskScheduler.this);
-										continue interruptLoop;
+										try{
+												execute(next,WorkStealingTaskScheduler.this);
+												continue interruptLoop;
+										}finally{
+												queueSize.decrementAndGet();
+										}
 								}
 								if(WORKER_LOG.isTraceEnabled())
 										WORKER_LOG.trace("No work found, attempting to steal from other schedulers");
@@ -239,8 +249,11 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								try{
 										next = pendingTasks.poll(pollTimeout,TimeUnit.MILLISECONDS);
 										if(next!=null){
-												queueSize.decrementAndGet();
-												execute(next,WorkStealingTaskScheduler.this);
+												try{
+														execute(next,WorkStealingTaskScheduler.this);
+												}finally{
+														queueSize.decrementAndGet();
+												}
 										}
 								} catch (InterruptedException e) {
 										/*

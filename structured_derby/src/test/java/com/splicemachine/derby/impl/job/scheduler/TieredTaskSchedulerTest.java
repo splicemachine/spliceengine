@@ -252,7 +252,8 @@ public class TieredTaskSchedulerTest {
 				}
 		}
 
-		@Test(timeout= 1000)
+		@Test
+//		@Test(timeout= 1000)
 		public void testSubtaskSubmissionOverflows() throws Exception {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
@@ -276,12 +277,13 @@ public class TieredTaskSchedulerTest {
 						final Task testSubtask = mock(Task.class);
 						when(testSubtask.getParentTaskId()).thenReturn(testTaskId);
 						when(testSubtask.getPriority()).thenReturn(0);
+						when(testSubtask.getTaskId()).thenReturn(Bytes.toBytes("subtask"));
 						when(testSubtask.getTaskStatus()).thenReturn(mockSubStatus);
 						doAnswer(new Answer<Void>() {
 
 								@Override
 								public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
-										Logger.getRootLogger().trace("Executing task");
+										Logger.getRootLogger().trace("Executing subtask");
 
 										subLatch.countDown();
 										return null;
@@ -293,14 +295,17 @@ public class TieredTaskSchedulerTest {
 						Task testTask = mock(Task.class);
 						when(testTask.getTaskId()).thenReturn(testTaskId);
 						when(testTask.getTaskStatus()).thenReturn(taskStatus);
+						when(testTask.getTaskId()).thenReturn(Bytes.toBytes("parentTask"));
 						when(testTask.getPriority()).thenReturn(0);
 
 						final CountDownLatch latch = new CountDownLatch(1);
 						doAnswer(new Answer<Void>() {
 								@Override
 								public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
+										Logger.getRootLogger().trace("Submitting subtask, expecting overflow");
 										taskScheduler.submit(testSubtask);
 										subLatch.await();
+										Logger.getRootLogger().trace("Sublatch properly counted down, completing parent task");
 
 										latch.countDown();
 										return null;

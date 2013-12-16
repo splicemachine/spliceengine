@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskScheduler;
@@ -243,11 +244,11 @@ public class TieredTaskScheduler<T extends Task> implements TaskScheduler<T> {
 						NotCompliantMBeanException,
 						InstanceAlreadyExistsException,
 						MBeanRegistrationException {
-				ObjectName name = new ObjectName("com.splicemachine.job:type=TieredSchedulerManagement");
+				ObjectName name = new ObjectName(JMXUtils.GLOBAL_TASK_SCHEDULER_MANAGEMENT);
 				mbs.registerMBean(stats,name);
 
 				for(Tier tier:tiers){
-						tier.scheduler.registerJMX(mbs, "com.splicemachine.job.tasks.tier-" + tier.priorityLevel);
+						tier.scheduler.registerJMX(mbs, JMXUtils.TIER_TASK_SCHEDULER_MANAGEMENT_BASE + tier.priorityLevel);
 				}
 		}
 
