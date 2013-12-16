@@ -103,6 +103,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             }
             leftResultSet.setCurrentRow(leftRow);
             rowsSeenLeft++;
+            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
             nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
         }
         if (leftRow == null){
@@ -110,9 +111,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
             setCurrentRow(mergedRow);
             return mergedRow;
         } else {
-            SpliceLogUtils.trace(LOG, "nextRow loop iterate next ");
             ExecRow next = nestedLoopIterator.next();
-            SpliceLogUtils.trace(LOG,"nextRow returning %s",next);
+            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: ",(next != null ? next : "NULL Next Row"));
             setCurrentRow(next);
             nextTime += getElapsedMillis(beginTime);
             rowsReturned++;
@@ -152,6 +152,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
 				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
 			}
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
 			probeResultSet.openCore();
 			populated=false;
             this.outerJoin = outerJoin;
@@ -159,11 +160,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		
 		@Override
 		public boolean hasNext() {
-			SpliceLogUtils.trace(LOG, "hasNext called");
-			if(populated)return true;
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
+            if(populated)return true;
 			rightResultSet.clearCurrentRow();
 			try {
-				ExecRow rightRow = probeResultSet.getNextRowCore();
+                ExecRow tmp = probeResultSet.getNextRowCore();
+				ExecRow rightRow = (tmp != null ? tmp.getClone() : tmp);
                 /*
                  * notExistsRightSide indicates that we need to reverse the logic of the join.
                  */
@@ -171,6 +173,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
                     rightRow = (rightRow == null) ? rightTemplate : null;
                 }
                 if (outerJoin && rightRow == null){
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");
+
                     rightRow = getEmptyRightRow();
                 }
                 if(rightRow!=null){
@@ -181,7 +185,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
                         return false;
                     }
 
-                    SpliceLogUtils.trace(LOG, "right has result %s", rightRow);
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
@@ -195,7 +199,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
                     mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
                 }else {
-					SpliceLogUtils.trace(LOG, "already has seen row and no right result");
+                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 					populated = false;
 					return false;
 				}
@@ -242,7 +246,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 			SpliceLogUtils.trace(LOG, "remove");
 		}
 		public void close() throws StandardException {
-			SpliceLogUtils.trace(LOG, "close, closing probe result set");
+            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing ",(isOpen? "": "closed "),(outerJoin?"Outer ":""),"join.");
 			beginTime = getCurrentTimeMillis();
 			if (!isOpen)
 				return;

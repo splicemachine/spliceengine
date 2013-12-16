@@ -23,6 +23,7 @@
       <include>com.esotericsoftware.kryo:kryo</include>
       <include>com.carrotsearch:hppc</include>      
       <include>org.apache.lucene:lucene-core</include>
+      <include>com.sun.mail:javax.mail</include>
       </includes>
     </dependencySet>
   </dependencySets>

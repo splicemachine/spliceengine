@@ -1,10 +1,13 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import org.apache.hadoop.io.compress.SnappyCodec;
 
 /**
  * @author Scott Fines
@@ -12,16 +15,20 @@ import java.io.ObjectOutput;
  */
 public class BulkWrite implements Externalizable {
     private static final long serialVersionUID = 1l;
-
+    private static SnappyCodec snappy;
     private ObjectArrayList<KVPair> mutations;
     private String txnId;
     private byte[] regionKey;
     private long bufferSize = -1;
 
+    static {
+    	snappy = new SnappyCodec();
+    }
+    
     public BulkWrite() { }
 
     public BulkWrite(ObjectArrayList<KVPair> mutations, String txnId,byte[] regionKey) {
-        this.mutations = ObjectArrayList.from(mutations); // Is this needed?
+        this.mutations = mutations;
         this.txnId = txnId;
         this.regionKey = regionKey;
     }
@@ -33,7 +40,7 @@ public class BulkWrite implements Externalizable {
     }
 
     public ObjectArrayList<KVPair> getMutations() {
-        return ObjectArrayList.from(mutations);			// Is this needed?
+        return mutations;
     }
 
     public String getTxnId() {
@@ -50,7 +57,7 @@ public class BulkWrite implements Externalizable {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(txnId);
+    	out.writeUTF(txnId);
         Object[] buffer = mutations.buffer;
         int iBuffer = mutations.size();
         out.writeInt(iBuffer);

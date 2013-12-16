@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
@@ -15,6 +16,7 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -47,6 +49,7 @@ public class TableScanOperation extends ScanOperation {
 	private Properties scanProperties;
 	public String startPositionString;
 	public String stopPositionString;
+	public ByteArraySlice slice;
 
     private static final MetricName scanTime = new MetricName("com.splicemachine.operations","tableScan","scanTime");
     private final Timer timer = SpliceDriver.driver().getRegistry().newTimer(scanTime, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
@@ -106,7 +109,8 @@ public class TableScanOperation extends ScanOperation {
         this.indexColItem = indexColItem;
         this.indexName = indexName;
         runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
-        SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s,isTopResultSet=%s,runTimeStatisticsOn%s",statisticsTimingOn,isTopResultSet,runTimeStatisticsOn);
         init(SpliceOperationContext.newContext(activation));
         recordConstructorTime(); 
     }
@@ -135,6 +139,7 @@ public class TableScanOperation extends ScanOperation {
 		super.init(context);
 	    keyValues = new ArrayList<KeyValue>(1);
         this.baseColumnMap = operationInformation.getBaseColumnMap();
+        this.slice = new ByteArraySlice();
 	}
 
 	@Override
@@ -207,7 +212,8 @@ public class TableScanOperation extends ScanOperation {
             keyValues.clear();
             regionScanner.next(keyValues);
 			if (keyValues.isEmpty()) {
-				SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
+				if (LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 				currentRow = null;
 				currentRowLocation = null;
 			} else {
@@ -229,7 +235,9 @@ public class TableScanOperation extends ScanOperation {
                      */
                     currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
                 } else {
-                    currentRowLocation.setValue(keyValues.get(0).getRow());
+                	slice.updateSlice(keyValues.get(0).getBuffer(), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
+                	currentRowLocation.setValue(slice);
+//                    currentRowLocation.setValue(keyValues.get(0).getRow()); Removed the Array Copy Here for each row...
                 }
 			}
 		}finally{

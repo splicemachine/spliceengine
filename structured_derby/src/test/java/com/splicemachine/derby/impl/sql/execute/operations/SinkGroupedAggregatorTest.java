@@ -128,7 +128,7 @@ public class SinkGroupedAggregatorTest {
                                                        int inputColumn,
                                                        int resultColumnId,boolean distinct) {
         CountAggregator execAggregator = new CountAggregator();
-        execAggregator.setup("COUNT(*)");
+        execAggregator.setup(null, "COUNT(*)", null);
         SpliceGenericAggregator aggregator = new SpliceGenericAggregator(execAggregator,aggregatorColumnId,inputColumn,resultColumnId);
         AggregatorInfo mockInfo = mock(AggregatorInfo.class);
         when(mockInfo.isDistinct()).thenReturn(distinct);

@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# MapR VM Splice Machine restarter
-
-. ./lib/setEnv
-
-echo "Restarting Splice Machine on $SPLICE_ENV"
-

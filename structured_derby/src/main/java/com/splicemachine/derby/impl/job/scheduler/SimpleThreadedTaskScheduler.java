@@ -21,9 +21,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SimpleThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
     private static final Logger WORKER_LOG = Logger.getLogger(TaskCallable.class);
-    private static final int DEFAULT_MAX_WORKERS = 10;
-    private static final int DEFAULT_PRIORITY_LEVELS = 5;
-    private static final int DEFAULT_INTERLEAVE_COUNT = 10;
+    public static final int DEFAULT_MAX_WORKERS = 10;
+    public static final int DEFAULT_PRIORITY_LEVELS = 5;
+    public static final int DEFAULT_INTERLEAVE_COUNT = 10;
 
     private static final Function<Runnable,Integer> priorityMapper = new Function<Runnable, Integer>() {
         @Override

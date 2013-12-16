@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
-    <version>0.5rc4-SNAPSHOT</version>
+    <version>0.5rc6-SNAPSHOT</version>
     <packaging>pom</packaging>
     <artifactId>structured_hbase</artifactId>
     <name>structured_hbase</name>
@@ -11,7 +11,7 @@
         <module>structured_si</module>
         <module>structured_derby</module>
         <module>structured_test</module>
-<!--        <module>splice_installer</module> -->
+<!--        <module>splice_scripts</module> -->
     </modules>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
@@ -48,6 +48,7 @@
         <maven.build.timestamp.format>yyyy-MM-dd HH:mm Z</maven.build.timestamp.format>
         <skip.integration.tests>true</skip.integration.tests>
         <failTasksRandomly>true</failTasksRandomly>
+        <log4j.config.uri>file:${basedir}/src/main/resources/info-log4j.properties</log4j.config.uri>
     </properties>
     <!-- Lets go with 1.6 compliance -->
 

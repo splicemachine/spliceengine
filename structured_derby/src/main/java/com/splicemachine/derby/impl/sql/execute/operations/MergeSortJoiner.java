@@ -1,13 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
+import com.splicemachine.derby.utils.JoinSideExecRow;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardIterators;
+import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.derby.utils.StandardSuppliers;
+import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
+import java.util.Iterator;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.Iterator;
 
 import static com.splicemachine.derby.utils.StandardIterators.StandardIteratorIterator;
 
@@ -48,9 +55,10 @@ public class MergeSortJoiner {
     private final boolean oneRowRightSide;
     private final boolean antiJoin;
 
-    private byte[] currentRowKey;
+    private ByteArraySlice currentRowKey;
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
+    private boolean isClosed;
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            StandardIterator<JoinSideExecRow> scanner,
@@ -89,11 +97,14 @@ public class MergeSortJoiner {
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right){
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Right: ",(right != null ? right : "NULL RIGHT ROW"));
         return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
     }
 
     private void addLeftAndRights(Pair<ExecRow,Iterator<ExecRow>> leftAndRights){
         currentLeftRow = leftAndRights.getFirst();
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Left: ",(currentLeftRow != null ? currentLeftRow : "NULL LEFT ROW"));
+
         rightSideRowIterator = leftAndRights.getSecond();
         rightSideReturned = false;
     }
@@ -105,15 +116,18 @@ public class MergeSortJoiner {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row
+                    SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Right Discarded");
                     continue;
                 }
                 if (antiJoin){
                     // if antijoin, discard row but remember that we found a match
+                    SpliceLogUtils.debug(LOG, ">>>        MergeSortJoiner Antijoin ");
                     foundRows = true;
                     continue;
                 }
                 if (oneRowRightSide){
                     // before we return a row: if we need to return only one, ignore the rest
+                    SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Nulling RightSideRowIterator ");
                     rightSideRowIterator = null;
                 }
                 rightSideReturned = true;
@@ -123,6 +137,7 @@ public class MergeSortJoiner {
                 // if we've consumed right side iterator without finding a match & we return empty rows,
                 // return with empty right side
                 rightSideReturned = true;
+                SpliceLogUtils.debug(LOG, ">>>       MergeSortJoiner Consumed all rights. Returning empty right side.");
                 return getMergedRow(currentLeftRow, emptyRowSupplier.get());
             }
         }
@@ -136,6 +151,8 @@ public class MergeSortJoiner {
             addLeftAndRights(joinRowsSource.next());
             row = getNextFromBuffer();
         }
+        if (LOG.isDebugEnabled())
+        	SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner Emit: ", (row != null ? row : "NULL TOP ROW"));
         return row;
 
     }
@@ -152,15 +169,25 @@ public class MergeSortJoiner {
         return noRecordsFound && antiJoin;
     }
 
-    public byte[] lastRowLocation() {
+    public ByteArraySlice lastRowLocation() {
         return currentRowKey;
     }
 
     public void close() throws IOException, StandardException {
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoiner closing");
+        isClosed = true;
         scanner.close();
         if (bridgeScanner.hasException()){
             bridgeScanner.throwExceptions();
         }
+    }
+
+    public void open() {
+        this.isClosed = false;
+    }
+
+    public boolean isClosed() {
+        return isClosed;
     }
 }
 

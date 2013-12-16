@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
@@ -21,10 +22,13 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimingStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -35,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.TreeMap;
+
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.DecimalTypeIdImpl;
 import org.apache.derby.catalog.types.DefaultInfoImpl;
@@ -45,6 +50,7 @@ import org.apache.derby.catalog.types.RowMultiSetImpl;
 import org.apache.derby.catalog.types.SynonymAliasInfo;
 import org.apache.derby.catalog.types.TypeDescriptorImpl;
 import org.apache.derby.catalog.types.UserDefinedTypeIdImpl;
+import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
@@ -98,7 +104,8 @@ import org.apache.derby.impl.sql.execute.MaxMinAggregator;
 import org.apache.derby.impl.sql.execute.SumAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
-
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp;
 /**
  * 
  * TODO Utilize unsafe with Kryo 2.2
@@ -475,5 +482,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DerbyGroupedAggregateContext.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(LastIndexKeyOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(AggregateAliasInfo.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(UserDefinedAggregator.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(BulkWrite.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceStddevPop.class);
+        instance.register(SpliceStddevSamp.class);
     }
 }

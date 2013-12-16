@@ -18,6 +18,7 @@ import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.catalog.DependableFinder;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.TypeDescriptor;
+import org.apache.derby.catalog.types.AggregateAliasInfo;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -793,22 +794,29 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
          )
         throws StandardException
     {
+        RoutineAliasInfo      routineInfo = null;
+        AggregateAliasInfo  aggInfo = null;
+
         // nothing to do if this is not a routine
         switch ( ad.getAliasType() )
         {
+        case AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR:
+            aggInfo = (AggregateAliasInfo) ad.getAliasInfo();
+            break;
+
 		case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
 		case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
+            routineInfo = (RoutineAliasInfo) ad.getAliasInfo();
             break;
 
         default: return;
         }
         
 		TransactionController tc = lcc.getTransactionExecute();
-        RoutineAliasInfo      aliasInfo = (RoutineAliasInfo) ad.getAliasInfo();
         HashMap               addUdtMap = new HashMap();
         HashMap               dropUdtMap = new HashMap();
         HashMap               udtMap = adding ? addUdtMap : dropUdtMap;
-        TypeDescriptor        rawReturnType = aliasInfo.getReturnType();
+        TypeDescriptor        rawReturnType = aggInfo!= null ? aggInfo.getReturnType() : routineInfo.getReturnType();
 
         if ( rawReturnType != null )
         {
@@ -833,7 +841,9 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
             }
         }
 
-        TypeDescriptor[]      paramTypes = aliasInfo.getParameterTypes();
+        TypeDescriptor[]      paramTypes = aggInfo != null ?
+                new TypeDescriptor[] { aggInfo.getForType() } : routineInfo.getParameterTypes();
+
         if ( paramTypes != null )
         {
             int paramCount = paramTypes.length;

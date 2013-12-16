@@ -242,7 +242,7 @@ public class TPCHIT extends SpliceUnitTest {
 				Assert.assertTrue(runScript(new File(getSQLFile("20.sql")),methodWatcher.getOrCreateConnection()));
 		}
 
-		protected static String getResource(String name) {
+		public static String getResource(String name) {
 				return getResourceDirectory()+"tcph/data/"+name;
 		}
 

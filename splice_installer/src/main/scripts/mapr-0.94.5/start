@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# MapR VM Splice Machine starter
-
-echo "Starting Splice Machine on MapR"
-
-# TODO - fix for MapR svcs
-#sudo service cloudera-scm-server start

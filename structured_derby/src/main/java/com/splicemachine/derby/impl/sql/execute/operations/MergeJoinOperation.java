@@ -9,6 +9,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -25,6 +26,8 @@ import static com.splicemachine.derby.utils.StandardIterators.StandardIteratorIt
  */
 public class MergeJoinOperation extends JoinOperation {
 
+    private static final Logger LOG = Logger.getLogger(MergeJoinOperation.class);
+
     static List<NodeType> nodeTypes = Arrays.asList(NodeType.MAP);
     private int leftHashKeyItem;
     private int rightHashKeyItem;
@@ -38,24 +41,24 @@ public class MergeJoinOperation extends JoinOperation {
     // for overriding
     protected boolean wasRightOuterJoin = false;
 
-    public MergeJoinOperation(){
+    public MergeJoinOperation() {
         super();
     }
 
     public MergeJoinOperation(SpliceOperation leftResultSet,
-                                  int leftNumCols,
-                                  SpliceOperation rightResultSet,
-                                  int rightNumCols,
-                                  int leftHashKeyItem,
-                                  int rightHashKeyItem,
-                                  Activation activation,
-                                  GeneratedMethod restriction,
-                                  int resultSetNumber,
-                                  boolean oneRowRightSide,
-                                  boolean notExistsRightSide,
-                                  double optimizerEstimatedRowCount,
-                                  double optimizerEstimatedCost,
-                                  String userSuppliedOptimizerOverrides)
+                              int leftNumCols,
+                              SpliceOperation rightResultSet,
+                              int rightNumCols,
+                              int leftHashKeyItem,
+                              int rightHashKeyItem,
+                              Activation activation,
+                              GeneratedMethod restriction,
+                              int resultSetNumber,
+                              boolean oneRowRightSide,
+                              boolean notExistsRightSide,
+                              double optimizerEstimatedRowCount,
+                              double optimizerEstimatedCost,
+                              String userSuppliedOptimizerOverrides)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                 activation, restriction, resultSetNumber, oneRowRightSide,
@@ -76,9 +79,13 @@ public class MergeJoinOperation extends JoinOperation {
         super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        if (leftHashKeys.length > 1){
+        if (leftHashKeys.length > 1) {
             throw new RuntimeException(
                     "MergeJoin cannot currently be used with more than one equijoin key.");
+        }
+        if (rightResultSet instanceof IndexRowToBaseRowOperation) {
+            throw new RuntimeException(
+                    "MergeJoin cannot currently be used with a non-covering index on its right side.");
         }
     }
 
@@ -92,33 +99,15 @@ public class MergeJoinOperation extends JoinOperation {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        leftHashKeyItem  = in.readInt();
+        leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
     }
 
     @Override
-    public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (joiner == null){
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if (joiner == null) {
             // Upon first call, init up the joined rows source
-            leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>(){
-                @Override
-                public ExecRow call() throws Exception {
-                    return leftResultSet.nextRow(spliceRuntimeContext);
-                }
-            }));
-            PushBackIterator<ExecRow> leftPushBack = new PushBackIterator<ExecRow>(leftBridgeIterator);
-            if (leftPushBack.hasNext()){
-                ExecRow firstLeft = leftPushBack.next().getClone();
-                spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys[0]));
-                leftPushBack.pushBack(firstLeft);
-            }
-            rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(
-                    rightResultSet.executeScan(spliceRuntimeContext)));
-            rightBridgeIterator.open();
-            mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
-                                                leftHashKeys, rightHashKeys);
-            joiner = new Joiner(mergedRowSource, getExecRowDefinition(), wasRightOuterJoin,
-                                leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, null);
+            joiner = initJoiner(spliceRuntimeContext);
         }
 
         ExecRow next = joiner.nextRow();
@@ -126,7 +115,29 @@ public class MergeJoinOperation extends JoinOperation {
         return next;
     }
 
-    public ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
+    private Joiner initJoiner(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        leftBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(new Callable<ExecRow>() {
+            @Override
+            public ExecRow call() throws Exception {
+                return leftResultSet.nextRow(spliceRuntimeContext);
+            }
+        }));
+        PushBackIterator<ExecRow> leftPushBack = new PushBackIterator<ExecRow>(leftBridgeIterator);
+        if (leftPushBack.hasNext()) {
+            ExecRow firstLeft = leftPushBack.next().getClone();
+            spliceRuntimeContext.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys[0]));
+            leftPushBack.pushBack(firstLeft);
+        }
+        rightBridgeIterator = StandardIterators.asIter(StandardIterators.wrap(
+                rightResultSet.executeScan(spliceRuntimeContext)));
+        rightBridgeIterator.open();
+        mergedRowSource = new MergeJoinRows(leftPushBack, rightBridgeIterator,
+                leftHashKeys, rightHashKeys);
+        return new Joiner(mergedRowSource, getExecRowDefinition(), wasRightOuterJoin,
+                leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, null);
+    }
+
+    private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(1);
         keyRow.setColumn(1, row.getColumn(keyIdx + 1));
         return keyRow;
@@ -138,8 +149,6 @@ public class MergeJoinOperation extends JoinOperation {
             rightBridgeIterator.close();
             rightBridgeIterator.throwExceptions();
             leftBridgeIterator.throwExceptions();
-            //rightBridgeIterator = leftBridgeIterator = null;
-            //mergedRowSource = null;
         }
         super.close();
     }
