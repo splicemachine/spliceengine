@@ -6,8 +6,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
-import org.junit.Assert;
 import org.apache.commons.dbutils.DbUtils;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +35,9 @@ public class SpliceAdminIT {
     public void testGetActiveServers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_ACTIVE_SERVERS", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -43,7 +45,9 @@ public class SpliceAdminIT {
     public void testGetWritePipelineInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_WRITE_PIPELINE_INFO", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -51,7 +55,9 @@ public class SpliceAdminIT {
     public void testGetWriteIntakeInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_WRITE_INTAKE_INFO", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -59,7 +65,9 @@ public class SpliceAdminIT {
     public void testGetRequests() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REQUESTS()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1, TestUtils.printResult("SYSCS_GET_REQUESTS", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REQUESTS()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -67,7 +75,9 @@ public class SpliceAdminIT {
     public void testGetRegionServerTaskInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1,TestUtils.printResult("SYSCS_GET_REGION_SERVER_TASK_INFO", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -75,7 +85,30 @@ public class SpliceAdminIT {
     public void testGetRegionServerStatsInfo() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()");
         ResultSet rs = cs.executeQuery();
-        Assert.assertEquals(1, TestUtils.printResult("SYSCS_GET_REGION_SERVER_STATS_INFO", rs, System.out));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetWorkerTierMaxTasks() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
+        cs.setInt(1,25);
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(25)", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGlobalGetMaxTasks() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -83,7 +116,7 @@ public class SpliceAdminIT {
     public void testSetMaxTasks() throws Exception {
         int origMax = -1;
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
-				cs.setInt(1,25);
+        cs.setInt(1,25);
         ResultSet rs = cs.executeQuery();
         while (rs.next()) {
             origMax = rs.getInt(2);
@@ -92,12 +125,12 @@ public class SpliceAdminIT {
 
         try {
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
-						cs.setInt(1,25);
+            cs.setInt(1,25);
             cs.setInt(2, origMax+1);
             cs.execute();
 
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(?)");
-						cs.setInt(1,25);
+            cs.setInt(1,25);
             rs = cs.executeQuery();
             int currentMax = -1;
             while (rs.next()) {
@@ -108,11 +141,21 @@ public class SpliceAdminIT {
         } finally {
             // reset to orig value
             cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_SET_MAX_TASKS(?,?)");
-						cs.setInt(1,25);
+            cs.setInt(1,25);
             cs.setInt(2, origMax);
             cs.execute();
         }
 
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetWritePool() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()", rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
