@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManageme
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.job.TaskMonitor;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -132,46 +133,88 @@ public class SpliceAdmin {
         }
     }
 
-		public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
-            List<ServerName> servers = getServers();
-            List<JMXConnector> connections = null;
-            try {
-                connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+    public static void SYSCS_GET_JOB_IDS(ResultSet[] resultSet) throws SQLException{
+        List<ServerName> servers = getServers();
+        List<JMXConnector> connections = null;
+        try {
+            connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
-                List<StealableTaskSchedulerManagement> taskSchedulers;
-                try {
-                    taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
-                } catch (MalformedObjectNameException e) {
-                    throw new SQLException(e);
+            List<TaskMonitor> taskMonitors;
+            try {
+                taskMonitors = JMXUtils.getJobSchedulerManagement(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (TaskMonitor taskMonitor : taskMonitors) {
+                if (i != 0) {
+                    sb.append(", ");
                 }
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d)",
-                                    servers.get(i).getHostname(),
-                                    taskScheduler.getCurrentWorkers()));
-                    i++;
+                sb.append(String.format("('%s'", servers.get(i).getHostname()));
+                for (String jobID : taskMonitor.getRunningJobs()) {
+                    sb.append(String.format(",'%s'", jobID));
                 }
-                sb.append(") foo (hostname, maxTaskWorkers)");
-                resultSet[0] = executeStatement(sb);
-            } catch (IOException e) {
-                    throw new SQLException(e);
-            } finally {
-                if (connections != null) {
-                    for (JMXConnector connector : connections) {
-                        try {
-                            connector.close();
-                        } catch (IOException e) {
-                            // ignore
-                        }
+                i++;
+            }
+            sb.append(")) foo (hostname, jobid)");
+            resultSet[0] = executeStatement(sb);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
                     }
                 }
             }
-
         }
+
+    }
+
+    public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
+        List<ServerName> servers = getServers();
+        List<JMXConnector> connections = null;
+        try {
+            connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+
+            List<StealableTaskSchedulerManagement> taskSchedulers;
+            try {
+                taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
+                if (i != 0) {
+                    sb.append(", ");
+                }
+                sb.append(String.format("('%s',%d)",
+                    servers.get(i).getHostname(),
+                    taskScheduler.getCurrentWorkers()));
+                i++;
+            }
+            sb.append(") foo (hostname, maxTaskWorkers)");
+            resultSet[0] = executeStatement(sb);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (JMXConnector connector : connections) {
+                    try {
+                        connector.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+
+    }
 
     public static void SYSCS_GET_GLOBAL_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();

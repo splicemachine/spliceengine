@@ -148,6 +148,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 procedures.add(getWriteIntakeInfo);
 
                 /*
+                 * Procedure get the active job IDs
+                 */
+                Procedure getActiveJobIDs = Procedure.newBuilder().name("SYSCS_GET_JOB_IDS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getActiveJobIDs);
+
+                /*
                  * Procedure set the max task workers
                  */
                 Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
@@ -167,7 +177,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 								procedures.add(getMaxTasks);
 
                 /*
-                 * Procedure set the max task workers
+                 * Procedure get the max task workers
                  */
                 Procedure getTieredMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
                         .numOutputParams(0)
