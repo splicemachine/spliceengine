@@ -18,11 +18,14 @@ echo "Waiting for Splice..."
 maxRetries=3
 CYGWIN=`uname -s`
 if [[ ${CYGWIN} == CYGWIN* ]]; then
-    # cygwin likes to write in 2 places for /tmp
+    # cygwin likes to write in 3 places for /tmp
     # we'll symlink them
     if [[ -e "/tmp" && ! -L "/tmp" ]]; then
         mv "/tmp" "/tmp_bak"
         ln -s "/cygdrive/c/tmp" "/tmp"
+    fi
+    if [[ ! -e "/temp" && ! -L "/temp" ]]; then
+        ln -s "/cygdrive/c/tmp" "/temp"
     fi
 fi
 # start zookeeper once
