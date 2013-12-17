@@ -53,13 +53,14 @@ public class StddevSplitIT extends SpliceUnitTest {
         ResultSet resultSet = conn.createStatement().executeQuery(
                 String.format("select * from %s", this.getTableReference(TABLE_NAME)));
         Assert.assertEquals(1000, resultSetSize(resultSet));
-
-        conn.createStatement().execute(
+        resultSet.close();
+        
+        /*conn.createStatement().execute(
                 String.format("create derby aggregate StddevSplitIT.stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
 
         conn.createStatement().execute(
-                String.format("create derby aggregate StddevSplitIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));
-        resultSet.close();
+                String.format("create derby aggregate StddevSplitIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));*/
+        
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 250);
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 500);
         spliceClassWatcher.splitTable(TABLE_NAME, CLASS_NAME, 750);
@@ -70,7 +71,7 @@ public class StddevSplitIT extends SpliceUnitTest {
     public void test() throws Exception {
     	Connection conn = methodWatcher.createConnection();
     	ResultSet rs = conn.createStatement().executeQuery(
-                String.format("select StddevSplitIT.stddevpop(i) from %s", this.getTableReference(TABLE_NAME)));
+                String.format("select SYSCS_UTIL.stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
         	Assert.assertEquals((int)rs.getDouble(1), 2);
@@ -78,7 +79,7 @@ public class StddevSplitIT extends SpliceUnitTest {
         rs.close();
 
         rs = conn.createStatement().executeQuery(
-                String.format("select StddevSplitIT.stddevsamp(i) from %s", this.getTableReference(TABLE_NAME)));
+                String.format("select SYSCS_UTIL.stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
             Assert.assertEquals((int)rs.getDouble(1), 2);

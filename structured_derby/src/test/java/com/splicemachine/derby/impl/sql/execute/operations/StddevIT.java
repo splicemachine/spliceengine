@@ -56,7 +56,6 @@ public class StddevIT extends SpliceUnitTest {
      */
     @Before
     public void setUp() throws Exception {
-        System.out.println("StddevIT:");
         ResultSet resultSet = methodWatcher.executeQuery(
                 String.format("select * from %s", this.getTableReference(TABLE_NAME)));
         Assert.assertEquals(1000, resultSetSize(resultSet));
@@ -65,20 +64,19 @@ public class StddevIT extends SpliceUnitTest {
     
     @Test
     public void test() throws Exception {
-    	ResultSet rs = methodWatcher.executeQuery(
-                String.format("select StddevIT.stddevpop(i) from %s", this.getTableReference(TABLE_NAME)));
 
-        System.out.println("StddevIT:");
+    	ResultSet rs = methodWatcher.executeQuery(
+                String.format("select SYSCS_UTIL.stddev_pop(i) from %s", this.getTableReference(TABLE_NAME)));
+
         while(rs.next()){
         	Assert.assertEquals((int)rs.getDouble(1), 2);
         }
         rs.close();
 
         rs = methodWatcher.executeQuery(
-								String.format("select StddevIT.stddevsamp(i) from %s", this.getTableReference(TABLE_NAME)));
+								String.format("select SYSCS_UTIL.stddev_samp(i) from %s", this.getTableReference(TABLE_NAME)));
 
-        while(rs.next()){
-            System.out.println("stddevIT -- samp = " + rs.getDouble(1));
+        while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 2);
         }
 
