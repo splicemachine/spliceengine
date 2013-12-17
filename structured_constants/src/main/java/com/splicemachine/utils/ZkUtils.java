@@ -11,7 +11,9 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+
 import com.splicemachine.constants.SpliceConstants;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -121,7 +123,14 @@ public class ZkUtils extends SpliceConstants {
     public static String create(String path, byte[] bytes, List<ACL> acls, CreateMode createMode) throws KeeperException,InterruptedException{
             return getRecoverableZooKeeper().create(path,bytes,acls,createMode);
      }
-    
+
+    public static void recursiveDelete(String path) throws InterruptedException, KeeperException, IOException {
+        List<String> children = getChildren(path, false);
+        for (String child : children) {
+            recursiveDelete(path + "/" + child);
+        }
+        delete(path);
+    }
     
 	/**
 	 * Sets the data onto ZooKeeper.

@@ -179,7 +179,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public final void	executeConstantAction( Activation activation )
+	public final void executeConstantAction( Activation activation )
 		throws StandardException { }
 
 	// Formatable methods

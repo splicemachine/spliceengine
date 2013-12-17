@@ -3,9 +3,12 @@ package com.splicemachine.derby.impl.db;
 import java.util.*;
 
 import javax.security.auth.login.Configuration;
+
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.ast.*;
 import com.splicemachine.derby.utils.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -18,6 +21,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -68,6 +72,8 @@ public class SpliceDatabase extends BasicDatabase {
 		throws StandardException {
 
         LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
+
+        DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
 
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(AssignRSNVisitor.class);

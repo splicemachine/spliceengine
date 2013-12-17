@@ -1,5 +1,6 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
@@ -85,4 +86,11 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
      * that should be used to represent this data in the newly compacted table.
      */
     void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException;
+
+    /**
+     * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations
+     * @param transactionId Transaction ID which identifies the DDL change
+     * @return Object that tracks visibility
+     */
+    DDLFilter newDDLFilter(String transactionId) throws IOException;
 }

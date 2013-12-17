@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.batch;
 
-import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.si.api.RollForwardQueue;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,5 +28,5 @@ public interface WriteContextFactory<T> {
 
     void dropIndex(long indexConglomId);
 
-    void addIndex(long indexConglomId, BitSet indexedColumns, int[] mainColToIndexPosMap, boolean unique,BitSet descColumns);
+    void addIndex(DDLChange ddlChange);
 }

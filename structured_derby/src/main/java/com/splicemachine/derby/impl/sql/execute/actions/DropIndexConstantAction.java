@@ -58,7 +58,7 @@ public class DropIndexConstantAction extends IndexConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction(Activation activation) throws StandardException {
+	public void executeTransactionalConstantAction(Activation activation) throws StandardException {
 		TableDescriptor td;
 		ConglomerateDescriptor cd;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();

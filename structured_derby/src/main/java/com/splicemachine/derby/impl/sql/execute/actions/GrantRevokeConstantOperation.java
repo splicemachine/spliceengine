@@ -28,7 +28,7 @@ public class GrantRevokeConstantOperation implements ConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		privileges.executeGrantRevoke( activation, grant, grantees);
 	}
 }
