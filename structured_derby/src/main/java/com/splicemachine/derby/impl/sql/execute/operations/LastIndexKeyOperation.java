@@ -220,6 +220,10 @@ public class LastIndexKeyOperation extends ScanOperation{
         if(indexName!=null)
             out.writeUTF(indexName);
 	}
-	
+
+    @Override
+    public ExecRow getExecRowDefinition() {
+        return currentTemplate;
+    }
 	
 }
