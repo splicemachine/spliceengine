@@ -104,6 +104,21 @@ public class GenericLanguageConnectionContext
     private boolean runTimeStatisticsSetting ;
     private boolean statisticsTiming;
 
+    
+    /**
+     * ========================
+     * This set of flags control the behavior under global DDL changes
+     */
+    private volatile boolean ongoingDDLChange = false;
+    /** Caches are invalidated once the currently running transaction finishes */
+    private volatile boolean invalidateCaches = false;
+    /** Caches can be used by past transactions, once the transaction finishes it can't use caches until the DDL change
+     * finishes. This time should be short, enough for all machines to invalidate their caches and notify the driving
+     * server.
+     */
+    private volatile boolean useCaches = true;
+    /** ======================= */
+
     /**
      * If xplainOnlyMode is set (via SYSCS_SET_XPLAIN_MODE), then the
      * connection does not actually execute statements, but only
@@ -1280,6 +1295,10 @@ public class GenericLanguageConnectionContext
             return null;
         }
 
+        if (!useCaches) {
+        	return null;
+        }
+
         Cacheable cachedItem = statementCache.find(statement);
 
         CachedStatement cs = (CachedStatement) cachedItem;
@@ -1507,6 +1526,8 @@ public class GenericLanguageConnectionContext
                 "), Committing");
         }
 
+        checkGlobalDDLChanges();
+
         endTransactionActivationHandling(false);
 
         // Do clean up work required for temporary tables at commit time.  
@@ -1582,7 +1603,18 @@ public class GenericLanguageConnectionContext
         }
     }
 
-    /**
+    private void checkGlobalDDLChanges() {
+    	if (invalidateCaches) {
+    		getLanguageConnectionFactory().getStatementCache().discard(null); // discard cache
+    		invalidateCaches = false;
+    		if (ongoingDDLChange) {
+    			// if DDL changes are still ongoing, next transaction can't use caches
+    			useCaches = false;
+    		}
+    	}
+	}
+
+	/**
      * If dropAndRedeclare is true, that means we have come here for temp 
      * tables with on commit delete rows and no held curosr open on them. We 
      * will drop the existing conglomerate and redeclare a new conglomerate
@@ -1748,6 +1780,8 @@ public class GenericLanguageConnectionContext
                                           drdaID +
                                       "), Rolling back");
         }
+
+        checkGlobalDDLChanges();
 
         endTransactionActivationHandling(true);
 
@@ -3922,4 +3956,20 @@ public class GenericLanguageConnectionContext
                                        FormatableBitSet map) {
         referencedColumnMap.put(td, map);
     }
+
+	public void startGlobalDDLChange() {
+		if (!ongoingDDLChange) {
+			ongoingDDLChange = true;
+			invalidateCaches = true;
+		}
+	}
+
+	public void finishGlobalDDLChange() {
+		ongoingDDLChange = false;
+		useCaches = true;
+	}
+	
+	public boolean useCaches() {
+		return useCaches;
+	}
 }

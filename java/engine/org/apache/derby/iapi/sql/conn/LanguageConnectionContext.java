@@ -757,6 +757,21 @@ public interface LanguageConnectionContext extends Context {
 	int getBindCount();
 
 	/**
+	 * There is at least one on going DDL change somewhere
+	 */
+	void startGlobalDDLChange();
+
+	/**
+	 * All DDL changes have finished
+	 */
+	void finishGlobalDDLChange();
+
+	/**
+	 * @return whether there is an ongoing DDL change or not
+	 */
+	boolean useCaches();
+
+	/**
 	 * Remember that the DataDictionary is in write mode, so we can take
 	 * it out of write mode at the end of the transaction.
 	 */
