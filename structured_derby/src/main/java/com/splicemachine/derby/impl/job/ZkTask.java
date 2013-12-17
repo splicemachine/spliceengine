@@ -16,6 +16,7 @@ import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
@@ -36,8 +37,8 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 5/9/13
  */
-public abstract class ZkTask extends SpliceConstants implements RegionTask,Externalizable {
-    private static final long serialVersionUID = 5l;
+public abstract class ZkTask implements RegionTask,Externalizable {
+    private static final long serialVersionUID = 6l;
     protected final Logger LOG;
     protected TaskStatus status;
     //job scheduler creates the task id
@@ -49,7 +50,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     private boolean readOnly;
     private String taskPath;
 
-    protected ZkTask() {
+		protected byte[] parentTaskId = null;
+		private TaskWatcher taskWatcher;
+
+		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
         this.status = new TaskStatus(Status.PENDING,null);
     }
@@ -62,13 +66,20 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
      * @param readOnly
      */
     protected ZkTask(String jobId, int priority,String parentTxnId,boolean readOnly) {
-        this.LOG = Logger.getLogger(this.getClass());
-        this.jobId = jobId;
-        this.priority = priority;
-        this.status = new TaskStatus(Status.PENDING,null);
-        this.parentTxnId = parentTxnId;
-        this.readOnly = readOnly;
+				this(jobId,priority,parentTxnId,readOnly,null);
     }
+
+		protected ZkTask(String jobId, int priority,
+										 String parentTxnId,
+										 boolean readOnly,byte[] parentTaskId) {
+				this.LOG = Logger.getLogger(this.getClass());
+				this.jobId = jobId;
+				this.priority = priority;
+				this.status = new TaskStatus(Status.PENDING,null);
+				this.parentTxnId = parentTxnId;
+				this.readOnly = readOnly;
+				this.parentTaskId = parentTaskId;
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -82,6 +93,10 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             taskId = new byte[taskIdSize];
             in.readFully(taskId);
         }
+				if(in.readBoolean()){
+						parentTaskId = new byte[in.readInt()];
+						in.readFully(parentTaskId);
+				}
     }
 
     @Override
@@ -97,11 +112,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             out.write(taskId);
         }else
             out.writeInt(0);
-    }
-
-    @Override
-    public int getPriority() {
-        return priority;
+				out.writeBoolean(parentTaskId!=null);
+				if(parentTaskId!=null){
+						out.writeInt(parentTaskId.length);
+						out.write(parentTaskId);
+				}
     }
 
     @Override
@@ -124,7 +139,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
             }
         }
 
-        doExecute();
+				try{
+						doExecute();
+				}finally{
+						taskWatcher.task=null;
+				}
     }
 
     protected abstract void doExecute() throws ExecutionException, InterruptedException;
@@ -164,29 +183,11 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     private void checkNotCancelled() throws ExecutionException{
         Stat stat;
         try {
+						taskWatcher = new TaskWatcher(this);
             stat = zkManager.execute(new SpliceZooKeeperManager.Command<Stat>() {
                 @Override
                 public Stat execute(RecoverableZooKeeper zooKeeper) throws InterruptedException, KeeperException {
-                    return zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,new Watcher() {
-                        @Override
-                        public void process(WatchedEvent event) {
-                            if(event.getType()!= Event.EventType.NodeDeleted)
-                                return;
-
-                            switch(status.getStatus()){
-                                case FAILED:
-                                case COMPLETED:
-                                case CANCELLED:
-                                    return;
-                            }
-
-                            try{
-                                markCancelled(false);
-                            }catch(ExecutionException ee){
-                                SpliceLogUtils.error(LOG,"Unable to cancel task with id "+ getTaskId(),ee.getCause());
-                            }
-                        }
-                    });
+                    return zooKeeper.exists(CoprocessorTaskScheduler.getJobPath()+"/"+jobId,taskWatcher);
                 }
             });
             if(stat==null)
@@ -289,6 +290,8 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void markInvalid() throws ExecutionException {
+				if(taskWatcher!=null)
+						taskWatcher.task = null;
         //only invalidate if we are in the PENDING state, otherwise let it go through or fail
         if(getTaskStatus().getStatus()!=Status.PENDING)
             return;
@@ -302,6 +305,7 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
 
     @Override
     public void cleanup() throws ExecutionException {
+				taskWatcher.task= null;
         throw new UnsupportedOperationException(
                 "Tasks can not be cleaned up on the Task side--use JobScheduler.cleanupJob() instead");
     }
@@ -315,4 +319,50 @@ public abstract class ZkTask extends SpliceConstants implements RegionTask,Exter
     public boolean isTransactional() {
         return true;
     }
+
+		@Override
+		public byte[] getParentTaskId() {
+				return parentTaskId;
+		}
+
+		@Override
+		public String getJobId() {
+				return jobId;
+		}
+
+		private static class TaskWatcher implements Watcher {
+				private volatile ZkTask task;
+
+				private TaskWatcher(ZkTask task) {
+						this.task = task;
+				}
+
+				@Override
+				public void process(WatchedEvent event) {
+						if(event.getType()!= Event.EventType.NodeDeleted)
+								return;
+
+						/*
+						 * If the watch was triggered after
+						 * dereferencing us, then we don't care about it
+						 */
+						if(task==null) return;
+
+						switch(task.status.getStatus()){
+								case FAILED:
+								case COMPLETED:
+								case CANCELLED:
+										task = null;
+										return;
+						}
+
+						try{
+								task.markCancelled(false);
+						}catch(ExecutionException ee){
+								SpliceLogUtils.error(task.LOG,"Unable to cancel task with id "+ Bytes.toString(task.getTaskId()),ee.getCause());
+						}finally{
+								task = null;
+						}
+				}
+		}
 }

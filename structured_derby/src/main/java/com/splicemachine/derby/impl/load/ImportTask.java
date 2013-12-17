@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -129,7 +130,12 @@ public class ImportTask extends ZkTask{
         return false;
     }
 
-    @Override
+		@Override
+		public int getPriority() {
+				return SchedulerPriorities.INSTANCE.getBasePriority(ImportTask.class);
+		}
+
+		@Override
     protected String getTaskType() {
         return "importTask";
     }

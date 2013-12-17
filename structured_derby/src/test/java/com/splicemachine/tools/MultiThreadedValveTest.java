@@ -27,7 +27,7 @@ public class MultiThreadedValveTest {
     @Test
     public void testMultipleThreadsCanAcquire() throws Exception {
 
-        final Valve valve = new Valve(new Valve.FixedMaxOpeningPolicy(numThreads));
+        final Valve valve = new SemaphoreValve(new SemaphoreValve.FixedMaxOpeningPolicy(numThreads));
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
         for(int i=0;i<numThreads;i++){
             futures.add(testService.submit(new Callable<Boolean>() {
@@ -52,7 +52,7 @@ public class MultiThreadedValveTest {
 
     @Test
     public void testSomeThreadsCannotAcquire() throws Exception {
-        final Valve valve = new Valve(new Valve.FixedMaxOpeningPolicy(numThreads));
+        final Valve valve = new SemaphoreValve(new SemaphoreValve.FixedMaxOpeningPolicy(numThreads));
         List<Future<Integer>> futures = Lists.newArrayListWithCapacity(numThreads);
         for(int i=0;i<numThreads+1;i++){
             futures.add(testService.submit(new Callable<Integer>() {
@@ -76,7 +76,7 @@ public class MultiThreadedValveTest {
     public void testCanAdjustUpwardsConcurrently() throws Exception {
 
         TestOpeningPolicy openingPolicy = new TestOpeningPolicy(numThreads/2);
-        final Valve valve = new Valve(openingPolicy);
+        final SemaphoreValve valve = new SemaphoreValve(openingPolicy);
         final CyclicBarrier goodBarrier = new CyclicBarrier(numThreads+1);
         final CountDownLatch waitBarrier = new CountDownLatch(1);
         List<Future<Boolean>> futures = Lists.newArrayListWithCapacity(numThreads);
@@ -106,7 +106,7 @@ public class MultiThreadedValveTest {
         goodBarrier.await();
         //now half the values are acquired --adjust upwards and then count down
         openingPolicy.initialSize.set(numThreads);
-        valve.adjustUpwards(0, Valve.OpeningPolicy.SizeSuggestion.DOUBLE);
+        valve.adjustUpwards(0, Valve.SizeSuggestion.DOUBLE);
         waitBarrier.countDown();
 
         System.out.printf("[%s] Checking permit positions%n",Thread.currentThread().getName());
@@ -119,7 +119,7 @@ public class MultiThreadedValveTest {
     @Test(timeout=10000)
     public void testCanAdjustDownwardsConcurrently() throws Exception {
         TestOpeningPolicy openingPolicy = new TestOpeningPolicy(numThreads);
-        final Valve valve = new Valve(openingPolicy);
+        final SemaphoreValve valve = new SemaphoreValve(openingPolicy);
         final CyclicBarrier barrierOne = new CyclicBarrier(numThreads+1);
         final CyclicBarrier barrierTwo = new CyclicBarrier(numThreads+1);
         final CyclicBarrier barrierThree = new CyclicBarrier(numThreads+1);
@@ -162,7 +162,7 @@ public class MultiThreadedValveTest {
         //reduce the number of permits
         openingPolicy.initialSize.set(numThreads/2);
         System.out.printf("[%s]gateSize=%d%n",Thread.currentThread().getName(),openingPolicy.initialSize.get());
-        valve.reduceValve(0, Valve.OpeningPolicy.SizeSuggestion.DECREMENT);
+        valve.reduceValve(0, Valve.SizeSuggestion.DECREMENT);
 
         //allow everyone to grab a permit
         barrierTwo.await();
@@ -171,7 +171,7 @@ public class MultiThreadedValveTest {
 
         //now half the values are acquired --adjust upwards and allow them to pass
         openingPolicy.initialSize.set(numThreads);
-        valve.adjustUpwards(1, Valve.OpeningPolicy.SizeSuggestion.INCREMENT);
+        valve.adjustUpwards(1, Valve.SizeSuggestion.INCREMENT);
         System.out.printf("[%s]gateSize=%d%n",Thread.currentThread().getName(),openingPolicy.initialSize.get());
         waitBarrier.countDown();
 
@@ -182,7 +182,7 @@ public class MultiThreadedValveTest {
 
     }
 
-    private class TestOpeningPolicy implements Valve.OpeningPolicy{
+    private class TestOpeningPolicy implements SemaphoreValve.OpeningPolicy{
         private AtomicInteger initialSize;
 
         public TestOpeningPolicy(int i) {
@@ -190,12 +190,12 @@ public class MultiThreadedValveTest {
         }
 
         @Override
-        public int reduceSize(int currentSize, SizeSuggestion suggestion) {
+        public int reduceSize(int currentSize, Valve.SizeSuggestion suggestion) {
             return initialSize.get();
         }
 
         @Override
-        public int allowMore(int currentSize, SizeSuggestion suggestion) {
+        public int allowMore(int currentSize, Valve.SizeSuggestion suggestion) {
             int out=  initialSize.get();
             System.out.printf("[%s] returned size =%d%n",Thread.currentThread().getName(),out);
             return out;

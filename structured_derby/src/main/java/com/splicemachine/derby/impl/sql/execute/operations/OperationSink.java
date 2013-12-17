@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -18,6 +19,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -26,6 +29,11 @@ import java.io.IOException;
 public class OperationSink {
     private static final Logger LOG = Logger.getLogger(OperationSink.class);
 
+		/**
+		 * A chain of tasks for identifying parent and child tasks. The last byte[] in
+		 * the list is the immediate parent of other tasks.
+		 */
+		public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<List<byte[]>>();
     private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
@@ -55,9 +63,16 @@ public class OperationSink {
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
-    	TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
+				TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
+				//add ourselves to the task id list
+				List<byte[]> bytes = taskChain.get();
+				if(bytes==null){
+						bytes = Lists.newLinkedList(); //LL used to avoid wasting space here
+						taskChain.set(bytes);
+				}
+				bytes.add(taskId);
         CallBuffer<KVPair> writeBuffer;
 				long rowsRead = 0l;
 				long rowsWritten = 0l;
@@ -117,7 +132,13 @@ public class OperationSink {
         	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
             throw e;
         }finally{
-//						operation.close();
+						bytes = taskChain.get();
+						bytes.remove(bytes.size()-1);
+						if(bytes.size()<=0){
+								taskChain.remove();
+						}
+						operation.close();
+
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
@@ -127,7 +148,8 @@ public class OperationSink {
     }
 
 		private String getTransactionId(byte[] destinationTable) {
-				if(Bytes.equals(destinationTable, SpliceConstants.TEMP_TABLE_BYTES)){
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.
 						 *

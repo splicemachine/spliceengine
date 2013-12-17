@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -17,9 +18,14 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.log4j.Logger;
+import org.jruby.util.collections.IntHashMap;
+
 import java.io.IOException;
 import java.lang.reflect.Proxy;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,9 +75,11 @@ final class BulkWriteAction implements Callable<Void> {
             tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite),false);
         }finally{
             //called no matter what
-            writeConfiguration.writeComplete();
-            long end = System.currentTimeMillis();
-            statusReporter.complete(end - start);
+						long end = System.currentTimeMillis();
+						long timeTakenMs = end - start;
+						int numRecords = bulkWrite.getMutations().size();
+            writeConfiguration.writeComplete(timeTakenMs,numRecords);
+						statusReporter.complete(timeTakenMs, numRecords);
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
              * of the operation. While the Future code will attempt to clean up as much of those futures
@@ -134,9 +142,10 @@ final class BulkWriteAction implements Callable<Void> {
         boolean thrown=false;
         try{
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
-            BulkWriteResult response = instance.bulkWrite(bulkWrite);
+						byte[] bytes = instance.bulkWrite(bulkWrite.toBytes());
+						BulkWriteResult response = BulkWriteResult.fromBytes(bytes);
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
-            Map<Integer,WriteResult> failedRows = response.getFailedRows();
+            IntHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
                 switch (writeResponse) {
@@ -174,7 +183,7 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private Exception parseIntoException(BulkWriteResult response) {
-        Map<Integer,WriteResult> failedRows = response.getFailedRows();
+        IntHashMap<WriteResult> failedRows = response.getFailedRows();
         List<Throwable> errors = Lists.newArrayList();
         for(Integer failedRow:failedRows.keySet()){
             errors.add(Exceptions.fromString(failedRows.get(failedRow)));
@@ -184,11 +193,14 @@ final class BulkWriteAction implements Callable<Void> {
 
     private void doPartialRetry(int tries, BulkWrite bulkWrite, BulkWriteResult response) throws Exception {
 
-        List<Integer> notRunRows = response.getNotRunRows();
-        Map<Integer,WriteResult> failedRows = response.getFailedRows();
-        Set<Integer> rowsToRetry = Sets.newHashSet();
-        rowsToRetry.addAll(notRunRows);
-        rowsToRetry.addAll(failedRows.keySet());
+        IntArrayList notRunRows = response.getNotRunRows();
+        IntHashMap<WriteResult> failedRows = response.getFailedRows();
+        Set<Integer> rowsToRetry = Sets.newHashSet(failedRows.keySet());
+
+				int size = notRunRows.size();
+				for(int i=0;i<size;i++){
+					rowsToRetry.add(notRunRows.buffer[i]);
+				}
 
         Collection<WriteResult> results = failedRows.values();
         List<String> errorMsgs = Lists.newArrayListWithCapacity(results.size());
@@ -200,7 +212,7 @@ final class BulkWriteAction implements Callable<Void> {
 
         ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
         ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
-        for(Integer rowToRetry:rowsToRetry){
+				for(int rowToRetry:rowsToRetry){
             failedWrites.add(allWrites.get(rowToRetry));
         }
 
@@ -273,8 +285,6 @@ final class BulkWriteAction implements Callable<Void> {
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushTime = new AtomicLong(0l);
 
-        public ActionStatusReporter(){}
-
         public void reset(){
             totalFlushesSubmitted.set(0);
             failedBufferFlushes.set(0);
@@ -298,10 +308,9 @@ final class BulkWriteAction implements Callable<Void> {
             totalFlushEntries.set(0);
         }
 
-        public void complete(long timeTakenMs) {
+        public void complete(long timeTakenMs,int numRecords) {
             totalFlushTime.addAndGet(timeTakenMs);
             numExecutingFlushes.decrementAndGet();
-
         }
     }
 }

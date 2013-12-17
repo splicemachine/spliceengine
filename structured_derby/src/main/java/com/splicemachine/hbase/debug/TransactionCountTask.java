@@ -35,7 +35,7 @@ public class TransactionCountTask extends DebugTask{
         scan.setCacheBlocks(false);
         scan.setCaching(100);
         scan.setBatch(100);
-        scan.setAttribute(SI_EXEMPT, Bytes.toBytes(true));
+        scan.setAttribute(SIConstants.SI_EXEMPT, Bytes.toBytes(true));
         scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES); //just scan SI instead of the data itself
 
         LongHashMap<Long> txnHashMap = LongHashMap.evictingMap(1000);

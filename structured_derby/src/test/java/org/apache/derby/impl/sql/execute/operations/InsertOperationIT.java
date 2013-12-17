@@ -6,10 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -125,11 +122,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 
 	@Test
 	public void testInsertVarBit() throws Exception{		
-		try {
 			methodWatcher.executeUpdate("insert into"+this.getPaddedTableReference("HMM")+" values(X'11', X'22', X'33', X'44', X'55')");
-		} catch (Exception e) {
-			Assert.assertTrue("Inserting VarBit failed",false);
-		}
 	}
 
 	
@@ -215,6 +208,7 @@ public class InsertOperationIT extends SpliceUnitTest {
 	}
 	
 	@Test
+	@Ignore
 	public void testInsertBlob() throws Exception{
 		InputStream fin = new FileInputStream(getResourceDirectory()+"order_line_500K.csv");		
 		PreparedStatement ps = methodWatcher.prepareStatement("insert into"+this.getPaddedTableReference("FILES")+"(name, doc) values (?,?)");

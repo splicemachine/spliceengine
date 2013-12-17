@@ -32,7 +32,7 @@ public interface Writer {
 
         long getPause();
 
-        void writeComplete();
+        void writeComplete(long timeTakenMs,long numRecordsWritten);
     }
 
 }

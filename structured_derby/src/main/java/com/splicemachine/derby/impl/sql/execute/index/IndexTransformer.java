@@ -114,11 +114,10 @@ public class IndexTransformer {
     }
 
     public byte[] getIndexRowKey(byte[] rowKey){
-        if(isUnique) return indexKeyAccumulator.finish();
-        else{
-            indexKeyAccumulator.add((int)translatedIndexedColumns.length(),ByteBuffer.wrap(rowKey));
-            return indexKeyAccumulator.finish();
-        }
+				if(!isUnique)
+						indexKeyAccumulator.add((int)translatedIndexedColumns.length(),ByteBuffer.wrap(rowKey));
+
+				return indexKeyAccumulator.finish();
     }
 
     protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {

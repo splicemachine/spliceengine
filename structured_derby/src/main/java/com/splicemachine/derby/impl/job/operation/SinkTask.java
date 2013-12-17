@@ -7,26 +7,30 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.TaskStatus;
-import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -40,6 +44,7 @@ public class SinkTask extends ZkTask {
 
     private Scan scan;
     private SpliceObserverInstructions instructions;
+
 		/*
 		 * Hash bucket to use for sink operations which do not spread data themselves.
 		 *
@@ -53,9 +58,8 @@ public class SinkTask extends ZkTask {
     /**
      * Serialization Constructor.
      */
-    public SinkTask(){
-        super();
-    }
+    @SuppressWarnings("UnusedDeclaration")
+		public SinkTask(){ super(); }
 
     public SinkTask(String jobId,
                     Scan scan,
@@ -64,6 +68,11 @@ public class SinkTask extends ZkTask {
                     int priority) {
         super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
+
+				List<byte[]> taskChain = OperationSink.taskChain.get();
+				if(taskChain!=null){
+						parentTaskId = taskChain.get(taskChain.size()-1);
+				}
 		}
 
     @Override
@@ -80,20 +89,19 @@ public class SinkTask extends ZkTask {
 
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
-    	SpliceLogUtils.trace(LOG,"executing task %s",getTaskId());
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
         SpliceTransactionResourceImpl impl = null;
-        ContextManager ctxManager = null;
         boolean prepared=false;
         SpliceOperationContext opContext = null;
         try {
             impl = new SpliceTransactionResourceImpl();
-            ctxManager = impl.getContextManager();
             impl.prepareContextManager();
             prepared=true;
             if(instructions==null)
                 instructions = SpliceUtils.getSpliceObserverInstructions(scan);
             impl.marshallTransaction(instructions);
-            Activation activation = instructions.getActivation(impl.getLcc());
+						Activation activation = instructions.getActivation(impl.getLcc());
             SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
             spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());
@@ -109,11 +117,14 @@ public class SinkTask extends ZkTask {
             TaskStats stats;
             if(op instanceof DMLWriteOperation)
                 stats = opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext);
-            else
-                stats = opSink.sink(SpliceConstants.TEMP_TABLE_BYTES, spliceRuntimeContext);
+            else{
+								TempTable table = SpliceDriver.driver().getTempTable();
+                stats = opSink.sink(table.getTempTableName(), spliceRuntimeContext);
+						}
             status.setStats(stats);
 
-            SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing",getTaskId());
+						if(LOG.isTraceEnabled())
+								SpliceLogUtils.trace(LOG,"task %s sunk successfully, closing", Bytes.toString(getTaskId()));
         } catch (Exception e) {
             if(e instanceof ExecutionException)
                 throw (ExecutionException)e;
@@ -161,7 +172,16 @@ public class SinkTask extends ZkTask {
         return status.getStatus()==Status.CANCELLED;
     }
 
-    public HRegion getRegion() {
+		@Override
+		public int getPriority() {
+				if(instructions==null)
+						instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+				//TODO -sf- make this also add priority values to favor shorter tasks over longer ones
+				//TODO -sf- detect system table operations and give them a different priority
+				return SchedulerPriorities.INSTANCE.getBasePriority(instructions.getTopOperation().getClass());
+		}
+
+		public HRegion getRegion() {
         return region;
     }
 

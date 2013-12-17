@@ -5,9 +5,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.BalancedBlockingQueue;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
@@ -68,7 +66,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     public TaskFuture submit(T task) throws ExecutionException {
         ListeningFuture future = new ListeningFuture(task,statsListener.numPending.get());
         task.getTaskStatus().attachListener(statsListener);
-        future.future = executor.submit(new TaskCallable<T>(task, statsListener));
+        future.future = executor.submit(new TaskCallable<T>(task));
         return future;
     }
 
@@ -84,99 +82,6 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     @Override public long getTotalCancelledTasks() { return statsListener.cancelledCount.get(); }
     @Override public long getTotalInvalidatedTasks() { return statsListener.invalidatedCount.get(); }
     @Override public int getNumRunningTasks() { return statsListener.numExecuting.get(); }
-
-    private static class TaskCallable<T extends Task> implements Callable<Void> {
-        private final T task;
-        private final StatsListener listener;
-
-        public TaskCallable(T task, StatsListener listener) {
-            this.task = task;
-            this.listener = listener;
-        }
-
-        @Override
-        public Void call() throws Exception {
-            switch (task.getTaskStatus().getStatus()) {
-                case INVALID:
-                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
-                    return null;
-                case FAILED:
-                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has failed, but was not removed from the queue, removing now and skipping", task.getTaskId());
-                    return null;
-                case COMPLETED:
-                    SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
-                    return null;
-                case CANCELLED:
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
-                    return null;
-            }
-
-            try{
-                SchedulerTracer.traceTaskStart();
-                SpliceLogUtils.trace(WORKER_LOG,"executing task %s",task.getTaskId());
-                try{
-                    task.markStarted();
-                }catch(CancellationException ce){
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s was cancelled",task.getTaskId());
-                    return null;
-                }
-                task.execute();
-                SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", task.getTaskId());
-                SchedulerTracer.traceTaskEnd();
-                completeTask();
-            }catch(ExecutionException ee){
-                    SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toString(task.getTaskId())+" had an unexpected error",ee.getCause());
-                    try{
-                        task.markFailed(ee.getCause());
-                    }catch(ExecutionException failEx){
-                        SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
-                    }
-            }catch(Throwable t){
-                SpliceLogUtils.error(WORKER_LOG, "task " + Bytes.toString(task.getTaskId()) + " had an unexpected error while setting state", t);
-                try{
-                    task.markFailed(t);
-                }catch(ExecutionException failEx){
-                    SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
-                }
-            }
-            return null;
-        }
-
-        private void completeTask() throws ExecutionException{
-            try {
-                task.markCompleted();
-            } catch (ExecutionException e) {
-                try {
-                    task.markFailed(e);
-                } catch (ExecutionException ee) {
-                    WORKER_LOG.error("Unable to indicate task failure",ee);
-                    /*
-                     * TODO -sf-
-                     *
-                     * It IS possible that we could FORCE the JobScheduler to obtain some information about us--
-                     * we could forcibly terminate our ZooKeeper session. This would tell the JobScheduler that
-                     * this task failed, and it would then retry it. However, currently, we share the same
-                     * ZooKeeper session across all tasks, so killing our session would likely kill all running
-                     * tasks simultaneously (which would be bad).
-                     *
-                     * Something to think about would be pooling up ZK connections and fixing one connection
-                     * per task thread. Then we could forcibly expire the session as a means of informing the
-                     * JobScheduler about badness happening over here. However, There are problems with this approach--
-                     * ZooKeeper only allows so many concurrent connections, for one, and for another we use ZooKeeper
-                     * to share transaction ids. What happens if we delete the node? can we still rollback the
-                     * child transactions? These are issues to think about before we do this. Still, worth a thought
-                     */
-                    throw ee;
-                }
-            }
-        }
-
-        private void cleanUpTask(T task)  throws ExecutionException{
-            //if we clean up the task, then we never got a chance to decrement the pending count
-//            listener.numPending.decrementAndGet();
-            task.cleanup();
-        }
-    }
 
     private static final class ExceptionLogger implements Thread.UncaughtExceptionHandler{
         @Override
@@ -300,7 +205,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         @Override
         protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
             if(callable instanceof TaskCallable)
-                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).task.getPriority());
+                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).getPriority());
             //when in doubt, just default to the original
             return super.newTaskFor(callable);
         }

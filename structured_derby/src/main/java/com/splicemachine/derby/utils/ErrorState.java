@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1850,7 +1851,18 @@ public enum ErrorState {
         public StandardException newException(Throwable rootCause) {
             return StandardException.newException(getSqlState(),rootCause,"unexpected exception");
         }
-    };
+    },
+		SPLICE_TIMEOUT_EXCEPTION("SE007"){
+				@Override
+				public boolean accepts(Throwable t) {
+						return super.accepts(t)|| t instanceof SocketTimeoutException;
+				}
+
+				@Override
+				public StandardException newException(Throwable rootCause) {
+						return StandardException.newException(getSqlState(),rootCause.getMessage());
+				}
+		};
 
     private final String sqlState;
 

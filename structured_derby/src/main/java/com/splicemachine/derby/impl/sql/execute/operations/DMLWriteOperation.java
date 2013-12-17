@@ -188,12 +188,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
     }
 
     @Override
-    public void close() throws StandardException, IOException {
-    	if (modifiedProvider != null)
-    		modifiedProvider.close();
-        super.close();
+		public void close() throws StandardException, IOException {
+				super.close();
 				source.close();
-    }
+				if (modifiedProvider != null)
+						modifiedProvider.close();
+		}
 
 		@Override
 		public byte[] getUniqueSequenceId() {

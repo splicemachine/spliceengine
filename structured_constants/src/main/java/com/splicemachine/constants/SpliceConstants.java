@@ -14,12 +14,12 @@ import java.util.List;
 
 public class SpliceConstants {
     @Retention(RetentionPolicy.SOURCE)
-    @interface Parameter{
+    protected @interface Parameter{
 
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @interface DefaultValue{
+    protected @interface DefaultValue{
         String value();
     }
 
@@ -143,7 +143,20 @@ public class SpliceConstants {
     @DefaultValue(OPERATION_PRIORITY) public static final int DEFAULT_IMPORT_TASK_PRIORITY = 3;
     public static int operationTaskPriority;
 
+		@SpliceConstants.Parameter public static final String TOTAL_WORKERS = "splice.task.maxWorkers";
+		@SpliceConstants.DefaultValue(TOTAL_WORKERS) public static final int DEFAULT_TOTAL_WORKERS=10;
+		public static int taskWorkers;
+
+		@SpliceConstants.Parameter public static final String NUM_PRIORITY_TIERS = "splice.task.numPriorities";
+		@DefaultValue(NUM_PRIORITY_TIERS) public static final int DEFAULT_NUM_PRIORITY_TIERS=4;
+		public static int numPriorityTiers;
+
+		@SpliceConstants.Parameter public static final String MAX_PRIORITY = "splice.task.maxPriority";
+		@DefaultValue(MAX_PRIORITY) public static final int DEFAULT_MAX_PRIORITY=100;
+		public static int maxPriority;
+
     /**
+		 *
      * The Priority with which to assign import tasks. Setting this number higher than the
      * operation priority will make imports run preferentially to operation tasks; setting it lower
      * will make operations run preferentially to import tasks.
@@ -767,6 +780,9 @@ public class SpliceConstants {
 				pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
 
 				importSplitFactor = config.getInt(IMPORT_SPLIT_FACTOR,DEFAULT_IMPORT_SPLIT_FACTOR);
+				taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);
+				numPriorityTiers = config.getInt(NUM_PRIORITY_TIERS,DEFAULT_NUM_PRIORITY_TIERS);
+				maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

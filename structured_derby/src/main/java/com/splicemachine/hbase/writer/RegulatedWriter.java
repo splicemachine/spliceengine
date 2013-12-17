@@ -1,5 +1,8 @@
 package com.splicemachine.hbase.writer;
 
+import com.splicemachine.tools.MovingThreshold;
+import com.splicemachine.tools.OptimizingValve;
+import com.splicemachine.tools.SemaphoreValve;
 import com.splicemachine.tools.Valve;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import javax.management.*;
@@ -24,7 +27,11 @@ public class RegulatedWriter implements Writer{
                            int maxConcurrentWrites ) {
         this.delegate = delegate;
         this.writeRejectedHandler = writeRejectedHandler;
-        this.valve = new Valve(new Valve.PassiveOpeningPolicy(maxConcurrentWrites)); //TODO -sf- make adaptive OpeningPolicy
+				this.valve = new SemaphoreValve(new SemaphoreValve.PassiveOpeningPolicy(maxConcurrentWrites));
+//				this.valve = new OptimizingValve(maxConcurrentWrites,
+//								maxConcurrentWrites,
+//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MINIMIZE,16),
+//								new MovingThreshold(MovingThreshold.OptimizationStrategy.MAXIMIZE,16));
     }
 
 
@@ -56,7 +63,7 @@ public class RegulatedWriter implements Writer{
     }
 
     public void setCurrentMaxFlushes(int oldMaxFlushes) {
-        valve.setMaxFlushes(oldMaxFlushes);
+        valve.setMaxPermits(oldMaxFlushes);
     }
 
     public static interface WriteRejectedHandler{
@@ -104,7 +111,7 @@ public class RegulatedWriter implements Writer{
              * (hopefully) prevent us from overloading the server again.
              */
             if(t instanceof RegionTooBusyException)
-                valve.reduceValve(version, Valve.OpeningPolicy.SizeSuggestion.HALVE);
+                valve.adjustValve(Valve.SizeSuggestion.HALVE);
 
             return writeConfiguration.globalError(t);
         }
@@ -112,10 +119,12 @@ public class RegulatedWriter implements Writer{
         @Override public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException { return writeConfiguration.partialFailure(result, request); }
         @Override public long getPause() { return writeConfiguration.getPause(); }
 
-        @Override
-        public void writeComplete() {
-            valve.release();
-            writeConfiguration.writeComplete();
-        }
+				@Override
+				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+						valve.release();
+						//update the valve to take latency and throughput into account
+//						valve.update(timeTakenMs,(double)numRecordsWritten/timeTakenMs);
+						writeConfiguration.writeComplete(timeTakenMs,numRecordsWritten);
+				}
     }
 }

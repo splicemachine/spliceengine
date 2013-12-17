@@ -64,8 +64,10 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 								JobStats stats;
                 if(op instanceof DMLWriteOperation)
                     stats =new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext));
-                else
-                    stats =new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES, spliceRuntimeContext));
+                else{
+										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+                    stats =new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
+								}
 
 								return new SimpleJobResults(stats,null);
             } catch (Exception e) {
