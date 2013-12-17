@@ -55,7 +55,7 @@ public class DropViewConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeTransactionalConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
 		TableDescriptor td;
 		ViewDescriptor vd;

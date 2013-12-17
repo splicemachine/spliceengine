@@ -837,6 +837,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException {
         compactionState.mutate(rawList, results);
     }
+
+    @Override
+    public DDLFilter newDDLFilter(String transactionId) throws IOException {
+        return new DDLFilter(
+                transactionStore.getTransaction(transactionIdFromString(transactionId)),
+                transactionStore
+                );
+    }
 // Helpers
 
     /**
@@ -886,14 +894,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             if (oldestId > currentMin) {
                 timestampSource.rememberTimestamp(oldestId);
             }
-        }
-        final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
-        if (youngestId.equals(max)) {
-            for (Transaction t : oldestActiveTransactions) {
-                result.add(t.getTransactionId());
+            final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
+            if (youngestId.equals(max)) {
+                for (Transaction t : oldestActiveTransactions) {
+                    result.add(t.getTransactionId());
+                }
+            } else {
+                throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
             }
-        } else {
-            throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
         }
         return result;
     }
@@ -902,4 +910,5 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException {
         return transactionStore.forbidPermission(tableName, transactionId);
     }
+
 }

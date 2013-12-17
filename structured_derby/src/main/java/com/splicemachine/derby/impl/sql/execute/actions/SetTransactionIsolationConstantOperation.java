@@ -33,7 +33,7 @@ public class SetTransactionIsolationConstantOperation implements ConstantAction 
 	 * @exception StandardException		Thrown on failure
 	 */
 	@Override
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		activation.getLanguageConnectionContext().setIsolationLevel(isolationLevel);
 	}
 }
