@@ -498,11 +498,11 @@ public final class SQLBoolean
 			** it doesn't trim, and doesn't throw exceptions.
 			*/
 			String cleanedValue = StringUtil.SQLToUpperCase(theValue.trim());
-			if (cleanedValue.equals("TRUE") || cleandedValue.equals("T") || cleandedValue.equals("1")) {
+			if (cleanedValue.equals("TRUE") || cleanedValue.equals("T") || cleanedValue.equals("1")) {
 				value = true;
                 isnull = false;
 			}
-			else if (cleanedValue.equals("FALSE")  || cleandedValue.equals("F") || || cleandedValue.equals("0")) {
+			else if (cleanedValue.equals("FALSE")  || cleanedValue.equals("F") || cleanedValue.equals("0")) {
 				value = false;
                 isnull = false;
 			}
