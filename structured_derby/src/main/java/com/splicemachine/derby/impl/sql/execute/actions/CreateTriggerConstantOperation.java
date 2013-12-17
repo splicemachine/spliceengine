@@ -143,7 +143,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction(Activation activation) throws StandardException {
+	public void executeTransactionalConstantAction(Activation activation) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction for activation %s",activation);
 		SPSDescriptor				whenspsd = null;
 		SPSDescriptor				actionspsd;

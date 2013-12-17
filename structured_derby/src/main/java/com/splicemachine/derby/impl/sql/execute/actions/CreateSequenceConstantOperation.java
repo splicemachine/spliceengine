@@ -66,7 +66,7 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
      * @see org.apache.derby.iapi.sql.execute.ConstantAction#executeConstantAction
      */
     @Override
-    public void executeConstantAction(Activation activation) throws StandardException {
+    public void executeTransactionalConstantAction(Activation activation) throws StandardException {
     	SpliceLogUtils.trace(LOG, "executeConstantAction");
         SchemaDescriptor schemaDescriptor;
         LanguageConnectionContext lcc =

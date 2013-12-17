@@ -400,7 +400,16 @@ public class SpliceUtils extends SpliceUtilities {
         return zeroIndexed;
     }
 
-		private static final CompressionCodecFactory compressionFactory
+    public static BitSet bitSetFromBooleanArray(boolean[] array) {
+        BitSet bitSet = new BitSet(array.length);
+        for (int col = 0; col < array.length; col++) {
+            if (array[col])
+                bitSet.set(col);
+        }
+        return bitSet;
+    }
+
+        private static final CompressionCodecFactory compressionFactory
 						= new CompressionCodecFactory(SpliceConstants.config);
 		public static CompressionCodecFactory getCompressionFactory() {
 				return compressionFactory;
