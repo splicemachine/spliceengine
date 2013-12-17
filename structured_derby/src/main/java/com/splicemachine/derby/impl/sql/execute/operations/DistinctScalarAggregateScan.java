@@ -58,12 +58,13 @@ public class DistinctScalarAggregateScan implements ScalarAggregateSource {
                 return start;
             }
         };
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
         this.regionAwareProvider  = new SimpleRegionAwareRowProvider(
                 "groupedAggregateRowProvider",
                 SpliceUtils.NA_TRANSACTION_ID,
                 region,
                 scan,
-                SpliceConstants.TEMP_TABLE_BYTES,
+								tempTableBytes,
                 SpliceConstants.DEFAULT_FAMILY_BYTES,
                 decoder,
                 boundary,

@@ -3,10 +3,6 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
@@ -14,19 +10,15 @@ import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
-
-import javax.annotation.Nullable;
+import org.jruby.util.collections.IntHashMap;
 
 import java.io.IOException;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -91,7 +83,6 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         }
     }
 
-
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if(failed)
@@ -119,7 +110,6 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate
-
         }
     }
 
@@ -170,7 +160,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-                Map<Integer,WriteResult> failedRows = result.getFailedRows();
+                IntHashMap<WriteResult> failedRows = result.getFailedRows();
                 boolean canRetry = true;
                 boolean regionTooBusy = false;
                 for(WriteResult writeResult: failedRows.values()){
@@ -205,8 +195,10 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 return SpliceConstants.pause;
             }
 
-            @Override public void writeComplete() { /*no-op*/ }
-        };
+						@Override
+						public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+						}
+				};
 
         return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize*2+10); //make sure we don't flush before we can
     }

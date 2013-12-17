@@ -6,6 +6,7 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.LocalWriteContextFactory;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -66,4 +67,8 @@ public class ForbidPastWritesTask extends ZkTask {
         }
     }
 
+    @Override
+    public int getPriority() {
+        return SchedulerPriorities.INSTANCE.getBasePriority(ForbidPastWritesTask.class);
+    }
 }

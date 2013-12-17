@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ConstraintDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
@@ -27,6 +29,11 @@ public class ConstraintContext implements Externalizable {
         constraintName = cd.getConglomerateName();
     }
 
+		public ConstraintContext(String tableName, String constraintName){
+				this.tableName = tableName;
+				this.constraintName = constraintName;
+		}
+
     public String getTableName() {
         return tableName;
     }
@@ -38,9 +45,7 @@ public class ConstraintContext implements Externalizable {
 
     @Override
     public void writeExternal(ObjectOutput objectOutput) throws IOException {
-
         objectOutput.writeBoolean(tableName != null);
-
         if(tableName != null){
             objectOutput.writeUTF(tableName);
         }
@@ -51,6 +56,23 @@ public class ConstraintContext implements Externalizable {
             objectOutput.writeUTF(constraintName);
         }
     }
+
+		public void write(Output output) throws IOException{
+				output.writeBoolean(tableName!=null);
+				if(tableName!=null){
+						output.writeString(tableName);
+				}
+
+				output.writeBoolean(constraintName!=null);
+				if(constraintName!=null)
+						output.writeString(constraintName);
+		}
+
+		public static ConstraintContext fromBytes(Input input) throws IOException{
+				String tableName = input.readBoolean()?input.readString():null;
+				String constraintName = input.readBoolean()?input.readString(): null;
+				return new ConstraintContext(tableName,constraintName);
+		}
 
     @Override
     public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
@@ -81,4 +103,6 @@ public class ConstraintContext implements Externalizable {
         result = 31 * result + constraintName.hashCode();
         return result;
     }
+
+
 }

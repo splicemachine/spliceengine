@@ -1,6 +1,9 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
+import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.TaskSchedulerManagement;
@@ -101,19 +104,19 @@ public class SpliceAdmin {
         }
     }
 
-    public static void SYSCS_SET_MAX_TASKS(int maxWorkers) throws SQLException {
+    public static void SYSCS_SET_MAX_TASKS(int workerTier,int maxWorkers) throws SQLException {
         List<ServerName> servers = getServers();
         List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
-            List<TaskSchedulerManagement> taskSchedulers = null;
+            List<StealableTaskSchedulerManagement> taskSchedulers = null;
             try {
-                taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
+                taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
             } catch (MalformedObjectNameException e) {
                 throw new SQLException(e);
             }
-            for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
-                taskScheduler.setMaxWorkers(maxWorkers);
+            for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
+                taskScheduler.setCurrentWorkers(maxWorkers);
             }
         } catch (IOException e) {
             throw new SQLException(e);
@@ -130,13 +133,53 @@ public class SpliceAdmin {
         }
     }
 
-    public static void SYSCS_GET_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
+		public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
+				List<ServerName> servers = getServers();
+				List<JMXConnector> connections = null;
+				try {
+						connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+
+						List<StealableTaskSchedulerManagement> taskSchedulers;
+						try {
+								taskSchedulers = JMXUtils.getTieredSchedulerManagement(workerTier, connections);
+						} catch (MalformedObjectNameException e) {
+								throw new SQLException(e);
+						}
+						StringBuilder sb = new StringBuilder("select * from (values ");
+						int i = 0;
+						for (StealableTaskSchedulerManagement taskScheduler : taskSchedulers) {
+								if (i != 0)
+										sb.append(", ");
+								sb.append(String.format("('%s',%d)",
+												servers.get(i).getHostname(),
+												taskScheduler.getCurrentWorkers()));
+								i++;
+						}
+						sb.append(") foo (hostname, maxTaskWorkers)");
+						resultSet[0] = executeStatement(sb);
+				} catch (IOException e) {
+						throw new SQLException(e);
+				} finally {
+						if (connections != null) {
+								for (JMXConnector connector : connections) {
+										try {
+												connector.close();
+										} catch (IOException e) {
+												// ignore
+										}
+								}
+						}
+				}
+
+		}
+
+    public static void SYSCS_GET_GLOBAL_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
         List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
-            List<TaskSchedulerManagement> taskSchedulers = null;
+            List<TieredSchedulerManagement> taskSchedulers = null;
             try {
                 taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
             } catch (MalformedObjectNameException e) {
@@ -144,12 +187,12 @@ public class SpliceAdmin {
             }
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
-            for (TaskSchedulerManagement taskScheduler : taskSchedulers) {
+            for (TieredSchedulerManagement taskScheduler : taskSchedulers) {
                 if (i != 0)
                     sb.append(", ");
                 sb.append(String.format("('%s',%d)",
                         servers.get(i).getHostname(),
-                        taskScheduler.getMaxWorkers()));
+                        taskScheduler.getTotalWorkerCount()));
                 i++;
             }
             sb.append(") foo (hostname, maxTaskWorkers)");
@@ -286,7 +329,7 @@ public class SpliceAdmin {
         List<JMXConnector> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
-            List<TaskSchedulerManagement> taskSchedulers = null;
+            List<TieredSchedulerManagement> taskSchedulers = null;
             try {
                 taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
             } catch (MalformedObjectNameException e) {
@@ -294,24 +337,27 @@ public class SpliceAdmin {
             }
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
-            for (TaskSchedulerManagement taskSchedule : taskSchedulers) {
+            for (TieredSchedulerManagement taskSchedule : taskSchedulers) {
                 if (i !=0)
                     sb.append(", ");
-                sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d)",
+								sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
                         servers.get(i).getHostname(),
-                        taskSchedule.getCurrentWorkers(),
-                        taskSchedule.getMaxWorkers(),
-                        taskSchedule.getNumPendingTasks(),
-                        taskSchedule.getNumRunningTasks(),
+                        taskSchedule.getTotalWorkerCount(),
+                        taskSchedule.getPending(),
+                        taskSchedule.getExecuting(),
                         taskSchedule.getTotalCancelledTasks(),
                         taskSchedule.getTotalCompletedTasks(),
                         taskSchedule.getTotalFailedTasks(),
                         taskSchedule.getTotalInvalidatedTasks(),
-                        taskSchedule.getTotalSubmittedTasks()));
+                        taskSchedule.getTotalSubmittedTasks(),
+												taskSchedule.getTotalShruggedTasks(),
+												taskSchedule.getTotalStolenTasks(),
+												taskSchedule.getMostLoadedTier(),
+												taskSchedule.getLeastLoadedTier()));
                 i++;
             }
-            sb.append(") foo (hostname, currentWorkers, maxWorkers, pending, running, totalCancelled, "
-                    + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted)");
+            sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
+                    + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted,totalShrugged,totalStolen,mostLoadedTier,leastLoadedTier)");
             resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);

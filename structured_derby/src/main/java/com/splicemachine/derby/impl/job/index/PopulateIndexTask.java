@@ -9,6 +9,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
@@ -30,7 +31,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -120,7 +124,7 @@ public class PopulateIndexTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         Scan regionScan = SpliceUtils.createScan(transactionId);
-        regionScan.setCaching(DEFAULT_CACHE_SIZE);
+        regionScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         regionScan.setStartRow(region.getStartKey());
         regionScan.setStopRow(region.getEndKey());
         regionScan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
@@ -136,7 +140,7 @@ public class PopulateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,DEFAULT_CACHE_SIZE);
+            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,SpliceConstants.DEFAULT_CACHE_SIZE);
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 boolean shouldContinue = true;
@@ -203,4 +207,16 @@ public class PopulateIndexTask extends ZkTask {
             totalWriteTime+= (end-start);
         }
     }
+
+    @Override
+    public int getPriority() {
+        return SchedulerPriorities.INSTANCE.getBasePriority(PopulateIndexTask.class);
+    }
+    public static void main (String [] args) {
+        List<Integer> lista = new ArrayList<Integer>();
+        while (true) {
+            lista.add(new Integer(4834892));
+        }
+    }
+
 }

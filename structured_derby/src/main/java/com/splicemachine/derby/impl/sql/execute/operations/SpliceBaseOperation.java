@@ -196,18 +196,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void close() throws StandardException,IOException {
 			clearCurrentRow();
+			if(regionScanner!=null)
+					regionScanner.close();
 			if(jobResults!=null)
 					jobResults.cleanup();
 	}
 	
 
-//	@Override
-//	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-//		if (subqueryTrackingArray == null)
-//			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
-//		return subqueryTrackingArray;
-//	}
-	
 //	@Override
 	public void addWarning(SQLWarning w) {
         activation.addWarning(w);

@@ -59,7 +59,6 @@ public class BalancedBlockingQueue<E> extends AbstractQueue<E> implements Blocki
     private final Condition notEmpty = takeLock.newCondition();
 
     private final ReentrantLock offerLock = new ReentrantLock();
-    private final Condition notFull = offerLock.newCondition();
 
     private final AtomicInteger count = new AtomicInteger(0);
 

@@ -1,15 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-
+import com.splicemachine.derby.test.framework.*;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
-import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class StddevIT extends SpliceUnitTest {
@@ -25,7 +22,31 @@ public class StddevIT extends SpliceUnitTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher);
+            .around(spliceTableWatcher).around(new SpliceDataWatcher() {
+								@Override
+								protected void starting(Description description) {
+										PreparedStatement ps;
+										try {
+												ps = spliceClassWatcher.prepareStatement(
+																String.format("insert into %s (i,d) values (?,?)", spliceTableWatcher));
+												for(int i=0;i<10;i++){
+														ps.setInt(1,i);
+														ps.setDouble(2, i);
+														for(int j=0;j<100;j++){
+																ps.addBatch();
+														}
+														ps.executeBatch();
+												}
+												spliceClassWatcher.executeUpdate(
+																String.format("create derby aggregate StddevIT.stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
+
+												spliceClassWatcher.executeUpdate(
+																String.format("create derby aggregate StddevIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));
+										} catch (Exception e) {
+												throw new RuntimeException(e);
+										}
+								}
+						});
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -36,29 +57,15 @@ public class StddevIT extends SpliceUnitTest {
     @Before
     public void setUp() throws Exception {
         System.out.println("StddevIT:");
-        Connection conn = methodWatcher.createConnection();
-        for (int j = 0; j < 100; ++j) {
-            for (int i=0; i<10; i++) {
-                conn.createStatement().execute(
-                    String.format("insert into %s (i, d) values (%d, %f)",
-                    		this.getTableReference(TABLE_NAME), i, i * 1.0));
-            }
-        }
-        ResultSet resultSet = conn.createStatement().executeQuery(
+        ResultSet resultSet = methodWatcher.executeQuery(
                 String.format("select * from %s", this.getTableReference(TABLE_NAME)));
         Assert.assertEquals(1000, resultSetSize(resultSet));
         resultSet.close();
-        conn.createStatement().execute(
-                String.format("create derby aggregate StddevIT.stddevpop for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop\'"));
-
-        conn.createStatement().execute(
-                String.format("create derby aggregate StddevIT.stddevsamp for double external name \'com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp\'"));
     }
     
     @Test
     public void test() throws Exception {
-    	Connection conn = methodWatcher.createConnection();
-    	ResultSet rs = conn.createStatement().executeQuery(
+    	ResultSet rs = methodWatcher.executeQuery(
                 String.format("select StddevIT.stddevpop(i) from %s", this.getTableReference(TABLE_NAME)));
 
         System.out.println("StddevIT:");
@@ -67,8 +74,8 @@ public class StddevIT extends SpliceUnitTest {
         }
         rs.close();
 
-        rs = conn.createStatement().executeQuery(
-                String.format("select StddevIT.stddevsamp(i) from %s", this.getTableReference(TABLE_NAME)));
+        rs = methodWatcher.executeQuery(
+								String.format("select StddevIT.stddevsamp(i) from %s", this.getTableReference(TABLE_NAME)));
 
         while(rs.next()){
             System.out.println("stddevIT -- samp = " + rs.getDouble(1));

@@ -9,9 +9,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
-import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.job.scheduler.*;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -19,14 +18,8 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
-import com.splicemachine.hbase.TempCleaner;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.JobScheduler;
-import com.splicemachine.job.Task;
-import com.splicemachine.job.TaskMonitor;
-import com.splicemachine.job.TaskScheduler;
-import com.splicemachine.job.TaskSchedulerManagement;
-import com.splicemachine.job.ZkTaskMonitor;
+import com.splicemachine.job.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -119,8 +112,7 @@ public class SpliceDriver extends SIConstants {
     private TaskScheduler threadTaskScheduler;
     private JobScheduler jobScheduler;
     private TaskMonitor taskMonitor;
-    private TempCleaner tempCleaner;
-    private SnowflakeLoader snowLoader;
+		private SnowflakeLoader snowLoader;
     private volatile Snowflake snowflake;
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
 		//-sf- when we need to, replace this with a list
@@ -148,10 +140,18 @@ public class SpliceDriver extends SIConstants {
         try {
             snowLoader = new SnowflakeLoader();
             writerPool = WriteCoordinator.create(SpliceUtils.config);
-            threadTaskScheduler = SimpleThreadedTaskScheduler.create(SpliceUtils.config);
+						TieredTaskSchedulerSetup setup = SchedulerPriorities.INSTANCE.getSchedulerSetup();
+						TieredTaskScheduler.OverflowHandler overflowHandler = new TieredTaskScheduler.OverflowHandler() {
+								@Override
+								public OverflowPolicy shouldOverflow(Task t) {
+										if(t.getParentTaskId()!=null) return OverflowPolicy.OVERFLOW;
+										else return OverflowPolicy.ENQUEUE;
+								}
+						};
+						StealableTaskScheduler<RegionTask> overflowScheduler =new ExpandingTaskScheduler<RegionTask>();
+            threadTaskScheduler = new TieredTaskScheduler(setup,overflowHandler,overflowScheduler);
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
-            tempCleaner = new TempCleaner(SpliceUtils.config);
 						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
@@ -168,10 +168,6 @@ public class SpliceDriver extends SIConstants {
 
     public Properties getProperties() {
         return props;
-    }
-
-    public TempCleaner getTempCleaner() {
-        return tempCleaner;
     }
 
 		public TempTable getTempTable() {
@@ -383,8 +379,9 @@ public class SpliceDriver extends SIConstants {
             mbs.registerMBean(ErrorReporter.get(),errorReporterName);
 
             //register TaskScheduler
-            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
-            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
+						((TieredTaskScheduler)threadTaskScheduler).registerJMX(mbs);
+//            ObjectName taskSchedulerName = new ObjectName("com.splicemachine.job:type=TaskSchedulerManagement");
+//            mbs.registerMBean(threadTaskScheduler,taskSchedulerName);
 
             //register TaskMonitor
             ObjectName taskMonitorName = new ObjectName("com.splicemachine.job:type=TaskMonitor");

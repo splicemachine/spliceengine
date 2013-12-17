@@ -398,8 +398,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     }
 
     private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext, final int prefixOffset) {
-        if(!spliceRuntimeContext.isSink())
-            return new ClientResultScanner(SpliceConstants.TEMP_TABLE_BYTES,reduceScan,true);
+        if(!spliceRuntimeContext.isSink()){
+						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+            return new ClientResultScanner(tempTableBytes,reduceScan,true);
+				}
 
         //we are under another sink, so we need to use a RegionAwareScanner
         final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
@@ -461,24 +463,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public void	close() throws StandardException, IOException {
 				super.close();
 				source.close();
-//        SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
-//        beginTime = getCurrentTimeMillis();
-//        if ( isOpen )
-//        {
-//            if(reduceScan!=null)
-//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-//            // we don't want to keep around a pointer to the
-//            // row ... so it can be thrown away.
-//            // REVISIT: does this need to be in a finally
-//            // block, to ensure that it is executed?
-//            clearCurrentRow();
-//            source.close();
-//
-//            super.close();
-//        }
-//        closeTime += getElapsedMillis(beginTime);
-//
-//        isOpen = false;
     }
 
     public Properties getSortProperties() {
