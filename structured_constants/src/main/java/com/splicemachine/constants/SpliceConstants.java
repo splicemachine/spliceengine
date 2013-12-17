@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -34,6 +35,26 @@ public class SpliceConstants {
     public static String zkSpliceTaskPath;
 
     /**
+     * The Path in zookeeper for broadcasting messages to all servers
+     * Defaults to /broadcast
+     */
+    @Parameter public static final String BROADCAST_PATH = "splice.broadcast_node";
+    @DefaultValue(BROADCAST_PATH) public static final String DEFAULT_BROADCAST_PATH = "/broadcast";
+    public static String zkSpliceBroadcastPath;
+    public static String zkSpliceBroadcastActiveServersPath;
+    public static String zkSpliceBroadcastMessagesPath;
+
+    /**
+     * The Path in zookeeper for manipulating DDL information and coordination.
+     * Defaults to /ddl
+     */
+    @Parameter public static final String DDL_PATH = "splice.ddl_node";
+    @DefaultValue(DDL_PATH) public static final String DEFAULT_DDL_PATH = "/ddl";
+    public static String zkSpliceDDLPath;
+    public static String zkSpliceDDLActiveServersPath;
+    public static String zkSpliceDDLOngoingTransactionsPath;
+
+    /**
      * The Path in zookeeper to store job information. Defaults to /spliceJobs
      */
     @Parameter public static final String BASE_JOB_QUEUE_NODE = "splice.job_queue_node";
@@ -47,6 +68,14 @@ public class SpliceConstants {
     @Parameter public static final String TRANSACTION_PATH = "splice.transactions_node";
     @DefaultValue(TRANSACTION_PATH) public static final String DEFAULT_TRANSACTION_PATH = "/transactions";
     public static String zkSpliceTransactionPath;
+
+    /**
+     * The Path in zookeeper for storing the minimum active transaction.
+     * Defaults to /transactions/minimum
+     */
+    @Parameter public static final String MINIMUM_ACTIVE_PATH = "splice.minimum_active_node";
+    @DefaultValue(MINIMUM_ACTIVE_PATH) public static final String DEFAULT_MINIMUM_ACTIVE_PATH = "/transactions/minimum";
+    public static String zkSpliceMinimumActivePath;
 
     /**
      * Path in ZooKeeper for manipulating Conglomerate information.
@@ -532,6 +561,43 @@ public class SpliceConstants {
     @DefaultValue(SEQUENCE_BLOCK_SIZE) private static final int DEFAULT_SEQUENCE_BLOCK_SIZE = 1000;
     public static long sequenceBlockSize;
 
+    /**
+     * The initial wait in milliseconds when a DDL operation waits for all concurrent transactions to finish before
+     * proceeding.
+     * 
+     * The operation will wait progressively longer until the DDL_DRAINING_MAXIMUM_WAIT is reached, then it will
+     * block concurrent transactions from writing to the affected tables.
+     * 
+     * Defaults to 1000 (1 second)
+     */
+    @Parameter private static final String DDL_DRAINING_INITIAL_WAIT = "splice.ddl.drainingWait.initial";
+    @DefaultValue(DDL_DRAINING_INITIAL_WAIT) private static final long DEFAULT_DDL_DRAINING_INITIAL_WAIT = 1000;
+    public static long ddlDrainingInitialWait;
+
+    /**
+     * The maximum wait in milliseconds a DDL operation will wait for concurrent transactions to finish before
+     * blocking them from writing to the affected tables.
+     * 
+     * Defaults to 100000 (100 seconds)
+     */
+    @Parameter private static final String DDL_DRAINING_MAXIMUM_WAIT = "splice.ddl.drainingWait.maximum";
+    @DefaultValue(DDL_DRAINING_MAXIMUM_WAIT) private static final long DEFAULT_DDL_DRAINING_MAXIMUM_WAIT = 100000;
+    public static long ddlDrainingMaximumWait;
+    
+    /**
+     * The lease duration for metadata caches in milliseconds.
+     * 
+     * If the duration is bigger, Splice servers cache metadata information for longer, putting less pressure on the
+     * metadata regions and reducing latency for DML operations. On the other hand, this increases the latency
+     * for DDL operations.
+     * 
+     * Defaults to 1000 (1 second)
+     */
+    @Parameter private static final String METADATA_CACHE_LEASE_DURATION = "splice.metadata.cache.lease";
+    // TODO change to something reasonable
+    @DefaultValue(METADATA_CACHE_LEASE_DURATION) private static final long DEFAULT_METADATA_CACHE_LEASE_DURATION = 0;
+    public static long metadataCacheLease;
+
     /*
      * Setting the cache update interval <0 indicates that caching is to be turned off.
      * This is a performance killer, but is useful when debugging issues.
@@ -543,6 +609,7 @@ public class SpliceConstants {
     public static final String TEMP_TABLE = "SPLICE_TEMP";
     public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
+    public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
     public static final int TRANSACTION_TABLE_BUCKET_COUNT = 16;
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
@@ -552,6 +619,7 @@ public class SpliceConstants {
     
     public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
+    public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
     public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
 
@@ -616,12 +684,20 @@ public class SpliceConstants {
 	
 	public static int ipcThreads;
 	
-	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath);
+	public static List<String> zookeeperPaths = Lists.newArrayList(zkSpliceTaskPath,zkSpliceJobPath,zkSpliceConglomeratePath,
+            zkSpliceConglomerateSequencePath,zkSpliceDerbyPropertyPath,zkSpliceQueryNodePath,zkSpliceTransactionPath,zkSpliceMinimumActivePath);
 
 		public static void setParameters() {
 				zkSpliceTaskPath = config.get(BASE_TASK_QUEUE_NODE,DEFAULT_BASE_TASK_QUEUE_NODE);
+                zkSpliceDDLPath = config.get(DDL_PATH,DEFAULT_DDL_PATH);
+                zkSpliceDDLActiveServersPath = zkSpliceDDLPath + "/activeServers";
+                zkSpliceDDLOngoingTransactionsPath = zkSpliceDDLPath + "/ongoingChanges";
+                zkSpliceBroadcastPath = config.get(BROADCAST_PATH,DEFAULT_BROADCAST_PATH);
+                zkSpliceBroadcastActiveServersPath = zkSpliceBroadcastPath + "/activeServers";
+                zkSpliceBroadcastMessagesPath = zkSpliceBroadcastPath + "/messages";
 				zkSpliceJobPath = config.get(BASE_JOB_QUEUE_NODE,DEFAULT_BASE_JOB_QUEUE_NODE);
 				zkSpliceTransactionPath = config.get(TRANSACTION_PATH,DEFAULT_TRANSACTION_PATH);
+                zkSpliceMinimumActivePath = config.get(MINIMUM_ACTIVE_PATH,DEFAULT_MINIMUM_ACTIVE_PATH);
 				zkSpliceConglomeratePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 				zkSpliceConglomerateSequencePath = zkSpliceConglomeratePath+"/__CONGLOM_SEQUENCE";
 				zkSpliceDerbyPropertyPath = config.get(DERBY_PROPERTY_PATH,DEFAULT_DERBY_PROPERTY_PATH);

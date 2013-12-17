@@ -21,8 +21,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
- * @see NonUniqueIndexTest
- * @see UniqueIndexTest
+ * @see NonUniqueIndexIT
+ * @see UniqueIndexIT
  */
 public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CreateIndexConstantOperationIT.class.getSimpleName().toUpperCase();

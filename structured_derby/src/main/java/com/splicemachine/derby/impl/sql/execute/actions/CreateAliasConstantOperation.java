@@ -135,7 +135,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 	 * @exception StandardException		Thrown on failure
 	 */
 	@Override
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeTransactionalConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction with activation %s",activation);
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();

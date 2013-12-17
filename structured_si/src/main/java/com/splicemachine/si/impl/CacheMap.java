@@ -11,16 +11,16 @@ import java.util.Set;
  * to avoid consuming too much heap. Will not store more than maxSize items to avoid consuming too much heap. Optionally,
  * can be thread safe for concurrent access.
  */
-public class CacheMap implements Map {
-    final Map<Object, CacheReference> delegate;
-    final ReferenceQueue referenceQueue;
+public class CacheMap<K,V> implements Map<K,V> {
+    final Map<K, CacheReference<K,V>> delegate;
+    final ReferenceQueue<V> referenceQueue;
     final int maxSize;
     final static int DEFAULT_MAX_SIZE = 10000;
 
     /**
      * Factory function for creating a cache. Uses the default size.
      */
-    public static Map makeCache(boolean shared) {
+    public static <K,V> Map<K,V> makeCache(boolean shared) {
         return makeCache(shared, DEFAULT_MAX_SIZE);
     }
 
@@ -31,12 +31,12 @@ public class CacheMap implements Map {
      * @param maxSize the maximum number of items the cache can contain, items added past this limit are ignored
      * @return new cache object
      */
-    public static Map makeCache(boolean shared, int maxSize) {
-        return new CacheMap(new NonBlockingHashMap(), maxSize);
+    public static <K,V> Map<K,V> makeCache(boolean shared, int maxSize) {
+        return new CacheMap<K,V>(new NonBlockingHashMap<K,CacheReference<K,V>>(), maxSize);
     }
 
-    private CacheMap(Map delegate, int maxSize) {
-        this.referenceQueue = new ReferenceQueue<CacheReference>();
+    private CacheMap(Map<K, CacheReference<K,V>> delegate, int maxSize) {
+        this.referenceQueue = new ReferenceQueue<V>();
         this.delegate = delegate;
         this.maxSize = maxSize;
     }
@@ -62,12 +62,12 @@ public class CacheMap implements Map {
     }
 
     @Override
-    public Object get(Object key) {
-        CacheReference reference = delegate.get(key);
+    public V get(Object key) {
+        CacheReference<K,V> reference = delegate.get(key);
         if (reference == null) {
             return null;
         } else {
-            Object result = reference.get();
+            V result = reference.get();
             if (result == null) {
                 delegate.remove(key);
             }
@@ -76,10 +76,11 @@ public class CacheMap implements Map {
     }
 
     @Override
-    public Object put(Object key, Object value) {
+    public V put(K key, V value) {
         purge();
         if (delegate.size() < maxSize) {
-            return delegate.put(key, new CacheReference(value, referenceQueue, key));
+            CacheReference<K, V> previous = delegate.put(key, new CacheReference<K,V>(value, referenceQueue, key));
+            return previous == null ? null : previous.get();
         } else {
             return get(key);
         }
@@ -94,8 +95,9 @@ public class CacheMap implements Map {
     }
 
     @Override
-    public Object remove(Object key) {
-        return delegate.remove(key);
+    public V remove(Object key) {
+        CacheReference<K, V> previous = delegate.remove(key);
+        return previous == null ? null : previous.get();
     }
 
     @Override
@@ -109,7 +111,7 @@ public class CacheMap implements Map {
     }
 
     @Override
-    public Set keySet() {
+    public Set<K> keySet() {
         return delegate.keySet();
     }
 
@@ -119,7 +121,7 @@ public class CacheMap implements Map {
     }
 
     @Override
-    public Set<Entry> entrySet() {
+    public Set<Entry<K, V>> entrySet() {
         throw new RuntimeException("Not implemented");
     }
 

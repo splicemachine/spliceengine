@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.job.scheduler;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
+import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import org.apache.hadoop.conf.Configuration;
@@ -127,7 +128,8 @@ public class SchedulerPriorities {
 				priority = config.getInt(BASE_PRIORITY_PREFIX + "import", defaultDdlWritePriority);
 				basePriorityMap.put(ImportTask.class,priority);
 				priority = config.getInt(BASE_PRIORITY_PREFIX + "index.create", defaultDdlWritePriority);
-				basePriorityMap.put(CreateIndexTask.class,priority);
+                basePriorityMap.put(CreateIndexTask.class,priority);
+                basePriorityMap.put(PopulateIndexTask.class,priority);
 		}
 
 		public int getMaxPriority() {

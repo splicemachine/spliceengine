@@ -101,7 +101,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeTransactionalConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		TableDescriptor 			td;
 		UUID 						toid;
@@ -282,7 +282,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 				// skip fks
 				if (!constraintActions[conIndex].isForeignKeyConstraint())
 				{
-					constraintActions[conIndex].executeConstantAction(activation);
+					constraintActions[conIndex].executeTransactionalConstantAction(activation);
 				}
 			}
 
@@ -291,7 +291,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 				// only foreign keys
 				if (constraintActions[conIndex].isForeignKeyConstraint())
 				{
-					constraintActions[conIndex].executeConstantAction(activation);
+					constraintActions[conIndex].executeTransactionalConstantAction(activation);
 				}
 			}
 		}
