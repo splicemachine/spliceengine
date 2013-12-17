@@ -92,8 +92,9 @@ public final class DataTypeDescriptor implements Formatable
      */
     public static final DataTypeDescriptor SMALLINT_NOT_NULL =
         SMALLINT.getNullabilityType(false);
-     
 
+    public static final DataTypeDescriptor DOUBLE =
+            new DataTypeDescriptor(TypeId.DOUBLE_ID, true);
 	/*
 	** Static creators
 	*/

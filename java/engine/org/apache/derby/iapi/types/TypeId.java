@@ -227,7 +227,9 @@ public final class TypeId
 
         public static final TypeId CHAR_ID = create(
             StoredFormatIds.CHAR_TYPE_ID, StoredFormatIds.CHAR_TYPE_ID_IMPL);
-        
+
+        public static final TypeId DOUBLE_ID = create(
+            StoredFormatIds.DOUBLE_TYPE_ID, StoredFormatIds.DOUBLE_TYPE_ID_IMPL);
         /*
         ** Others are created on demand by the getBuiltInTypeId(int),
         ** if they are built-in (i.e.? Part of JDBC .Types),
@@ -241,8 +243,6 @@ public final class TypeId
             StoredFormatIds.LONGINT_TYPE_ID, StoredFormatIds.LONGINT_TYPE_ID_IMPL);
         private static final TypeId REAL_ID = create(
                 StoredFormatIds.REAL_TYPE_ID, StoredFormatIds.REAL_TYPE_ID_IMPL);
-        private static final TypeId DOUBLE_ID = create(
-                StoredFormatIds.DOUBLE_TYPE_ID, StoredFormatIds.DOUBLE_TYPE_ID_IMPL);
         private static final TypeId DECIMAL_ID =  new TypeId(StoredFormatIds.DECIMAL_TYPE_ID, new DecimalTypeIdImpl(false));
         private static final TypeId NUMERIC_ID =  new TypeId(StoredFormatIds.DECIMAL_TYPE_ID, new DecimalTypeIdImpl(true));
         private static final TypeId VARCHAR_ID = create(

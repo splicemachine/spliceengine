@@ -70,6 +70,7 @@ public interface TypeDescriptor
         DataTypeDescriptor.SMALLINT_NOT_NULL.getCatalogType();
 
 
+    TypeDescriptor DOUBLE = DataTypeDescriptor.DOUBLE.getCatalogType();
 	///////////////////////////////////////////////////////////////////////
 	//
 	//	METHODS

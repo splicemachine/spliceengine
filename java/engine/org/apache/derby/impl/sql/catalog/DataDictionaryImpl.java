@@ -591,6 +591,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 SystemProcedureGenerator procedureGenerator = getSystemProcedures();
                 procedureGenerator.createProcedures(bootingTC,newlyCreatedRoutines);
 
+                // create system aggregates
+                SystemAggregateGenerator aggregateGenerator = getSystemAggregateGenerator();
+                aggregateGenerator.createAggregates(bootingTC);
 				//create procedures for network server metadata
 //				create_SYSIBM_procedures(bootingTC, newlyCreatedRoutines );
                 // create the SYSCS_UTIL system procedures)
@@ -731,6 +734,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
         return new DefaultSystemProcedureGenerator(this);
     }
 
+    protected SystemAggregateGenerator getSystemAggregateGenerator(){
+        return new DefaultSystemAggregateGenerator(this);
+    }
     /**
      * Find the default message digest algorithm to use for BUILTIN
      * authentication on this database.
