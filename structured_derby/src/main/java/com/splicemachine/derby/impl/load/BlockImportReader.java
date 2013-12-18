@@ -1,20 +1,18 @@
 package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
-
-import com.google.common.io.Closeables;
-import com.google.common.primitives.Longs;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.hadoop.fs.*;
+import com.splicemachine.constants.SpliceConstants;
+import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.hadoop.util.LineReader;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.LineRecordReader;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -22,21 +20,17 @@ import java.io.*;
  */
 public class BlockImportReader implements ImportReader {
     private static final long serialVersionUID = 1l;
-    private static final Logger LOG = Logger.getLogger(BlockImportReader.class);
 
     private BlockLocation location;
 
-    private InputStream stream;
-    private LineReader reader;
     private CSVParser parser;
     private FSDataInputStream is;
 
-    private long start;
-    private long end;
-    private long pos;
     private Text text;
+		private LongWritable pos; //unused by the app
+		private LineRecordReader lineRecordReader;
 
-    @Deprecated
+		@Deprecated
     public BlockImportReader() { }
 
     public BlockImportReader(BlockLocation location) {
@@ -45,41 +39,33 @@ public class BlockImportReader implements ImportReader {
 
     @Override
     public String[] nextRow() throws IOException {
-    	if (pos >= end) // Pass Block Check
-    		return null;
-        long newSize = reader.readLine(text);
-        if(newSize==0)
-        	return null; //nothing more to read
-        pos+=newSize;
-        String line = text.toString();
-        if(line==null||line.length()==0) return null; //may have reached the end of the file without finding a record
-        return parser.parseLine(line);
+				if(lineRecordReader.next(pos,text)){
+						String line = text.toString();
+						if(line==null||line.length()==0) return null; //may have reached the end of the file without finding a record
+						return parser.parseLine(line);
+				}else{
+						return null;
+				}
     }
 
     @Override
     public void setup(FileSystem fileSystem, ImportContext importContext) throws IOException{
-        CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
-        CompressionCodec codec = codecFactory.getCodec(importContext.getFilePath());
-        is = fileSystem.open(importContext.getFilePath());
+				FileSplit split = new FileSplit(importContext.getFilePath(),
+								location.getOffset(),
+								location.getLength(),
+								location.getHosts());
 
-        boolean skipFirstLine = Longs.compare(location.getOffset(), 0l)!=0;
-        start = location.getOffset();
-        end = start+location.getLength();
-        is.seek(start);
-        stream = codec !=null? codec.createInputStream(is): is;
-        reader = new LineReader(stream);
-        text=  new Text();
-        if(skipFirstLine)
-            start+= reader.readLine(text);
-        pos = start;
+				lineRecordReader = new LineRecordReader(SpliceConstants.config,split);
+				//initialize base variables
+				text = new Text();
+				pos = new LongWritable(location.getOffset());
+
         parser = getCsvParser(importContext);
     }
 
     @Override
     public void close() throws IOException {
-        Closeables.closeQuietly(is);
-        Closeables.closeQuietly(stream);
-        reader.close();
+				lineRecordReader.close();
     }
 
     @Override
@@ -118,6 +104,11 @@ public class BlockImportReader implements ImportReader {
         location.setOffset(in.readLong());
         location.setLength(in.readLong());
     }
+
+		BlockLocation getLocation(){
+				//exposed for testing purposes
+				return location;
+		}
 
     private CSVParser getCsvParser(ImportContext context) {
         return new CSVParser(context.getColumnDelimiter().charAt(0),context.getQuoteChar().charAt(0));
