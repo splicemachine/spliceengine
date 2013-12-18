@@ -24,7 +24,7 @@ import com.splicemachine.utils.ZkUtils;
 public class ZookeeperDDLController implements DDLController, Watcher {
     private static final Logger LOG = Logger.getLogger(ZookeeperDDLController.class);
 
-    private Object lock = new Object();
+    private final Object lock = new Object();
     private static final long REFRESH_TIMEOUT = 2000; // timeout to refresh the info, in case some server is dead or a new server came up
     private static final long MAXIMUM_WAIT = 60000; // maximum wait for everybody to respond, after this we fail the DDL change
     private static Gson gson = new Gson();
