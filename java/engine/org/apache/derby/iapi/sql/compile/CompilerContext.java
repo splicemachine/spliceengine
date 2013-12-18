@@ -287,6 +287,8 @@ public interface CompilerContext extends Context
 
 	void setCurrentDependent(Dependent d);
 
+		Dependent getCurrentDependent();
+
 	/**
 	 * Get the current auxiliary provider list from this CompilerContext.
 	 *

@@ -10563,7 +10563,7 @@ tableDefinition() throws StandardException :
 	TableName			tableName;
 	TableElementList	tableElementList;
 	ResultColumnList	resultColumns = null;
-	ResultSetNode		queryExpression;
+	QueryTreeNode		queryExpression;
 	boolean				withData = true;
 }
 {
@@ -10592,10 +10592,11 @@ tableDefinition() throws StandardException :
 			{
 				// Raise error if WITH DATA is specified
 				// (until it is implemented)
-				if (withData) {
-					throw StandardException.newException(
-						SQLState.NOT_IMPLEMENTED, "WITH DATA");
-				}
+//				if (withData) {
+//				    queryExpression =
+//					throw StandardException.newException(
+//						SQLState.NOT_IMPLEMENTED, "WITH DATA");
+//				}
 				/* Parameters not allowed in create table */
 				HasNodeVisitor visitor =
 					new HasNodeVisitor(ParameterNode.class);
@@ -10606,12 +10607,16 @@ tableDefinition() throws StandardException :
 						SQLState.LANG_NO_PARAMS_IN_TABLES);
 				}
 				
-				return (StatementNode) nodeFactory.getNode(
+				StatementNode node = (StatementNode)nodeFactory.getNode(
 										C_NodeTypes.CREATE_TABLE_NODE,
 										tableName,
 										resultColumns,
 										queryExpression,
 										getContextManager());
+                if (node instanceof CreateTableNode) {
+                    ((CreateTableNode)node).setWithData(withData);
+                }
+                return node;
 			}
 	)
 }

@@ -26,9 +26,12 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.reference.Limits;
 
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.loader.GeneratedClass;
 import org.apache.derby.iapi.services.property.PropertyUtil;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 
+import org.apache.derby.iapi.sql.compile.*;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
 import org.apache.derby.iapi.sql.depend.ProviderList;
@@ -36,24 +39,27 @@ import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.iapi.sql.compile.Visitor;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 
 import org.apache.derby.iapi.error.StandardException;
 
+import org.apache.derby.iapi.util.ByteArray;
+import org.apache.derby.impl.sql.CursorInfo;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.StringDataValue;
+import org.apache.derby.impl.store.raw.data.InsertOperation;
+
 import java.util.Properties;
 
 /**
  * A CreateTableNode is the root of a QueryTree that represents a CREATE TABLE or DECLARE GLOBAL TEMPORARY TABLE
  * statement.
  *
+ * Note: If you change this implementation, BE SURE AND check the sqlgrammer.jj file
+ * to make sure that special methods aren't being called!
  */
 
 public class CreateTableNode extends DDLStatementNode
@@ -66,8 +72,9 @@ public class CreateTableNode extends DDLStatementNode
 	protected int	tableType; //persistent table or global temporary table
 	private ResultColumnList	resultColumns;
 	private ResultSetNode		queryExpression;
+		private boolean withData;
 
-	/**
+		/**
 	 * Initializer for a CreateTableNode for a base table
 	 *
 	 * @param newObjectName		The name of the new object being created (ie base table)
@@ -167,6 +174,10 @@ public class CreateTableNode extends DDLStatementNode
 		this.resultColumns = (ResultColumnList) resultColumns;
 		this.queryExpression = (ResultSetNode) queryExpression;
 	}
+
+		public void setWithData(boolean withData){
+				this.withData = withData;
+		}
 
 	/**
 	 * If no schema name specified for global temporary table, SESSION is the implicit schema.
@@ -541,6 +552,19 @@ public class CreateTableNode extends DDLStatementNode
             }
         }
 
+//			GenericStorablePreparedStatement gsps = null;
+			InsertNode node = null;
+			if(withData){
+					/*
+					 * We have indicated that we are a "create table as ... with data" type query,
+					 * which means we need to create an insert operation over top of the queryDescription,
+					 * and then pass that to the constant action for execution
+					 */
+					node = new InsertNode();
+					node.init(this.getObjectName(), queryExpression.getResultColumns(), queryExpression, properties, null, null, null, null);
+					node.setContextManager(getContextManager());
+			}
+
 		return(
             getGenericConstantActionFactory().getCreateTableConstantAction(
                 sd.getSchemaName(),
@@ -551,7 +575,8 @@ public class CreateTableNode extends DDLStatementNode
                 properties,
                 lockGranularity,
                 onCommitDeleteRows,
-                onRollbackDeleteRows));
+                onRollbackDeleteRows,
+										node));
 	}
 
 	/**

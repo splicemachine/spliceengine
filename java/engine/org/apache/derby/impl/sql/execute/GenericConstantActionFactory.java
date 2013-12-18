@@ -40,6 +40,8 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.AliasInfo;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.compile.TableName;
 import java.util.List;
 import java.util.Properties;
@@ -359,6 +361,8 @@ public class GenericConstantActionFactory
 	 * @param lockGranularity	The lock granularity.
 	 * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
 	 * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
+	 * @param insertNode if not null, a statement that needs to execute to insert data into the table once fully created. If null, then nothing to be inserted
+		 *                 If not null, this MUST be bound and optimized AFTER the table has been created, or else it will break
 	 */
 	public	ConstantAction	getCreateTableConstantAction
 	(
@@ -370,7 +374,9 @@ public class GenericConstantActionFactory
 		Properties		properties,
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
-		boolean			onRollbackDeleteRows)
+		boolean			onRollbackDeleteRows,
+		StatementNode insertNode
+		)
 	{
 		return new CreateTableConstantAction( schemaName, tableName, tableType, columnInfo,
 											  constraintActions, properties,

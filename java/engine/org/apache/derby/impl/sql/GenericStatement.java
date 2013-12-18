@@ -368,8 +368,7 @@ public class GenericStatement implements Statement {
 
 				int ddMode = dataDictionary == null ? 0 : dataDictionary.startReading(lcc);
 
-				try
-				{
+				try {
 					// start a nested transaction -- all locks acquired by bind
 					// and optimize will be released when we end the nested
 					// transaction.

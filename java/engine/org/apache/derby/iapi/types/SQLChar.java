@@ -1389,7 +1389,7 @@ public class SQLChar
         }
 
         // stringCompare deals with null as comparable and smallest
-        return stringCompare(this, (SQLChar)other);
+        return stringCompare(this, (StringDataValue)other);
     }
 
     /*
@@ -2276,7 +2276,7 @@ public class SQLChar
         // length we should be using (i.e. getLength()).
         // see getCharArray() for more info
         char[] evalCharArray = getCharArray();
-        char[] patternCharArray = ((SQLChar)pattern).getCharArray();
+        char[] patternCharArray = ((StringDataValue)pattern).getCharArray();
         likeResult = Like.like(evalCharArray, 
                                getLength(),
                                    patternCharArray,
@@ -2796,7 +2796,7 @@ public class SQLChar
      *
      * @exception StandardException     Thrown on error
      */
-     protected int stringCompare(SQLChar char1, SQLChar char2)
+     protected int stringCompare(StringDataValue char1, StringDataValue char2)
          throws StandardException
      {
          return stringCompare(char1.getCharArray(), char1.getLength(), 

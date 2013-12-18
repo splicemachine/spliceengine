@@ -689,7 +689,7 @@ public abstract class QueryTreeNode implements Node, Visitable
 	 *
 	 * @return The CompilerContext
 	 */
-	protected final CompilerContext getCompilerContext()
+	public final CompilerContext getCompilerContext()
 	{
 		return (CompilerContext) getContextManager().
 										getContext(CompilerContext.CONTEXT_ID);
@@ -1359,7 +1359,7 @@ public abstract class QueryTreeNode implements Node, Visitable
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	final SchemaDescriptor	getSchemaDescriptor(String schemaName)
+	public final SchemaDescriptor	getSchemaDescriptor(String schemaName)
 		throws StandardException
 	{
 		//return getSchemaDescriptor(schemaName, schemaName != null);

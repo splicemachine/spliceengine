@@ -531,6 +531,20 @@ public interface Activation extends Dependent
 	 */
 	public int getMaxRows();
 
+		/**
+		 * Get the number of rows seen by this activation. This
+		 * is only set manually (i.e. underlying objects are
+		 * not required to keep track).
+		 *
+		 * @return the number of rows seen.
+		 */
+		public long getRowsSeen();
+
+		/**
+		 * Add a number of rows seen by the activation.
+		 * @param rowsSeen the number of rows seen.
+		 */
+		public void addRowsSeen(long rowsSeen);
 	/**
 	 * Is this Activation for a cursor?
 	 *

@@ -212,6 +212,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected ExecRow[] row;
 	protected ParameterValueSet pvs;
 
+		private long numRowsSeen = 0l;
 	//
 	// constructors
 	//
@@ -221,7 +222,15 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		super();
 	}
 
-	public final void initFromContext(Context context) 
+		public long getRowsSeen() {
+				return numRowsSeen;
+		}
+
+		public void addRowsSeen(long rowsSeen) {
+			this.numRowsSeen+=rowsSeen;
+		}
+
+		public final void initFromContext(Context context)
 		throws StandardException {
 
 		if (SanityManager.DEBUG)

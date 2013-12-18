@@ -550,7 +550,7 @@ recompileOutOfDatePlan:
 		return endCompileTimestamp;
 	}
 
-	void setCompileTimeWarnings(SQLWarning warnings) {
+	public void setCompileTimeWarnings(SQLWarning warnings) {
 		this.warnings = warnings;
 	}
 
@@ -625,7 +625,7 @@ recompileOutOfDatePlan:
 	 *
 	 *	@param constantAction The big structure enclosing the Execution constants.
 	 */
-	final void	setConstantAction( ConstantAction constantAction )
+	public final void	setConstantAction( ConstantAction constantAction )
 	{
 		executionConstants = constantAction;
 	}
@@ -646,7 +646,7 @@ recompileOutOfDatePlan:
 	 *
 	 *	@param	objects	The objects to save from compilation
 	 */
-	final void	setSavedObjects( Object[] objects )
+	public final void	setSavedObjects( Object[] objects )
 	{
 		savedObjects = objects;
 	}
@@ -936,7 +936,7 @@ recompileOutOfDatePlan:
 
 		@exception StandardException thrown on failure.
 	 */
-	void completeCompile(StatementNode qt)
+	public void completeCompile(StatementNode qt)
 						throws StandardException {
 		//if (finished)
 		//	throw StandardException.newException(SQLState.LANG_STATEMENT_CLOSED, "completeCompile()");
@@ -1049,7 +1049,7 @@ recompileOutOfDatePlan:
 			updateColumns);
 	}
 
-	void setCursorInfo(CursorInfo cursorInfo)
+	public void setCursorInfo(CursorInfo cursorInfo)
 	{
 		if (cursorInfo != null)
 		{
@@ -1094,7 +1094,7 @@ recompileOutOfDatePlan:
 	 * 
 	 * @param needsSavepoint true if this statement needs a savepoint.
 	 */
-	void setNeedsSavepoint(boolean needsSavepoint)
+	public void setNeedsSavepoint(boolean needsSavepoint)
 	{
 	 	this.needsSavepoint = needsSavepoint;
 	}
@@ -1105,7 +1105,7 @@ recompileOutOfDatePlan:
 	 * @param isAtomic true if this statement must be atomic
 	 * (i.e. it is not ok to do a commit/rollback in the middle)
 	 */
-	void setIsAtomic(boolean isAtomic)
+	public void setIsAtomic(boolean isAtomic)
 	{
 	 	this.isAtomic = isAtomic;
 	}
@@ -1127,7 +1127,7 @@ recompileOutOfDatePlan:
 	 * Set the name of the statement and schema for an "execute statement"
 	 * command.
 	 */
-	void setExecuteStatementNameAndSchema(String execStmtName,
+	public void setExecuteStatementNameAndSchema(String execStmtName,
 												 String execSchemaName)
 	{
 		this.execStmtName = execStmtName;

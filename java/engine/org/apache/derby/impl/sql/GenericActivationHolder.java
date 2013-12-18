@@ -143,7 +143,15 @@ final public class GenericActivationHolder implements Activation
 		ac.reset();
 	}
 
-	/**
+		public long getRowsSeen() {
+				return ac.getRowsSeen();
+		}
+
+		public void addRowsSeen(long rowsSeen) {
+			ac.addRowsSeen(rowsSeen);
+		}
+
+		/**
 	 * Temporary tables can be declared with ON COMMIT DELETE ROWS. But if the table has a held curosr open at
 	 * commit time, data should not be deleted from the table. This method, (gets called at commit time) checks if this
 	 * activation held cursor and if so, does that cursor reference the passed temp table name.
