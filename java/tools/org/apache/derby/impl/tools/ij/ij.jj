@@ -674,7 +674,7 @@ class ij {
 			};
 			int[] columnWidths = new int[] {
 				20,
-				30,
+				50,
 				20,
 			};
 
