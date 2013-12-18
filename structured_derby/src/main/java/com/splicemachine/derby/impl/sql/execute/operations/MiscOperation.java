@@ -103,9 +103,9 @@ public class MiscOperation extends NoRowsOperation
         }
 
         @Override
-		public int getModifiedRowCount() {
-			return 0;
-		}
+				public int getModifiedRowCount() {
+						return (int)activation.getRowsSeen();
+				}
 
 		@Override
 		public String toString(){
