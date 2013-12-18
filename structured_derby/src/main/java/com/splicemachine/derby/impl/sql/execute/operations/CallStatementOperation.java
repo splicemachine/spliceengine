@@ -166,7 +166,7 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		@Override
 		public int getModifiedRowCount() {
-			return 0;
+				return (int)activation.getRowsSeen();
 		}
 
 		@Override

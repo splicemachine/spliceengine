@@ -3,17 +3,29 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.types.IndexDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.ContextService;
+import org.apache.derby.iapi.services.loader.GeneratedClass;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.compile.ASTVisitor;
+import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.depend.Dependent;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.util.ByteArray;
+import org.apache.derby.impl.sql.CursorInfo;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.CreateConstraintConstantAction;
 import org.apache.derby.impl.sql.execute.CreateTableConstantAction;
 import org.apache.derby.impl.sql.execute.DDLConstantAction;
 import org.apache.derby.shared.common.reference.SQLState;
 
+import java.sql.SQLWarning;
 import java.util.Properties;
 
 /**
@@ -26,6 +38,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
     private final int tableType;
     private final String tableName;
     private final String schemaName;
+		private final StatementNode insertNode;
     /**
      * Make the ConstantAction for a CREATE TABLE statement.
      *
@@ -40,11 +53,21 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
-    public SpliceCreateTableOperation(String schemaName, String tableName, int tableType, ColumnInfo[] columnInfo, ConstantAction[] constraintActions, Properties properties, char lockGranularity, boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
+    public SpliceCreateTableOperation(String schemaName,
+																			String tableName,
+																			int tableType,
+																			ColumnInfo[] columnInfo,
+																			ConstantAction[] constraintActions,
+																			Properties properties,
+																			char lockGranularity,
+																			boolean onCommitDeleteRows,
+																			boolean onRollbackDeleteRows,
+																			StatementNode insertNode) {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
         this.tableType = tableType;
         this.tableName = tableName;
         this.schemaName = schemaName;
+				this.insertNode = insertNode;
     }
 
     @Override
@@ -95,8 +118,73 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                     "table",tableName,"schema",schemaName);
 
-        //if the table doesn't exist, allow super class to create it
-        super.executeTransactionalConstantAction(activation);
+				//if the table doesn't exist, allow super class to create it
+				super.executeTransactionalConstantAction(activation);
+
+
+				if(insertNode!=null){
+					/*
+					 * If insertNode!=null, then this was a create table as ... with data statement,
+					 * so we have to execute the insertion here.
+					 *
+					 * Unfortunately, we MUST bind and optimize the statement here, because otherwise
+					 * the insert node will explode with a "Table does not exist" exception (or lots
+					 * of NullPointers if you try and fix it).
+					 */
+						GenericStorablePreparedStatement gsps = new GenericStorablePreparedStatement();
+						CompilerContext cc = lcc.pushCompilerContext(insertNode.getSchemaDescriptor(schemaName));
+						CompilerContext compilerContext = insertNode.getCompilerContext();
+						Dependent oldDependent = compilerContext.getCurrentDependent();
+						if(oldDependent==null)
+								compilerContext.setCurrentDependent(gsps);
+
+						/*
+						 * The following section is a stripped-down version of what occurs inside
+						 * for GenericStatement.prepMinion (minus the parsing). If we can somehow
+						 * find a better way to factor that code, we should delegate to it here
+						 * instead of duplicating the logic.
+						 */
+						insertNode.bindStatement();
+						insertNode.optimizeStatement();
+
+						ASTVisitor visitor = lcc.getASTVisitor();
+						if(visitor!=null){
+								visitor.begin(insertNode.statementToString(),ASTVisitor.AFTER_OPTIMIZE);
+								insertNode.accept(visitor);
+								visitor.end(ASTVisitor.AFTER_OPTIMIZE);
+						}
+
+
+						ByteArray array = gsps.getByteCodeSaver();
+						GeneratedClass ac = insertNode.generate(array);
+
+
+						gsps.setConstantAction(insertNode.makeConstantAction());
+						gsps.setSavedObjects(cc.getSavedObjects());
+						gsps.setRequiredPermissionsList(cc.getRequiredPermissionsList());
+						gsps.incrementVersionCounter();
+						gsps.setActivationClass(ac);
+						gsps.setNeedsSavepoint(insertNode.needsSavepoint());
+						gsps.setCursorInfo((CursorInfo)cc.getCursorInfo());
+						gsps.setIsAtomic(insertNode.isAtomic());
+						gsps.setExecuteStatementNameAndSchema(insertNode.executeStatementName(),insertNode.executeSchemaName());
+						gsps.setSPSName(insertNode.getSPSName());
+						gsps.completeCompile(insertNode);
+						gsps.setCompileTimeWarnings(cc.getWarnings());
+
+						Activation insertActivation = gsps.getActivation(lcc, true);
+						try{
+								ResultSet insertionRs = gsps.execute(insertActivation, -1);
+								SQLWarning warnings = insertionRs.getWarnings();
+								activation.addWarning(warnings);
+								int insertedRows = insertionRs.modifiedRowCount();
+								activation.addRowsSeen(insertedRows);
+								insertionRs.close();
+
+						}finally{
+								insertActivation.close();
+						}
+				}
     }
 
     @Override

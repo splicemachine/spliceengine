@@ -51,6 +51,8 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
+import org.apache.derby.impl.sql.compile.StatementNode;
 import org.apache.derby.impl.sql.compile.TableName;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.derby.impl.sql.execute.ConstraintInfo;
@@ -104,12 +106,16 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
     public ConstantAction getCreateTableConstantAction(String schemaName, String tableName,
                                                        int tableType, ColumnInfo[] columnInfo,
                                                        ConstantAction[] constraintActions,
-                                                       Properties properties, char lockGranularity,
-                                                       boolean onCommitDeleteRows, boolean onRollbackDeleteRows) {
-    	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
+                                                       Properties properties,
+																											 char lockGranularity,
+                                                       boolean onCommitDeleteRows,
+																											 boolean onRollbackDeleteRows,
+																											 StatementNode insertStatement) {
+    	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
+							schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfo,
                 constraintActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows);
+                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
     }
 
     @Override
