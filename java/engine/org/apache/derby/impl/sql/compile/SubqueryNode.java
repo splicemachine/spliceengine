@@ -1214,7 +1214,7 @@ public class SubqueryNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	private boolean isInvariant() throws StandardException
+	public boolean isInvariant() throws StandardException
 	{
 		if (doneInvariantCheck)
 		{
