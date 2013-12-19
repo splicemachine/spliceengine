@@ -48,6 +48,11 @@ public class JoinSelector extends AbstractSpliceVisitor {
         }
     }
 
+    @Override
+    public QueryTreeNode visit(HalfOuterJoinNode j) throws StandardException {
+        return visit((JoinNode) j);
+    }
+
     public static JoinStrategy chooseStrategy(JoinInfo info) throws StandardException {
         // If reasons to bail present, return Derby's strategy
         if (info.userSuppliedStrategy ||
