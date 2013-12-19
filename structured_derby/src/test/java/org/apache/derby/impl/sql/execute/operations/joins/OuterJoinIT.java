@@ -171,7 +171,7 @@ public class OuterJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Bug 325")
+    @Ignore("DB-216")
     public void testScrollableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select cc.si, dd.si from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si");
         int j = 0;
@@ -190,7 +190,7 @@ public class OuterJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("Bug 325")
+    @Ignore("DB-216")
     public void testSinkableVarcharRightOuterJoinWithJoinStrategy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select cc.si, count(*) from cc right outer join dd --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n on cc.si = dd.si group by cc.si");
         int j = 0;
@@ -251,6 +251,28 @@ public class OuterJoinIT extends SpliceUnitTest {
             if (!rs.getString(2).equals("9")) {
                 Assert.assertNotNull(rs.getString(1));
                 Assert.assertEquals(rs.getString(1), rs.getString(2));
+            } else {
+                Assert.assertNull(rs.getString(1));
+            }
+        }
+        Assert.assertEquals(9, j);
+    }
+
+    @Test
+    public void testRightOuterJoinWithColsOfMixedType() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select cc.si, cc.sd, dd.sd, dd.si " +
+                "from (select si, 1 AS sd from cc ) cc " +
+                "   right outer join " +
+                "       (select si, 1.0 AS sd from dd) dd " +
+                "   on cc.si = dd.si");
+        int j = 0;
+        while (rs.next()) {
+            j++;
+            LOG.info("c.si=" + rs.getString(1) + ",d.si=" + rs.getString(4));
+            Assert.assertNotNull(rs.getString(4));
+            if (!rs.getString(4).equals("9")) {
+                Assert.assertNotNull(rs.getString(1));
+                Assert.assertEquals(rs.getString(1), rs.getString(4));
             } else {
                 Assert.assertNull(rs.getString(1));
             }
