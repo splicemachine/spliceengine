@@ -152,8 +152,13 @@ public class SpliceAdmin {
                     sb.append(", ");
                 }
                 sb.append(String.format("('%s'", servers.get(i).getHostname()));
-                for (String jobID : taskMonitor.getRunningJobs()) {
-                    sb.append(String.format(",'%s'", jobID));
+                String[] jobIDs = taskMonitor.getRunningJobs();
+                if (jobIDs == null || jobIDs.length == 0) {
+                    sb.append(String.format(",'%s'", 0));
+                } else {
+                    for (String jobID : jobIDs) {
+                        sb.append(String.format(",'%s'", jobID));
+                    }
                 }
                 i++;
             }
@@ -611,7 +616,7 @@ public class SpliceAdmin {
             connection.commit();
         } catch (SQLException e){
             connection.rollback();
-            throw e;
+            throw new SQLException(sb.toString(), e);
         } finally {
             connection.close();
         }

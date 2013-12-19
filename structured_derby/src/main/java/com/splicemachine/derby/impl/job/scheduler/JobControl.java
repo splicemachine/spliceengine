@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -15,6 +14,16 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -23,16 +32,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Op;
 import org.apache.zookeeper.ZooKeeper;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -156,7 +156,7 @@ class JobControl implements JobFuture {
 
         //update our job metrics
         Status finalStatus = getStatus();
-        jobMetrics.jobFinished(finalStatus);
+        jobMetrics.removeJob(job, jobPath, finalStatus);
 
         SpliceLogUtils.trace(LOG,"completeNext finished");
     }
@@ -321,6 +321,7 @@ class JobControl implements JobFuture {
                             taskChanged(control);
                         }
                     });
+            jobMetrics.addJob(job, jobPath, tasksToWatch);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }

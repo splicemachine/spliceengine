@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  *         Created on: 9/18/13
  */
-class JobMetrics implements JobSchedulerManagement{
+abstract class JobMetrics implements JobSchedulerManagement{
     final AtomicLong totalSubmittedJobs = new AtomicLong(0l);
     final AtomicLong totalCompletedJobs = new AtomicLong(0l);
     final AtomicLong totalFailedJobs = new AtomicLong(0l);
