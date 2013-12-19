@@ -29,6 +29,20 @@ public class PairDecoder {
 				return templateRow;
 		}
 
+		/*
+		 *
+		 *  < a | b |c >
+		 *    1 | 2 | 3
+		 *
+		 *  sort (a) -->
+		 *  Row Key: 1
+		 *  Row Data: 2 | 3
+		 *
+		 *  group (a,b) ->
+		 *  Row Key: a | b
+		 *  Row Data: aggregate(c)
+		 */
+
 		public int getKeyPrefixOffset(){
 				return keyDecoder.getPrefixOffset();
 		}
