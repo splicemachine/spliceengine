@@ -34,7 +34,7 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 		protected final SpliceZooKeeperManager zkManager;
     private final int maxResubmissionAttempts;
 
-    private final JobMetrics jobMetrics = new StatementMetrics();
+    private final JobMetrics jobMetrics = new JobMetrics();
 
     public DistributedJobScheduler(SpliceZooKeeperManager zkManager, Configuration configuration) {
         this.zkManager = zkManager;

@@ -20,7 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskScheduler<T> {
 		private static final Logger WORKER_LOG = Logger.getLogger(WorkStealingTaskScheduler.class);
 		private final ThreadPoolExecutor executor;
-		private final Stats stats = new Stats();
+    private final Stats stats = new Stats();
+    private final JobMetrics jobMetrics = new JobMetrics();
 
 		private final BlockingQueue<T> pendingTasks;
 		private final List<Future<?>> workerFutures;
@@ -97,7 +98,9 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 				stats.submittedCount.incrementAndGet();
 				pendingTasks.offer(task);
-				return new ListeningTaskFuture<T>(task,0);
+            TaskFuture taskFuture = new ListeningTaskFuture<T>(task,0);
+            jobMetrics.updateTask(taskFuture.getTaskId(), task.getJobId(), taskFuture.getStatus().name());
+            return taskFuture;
 		}
 
 		@Override
@@ -279,6 +282,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 								WORKER_LOG.error("Unexepcted exception calling task "+ Bytes.toString(next.getTaskId()),e);
 						}finally{
 								next.getTaskStatus().detachListener(stats);
+                            jobMetrics.updateTask(next.getTaskId(), next.getJobId(),next.getTaskStatus().getStatus().name());
 						}
 				}
 		}
