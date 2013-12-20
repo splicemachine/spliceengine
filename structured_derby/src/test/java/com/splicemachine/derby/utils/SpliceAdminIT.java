@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -30,6 +31,50 @@ public class SpliceAdminIT {
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    private static final String SQL = "\tsum(l_extendedprice* (1 - l_discount)) as revenue\n" +
+            "from\n" +
+            "\tlineitem,\n" +
+            "\tpart\n" +
+            "where\n" +
+            "\t(\n" +
+            "\t\tp_partkey = l_partkey\n" +
+            "\t\tand p_brand = 'Brand#12'\n" +
+            "\t\tand p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')\n" +
+            "\t\tand l_quantity >= 1 and l_quantity <= 1 + 10\n" +
+            "\t\tand p_size between 1 and 10\n" +
+            "\t\tand l_shipmode in ('AIR', 'AIR REG')\n" +
+            "\t\tand l_shipinstruct = 'DELIVER IN PERSON'\n" +
+            "\t)\n" +
+            "\tor\n" +
+            "\t(\n" +
+            "\t\tp_partkey = l_partkey\n" +
+            "\t\tand p_brand = 'Brand#23'\n" +
+            "\t\tand p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')\n" +
+            "\t\tand l_quantity >= 10 and l_quantity <= 10 + 10\n" +
+            "\t\tand p_size between 1 and 10\n" +
+            "\t\tand l_shipmode in ('AIR', 'AIR REG')\n" +
+            "\t\tand l_shipinstruct = 'DELIVER IN PERSON'\n" +
+            "\t)\n" +
+            "\tor\n" +
+            "\t(\n" +
+            "\t\tp_partkey = l_partkey\n" +
+            "\t\tand p_brand = 'Brand#34'\n" +
+            "\t\tand p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')\n" +
+            "\t\tand l_quantity >= 20 and l_quantity <= 20 + 10\n" +
+            "\t\tand p_size between 1 and 15\n" +
+            "\t\tand l_shipmode in ('AIR', 'AIR REG')\n" +
+            "\t\tand l_shipinstruct = 'DELIVER IN PERSON'\n" +
+            "\t)";
+    @Test
+    @Ignore
+    public void testSqlEscape() throws Exception {
+        String escaped = SpliceAdmin.escape(SQL);
+        StringBuilder sb = new StringBuilder(String.format("select * from (values ('%s')) foo (sqlstatement)",escaped));
+        ResultSet rs = SpliceAdmin.executeStatement(sb);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()", rs);
+        System.out.println(fr.toString());
+        DbUtils.closeQuietly(rs);    }
 
     @Test
     public void testGetActiveTaskStaus() throws Exception {

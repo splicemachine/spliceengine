@@ -1,23 +1,20 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 /**
  * Test for index stuff, more or less encompassing:
@@ -420,7 +417,6 @@ public class IndexIT extends SpliceUnitTest {
     }
 
     @Test(timeout=1000*60*3)  // Time out after 3 min
-    @Ignore("Always times out - no bug created")
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);

@@ -100,7 +100,9 @@ class JobMetrics implements JobSchedulerManagement{
     }
 
     public void addJob(CoprocessorJob job) {
-        jobSQLMap.put(job.getJobId(), ((OperationJob)job).getInstructions().getStatement().getSource());
+        if (job instanceof OperationJob) {
+            jobSQLMap.put(job.getJobId(), ((OperationJob)job).getInstructions().getStatement().getSource());
+        }
     }
 
     public void removeJob(String jobID, Status finalState) {
