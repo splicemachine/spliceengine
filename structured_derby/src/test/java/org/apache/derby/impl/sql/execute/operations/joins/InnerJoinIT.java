@@ -558,7 +558,19 @@ public class InnerJoinIT extends SpliceUnitTest {
 			Assert.assertEquals(9,rs.getLong(2));
         }
 		Assert.assertEquals(10, j);
-	}	
+	}
+
+    @Test
+    public void testCrossOfCrossJoins() throws Exception {
+        int expected = 625;
+        // Purpose is to test NLJ with an NLJ on its right side
+        ResultSet rs = methodWatcher.executeQuery("select * from " +
+                "(select a.empname from staff a, staff b) f, " +
+                "(select a.empnum from staff a, staff b) t");
+
+        Assert.assertEquals(expected, resultSetSize(rs));
+
+    }
 	
 	@Test
 	public void testReturnOutOfOrderJoin() throws Exception{
