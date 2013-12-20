@@ -235,53 +235,6 @@ public class SpliceAdmin {
         }
     }
 
-    public static void SYSCS_GET_JOB_IDS_old(ResultSet[] resultSet) throws SQLException{
-        List<ServerName> servers = getServers();
-        List<Pair<String,JMXConnector>> connections = null;
-        try {
-            connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
-
-            List<Pair<String,JobSchedulerManagement>> jobMonitors;
-            try {
-                jobMonitors = JMXUtils.getJobSchedulerManagement(connections);
-            } catch (MalformedObjectNameException e) {
-                throw new SQLException(e);
-            }
-            StringBuilder sb = new StringBuilder("select * from (values ");
-            int i = 0;
-            for (Pair<String,JobSchedulerManagement> jobMonitor : jobMonitors) {
-                if (i != 0) {
-                    sb.append(", ");
-                }
-                String[] jobs = jobMonitor.getSecond().getRunningJobs();
-                for (String job : jobs) {
-                    sb.append(String.format("('%s'", servers.get(i).getHostname()));
-                    String[] jobComponents = job.split("\\"+JobSchedulerManagement.SEP_CHAR);
-                    for (String comp : jobComponents) {
-                        sb.append(String.format(",'%s'", comp));
-                    }
-                    sb.append("),");
-                }
-                sb.setLength(sb.length()-1);
-                i++;
-            }
-            sb.append(") foo (hostname, statement, jobid, taskids)");
-            resultSet[0] = executeStatement(sb);
-        } catch (IOException e) {
-            throw new SQLException(e);
-        } finally {
-            if (connections != null) {
-                for (Pair<String,JMXConnector> connector : connections) {
-                    try {
-                        connector.getSecond().close();
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                }
-            }
-        }
-    }
-
     public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
         List<ServerName> servers = getServers();
         List<Pair<String,JMXConnector>> connections = null;
