@@ -50,7 +50,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private Set<DDLChange> tentativeIndexes = new CopyOnWriteArraySet<DDLChange>();
     
     @Override
-    public void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
+    public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
         contexts.add(lcc);
         if (!currentDDLChanges.isEmpty()) {
             lcc.startGlobalDDLChange();

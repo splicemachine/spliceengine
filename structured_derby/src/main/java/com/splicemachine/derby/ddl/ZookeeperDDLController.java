@@ -30,7 +30,7 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     private static Gson gson = new Gson();
 
     @Override
-    public void notifyMetadataChange(DDLChange change) throws StandardException {
+    public String notifyMetadataChange(DDLChange change) throws StandardException {
         String changeId;
         String jsonChange = gson.toJson(change);
         try {
@@ -91,10 +91,16 @@ public class ZookeeperDDLController implements DDLController, Watcher {
                 }
             }
         }
+        return changeId;
+    }
+
+    @Override
+    public void finishMetadataChange(String identifier) throws StandardException {
         try {
-            ZkUtils.recursiveDelete(changeId);
+            ZkUtils.recursiveDelete(identifier);
         } catch (Exception e) {
-            LOG.error("Couldn't remove DDL change " + changeId, e);
+            LOG.error("Couldn't remove DDL change " + identifier, e);
+            throw Exceptions.parseException(e);
         }
     }
 
