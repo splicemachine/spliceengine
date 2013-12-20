@@ -28,7 +28,7 @@ public class DropStatisticsConstantOperation extends DDLConstantOperation {
 		this.fullTableName = fullTableName;
 	}
 	
-	public void executeTransactionalConstantAction(Activation activation) throws StandardException {
+	public void executeConstantAction(Activation activation) throws StandardException {
 		TableDescriptor td;
 		ConglomerateDescriptor cd = null;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();

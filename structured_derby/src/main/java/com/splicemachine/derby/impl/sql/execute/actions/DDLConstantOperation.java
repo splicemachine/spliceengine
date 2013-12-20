@@ -877,14 +877,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 			return value;
 		}
 	}
-	
-	@Override
-    public final void executeConstantAction(Activation activation) throws StandardException {
-        executeTransactionalConstantAction(activation);
-
-//        String id = notifyMetadataChange(new DDLChange(activation.getTransactionController().getActiveStateTxIdString()));
-//        finishMetadataChange(id);
-    }
 
     protected void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
             throws StandardException {
@@ -922,13 +914,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     protected void finishMetadataChange(String id) throws StandardException {
         DDLCoordinationFactory.getController().finishMetadataChange(id);
     }
-
-    /**
-	 * Implementation of the actual DDL operation 
-	 * @param activation
-	 * @throws StandardException 
-	 */
-	protected abstract void executeTransactionalConstantAction(Activation activation) throws StandardException;
 
 	/**
 	 * @return list of tables affected by this DDL operation that have to be forbidden to write by concurrent transactions. 

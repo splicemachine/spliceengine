@@ -71,7 +71,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
     }
 
     @Override
-    public void executeTransactionalConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(Activation activation) throws StandardException {
         /*
          * what follows here is a pretty nasty hack to prevent creating duplicate Table entries.
          *
@@ -119,7 +119,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
                     "table",tableName,"schema",schemaName);
 
 				//if the table doesn't exist, allow super class to create it
-				super.executeTransactionalConstantAction(activation);
+				super.executeConstantAction(activation);
 
 
 				if(insertNode!=null){
