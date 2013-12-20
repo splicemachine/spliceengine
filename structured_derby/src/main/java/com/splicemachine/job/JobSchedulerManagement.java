@@ -1,6 +1,5 @@
 package com.splicemachine.job;
 
-import com.splicemachine.derby.impl.job.scheduler.StatementManagement;
 import javax.management.MXBean;
 
 /**
@@ -8,7 +7,8 @@ import javax.management.MXBean;
  *         Created on: 4/10/13
  */
 @MXBean
-public interface JobSchedulerManagement extends StatementManagement {
+public interface JobSchedulerManagement {
+    public static final String SEP_CHAR = "|";
 
     public long getTotalSubmittedJobs();
 
@@ -20,4 +20,15 @@ public interface JobSchedulerManagement extends StatementManagement {
 
     public int getNumRunningJobs();
 
+    /**
+     *
+     * @return [jobID,statement]
+     */
+    String[] getRunningJobs();
+
+    /**
+     *
+     * @return [jobID,taskID,taskStatus]
+     */
+    String[] getRunningTasks();
 }

@@ -5,13 +5,14 @@ import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManageme
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.JobSchedulerManagement;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * @author Jeff Cunningham
@@ -63,7 +65,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_WRITE_INTAKE_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<ActiveWriteHandlersIface> activeWriteHandler = null;
@@ -93,9 +95,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -106,7 +108,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_SET_MAX_TASKS(int workerTier,int maxWorkers) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<StealableTaskSchedulerManagement> taskSchedulers = null;
@@ -122,9 +124,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -135,54 +137,154 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_JOB_IDS(ResultSet[] resultSet) throws SQLException{
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        // <jobID-><statement,jobHost>>
+        Map<String,List<Pair<String,String>>> jobMap = new HashMap<String, List<Pair<String,String>>>();
+        // <jobID-><taskID,taskHost,status>>
+        Map<String,List<Trip<String,String,String>>> taskMap = new HashMap<String, List<Trip<String,String,String>>>();
+
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
-            List<TaskMonitor> taskMonitors;
+            List<Pair<String,JobSchedulerManagement>> jobMonitors;
             try {
-                taskMonitors = JMXUtils.getJobSchedulerManagement(connections);
+                jobMonitors = JMXUtils.getJobSchedulerManagement(connections);
             } catch (MalformedObjectNameException e) {
                 throw new SQLException(e);
             }
+
+            for (Pair<String,JobSchedulerManagement> taskMonitor : jobMonitors) {
+                for (String job : taskMonitor.getSecond().getRunningJobs()) {
+                    // [jobID,statement]
+                    String[] jobComponents = job.split("\\"+JobSchedulerManagement.SEP_CHAR);
+                    String jobID = jobComponents[0];
+                    List<Pair<String,String>> jobVals = jobMap.get(jobID);
+                    if (jobVals == null) {
+                        jobVals = new ArrayList<Pair<String,String>>();
+                    }
+                    jobVals.add(new Pair<String, String>(jobComponents[1],taskMonitor.getFirst()));
+                    jobMap.put(jobID,jobVals);
+                }
+                for (String task : taskMonitor.getSecond().getRunningTasks()) {
+                    // [jobID,taskID,taskStatus]
+                    String[] taskComponents = task.split("\\"+JobSchedulerManagement.SEP_CHAR);
+                    String jobID = taskComponents[0];
+                    List<Trip<String,String,String>> taskVals = taskMap.get(jobID);
+                    if (taskVals == null) {
+                        taskVals = new ArrayList<Trip<String,String,String>>();
+                    }
+                    taskVals.add(new Trip<String,String,String>(taskComponents[1],taskMonitor.getFirst(),taskComponents[2]));
+                    taskMap.put(jobID,taskVals);
+                }
+            }
+
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
-            for (TaskMonitor taskMonitor : taskMonitors) {
-                if (i != 0) {
-                    sb.append(", ");
-                }
-                sb.append(String.format("('%s'", servers.get(i).getHostname()));
-                String[] jobIDs = taskMonitor.getRunningJobs();
-                if (jobIDs == null || jobIDs.length == 0) {
-                    sb.append(String.format(",'%s'", 0));
-                } else {
-                    for (String jobID : jobIDs) {
-                        sb.append(String.format(",'%s'", jobID));
+            for (Map.Entry<String, List<Pair<String, String>>> jobEntry : jobMap.entrySet()) {
+                String jobID = jobEntry.getKey();
+                for (Pair<String, String> statement : jobEntry.getValue()) {
+                    String sql = statement.getFirst();
+                    String jobHost = statement.getSecond();
+                    String taskID = "unknownID";
+                    String taskHost = "unknownHost";
+                    String taskStatus = "unknownStatus";
+                    List<Trip<String,String,String>> taskEntries = taskMap.get(jobID);
+                    if (i != 0) {
+                        sb.append(", ");
                     }
+                    if (taskEntries != null && ! taskEntries.isEmpty()) {
+                        // todo - does nothing if no task info
+                        for (Trip<String,String,String> taskEntry : taskEntries) {
+                            taskID = taskEntry.getFirst();
+                            taskHost = taskEntry.getSecond();
+                            taskStatus = taskEntry.getThird();
+                            sb.append(String.format("('%s','%s','%s','%s','%s','%s')",
+                                    sql,
+                                    jobID,
+                                    jobHost,
+                                    taskID,
+                                    taskHost,
+                                    taskStatus));
+                        }
+                    } else {
+                        sb.append(String.format("('%s','%s','%s','%s','%s','%s')",
+                                sql,
+                                jobID,
+                                jobHost,
+                                taskID,
+                                taskHost,
+                                taskStatus));
+                    }
+                    i++;
                 }
-                i++;
             }
-            sb.append(")) foo (hostname, jobid)");
+            sb.append(") foo (statement, jobid, jobhost, taskid, taskhost, status)");
             resultSet[0] = executeStatement(sb);
         } catch (IOException e) {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
                 }
             }
         }
+    }
 
+    public static void SYSCS_GET_JOB_IDS_old(ResultSet[] resultSet) throws SQLException{
+        List<ServerName> servers = getServers();
+        List<Pair<String,JMXConnector>> connections = null;
+        try {
+            connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+
+            List<Pair<String,JobSchedulerManagement>> jobMonitors;
+            try {
+                jobMonitors = JMXUtils.getJobSchedulerManagement(connections);
+            } catch (MalformedObjectNameException e) {
+                throw new SQLException(e);
+            }
+            StringBuilder sb = new StringBuilder("select * from (values ");
+            int i = 0;
+            for (Pair<String,JobSchedulerManagement> jobMonitor : jobMonitors) {
+                if (i != 0) {
+                    sb.append(", ");
+                }
+                String[] jobs = jobMonitor.getSecond().getRunningJobs();
+                for (String job : jobs) {
+                    sb.append(String.format("('%s'", servers.get(i).getHostname()));
+                    String[] jobComponents = job.split("\\"+JobSchedulerManagement.SEP_CHAR);
+                    for (String comp : jobComponents) {
+                        sb.append(String.format(",'%s'", comp));
+                    }
+                    sb.append("),");
+                }
+                sb.setLength(sb.length()-1);
+                i++;
+            }
+            sb.append(") foo (hostname, statement, jobid, taskids)");
+            resultSet[0] = executeStatement(sb);
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (connections != null) {
+                for (Pair<String,JMXConnector> connector : connections) {
+                    try {
+                        connector.getSecond().close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
+        }
     }
 
     public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
@@ -209,9 +311,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -223,7 +325,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_GLOBAL_MAX_TASKS(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
 
@@ -250,9 +352,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -264,7 +366,7 @@ public class SpliceAdmin {
     
     public static void SYSCS_SET_WRITE_POOL(int writePool) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<ThreadPoolStatus> threadPools = null;
@@ -280,9 +382,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -293,7 +395,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_WRITE_POOL(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<ThreadPoolStatus> threadPools = null;
@@ -319,9 +421,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -333,7 +435,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_GET_WRITE_PIPELINE_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<ThreadPoolStatus> threadPools = null;
@@ -364,9 +466,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -377,7 +479,7 @@ public class SpliceAdmin {
     
     public static void SYSCS_GET_REGION_SERVER_TASK_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             List<TieredSchedulerManagement> taskSchedulers = null;
@@ -393,19 +495,19 @@ public class SpliceAdmin {
                     sb.append(", ");
                 }
                 sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
-                    servers.get(i).getHostname(),
-                    taskSchedule.getTotalWorkerCount(),
-                    taskSchedule.getPending(),
-                    taskSchedule.getExecuting(),
-                    taskSchedule.getTotalCancelledTasks(),
-                    taskSchedule.getTotalCompletedTasks(),
-                    taskSchedule.getTotalFailedTasks(),
-                    taskSchedule.getTotalInvalidatedTasks(),
-                    taskSchedule.getTotalSubmittedTasks(),
-                    taskSchedule.getTotalShruggedTasks(),
-                    taskSchedule.getTotalStolenTasks(),
-                    taskSchedule.getMostLoadedTier(),
-                    taskSchedule.getLeastLoadedTier()));
+                        servers.get(i).getHostname(),
+                        taskSchedule.getTotalWorkerCount(),
+                        taskSchedule.getPending(),
+                        taskSchedule.getExecuting(),
+                        taskSchedule.getTotalCancelledTasks(),
+                        taskSchedule.getTotalCompletedTasks(),
+                        taskSchedule.getTotalFailedTasks(),
+                        taskSchedule.getTotalInvalidatedTasks(),
+                        taskSchedule.getTotalSubmittedTasks(),
+                        taskSchedule.getTotalShruggedTasks(),
+                        taskSchedule.getTotalStolenTasks(),
+                        taskSchedule.getMostLoadedTier(),
+                        taskSchedule.getLeastLoadedTier()));
                 i++;
             }
             sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
@@ -415,9 +517,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -428,7 +530,7 @@ public class SpliceAdmin {
     
     public static void SYSCS_GET_REGION_SERVER_STATS_INFO(ResultSet[] resultSet) throws SQLException {
         List<ServerName> servers = getServers();
-        List<JMXConnector> connections = null;
+        List<Pair<String,JMXConnector>> connections = null;
         try {
             connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
             ObjectName regionServerStats = null;
@@ -439,8 +541,8 @@ public class SpliceAdmin {
             }
             StringBuilder sb = new StringBuilder("select * from (values ");
             int i = 0;
-            for (JMXConnector mxc : connections) {
-                MBeanServerConnection mbsc = mxc.getMBeanServerConnection();
+            for (Pair<String,JMXConnector> mxc : connections) {
+                MBeanServerConnection mbsc = mxc.getSecond().getMBeanServerConnection();
                 if (i !=0) {
                     sb.append(", ");
                 }
@@ -476,9 +578,9 @@ public class SpliceAdmin {
             throw new SQLException(e);
         } finally {
             if (connections != null) {
-                for (JMXConnector connector : connections) {
+                for (Pair<String,JMXConnector> connector : connections) {
                     try {
-                        connector.close();
+                        connector.getSecond().close();
                     } catch (IOException e) {
                         // ignore
                     }
@@ -509,11 +611,11 @@ public class SpliceAdmin {
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
-            // todo
+            // todo implement
             // do sys query for conglomerate for schema?
             // find all tables in schema
             // perform major compaction on each
-            Collection<byte[]> tables = null;
+            Collection<byte[]> tables = Arrays.asList(new byte[0]);
             for (byte[] table : tables) {
                 try {
                     admin.majorCompact(table);
@@ -541,13 +643,16 @@ public class SpliceAdmin {
             admin = SpliceUtils.getAdmin();
             // sys query for conglomerate for table/schema
             long conglomID = getConglomid(getDefaultConn(), schemaName, tableName);
-            byte[] table = null;
-            try {
-                admin.majorCompact(table);
-            } catch (IOException e) {
-                throw new SQLException(e);
-            } catch (InterruptedException e) {
-                throw new SQLException(e);
+            // TODO impl
+            byte[] table = new byte[0];
+            if (table != null && table.length >0) {
+                try {
+                    admin.majorCompact(table);
+                } catch (IOException e) {
+                    throw new SQLException(e);
+                } catch (InterruptedException e) {
+                    throw new SQLException(e);
+                }
             }
         } finally {
             if (admin != null) {
@@ -581,7 +686,7 @@ public class SpliceAdmin {
         try{
             s = conn.prepareStatement(
                     "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
-                        "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?");
+                            "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?");
             s.setString(1,schemaName.toUpperCase());
             s.setString(2,tableName.toUpperCase());
             rs = s.executeQuery();
@@ -704,4 +809,27 @@ public class SpliceAdmin {
         return servers;
     }
 
+    private static class Trip<T, U, V> {
+        private final T first;
+        private final U second;
+        private final V third;
+
+        public Trip(T first, U second, V third) {
+            this.first = first;
+            this.second = second;
+            this.third = third;
+        }
+
+        public T getFirst() {
+            return first;
+        }
+
+        public U getSecond() {
+            return second;
+        }
+
+        public V getThird() {
+            return third;
+        }
+    }
 }

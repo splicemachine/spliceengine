@@ -5,7 +5,7 @@ import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIfac
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
-import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.JobSchedulerManagement;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,6 +16,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import org.apache.hadoop.hbase.util.Pair;
 
 public class JMXUtils {
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
@@ -23,14 +24,14 @@ public class JMXUtils {
     public static final String TIER_TASK_SCHEDULER_MANAGEMENT_BASE = "com.splicemachine.job.tasks.tier-";
     public static final String REGION_SERVER_STATISTICS = "hadoop:service=RegionServer,name=RegionServerStatistics";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.dery.hbase:type=ActiveWriteHandlers";
-    public static final String TASK_MONITOR = "com.splicemachine.job:type=TaskMonitor";
+    public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
 
-	public static List<JMXConnector> getMBeanServerConnections(Collection<String> serverConnections) throws IOException {
-		List<JMXConnector> mbscArray = new ArrayList<JMXConnector>(serverConnections.size());
+	public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<String> serverConnections) throws IOException {
+		List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
 		for (String serverName: serverConnections) {
 			JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%s/jndi/rmi://%s:10102/jmxrmi",serverName,serverName));
 		    JMXConnector jmxc = JMXConnectorFactory.connect(url, null); 		
-		    mbscArray.add(jmxc);
+		    mbscArray.add(Pair.newPair(serverName,jmxc));
 		}
 		return mbscArray;
 	}
@@ -39,43 +40,43 @@ public class JMXUtils {
 		return getDynamicMBean(REGION_SERVER_STATISTICS);
 	}
 	
-	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<JMXConnector> mbscArray) throws MalformedObjectNameException, IOException {
+	public static List<ThreadPoolStatus> getMonitoredThreadPools(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
 		List<ThreadPoolStatus> monitoredThreadPools = new ArrayList<ThreadPoolStatus>();
-		for (JMXConnector mbsc: mbscArray) {
-			monitoredThreadPools.add(getNewMBeanProxy(mbsc,MONITORED_THREAD_POOL,ThreadPoolStatus.class));
+		for (Pair<String,JMXConnector> mbsc: mbscArray) {
+			monitoredThreadPools.add(getNewMBeanProxy(mbsc.getSecond(),MONITORED_THREAD_POOL,ThreadPoolStatus.class));
 		}
 		return monitoredThreadPools;
 	}
 
-	public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<JMXConnector> mbscArray) throws MalformedObjectNameException, IOException {
+	public static List<ActiveWriteHandlersIface> getActiveWriteHandlers(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
 		List<ActiveWriteHandlersIface> activeWrites = new ArrayList<ActiveWriteHandlersIface>();
-		for (JMXConnector mbsc: mbscArray) {
-			activeWrites.add(getNewMBeanProxy(mbsc,ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
+		for (Pair<String,JMXConnector> mbsc: mbscArray) {
+			activeWrites.add(getNewMBeanProxy(mbsc.getSecond(),ACTIVE_WRITE_HANDLERS,ActiveWriteHandlersIface.class));
 		}
 		return activeWrites;
 	}
 
-    public static List<TaskMonitor> getJobSchedulerManagement(List<JMXConnector> mbscArray) throws MalformedObjectNameException, IOException {
-        List<TaskMonitor> taskMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
-        for (JMXConnector mbsc: mbscArray) {
-            taskMonitors.add(getNewMBeanProxy(mbsc, TASK_MONITOR, TaskMonitor.class));
+    public static List<Pair<String,JobSchedulerManagement>> getJobSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<Pair<String,JobSchedulerManagement>> jobMonitors = Lists.newArrayListWithCapacity(mbscArray.size());
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            jobMonitors.add(new Pair<String, JobSchedulerManagement>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
         }
-        return taskMonitors;
+        return jobMonitors;
     }
 
-    public static List<TieredSchedulerManagement> getTaskSchedulerManagement(List<JMXConnector> mbscArray) throws MalformedObjectNameException, IOException {
+    public static List<TieredSchedulerManagement> getTaskSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<TieredSchedulerManagement> taskSchedules = Lists.newArrayListWithCapacity(mbscArray.size());
-        for (JMXConnector mbsc: mbscArray) {
-            taskSchedules.add(getNewMBeanProxy(mbsc, GLOBAL_TASK_SCHEDULER_MANAGEMENT,TieredSchedulerManagement.class));
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            taskSchedules.add(getNewMBeanProxy(mbsc.getSecond(), GLOBAL_TASK_SCHEDULER_MANAGEMENT,TieredSchedulerManagement.class));
         }
         return taskSchedules;
     }
 
-    public static List<StealableTaskSchedulerManagement> getTieredSchedulerManagement(int tier,List<JMXConnector> mbscArray) throws MalformedObjectNameException, IOException {
+    public static List<StealableTaskSchedulerManagement> getTieredSchedulerManagement(int tier,List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<StealableTaskSchedulerManagement> taskSchedules = Lists.newArrayListWithCapacity(mbscArray.size());
         String mbeanName = TIER_TASK_SCHEDULER_MANAGEMENT_BASE + tier + ":type=StealableTaskSchedulerManagement";
-        for (JMXConnector mbsc: mbscArray) {
-            taskSchedules.add(getNewMBeanProxy(mbsc, mbeanName,StealableTaskSchedulerManagement.class));
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            taskSchedules.add(getNewMBeanProxy(mbsc.getSecond(), mbeanName,StealableTaskSchedulerManagement.class));
         }
         return taskSchedules;
     }

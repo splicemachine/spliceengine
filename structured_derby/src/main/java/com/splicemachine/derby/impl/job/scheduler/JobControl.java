@@ -156,7 +156,7 @@ class JobControl implements JobFuture {
 
         //update our job metrics
         Status finalStatus = getStatus();
-        jobMetrics.removeJob(job, jobPath, finalStatus);
+        jobMetrics.removeJob(job.getJobId(), finalStatus);
 
         SpliceLogUtils.trace(LOG,"completeNext finished");
     }
@@ -321,7 +321,7 @@ class JobControl implements JobFuture {
                             taskChanged(control);
                         }
                     });
-            jobMetrics.addJob(job, jobPath, tasksToWatch);
+            jobMetrics.addJob(job);
         }catch (Throwable throwable) {
             throw new ExecutionException(throwable);
         }

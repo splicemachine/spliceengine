@@ -37,7 +37,6 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_JOB_IDS()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
@@ -57,7 +56,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertEquals(2,fr.size());
         DbUtils.closeQuietly(rs);
     }
 
