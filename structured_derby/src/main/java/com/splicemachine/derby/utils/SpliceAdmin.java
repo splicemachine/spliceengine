@@ -183,7 +183,7 @@ public class SpliceAdmin {
             for (Map.Entry<String, List<Pair<String, String>>> jobEntry : jobMap.entrySet()) {
                 String jobID = jobEntry.getKey();
                 for (Pair<String, String> statement : jobEntry.getValue()) {
-                    String sql = statement.getFirst();
+                    String sql = escape(statement.getFirst());
                     String jobHost = statement.getSecond();
                     String taskID = "unknownID";
                     String taskHost = "unknownHost";
@@ -233,6 +233,10 @@ public class SpliceAdmin {
                 }
             }
         }
+    }
+
+    static String escape(String first) {
+        return first.replaceAll("\\'", "\\'\\'");
     }
 
     public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{
@@ -665,7 +669,7 @@ public class SpliceAdmin {
         throw Util.noCurrentConnection();
     }
 
-    private static ResultSet executeStatement(StringBuilder sb) throws SQLException {
+    static ResultSet executeStatement(StringBuilder sb) throws SQLException {
         ResultSet result = null;
         Connection connection = getDefaultConn();
         try {
