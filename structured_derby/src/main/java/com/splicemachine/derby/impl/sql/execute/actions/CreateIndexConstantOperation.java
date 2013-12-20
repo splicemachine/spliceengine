@@ -731,7 +731,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
         ddlChange.setParentTransactionId(tc.getTransactionIdString());
 
-        notifyMetadataChange(ddlChange);
+        String notificationId = notifyMetadataChange(ddlChange);
 
         // Add the indexes to the exisiting regions
         JobFuture future = null;
@@ -818,6 +818,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
             }
         }
+        // TODO fix this, has to be moved to the en of the transaction
+        finishMetadataChange(notificationId);
 	}
 
     /**

@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLController;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -115,6 +118,11 @@ public class SpliceTransactionManager implements XATransactionController,
 	 * locking level to record has no effect.
 	 **/
 	private int transaction_lock_level;
+
+    /**
+     * The ID of the current ddl change coordination.
+     */
+    private String currentDDLChangeId;
 
 	/**************************************************************************
 	 * Constructors for This class:
@@ -2230,14 +2238,15 @@ public class SpliceTransactionManager implements XATransactionController,
         return "";
 	}
 
-	/*
-	 * public String getActiveStateTxIdString(String newTransID) { if
-	 * (LOG.isTraceEnabled())
-	 * LOG.trace("getActiveStateTxIdString with the new transID"); try {
-	 * ((SpliceTransaction)rawtran).setActiveState(newTransID); return
-	 * newTransID; } catch (Exception e) {
-	 * SpliceLogUtils.logAndThrowRuntime(LOG,e); } return null; }
-	 */
+    @Override
+    public void prepareDataDictionaryChange() throws StandardException {
+        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(getActiveStateTxIdString()));
+    }
+
+    @Override
+    public void commitDataDictionaryChange() throws StandardException {
+        DDLCoordinationFactory.getController().finishMetadataChange(currentDDLChangeId);
+    }
 
 	public String toString() {
 		String str = null;

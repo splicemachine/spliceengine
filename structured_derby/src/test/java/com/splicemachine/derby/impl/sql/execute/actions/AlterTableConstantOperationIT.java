@@ -87,6 +87,16 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Read Committed Violated",0, resultSetSize(resultSet));
         Assert.assertEquals("Didn't expect to see another column until after commit.", 4, columnWidth(resultSet));
 
+        connection2.commit();
+        resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));
+        Assert.assertEquals("Read Committed Violated",0, resultSetSize(resultSet));
+        Assert.assertEquals("Didn't expect to see another column until after commit.", 4, columnWidth(resultSet));
+
+        connection2.commit();
+        resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));
+        Assert.assertEquals("Read Committed Violated",0, resultSetSize(resultSet));
+        Assert.assertEquals("Didn't expect to see another column until after commit.", 4, columnWidth(resultSet));
+
         connection1.commit();
         connection2.commit();
         resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_2)));

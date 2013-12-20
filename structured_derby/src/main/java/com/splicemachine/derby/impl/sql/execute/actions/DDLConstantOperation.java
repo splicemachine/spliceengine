@@ -882,7 +882,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     public final void executeConstantAction(Activation activation) throws StandardException {
         executeTransactionalConstantAction(activation);
 
-        notifyMetadataChange(new DDLChange(activation.getTransactionController().getActiveStateTxIdString()));
+//        String id = notifyMetadataChange(new DDLChange(activation.getTransactionController().getActiveStateTxIdString()));
+//        finishMetadataChange(id);
     }
 
     protected void forbidActiveTransactionsTableAccess(List<TransactionId> active, List<String> tables)
@@ -914,8 +915,12 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         }
     }
 
-	protected void notifyMetadataChange(DDLChange change) throws StandardException {
-	    DDLCoordinationFactory.getController().notifyMetadataChange(change);
+	protected String notifyMetadataChange(DDLChange change) throws StandardException {
+	    return DDLCoordinationFactory.getController().notifyMetadataChange(change);
+    }
+
+    protected void finishMetadataChange(String id) throws StandardException {
+        DDLCoordinationFactory.getController().finishMetadataChange(id);
     }
 
     /**
