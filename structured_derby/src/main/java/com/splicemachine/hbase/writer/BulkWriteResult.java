@@ -107,13 +107,13 @@ public class BulkWriteResult implements Externalizable {
 		}
 
 		public byte[] toBytes() throws IOException {
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				CompressionCodec codec = SpliceUtils.getSnappyCodec();
-				baos.write(Encoding.encode(codec!=null));
-
-				OutputStream os = codec==null?baos:codec.createOutputStream(baos);
+//				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//				CompressionCodec codec = SpliceUtils.getSnappyCodec();
+//				baos.write(Encoding.encode(codec!=null));
+//
+//				OutputStream os = codec==null?baos:codec.createOutputStream(baos);
 				Output out = new Output(1024,-1);
-				out.setOutputStream(os);
+//				out.setOutputStream(os);
 				int size = notRunRows.size();
 				int[] notRunBuffer = notRunRows.buffer;
 				out.writeInt(size);
@@ -128,15 +128,15 @@ public class BulkWriteResult implements Externalizable {
 						result.write(out);
 				}
 				out.flush();
-				return baos.toByteArray();
+				return out.toBytes();
 		}
 
 		public static BulkWriteResult fromBytes(byte[] bytes) throws IOException {
-				boolean encoded = Encoding.decodeBoolean(bytes);
-				InputStream is = new ByteArrayInputStream(bytes,1,bytes.length);
-				is = encoded?SpliceUtils.getSnappyCodec().createInputStream(is):is;
+//				boolean encoded = Encoding.decodeBoolean(bytes);
+//				InputStream is = new ByteArrayInputStream(bytes,1,bytes.length);
+//				is = encoded?SpliceUtils.getSnappyCodec().createInputStream(is):is;
 
-				Input input = new Input(is);
+				Input input = new Input(bytes);
 				int notRunSize = input.readInt();
 				IntArrayList notRunRows = IntArrayList.newInstanceWithCapacity(notRunSize);
 				for(int i=0;i<notRunSize;i++){

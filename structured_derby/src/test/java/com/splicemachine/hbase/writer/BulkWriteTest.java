@@ -33,7 +33,7 @@ public class BulkWriteTest {
 				ObjectArrayList<KVPair> list = new ObjectArrayList<KVPair>();
 				KVPair kvPair = new KVPair(Encoding.encode("Hello"),new byte[]{}, KVPair.Type.DELETE);
 				list.add(kvPair);
-				BulkWrite write = new BulkWrite(list,"1184",null);
+				BulkWrite write = new BulkWrite(list,null,null);
 
 				byte[] bytes = write.toBytes();
 
