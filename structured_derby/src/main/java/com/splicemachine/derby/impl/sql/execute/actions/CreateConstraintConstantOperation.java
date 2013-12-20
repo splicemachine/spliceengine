@@ -115,7 +115,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void executeTransactionalConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		ConglomerateDescriptor		conglomDesc = null;
 		ConglomerateDescriptor[]	conglomDescs = null;
@@ -316,7 +316,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             	backingIndexName = iAction.getIndexName(); 
             }
 			/* Create the index */
-            ((CreateIndexConstantOperation)indexAction).executeTransactionalConstantAction(activation);
+            ((CreateIndexConstantOperation)indexAction).executeConstantAction(activation);
 
 			/* Get the conglomerate descriptor for the backing index */
             conglomDescs = td.getConglomerateDescriptors();

@@ -43,7 +43,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
      *
      * @see org.apache.derby.iapi.sql.execute.ConstantAction#executeConstantAction
      */
-    public void executeTransactionalConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(Activation activation) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();

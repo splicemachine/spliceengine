@@ -262,7 +262,7 @@ public class AlterTableConstantOperation extends DDLSingleTableConstantOperation
      * of the action
      */
     @Override
-    public void executeTransactionalConstantAction(Activation activation) throws StandardException {
+    public void executeConstantAction(Activation activation) throws StandardException {
     	SpliceLogUtils.trace(LOG, "executeConstantAction with activation %s",activation);
         try {
             executeConstantActionBody(activation);
