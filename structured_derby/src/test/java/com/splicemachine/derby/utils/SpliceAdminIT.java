@@ -32,10 +32,10 @@ public class SpliceAdminIT {
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     @Test
-    public void testGetActiveJobIDs() throws Exception {
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_JOB_IDS()");
+    public void testGetActiveTaskStaus() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()");
         ResultSet rs = cs.executeQuery();
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_JOB_IDS()", rs);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()", rs);
         System.out.println(fr.toString());
         DbUtils.closeQuietly(rs);
     }
@@ -46,7 +46,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_ACTIVE_SERVERS()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -56,7 +56,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_PIPELINE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(2,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -66,7 +66,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_INTAKE_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -76,7 +76,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REQUESTS()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -86,7 +86,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_TASK_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -96,7 +96,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_REGION_SERVER_STATS_INFO()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -107,7 +107,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_MAX_TASKS(25)", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -117,7 +117,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_GLOBAL_MAX_TASKS()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 
@@ -164,7 +164,7 @@ public class SpliceAdminIT {
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_WRITE_POOL()", rs);
         System.out.println(fr.toString());
-        Assert.assertEquals(1,fr.size());
+        Assert.assertTrue(fr.size()>=1);
         DbUtils.closeQuietly(rs);
     }
 

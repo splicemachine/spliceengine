@@ -135,7 +135,7 @@ public class SpliceAdmin {
         }
     }
 
-    public static void SYSCS_GET_JOB_IDS(ResultSet[] resultSet) throws SQLException{
+    public static void SYSCS_GET_TASK_STATUS(ResultSet[] resultSet) throws SQLException{
         List<ServerName> servers = getServers();
         // <jobID-><statement,jobHost>>
         Map<String,List<Pair<String,String>>> jobMap = new HashMap<String, List<Pair<String,String>>>();
