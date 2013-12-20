@@ -51,6 +51,7 @@ public class TieredTaskSchedulerTest {
 						final byte[] testTaskId = Bytes.toBytes(1l);
 						final Task testTask1 = mock(Task.class);
 						when(testTask1.getPriority()).thenReturn(0);
+                        when(testTask1.getTaskId()).thenReturn(testTaskId);
 						when(testTask1.getTaskStatus()).thenReturn(taskStatus1);
 						doAnswer(new Answer<Void>() {
 
@@ -138,10 +139,12 @@ public class TieredTaskSchedulerTest {
 
 						TaskStatus taskStatus1 = createTaskStatus();
 
-						final byte[] testTaskId = Bytes.toBytes(1l);
+                        final byte[] testTaskId = Bytes.toBytes(0l);
+                        final byte[] testTaskId1 = Bytes.toBytes(1l);
 						final Task testTask1 = mock(Task.class);
 						when(testTask1.getPriority()).thenReturn(0);
 						when(testTask1.getTaskStatus()).thenReturn(taskStatus1);
+                        when(testTask1.getTaskId()).thenReturn(testTaskId1);
 						doAnswer(new Answer<Void>() {
 
 								@Override
@@ -322,7 +325,6 @@ public class TieredTaskSchedulerTest {
 		}
 
 		@Test(timeout= 1000)
-//		@Test
 		public void testSubmissionWorks() throws Exception {
 				ConstrainedTaskScheduler<Task> cScheduler = new ConstrainedTaskScheduler<Task>(new ExpandingTaskScheduler<Task>(),
 								Collections.<ConstrainedTaskScheduler.Constraint<Task>>emptyList(),true);
@@ -342,6 +344,7 @@ public class TieredTaskSchedulerTest {
 
 						Task testTask = mock(Task.class);
 						when(testTask.getTaskStatus()).thenReturn(mockStatus);
+                        when(testTask.getTaskId()).thenReturn(new byte[] {0x1, 0x2, 0x3});
 						doAnswer(new Answer<Void>() {
 
 								@Override
