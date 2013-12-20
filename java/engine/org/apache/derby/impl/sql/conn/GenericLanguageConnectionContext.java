@@ -1538,7 +1538,16 @@ public class GenericLanguageConnectionContext
 
         //reset the current savepoint level for the connection to 0 at the end 
         //of commit work for temp tables
-        currentSavepointLevel = 0; 
+        currentSavepointLevel = 0;
+
+        // now commit the Store transaction
+        TransactionController tc = getTransactionExecute();
+
+        boolean commitDDChange = ddWriteMode;
+
+        if (commitDDChange) {
+            tc.prepareDataDictionaryChange();
+        }
 
         // Do *NOT* tell the DataDictionary to start using its cache again
         // if this is an unsynchronized commit. The reason is that it
@@ -1548,7 +1557,7 @@ public class GenericLanguageConnectionContext
         {
             finishDDTransaction();
         }
-        
+
         // Check that any nested transaction has been destoyed
         // before a commit.
         if (SanityManager.DEBUG)
@@ -1559,9 +1568,7 @@ public class GenericLanguageConnectionContext
             }
         }
 
-        // now commit the Store transaction
-        TransactionController tc = getTransactionExecute();
-        if ( tc != null && commitStore ) 
+        if ( tc != null && commitStore )
         { 
             if (sync)
             {
@@ -1600,6 +1607,10 @@ public class GenericLanguageConnectionContext
             {
                 tempTablesXApostCommit();
             }
+        }
+
+        if (commitDDChange) {
+            tc.commitDataDictionaryChange();
         }
     }
 

@@ -1922,7 +1922,20 @@ public interface TransactionController
 	 * @return The string which identifies the transaction.  
      **/
     public String getActiveStateTxIdString();
-    
+
+    /**
+     * First step of 2-phase commit for a data dictionary change. Makes sure all
+     * servers are in sync for committing a change to the DataDictionary.
+     * It has to be called *before* the transaction that makes the change is committed.
+     */
+    public void prepareDataDictionaryChange() throws StandardException;
+
+    /**
+     * Final step of 2-phase commit for a data dictionary change. Makes sure all
+     * servers are in sync for committing a change to the DataDictionary.
+     * It has to be called *after* the transaction that makes the change is committed.
+     */
+    public void commitDataDictionaryChange() throws StandardException;
 
     /**
      * Reveals whether the transaction has ever read or written data.

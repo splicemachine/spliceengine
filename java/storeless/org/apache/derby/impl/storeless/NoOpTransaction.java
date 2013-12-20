@@ -348,6 +348,14 @@ class NoOpTransaction implements TransactionController {
         return null;
     }
 
+    public void prepareDataDictionaryChange() {
+
+    }
+
+    public void commitDataDictionaryChange() {
+
+    }
+
     public boolean isIdle() {
         // Auto-generated method stub
         return false;

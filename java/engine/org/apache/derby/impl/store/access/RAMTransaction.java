@@ -2440,6 +2440,14 @@ public class RAMTransaction
 		return(rawtran.getActiveStateTxIdString());
 	}
 
+    public void prepareDataDictionaryChange() {
+        // do nothing
+    }
+
+    public void commitDataDictionaryChange() {
+        // do nothing
+    }
+
 
     public String toString()
     {
