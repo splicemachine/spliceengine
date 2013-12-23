@@ -194,7 +194,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change + "/" + id,
                         new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             } catch (KeeperException e) {
-                throw Exceptions.parseException(e);
+								//we may have already set the value, so ignore node exists issues
+								if(e.code()!=Code.NODEEXISTS)
+										throw Exceptions.parseException(e);
             } catch (InterruptedException e) {
                 throw Exceptions.parseException(e);
             }

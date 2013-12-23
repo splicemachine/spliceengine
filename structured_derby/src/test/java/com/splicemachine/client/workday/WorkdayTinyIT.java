@@ -153,11 +153,19 @@ public class WorkdayTinyIT extends SpliceUnitTest {
             expectedRowVals.add(Arrays.asList("3", "933"));
             assertValuesEqual(expectedRowVals, actualRowVals);
         } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OmsLogTable.INDEX_SYSUSERID_IDX);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OmsLogTable.INDEX_HTTPREQ_IDX);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OmsLogTable.INDEX_HTTPRESP_IDX);
+						dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_WHDATE_IDX);
+            dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_SYSUSERID_IDX);
+            dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_HTTPREQ_IDX);
+            dropIndex(SCHEMA_NAME,OmsLogTable.INDEX_HTTPRESP_IDX);
         }
     }
+
+		private void dropIndex(String schemaName, String tableName){
+				try{
+						SpliceIndexWatcher.executeDrop(schemaName,tableName);
+				}catch(Exception e){
+						e.printStackTrace();
+				}
+		}
 
 }
