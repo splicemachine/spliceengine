@@ -319,14 +319,18 @@ public class ZkUtils extends SpliceConstants {
     }
 
     public static void initializeZookeeper() throws InterruptedException, KeeperException {
-    	for (String path: SpliceConstants.zookeeperPaths) {
-    		recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-    	}
+				safeInitializeZooKeeper();
 
-        initializeTransactions();
+				initializeTransactions();
     }
-    
-    public static void refreshZookeeper() throws InterruptedException, KeeperException {
+
+		public static void safeInitializeZooKeeper() throws InterruptedException, KeeperException {
+				for (String path: SpliceConstants.zookeeperPaths) {
+						recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				}
+		}
+
+		public static void refreshZookeeper() throws InterruptedException, KeeperException {
     	cleanZookeeper();
     	initializeZookeeper();
     }

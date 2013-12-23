@@ -232,6 +232,13 @@ public class SpliceDriver extends SIConstants {
                         boolean setRunning = true;
                         SpliceLogUtils.debug(LOG, "Booting Database");
                         setRunning = bootDatabase();
+												if(!setRunning){
+														abortStartup();
+														return null;
+												}
+
+												//ensure Zk paths exists
+												ZkUtils.safeInitializeZooKeeper();
                         //table is set up
                         snowflake = snowLoader.load();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
@@ -239,10 +246,6 @@ public class SpliceDriver extends SIConstants {
                         //register JMX items --have to wait for the db to boot first
                         registerJMX();
 
-                        if(!setRunning){
-                            abortStartup();
-                            return null;
-                        }
                         SpliceLogUtils.debug(LOG, "Starting Services");
                         setRunning = startServices();
                         SpliceLogUtils.debug(LOG, "Done Starting Services");
