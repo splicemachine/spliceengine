@@ -461,13 +461,23 @@ public class HdfsImport extends ParallelVTI {
 		private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,Path file) throws StandardException {
 				CompressionCodec codec = codecFactory.getCodec(file);
         ImportJob importJob;
-        if(codec==null ||codec instanceof SplittableCompressionCodec){
-            try{
-                importJob = new BlockImportJob(table, context);
-            }catch(IOException ioe){
-                throw Exceptions.parseException(ioe);
-            }
-        }else
+				/*
+				 * (December, 2013) We are disabling BlockImports for the time being because
+				 * they are error-prone and difficult to test at scale, and you can get nearly
+				 * as good of parallelism and performance from just dumping a bunch of files into
+				 * a single directory and running the import against the entire directory.
+				 *
+				 * In a couple of months, when we have a clearer need for that import
+				 * process as opposed to the more stable File import process, then we
+				 * can reopen this issue.
+				 */
+//        if(codec==null ||codec instanceof SplittableCompressionCodec){
+//            try{
+//                importJob = new BlockImportJob(table, context);
+//            }catch(IOException ioe){
+//                throw Exceptions.parseException(ioe);
+//            }
+//        }else
             importJob = new FileImportJob(table,context);
         return importJob;
     }
