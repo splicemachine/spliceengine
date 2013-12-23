@@ -195,13 +195,13 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
         instance.register(ValueRow.class,new ValueRowSerializer(),10);
         instance.register(GenericStorablePreparedStatement.class,EXTERNALIZABLE_SERIALIZER,11);
-        instance.register(DataTypeDescriptor.class,EXTERNALIZABLE_SERIALIZER,12);
-        instance.register(TypeDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER,13);
-        instance.register(BaseTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,14);
-        instance.register(UserDefinedTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,15);
-        instance.register(DecimalTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,16);
-        instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER,17);
-        instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER,18);
+        instance.register(DataTypeDescriptor.class,EXTERNALIZABLE_SERIALIZER,18);
+        instance.register(TypeDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER,12);
+        instance.register(BaseTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,13);
+        instance.register(UserDefinedTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,14);
+        instance.register(DecimalTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER,15);
+        instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER,16);
+        instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER,17);
 
         instance.register(IndexConglomerate.class,EXTERNALIZABLE_SERIALIZER,19);
         instance.register(HBaseConglomerate.class,EXTERNALIZABLE_SERIALIZER,20);
@@ -454,15 +454,15 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BroadcastJoinOperation.class, EXTERNALIZABLE_SERIALIZER,81);
         instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,82);
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER,83);
-        instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,84);
+        instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,89);
 
-        instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER,85);
-        instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER,86);
-        instance.register(IndexDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER,87);
-        instance.register(FormatableHashtable.class,EXTERNALIZABLE_SERIALIZER,88);
-        instance.register(FormatableIntHolder.class,EXTERNALIZABLE_SERIALIZER,89);
-        instance.register(FormatableIntHolder[].class,90);
-        instance.register(DD_Version.class,EXTERNALIZABLE_SERIALIZER,91);
+        instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER,84);
+        instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER,85);
+        instance.register(IndexDescriptorImpl.class,EXTERNALIZABLE_SERIALIZER,86);
+        instance.register(FormatableHashtable.class,EXTERNALIZABLE_SERIALIZER,87);
+        instance.register(FormatableIntHolder.class,EXTERNALIZABLE_SERIALIZER,88);
+        instance.register(FormatableIntHolder[].class,91);
+        instance.register(DD_Version.class,EXTERNALIZABLE_SERIALIZER,90);
         instance.register(DDdependableFinder.class,EXTERNALIZABLE_SERIALIZER,92);
         instance.register(DDColumnDependableFinder.class,EXTERNALIZABLE_SERIALIZER,93);
         instance.register(byte[].class,94);
