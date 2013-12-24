@@ -26,6 +26,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.nio.ByteBuffer;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Calendar;
 
 /**
@@ -736,13 +737,15 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             if(otherDVD.isLazy()){
                 LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-                if(dvdBytes!=null && ldvd.dvdBytes!=null){
-                    return dvdBytes.equals(ldvd.dvdBytes);
+                if(dvdBytes!=null && ldvd.dvdBytes!=null
+                        && descendingOrder == ldvd.descendingOrder){
+                    return Arrays.equals(dvdBytes, ldvd.dvdBytes);
+                    //return dvdBytes.equals(ldvd.dvdBytes);
                 } else {
+                    ldvd.forceDeserialization();
                     result = dvd.equals(ldvd.dvd);
                 }
             } else{
-                forceDeserialization();
                 result = dvd.equals(otherDVD);
             }
         }
