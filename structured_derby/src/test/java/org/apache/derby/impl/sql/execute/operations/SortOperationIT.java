@@ -111,7 +111,11 @@ public class SortOperationIT extends SpliceUnitTest {
 				}
 			}
 			
-		});
+		})
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table sort_on_null (id int, name varchar(25)); " +
+                            "insert into sort_on_null values (1, NULL);",
+                    CLASS_NAME));
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
@@ -342,6 +346,16 @@ public class SortOperationIT extends SpliceUnitTest {
         List result = TestUtils.resultSetToArrays(rs);
 
         Assert.assertArrayEquals(expected.toArray(), result.toArray());
+    }
+
+    @Test
+    public void testNonDistinctOrderByOnNullData() throws Exception {
+        List<Object[]> expected = Collections.singletonList(o(1,null));
+
+        ResultSet rs = methodWatcher.executeQuery("select * from sort_on_null order by name");
+        List result = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertEquals(expected.toArray(), result.toArray());
     }
 
     private static class Triplet implements Comparable<Triplet>{

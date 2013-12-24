@@ -3,19 +3,27 @@ package com.splicemachine.derby.utils.marshall;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
+import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLInteger;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 
 import static org.mockito.Mockito.mock;
@@ -72,14 +80,14 @@ public class PairEncoderTest {
 								secondDvd.setToNull();
 								dvds[1] = secondDvd;
 								dts[1] = secondType;
-								data.add(new Object[]{dts,dvds});
+								data.add(new Object[]{dts.clone(),dvds.clone()});
 
 								//set some random fields
 								for(int i=0;i<numRandomValues;i++){
 										secondDvd = secondType.getDataValueDescriptor();
 										secondType.setNext(secondDvd,secondType.newObject(random));
 										dvds[1] = secondDvd;
-										data.add(new Object[]{dts,dvds});
+										data.add(new Object[]{dts.clone(),dvds.clone()});
 								}
 						}
 
@@ -94,14 +102,14 @@ public class PairEncoderTest {
 										secondDvd.setToNull();
 										dvds[1] = secondDvd;
 										dts[1] = secondType;
-										data.add(new Object[]{dts,dvds});
+										data.add(new Object[]{dts.clone(),dvds.clone()});
 
 										//set some random fields
 										for(int j=0;j<numRandomValues;j++){
 												secondDvd = secondType.getDataValueDescriptor();
 												secondType.setNext(secondDvd,secondType.newObject(random));
 												dvds[1] = secondDvd;
-												data.add(new Object[]{dts,dvds});
+												data.add(new Object[]{dts.clone(),dvds.clone()});
 										}
 								}
 						}
@@ -152,5 +160,98 @@ public class PairEncoderTest {
 				ExecRow decodedRow = decoder.decode(kv);
 				ImportTestUtils.assertRowsEquals(execRow,decodedRow);
 		}
+
+        @Test
+        public void testProperlyEncodesSortedValues() throws Exception {
+            ExecRow execRow = new ValueRow(dataTypes.length);
+            for (int i = 0; i < dataTypes.length; i++) {
+                execRow.setColumn(i + 1, row[i].cloneValue(true));
+            }
+
+            int keyLength = dataTypes.length / 2;
+            if (keyLength == 0)
+                keyLength++;
+            int[] keyColumns = new int[keyLength];
+            int pos = 0;
+            for (int i = 0; i < dataTypes.length; i++) {
+                if (keyLength == 1 && i == 0){
+                    keyColumns[pos] = i;
+                } else if (i % 2 == 1) {
+                    keyColumns[pos] = i;
+                    pos++;
+                }
+            }
+
+            boolean[] keySortOrder = new boolean[keyLength];
+            keySortOrder[0] = false;
+
+            int[] rowColumns = IntArrays.complement(keyColumns, execRow.nColumns());
+
+            KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(keyColumns, keySortOrder), NoOpPostfix.INSTANCE);
+            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null);
+            PairEncoder encoder = new PairEncoder(keyEncoder, rowEncoder, KVPair.Type.INSERT);
+
+            KVPair pair = encoder.encode(execRow);
+
+            ExecRow clone = execRow.getNewNullRow();
+            PairDecoder decoder = encoder.getDecoder(clone);
+
+            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, pair.getValue());
+
+            ExecRow decodedRow = decoder.decode(kv);
+            ImportTestUtils.assertRowsEquals(execRow, decodedRow);
+        }
+
+        private static final Snowflake.Generator snowGen = new Snowflake((short)0xFAFF).newGenerator(64);
+        private static final byte[] uniquePostBytes = Bytes.toBytes((long)0x7FFF7833FFAB7833l);
+        private static final byte[] prefixBytes = Bytes.toBytes((long)0x7FAF7933FFA07853l);
+        {
+            // generate some Snowflake ids to make sure first byte is not 0x00
+            for (int i = 0; i < 10; i++) {
+                snowGen.next();
+            }
+        }
+
+        @Test
+        public void testProperlyEncodesSortedValuesWithPrefixAndPostfix() throws Exception {
+            ExecRow execRow = new ValueRow(dataTypes.length);
+            for (int i = 0; i < dataTypes.length; i++) {
+                execRow.setColumn(i + 1, row[i].cloneValue(true));
+            }
+
+            int keyLength = dataTypes.length / 2;
+            if (keyLength == 0)
+                keyLength++;
+            int[] keyColumns = new int[keyLength];
+            int pos = 0;
+            for (int i = 0; i < dataTypes.length; i++) {
+                if (keyLength == 1 && i == 0){
+                    keyColumns[pos] = i;
+                } else if (i % 2 == 1) {
+                    keyColumns[pos] = i;
+                    pos++;
+                }
+            }
+
+            boolean[] keySortOrder = new boolean[keyLength];
+            int[] rowColumns = IntArrays.complement(keyColumns, execRow.nColumns());
+
+            FixedBucketPrefix prefix = new FixedBucketPrefix((byte)0x08,
+                    new FixedPrefix(prefixBytes));
+            UniquePostfix postfix = new UniquePostfix(uniquePostBytes, snowGen);
+            KeyEncoder keyEncoder = new KeyEncoder(prefix, BareKeyHash.encoder(keyColumns, keySortOrder), postfix);
+            DataHash rowEncoder = BareKeyHash.encoder(rowColumns, null);
+            PairEncoder encoder = new PairEncoder(keyEncoder, rowEncoder, KVPair.Type.INSERT);
+
+            KVPair pair = encoder.encode(execRow);
+
+            ExecRow clone = execRow.getNewNullRow();
+            PairDecoder decoder = encoder.getDecoder(clone);
+
+            KeyValue kv = new KeyValue(pair.getRow(), SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY, pair.getValue());
+
+            ExecRow decodedRow = decoder.decode(kv);
+            ImportTestUtils.assertRowsEquals(execRow, decodedRow);
+        }
 
 }
