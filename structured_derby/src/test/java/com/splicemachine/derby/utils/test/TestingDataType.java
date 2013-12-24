@@ -2,6 +2,9 @@ package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Charsets;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.apache.derby.iapi.error.StandardException;
@@ -217,6 +220,46 @@ public enum TestingDataType {
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
             return new SQLVarchar();
+        }
+
+        @Override
+        public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
+            if(decoder.nextIsNull())
+                dvd.setToNull();
+            else
+                dvd.setValue(decoder.decodeNextString());
+        }
+
+        @Override
+        public String toString(Object value) {
+            return (String)value;
+        }
+
+        @Override
+        public void setNext(DataValueDescriptor dvd, Object value) throws StandardException {
+            dvd.setValue((String)value);
+        }
+
+        @Override
+        public Object newObject(Random random) {
+            char[] string = new char[random.nextInt(100)];
+            Charset charset = Charsets.UTF_8;
+            CharsetEncoder encoder = charset.newEncoder().onMalformedInput(CodingErrorAction.REPORT);
+            for(int i=0;i<string.length;i++){
+                char next = (char)random.nextInt();
+                while(!encoder.canEncode(next))
+                    next = (char)random.nextInt();
+
+                string[i] = next;
+            }
+            return new String(string);
+        }
+    },
+    LAZYVARCHAR(Types.VARCHAR){
+        @Override public void encode(Object o, MultiFieldEncoder encoder) { encoder.encodeNext((String)o); }
+        @Override
+        public DataValueDescriptor getDataValueDescriptor() {
+            return new LazyStringDataValueDescriptor(new SQLVarchar(), new StringDVDSerializer());
         }
 
         @Override
