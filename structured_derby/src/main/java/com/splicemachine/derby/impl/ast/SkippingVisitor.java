@@ -16,9 +16,9 @@ import org.apache.derby.iapi.sql.compile.Visitor;
 public class SkippingVisitor implements Visitor {
     private boolean stop = false;
     Visitor v;
-    Predicate<Visitable> skip;
+    Predicate<? super Visitable> skip;
 
-    public SkippingVisitor(final Visitor v, final Predicate<Visitable> skip){
+    public SkippingVisitor(final Visitor v, final Predicate<? super Visitable> skip){
         this.v = v;
         this.skip = skip;
     }

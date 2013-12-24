@@ -327,7 +327,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public String toString(){
-        return "Merge"+super.toString();
+        return "MergeSort"+super.toString();
     }
 
     @Override

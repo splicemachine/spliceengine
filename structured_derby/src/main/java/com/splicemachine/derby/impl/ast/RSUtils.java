@@ -41,6 +41,13 @@ public class RSUtils {
         return v.getCollected();
     }
 
+    public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz)
+            throws StandardException {
+        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
+        node.accept(new SkippingVisitor(v, Predicates.in((List)getChildren(node))));
+        return v.getCollected();
+    }
+
 
     public static final Function<ResultSetNode,Integer> rsNum = new Function<ResultSetNode, Integer>() {
         @Override
