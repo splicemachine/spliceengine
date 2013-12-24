@@ -28,7 +28,7 @@ public class KeyEncoder {
 				int totalLength = prefixLength + hashBytes.length;
 				int postfixOffset = prefixLength+hashBytes.length;
 				int postfixLength = postfix.getPostfixLength(hashBytes);
-				if(hashBytes.length>0 && postfixLength>0){
+                if(postfixLength>0){
 						totalLength++;
 						postfixOffset++;
 				}
@@ -37,9 +37,10 @@ public class KeyEncoder {
 				prefix.encode(finalRowKey, 0, hashBytes);
 				if(hashBytes.length>0){
 						System.arraycopy(hashBytes,0,finalRowKey,prefixLength,hashBytes.length);
-						if(postfixLength>0)
-								finalRowKey[prefixLength+hashBytes.length] = 0x00;
 				}
+                if(postfixLength>0){
+                    finalRowKey[prefixLength + hashBytes.length] = 0x00;
+                }
 				postfix.encodeInto(finalRowKey,postfixOffset,hashBytes);
 
 				return finalRowKey;
