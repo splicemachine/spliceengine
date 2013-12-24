@@ -185,8 +185,9 @@ public class RowParserTest {
          * Tests that we can parse a whitespace string as null in the first element
          * of the string[] and still get a correct array (if the type is NOT VARCHAR or CHAR)
          */
-        if(TestingDataType.VARCHAR.equals(dataTypes.get(0))||
-                TestingDataType.CHAR.equals(dataTypes.get(0)))
+        if(TestingDataType.VARCHAR.equals(dataTypes.get(0))
+                || TestingDataType.CHAR.equals(dataTypes.get(0))
+                || TestingDataType.LAZYVARCHAR.equals(dataTypes.get(0)) )
             return;
 
         Random random = new Random(0l);
