@@ -778,8 +778,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             LOG.error("Unexpected error while waiting for past transactions to complete", e);
             throw Exceptions.parseException(e);
         }
-        List<String> tables = getBlockedTables();
-        forbidActiveTransactionsTableAccess(active, tables);
+        if (!active.isEmpty()) {
+            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
+                    new RuntimeException(String.format("There are active transactions %.100", active)));
+        }
+        // TODO handle past transactions gracefully
+//        List<String> tables = getBlockedTables();
+//        forbidActiveTransactionsTableAccess(active, tables);
 
         /*
          * Backfill the index with any existing data.

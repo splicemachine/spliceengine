@@ -37,7 +37,7 @@ public class ZookeeperBroadcast {
 
         try {
             String node = ZkUtils.create(SpliceConstants.zkSpliceBroadcastActiveServersPath + "/", new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
             id = node.substring(node.lastIndexOf('/') + 1);
         } catch (KeeperException e) {
             throw Exceptions.parseException(e);
