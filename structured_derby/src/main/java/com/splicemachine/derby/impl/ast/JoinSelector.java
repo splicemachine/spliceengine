@@ -8,6 +8,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.log4j.Logger;
@@ -129,7 +130,9 @@ public class JoinSelector extends AbstractSpliceVisitor {
             if (props != null &&
                     props.getProperty("joinStrategy") != null &&
                     (j == rsn ||
-                            j.getReferencedTableMap().contains(rsn.getReferencedTableMap()))){
+                            (j.getReferencedTableMap() != null &&
+                                    rsn.getReferencedTableMap() != null &&
+                                    j.getReferencedTableMap().contains(rsn.getReferencedTableMap())))) {
                 return true;
             }
         }

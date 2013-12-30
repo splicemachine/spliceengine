@@ -355,7 +355,7 @@ public class SortOperationIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery("select * from sort_on_null order by name");
         List result = TestUtils.resultSetToArrays(rs);
 
-        Assert.assertEquals(expected.toArray(), result.toArray());
+        Assert.assertArrayEquals(expected.toArray(), result.toArray());
     }
 
     private static class Triplet implements Comparable<Triplet>{
