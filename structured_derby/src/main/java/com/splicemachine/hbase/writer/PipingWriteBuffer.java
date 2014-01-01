@@ -284,14 +284,28 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             ObjectArrayList<KVPair> removed = ObjectArrayList.newInstance();
             int size = buffer.size();
             Object[] array = buffer.buffer;
+            boolean needsCompact = false;
             for (int i = 0; i< size;i++) {
-            	KVPair pair = (KVPair) array[i];
+                KVPair pair = (KVPair) array[i];
                 if(Bytes.compareTo(startKey,pair.getRow())<=0){
                     removed.add(pair);
-//                    iterator.remove(); POSSIBLE ISSUE
+                    array[i] = null;
+                    needsCompact = true;
                 }
             }
+            if (needsCompact) {
+                compactBuffer(buffer, array, size);
+            }
             return removed;
+        }
+
+        private void compactBuffer(ObjectArrayList<KVPair> buffer, Object[] array, int size) {
+            buffer.clear();
+            for (int i = 0; i < size; ++i) {
+                if (array[i] != null) {
+                    buffer.add((KVPair) array[i]);
+                }
+            }
         }
 
         public int getHeapSize() {
