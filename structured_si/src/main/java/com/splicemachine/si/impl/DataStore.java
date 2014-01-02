@@ -178,22 +178,23 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     }
 
     public KeyValueType getKeyValueType(KeyValue keyValue) {
-        final boolean isSIFamily = dataLib.matchingFamily(keyValue, siFamily);
-        if (isSIFamily && dataLib.matchingQualifier(keyValue, commitTimestampQualifier)) {
-            return KeyValueType.COMMIT_TIMESTAMP;
-        } else if (isSIFamily && dataLib.matchingQualifier(keyValue, tombstoneQualifier)) {
-            if (dataLib.matchingValue(keyValue, siNull)) {
-                return KeyValueType.TOMBSTONE;
-            } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
-                return KeyValueType.ANTI_TOMBSTONE;
-            } else {
-                return KeyValueType.OTHER;
-            }
-        } else if (dataLib.matchingFamily(keyValue, userColumnFamily)) {
-            return KeyValueType.USER_DATA;
-        } else {
-            return KeyValueType.OTHER;
-        }
+        if (dataLib.matchingFamily(keyValue, siFamily)) {
+	        if (dataLib.matchingQualifier(keyValue, commitTimestampQualifier)) {
+	            return KeyValueType.COMMIT_TIMESTAMP;
+	        } else { // Took out the check...
+	            if (dataLib.matchingValue(keyValue, siNull)) {
+	                return KeyValueType.TOMBSTONE;
+	            } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
+	                return KeyValueType.ANTI_TOMBSTONE;
+	            } else {
+	                return KeyValueType.OTHER;
+	            }
+	        }
+	   } else if (dataLib.matchingFamily(keyValue, userColumnFamily)) {
+		   return KeyValueType.USER_DATA;
+	   } else {
+	       return KeyValueType.OTHER;
+	   }
     }
 
     public boolean isSINull(KeyValue keyValue) {
