@@ -147,10 +147,17 @@
         </repository>
         <repository>
             <id>inciteretail</id>
-            <url>http://www.inciteretail.com/nexus/content/repositories/releases/</url>
+            <url>http://www.inciteretail.com/nexus/content/repositories/releases</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
+        </repository>
+        <repository>
+            <id>inciteretail-snapshots</id>
+            <url>http://www.inciteretail.com/nexus/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
         <repository>
             <id>mapr-releases</id>
