@@ -32,7 +32,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
     protected Integer derbyPort = SpliceConstants.DEFAULT_DERBY_BIND_PORT;
 
     public SpliceSinglePlatform(String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort,
-                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort) {
+                              Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String chaos) {
         this.zookeeperTargetDirectory = zookeeperTargetDirectory;
         this.hbaseRootDirUri = hbaseRootDirUri;
 
@@ -46,8 +46,8 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 	public static void main(String[] args) {
 		SpliceSinglePlatform spliceSinglePlatform;
 		try {
-			if (args.length == 7) {
-			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]));
+			if (args.length == 8) {
+			    spliceSinglePlatform = new SpliceSinglePlatform(args[0], args[1], new Integer(args[2]), new Integer(args[3]), new Integer(args[4]), new Integer(args[5]), new Integer(args[6]), args[7]);
 			    spliceSinglePlatform.start();
 
 			}else{
@@ -75,7 +75,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 			t.printStackTrace(out);
 		}
 		out.println("Usage: SpliceSinglePlatform( String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort, " +
-                              "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort )");
+                              "Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String true|false )");
 	}
 	
 	public void start() throws Exception {
