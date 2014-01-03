@@ -46,13 +46,14 @@ fi
 TARBALL="${ROOT_DIR}"/target/splice_machine-0.5rc6-SNAPSHOT-${PROFILE}_simple.tar.gz
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
-    usage "Cannot find ${TARBALL}. An unexpected profile was provided \\"${PROFILE}\\""
+    usage "Cannot find ${TARBALL}. An unexpected profile was provided \\"${PROFILE}\\" or the project needs to be built."
     exit 1
 fi
 
 # Extract package libs for classpath and bin scripts to call
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/bin &>/dev/null
+
 # Config
 SPLICELOG="${ROOT_DIR}"/splice.log
 ZOOLOG="${ROOT_DIR}"/zoo.log
@@ -60,6 +61,15 @@ CLASSPATH="${ROOT_DIR}"/target/splicemachine/lib/*
 ZOO_DIR="${ROOT_DIR}"/target/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/target/hbase"
 LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
+
+# Check if server running. Shut down if so.
+# Doing this automatically so that running in batch mode, like ITs, works without problems.
+S=`jps | grep SpliceTestPlatform | grep -v grep  | awk '{print $1}'`
+Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
+if [[ -n ${S} || -n ${Z} ]]; then
+    echo "Splice server is running. Shutting down."
+    "${SCRIPT_DIR}"/stop-splice.sh
+fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running profile ${PROFILE} at $currentDateTime === " > ${SPLICELOG}
