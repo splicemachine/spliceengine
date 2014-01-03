@@ -7,6 +7,7 @@ import com.splicemachine.si.data.api.SDataLib;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValue.Type;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -367,8 +368,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     }
 
 	@Override
-	public KeyValue newKeyValue(KeyValue keyValue, byte[] value) {
-	        return new KeyValue(keyValue.getRow(), keyValue.getFamily(), keyValue.getQualifier(), keyValue.getTimestamp(), value);
+	public KeyValue newKeyValue(KeyValue keyValue, byte[] value) {		
+			return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getKeyLength(),keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(),Type.Put,value,0,value.length);
 	}
 	
     @Override
