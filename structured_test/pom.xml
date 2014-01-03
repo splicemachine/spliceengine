@@ -171,7 +171,9 @@
 		</profile>
 
 		<profile>
-			<id>integration-tests</id>
+<!--			<id>integration-tests</id> -->
+            <!-- temporarily commented out -->
+            <id>do-not-run</id>
 			<properties>
 				<!-- enable failsafe integration tests -->
 				<skip.integration.tests>false</skip.integration.tests>
