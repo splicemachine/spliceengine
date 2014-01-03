@@ -34,7 +34,7 @@ currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
 echo "Shutting down splice at $currentDateTime" >> ${SPLICELOG}
 
-"${ROOT_DIR}"/target/classes/bin/_stopServer.sh "${ROOT_DIR}/target/classes" "${ROOT_DIR}/target/classes"
+"${ROOT_DIR}"/target/splicemachine/bin/_stopServer.sh "${ROOT_DIR}/target/splicemachine" "${ROOT_DIR}/target/splicemachine"
 
 if [ ! -d "logs" ]; then
   mkdir logs

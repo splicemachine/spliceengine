@@ -50,10 +50,9 @@ if [[ ! -e ${TARBALL} ]]; then
     exit 1
 fi
 
-# Make package scrips executable
-chmod 0755 "${ROOT_DIR}"/target/classes/bin/*sh
-# Extract package libs for classpath
+# Extract package libs for classpath and bin scripts to call
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
+tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/bin &>/dev/null
 # Config
 SPLICELOG="${ROOT_DIR}"/splice.log
 ZOOLOG="${ROOT_DIR}"/zoo.log
@@ -70,7 +69,7 @@ ZOO_WAIT_TIME=45
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
 # Start server with retry logic
 #echo "${ROOT_DIR}/target/classes" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
-"${ROOT_DIR}"/target/classes/bin/_retrySplice.sh "${ROOT_DIR}/target/classes" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+"${ROOT_DIR}"/target/splicemachine/bin/_retrySplice.sh "${ROOT_DIR}/target/splicemachine" "${SPLICELOG}" "${ZOOLOG}" "${LOG4J_PATH}" "${ZOO_DIR}" "${ZOO_WAIT_TIME}" "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
 
 popd &>/dev/null
 
