@@ -1,6 +1,7 @@
 package com.splicemachine.utils;
 
 import com.google.common.collect.Lists;
+
 import org.junit.*;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class ConcurrentRingBufferTest {
 
     @Test
     public void testWorksWithSingleReader() throws Exception {
-        ConcurrentRingBuffer<String> buffer = new ConcurrentRingBuffer<String>(1,new String[1],new ConcurrentRingBuffer.Filler<String>() {
+        ConcurrentRingBuffer<String> buffer = new ConcurrentRingBuffer<String>(1,new String[1],new Filler<String>() {
             @Override
             public void prepareToFill() throws ExecutionException {
                //no-op
@@ -63,6 +64,12 @@ public class ConcurrentRingBufferTest {
             public void finishFill() throws ExecutionException {
                 //no-op
             }
+
+			@Override
+			public boolean isExhausted() throws ExecutionException {
+				// TODO Auto-generated method stub
+				return false;
+			}
         });
 
         Assert.assertEquals("Incorrect return type!","testString",buffer.next());
@@ -72,7 +79,7 @@ public class ConcurrentRingBufferTest {
     public void testWorksWithManyReaders() throws Throwable {
         final ConcurrentSkipListMap<Integer,Boolean> presenceMap = new ConcurrentSkipListMap<Integer, Boolean>();
         final AtomicInteger counter = new AtomicInteger(0);
-        final ConcurrentRingBuffer.Filler<Integer> filler = new ConcurrentRingBuffer.Filler<Integer>() {
+        final Filler<Integer> filler = new Filler<Integer>() {
 
             @Override
             public void prepareToFill() throws ExecutionException {
@@ -88,6 +95,12 @@ public class ConcurrentRingBufferTest {
             public void finishFill() throws ExecutionException {
                 //no-op;
             }
+
+			@Override
+			public boolean isExhausted() throws ExecutionException {
+				// TODO Auto-generated method stub
+				return false;
+			}
         };
 
         final int bufferSize =10;
