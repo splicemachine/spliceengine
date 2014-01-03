@@ -43,6 +43,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -141,10 +142,11 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
 
         keyColumns = new int[fihArray.length];
+        
         for(int index=0;index<fihArray.length;index++){
             keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
-
+ 
         RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner,
                 getExecRowDefinition(),operationInformation.getBaseColumnMap());
         MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1);
@@ -206,8 +208,9 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-
-						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+            if(top != this)
+                SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+			return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 //            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,
 //										decoder,spliceRuntimeContext);
         } catch (IOException e) {
@@ -230,11 +233,13 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         return getMapRowProvider(top, decoder, spliceRuntimeContext);
+			
     }
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         Scan scan = buildScan(runtimeContext);
+        
         RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
@@ -243,6 +248,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
     @Override
     public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    	
         RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
