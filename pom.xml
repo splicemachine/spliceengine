@@ -153,13 +153,6 @@
             </releases>
         </repository>
         <repository>
-            <id>inciteretail-snapshots</id>
-            <url>http://www.inciteretail.com/nexus/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
             <id>mapr-releases</id>
             <name>MapR Releases</name>
             <url>http://repository.mapr.com/maven/</url>
