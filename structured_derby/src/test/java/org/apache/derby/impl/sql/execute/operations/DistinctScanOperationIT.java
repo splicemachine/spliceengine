@@ -41,6 +41,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher1)
 		.around(spliceTableWatcher2)
+		.around(spliceTableWatcher3)
 		.around(new SpliceDataWatcher() {
             @Override
             protected void starting(Description description) {
@@ -144,6 +145,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
     	ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString());
         int i = 0;
         while(rs.next()){
+        	System.out.println(rs.getInt(1));
         	i++;
         }
         Assert.assertEquals(i, 10);
@@ -153,6 +155,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()){
+        	System.out.println("" + rs.getInt(1) + " " + rs.getDouble(2));
         	i++;
         }
         Assert.assertEquals(i, 10);
@@ -161,6 +164,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()){
+        	System.out.println("" + rs.getDouble(1) + " " + rs.getInt(2));
         	i++;
         }
         Assert.assertEquals(i, 10);
@@ -169,6 +173,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
         i = 0;
         while(rs.next()){
+        	System.out.println("" + rs.getDouble(1) + " " + rs.getInt(2));
         	Assert.assertEquals((int)rs.getDouble(1), i);
         	i++;
         }
