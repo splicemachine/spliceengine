@@ -369,7 +369,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
 
 	@Override
 	public KeyValue newKeyValue(KeyValue keyValue, byte[] value) {		
-			return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getKeyLength(),keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(),Type.Put,value,0,value.length);
+			return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getFamilyLength(),keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(),Type.Put,value,0,value==null ? 0 : value.length);		
 	}
 	
     @Override
