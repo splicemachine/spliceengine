@@ -1,4 +1,27 @@
 #!/bin/bash
+
+##################################################################################
+# Stop Zookeeper and the Splice HBase servers
+# See usage() below.
+##################################################################################
+
+usage() {
+    # $1 is an error, if any
+    if [[ -n "${1}" ]]; then
+        echo "Error: ${1}"
+    fi
+    echo "Usage: $0 [-h[elp]]"
+    echo "Where: "
+    echo "  -h => print this message"
+    echo "Stop Zookeeper and Splice. Log files get timestamped and copied to the"
+    echo "structured_derby/logs directory."
+}
+
+if [[ ${1} == -h* ]]; then
+    usage
+    exit 0 # This is not an error, User asked help. Don't do "exit 1"
+fi
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
