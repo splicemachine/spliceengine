@@ -125,6 +125,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
          * until after the region map has been rebuilt.
          */
         SortedSet<HRegionInfo> regions = regionCache.getRegions(tableName);
+
         if(regions.size()<=0){
             int numTries=5;
             while(numTries>0){
@@ -200,6 +201,19 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     @Override public double getAverageSizePerFlush() { return ((double)totalBytesAddes)/totalFlushes; }
     @Override public CallBuffer<KVPair> unwrap() { return this; }
 
+    // For testing purpose
+    public void setBuildBuffer() {rebuildBuffer = true;}
+    public TreeMap<Integer, Integer> getRegionToBufferCount() {
+
+        TreeMap map = new TreeMap<Integer, Integer>();
+        for(Map.Entry<byte[],PreMappedBuffer> entry: regionToBufferMap.entrySet()) {
+            Integer key = Bytes.mapKey(entry.getKey());
+            PreMappedBuffer buffer = entry.getValue();
+            int size = buffer.getBufferSize();
+            map.put(key, new Integer(size));
+        }
+        return map;
+    }
     private class PreMappedBuffer implements CallBuffer<KVPair> {
         private final Writer writer;
         private final ObjectArrayList<KVPair> buffer;
@@ -283,6 +297,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         public ObjectArrayList<KVPair> removeAllAfter(final byte[] startKey) {
             ObjectArrayList<KVPair> removed = ObjectArrayList.newInstance();
             int size = buffer.size();
+
             Object[] array = buffer.buffer;
             boolean needsCompact = false;
             for (int i = 0; i< size;i++) {
@@ -300,12 +315,15 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
 
         private void compactBuffer(ObjectArrayList<KVPair> buffer, Object[] array, int size) {
-            buffer.clear();
+
+            ObjectArrayList<KVPair> newBuffer = ObjectArrayList.newInstance();
             for (int i = 0; i < size; ++i) {
                 if (array[i] != null) {
-                    buffer.add((KVPair) array[i]);
+                    newBuffer.add((KVPair) array[i]);
                 }
             }
+            buffer.buffer = newBuffer.buffer;
+            buffer.elementsCount = newBuffer.elementsCount;
         }
 
         public int getHeapSize() {
@@ -314,6 +332,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
         public Writer getWriter() {
             return writer;
+        }
+
+        public int getBufferSize() {
+            return buffer.size();
         }
     }
 
