@@ -71,28 +71,9 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             throw Exceptions.parseException(e);
         }
 
-        List<String> children;
-        try {
-            children = ZkUtils.getChildren(SpliceConstants.zkSpliceDDLOngoingTransactionsPath, this);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        for (String change : children) {
-            try {
-                byte[] data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change);
-                String transactionId = Bytes.toString(data);
-                currentDDLChanges.put(change, transactionId);
-                changesTimeouts.put(change, System.currentTimeMillis());
-                ZkUtils.create(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + change + "/" + id,
-                        new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-            } catch (KeeperException e) {
-                throw Exceptions.parseException(e);
-            } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
+        // run refresh() synchronously the first time
+        refresh();
+
         executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
