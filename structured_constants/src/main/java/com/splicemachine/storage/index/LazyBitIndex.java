@@ -28,9 +28,6 @@ abstract class LazyBitIndex implements BitIndex{
         this.offset = offset;
         this.length = length;
         this.decodedBits = new BitSet();
-//        this.decodedScalarFields = new BitSet();
-//        this.decodedFloatFields = new BitSet();
-//        this.decodedDoubleFields = new BitSet();
         this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
