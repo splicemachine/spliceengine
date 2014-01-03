@@ -43,6 +43,7 @@ LOG4J_PATH="file:${ROOT_DIR}/target/classes/hbase-log4j.properties"
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running profile ${PROFILE} at $currentDateTime === " > ${SPLICELOG}
 
+export SPLICE_SYS_ARGS="-Xdebug -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=10102"
 # Start server with retry logic
 ZOO_WAIT_TIME=45
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
