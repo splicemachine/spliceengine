@@ -19,8 +19,6 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.Nullable;
-
-import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -35,7 +33,7 @@ public class SpliceTestPlatform extends TestConstants {
 	protected MiniHBaseCluster miniHBaseCluster;
 	protected MiniHBaseCluster miniHBaseCluster2;
 	protected String zookeeperTargetDirectory;
-	protected String hbaseTargetDirectory;
+	protected String hbaseRootDirUri;
     protected Integer masterPort;
     protected Integer masterInfoPort;
     protected Integer regionServerPort;
@@ -85,30 +83,26 @@ public class SpliceTestPlatform extends TestConstants {
     public SpliceTestPlatform() {
 		super();
 	}
-	
-	public SpliceTestPlatform(String targetDirectory, String failTasksRandomly) {
-		this(targetDirectory + "zookeeper",targetDirectory + "hbase", failTasksRandomly);
-	}
 
-    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, String failTasksRandomly) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, null, null, null, null, failTasksRandomly);
+    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseRootDirUri, String failTasksRandomly) {
+        this(zookeeperTargetDirectory, hbaseRootDirUri, null, null, null, null, failTasksRandomly);
     }
 
 
-	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, String failTasksRandomly) {
+	public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort, Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, String failTasksRandomly) {
 		this.zookeeperTargetDirectory = zookeeperTargetDirectory;
-		this.hbaseTargetDirectory = hbaseTargetDirectory;
+		this.hbaseRootDirUri = hbaseRootDirUri;
 
         this.masterPort = masterPort;
         this.masterInfoPort = masterInfoPort;
         this.regionServerPort = regionServerPort;
         this.regionServerInfoPort = regionServerInfoPort;
-        this.failTasksRandomly = (failTasksRandomly.compareToIgnoreCase("TRUE") == 0)?true:false;
+        this.failTasksRandomly = (failTasksRandomly.compareToIgnoreCase("TRUE") == 0);
 	}
 
-    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseTargetDirectory, Integer masterPort,
+    public SpliceTestPlatform(String zookeeperTargetDirectory, String hbaseRootDirUri, Integer masterPort,
                               Integer masterInfoPort, Integer regionServerPort, Integer regionServerInfoPort, Integer derbyPort, String failTasksRandomly) {
-        this(zookeeperTargetDirectory, hbaseTargetDirectory, masterPort,
+        this(zookeeperTargetDirectory, hbaseRootDirUri, masterPort,
                 masterInfoPort, regionServerPort, regionServerInfoPort, failTasksRandomly);
         this.derbyPort = derbyPort;
     }
@@ -116,10 +110,7 @@ public class SpliceTestPlatform extends TestConstants {
 	public static void main(String[] args) throws Exception {
 		
 		SpliceTestPlatform spliceTestPlatform;
-		if (args.length == 2) {
-			spliceTestPlatform = new SpliceTestPlatform(args[0],args[1]);
-            spliceTestPlatform.start();
-		}else if (args.length == 3) {
+		if (args.length == 3) {
 			spliceTestPlatform = new SpliceTestPlatform(args[0],args[1],args[2]);
 			spliceTestPlatform.start();
 		}else if (args.length == 7) {
@@ -131,8 +122,8 @@ public class SpliceTestPlatform extends TestConstants {
             spliceTestPlatform.start();
 
         }else{
-			System.out.println("Splice TestContext Platform supports one argument providing the target directory" +
-					" or two arguments dictating the zookeeper and hbase directory.");
+			System.out.println("Splice TestContext Platform supports arguments indicating the zookeeper target "+
+                    "directory, hbase directory URI and a boolean flag indicating whether the chaos monkey should randomly fail tasks.");
 			System.exit(1);
 		}
 	}
@@ -141,6 +132,7 @@ public class SpliceTestPlatform extends TestConstants {
 		Configuration config = HBaseConfiguration.create();
 		setBaselineConfigurationParameters(config);
         LOG.info("Derby listen port: "+derbyPort);
+        LOG.info("Random task failure "+(this.failTasksRandomly?"WILL":"WILL NOT")+" occur");
 		miniHBaseCluster = new MiniHBaseCluster(config,1,1);
 	}
 
@@ -156,7 +148,7 @@ public class SpliceTestPlatform extends TestConstants {
     }
 
 	public void setBaselineConfigurationParameters(Configuration configuration) {
-		configuration.set("hbase.rootdir", "file://" + hbaseTargetDirectory);
+		configuration.set("hbase.rootdir", hbaseRootDirUri);
 		configuration.setInt("hbase.rpc.timeout", 120000);
 		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");

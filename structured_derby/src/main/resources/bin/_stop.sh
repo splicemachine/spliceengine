@@ -15,7 +15,6 @@ if [[ -n "${KILL_PID}" ]]; then
 
     ALIVE_PID=$(ps ax | grep -v grep | grep ${KILL_PID} | awk '{print $1}')
     if [[ "${ALIVE_PID}" -ne "${KILL_PID}" ]]; then
-        echo
         echo "No process PID [${KILL_PID}] dead?"
         # clean up old pid file
         CYGWIN=`uname -s`
@@ -34,12 +33,10 @@ if [[ -n "${KILL_PID}" ]]; then
 
     ALIVE_PID=$(ps ax | grep -v grep | grep ${KILL_PID} | awk '{print $1}')
     if [[ -n "$ALIVE_PID" ]]; then
-        echo
         echo "Process didn't shut down. Trying again..."
         kill -9 ${KILL_PID}
     fi
 else
-    echo
     echo "Bad PID: [${KILL_PID}] in ${PID_FILE}"
     # clean up old pid file
     CYGWIN=`uname -s`

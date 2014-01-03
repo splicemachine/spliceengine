@@ -1,30 +1,15 @@
 #!/bin/bash
 
-ROOT_DIR="$1"
-LOGFILE="$2"
-DEBUG="$3"
+ROOT_DIR="${1}"
+LOGFILE="${2}"
+LOG4J_PATH="${3}"
+ZOO_DIR="${4}"
+HBASE_ROOT_DIR_URI="${5}"
+CLASSPATH="${6}"
+SPLICE_MAIN_CLASS="${7}"
+CHAOS="${8}"
 
 SPLICE_PID_FILE="${ROOT_DIR}"/splice_pid
-
-LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
-if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
-    LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
-fi
-
-CLASSPATH="${ROOT_DIR}/lib/*"
-ZOO_DIR="${ROOT_DIR}"/db/zookeeper
-HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
-
-CYGWIN=`uname -s`
-if [[ ${CYGWIN} == CYGWIN* ]]; then
-    CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
-    ZOO_DIR=`cygpath --path --windows "${ROOT_DIR}/db/zookeeper"`
-    HBASE_ROOT_DIR_URI="CYGWIN"
-    LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
-    if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
-        LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties`"
-    fi
-fi
 export CLASSPATH
 LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
@@ -37,5 +22,5 @@ HBASE_REGIONSERVER_PORT=60020
 HBASE_REGIONSERVER_INFO_PORT=60030
 SPLICE_PORT=1527
 
-(java ${SYS_ARGS} -enableassertions com.splicemachine.single.SpliceSinglePlatform "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} >> "${LOGFILE}" 2>&1 ) &
+(java ${SYS_ARGS} -enableassertions "${SPLICE_MAIN_CLASS}" "${ZOO_DIR}" "${HBASE_ROOT_DIR_URI}" ${HBASE_MASTER_PORT} ${HBASE_MASTER_INFO_PORT} ${HBASE_REGIONSERVER_PORT} ${HBASE_REGIONSERVER_INFO_PORT} ${SPLICE_PORT} ${CHAOS} >> "${LOGFILE}" 2>&1 ) &
 echo "$!" > ${SPLICE_PID_FILE}

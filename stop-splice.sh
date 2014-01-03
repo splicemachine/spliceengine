@@ -1,30 +1,24 @@
 #!/bin/bash
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
+pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
+ROOT_DIR="$( pwd )"
+
+SPLICELOG="${ROOT_DIR}"/splice.log
+ZOOLOG="${ROOT_DIR}"/zoo.log
+DERBYLOG="${ROOT_DIR}"/derby.log
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 
-echo "Shutting down splice at $currentDateTime" >> server.log
+echo "Shutting down splice at $currentDateTime" >> ${SPLICELOG}
 
-pid=$(ps ax | grep -v grep | grep 'exec:exec' | grep 'DspliceCI' | awk '{print $1}')
-if [ ! -z "$pid" ]; then
-    #    kill -9 $pid
-    kill -15 $pid
- sleep 30
-else
- echo "splice is not running!!" >> server.log
-fi
-
-
-pid=$(ps ax | grep -v grep | grep 'SpliceTestPlatform' | awk '{print $1}')
-if [ ! -z "$pid" ]; then
- echo "Test pid identified $pid" >> server.log
-#    kill -9 $pid
-    kill -15 $pid
- sleep 30
-fi
+"${ROOT_DIR}"/target/classes/bin/_stopServer.sh "${ROOT_DIR}/target/classes" "${ROOT_DIR}/target/classes"
 
 if [ ! -d "logs" ]; then
   mkdir logs
 fi
 currentDateTime=$(date +'%m-%d-%Y-%H_%M_%S')
-cp server.log logs/$currentDateTime.server.log
-cp derby.log logs/$currentDateTime.derby.log
+cp ${SPLICELOG} logs/${currentDateTime}.$( basename "${SPLICELOG}")
+cp ${ZOOLOG} logs/${currentDateTime}.$( basename "${ZOOLOG}")
+cp ${DERBYLOG} logs/${currentDateTime}.$( basename "${DERBYLOG}")
+
+popd &>/dev/null

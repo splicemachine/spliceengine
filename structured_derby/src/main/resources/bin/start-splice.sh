@@ -12,10 +12,17 @@ if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
     exit 1;
 fi
 
-echo "Starting Splice Machine..."
-echo "Log file is ${LOGFILE}"
-echo "Waiting for Splice..."
-maxRetries=3
+# Config server
+CLASSPATH="${ROOT_DIR}/lib/*"
+ZOO_DIR="${ROOT_DIR}"/db/zookeeper
+HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
+
+LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
+if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
+    LOG4J_PATH="file:${ROOT_DIR}/lib/hbase-log4j.properties"
+fi
+
+# Config for Cygwin, if necessary
 CYGWIN=`uname -s`
 if [[ ${CYGWIN} == CYGWIN* ]]; then
     # cygwin likes to write in 3 places for /tmp
@@ -27,33 +34,18 @@ if [[ ${CYGWIN} == CYGWIN* ]]; then
     if [[ ! -e "/temp" && ! -L "/temp" ]]; then
         ln -s "/cygdrive/c/tmp" "/temp"
     fi
-fi
-# start zookeeper once
-"${ROOT_DIR}"/bin/_startZoo.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
-rCode=0
-for i in $(eval echo "{1..$maxRetries}"); do
-    # splice/hbase will be retried several times to accommodate timeouts
-    "${ROOT_DIR}"/bin/_startSplice.sh "${ROOT_DIR}" "${LOGFILE}" "${DEBUG}"
-    "${ROOT_DIR}"/bin/waitfor.sh "${ROOT_DIR}" "${LOGFILE}"
-    rCode=$?
-    if [[ ${rCode} -eq 0 ]]; then
-        echo "Splice Server is ready"
-        exit 0;
-    fi
-    if [[ ${rCode} -eq 1 && ${i} -ne ${maxRetries} ]]; then
 
-        if [[ -e "${ROOT_DIR}"/splice_pid ]]; then
-            # kill splice, if running (usually not), but let zoo have time to config itself
-            ${ROOT_DIR}/bin/_stop.sh "${ROOT_DIR}"/splice_pid 45
-        fi
+    # cygwin paths look a little different
+    CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
+    ZOO_DIR=`cygpath --path --windows "${ROOT_DIR}/db/zookeeper"`
+    HBASE_ROOT_DIR_URI="CYGWIN"
+    LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
+    if [[ -n "$DEBUG" && "$DEBUG" -eq "-debug" ]]; then
+        LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/hbase-log4j.properties`"
     fi
-done
-
-if [[ ${rCode} -ne 0 ]]; then
-    if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
-        "${ROOT_DIR}"/bin/stop-splice.sh
-    fi
-    echo
-    echo "Server didn't start in expected amount of time. Please restart with the \"-debug\" option and check ${LOGFILE}." >&2
-    exit 1;
 fi
+
+# Start server with retry logic
+ZOO_WAIT_TIME=60
+SPLICE_MAIN_CLASS="com.splicemachine.single.SpliceSinglePlatform"
+"${ROOT_DIR}"/bin/_retrySplice.sh "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" ${SPLICE_MAIN_CLASS} "FALSE"
