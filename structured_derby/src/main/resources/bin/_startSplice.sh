@@ -14,8 +14,10 @@ export CLASSPATH
 LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
 SYS_ARGS="-Xmx3g -Xms1g -Djava.awt.headless=true ${LOG4J_CONFIG} -Djava.net.preferIPv4Stack=true"
-
-#HBase port properties
+if [[ -n ${SPLICE_SYS_ARGS} ]]; then
+    SYS_ARGS="${SYS_ARGS} ${SPLICE_SYS_ARGS}"
+fi
+    #HBase port properties
 HBASE_MASTER_PORT=60000
 HBASE_MASTER_INFO_PORT=60010
 HBASE_REGIONSERVER_PORT=60020
