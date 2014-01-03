@@ -31,6 +31,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(DistinctScanOperationIT.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("FOO",DistinctScanOperationIT.class.getSimpleName(),"(si int, sa varchar(40))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TS",DistinctScanOperationIT.class.getSimpleName(),"(si int, t timestamp)");
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("TAB",DistinctScanOperationIT.class.getSimpleName(),"(I INT, D DOUBLE)");
 //	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("FOOBAR",DistinctScanOperationIT.class.getSimpleName(),"(name varchar(40), empId int)");
     private static int size = 10;
     private static long startTime;
@@ -66,6 +67,15 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
                         ps.setTimestamp(2,new Timestamp(System.currentTimeMillis()));
                         ps.execute();
                     }
+                    ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher3.toString() + " values (?,?)");
+			        for(int i=0;i<10;i++){
+					    ps.setInt(1,i);
+					    ps.setDouble(2, i);
+					    for(int j=0;j<100;j++){
+							ps.addBatch();
+					    }
+					    ps.executeBatch();
+			        }
 
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -115,7 +125,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctTimestamp() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select distinct t from "+ spliceTableWatcher2);
+        ResultSet rs = methodWatcher.executeQuery("select distinct t from "+ spliceTableWatcher2.toString());
         Set<Timestamp> timestampSet = Sets.newHashSet();
         while(rs.next()){
             Timestamp ts = rs.getTimestamp(1);
@@ -127,5 +137,41 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
         Assert.assertEquals(size,timestampSet.size());
 
+    }
+    @Test
+    public void testDistinctSequence() throws Exception {
+
+    	ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString());
+        int i = 0;
+        while(rs.next()){
+        	i++;
+        }
+        Assert.assertEquals(i, 10);
+        rs.close();
+
+        rs = methodWatcher.executeQuery("select distinct i,d from " + spliceTableWatcher3.toString());
+
+        i = 0;
+        while(rs.next()){
+        	i++;
+        }
+        Assert.assertEquals(i, 10);
+        rs.close();
+        rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString());
+
+        i = 0;
+        while(rs.next()){
+        	i++;
+        }
+        Assert.assertEquals(i, 10);
+        rs.close();
+        rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString() + " order by i asc");
+
+        i = 0;
+        while(rs.next()){
+        	Assert.assertEquals((int)rs.getDouble(1), i);
+        	i++;
+        }
+        rs.close();
     }
 }
