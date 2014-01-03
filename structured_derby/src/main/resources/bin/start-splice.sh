@@ -13,7 +13,7 @@ if [[ -e "${ROOT_DIR}"/splice_pid || -e "${ROOT_DIR}"/zoo_pid ]]; then
 fi
 
 # Config server
-CLASSPATH="${ROOT_DIR}/lib/*"
+CP="${ROOT_DIR}/lib/*"
 ZOO_DIR="${ROOT_DIR}"/db/zookeeper
 HBASE_ROOT_DIR_URI="file://${ROOT_DIR}/db/hbase"
 
@@ -36,7 +36,7 @@ if [[ ${CYGWIN} == CYGWIN* ]]; then
     fi
 
     # cygwin paths look a little different
-    CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
+    CP=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
     ZOO_DIR=`cygpath --path --windows "${ROOT_DIR}/db/zookeeper"`
     HBASE_ROOT_DIR_URI="CYGWIN"
     LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
@@ -48,4 +48,4 @@ fi
 # Start server with retry logic
 ZOO_WAIT_TIME=60
 SPLICE_MAIN_CLASS="com.splicemachine.single.SpliceSinglePlatform"
-"${ROOT_DIR}"/bin/_retrySplice.sh "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CLASSPATH}" ${SPLICE_MAIN_CLASS} "FALSE"
+"${ROOT_DIR}"/bin/_retrySplice.sh "${ROOT_DIR}" "${LOGFILE}" "${LOGFILE}" "${LOG4J_PATH}" "${ZOO_DIR}" ${ZOO_WAIT_TIME} "${HBASE_ROOT_DIR_URI}" "${CP}" ${SPLICE_MAIN_CLASS} "FALSE"
