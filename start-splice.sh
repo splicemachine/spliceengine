@@ -74,7 +74,11 @@ fi
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running profile ${PROFILE} at $currentDateTime === " > ${SPLICELOG}
 
-export SPLICE_SYS_ARGS="-Xdebug -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=10102"
+export SPLICE_SYS_ARGS="-Xdebug \
+   -Dcom.sun.management.jmxremote.ssl=false \
+   -Dcom.sun.management.jmxremote.authenticate=false \
+   -Dcom.sun.management.jmxremote.port=10102 \
+   -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
 # Start server with retry logic
