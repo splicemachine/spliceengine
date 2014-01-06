@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.perf.runner.qualifiers.Result;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -318,9 +319,28 @@ public class SubqueryIT {
                 "                             (SELECT *" +
                 "                                   FROM WORKS" +
                 "                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM" +
-                "                                   AND WORKS.PNUM=PROJ.PNUM));" );
+                "                                   AND WORKS.PNUM=PROJ.PNUM))" );
 
-        Assert.assertArrayEquals(expected.toArray(), TestUtils.resultSetToArrays(rs).toArray());
+        Assert.assertArrayEquals(expected.toArray(),
+                TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+    @Test
+    public void testSubqueryWithLiteralProjection() throws Exception {
+        List<Object[]> expected = Arrays.asList(o("E3"), o("E5"));
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "SELECT EMPNUM FROM STAFF O " +
+                        "WHERE EXISTS (" +
+                        // make subquery a union so is not converted to join
+                        "   SELECT 1 FROM STAFF WHERE 1 = 0 " +
+                        "   UNION " +
+                        "   SELECT 1 FROM STAFF I " +
+                        "   WHERE O.EMPNUM = I.EMPNUM AND I.GRADE > 12) " +
+                        "ORDER BY EMPNUM");
+
+        Assert.assertArrayEquals(expected.toArray(),
+                TestUtils.resultSetToArrays(rs).toArray());
     }
 
 

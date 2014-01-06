@@ -59,7 +59,8 @@ public class FixSubqueryColRefs extends AbstractSpliceVisitor {
                                 new Predicate<ColumnReference>() {
                                     @Override
                                     public boolean apply(ColumnReference cr) {
-                                        return pointsToPrimaryTree.apply(cr.getSource());
+                                        return cr.getSource() != null &&
+                                                pointsToPrimaryTree.apply(cr.getSource());
                                     }
                                 });
                 for (ColumnReference cr: crs){
