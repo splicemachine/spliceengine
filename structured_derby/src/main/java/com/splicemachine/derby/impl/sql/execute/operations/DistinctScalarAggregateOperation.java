@@ -21,6 +21,7 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -199,7 +200,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             return null;
 
         if(sinkSource==null){
-            sinkSource = new OperationScalarAggregateSource(source,sourceExecIndexRow,true);
+            sinkSource = new OperationScalarAggregateSource(source,sourceExecIndexRow,false);
         }
         return aggregate(sinkSource,spliceRuntimeContext);
     }
@@ -239,7 +240,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             byte[] key = keyEncoder.build();
             ByteBuffer keyBuffer = ByteBuffer.wrap(key);
             if(!currentAggregations.merge(keyBuffer,row,hashMerger)){
-                ExecIndexRow rowClone = (ExecIndexRow)row.getClone();
+                ExecIndexRow rowClone = (ExecIndexRow)row.getClone(); // This is the correct place to clone...  No other clones needed
 
                 Map.Entry<ByteBuffer, ExecIndexRow> entry = currentAggregations.add(keyBuffer, rowClone);
                 if(entry!=null){
@@ -298,7 +299,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		}
 
 		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				//TODO -sf- make this use AggregateBuffers instead of the HashBufferSource
 
 				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
@@ -308,17 +309,31 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 						}
 				});
 
-				HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),SpliceDriver.driver().getTempTable().getCurrentSpread());
+				final HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),SpliceDriver.driver().getTempTable().getCurrentSpread());
 
-				return new KeyEncoder(prefix,hash,NoOpPostfix.INSTANCE);
+				return new KeyEncoder(prefix,hash,NoOpPostfix.INSTANCE) {
+				@Override
+				public KeyDecoder getDecoder(){
+					try {
+						return new KeyDecoder(getKeyHashDecoder(),prefix.getPrefixLength());
+					} catch (StandardException e) {
+						SpliceLogUtils.logAndThrowRuntime(LOG,e);
+					}
+					return null;
+				}};
 		}
-
+		
+		private KeyHashDecoder getKeyHashDecoder() throws StandardException {
+			int[] rowColumns = IntArrays.intersect(keyColumns,getExecRowDefinition().nColumns());
+			return EntryDataDecoder.decoder(rowColumns, null);
+		}
+		
+		
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				int[] rowColumns = IntArrays.complement(keyColumns,getExecRowDefinition().nColumns());
 				return BareKeyHash.encoder(rowColumns,null);
 		}
-
 		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
