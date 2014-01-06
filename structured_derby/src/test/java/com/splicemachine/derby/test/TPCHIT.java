@@ -179,7 +179,7 @@ public class TPCHIT extends SpliceUnitTest {
 		}
 
 		@Test
-		@Ignore("Repeated test for bug 829. Only enable if you want to wait around for a while")
+//		@Ignore("Repeated test for bug 829. Only enable if you want to wait around for a while")
 		public void testRepeatedSql9() throws Exception {
 				for(int i=0;i<100;i++){
 						sql9();

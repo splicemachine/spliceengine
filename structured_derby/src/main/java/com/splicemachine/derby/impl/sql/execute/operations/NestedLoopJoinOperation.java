@@ -96,8 +96,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
     protected ExecRow next(boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         beginTime = getCurrentTimeMillis();
         // loop until NL iterator produces result, or until left side exhausted
-        while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext())
-                && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
+        while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext()) && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
             if (nestedLoopIterator != null){
                 nestedLoopIterator.close();
             }
@@ -130,109 +129,109 @@ public class NestedLoopJoinOperation extends JoinOperation {
 	}
 
     @Override
-    public String prettyPrint(int indentLevel) {
-        return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
-    }
-
-    protected class NestedLoopIterator implements Iterator<ExecRow> {
-		protected ExecRow leftRow;
-		protected NoPutResultSet probeResultSet;
-		private boolean populated;
-        private boolean returnedRight=false;
-        private boolean outerJoin = false;
-
-		NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin) throws StandardException {
-			SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
-			this.leftRow = leftRow;
-			if (hash) {
-				SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
-				probeResultSet = (getRightResultSet()).executeProbeScan();
-			}
-			else {
-				SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-				probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
-			}
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
-			probeResultSet.openCore();
-			populated=false;
-            this.outerJoin = outerJoin;
+		public String prettyPrint(int indentLevel) {
+				return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
 		}
-		
-		@Override
-		public boolean hasNext() {
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
-            if(populated)return true;
-			rightResultSet.clearCurrentRow();
-			try {
-                ExecRow tmp = probeResultSet.getNextRowCore();
-				ExecRow rightRow = (tmp != null ? tmp.getClone() : tmp);
+
+		protected class NestedLoopIterator implements Iterator<ExecRow> {
+				protected ExecRow leftRow;
+				protected NoPutResultSet probeResultSet;
+				private boolean populated;
+				private boolean returnedRight=false;
+				private boolean outerJoin = false;
+
+				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin) throws StandardException {
+						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
+						this.leftRow = leftRow;
+						if (hash) {
+								SpliceLogUtils.trace(LOG, "Iterator - executeProbeScan on %s",getRightResultSet());
+								probeResultSet = (getRightResultSet()).executeProbeScan();
+						}
+						else {
+								SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
+								probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
+						}
+						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
+						probeResultSet.openCore();
+						populated=false;
+						this.outerJoin = outerJoin;
+				}
+
+				@Override
+				public boolean hasNext() {
+						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin hasNext() ",(restriction != null?"with ":"without "),"restriction");
+						if(populated)return true;
+						rightResultSet.clearCurrentRow();
+						try {
+								ExecRow tmp = probeResultSet.getNextRowCore();
+								ExecRow rightRow = (tmp != null ? tmp.getClone() : tmp);
                 /*
                  * notExistsRightSide indicates that we need to reverse the logic of the join.
                  */
-                if(notExistsRightSide){
-                    rightRow = (rightRow == null) ? rightTemplate : null;
-                }
-                if (outerJoin && rightRow == null){
-                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");
+								if(notExistsRightSide){
+										rightRow = (rightRow == null) ? rightTemplate : null;
+								}
+								if (outerJoin && rightRow == null){
+										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Outer join with empty right row");
 
-                    rightRow = getEmptyRightRow();
-                }
-                if(rightRow!=null){
-                    if(oneRowRightSide &&returnedRight){
-                        //skip this row, because it's already been found.
-                        returnedRight = false;
-                        populated=false;
-                        return false;
-                    }
+										rightRow = getEmptyRightRow();
+								}
+								if(rightRow!=null){
+										if(oneRowRightSide &&returnedRight){
+												//skip this row, because it's already been found.
+												returnedRight = false;
+												populated=false;
+												return false;
+										}
 
-                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
+										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
 					/*
 					 * the right result set's row might be used in other branches up the stack which
 					 * occur under serialization, so the activation has to be sure and set the current row
 					 * on rightResultSet, or that row won't be serialized over, potentially breaking ProjectRestricts
 					 * up the stack.
 					 */
-                    rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
-                    rowsSeenRight++;
-                    nonNullRight();
-                    returnedRight=true;
+										rightResultSet.setCurrentRow(rightRow); //set this here for serialization up the stack
+										rowsSeenRight++;
+										nonNullRight();
+										returnedRight=true;
 
-                    mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
-                }else {
-                    SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
-					populated = false;
-					return false;
+										mergedRow = JoinUtils.getMergedRow(leftRow,rightRow,false,rightNumCols,leftNumCols,mergedRow);
+								}else {
+										SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin Right: ",rightRow);
+										populated = false;
+										return false;
+								}
+
+								if (restriction != null) {
+										DataValueDescriptor restrictBoolean = restriction.invoke();
+										if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
+												SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
+												populated=false;
+												hasNext();
+										}
+								}
+						} catch (StandardException e) {
+								try {
+										close();
+								} catch (StandardException e1) {
+										SpliceLogUtils.logAndThrowRuntime(LOG, "close Failed", e1);
+								}
+								SpliceLogUtils.logAndThrowRuntime(LOG, "hasNext Failed", e);
+								populated=false;
+								return false;
+						}
+						populated=true;
+						return true;
 				}
 
-				if (restriction != null) {
-					DataValueDescriptor restrictBoolean = restriction.invoke();
-					if ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean()) {
-						SpliceLogUtils.trace(LOG, "restricted row %s",mergedRow);
-						populated=false;
-						hasNext();
-					}
+				protected void nonNullRight() {
+						//no op for inner loops
 				}
-			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, "hasNext Failed", e);
-				try {
-					close();
-				} catch (StandardException e1) {
-					SpliceLogUtils.logAndThrowRuntime(LOG, "close Failed", e1);
+
+				protected ExecRow getEmptyRightRow() throws StandardException {
+						return null;  //for inner loops, return null here
 				}
-				populated=false;
-				return false;
-			}
-			populated=true;
-			return true;
-		}
-
-        protected void nonNullRight() {
-            //no op for inner loops
-        }
-
-        protected ExecRow getEmptyRightRow() throws StandardException {
-            return null;  //for inner loops, return null here
-        }
 
         @Override
 		public ExecRow next() {

@@ -128,10 +128,12 @@ public class OperationSink {
 
             writeBuffer.flushBuffer();
             writeBuffer.close();
-        } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
-        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
-            throw e;
-        }finally{
+        }
+//				catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
+////        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
+//            throw e;
+//        }
+				finally{
 						bytes = taskChain.get();
 						bytes.remove(bytes.size()-1);
 						if(bytes.size()<=0){
