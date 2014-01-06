@@ -373,7 +373,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				@Override
 				protected EntryEncoder buildEntryEncoder() {
-						notNullFields = new BitSet(finalHeapList.size());
+						BitSet notNullFields = new BitSet(finalHeapList.size());
 						BitSet scalarFields = new BitSet();
 						BitSet floatFields = new BitSet();
 						BitSet doubleFields = new BitSet();
