@@ -16,7 +16,6 @@ import java.io.IOException;
 public class EntryDataHash extends BareKeyHash implements DataHash{
 		protected EntryEncoder entryEncoder;
 		protected ExecRow currentRow;
-		protected BitSet notNullFields;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder) {
 				super(keyColumns, keySortOrder,true);
@@ -32,6 +31,8 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 				if(entryEncoder==null)
 						entryEncoder = buildEntryEncoder();
 
+                int nCols = currentRow.nColumns();
+                BitSet notNullFields = new BitSet(nCols);
 				entryEncoder.reset(getNotNullFields(currentRow,notNullFields));
 
 				pack(entryEncoder.getEntryEncoder(),currentRow);
@@ -40,7 +41,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash{
 
 		protected EntryEncoder buildEntryEncoder() {
 				int nCols = currentRow.nColumns();
-				notNullFields = getNotNullFields(currentRow,new BitSet(nCols));
+				BitSet notNullFields = getNotNullFields(currentRow,new BitSet(nCols));
 				DataValueDescriptor[] fields = currentRow.getRowArray();
 				BitSet scalarFields = new BitSet(nCols);
 				BitSet floatFields = new BitSet(nCols);
