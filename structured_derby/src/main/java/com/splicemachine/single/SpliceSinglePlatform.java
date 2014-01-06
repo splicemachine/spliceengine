@@ -108,6 +108,7 @@ public class SpliceSinglePlatform extends ServerAdminClient {
 		configuration.setInt("hbase.rpc.timeout", 120000);
 		configuration.setInt("hbase.regionserver.lease.period", 120000);		
 		configuration.set("hbase.cluster.distributed", "true");
+		configuration.set("hbase.master.distributed.log.splitting", "false");
 		configuration.setInt("hbase.balancer.period", 10000);
 		configuration.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		configuration.set("hbase.regionserver.handler.count", "60");

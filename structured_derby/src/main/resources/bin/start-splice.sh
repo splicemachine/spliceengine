@@ -28,7 +28,10 @@ if [[ ${CYGWIN} == CYGWIN* ]]; then
     # cygwin likes to write in 3 places for /tmp
     # we'll symlink them
     if [[ -e "/tmp" && ! -L "/tmp" ]]; then
+        rm -rf "/tmp_bak"
         mv "/tmp" "/tmp_bak"
+    fi
+    if [[ ! -e "/tmp" && ! -L "/tmp" ]]; then
         ln -s "/cygdrive/c/tmp" "/tmp"
     fi
     if [[ ! -e "/temp" && ! -L "/temp" ]]; then
