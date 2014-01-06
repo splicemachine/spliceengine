@@ -218,11 +218,11 @@ public class Scans extends SpliceUtils {
         }else{
             colsToReturn.clear(); //we want everything
         }
-        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
-            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
-            if(indexPredicate!=null)
-                predicates.add(indexPredicate);
-        }
+//        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
+//            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
+//            if(indexPredicate!=null)
+//                predicates.add(indexPredicate);
+//        }
         return new EntryPredicateFilter(colsToReturn,predicates,true);
     }
 
