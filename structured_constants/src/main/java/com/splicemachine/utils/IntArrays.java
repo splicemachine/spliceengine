@@ -17,7 +17,14 @@ public class IntArrays {
 				}
 				return complement;
 		}
-
+		public static int[] intersect(int[] map,int size){
+			int[] intersect = negativeInitialize(size);
+			for(int pos:map){
+				intersect[pos] = pos;
+			}
+			return intersect;
+		}
+		
 		private static int max(int[] map) {
 				int max = Integer.MIN_VALUE;
 				for (int aMap : map) {
@@ -34,4 +41,11 @@ public class IntArrays {
 				}
 				return newInts;
 		}
+		public static int[] negativeInitialize(int size){
+			int[] newInts = new int[size];
+			for(int i=0;i<size;i++){
+					newInts[i] = -1;
+			}
+			return newInts;
+	}
 }
