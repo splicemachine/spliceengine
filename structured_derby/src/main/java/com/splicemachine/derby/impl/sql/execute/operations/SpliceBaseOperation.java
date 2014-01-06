@@ -195,6 +195,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void close() throws StandardException,IOException {
+			if(LOG.isTraceEnabled())
+					LOG.trace("closing operation "+ this);
 			clearCurrentRow();
 			if(regionScanner!=null)
 					regionScanner.close();
