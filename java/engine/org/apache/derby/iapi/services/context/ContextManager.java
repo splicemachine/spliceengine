@@ -21,30 +21,23 @@
 
 package org.apache.derby.iapi.services.context;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import org.apache.derby.iapi.error.ErrorStringBuilder;
+import org.apache.derby.iapi.error.ExceptionSeverity;
+import org.apache.derby.iapi.error.ExceptionUtil;
 import org.apache.derby.iapi.error.PassThroughException;
 import org.apache.derby.iapi.error.ShutdownException;
-
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.error.ExceptionUtil;
-import org.apache.derby.iapi.services.monitor.Monitor;
-
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.services.i18n.LocaleFinder;
 import org.apache.derby.iapi.services.info.JVMInfo;
-
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collections;
-import java.util.Locale;
+import org.apache.derby.iapi.services.monitor.Monitor;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
 
 /**
  *
@@ -207,9 +200,12 @@ public class ContextManager
 			SanityManager.ASSERT(!holder.isEmpty());
 
 		// first, remove it from the global stack.
-		holder.remove(holder.lastIndexOf(theContext));
+        int index = holder.lastIndexOf(theContext);
+        if (index >=0) {
+            holder.remove(index);
+        }
 
-		final String contextId = theContext.getIdName();
+        final String contextId = theContext.getIdName();
 		final CtxStack idStack = (CtxStack) ctxTable.get(contextId);
 
 		// now remove it from its id's stack.
