@@ -13,7 +13,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 public class SpliceConstants {
-    @Retention(RetentionPolicy.SOURCE)
+		//TODO -sf- make this configurable
+		public static int pastStatementBufferSize = 10;
+
+		@Retention(RetentionPolicy.SOURCE)
     protected @interface Parameter{
 
     }

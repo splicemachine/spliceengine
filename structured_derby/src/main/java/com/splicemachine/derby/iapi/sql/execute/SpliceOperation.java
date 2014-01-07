@@ -96,7 +96,7 @@ public interface SpliceOperation  {
 	 * Unique node sequence id.  Should move from Zookeeper to uuid generator.
 	 * 
 	 */
-	public String getUniqueSequenceID();
+	public byte[] getUniqueSequenceID();
 	/**
 	 * Execute a sink operation.  Must be a sink node.  This operation will be called from the OperationTree. 
 	 * 

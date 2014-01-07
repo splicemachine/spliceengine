@@ -139,8 +139,8 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 	}
 
 	@Override
-	public String getUniqueSequenceID() {
-		return Long.toString(Bytes.toLong(this.uniqueSequenceId));
+	public byte[] getUniqueSequenceID() {
+			return uniqueSequenceId;
 	}
 
 	@Override

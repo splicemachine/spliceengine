@@ -195,7 +195,7 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
             }
             future = SpliceDriver.driver().getJobScheduler().submit(new PopulateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique,desc));
 
-            future.completeAll();
+            future.completeAll(null); //TODO -sf- add status hook
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {

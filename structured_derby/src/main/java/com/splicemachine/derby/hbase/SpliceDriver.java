@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
+import com.splicemachine.derby.management.StatementManager;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
@@ -117,6 +118,7 @@ public class SpliceDriver extends SIConstants {
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
 		//-sf- when we need to, replace this with a list
 		private final TempTable tempTable;
+		private final StatementManager statementManager;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -153,14 +155,14 @@ public class SpliceDriver extends SIConstants {
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
 						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
+						this.statementManager = new StatementManager();
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
     }
 
-    public ZkTaskMonitor getTaskMonitor() {
-        return (ZkTaskMonitor)taskMonitor;
-    }
+		public StatementManager getStatementManager(){ return statementManager; }
+    public ZkTaskMonitor getTaskMonitor() { return (ZkTaskMonitor)taskMonitor; }
 
     public WriteCoordinator getTableWriter() {
         return writerPool;
@@ -368,6 +370,9 @@ public class SpliceDriver extends SIConstants {
     private void registerJMX()  {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
+
+						ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManager");
+						mbs.registerMBean(statementManager,statementInfoName);
 
             writerPool.registerJMX(mbs);
 

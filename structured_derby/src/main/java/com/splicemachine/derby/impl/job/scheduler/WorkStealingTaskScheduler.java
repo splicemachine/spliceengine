@@ -276,6 +276,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						try {
 								new TaskCallable<T>(next).call();
 						}catch(InterruptedException ie){
+								if(WORKER_LOG.isInfoEnabled())
+										WORKER_LOG.info("Interrupted during execution of task "+ Bytes.toShort(next.getTaskId()));
 								//told to shut down--resubmit back to the used scheduler's queue
 								usedScheduler.resubmit(next);
 						}catch (Exception e) {

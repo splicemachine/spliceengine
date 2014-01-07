@@ -114,4 +114,14 @@ public class OperationTree {
         }
     }
 
+		public int getNumSinks(SpliceOperation topOperation) {
+				List<SpliceOperation> children = topOperation.getSubOperations();
+				int numSinks = 0;
+				for(SpliceOperation child:children){
+						numSinks+=getNumSinks(child);
+				}
+				if(topOperation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+						numSinks++;
+				return numSinks;
+		}
 }

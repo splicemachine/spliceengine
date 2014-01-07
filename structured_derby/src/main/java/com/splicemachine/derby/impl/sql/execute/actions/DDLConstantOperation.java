@@ -889,7 +889,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                 try{
                     HTableInterface table = SpliceAccessManager.getHTable(tableName.getBytes());
                     future = SpliceDriver.driver().getJobScheduler().submit(new ForbidPastWritesJob(table,null));
-                    future.completeAll();
+                    future.completeAll(null);
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw Exceptions.parseException(e);
