@@ -93,10 +93,10 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	}
 
 	protected void setup() throws StandardException {
-		isOpen = true;
-        StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-        
-        if (sc == null) {
+			isOpen = true;
+			StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+
+			if (sc == null) {
         	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
         	return;
         }

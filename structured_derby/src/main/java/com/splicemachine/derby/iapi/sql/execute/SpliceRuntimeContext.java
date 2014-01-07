@@ -1,6 +1,7 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.management.StatementInfo;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -15,6 +16,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     private boolean isSink = false;
     private Row scanStartOverride;
     private byte[] currentTaskId;
+
+		private transient StatementInfo statementInfo;
     /*
      * Hash bucket to use for sink operations which do not spread data themselves.
      *
@@ -50,9 +53,13 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         copy.hashBucket = hashBucket;
         copy.isSink = isSink;
         copy.currentTaskId = currentTaskId;
+				copy.statementInfo = statementInfo;
         return copy;
     }
 
+		public void setStatementInfo(StatementInfo statementInfo){
+				this.statementInfo = statementInfo;
+		}
 
     public void addPath(Path path) {
         paths.add(0, path);
@@ -160,7 +167,11 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         return sb.toString();
     }
 
-    public static enum Side {
+		public StatementInfo getStatementInfo() {
+				return statementInfo;
+		}
+
+		public static enum Side {
         LEFT(0),
         RIGHT(1),
         MERGED(2);

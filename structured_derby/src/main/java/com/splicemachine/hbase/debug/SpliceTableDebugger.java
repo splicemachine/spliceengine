@@ -243,7 +243,7 @@ public class SpliceTableDebugger extends Configured implements Tool {
                 System.out.printf("Executing job with %d tasks%n", numTasksToFinish);
                 int remaining;
                 do{
-                    submit.completeNext();
+                    submit.completeNext(null);
                     remaining = submit.getRemainingTasks();
                     System.out.printf("%d tasks remaining%n", remaining);
                 }while(remaining>0);

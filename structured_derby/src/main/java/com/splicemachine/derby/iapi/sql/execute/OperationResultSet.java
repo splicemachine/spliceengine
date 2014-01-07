@@ -1,7 +1,9 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -43,8 +45,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private SpliceOperation topOperation;
     private NoPutResultSet delegate;
     private boolean closed = false;
+		private StatementInfo statementInfo;
 
-    public OperationResultSet(Activation activation,
+		public OperationResultSet(Activation activation,
                               OperationTree operationTree,
                               SpliceOperation topOperation){
         this.activation = activation;
@@ -68,13 +71,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         closed=false;
         if(delegate!=null) delegate.close();
         try {
-            topOperation.init(SpliceOperationContext.newContext(activation));
+						//create and load the Statement information
+						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+						String sql = operationContext.getPreparedStatement().getSource();
+						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+						statementInfo = new StatementInfo(sql,user,
+										operationTree.getNumSinks(topOperation),
+										SpliceDriver.driver().getUUIDGenerator());
+						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+						topOperation.init(operationContext);
+
             topOperation.open();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 
 				SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+				runtimeContext.setStatementInfo(statementInfo);
         delegate = operationTree.executeTree(topOperation,runtimeContext);
         //open the delegate
         delegate.openCore();
@@ -262,6 +275,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
+				statementInfo.markCompleted();
+				SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
         if(delegate!=null)delegate.close();
         closed=true;
     }
@@ -408,4 +423,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public SpliceOperation getOperation() {
         return topOperation;
     }
+
+		public StatementInfo getStatementInfo(){
+				return statementInfo;
+		}
 }

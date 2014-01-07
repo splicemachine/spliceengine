@@ -228,11 +228,15 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 				SpliceLogUtils.trace(LOG, "executeShuffle");
 				long start = System.currentTimeMillis();
 				SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+				spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
 				SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+				spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
 				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceLRuntimeContext),spliceLRuntimeContext);
 				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceRRuntimeContext),spliceRRuntimeContext);
 				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,new SpliceRuntimeContext());
+				SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
+				instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
+				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this, instructionContext);
 				JobResults stats = combined.shuffleRows(soi);
 				nextTime+=System.currentTimeMillis()-start;
 				return stats;

@@ -87,7 +87,7 @@ public class JobControlTest {
         Future<Void> future = controlExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                control.completeAll();
+                control.completeAll(null);
                 return null;
             }
         });
@@ -167,7 +167,7 @@ public class JobControlTest {
         Future<Void> future = controlExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                control.completeAll();
+                control.completeAll(null);
                 return null;
             }
         });

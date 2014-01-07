@@ -240,7 +240,10 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
-        setStatus(Status.EXECUTING,true);
+				TaskStatus taskStatus = getTaskStatus();
+				//if task has already been cancelled, then throw it away
+				if(taskStatus.getStatus()==Status.CANCELLED) throw new CancellationException();
+				setStatus(Status.EXECUTING,true);
     }
 
     private void setStatus(Status newStatus, boolean cancelOnError) throws ExecutionException{

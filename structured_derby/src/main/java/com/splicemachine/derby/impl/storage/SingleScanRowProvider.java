@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
@@ -25,6 +26,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -121,10 +123,19 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
         OperationJob job = new OperationJob(scan,instructions,table,readOnly);
         StandardException baseError = null;
+				JobInfo jobInfo = null;
         try {
+						long start = System.currentTimeMillis();
             jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
+						jobInfo = new JobInfo(job.getJobId(), jobFuture.getNumTasks(),start);
+						byte[][] allTaskIds = jobFuture.getAllTaskIds();
+						for(byte[] tId:allTaskIds){
+								jobInfo.taskRunning(tId);
+						}
+						instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(jobInfo);
             //wait for everyone to complete, or somebody to error out
-            jobFuture.completeAll();
+            jobFuture.completeAll(jobInfo);
+						instructions.getSpliceRuntimeContext().getStatementInfo().completeJob(jobInfo);
 
             return new SimpleJobResults(jobFuture.getJobStats(),jobFuture);
         } catch (ExecutionException ee) {

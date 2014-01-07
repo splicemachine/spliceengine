@@ -77,13 +77,13 @@ class JobControl implements JobFuture {
     }
 
     @Override
-    public void completeAll() throws ExecutionException, InterruptedException, CancellationException {
+    public void completeAll(StatusHook statusHook) throws ExecutionException, InterruptedException, CancellationException {
         while(getRemainingTasks()>0)
-            completeNext();
+            completeNext(statusHook);
     }
 
     @Override
-    public void completeNext() throws ExecutionException, InterruptedException, CancellationException {
+    public void completeNext(StatusHook statusHook) throws ExecutionException, InterruptedException, CancellationException {
         if(failedTasks.size()>0){
             for(RegionTaskControl taskControl:failedTasks)
                 taskControl.complete(); //throw the error right away
@@ -109,15 +109,20 @@ class JobControl implements JobFuture {
 										changedFuture.cleanup();
                     SpliceLogUtils.trace(LOG,"[%s] Task %s is invalid, resubmitting",job.getJobId(),changedFuture.getTaskNode());
                     stats.invalidTaskCount.incrementAndGet();
+										if(statusHook!=null)
+												statusHook.invalidated(changedFuture.getTaskId());
+
                     if(changedFuture.rollback(maxResubmissionAttempts)){
                         resubmit(changedFuture,changedFuture.tryNumber());
                     }else{
                         //we were unable to roll back, so we have to bomb out
                         failedTasks.add(changedFuture);
-                        completeNext(); //throw the proper error
+                        completeNext(statusHook); //throw the proper error
                     }
                     break;
                 case FAILED:
+										if(statusHook!=null)
+												statusHook.failure(changedFuture.getTaskId());
 										changedFuture.cleanup();
                     try{
                         SpliceLogUtils.trace(LOG, "[%s] Task %s failed",job.getJobId(),changedFuture.getTaskNode());
@@ -137,15 +142,21 @@ class JobControl implements JobFuture {
                         if(taskStats!=null)
                             this.stats.addTaskStatus(changedFuture.getTaskNode(),taskStats);
                         completedTasks.add(changedFuture);
-                        return;
+												if(statusHook!=null)
+														statusHook.success(changedFuture.getTaskId());
+												return;
                     }else{
                         //our commit failed, we have to resubmit the task (if possible)
                         SpliceLogUtils.debug(LOG,"[%s] Task %s did not successfully commit",job.getJobId(),changedFuture.getTaskNode());
+												if(statusHook!=null)
+														statusHook.failure(changedFuture.getTaskId());
                         changedFuture.dealWithError();
                     }
                     break;
                 case CANCELLED:
                     SpliceLogUtils.trace(LOG,"[%s] Task %s is cancelled",job.getJobId(),changedFuture.getTaskNode());
+										if(statusHook!=null)
+												statusHook.cancelled(changedFuture.getTaskId());
 										changedFuture.cleanup();
                     cancelledTasks.add(changedFuture);
                     throw new CancellationException();
@@ -154,10 +165,10 @@ class JobControl implements JobFuture {
             }
         }
 
-        //update our job metrics
-        Status finalStatus = getStatus();
-        jobMetrics.removeJob(job.getJobId(), finalStatus);
-
+//        //update our job metrics
+//        Status finalStatus = getStatus();
+//        jobMetrics.removeJob(job.getJobId(), finalStatus);
+//
         SpliceLogUtils.trace(LOG,"completeNext finished");
     }
 
@@ -214,7 +225,18 @@ class JobControl implements JobFuture {
         return tasksToWatch.size()-completedTasks.size()-failedTasks.size()-cancelledTasks.size();
     }
 
-/*************************************************************************************************************************/
+		@Override
+		public byte[][] getAllTaskIds() {
+				byte[][] tIds = new byte[tasksToWatch.size()][];
+				int i=0;
+				for(RegionTaskControl taskControl:tasksToWatch){
+						tIds[i] = taskControl.getTaskId();
+						i++;
+				}
+				return tIds;
+		}
+
+		/*************************************************************************************************************************/
     /*package local operators*/
 
     /*

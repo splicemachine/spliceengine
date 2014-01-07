@@ -42,30 +42,11 @@ class JobMetrics implements JobSchedulerManagement{
         }
     }
 
-    @Override
-    public long getTotalSubmittedJobs() {
-        return totalSubmittedJobs.get();
-    }
-
-    @Override
-    public long getTotalCompletedJobs() {
-        return totalCompletedJobs.get();
-    }
-
-    @Override
-    public long getTotalFailedJobs() {
-        return totalFailedJobs.get();
-    }
-
-    @Override
-    public long getTotalCancelledJobs() {
-        return totalCancelledJobs.get();
-    }
-
-    @Override
-    public int getNumRunningJobs() {
-        return numRunningJobs.get();
-    }
+    @Override public long getTotalSubmittedJobs() { return totalSubmittedJobs.get(); }
+    @Override public long getTotalCompletedJobs() { return totalCompletedJobs.get(); }
+    @Override public long getTotalFailedJobs() { return totalFailedJobs.get(); }
+    @Override public long getTotalCancelledJobs() { return totalCancelledJobs.get(); }
+    @Override public int getNumRunningJobs() { return numRunningJobs.get(); }
 
     @Override
     public String[] getRunningJobs() {

@@ -6,19 +6,18 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.CompositeJobResults;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -47,14 +46,19 @@ public abstract class MultiScanRowProvider implements RowProvider {
         List<Scan> scans = getScans();
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
-				LinkedList<JobFuture> outstandingJobs = Lists.newLinkedList();
+				LinkedList<Pair<JobFuture,JobInfo>> outstandingJobs = Lists.newLinkedList();
         jobFutures =  Lists.newArrayList();
         List<JobStats> stats = Lists.newArrayList();
         try{
             long start = System.nanoTime();
             for(Scan scan:scans){
-								JobFuture jobFuture = doShuffle(table, instructions, scan);
-								outstandingJobs.add(jobFuture);
+								long startTimeMs = System.currentTimeMillis();
+								OperationJob job = getJob(table,instructions,scan);
+								JobFuture jobFuture = doShuffle(job);
+								JobInfo info = new JobInfo(job.getJobId(),jobFuture.getNumTasks(),startTimeMs);
+								info.tasksRunning(jobFuture.getAllTaskIds());
+								instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
+								outstandingJobs.add(Pair.newPair(jobFuture, info));
 								jobFutures.add(jobFuture);
             }
 
@@ -62,10 +66,13 @@ public abstract class MultiScanRowProvider implements RowProvider {
             Throwable error = null;
             try{
                 while(outstandingJobs.size()>0){
-                    JobFuture next = outstandingJobs.pop();
-                    next.completeAll();
-                    jobFutures.add(next);
-                    stats.add(next.getJobStats());
+                    Pair<JobFuture,JobInfo> next = outstandingJobs.pop();
+										JobFuture jobFuture = next.getFirst();
+										JobInfo jobInfo = next.getSecond();
+										jobFuture.completeAll(jobInfo);
+										instructions.getSpliceRuntimeContext().getStatementInfo().completeJob(jobInfo);
+                    jobFutures.add(jobFuture);
+                    stats.add(jobFuture.getJobStats());
                 }
 
                 long stop = System.nanoTime();
@@ -93,11 +100,11 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
     }
 
-		private void cancelAll(Collection<JobFuture> jobs) {
+		private void cancelAll(Collection<Pair<JobFuture,JobInfo>> jobs) {
 				//cancel all remaining tasks
-				for(JobFuture jobToCancel:jobs){
+				for(Pair<JobFuture,JobInfo> jobToCancel:jobs){
 						try {
-								jobToCancel.cancel();
+								jobToCancel.getFirst().cancel();
 						} catch (ExecutionException e) {
 								SpliceLogUtils.error(LOG, "Unable to cancel job", e.getCause());
 						}
@@ -127,19 +134,20 @@ public abstract class MultiScanRowProvider implements RowProvider {
 
     /********************************************************************************************************************/
     /*private helper methods*/
-    private JobFuture doShuffle(HTableInterface table,
-                           SpliceObserverInstructions instructions,
-                           Scan scan) throws StandardException {
-        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
-            SpliceUtils.setInstructions(scan, instructions);
-        boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-        OperationJob job = new OperationJob(scan,instructions,table,readOnly);
+    private JobFuture doShuffle(OperationJob job) throws StandardException {
         try {
             return SpliceDriver.driver().getJobScheduler().submit(job);
         } catch (Throwable throwable) {
             throw Exceptions.parseException(throwable);
         }
     }
+
+		private OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
+				if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
+						SpliceUtils.setInstructions(scan, instructions);
+				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+				return new OperationJob(scan,instructions,table,readOnly);
+		}
 
 
 }

@@ -8,7 +8,9 @@ import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
@@ -739,7 +741,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
         try {
             future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table, ddlChange));
-            future.completeAll();
+            future.completeAll(null); //TODO -sf- add status information
         } catch (Throwable e) {
             LOG.error("Couldn't create indexes on existing regions", e);
             try {
@@ -792,17 +794,25 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
          * It's possible that the index will be created on the same node as some system tables are located.
          * This means that there
          */
+			//TODO -sf- replace this name with the actual SQL being issued
+			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+			StatementInfo info = new StatementInfo(String.format("populate index on %s",tableName),userId,1,SpliceDriver.driver().getUUIDGenerator());
+			SpliceDriver.driver().getStatementManager().addStatementInfo(info);
         try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new PopulateIndexJob(table,indexTransaction.getTransactionIdString(),
-                    conglomId,tableConglomId,baseColumnPositions,unique,descColumns));
-            future.completeAll();
+						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+										conglomId, tableConglomId, baseColumnPositions, unique, descColumns);
+						long start = System.currentTimeMillis();
+						future = SpliceDriver.driver().getJobScheduler().submit(job);
+						JobInfo jobInfo = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						info.addRunningJob(jobInfo);
+            future.completeAll(jobInfo); //TODO -sf- add status information
+						info.completeJob(jobInfo);
         } catch (ExecutionException e) {
-        	e.printStackTrace();
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
-        	e.printStackTrace();
             throw Exceptions.parseException(e);
         }finally {
+						SpliceDriver.driver().getStatementManager().completedStatement(info);
             try {
                 transactor.commit(indexTransaction);
             } catch (IOException e) {
