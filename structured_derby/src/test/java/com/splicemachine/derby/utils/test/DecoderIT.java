@@ -10,12 +10,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLDataException;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -23,6 +23,22 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 /**
+ * Test for Bug DB-923.
+ *
+ * The old behavior of this bug was that row with transaction_header_key caused
+ * "ERROR 22003: The resulting value is outside the range for the data type DOUBLE." but only
+ * when the 20 row sample was imported.  When row 18 is imported into a table by itself,
+ * the table (or row by itself) could be queried without error.  When stepping thru this in
+ * the debugger, the bad Double that was being created was 1.04282087854243E-309.  This value
+ * is not found in any of the demodata csv files. This value was the result of row decoding.
+ *
+ * Also, when column values were pulled from the csv file and Double.parseDouble(val) called,
+ * all values behaved as expected.
+ *
+ * I didn't change any code to fix this behavior.  This test was failing when I created it but
+ * I'm now at commit 8d6d889 and we no longer exhibit the behavior.  Some code change between
+ * commit 293fbd6 and 8d6d889 fixed it.
+ *
  * @author Jeff Cunningham
  *         Date: 1/6/14
  */
@@ -35,7 +51,7 @@ public class DecoderIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    private static final String csvLocation = SpliceUnitTest.getResourceDirectory()+"txn_header.csv";
+    private static final String csvLocation = SpliceUnitTest.getResourceDirectory()+ "txn_header_20rows.csv";
     private static final String csvLocation2 = SpliceUnitTest.getResourceDirectory()+"txn_header_1row.csv";
 
     protected static TransactionHeaderTable headerTableWatcher = new TransactionHeaderTable(TransactionHeaderTable.TABLE_NAME,SCHEMA_NAME) {
@@ -77,69 +93,81 @@ public class DecoderIT {
             .around(headerTableWatcher)
             .around(headerTableWatcher2);
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
+    @Ignore("For manual checking")
     public void testRowsManually() throws Exception {
         for (String row : readRows(csvLocation)) {
             int i = 1;
             for (String col : row.split(",", -1)) {
                 if (col == null) {
-//                    System.out.println(String.format("%2d is null",i));
+                    System.out.println(String.format("%2d is null",i));
                     continue;
                 }
                 if (col.isEmpty()) {
-//                    System.out.println(String.format("%2d is empty",i));
+                    System.out.println(String.format("%2d is empty",i));
                     continue;
                 }
                 try {
                     Double d = Double.parseDouble(col);
-//                    System.out.println(String.format("%2d is a double: %s",i,d.toString()));
-//                    System.out.println("-----------------");
-                } catch (Throwable e) {
-//                    System.out.println(String.format("%2d is NOT a double: %s",i,col));
-                    if (e instanceof SQLDataException) {
-                        Assert.fail(String.format("%2d is NOT a double: %s",i,col));
-                    }
+                    System.out.println(String.format("%2d is a double: %s",i,d.toString()));
+                } catch (NumberFormatException e) {
+                    System.out.println(String.format("%2d is NOT a double: %s",i,col));
                 }
+                    System.out.println("-----------------");
                 ++i;
             }
         }
     }
 
     @Test
-    public void testQueryRows() throws Exception {
+    public void testQueryRow20RowTable() throws Exception {
         String query = String.format("select * from %s.%s where %s.%s.transaction_header_key = 18",
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME,
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+//        System.out.println(fr.toString());
         Assert.assertEquals(1, fr.size());
     }
 
     @Test
-    public void testQueryRow() throws Exception {
+    public void testQueryRow1RowTable() throws Exception {
         String query = String.format("select * from %s.%s where %s.%s.transaction_header_key = 18",
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME2,
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME2);
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+//        System.out.println(fr.toString());
         Assert.assertEquals(1, fr.size());
     }
 
     @Test
-    public void testQueryRowOne() throws Exception {
+    public void testQueryRowOne20RowTable() throws Exception {
         String query = String.format("select * from %s.%s where %s.%s.transaction_header_key = 1",
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME,
                 SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println(fr.toString());
+//        System.out.println(fr.toString());
         Assert.assertEquals(1, fr.size());
     }
 
     @Test
-    public void testQueryAllRows() throws Exception {
+    public void testQueryAllRows20RowTable() throws Exception {
+        String query = String.format("select * from %s.%s",
+                SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME);
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println(fr.toString());
+        Assert.assertEquals(20, fr.size());
+    }
+
+    @Test
+    public void testQueryEachRow20RowTable() throws Exception {
         for (int i = 1; i<=20; ++i) {
             String query = String.format("select * from %s.%s where %s.%s.transaction_header_key = %d",
                     SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME,
@@ -147,7 +175,7 @@ public class DecoderIT {
                     i);
             ResultSet rs = methodWatcher.executeQuery(query);
             TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-            System.out.println(fr.toString());
+//            System.out.println(fr.toString());
             Assert.assertEquals("Row was "+i,1, fr.size());
         }
     }
