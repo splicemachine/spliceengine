@@ -22,74 +22,52 @@
 
 package org.apache.derby.impl.sql.compile;
 
+import java.sql.SQLWarning;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Stack;
+import java.util.Vector;
 import org.apache.derby.catalog.UUID;
-
-import org.apache.derby.iapi.sql.conn.LanguageConnectionFactory;
-
-import org.apache.derby.iapi.sql.depend.ProviderList;
+import org.apache.derby.iapi.error.ExceptionSeverity;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.compiler.JavaFactory;
+import org.apache.derby.iapi.services.context.ContextImpl;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.services.loader.ClassFactory;
+import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.compile.NodeFactory;
 import org.apache.derby.iapi.sql.compile.Parser;
-
+import org.apache.derby.iapi.sql.compile.TypeCompilerFactory;
 import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
-import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
-import org.apache.derby.iapi.sql.dictionary.PermDescriptor;
-import org.apache.derby.iapi.sql.dictionary.PrivilegedSQLObject;
-import org.apache.derby.iapi.sql.dictionary.StatementGenericPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementTablePermission;
-import org.apache.derby.iapi.sql.dictionary.StatementSchemaPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementColumnPermission;
-import org.apache.derby.iapi.sql.dictionary.StatementRoutinePermission;
-import org.apache.derby.iapi.sql.dictionary.StatementRolePermission;
-
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-
-import org.apache.derby.iapi.sql.compile.TypeCompilerFactory;
-
+import org.apache.derby.iapi.sql.conn.LanguageConnectionFactory;
+import org.apache.derby.iapi.sql.depend.DependencyManager;
 import org.apache.derby.iapi.sql.depend.Dependent;
 import org.apache.derby.iapi.sql.depend.Provider;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.error.ExceptionSeverity;
+import org.apache.derby.iapi.sql.depend.ProviderList;
+import org.apache.derby.iapi.sql.dictionary.AliasDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
+import org.apache.derby.iapi.sql.dictionary.PermDescriptor;
+import org.apache.derby.iapi.sql.dictionary.PrivilegedSQLObject;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SequenceDescriptor;
+import org.apache.derby.iapi.sql.dictionary.StatementColumnPermission;
+import org.apache.derby.iapi.sql.dictionary.StatementGenericPermission;
+import org.apache.derby.iapi.sql.dictionary.StatementRolePermission;
+import org.apache.derby.iapi.sql.dictionary.StatementRoutinePermission;
+import org.apache.derby.iapi.sql.dictionary.StatementSchemaPermission;
+import org.apache.derby.iapi.sql.dictionary.StatementTablePermission;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecutionContext;
-
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.sql.ParameterValueSet;
-
-import org.apache.derby.iapi.store.access.StoreCostController;
 import org.apache.derby.iapi.store.access.SortCostController;
-
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.services.compiler.JavaFactory;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-
-import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.reference.SQLState;
-
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import org.apache.derby.iapi.services.context.ContextImpl;
+import org.apache.derby.iapi.store.access.StoreCostController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.util.ReuseFactory;
-
-import java.sql.SQLWarning;
-import java.util.Vector;
-import java.util.Properties;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Stack;
-import java.util.ArrayList;
 
 /**
  *
@@ -715,7 +693,7 @@ public class CompilerContextImpl extends ContextImpl
 		requiredRolePrivileges = null;
 		LanguageConnectionContext lcc = (LanguageConnectionContext)
 		getContextManager().getContext(LanguageConnectionContext.CONTEXT_ID);
-		if( lcc.usesSqlAuthorization())
+		if(lcc != null && lcc.usesSqlAuthorization())
 		{
 			requiredColumnPrivileges = new HashMap();
 			requiredTablePrivileges = new HashMap();
