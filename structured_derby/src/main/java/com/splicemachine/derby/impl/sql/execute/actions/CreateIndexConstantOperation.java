@@ -823,8 +823,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
             }
         }
-        // TODO fix this, has to be moved to the en of the transaction
-        finishMetadataChange(notificationId);
 	}
 
     /**

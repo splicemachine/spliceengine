@@ -99,8 +99,7 @@ public class ZookeeperDDLController implements DDLController, Watcher {
         try {
             ZkUtils.recursiveDelete(identifier);
         } catch (Exception e) {
-            LOG.error("Couldn't remove DDL change " + identifier, e);
-            throw Exceptions.parseException(e);
+            LOG.warn("Couldn't remove DDL change " + identifier, e);
         }
     }
 

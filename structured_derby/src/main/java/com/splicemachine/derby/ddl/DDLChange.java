@@ -13,6 +13,7 @@ public class DDLChange implements Serializable {
     private TentativeType type;
     private boolean tentative;
     private TentativeIndexDesc tentativeIndexDesc;
+    private String identifier;
 
     public DDLChange(String transactionId) {
         this(transactionId, null);
@@ -52,4 +53,11 @@ public class DDLChange implements Serializable {
         this.parentTransactionId = parentTransactionId;
     }
 
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
 }
