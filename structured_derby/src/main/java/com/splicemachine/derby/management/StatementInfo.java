@@ -34,15 +34,18 @@ public class StatementInfo {
 		private final Set<JobInfo> completedJobIds;
 
 		private final long startTimeMs;
+		private final String txnId;
 		private volatile long stopTimeMs = -1l;
 
 		public StatementInfo(String sql,
 												 String user,
+												 String txnId,
 												 int numSinks,
 												 Snowflake snowflake) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
+				this.txnId = txnId;
 
 				if(numSinks>0){
 						runningJobIds = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
@@ -55,10 +58,13 @@ public class StatementInfo {
 				this.startTimeMs = System.currentTimeMillis();
 		}
 
-		@ConstructorProperties({"sql","user","numJobs","statementUuid","runningJobs","completedJobs","startTimeMs","stopTimeMs"})
-		public StatementInfo(String sql,String user,int numSinks,long statementUuid,Set<JobInfo> runningJobs, Set<JobInfo> completedJobs,long startTimeMs,long stopTimeMs){
+		@ConstructorProperties({"sql","user","txnId","numJobs","statementUuid","runningJobs","completedJobs","startTimeMs","stopTimeMs"})
+		public StatementInfo(String sql,String user,String txnId,
+												 int numSinks,long statementUuid,
+												 Set<JobInfo> runningJobs, Set<JobInfo> completedJobs,long startTimeMs,long stopTimeMs){
 				this.sql = sql;
 				this.user = user;
+				this.txnId = txnId;
 				this.statementUuid = statementUuid;
 				this.numSinks = numSinks;
 				this.runningJobIds = runningJobs;
@@ -76,6 +82,7 @@ public class StatementInfo {
 				runningJobIds.remove(jobInfo);
 		}
 
+		public String getTxnId() { return txnId; }
 		public int getNumJobs(){ return numSinks;}
 		public String getSql() { return sql; }
 		public long getStatementUuid() { return statementUuid; }
@@ -104,88 +111,5 @@ public class StatementInfo {
 		public boolean isComplete() {
 				return stopTimeMs>0l;
 		}
-
-//		@Override
-//		public CompositeData toCompositeData(CompositeType ct) {
-//				try {
-//						List<String> itemNames = new ArrayList<String>(ct.keySet());
-//						List<String> itemDescriptions = new ArrayList<String>(itemNames.size());
-//						List<OpenType<?>> itemTypes = new ArrayList<OpenType<?>>(itemNames.size());
-//
-//						for(String itemName: itemNames){
-//								itemDescriptions.add(ct.getDescription(itemName));
-//								itemTypes.add(ct.getType(itemName));
-//						}
-//
-//
-//						CompositeType jobInfoType = new CompositeType(
-//										"com.splicemachine.derby.impl.job.JobInfo","Job information",
-//										new String[]{"jobId"},new String[]{"Unique Job identifier"},new OpenType[]{SimpleType.STRING});
-//						Set<JobInfo> runningCopy = null;
-//						if(runningJobIds!=null){
-//								runningCopy = new HashSet<JobInfo>(runningJobIds);
-//								if(runningCopy.size()>0){
-//										itemNames.add("runningJobs");
-//										itemDescriptions.add("Running Jobs");
-//										itemTypes.add(new ArrayType(runningJobIds.size(),jobInfoType));
-//								}
-//						}
-//
-//						Set<JobInfo> completedCopy = null;
-//						if(completedJobIds!=null){
-//								completedCopy = new HashSet<JobInfo>(completedJobIds);
-//								if(completedCopy.size()>0){
-//										itemNames.add("completedJobs");
-//										itemDescriptions.add("Completed Jobs");
-//										itemTypes.add(new ArrayType(completedJobIds.size(),jobInfoType));
-//								}
-//						}
-//
-//						CompositeType xct = new CompositeType(ct.getTypeName(),
-//										ct.getDescription(),
-//										itemNames.toArray(new String[itemNames.size()]),
-//										itemDescriptions.toArray(new String[itemDescriptions.size()]),
-//										itemTypes.toArray(new OpenType[itemTypes.size()])
-//										);
-//						Object[] data;
-//						String[] labels;
-//						if(runningCopy!=null && runningCopy.size()>0){
-//								CompositeData[] runningJobInfo = getJobInfoCompositeData(jobInfoType,completedCopy);
-//								if(completedCopy!=null && completedCopy.size()>0){
-//										CompositeData[] completedJobInfo = getJobInfoCompositeData(jobInfoType, completedCopy);
-//										labels = new String[] {"statementUuid", "sql","numJobs",
-//														"startTimeMs","stopTimeMs","runningJobs","completedJobs"};
-//										data = new Object[] {statementUuid,sql,numSinks,startTimeMs,stopTimeMs,runningJobInfo,completedJobInfo};
-//								}else{
-//										labels = new String[] {"statementUuid", "sql","numJobs",
-//														"startTimeMs","stopTimeMs","runningJobs"};
-//										data = new Object[] {statementUuid,sql,numSinks,startTimeMs,stopTimeMs,runningJobInfo};
-//								}
-//						}else if(completedCopy!=null && completedCopy.size()>0){
-//								CompositeData[] completedJobInfo = getJobInfoCompositeData(jobInfoType, completedCopy);
-//								labels = new String[] {"statementUuid", "sql","numJobs",
-//												"startTimeMs","stopTimeMs","completedJobs"};
-//								data = new Object[] {statementUuid,sql,numSinks,startTimeMs,stopTimeMs,completedJobInfo};
-//						}else{
-//								labels = new String[] {"statementUuid", "sql","numJobs",
-//												"startTimeMs","stopTimeMs"};
-//								data = new Object[] {statementUuid,sql,numSinks,startTimeMs,stopTimeMs};
-//						}
-//						return new CompositeDataSupport(xct,labels,data);
-//				} catch (Exception e) {
-//						throw new RuntimeException(e);
-//				}
-//		}
-//
-//		protected CompositeData[] getJobInfoCompositeData(CompositeType jobInfoType, Set<JobInfo> completedCopy) {
-//				int i;
-//				CompositeData[] completedJobInfo = new CompositeData[completedCopy.size()];
-//				i=0;
-//				for(JobInfo info:completedCopy){
-//						completedJobInfo[i] = info.toCompositeData(jobInfoType);
-//						i++;
-//				}
-//				return completedJobInfo;
-//		}
 }
 

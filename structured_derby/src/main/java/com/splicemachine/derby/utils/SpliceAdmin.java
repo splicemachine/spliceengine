@@ -1,8 +1,12 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
@@ -11,13 +15,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
@@ -234,6 +232,143 @@ public class SpliceAdmin {
             }
         }
     }
+
+		public static void SYSCS_GET_PAST_STATEMENT_SUMMARY(ResultSet[] resultSets) throws SQLException{
+				List<ServerName> servers = getServers();
+				List<Pair<String,JMXConnector>> connections = null;
+				try{
+						connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+						List<Pair<String,StatementManagement>> statementManagers;
+						try{
+								statementManagers = JMXUtils.getStatementManagers(connections);
+						} catch (MalformedObjectNameException e) {
+								throw new SQLException(e);
+						}
+
+						StringBuilder sb = new StringBuilder("select * from (values ");
+						int i=0;
+						for(Pair<String,StatementManagement> managementPair: statementManagers){
+								if(i!=0) sb.append(", ");
+
+								StatementManagement management = managementPair.getSecond();
+								List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
+								boolean isStart= true;
+								for(StatementInfo completedStatement:completedStatements){
+										if(isStart) isStart=false;
+										else sb.append(",");
+
+										Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
+										int numFailedJobs = 0;
+										long maxJobTime = 0;
+										long minJobTime = Long.MAX_VALUE;
+										double avgJobTime = 0;
+										int count=0;
+										if(completedJobs!=null){
+												for(JobInfo info:completedJobs){
+														count++;
+														if(info.isJobFailed()){
+																numFailedJobs++;
+														}else{
+																long jobStart = info.getJobStartMs();
+																long jobFinish = info.getJobFinishMs();
+																long jobTimeTaken = jobFinish-jobStart;
+																if(maxJobTime<jobTimeTaken)
+																		maxJobTime = jobTimeTaken;
+																if(minJobTime > jobTimeTaken)
+																		minJobTime = jobTimeTaken;
+																avgJobTime += avgJobTime + (jobTimeTaken-avgJobTime)/count;
+														}
+												}
+										}
+										if(minJobTime == Long.MAX_VALUE)
+												minJobTime=0;
+										Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
+										long startTimeMs = completedStatement.getStartTimeMs();
+										long stopTimeMs = completedStatement.getStopTimeMs();
+										sb.append(String.format("(%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%f)",
+														completedStatement.getStatementUuid(),
+														managementPair.getFirst(),
+														escape(completedStatement.getUser()),
+														escape(completedStatement.getTxnId()),
+														numFailedJobs>0 ? "FAILED": "SUCCESS",
+														escape(completedStatement.getSql()),
+														completedStatement.getNumJobs(),
+														completedJobs!=null? completedJobs.size(): 0,
+														runningJobs!=null?runningJobs.size(): 0,
+														numFailedJobs,
+														startTimeMs,
+														stopTimeMs,
+														stopTimeMs-startTimeMs,
+														minJobTime,
+														maxJobTime,
+														avgJobTime
+														));
+								}
+						}
+						sb.append(") foo (statementUuid,host, userName,transactionID,status, statementSql,numJobs,completedJobs,runningJobs,failedJobs,startTimeMs,stopTimeMs,elapsedTimeMs,minJobTimeMs,maxJobTimeMs,avgJobTimeMs)");
+						resultSets[0] = executeStatement(sb);
+				}catch(IOException ioe){
+						throw new SQLException(ioe);
+				}finally{
+						if(connections!=null){
+								for(Pair<String,JMXConnector> connectorPair:connections){
+										Closeables.closeQuietly(connectorPair.getSecond());
+								}
+						}
+				}
+		}
+
+		public static void SYSCS_GET_STATEMENT_SUMMARY(ResultSet[] resultSets) throws SQLException{
+				List<ServerName> servers = getServers();
+				List<Pair<String,JMXConnector>> connections = null;
+				try{
+						connections = JMXUtils.getMBeanServerConnections(getServerNames(servers));
+						List<Pair<String,StatementManagement>> statementManagers;
+						try{
+								statementManagers = JMXUtils.getStatementManagers(connections);
+						} catch (MalformedObjectNameException e) {
+								throw new SQLException(e);
+						}
+
+						StringBuilder sb = new StringBuilder("select * from (values ");
+						int i=0;
+						for(Pair<String,StatementManagement> managementPair: statementManagers){
+								if(i!=0) sb.append(", ");
+
+								StatementManagement management = managementPair.getSecond();
+								Collection<StatementInfo> completedStatements = management.getExecutingStatementInfo();
+								boolean isStart= true;
+								for(StatementInfo completedStatement:completedStatements){
+										if(isStart) isStart=false;
+										else sb.append(",");
+
+										Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
+										Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
+										sb.append(String.format("(%d,'%s','%s','%s',%d,%d,%d,%d,'%s')",
+														completedStatement.getStatementUuid(),
+														completedStatement.getUser(),
+														completedStatement.getTxnId(),
+														escape(completedStatement.getSql()),
+														completedStatement.getNumJobs(),
+														completedJobs!=null? completedJobs.size(): 0,
+														runningJobs!=null?runningJobs.size(): 0,
+														completedStatement.getStartTimeMs(),
+														managementPair.getFirst()
+										));
+								}
+						}
+						sb.append(") foo (statementUuid,userName,transactionID,statementSql,numJobs,completedJobs,runningJobs,startTimeMs,host)");
+						resultSets[0] = executeStatement(sb);
+				}catch(IOException ioe){
+						throw new SQLException(ioe);
+				}finally{
+						if(connections!=null){
+								for(Pair<String,JMXConnector> connectorPair:connections){
+										Closeables.closeQuietly(connectorPair.getSecond());
+								}
+						}
+				}
+		}
 
     static String escape(String first) {
         return first.replaceAll("\\'", "\\'\\'").replaceAll("\\s+", " ");
@@ -621,6 +756,7 @@ public class SpliceAdmin {
             }
         }
     }
+
 
     public static void getActiveTasks() throws MasterNotRunningException, ZooKeeperConnectionException {
         HBaseAdmin admin = SpliceUtils.getAdmin();

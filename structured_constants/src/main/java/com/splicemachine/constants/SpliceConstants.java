@@ -13,8 +13,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 public class SpliceConstants {
-		//TODO -sf- make this configurable
-		public static int pastStatementBufferSize = 10;
 
 		@Retention(RetentionPolicy.SOURCE)
     protected @interface Parameter{
@@ -669,6 +667,10 @@ public class SpliceConstants {
     @DefaultValue(WRITE_MAX_FLUSHES_PER_REGION) public static final int WRITE_DEFAULT_MAX_FLUSHES_PER_REGION = 5;
     public static int maxFlushesPerRegion;
 
+		@SpliceConstants.Parameter public static final String PAST_STATEMENT_BUFFER_SIZE = "splice.monitoring.pastStatementBufferSize";
+		@DefaultValue(PAST_STATEMENT_BUFFER_SIZE) public static final int DEFAULT_PAST_STATEMENT_BUFFER_SIZE = 100;
+	 	public static int pastStatementBufferSize;
+
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
 
@@ -786,6 +788,8 @@ public class SpliceConstants {
 				taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);
 				numPriorityTiers = config.getInt(NUM_PRIORITY_TIERS,DEFAULT_NUM_PRIORITY_TIERS);
 				maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
+
+				pastStatementBufferSize = config.getInt(PAST_STATEMENT_BUFFER_SIZE,DEFAULT_PAST_STATEMENT_BUFFER_SIZE);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

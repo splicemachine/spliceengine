@@ -157,6 +157,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .build();
                 procedures.add(getActiveJobIDs);
 
+								/*Procedure to get the completed statement's summary*/
+								Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
+												.numOutputParams(0)
+												.numResultSets(1)
+												.ownerClass(SpliceAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(getCompletedStatements);
+
+								Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
+												.numOutputParams(0)
+												.numResultSets(1)
+												.ownerClass(SpliceAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(getRunningStatements);
                 /*
                  * Procedure set the max task workers
                  */

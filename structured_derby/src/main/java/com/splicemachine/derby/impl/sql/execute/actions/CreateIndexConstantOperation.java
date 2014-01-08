@@ -735,14 +735,29 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
         String notificationId = notifyMetadataChange(ddlChange);
 
+			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+
         // Add the indexes to the exisiting regions
         JobFuture future = null;
         final long tableConglomId = td.getHeapConglomerateId();
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+				JobInfo info = null;
+				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
         try {
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table, ddlChange));
-            future.completeAll(null); //TODO -sf- add status information
+						long start = System.currentTimeMillis();
+						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
+						future = SpliceDriver.driver().getJobScheduler().submit(job);
+						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						try{
+								future.completeAll(info); //TODO -sf- add status information
+						}catch(Throwable t){
+								info.failJob();
+								throw t;
+						}
+						statementInfo.completeJob(info);
         } catch (Throwable e) {
+						if(info!=null) info.failJob();
             LOG.error("Couldn't create indexes on existing regions", e);
             try {
                 table.close();
@@ -751,6 +766,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             }
             throw Exceptions.parseException(e);
         }finally {
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
             if (future!=null) {
                 try {
                     future.cleanup();
@@ -795,24 +811,29 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
          * This means that there
          */
 			//TODO -sf- replace this name with the actual SQL being issued
-			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-			StatementInfo info = new StatementInfo(String.format("populate index on %s",tableName),userId,1,SpliceDriver.driver().getUUIDGenerator());
-			SpliceDriver.driver().getStatementManager().addStatementInfo(info);
+			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
 						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
 										conglomId, tableConglomId, baseColumnPositions, unique, descColumns);
 						long start = System.currentTimeMillis();
 						future = SpliceDriver.driver().getJobScheduler().submit(job);
-						JobInfo jobInfo = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-						info.addRunningJob(jobInfo);
-            future.completeAll(jobInfo); //TODO -sf- add status information
-						info.completeJob(jobInfo);
+						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						statementInfo.addRunningJob(info);
+						try{
+								future.completeAll(info); //TODO -sf- add status information
+						}catch(ExecutionException e){
+								info.failJob();
+								throw e;
+						}
+						statementInfo.completeJob(info);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         }finally {
-						SpliceDriver.driver().getStatementManager().completedStatement(info);
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
             try {
                 transactor.commit(indexTransaction);
             } catch (IOException e) {
