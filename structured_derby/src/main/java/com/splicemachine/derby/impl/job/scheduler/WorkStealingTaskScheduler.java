@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.job.*;
+import org.apache.derbyTesting.functionTests.harness.shutdown;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -29,6 +31,7 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 		private final long pollTimeout;
 
 		private final AtomicInteger queueSize =  new AtomicInteger(0);
+		private volatile boolean isShutdown;
 
 		public WorkStealingTaskScheduler(int numThreads,
 																		 long pollTimeoutMs,
@@ -116,7 +119,13 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				return last;
 		}
 
+		@Override
+		public boolean isShutdown() {
+				return isShutdown;
+		}
+
 		public void shutdown(){
+				isShutdown=true;
 				Iterator<Future<?>> workerIter = workerFutures.iterator();
 				while(workerIter.hasNext()){
 						Future<?> future = workerIter.next();
@@ -276,15 +285,33 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 						try {
 								new TaskCallable<T>(next).call();
 						}catch(InterruptedException ie){
-								if(WORKER_LOG.isInfoEnabled())
-										WORKER_LOG.info("Interrupted during execution of task "+ Bytes.toShort(next.getTaskId()));
-								//told to shut down--resubmit back to the used scheduler's queue
-								usedScheduler.resubmit(next);
+								interrupted(next, usedScheduler);
 						}catch (Exception e) {
+								Throwable t = Throwables.getRootCause(e);
+								if(t instanceof InterruptedException){
+										interrupted(next,usedScheduler);
+								}
 								WORKER_LOG.error("Unexepcted exception calling task "+ Bytes.toString(next.getTaskId()),e);
 						}finally{
 								next.getTaskStatus().detachListener(stats);
                             jobMetrics.updateTask(next.getTaskId(), next.getJobId(),next.getTaskStatus().getStatus().name());
+						}
+				}
+
+				private void interrupted(T next, StealableTaskScheduler<T> usedScheduler) {
+						if(WORKER_LOG.isInfoEnabled())
+								WORKER_LOG.info("Interrupted during execution of task "+ Bytes.toLong(next.getTaskId()));
+
+						if(usedScheduler.isShutdown()){
+								usedScheduler.resubmit(next);
+						}else{
+								/*
+								 * The task was cancelled, but we shouldn't shut down. Just
+								 * clear the interrupted status and continue on
+								 */
+								if(WORKER_LOG.isDebugEnabled())
+										WORKER_LOG.debug("Task "+ Bytes.toLong(next.getTaskId())+" has been cancelled");
+								Thread.interrupted();
 						}
 				}
 		}

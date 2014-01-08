@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.derby.ddl.DDLChange;
@@ -749,8 +750,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
 						future = SpliceDriver.driver().getJobScheduler().submit(job);
 						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						info.setJobFuture(future);
 						try{
 								future.completeAll(info); //TODO -sf- add status information
+						}catch(CancellationException ce){
+								throw Exceptions.parseException(ce);
 						}catch(Throwable t){
 								info.failJob();
 								throw t;
@@ -820,12 +824,15 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 						long start = System.currentTimeMillis();
 						future = SpliceDriver.driver().getJobScheduler().submit(job);
 						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						info.setJobFuture(future);
 						statementInfo.addRunningJob(info);
 						try{
 								future.completeAll(info); //TODO -sf- add status information
 						}catch(ExecutionException e){
 								info.failJob();
 								throw e;
+						}catch(CancellationException ce){
+								throw Exceptions.parseException(ce);
 						}
 						statementInfo.completeJob(info);
         } catch (ExecutionException e) {

@@ -128,6 +128,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 						long start = System.currentTimeMillis();
             jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
 						jobInfo = new JobInfo(job.getJobId(), jobFuture.getNumTasks(),start);
+						jobInfo.setJobFuture(jobFuture);
 						byte[][] allTaskIds = jobFuture.getAllTaskIds();
 						for(byte[] tId:allTaskIds){
 								jobInfo.taskRunning(tId);

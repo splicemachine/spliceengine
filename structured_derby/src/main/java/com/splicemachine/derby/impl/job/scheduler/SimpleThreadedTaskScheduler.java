@@ -70,7 +70,12 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         return future;
     }
 
-/*********************************************************************************************************************/
+		@Override
+		public boolean isShutdown() {
+				return executor.isShutdown();
+		}
+
+		/*********************************************************************************************************************/
     /*Statistics gathering*/
     @Override public int getNumPendingTasks() { return statsListener.numPending.get(); }
     @Override public int getCurrentWorkers() { return executor.getPoolSize(); }

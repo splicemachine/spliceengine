@@ -149,6 +149,9 @@ public class PopulateIndexTask extends ZkTask {
                 CallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
                 try{
                     while(shouldContinue){
+												if(Thread.currentThread().isInterrupted())
+														throw new InterruptedException();
+
                         nextRow.clear();
                         long start = System.nanoTime();
                         shouldContinue  = brs.nextRaw(nextRow,null);

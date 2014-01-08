@@ -11,7 +11,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -296,7 +295,7 @@ public class InsertOperationTest {
 
                 SpliceOperation op = observerInstructions.getTopOperation();
 
-                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",snowflake.newGenerator(100));
+                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN");
 
                 TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext());
                 JobStats stats = mock(JobStats.class);

@@ -77,6 +77,10 @@ public class ImportTask extends ZkTask{
                 try{
                     String[] nextRow;
                     do{
+												//check cancellation
+												if(Thread.currentThread().isInterrupted())
+														throw new InterruptedException();
+
                         long start = System.nanoTime();
                         nextRow = reader.nextRow();
                         long stop = System.nanoTime();

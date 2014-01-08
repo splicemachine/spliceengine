@@ -109,10 +109,13 @@ public class MergeSortJoiner {
         rightSideReturned = false;
     }
 
-    private ExecRow getNextFromBuffer() throws StandardException {
+    private ExecRow getNextFromBuffer() throws StandardException, IOException {
         if (currentLeftRow != null && rightSideRowIterator != null){
             boolean foundRows = false;
             while (rightSideRowIterator.hasNext()){
+								if(Thread.currentThread().isInterrupted())
+										throw new IOException(new InterruptedException());
+
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row

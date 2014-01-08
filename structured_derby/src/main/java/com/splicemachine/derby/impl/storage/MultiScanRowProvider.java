@@ -50,21 +50,23 @@ public abstract class MultiScanRowProvider implements RowProvider {
         jobFutures =  Lists.newArrayList();
         List<JobStats> stats = Lists.newArrayList();
         try{
-            long start = System.nanoTime();
-            for(Scan scan:scans){
-								long startTimeMs = System.currentTimeMillis();
-								OperationJob job = getJob(table,instructions,scan);
-								JobFuture jobFuture = doShuffle(job);
-								JobInfo info = new JobInfo(job.getJobId(),jobFuture.getNumTasks(),startTimeMs);
-								info.tasksRunning(jobFuture.getAllTaskIds());
-								instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
-								outstandingJobs.add(Pair.newPair(jobFuture, info));
-								jobFutures.add(jobFuture);
-            }
 
-            //we have to wait for all of them to complete, so just wait in order
             Throwable error = null;
             try{
+								long start = System.nanoTime();
+								for(Scan scan:scans){
+										long startTimeMs = System.currentTimeMillis();
+										OperationJob job = getJob(table,instructions,scan);
+										JobFuture jobFuture = doShuffle(job);
+										JobInfo info = new JobInfo(job.getJobId(),jobFuture.getNumTasks(),startTimeMs);
+										info.setJobFuture(jobFuture);
+										info.tasksRunning(jobFuture.getAllTaskIds());
+										instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
+										outstandingJobs.add(Pair.newPair(jobFuture, info));
+										jobFutures.add(jobFuture);
+								}
+
+								//we have to wait for all of them to complete, so just wait in order
                 while(outstandingJobs.size()>0){
                     Pair<JobFuture,JobInfo> next = outstandingJobs.pop();
 										JobFuture jobFuture = next.getFirst();

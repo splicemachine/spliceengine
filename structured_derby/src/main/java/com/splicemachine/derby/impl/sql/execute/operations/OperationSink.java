@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -13,14 +13,12 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.Snowflake;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -38,28 +36,19 @@ public class OperationSink {
     private final SinkingOperation operation;
     private final byte[] taskId;
     private final String transactionId;
-    private final Snowflake.Generator uuidGenerator;
 
-    private long rowCount = 0;
-    private byte[] postfix;
-
-    public OperationSink(byte[] taskId,
-                         SinkingOperation operation,
-                          CallBufferFactory<KVPair> tableWriter,
-                          String transactionId,
-                          Snowflake.Generator snowflakeGenerator) {
+		public OperationSink(byte[] taskId,
+												 SinkingOperation operation,
+												 CallBufferFactory<KVPair> tableWriter,
+												 String transactionId) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
         this.transactionId = transactionId;
-        this.uuidGenerator = snowflakeGenerator;
     }
 
     public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
-        //TODO -sf- move this to a static initializer somewhere
-
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId,
-                SpliceDriver.driver().getUUIDGenerator().newGenerator(100));
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
@@ -90,6 +79,9 @@ public class OperationSink {
             ExecRow row;
 
             do{
+								if(Thread.currentThread().isInterrupted())
+										throw new InterruptedException();
+
                 long start = 0l;
                 if(stats.readAccumulator().shouldCollectStats()){
                     start = System.nanoTime();
@@ -109,8 +101,6 @@ public class OperationSink {
 								writeBuffer.add(encoder.encode(row));
 								rowsWritten++;
 
-//                debugFailIfDesired(writeBuffer);
-
                 if(stats.writeAccumulator().shouldCollectStats()){
                     stats.writeAccumulator().tick(System.nanoTime() - start);
                 }
@@ -128,12 +118,14 @@ public class OperationSink {
 
             writeBuffer.flushBuffer();
             writeBuffer.close();
-        }
-//				catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
-////        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
-//            throw e;
-//        }
-				finally{
+        } catch (Exception e) {
+						//unwrap interruptedExceptions
+						@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
+						if(t instanceof InterruptedException)
+								throw (InterruptedException)t;
+						else
+								throw e;
+				}finally{
 						bytes = taskChain.get();
 						bytes.remove(bytes.size()-1);
 						if(bytes.size()<=0){
@@ -167,19 +159,4 @@ public class OperationSink {
 				return transactionId == null ? operation.getTransactionID() : transactionId;
 		}
 
-		private byte[] getPostfix(boolean shouldMakUnique) {
-        if(taskId==null && shouldMakUnique)
-            return uuidGenerator.nextBytes();
-        else if(taskId==null)
-            postfix = uuidGenerator.nextBytes();
-        if(postfix == null){
-            postfix = new byte[taskId.length+(shouldMakUnique?8:0)];
-            System.arraycopy(taskId,0,postfix,0,taskId.length);
-        }
-        if(shouldMakUnique){
-            rowCount++;
-            System.arraycopy(Bytes.toBytes(rowCount),0,postfix,taskId.length,8);
-        }
-        return postfix;
-    }
 }

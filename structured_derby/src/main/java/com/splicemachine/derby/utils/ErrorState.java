@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.concurrent.CancellationException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1861,6 +1862,17 @@ public enum ErrorState {
 				@Override
 				public StandardException newException(Throwable rootCause) {
 						return StandardException.newException(getSqlState(),rootCause.getMessage());
+				}
+		},
+		SPLICE_CANCELLATION_EXCEPTION("SE008"){
+				@Override
+				public boolean accepts(Throwable t) {
+						return super.accepts(t) || t instanceof CancellationException;
+				}
+
+				@Override
+				public StandardException newException(Throwable rootCause) {
+						return StandardException.newException(getSqlState());
 				}
 		};
 

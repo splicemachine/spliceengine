@@ -555,4 +555,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     public double getEstimatedCost() {
         return operationInformation.getEstimatedCost();
     }
+		protected void checkInterrupt() throws IOException {
+				/*
+		 		 * Since task cancellation is performed via interruption, detect interruption
+		     * and bail
+		     */
+				if(Thread.currentThread().isInterrupted())
+						throw new IOException(new InterruptedException());
+		}
 }

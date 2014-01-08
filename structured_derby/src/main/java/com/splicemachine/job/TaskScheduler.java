@@ -15,6 +15,7 @@ public interface TaskScheduler<T extends Task> {
 
     TaskFuture submit(T task) throws ExecutionException;
 
+		boolean isShutdown();
 
 		public static class ExceptionRejectionHandler<T extends Task> implements RejectionHandler<T>{
 				private static final ExceptionRejectionHandler INSTANCE = new ExceptionRejectionHandler();

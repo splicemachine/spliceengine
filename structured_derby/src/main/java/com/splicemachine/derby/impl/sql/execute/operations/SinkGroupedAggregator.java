@@ -77,6 +77,10 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         boolean shouldContinue;
         GroupedRow toReturn = null;
         do{
+						//bail on interrupt
+						if(Thread.currentThread().isInterrupted())
+								throw new IOException(new InterruptedException());
+
             ExecRow nextRow = source.next();
             shouldContinue = nextRow!=null;
             if(!shouldContinue)

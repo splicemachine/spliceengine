@@ -15,4 +15,6 @@ public interface StatementManagement {
 		Set<StatementInfo> getExecutingStatementInfo();
 
 		List<StatementInfo> getRecentCompletedStatements();
+
+		void killStatement(long statementUuid);
 }

@@ -34,6 +34,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
+ *
  * @author Scott Fines
  * Created on: 5/9/13
  */
@@ -52,6 +53,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
 		protected byte[] parentTaskId = null;
 		private TaskWatcher taskWatcher;
+
+		private volatile Thread executionThread;
 
 		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -209,6 +212,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         status.setStatus(Status.CANCELLED);
         if(propagate)
             updateStatus(false);
+
+				if(executionThread!=null){
+						LOG.info("Task "+ Bytes.toString(taskId) +" has been cancelled, interrupting worker thread");
+						executionThread.interrupt();
+				}
     }
 
     private void updateStatus(final boolean cancelOnError) throws ExecutionException{
@@ -240,6 +248,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
     @Override
     public void markStarted() throws ExecutionException, CancellationException {
+				executionThread = Thread.currentThread();
 				TaskStatus taskStatus = getTaskStatus();
 				//if task has already been cancelled, then throw it away
 				if(taskStatus.getStatus()==Status.CANCELLED) throw new CancellationException();
@@ -273,7 +282,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
     @Override
     public void markCancelled() throws ExecutionException {
-        setStatus(Status.CANCELLED,false);
+				markCancelled(false);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.base.Throwables;
 import com.splicemachine.job.Task;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -55,17 +56,30 @@ public class TaskCallable<T extends Task> implements Callable<Void> {
 						}
 						task.execute();
 						if(WORKER_LOG.isTraceEnabled())
-								SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", Bytes.toString(task.getTaskId()));
+								SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", Bytes.toLong(task.getTaskId()));
 						SchedulerTracer.traceTaskEnd();
 						completeTask();
 				}catch(ExecutionException ee){
-						SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toString(task.getTaskId())+" had an unexpected error",ee.getCause());
+						Throwable t = Throwables.getRootCause(ee);
+						if(t instanceof InterruptedException){
+								if(WORKER_LOG.isDebugEnabled())
+										SpliceLogUtils.debug(WORKER_LOG,"task %d was cancelled",Bytes.toLong(task.getTaskId()));
+								throw (InterruptedException)t;
+						}
+
+						SpliceLogUtils.error(WORKER_LOG,"task "+ Bytes.toLong(task.getTaskId())+" had an unexpected error",ee.getCause());
 						try{
 								task.markFailed(ee.getCause());
 						}catch(ExecutionException failEx){
 								SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
 						}
 				}catch(Throwable t){
+						t = Throwables.getRootCause(t);
+						if(t instanceof InterruptedException){
+								if(WORKER_LOG.isDebugEnabled())
+										SpliceLogUtils.debug(WORKER_LOG,"task %d was cancelled",Bytes.toLong(task.getTaskId()));
+								throw (InterruptedException)t;
+						}
 						SpliceLogUtils.error(WORKER_LOG, "task " + Bytes.toString(task.getTaskId()) + " had an unexpected error while setting state", t);
 						try{
 								task.markFailed(t);

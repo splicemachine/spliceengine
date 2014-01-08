@@ -117,6 +117,11 @@ public class ConstrainedTaskScheduler<T extends Task> implements StealableTaskSc
 				return overflowConstraint.anyDeferredTask(Predicates.<T>alwaysTrue());
 		}
 
+		@Override
+		public boolean isShutdown() {
+				return delegate.isShutdown();
+		}
+
 		private class CompletionListener implements TaskStatus.StatusListener{
 				private final T task;
 

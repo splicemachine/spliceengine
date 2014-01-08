@@ -48,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -233,6 +234,8 @@ public class HdfsImport extends ParallelVTI {
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
+				}catch(CancellationException ce){
+						throw PublicAPI.wrapStandardException(Exceptions.parseException(ce));
 				}finally{
 						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
 				}
@@ -560,20 +563,4 @@ public class HdfsImport extends ParallelVTI {
 				}
 		}
 
-		private static class MultiPathFilter implements PathFilter {
-				private List<PathFilter> filters;
-
-				public MultiPathFilter(List<PathFilter> filters) {
-						this.filters = filters;
-				}
-
-				public boolean accept(Path path) {
-						for (PathFilter filter : filters) {
-								if (!filter.accept(path)) {
-										return false;
-								}
-						}
-						return true;
-				}
-		}
 }

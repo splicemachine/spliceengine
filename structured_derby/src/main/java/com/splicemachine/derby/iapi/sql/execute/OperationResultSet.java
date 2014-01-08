@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Delegating ResultSet to ensure that operation stacks are re-run when Derby
@@ -87,11 +88,15 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             throw Exceptions.parseException(e);
         }
 
-				SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
-				runtimeContext.setStatementInfo(statementInfo);
-        delegate = operationTree.executeTree(topOperation,runtimeContext);
-        //open the delegate
-        delegate.openCore();
+				try{
+						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+						runtimeContext.setStatementInfo(statementInfo);
+						delegate = operationTree.executeTree(topOperation,runtimeContext);
+						//open the delegate
+						delegate.openCore();
+				}catch(RuntimeException e){
+						throw Exceptions.parseException(e);
+				}
 
         if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
             PLAN_LOG.debug(topOperation.prettyPrint(1));

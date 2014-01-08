@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -51,5 +52,19 @@ public class StatementManager implements StatementManagement{
 								recentCompleted.add(e);
 				}
 				return recentCompleted;
+		}
+
+		@Override
+		public void killStatement(long statementUuid) {
+				for(StatementInfo info:executingStatements){
+						if(info.getStatementUuid()==statementUuid){
+								try {
+										info.cancel();
+								} catch (ExecutionException e) {
+										throw new RuntimeException(e);
+								}
+								return;
+						}
+				}
 		}
 }
