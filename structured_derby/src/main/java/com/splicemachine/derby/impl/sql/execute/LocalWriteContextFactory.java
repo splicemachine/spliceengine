@@ -9,9 +9,8 @@ import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -24,7 +23,10 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -335,8 +337,22 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         // check tentative indexes
         for (DDLChange indexChange : DDLCoordinationFactory.getWatcher().getTentativeIndexes()) {
             TentativeIndexDesc indexDesc = indexChange.getTentativeIndexDesc();
-            if (indexDesc.getBaseConglomerateNumber() == congomId)
+            boolean error = false;
+            Transactor transactor = HTransactorFactory.getTransactor();
+            TransactionStatus status = null;
+            try {
+                status = transactor.getTransactionStatus(
+                        new TransactionId(indexChange.getParentTransactionId()));
+            } catch (Exception e) {
+                // Error while checking transaction status, remove change
+                // necessary for backwards compatibility
+                error = true;
+            }
+            if (error || status.isFinished()) {
+                DDLCoordinationFactory.getController().finishMetadataChange(indexChange.getIdentifier());
+            } else if (indexDesc.getBaseConglomerateNumber() == congomId) {
                 indexFactories.add(IndexFactory.create(indexChange));
+            }
         }
     }
 

@@ -2222,7 +2222,7 @@ public class SpliceTransactionManager implements XATransactionController,
 		if (LOG.isTraceEnabled())
 			LOG.trace("getTransactionIdString ");
         if(rawtran!=null)
-            return (rawtran.toString());
+            return (rawtran.getActiveStateTxIdString());
         return "";
 	}
 

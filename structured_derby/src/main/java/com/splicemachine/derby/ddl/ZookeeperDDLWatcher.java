@@ -145,6 +145,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 }
                 String jsonChange = Bytes.toString(data);
                 DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
+                ddlChange.setIdentifier(changeId);
                 newChanges.add(changeId);
                 if (ddlChange.isTentative()) {
                     processTentativeDDLChange(ddlChange);
