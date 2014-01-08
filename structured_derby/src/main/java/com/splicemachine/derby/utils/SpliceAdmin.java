@@ -236,7 +236,7 @@ public class SpliceAdmin {
     }
 
     static String escape(String first) {
-        return first.replaceAll("\\'", "\\'\\'");
+        return first.replaceAll("\\'", "\\'\\'").replaceAll("\\s+", " ");
     }
 
     public static void SYSCS_GET_MAX_TASKS(int workerTier,ResultSet[] resultSet) throws SQLException{

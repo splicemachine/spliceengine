@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -67,14 +66,15 @@ public class SpliceAdminIT {
             "\t\tand l_shipinstruct = 'DELIVER IN PERSON'\n" +
             "\t)";
     @Test
-    @Ignore
     public void testSqlEscape() throws Exception {
         String escaped = SpliceAdmin.escape(SQL);
         StringBuilder sb = new StringBuilder(String.format("select * from (values ('%s')) foo (sqlstatement)",escaped));
-        ResultSet rs = SpliceAdmin.executeStatement(sb);
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()", rs);
-        System.out.println(fr.toString());
-        DbUtils.closeQuietly(rs);    }
+//        System.out.println(sb.toString());
+        Assert.assertFalse("SQL contained double spaces.",sb.toString().contains("  "));
+        Assert.assertFalse("SQL contained tab chars.",sb.toString().contains("\\t"));
+        Assert.assertFalse("SQL contained newline chars.",sb.toString().contains("\\n"));
+        Assert.assertFalse("SQL contained carriage return chars.",sb.toString().contains("\\r"));
+    }
 
     @Test
     public void testGetActiveTaskStaus() throws Exception {
