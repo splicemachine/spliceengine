@@ -97,6 +97,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class TieredTaskScheduler<T extends Task> implements TaskScheduler<T> {
 
+		private volatile boolean isShutdown;
+
 		/**
 		 * Strategy for handling situations when the scheduler
 		 * is fully saturated and this task cannot be executed
@@ -172,6 +174,7 @@ public class TieredTaskScheduler<T extends Task> implements TaskScheduler<T> {
 		}
 
 		public void shutdown(){
+				isShutdown=true;
 				for(Tier tier:tiers){
 						tier.scheduler.shutdown();
 				}
@@ -206,6 +209,11 @@ public class TieredTaskScheduler<T extends Task> implements TaskScheduler<T> {
 				}
 				//we can't push it anywhere, overflow
 				return overflow(task, levelTier);
+		}
+
+		@Override
+		public boolean isShutdown() {
+				return isShutdown;
 		}
 
 		private TaskFuture overflow(T task, Tier baseTier) throws ExecutionException {

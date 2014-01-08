@@ -31,14 +31,25 @@ public class ScalarAggregator {
         ExecIndexRow nextRow;
         ExecRow aggResult = null;
         do{
-            nextRow = source.nextRow(spliceRuntimeContext);
+						checkInterrupt();
+
+						nextRow = source.nextRow(spliceRuntimeContext);
             if(nextRow==null)continue;
             aggResult = aggregate(nextRow,aggResult);
         }while(nextRow!=null);
         return aggResult;
-    }
+		}
 
-    public boolean finish(ExecRow input) throws StandardException{
+		protected void checkInterrupt() throws IOException {
+		    /*
+		 		 * Since task cancellation is performed via interruption, detect interruption
+		 		 * and bail
+		 		 */
+				if(Thread.currentThread().isInterrupted())
+						throw new IOException(new InterruptedException());
+		}
+
+		public boolean finish(ExecRow input) throws StandardException{
         boolean eliminatedNulls = false;
         for (SpliceGenericAggregator currAggregate : aggregates) {
             if (currAggregate.finish(input))

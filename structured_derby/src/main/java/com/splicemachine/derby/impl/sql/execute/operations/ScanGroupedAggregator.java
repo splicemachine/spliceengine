@@ -65,6 +65,9 @@ public class ScanGroupedAggregator implements StandardIterator<GroupedRow>{
         boolean shouldContinue;
         GroupedRow toReturn = null;
         do{
+						if(Thread.currentThread().isInterrupted())
+								throw new IOException(new InterruptedException());
+
             ExecRow nextRow = source.next();
             shouldContinue = nextRow!=null;
             if(!shouldContinue)

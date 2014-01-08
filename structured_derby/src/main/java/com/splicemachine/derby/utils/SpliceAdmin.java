@@ -262,12 +262,15 @@ public class SpliceAdmin {
 										long maxJobTime = 0;
 										long minJobTime = Long.MAX_VALUE;
 										double avgJobTime = 0;
+										int numCancelledJobs = 0;
 										int count=0;
 										if(completedJobs!=null){
 												for(JobInfo info:completedJobs){
 														count++;
-														if(info.isJobFailed()){
+														if(info.getJobState()== JobInfo.JobState.FAILED){
 																numFailedJobs++;
+														}else if(info.getJobState()== JobInfo.JobState.CANCELLED){
+															numCancelledJobs++;
 														}else{
 																long jobStart = info.getJobStartMs();
 																long jobFinish = info.getJobFinishMs();

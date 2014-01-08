@@ -1,5 +1,6 @@
 package com.splicemachine.derby.management;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.utils.Snowflake;
 
@@ -7,6 +8,7 @@ import javax.management.openmbean.*;
 import java.beans.ConstructorProperties;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Represents information about a SQL statement.
@@ -36,6 +38,7 @@ public class StatementInfo {
 		private final long startTimeMs;
 		private final String txnId;
 		private volatile long stopTimeMs = -1l;
+		private volatile boolean isCancelled;
 
 		public StatementInfo(String sql,
 												 String user,
@@ -73,7 +76,10 @@ public class StatementInfo {
 				this.stopTimeMs = stopTimeMs;
 		}
 
-		public void addRunningJob(JobInfo jobInfo){
+		public void addRunningJob(JobInfo jobInfo) throws ExecutionException {
+				if(isCancelled)
+						jobInfo.cancel();
+
 				runningJobIds.add(jobInfo);
 		}
 
@@ -110,6 +116,15 @@ public class StatementInfo {
 
 		public boolean isComplete() {
 				return stopTimeMs>0l;
+		}
+
+		public void cancel() throws ExecutionException {
+				isCancelled=true;
+				for(JobInfo runningJob:runningJobIds){
+						runningJob.cancel();
+						completedJobIds.add(runningJob);
+				}
+				runningJobIds.clear();
 		}
 }
 

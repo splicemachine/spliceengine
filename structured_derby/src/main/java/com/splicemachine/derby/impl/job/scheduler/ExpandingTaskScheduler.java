@@ -28,6 +28,11 @@ public class ExpandingTaskScheduler<T extends Task> implements StealableTaskSche
 				return new ListeningTaskFuture<T>(task,0);
 		}
 
+		@Override
+		public boolean isShutdown() {
+				return executor.isShutdown();
+		}
+
 		@Override public TaskFuture tryExecute(T task) throws ExecutionException { return submit(task); }
 		@Override
 		public void resubmit(T task)  {

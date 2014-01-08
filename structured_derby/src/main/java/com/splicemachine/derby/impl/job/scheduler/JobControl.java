@@ -96,6 +96,8 @@ class JobControl implements JobFuture {
         boolean found;
         while(futuresRemaining>0){
             changedFuture = changedTasks.take();
+						if(cancelled==true)
+								throw new CancellationException();
             found = !completedTasks.contains(changedFuture) &&
                     !failedTasks.contains(changedFuture) &&
                     !cancelledTasks.contains(changedFuture);
@@ -174,7 +176,8 @@ class JobControl implements JobFuture {
 
     @Override
     public void cancel() throws ExecutionException {
-        //TODO -sf- implement
+				cancelled=true;
+				cleanup();
     }
 
     @Override
