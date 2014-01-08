@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -98,7 +99,12 @@ public class CallStatementOperation extends NoRowsOperation {
 				setup();
 					Object invoked = methodCall.invoke();
 					ResultSet[][] dynamicResults = activation.getDynamicResults();
-					dynamicStatementInfo = Lists.newArrayListWithCapacity(dynamicResults.length);
+					if(dynamicResults==null) {
+							dynamicStatementInfo = Collections.emptyList();
+							return;
+					}
+
+					dynamicStatementInfo = Lists.newArrayListWithExpectedSize(dynamicResults.length);
 					for(ResultSet[] dResults:dynamicResults){
 						if(dResults==null) continue;
 

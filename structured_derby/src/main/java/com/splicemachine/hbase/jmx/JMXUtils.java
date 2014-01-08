@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.job.JobSchedulerManagement;
 import java.io.IOException;
@@ -22,6 +23,7 @@ public class JMXUtils {
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
     public static final String GLOBAL_TASK_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=TieredSchedulerManagement";
     public static final String TIER_TASK_SCHEDULER_MANAGEMENT_BASE = "com.splicemachine.job.tasks.tier-";
+		public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String REGION_SERVER_STATISTICS = "hadoop:service=RegionServer,name=RegionServerStatistics";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.dery.hbase:type=ActiveWriteHandlers";
     public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
@@ -81,10 +83,23 @@ public class JMXUtils {
         return taskSchedules;
     }
 
-	public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
-	    ObjectName objectName = new ObjectName(mbeanName);
-	    return JMX.newMBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
-	}
+		public static List<Pair<String,StatementManagement>> getStatementManagers(List<Pair<String, JMXConnector>> connections) throws IOException, MalformedObjectNameException {
+				List<Pair<String,StatementManagement>> managers = Lists.newArrayListWithCapacity(connections.size());
+				for(Pair<String,JMXConnector> connectorPair:connections){
+						managers.add(Pair.newPair(connectorPair.getFirst(),getNewMXBeanProxy(connectorPair.getSecond(),STATEMENT_MANAGEMENT_BASE,StatementManagement.class)));
+				}
+				return managers;
+		}
+
+		public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+				ObjectName objectName = new ObjectName(mbeanName);
+				return JMX.newMBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
+		}
+
+		public static <T> T getNewMXBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+				ObjectName objectName = new ObjectName(mbeanName);
+				return JMX.newMXBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
+		}
 
 	public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException {
 	    return new ObjectName(mbeanName);

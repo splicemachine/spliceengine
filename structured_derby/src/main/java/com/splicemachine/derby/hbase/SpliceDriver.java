@@ -371,7 +371,7 @@ public class SpliceDriver extends SIConstants {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         try{
 
-						ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManager");
+						ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManagement");
 						mbs.registerMBean(statementManager,statementInfoName);
 
             writerPool.registerJMX(mbs);

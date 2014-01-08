@@ -69,7 +69,13 @@ public abstract class MultiScanRowProvider implements RowProvider {
                     Pair<JobFuture,JobInfo> next = outstandingJobs.pop();
 										JobFuture jobFuture = next.getFirst();
 										JobInfo jobInfo = next.getSecond();
-										jobFuture.completeAll(jobInfo);
+
+										try{
+												jobFuture.completeAll(jobInfo);
+										}catch(ExecutionException e){
+												jobInfo.failJob();
+												throw e;
+										}
 										instructions.getSpliceRuntimeContext().getStatementInfo().completeJob(jobInfo);
                     jobFutures.add(jobFuture);
                     stats.add(jobFuture.getJobStats());

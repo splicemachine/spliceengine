@@ -24,6 +24,7 @@ public class JobInfo implements JobFuture.StatusHook {
 		private final AtomicInteger tasksPending = new AtomicInteger(0);
 		private final AtomicInteger tasksCompleted = new AtomicInteger(0);
 		private final AtomicInteger tasksFailed = new AtomicInteger(0);
+		private volatile boolean jobFailed;
 
 		public JobInfo(String jobId,int numTasks,long jobStartMs) {
 				this.jobId = jobId;
@@ -67,43 +68,6 @@ public class JobInfo implements JobFuture.StatusHook {
 				tasksPending.incrementAndGet();
 		}
 
-//		public CompositeData toCompositeData(CompositeType ct) {
-//				try {
-//						int numFields = 7;
-//						String[] itemNames = new String[]{ "jobId","taskIds","jobStartMs","jobFinishMs","tasksPending","tasksCompleted","tasksFailed"};
-//						OpenType[] itemTypes = new OpenType[]{SimpleType.STRING,
-//										new ArrayType(SimpleType.LONG,true),SimpleType.LONG,
-//										SimpleType.LONG,SimpleType.INTEGER,SimpleType.INTEGER,SimpleType.INTEGER};
-//						List<String> itemDescriptions = new ArrayList<String>(numFields);
-//
-//						itemDescriptions.add("The Unique Job id");
-//						itemDescriptions.add("Task ids");
-//						itemDescriptions.add("The start time of the job (in ms)");
-//						itemDescriptions.add("The end time of the job (in ms), or -1 if the job is still active");
-//						itemDescriptions.add("The number of tasks which are still executing");
-//						itemDescriptions.add("The number of tasks which have completed successfully");
-//						itemDescriptions.add("The number of tasks which failed ");
-//
-//						CompositeType xct  = new CompositeType(ct.getTypeName(),
-//										"Information about a Job",
-//										itemNames,
-//										itemDescriptions.toArray(new String[itemDescriptions.size()]),
-//										itemTypes);
-//
-//						return new CompositeDataSupport(xct,
-//										itemNames,
-//										new Object[]{jobId,taskIds,jobStartMs,jobFinishMs,
-//														tasksPending.get(),tasksCompleted.get(),tasksFailed.get()}
-//										);
-//				} catch (Exception e) {
-//						throw new RuntimeException(e);
-//				}
-//		}
-
-//		public static CompositeType getCompositeType() {
-//				return null;
-//		}
-
 		@Override
 		public void success(byte[] taskId) {
 				int completedCount = tasksCompleted.incrementAndGet();
@@ -129,10 +93,18 @@ public class JobInfo implements JobFuture.StatusHook {
 			//no-op
 		}
 
+		public void failJob(){
+				this.jobFailed = true;
+		}
+
 		public void tasksRunning(byte[][] allTaskIds) {
 			for(byte[] tId:allTaskIds){
 					taskRunning(tId);
 			}
+		}
+
+		public boolean isJobFailed() {
+				return jobFailed;
 		}
 }
 

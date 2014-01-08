@@ -75,7 +75,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
 						String sql = operationContext.getPreparedStatement().getSource();
 						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-						statementInfo = new StatementInfo(sql,user,
+						String txnId = activation.getTransactionController().getActiveStateTxIdString();
+						statementInfo = new StatementInfo(sql,user,txnId,
 										operationTree.getNumSinks(topOperation),
 										SpliceDriver.driver().getUUIDGenerator());
 						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);

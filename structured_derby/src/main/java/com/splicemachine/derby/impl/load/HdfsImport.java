@@ -222,7 +222,7 @@ public class HdfsImport extends ParallelVTI {
 				HdfsImport importer;
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
-								user,
+								user,transactionId,
 								1,SpliceDriver.driver().getUUIDGenerator());
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
@@ -297,7 +297,12 @@ public class HdfsImport extends ParallelVTI {
 						}
 
 						for (Pair<JobFuture,JobInfo> jobFuture: jobFutures) {
-								jobFuture.getFirst().completeAll(jobFuture.getSecond());
+								try{
+										jobFuture.getFirst().completeAll(jobFuture.getSecond());
+								}catch(ExecutionException e){
+										jobFuture.getSecond().failJob();
+										throw e;
+								}
 						}
 				} catch (InterruptedException e) {
 						throw Exceptions.parseException(e);
