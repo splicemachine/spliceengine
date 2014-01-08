@@ -172,11 +172,11 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         }catch(RuntimeException r){
             throw Exceptions.parseException(r);
         }
-//        try {
-//            topOperation.close();
-//        } catch (IOException e) {
-//            throw Exceptions.parseException(e);
-//        }
+        try {
+            topOperation.close();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
         closed =true;
 	}
 
