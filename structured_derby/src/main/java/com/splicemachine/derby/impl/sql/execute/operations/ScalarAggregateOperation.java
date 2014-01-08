@@ -174,6 +174,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				try {
+						Thread.sleep(Long.MAX_VALUE);
+				} catch (InterruptedException e) {
+						throw new IOException(e);
+				}
 				if(sinkAggregator==null){
             sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),aggregates,false,true);
         }

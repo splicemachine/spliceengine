@@ -281,8 +281,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
-				statementInfo.markCompleted();
-				SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+				if(statementInfo!=null){
+						statementInfo.markCompleted();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+				}
         if(delegate!=null)delegate.close();
         closed=true;
     }

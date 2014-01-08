@@ -171,8 +171,10 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 						gsps.setSPSName(insertNode.getSPSName());
 						gsps.completeCompile(insertNode);
 						gsps.setCompileTimeWarnings(cc.getWarnings());
+						activation.setupSQLSessionContextForChildren(false);
 
 						Activation insertActivation = gsps.getActivation(lcc, true);
+						insertActivation.setupSQLSessionContextForChildren(false);
 						try{
 								ResultSet insertionRs = gsps.execute(insertActivation, -1);
 								SQLWarning warnings = insertionRs.getWarnings();
