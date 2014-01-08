@@ -729,7 +729,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
                 DDLChange.TentativeType.CREATE_INDEX);
         ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
-        ddlChange.setParentTransactionId(tc.getTransactionIdString());
+        ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
 
         String notificationId = notifyMetadataChange(ddlChange);
 
