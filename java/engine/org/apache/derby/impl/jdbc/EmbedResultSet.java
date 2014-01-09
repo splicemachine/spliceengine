@@ -5194,5 +5194,13 @@ public abstract class EmbedResultSet extends ConnectionChild
                 throw noStateChangeException(t);
         }
     }
+
+		/*
+		 * Used only for internal access in Splice, DON'T USE
+		 * THIS UNLESS YOU KNOW WHAT YOU ARE DOING!!!!
+		 */
+		public ResultSet getUnderlyingResultSet(){
+						return theResults;
+		}
     
 }

@@ -8399,6 +8399,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<text>Query Timed out: {0}</text>
 							<arg>message</arg>
 						</msg>
+
+						<msg>
+							<name>SE008</name>
+							<text>This statement was killed by an administrative action. Please contact your system administrator for more assistance</text>
+						</msg>
        </family>
     </section>
 
