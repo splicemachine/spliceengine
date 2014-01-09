@@ -202,19 +202,19 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     }
 
     private void killDDLTransaction(String changeId) {
-        String transactionId = currentDDLChanges.get(changeId);
-        LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
-                + " the DDL change " + changeId + " publication");
         try {
+            String transactionId = currentDDLChanges.get(changeId);
+            LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
+                    + " the DDL change " + changeId + " publication");
             HTransactorFactory.getTransactor().fail(new TransactionId(transactionId));
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.warn("Couldn't kill transaction, already killed?", e);
         }
         final String changePath = SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId;
         try {
             ZkUtils.recursiveDelete(changePath);
         } catch (Exception e) {
-            LOG.error("Couldn't kill transaction " + transactionId + " for DDL change " + changeId, e);
+            LOG.error("Couldn't kill transaction for DDL change " + changeId, e);
         }
     }
 
