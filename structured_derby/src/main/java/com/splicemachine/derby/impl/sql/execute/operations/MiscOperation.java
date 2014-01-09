@@ -1,9 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.stats.RegionStats;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionStatus;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -17,6 +22,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import java.io.IOException;
 
 
 /**
@@ -66,7 +73,12 @@ public class MiscOperation extends NoRowsOperation
 				setup();
 				activation.getConstantAction().executeConstantAction(activation);
 			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                try {
+                    activation.getLanguageConnectionContext().internalRollback();
+                } catch (StandardException e1) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG, e1);
+                }
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
 		}
 
