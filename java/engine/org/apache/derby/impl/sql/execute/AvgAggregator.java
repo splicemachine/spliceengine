@@ -27,7 +27,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.TypeId;
-
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.reference.SQLState;
 
@@ -251,4 +250,14 @@ public final class AvgAggregator extends SumAggregator
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_AVG_V01_ID; }
+    public String toString()
+    {
+        try {
+        	return "AvgAggregator: { sum=" + (value!= null?value.getString():"NULL") + ", count=" + count + "}";		
+        }
+        catch (StandardException e)
+        {
+            return super.toString() + ":" + e.getMessage();
+        }
+    }
 }

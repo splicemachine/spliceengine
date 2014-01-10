@@ -25,10 +25,10 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.error.StandardException;
-
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.loader.ClassFactory;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -121,4 +121,9 @@ public final class MaxMinAggregator
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId()	{ return StoredFormatIds.AGG_MAX_MIN_V01_ID; }
+    public String toString() {
+    	if (isMax)
+    		return "Max (" + (value !=null?value:"NULL") + ")";
+		return "Min (" + (value !=null?value:"NULL") + ")";
+    }
 }
