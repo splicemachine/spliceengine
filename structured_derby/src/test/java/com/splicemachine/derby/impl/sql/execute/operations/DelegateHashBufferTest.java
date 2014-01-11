@@ -6,7 +6,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.junit.Assert;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.services.monitor.ModuleFactory;
@@ -19,6 +18,8 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.splicemachine.derby.impl.sql.execute.deprecate.DelegateHashBuffer;
 
 public class DelegateHashBufferTest {
 	protected static J2SEDataValueFactory dvf = new J2SEDataValueFactory();

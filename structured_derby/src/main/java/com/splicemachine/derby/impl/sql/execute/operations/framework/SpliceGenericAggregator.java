@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.Storable;
@@ -9,8 +9,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.UserDataValue;
 import org.apache.derby.impl.sql.execute.AggregatorInfo;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * GenericAggregator wrapper. This is a near identical copy of
@@ -39,7 +37,7 @@ public class SpliceGenericAggregator {
 		this.resultColumnId = aggInfo.getOutputColNum()+1;
 	}
 
-    SpliceGenericAggregator(ExecAggregator cachedAggregator,
+    public SpliceGenericAggregator(ExecAggregator cachedAggregator,
                             int aggregatorColumnId,
                             int inputColumnId,
                             int resultColumnId){
@@ -56,10 +54,17 @@ public class SpliceGenericAggregator {
 		return this.aggInfo;
 	}
 
-    void setAggInfo(AggregatorInfo aggInfo) {
+    public void setAggInfo(AggregatorInfo aggInfo) {
         this.aggInfo = aggInfo;
     }
 
+    public void initializeAndAccumulateIfNeeded(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
+		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
+		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
+		initializeAndAccumulateIfNeeded(nextCol,aggCol);
+	}
+
+    
     public void accumulate(ExecRow nextRow,ExecRow accumulatorRow) throws StandardException {
 		DataValueDescriptor nextCol = nextRow.getColumn(inputColumnId);
 		DataValueDescriptor aggCol = accumulatorRow.getColumn(aggregatorColumnId);
@@ -97,13 +102,13 @@ public class SpliceGenericAggregator {
 		return ua.didEliminateNulls();
 	}
 	
-	void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
+	public void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
 		ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
 		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
 		uaOut.merge(uaIn);
 	}
 	
-	void initialize(ExecRow row) throws StandardException{
+	public void initialize(ExecRow row) throws StandardException{
 		UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
@@ -113,14 +118,14 @@ public class SpliceGenericAggregator {
 		}
 	}
 
-    boolean isInitialized(ExecRow row) throws StandardException{
+    public boolean isInitialized(ExecRow row) throws StandardException{
         UserDataValue aggColumn = (UserDataValue)row.getColumn(aggregatorColumnId);
 
         ExecAggregator ua = (ExecAggregator)aggColumn.getObject();
         return ua !=null;
     }
-	
-	void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
+    
+	public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
 																throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
 		if(ua == null){
@@ -128,6 +133,16 @@ public class SpliceGenericAggregator {
 		}
 		ua.accumulate(inputCol,this);
 	}
+
+	public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
+		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
+		if(ua == null){
+			ua = getAggregatorInstance();
+			ua.accumulate(inputCol,this);
+			aggCol.setValue(ua);
+		}
+	}
+
 	
 	public ExecAggregator getAggregatorInstance() throws StandardException {
 		ExecAggregator aggInstance;

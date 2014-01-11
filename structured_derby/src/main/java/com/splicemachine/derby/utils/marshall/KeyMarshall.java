@@ -16,10 +16,10 @@ public interface KeyMarshall {
                           byte[] keyPostfix,
                           MultiFieldEncoder keyEncoder) throws StandardException;
 
-    void decode(DataValueDescriptor[] data,
+    public void decode(DataValueDescriptor[] data,
                 int[] reversedKeyColumns,
                 boolean[] sortOrder,
                 MultiFieldDecoder rowDecoder) throws StandardException;
 
-    int getFieldCount(int[] keyColumns);
+    public int getFieldCount(int[] keyColumns);
 }

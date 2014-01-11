@@ -170,7 +170,7 @@ public interface SpliceOperation  {
      * @param tableNumber
      * @return
      */
-    int[] getRootAccessedCols(long tableNumber);
+    int[] getRootAccessedCols(long tableNumber) throws StandardException;
 
     /**
      * Returns true if this operation references the given table number.  For a join,

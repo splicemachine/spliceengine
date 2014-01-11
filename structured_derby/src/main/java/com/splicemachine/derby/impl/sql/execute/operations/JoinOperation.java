@@ -216,7 +216,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
     }
 
     @Override
-     public int[] getRootAccessedCols(long tableNumber) {
+     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
 
         int[] rootCols = null;
 

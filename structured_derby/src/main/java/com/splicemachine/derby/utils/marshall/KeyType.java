@@ -4,12 +4,8 @@ import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.tools.ThreadLocalRandom;
-import org.apache.commons.httpclient.methods.ByteArrayRequestEntity;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
