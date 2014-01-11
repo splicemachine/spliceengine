@@ -4,9 +4,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -19,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.Set;
 
@@ -67,16 +74,16 @@ public class SinkGroupedAggregatorTest {
         };
         SpliceGenericAggregator nonDistinctAggregate = getCountAggregator(4,1,3,false);
         SpliceGenericAggregator distinctAggregate = getCountAggregator(6,2,5,true);
-        AggregateBuffer nonDistinctBuffer = new AggregateBuffer(10,
+        GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(10,
                 new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector);
-        AggregateBuffer distinctBuffer = new AggregateBuffer(10,
+        GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(10,
                 new SpliceGenericAggregator[]{distinctAggregate},false,emptyRowSupplier,collector);
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
         int[] uniqueNonGroupedColumns = new int[]{1};
 
-        SinkGroupedAggregator aggregator = new SinkGroupedAggregator(nonDistinctBuffer,distinctBuffer,
+        SinkGroupedAggregateIterator aggregator = new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,
                 source,false,groupColumns,groupSortOrder,uniqueNonGroupedColumns);
 
         //1 row for each nonDistinctAggregate * unique groupings = 3 * 1 = 3
@@ -109,10 +116,10 @@ public class SinkGroupedAggregatorTest {
             }
         }));
 
-        AggregateBuffer scanBuffer = new AggregateBuffer(10,
+        GroupedAggregateBuffer scanBuffer = new GroupedAggregateBuffer(10,
                 new SpliceGenericAggregator[]{nonDistinctAggregate,distinctAggregate},false,emptyRowSupplier,collector,true);
 
-        ScanGroupedAggregator scanAggregator = new ScanGroupedAggregator(scanBuffer,scanSource,groupColumns,groupSortOrder,false);
+        ScanGroupedAggregateIterator scanAggregator = new ScanGroupedAggregateIterator(scanBuffer,scanSource,groupColumns,groupSortOrder,false);
 
         List<GroupedRow> scanRows = Lists.newArrayListWithExpectedSize(3);
         row = scanAggregator.next();

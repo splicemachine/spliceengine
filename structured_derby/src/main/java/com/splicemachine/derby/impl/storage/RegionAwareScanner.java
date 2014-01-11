@@ -64,12 +64,10 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private byte[] regionStart;
     private final String transactionId;
     private final Scan scan;
-
 		private int totalRowsSeen=0;
 		private int lookBehindRowsSeen=0;
 		private int lookAheadRowsSeen=0;
 		private int localRowsSeen =0;
-
 		private RegionAwareScanner(String transactionId,
                                HTableInterface table,
                                HRegion region,

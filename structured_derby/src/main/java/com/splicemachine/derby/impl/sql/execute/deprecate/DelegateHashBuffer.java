@@ -1,14 +1,17 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.deprecate;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AggregateFinisher;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
-
+@Deprecated
 public class DelegateHashBuffer<K,T extends ExecRow> implements HashBuffer<K,T> {
 	protected int maxCapacity;
 	protected T matchedRow = null;

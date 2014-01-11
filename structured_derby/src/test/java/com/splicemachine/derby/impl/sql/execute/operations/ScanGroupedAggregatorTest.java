@@ -3,11 +3,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -54,7 +59,7 @@ public class ScanGroupedAggregatorTest {
         StandardIterator<ExecRow> source = StandardIterators.wrap(sourceRows);
 
         SpliceGenericAggregator countAggregator = getCountAggregator(4,1,3);
-        AggregateBuffer buffer = new AggregateBuffer(20,
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(20,
                 new SpliceGenericAggregator[]{countAggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
@@ -69,7 +74,7 @@ public class ScanGroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0,1};
         boolean[] groupSortOrder = new boolean[]{true,true};
-        ScanGroupedAggregator aggregator = new ScanGroupedAggregator(buffer,
+        ScanGroupedAggregateIterator aggregator = new ScanGroupedAggregateIterator(buffer,
                 source,groupColumns,groupSortOrder,true);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(21);
@@ -132,7 +137,7 @@ public class ScanGroupedAggregatorTest {
         StandardIterator<ExecRow> source = StandardIterators.wrap(sourceRows);
 
         SpliceGenericAggregator countAggregator = getCountAggregator(3,1,2);
-        AggregateBuffer buffer = new AggregateBuffer(10,
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,
                 new SpliceGenericAggregator[]{countAggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
@@ -147,7 +152,7 @@ public class ScanGroupedAggregatorTest {
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
-        ScanGroupedAggregator aggregator = new ScanGroupedAggregator(buffer,
+        ScanGroupedAggregateIterator aggregator = new ScanGroupedAggregateIterator(buffer,
                 source,groupColumns,groupSortOrder,false);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(10);

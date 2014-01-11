@@ -1,11 +1,13 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -17,8 +19,8 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 11/1/13
  */
-public class ScanGroupedAggregator implements StandardIterator<GroupedRow>{
-    private final AggregateBuffer buffer;
+public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow>{
+    private final GroupedAggregateBuffer buffer;
     private final StandardIterator<ExecRow> source;
 
     private final int[] groupColumns;
@@ -32,7 +34,7 @@ public class ScanGroupedAggregator implements StandardIterator<GroupedRow>{
 
     private List<GroupedRow> evictedRows;
 
-    public ScanGroupedAggregator(AggregateBuffer buffer,
+    public ScanGroupedAggregateIterator(GroupedAggregateBuffer buffer,
                                  StandardIterator<ExecRow> source,
                                  int[] groupColumns,
                                  boolean[] groupSortByColumns,

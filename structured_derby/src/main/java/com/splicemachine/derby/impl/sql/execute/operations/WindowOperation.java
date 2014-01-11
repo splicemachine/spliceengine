@@ -240,7 +240,7 @@ public class WindowOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         if(source.isReferencingTable(tableNumber))
             return source.getRootAccessedCols(tableNumber);
         return null;

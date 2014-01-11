@@ -26,13 +26,12 @@ public class ClientScanProvider extends AbstractScanProvider {
     private final byte[] tableName;
     private HTableInterface htable;
     private final Scan scan;
-
     private ResultScanner scanner;
 
 
 	public ClientScanProvider(String type,
-														byte[] tableName, Scan scan,
-														PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+			byte[] tableName, Scan scan,
+			PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
 		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
