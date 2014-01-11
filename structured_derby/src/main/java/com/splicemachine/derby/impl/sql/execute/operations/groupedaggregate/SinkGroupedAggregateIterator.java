@@ -1,11 +1,13 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -17,13 +19,13 @@ import java.util.List;
 /**
  * Aggregator for use with Sinking aggregates.
  *
- * Unlike {@link ScanGroupedAggregator}, this implementation makes a distinction
+ * Unlike {@link ScanGroupedAggregateIterator}, this implementation makes a distinction
  * between distinct aggregates and non-distinct aggregates.
  *
  * @author Scott Fines
  * Created on: 11/5/13
  */
-public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
+public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow> {
     private final DoubleBuffer buffer;
     private final StandardIterator<ExecRow> source;
     private final boolean isRollup;
@@ -34,8 +36,8 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
     private List<GroupedRow> evictedRows;
     private ExecRow[] rollupRows;
 
-    public SinkGroupedAggregator(AggregateBuffer nonDistinctBuffer,
-                                 AggregateBuffer distinctBuffer,
+    public SinkGroupedAggregateIterator(GroupedAggregateBuffer nonDistinctBuffer,
+                                 GroupedAggregateBuffer distinctBuffer,
                                  StandardIterator<ExecRow> source,
                                  boolean rollup,
                                  int[] groupColumns,
@@ -169,8 +171,8 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         private final SingleBuffer distinctBuffer;
         private final List<GroupedRow> evictedRows;
 
-        private DoubleBuffer(AggregateBuffer nonDistinctBuffer,
-                             AggregateBuffer distinctBuffer,
+        private DoubleBuffer(GroupedAggregateBuffer nonDistinctBuffer,
+                             GroupedAggregateBuffer distinctBuffer,
                              int[] groupKeys,
                              boolean[] sortOrder,
                              int[] allKeyColumns,
@@ -221,7 +223,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
     }
 
     private static class SingleBuffer implements Buffer{
-        private final AggregateBuffer aggregateBuffer;
+        private final GroupedAggregateBuffer aggregateBuffer;
         private final int[] groupKeys;
         private final boolean[] sortOrder;
         private final boolean clone;
@@ -229,7 +231,7 @@ public class SinkGroupedAggregator implements StandardIterator<GroupedRow> {
         private MultiFieldEncoder encoder;
         private final boolean ignoreNonAggregates;
 
-        private SingleBuffer(AggregateBuffer aggregateBuffer,
+        private SingleBuffer(GroupedAggregateBuffer aggregateBuffer,
                              int[] groupKeys,
                              boolean[] sortOrder,
                              boolean ignoreNonAggregates,

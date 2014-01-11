@@ -1,7 +1,8 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.deprecate;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AggregateFinisher;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.encoding.HashUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -14,7 +15,7 @@ import org.datanucleus.sco.backed.Map;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
+@Deprecated
 public class HashBufferSource{
 
     private static final Logger LOG = Logger.getLogger(HashBufferSource.class);

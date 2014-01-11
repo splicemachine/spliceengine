@@ -3,6 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 
@@ -40,7 +43,7 @@ public class AggregateBufferTest {
         aggregator.setAggInfo(mockInfo);
 
         final ExecRow emptyRow = new IndexValueRow(new ValueRow(3));
-        AggregateBuffer buffer = new AggregateBuffer(2,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(2,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
                 return emptyRow;
@@ -116,7 +119,7 @@ public class AggregateBufferTest {
         aggregator.setAggInfo(mockInfo);
 
         final ExecRow emptyRow = new IndexValueRow(new ValueRow(3));
-        AggregateBuffer buffer = new AggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
                 return emptyRow;
@@ -182,7 +185,7 @@ public class AggregateBufferTest {
         aggregator.setAggInfo(mockInfo);
 
         final ExecRow emptyRow = new ValueRow(3);
-        AggregateBuffer buffer = new AggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
                 return emptyRow;
@@ -229,7 +232,7 @@ public class AggregateBufferTest {
         aggregator.setAggInfo(mockInfo);
 
         final ExecRow emptyRow = new IndexValueRow(new ValueRow(3));
-        AggregateBuffer buffer = new AggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
                 return emptyRow;
@@ -277,7 +280,7 @@ public class AggregateBufferTest {
         aggregator.setAggInfo(mockInfo);
 
         final ExecRow emptyRow = new ValueRow(3);
-        AggregateBuffer buffer = new AggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
+        GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(10,new SpliceGenericAggregator[]{aggregator},false,new StandardSupplier<ExecRow>() {
             @Override
             public ExecRow get() throws StandardException {
                 return emptyRow;

@@ -126,7 +126,7 @@ public class HashTableOperation extends SpliceBaseOperation  {
 	}
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
     }
 

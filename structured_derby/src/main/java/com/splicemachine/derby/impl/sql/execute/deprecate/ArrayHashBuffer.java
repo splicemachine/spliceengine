@@ -1,7 +1,10 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.deprecate;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+
+import com.splicemachine.derby.impl.sql.execute.operations.HashCodeGenerator;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AggregateFinisher;
 
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -12,6 +15,7 @@ import java.util.Set;
  * @author Scott Fines
  * Created on: 9/13/13
  */
+@Deprecated
 public class ArrayHashBuffer<K,T extends ExecRow> implements HashBuffer<K,T>{
     private final Map.Entry<K,T>[] buffer;
     private final HashCodeGenerator<K> hasher;

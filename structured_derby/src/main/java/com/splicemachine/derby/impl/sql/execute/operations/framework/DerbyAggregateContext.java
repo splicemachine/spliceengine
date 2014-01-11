@@ -1,8 +1,10 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.sql.Activation;
@@ -26,9 +28,7 @@ public class DerbyAggregateContext implements AggregateContext {
     private static final long serialVersionUID = 1l;
     private String rowAllocatorMethodName;
     private int aggregateItem;
-
     private Activation activation;
-
     private SpliceMethod<ExecRow> rowAllocator;
     private ExecIndexRow sortTemplateRow;
     private ExecIndexRow sourceExecIndexRow;

@@ -1,21 +1,29 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**
+ * This class wraps a grouping key and an ExecRow
+ * 
  * @author Scott Fines
  * Created on: 11/1/13
  */
-class GroupedRow {
+public class GroupedRow {
     private ExecRow row;
     private byte[] groupingKey;
     private boolean isDistinct;
 
-    GroupedRow() { }
+    public GroupedRow() { }
 
     public GroupedRow(ExecRow row, byte[] groupingKey){
         this.row = row;
         this.groupingKey = groupingKey;
+    }
+
+    public GroupedRow(ExecRow row, byte[] groupingKey, boolean isDistinct){
+        this.row = row;
+        this.groupingKey = groupingKey;
+        this.isDistinct = isDistinct;
     }
 
     public GroupedRow copy(){
@@ -53,4 +61,10 @@ class GroupedRow {
     public void setDistinct(boolean distinct) {
         isDistinct = distinct;
     }
+
+	@Override
+	public String toString() {
+		return "grouping key={" + groupingKey + "}, row={" + row + "}, isDistinct="+isDistinct;
+	}
+    
 }

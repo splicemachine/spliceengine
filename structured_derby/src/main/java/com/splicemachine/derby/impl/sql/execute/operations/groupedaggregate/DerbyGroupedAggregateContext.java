@@ -1,7 +1,10 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
@@ -21,7 +24,6 @@ import java.util.List;
 public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
     private Activation activation;
     private int orderingItem;
-
     private int[] groupingKeys;
     private boolean[] groupingKeyOrder;
     private int[] nonGroupedUniqueColumns;

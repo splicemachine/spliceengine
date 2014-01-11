@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -8,8 +7,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateRowProvider;
+import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
+import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.ScalarAggregateRowProvider;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -17,9 +18,9 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.SQLWarningFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -36,22 +37,16 @@ import java.io.ObjectOutput;
  *  
  * @author Scott Fines
  * 
- * 
- *
  */
 public class ScalarAggregateOperation extends GenericAggregateOperation {
 	public static long serialVersionUID = 1l;
 	private static Logger LOG = Logger.getLogger(ScalarAggregateOperation.class);
-	
 	protected boolean isInSortedOrder;
 	protected boolean singleInputRow;
-
 	protected boolean isOpen=false;
-
     private ScalarAggregator scanAggregator;
     private ScalarAggregator sinkAggregator;
 
-    @SuppressWarnings("UnusedDeclaration")
     public ScalarAggregateOperation () {
 		super();
 	}
@@ -106,7 +101,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						throw Exceptions.parseException(e);
 				}
 				SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
-
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				RowProvider delegate = new ClientScanProvider("scalarAggregateReduce", tempTableBytes,reduceScan,rowDecoder,spliceRuntimeContext);
 				return new ScalarAggregateRowProvider(rowDecoder.getTemplate(),aggregates,delegate);
@@ -134,8 +128,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         super.close();
 				source.close();
     }
-
-
 
     @Override
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
@@ -174,11 +166,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				try {
-						Thread.sleep(Long.MAX_VALUE);
-				} catch (InterruptedException e) {
-						throw new IOException(e);
-				}
 				if(sinkAggregator==null){
             sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),aggregates,false,true);
         }

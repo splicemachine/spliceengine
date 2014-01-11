@@ -13,11 +13,11 @@ import java.util.List;
 public class SpliceRuntimeContext<Row> implements Externalizable {
     private static final long serialVersionUID = 1l;
     private List<Path> paths = new ArrayList<Path>();
-    private boolean isSink = false;
+    private boolean isSink;
     private Row scanStartOverride;
     private byte[] currentTaskId;
-
-		private transient StatementInfo statementInfo;
+	private transient StatementInfo statementInfo;
+    private boolean firstStepInMultistep;
     /*
      * Hash bucket to use for sink operations which do not spread data themselves.
      *
@@ -44,6 +44,13 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         return spliceRuntimeContext;
     }
 
+    public static SpliceRuntimeContext generateSinkRuntimeContext(boolean firstStepInMultistep) {
+        SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+        spliceRuntimeContext.firstStepInMultistep = firstStepInMultistep;
+        return spliceRuntimeContext;
+    }
+
+    
     public SpliceRuntimeContext copy() {
         SpliceRuntimeContext copy = new SpliceRuntimeContext();
         for (Path path : paths) {
@@ -120,7 +127,15 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         return scanStartOverride;
     }
 
-    public byte[] getCurrentTaskId() {
+    public boolean isFirstStepInMultistep() {
+		return firstStepInMultistep;
+	}
+
+	public void setFirstStepInMultistep(boolean firstStepInMultistep) {
+		this.firstStepInMultistep = firstStepInMultistep;
+	}
+
+	public byte[] getCurrentTaskId() {
         return currentTaskId;
     }
 
@@ -143,6 +158,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
             out.writeObject(path);
         }
         out.writeByte(hashBucket);
+        out.writeBoolean(firstStepInMultistep);
     }
 
     @Override
@@ -153,6 +169,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
             paths.add((Path) in.readObject());
         }
         hashBucket = in.readByte();
+        firstStepInMultistep = in.readBoolean();
     }
 
 
@@ -163,6 +180,10 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         for (Path path : paths) {
             sb.append(path);
         }
+        sb.append(", hashBucket=");
+        sb.append(hashBucket);
+        sb.append(", isSink=");
+        sb.append(isSink);
         sb.append(" }");
         return sb.toString();
     }

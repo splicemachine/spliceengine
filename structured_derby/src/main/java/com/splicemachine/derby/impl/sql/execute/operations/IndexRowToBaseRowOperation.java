@@ -368,7 +368,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 	}
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         return source.getRootAccessedCols(tableNumber);
     }
 

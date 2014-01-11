@@ -13,7 +13,9 @@ import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+
 import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
+
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
@@ -104,8 +106,11 @@ import org.apache.derby.impl.sql.execute.MaxMinAggregator;
 import org.apache.derby.impl.sql.execute.SumAggregator;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.derby.impl.store.access.PC_XenaVersion;
+
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevPop;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceStddevSamp;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 /**
  *
  * Maps serializable entities to a Kryo Serializer, so that

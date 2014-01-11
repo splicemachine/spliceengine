@@ -12,6 +12,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
 import com.splicemachine.derby.impl.storage.*;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
@@ -20,13 +28,12 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.hash.ByteHash32;
 import com.splicemachine.utils.hash.HashFunctions;
-import com.splicemachine.utils.hash.MurmurHash;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -48,13 +55,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static final byte[] distinctOrdinal = {0x00};
 	protected boolean isInSortedOrder;
 	protected boolean isRollup;
-
     protected byte[] currentKey;
     private boolean isCurrentDistinct;
-
     private StandardIterator<GroupedRow> aggregator;
     private GroupedAggregateContext groupedAggregateContext;
-
     private Snowflake.Generator uuidGen;
     private Scan baseScan;
 
@@ -135,7 +139,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         source.init(context);
         baseScan = context.getScan();
         groupedAggregateContext.init(context,aggregateContext);
-
     }
 
     @Override
@@ -304,31 +307,16 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public ExecRow getNextSinkRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if(aggregator==null){
-            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-                @Override
-                public ExecRow get() throws StandardException {
-                    return aggregateContext.getSortTemplateRow();
-                }
-            };
-
-            StandardIterator<ExecRow> sourceIterator = new StandardIterator<ExecRow>() {
-                @Override public void open() throws StandardException, IOException { }
-                @Override public void close() throws StandardException, IOException { }
-
-                @Override
-                public ExecRow next() throws StandardException, IOException {
-                    return source.nextRow(spliceRuntimeContext);
-                }
-            };
+        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(spliceRuntimeContext,source);
+            StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
             int[] nonGroupedUniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
-            AggregateBuffer distinctBuffer = new AggregateBuffer(SpliceConstants.ringBufferSize,
+            GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
                     aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
-            AggregateBuffer nonDistinctBuffer = new AggregateBuffer(SpliceConstants.ringBufferSize,
+            GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
                     aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
-
-            aggregator = new SinkGroupedAggregator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
+            aggregator = new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
                     groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns);
             aggregator.open();
         }
@@ -340,12 +328,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             aggregator.close();
             return null;
         }
-
         currentKey = row.getGroupingKey();
         isCurrentDistinct = row.isDistinct();
         ExecRow execRow = row.getRow();
-//        if (LOG.isTraceEnabled())
-//            SpliceLogUtils.trace(LOG, "getNextSinkRow %s",execRow);
         setCurrentRow(execRow);
         return execRow;
     }
@@ -364,14 +349,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
              * hash key are grouped together, which means that we only need to keep a single buffer entry
              * in memory.
              */
-            AggregateBuffer buffer = new AggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true);
+            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true);
 
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
             SpliceResultScanner scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
             StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
-            aggregator = new ScanGroupedAggregator(buffer,sourceIterator,
-                    groupingKeys,groupingKeyOrder,false);
+            aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,groupingKeys,groupingKeyOrder,false);
             aggregator.open();
         }
         boolean shouldClose = true;

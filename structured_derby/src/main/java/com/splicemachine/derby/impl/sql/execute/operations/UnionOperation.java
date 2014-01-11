@@ -199,7 +199,7 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         if(firstResultSet.isReferencingTable(tableNumber))
             return firstResultSet.getRootAccessedCols(tableNumber);
         else if(secondResultSet.isReferencingTable(tableNumber))
