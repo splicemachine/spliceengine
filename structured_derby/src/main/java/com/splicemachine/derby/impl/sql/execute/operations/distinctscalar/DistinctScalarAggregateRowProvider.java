@@ -1,20 +1,15 @@
-package com.splicemachine.derby.impl.storage;
+package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceGenericAggregator;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -24,9 +19,8 @@ import java.util.Arrays;
  * @author Scott Fines
  * Created on: 5/21/13
  */
-public class ScalarAggregateRowProvider implements RowProvider {
+public class DistinctScalarAggregateRowProvider implements RowProvider {
     private boolean defaultReturned = false;
-
     private final ExecAggregator[] execAggregators;
     private final SpliceGenericAggregator[] genericAggregators;
     private final int[] colPosMap;
@@ -34,28 +28,28 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		private ExecRow templateRow;
 		private boolean populated = false;
 
-		public ScalarAggregateRowProvider(ExecRow templateRow,
+		public DistinctScalarAggregateRowProvider(ExecRow templateRow,
                                       SpliceGenericAggregator[] aggregates,
 																			RowProvider delegate) throws StandardException {
 				this.delegate = delegate;
 				this.templateRow =templateRow;
-        this.genericAggregators = aggregates;
-        this.execAggregators = new ExecAggregator[genericAggregators.length];
-        int []columnMap = new int[execAggregators.length];
-        int maxPos = 0;
-        for(int i=0;i<genericAggregators.length;i++){
-            execAggregators[i] = genericAggregators[i].getAggregatorInstance();
-            columnMap[i] = genericAggregators[i].getResultColumnId();
-            if(columnMap[i]>maxPos){
-                maxPos = columnMap[i];
-            }
-        }
-        this.colPosMap = new int[maxPos+1];
-        Arrays.fill(colPosMap,-1);
-        for(int i=0;i<columnMap.length;i++){
-            colPosMap[columnMap[i]] = i;
-        }
-    }
+				this.genericAggregators = aggregates;
+				this.execAggregators = new ExecAggregator[genericAggregators.length];
+				int []columnMap = new int[execAggregators.length];
+				int maxPos = 0;
+				for(int i=0;i<genericAggregators.length;i++){
+					execAggregators[i] = genericAggregators[i].getAggregatorInstance();
+					columnMap[i] = genericAggregators[i].getResultColumnId();
+					if(columnMap[i]>maxPos){
+						maxPos = columnMap[i];
+					}
+				}
+				this.colPosMap = new int[maxPos+1];
+				Arrays.fill(colPosMap,-1);
+				for(int i=0;i<columnMap.length;i++){
+					colPosMap[columnMap[i]] = i;
+				}
+		}
 
 		/*delegate methods*/
 		@Override public void open() throws StandardException { delegate.open(); }
@@ -63,19 +57,11 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
 		@Override public byte[] getTableName() { return delegate.getTableName(); }
 		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
+		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {return delegate.shuffleRows(instructions);}
+		@Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
 
 		@Override
-		public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-				return delegate.shuffleRows(instructions);
-		}
-
-		@Override
-		public SpliceRuntimeContext getSpliceRuntimeContext() {
-				return delegate.getSpliceRuntimeContext();
-		}
-
-		@Override
-    public ExecRow next() throws StandardException, IOException {
+		public ExecRow next() throws StandardException, IOException {
 				if(populated&&defaultReturned){
 						populated=false;
 						return templateRow;

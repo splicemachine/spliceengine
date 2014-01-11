@@ -5,15 +5,15 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.SQLWarningFactory;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.impl.sql.execute.AggregatorInfoList;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -187,7 +187,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
     }
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         if(source.isReferencingTable(tableNumber))
             return source.getRootAccessedCols(tableNumber);
 

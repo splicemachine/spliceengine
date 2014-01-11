@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -6,12 +6,12 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
+import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateSource;
 import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
 import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
@@ -20,7 +20,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-
 import java.io.IOException;
 
 /**
@@ -45,7 +44,6 @@ public class DistinctScalarAggregateScan implements ScalarAggregateSource {
             public byte[] getStartKey(Result result) {
                 MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(), SpliceDriver.getKryoPool());
                 fieldDecoder.seek(uniqueId.length+1);
-
                 int adjusted = DerbyBytesUtil.skip(fieldDecoder,keyCols,cols);
                 fieldDecoder.reset();
                 return fieldDecoder.slice(adjusted+uniqueId.length+1);
@@ -55,8 +53,7 @@ public class DistinctScalarAggregateScan implements ScalarAggregateSource {
             public byte[] getStopKey(Result result) {
                 byte[] start = getStartKey(result);
                 BytesUtil.unsignedIncrement(start, start.length - 1);
-                return start;
-            }
+                return start;            }
         };
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
         this.regionAwareProvider  = new SimpleRegionAwareRowProvider(

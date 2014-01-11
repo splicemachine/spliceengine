@@ -1,16 +1,13 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -18,13 +15,13 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 10/8/13
  */
-class ScalarAggregateScan implements ScalarAggregateSource{
+public class ScalarAggregateScan implements ScalarAggregateSource{
 
     private final PairDecoder scanDecoder;
     private List<KeyValue> keyValues;
     private final RegionScanner regionScanner;
 
-    ScalarAggregateScan(PairDecoder scanDecoder, RegionScanner regionScanner) {
+    public ScalarAggregateScan(PairDecoder scanDecoder, RegionScanner regionScanner) {
         this.scanDecoder = scanDecoder;
         this.regionScanner = regionScanner;
     }

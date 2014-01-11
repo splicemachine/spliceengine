@@ -1,11 +1,16 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.impl.sql.execute.deprecate;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
-
+/**
+ * Rough Ring Buffer Implementation 
+ *
+ * @param <T>
+ */
+@Deprecated
 public class RingBuffer<T extends ExecRow> implements Iterable<T>{
 	public interface Merger<T extends ExecRow> {
 		void merge(T one, T two);

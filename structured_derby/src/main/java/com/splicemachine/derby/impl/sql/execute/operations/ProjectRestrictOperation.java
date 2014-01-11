@@ -295,7 +295,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	}
 
 	@Override
-	public int[] getRootAccessedCols(long tableNumber) {
+	public int[] getRootAccessedCols(long tableNumber) throws StandardException {
 		int[] sourceCols = source.getRootAccessedCols(tableNumber);
 		if (projectMapping == null) {
 		    return sourceCols;
