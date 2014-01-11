@@ -16,10 +16,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     private boolean isSink;
     private Row scanStartOverride;
     private byte[] currentTaskId;
-<<<<<<< Updated upstream
 	private transient StatementInfo statementInfo;
-=======
->>>>>>> Stashed changes
     private boolean firstStepInMultistep;
     /*
      * Hash bucket to use for sink operations which do not spread data themselves.
