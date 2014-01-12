@@ -97,7 +97,11 @@ public class ZookeeperDDLController implements DDLController, Watcher {
     @Override
     public void finishMetadataChange(String identifier) throws StandardException {
         try {
-            ZkUtils.recursiveDelete(identifier);
+        	if (identifier != null && !identifier.startsWith("/")) {
+                ZkUtils.recursiveDelete(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + identifier);
+        	} else {
+                ZkUtils.recursiveDelete(identifier);        		
+        	}
         } catch (Exception e) {
             LOG.warn("Couldn't remove DDL change " + identifier, e);
         }
