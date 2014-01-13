@@ -86,14 +86,16 @@ public class TaskStatus implements Externalizable{
     }
 
     public byte[] toBytes() throws IOException {
-        Kryo kryo = SpliceDriver.getKryoPool().get();
-        Output output = new Output(100,-1);
-        kryo.writeObject(output,this);
-//        ByteArrayOutputStream baos= new ByteArrayOutputStream();
-//        ObjectOutput oo = new ObjectOutputStream(baos);
-//        oo.writeObject(this);
-//        oo.flush();
-        return output.toBytes();
+    	Kryo kryo = null;
+    	try {
+    		kryo = SpliceDriver.getKryoPool().get();
+    		Output output = new Output(100,-1);
+    		kryo.writeObject(output,this);
+    		return output.toBytes();
+    	} finally {
+    		if (kryo != null)	
+    			SpliceDriver.getKryoPool().returnInstance(kryo);
+    	}
     }
 
     public static TaskStatus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
