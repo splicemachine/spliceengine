@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
@@ -30,12 +31,11 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
     private final DoubleBuffer buffer;
     private final StandardIterator<ExecRow> source;
     private final boolean isRollup;
-
     private final int[] groupColumns;
-
     private boolean completed = false;
     private List<GroupedRow> evictedRows;
     private ExecRow[] rollupRows;
+    private long rowsRead;
 
     public SinkGroupedAggregateIterator(GroupedAggregateBuffer nonDistinctBuffer,
                                  GroupedAggregateBuffer distinctBuffer,
@@ -43,7 +43,7 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
                                  boolean rollup,
                                  int[] groupColumns,
                                  boolean[] groupSortOrder,
-                                 int[] nonGroupedUniqueColumns) {
+                                 int[] nonGroupedUniqueColumns) {    	
         this.source = source;
         isRollup = rollup;
         this.groupColumns = groupColumns;
@@ -80,7 +80,7 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
         boolean shouldContinue;
         GroupedRow toReturn = null;
         do{
-			SpliceBaseOperation.checkInterrupt();
+			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
             ExecRow nextRow = source.next();
             shouldContinue = nextRow!=null;
             if(!shouldContinue)
@@ -88,6 +88,7 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
 
             toReturn = buffer(nextRow);
             shouldContinue = toReturn==null;
+            rowsRead++;
         }while(shouldContinue);
 
         if(toReturn!=null)

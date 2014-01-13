@@ -189,6 +189,17 @@ public class SpliceConstants {
     public static int maxImportProcessingThreads;
 
     /**
+     * The number of threads which will be used to process rows from import files. Increasing this
+     * number will result in a higher number of concurrent table writes, but setting it too high
+     * will result in outpacing the system's ability to read a block of data from disk.
+     * Defaults to 3
+     */
+    @Parameter private static final String INTERRUPT_LOOP_CHECK = "splice.interrupt.loop.check";
+    @DefaultValue(INTERRUPT_LOOP_CHECK) private static final int DEFAULT_INTERRUPT_LOOP_CHECK = 1000;
+    public static int interruptLoopCheck;
+
+    
+    /**
      * The maximum size of the read buffer for importing data. When data is imported, it is read off
      * the filesystem(HDFS) and pushed into a fixed-size buffer, where it is read by many processing threads.
      * When the processing threads (set by splice.import.maxProcessingThreads) are set very low, the reading
@@ -774,6 +785,7 @@ public class SpliceConstants {
 				sequenceBlockSize = config.getInt(SEQUENCE_BLOCK_SIZE,DEFAULT_SEQUENCE_BLOCK_SIZE);
 
 				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
+				interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
 				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
 
 				maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -13,6 +14,7 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.Snowflake;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -79,8 +81,7 @@ public class OperationSink {
             ExecRow row;
 
             do{
-								SpliceBaseOperation.checkInterrupt();
-
+				SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
                 long start = 0l;
                 if(stats.readAccumulator().shouldCollectStats()){
                     start = System.nanoTime();
