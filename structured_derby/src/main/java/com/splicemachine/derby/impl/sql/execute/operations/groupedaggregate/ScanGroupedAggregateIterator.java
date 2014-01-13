@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
@@ -67,9 +68,7 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
         boolean shouldContinue;
         GroupedRow toReturn = null;
         do{
-						if(Thread.currentThread().isInterrupted())
-								throw new IOException(new InterruptedException());
-
+			SpliceBaseOperation.checkInterrupt();
             ExecRow nextRow = source.next();
             shouldContinue = nextRow!=null;
             if(!shouldContinue)

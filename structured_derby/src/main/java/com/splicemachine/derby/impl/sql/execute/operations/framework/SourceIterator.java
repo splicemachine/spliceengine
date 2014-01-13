@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import java.io.IOException;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.utils.StandardIterator;
 /**
  * Iterator over the source provided utilizing the sources nextRow(SpliceRuntimeContext) method.
@@ -34,8 +37,7 @@ public class SourceIterator implements StandardIterator<ExecRow> {
         @Override
         public ExecRow next() throws StandardException, IOException {
             ExecRow execRow= source.nextRow(spliceRuntimeContext);
-            if(Thread.currentThread().isInterrupted())
-				throw new IOException(new InterruptedException());
+			SpliceBaseOperation.checkInterrupt();
             return execRow;
         }
 }

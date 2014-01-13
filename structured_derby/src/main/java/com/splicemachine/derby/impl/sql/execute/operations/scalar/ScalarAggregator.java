@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -32,23 +33,13 @@ public class ScalarAggregator {
     public ExecRow aggregate(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException{
         ExecIndexRow nextRow;
         ExecRow aggResult = null;
-        do{
-						checkInterrupt();
-
+        do {
+						SpliceBaseOperation.checkInterrupt();
 						nextRow = source.nextRow(spliceRuntimeContext);
             if(nextRow==null)continue;
             aggResult = aggregate(nextRow,aggResult);
         }while(nextRow!=null);
         return aggResult;
-		}
-
-		protected void checkInterrupt() throws IOException {
-		    /*
-		 		 * Since task cancellation is performed via interruption, detect interruption
-		 		 * and bail
-		 		 */
-				if(Thread.currentThread().isInterrupted())
-						throw new IOException(new InterruptedException());
 		}
 
 		public boolean finish(ExecRow input) throws StandardException{
