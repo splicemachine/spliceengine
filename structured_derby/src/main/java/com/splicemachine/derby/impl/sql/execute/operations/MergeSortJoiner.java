@@ -113,9 +113,7 @@ public class MergeSortJoiner {
         if (currentLeftRow != null && rightSideRowIterator != null){
             boolean foundRows = false;
             while (rightSideRowIterator.hasNext()){
-								if(Thread.currentThread().isInterrupted())
-										throw new IOException(new InterruptedException());
-
+            	SpliceBaseOperation.checkInterrupt();
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row

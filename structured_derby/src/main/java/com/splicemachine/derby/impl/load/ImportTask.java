@@ -3,8 +3,10 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -77,10 +79,7 @@ public class ImportTask extends ZkTask{
                 try{
                     String[] nextRow;
                     do{
-												//check cancellation
-												if(Thread.currentThread().isInterrupted())
-														throw new InterruptedException();
-
+						SpliceBaseOperation.checkInterrupt();
                         long start = System.nanoTime();
                         nextRow = reader.nextRow();
                         long stop = System.nanoTime();

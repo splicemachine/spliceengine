@@ -79,8 +79,7 @@ public class OperationSink {
             ExecRow row;
 
             do{
-								if(Thread.currentThread().isInterrupted())
-										throw new InterruptedException();
+								SpliceBaseOperation.checkInterrupt();
 
                 long start = 0l;
                 if(stats.readAccumulator().shouldCollectStats()){
