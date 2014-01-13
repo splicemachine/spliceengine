@@ -5,13 +5,9 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
-
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * @author Scott Fines
