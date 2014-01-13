@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -78,7 +77,6 @@ public class SpliceAdminIT {
     }
 
     @Test
-    @Ignore ("Bug DB-925. Ignoring to get a Nexus deploy of cloudera to continue other testing.")
     public void testGetActiveTaskStaus() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()");
         ResultSet rs = cs.executeQuery();
