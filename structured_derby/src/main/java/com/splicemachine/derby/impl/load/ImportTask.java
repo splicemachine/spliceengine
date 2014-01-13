@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -79,6 +80,7 @@ public class ImportTask extends ZkTask{
                 try{
                     String[] nextRow;
                     do{
+            			SpliceBaseOperation.checkInterrupt(numRead,SpliceConstants.interruptLoopCheck);
 						SpliceBaseOperation.checkInterrupt();
                         long start = System.nanoTime();
                         nextRow = reader.nextRow();

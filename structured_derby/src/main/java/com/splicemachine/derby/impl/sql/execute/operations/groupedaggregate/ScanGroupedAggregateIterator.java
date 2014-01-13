@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
@@ -23,17 +24,15 @@ import java.util.List;
 public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow>{
     private final GroupedAggregateBuffer buffer;
     private final StandardIterator<ExecRow> source;
-
     private final int[] groupColumns;
     private final boolean[] groupSortByColumns;
     private final boolean isRollup;
-
     private ExecRow[] rollupRows;
     private MultiFieldEncoder groupKeyEncoder;
     private KeyMarshall groupKeyHasher;
     private boolean completed = false;
-
     private List<GroupedRow> evictedRows;
+    private long rowsRead;
 
     public ScanGroupedAggregateIterator(GroupedAggregateBuffer buffer,
                                  StandardIterator<ExecRow> source,
@@ -68,7 +67,7 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
         boolean shouldContinue;
         GroupedRow toReturn = null;
         do{
-			SpliceBaseOperation.checkInterrupt();
+			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
             ExecRow nextRow = source.next();
             shouldContinue = nextRow!=null;
             if(!shouldContinue)
@@ -76,6 +75,7 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
 
             toReturn = buffer(nextRow);
             shouldContinue = toReturn==null;
+            rowsRead++;
         }while(shouldContinue);
 
         if(toReturn!=null)

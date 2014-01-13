@@ -550,7 +550,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * and bail
      */
     public static void checkInterrupt() throws IOException {
-				if(Thread.currentThread().isInterrupted())
-						throw new IOException(new InterruptedException());
-		}
+		if(Thread.currentThread().isInterrupted())
+			throw new IOException(new InterruptedException());
+	}
+    /**
+	 * Since task cancellation is performed via interruption, detect interruption
+     * and bail
+     */
+    public static void checkInterrupt(long numRecords, int checkEveryNRecords) throws IOException {
+    	if (numRecords%checkEveryNRecords == 0) {
+    		if(Thread.currentThread().isInterrupted())
+    			throw new IOException(new InterruptedException());
+    	}
+	}
 }

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.derby.utils.StandardIterator;
@@ -59,6 +60,7 @@ public class MergeSortJoiner {
     private boolean rightSideReturned;
     private final StandardSupplier<ExecRow> emptyRowSupplier;
     private boolean isClosed;
+    private long rowsRead;
 
     public MergeSortJoiner(ExecRow mergedRowTemplate,
                            StandardIterator<JoinSideExecRow> scanner,
@@ -113,7 +115,8 @@ public class MergeSortJoiner {
         if (currentLeftRow != null && rightSideRowIterator != null){
             boolean foundRows = false;
             while (rightSideRowIterator.hasNext()){
-            	SpliceBaseOperation.checkInterrupt();
+            	rowsRead++;
+    			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
                 if (!mergeRestriction.apply(candidate)){
                     // if doesn't match restriction, discard row

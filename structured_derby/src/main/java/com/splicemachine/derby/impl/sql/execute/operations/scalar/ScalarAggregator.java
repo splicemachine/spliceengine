@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
@@ -20,6 +21,7 @@ public class ScalarAggregator {
     private final boolean shouldMerge;
     private final boolean initialize;
     private final SpliceGenericAggregator[] aggregates;
+    private long rowsRead;
 
     public ScalarAggregator(ScalarAggregateSource source,SpliceGenericAggregator[] aggregates,
                             boolean shouldMerge, boolean initialize
@@ -34,10 +36,11 @@ public class ScalarAggregator {
         ExecIndexRow nextRow;
         ExecRow aggResult = null;
         do {
-						SpliceBaseOperation.checkInterrupt();
-						nextRow = source.nextRow(spliceRuntimeContext);
+			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
+			nextRow = source.nextRow(spliceRuntimeContext);
             if(nextRow==null)continue;
             aggResult = aggregate(nextRow,aggResult);
+            rowsRead++;
         }while(nextRow!=null);
         return aggResult;
 		}
