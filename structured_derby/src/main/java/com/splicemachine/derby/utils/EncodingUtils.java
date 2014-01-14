@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
@@ -7,9 +8,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Put;
-
 import java.io.IOException;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -28,15 +27,6 @@ public class EncodingUtils {
         else{
             for(int i=0;i<row.length;i++){
                 DataValueDescriptor dvd = row[i];
-//                if(dvd!=null){
-//                    if(DerbyBytesUtil.isDoubleType(dvd))
-//                        setCols.set(i);
-//                    else if(DerbyBytesUtil.isFloatType(dvd))
-//                        setCols.set(i);
-//                    else if(!dvd.isNull())
-//                        setCols.set(i);
-//
-//                }
                 if(dvd!=null && !dvd.isNull()){
                     setCols.set(i);
                 }

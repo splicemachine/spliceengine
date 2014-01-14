@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultSet;
@@ -38,7 +39,7 @@ public class DeleteCascadeOperation extends DeleteOperation
      */
     public DeleteCascadeOperation
 	(
-		NoPutResultSet		source,
+		SpliceOperation source,
 		Activation			activation,
 		int 				constantActionItem,
 		ResultSet[]			dependentResultSets,

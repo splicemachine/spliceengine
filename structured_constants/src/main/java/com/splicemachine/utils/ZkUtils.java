@@ -11,7 +11,9 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+
 import com.splicemachine.constants.SpliceConstants;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -106,7 +108,7 @@ public class ZkUtils extends SpliceConstants {
     }
     
 
-    private static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
+    public static boolean safeCreate(String path, byte[] bytes, List<ACL> acls, CreateMode createMode,RecoverableZooKeeper zooKeeper) throws KeeperException,InterruptedException{
        try{
            zooKeeper.create(path,bytes,acls,createMode);
            return true;
@@ -121,7 +123,14 @@ public class ZkUtils extends SpliceConstants {
     public static String create(String path, byte[] bytes, List<ACL> acls, CreateMode createMode) throws KeeperException,InterruptedException{
             return getRecoverableZooKeeper().create(path,bytes,acls,createMode);
      }
-    
+
+    public static void recursiveDelete(String path) throws InterruptedException, KeeperException, IOException {
+        List<String> children = getChildren(path, false);
+        for (String child : children) {
+            recursiveDelete(path + "/" + child);
+        }
+        delete(path);
+    }
     
 	/**
 	 * Sets the data onto ZooKeeper.
@@ -310,12 +319,18 @@ public class ZkUtils extends SpliceConstants {
     }
 
     public static void initializeZookeeper() throws InterruptedException, KeeperException {
-    	for (String path: SpliceConstants.zookeeperPaths) {
-    		recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
-    	}
+				safeInitializeZooKeeper();
+
+				initializeTransactions();
     }
-    
-    public static void refreshZookeeper() throws InterruptedException, KeeperException {
+
+		public static void safeInitializeZooKeeper() throws InterruptedException, KeeperException {
+				for (String path: SpliceConstants.zookeeperPaths) {
+						recursiveSafeCreate(path, Bytes.toBytes(0l), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				}
+		}
+
+		public static void refreshZookeeper() throws InterruptedException, KeeperException {
     	cleanZookeeper();
     	initializeZookeeper();
     }
@@ -341,5 +356,13 @@ public class ZkUtils extends SpliceConstants {
     
     public static SpliceZooKeeperManager getZkManager() {
         return zkManager;
+    }
+
+    private static void initializeTransactions() throws KeeperException, InterruptedException {
+        //add the transaction node setup
+        recursiveSafeCreate(SpliceConstants.zkSpliceTransactionPath,new byte[]{},ZooDefs.Ids.OPEN_ACL_UNSAFE,CreateMode.PERSISTENT);
+
+        String counterPath = create(SpliceConstants.zkSpliceTransactionPath + "/counter-", new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
+        getRecoverableZooKeeper().setData(SpliceConstants.zkSpliceTransactionPath,Bytes.toBytes(counterPath),-1);
     }
 }

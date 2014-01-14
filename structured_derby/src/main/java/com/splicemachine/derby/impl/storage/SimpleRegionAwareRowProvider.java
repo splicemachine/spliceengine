@@ -1,12 +1,16 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+
+import java.io.IOException;
 
 /**
  * Simple and obvious Region-Aware RowProvider implementation.
@@ -27,15 +31,16 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
                                         Scan scan,
                                         byte[] tableName,
                                         byte[] columnFamily,
-                                        RowDecoder decoder,
-                                        ScanBoundary boundary){
-        super(decoder, type);
+                                        PairDecoder decoder,
+                                        ScanBoundary boundary,
+                                        SpliceRuntimeContext spliceRuntimeContext){
+        super(decoder, type, spliceRuntimeContext);
         this.table = tableName;
         this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName, boundary);
     }
 
     @Override
-    public Result getResult() throws StandardException {
+    public Result getResult() throws StandardException, IOException {
         return scanner.getNextResult();
     }
 

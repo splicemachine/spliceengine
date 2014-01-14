@@ -2,7 +2,7 @@ package com.splicemachine.si;
 
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -22,7 +22,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
     @Override
     @Before
     public void setUp() {
-        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         this.storeSetup = classStoreSetup;
         this.transactorSetup = classTransactorSetup;
         baseSetUp();
@@ -35,7 +35,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @BeforeClass
     public static void setUpClass() {
-        classStoreSetup = new HStoreSetup(false);
+        classStoreSetup = HStoreSetup.create();
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
@@ -43,7 +43,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        classStoreSetup.getTestCluster().shutdownMiniCluster();
+        HStoreSetup.destroy(classStoreSetup);
     }
 
 }

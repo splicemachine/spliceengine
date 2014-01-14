@@ -2,8 +2,19 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -39,9 +50,8 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
-import org.apache.derby.impl.sql.execute.IndexConstantAction;
 import org.apache.derby.impl.sql.execute.RowUtil;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
@@ -52,7 +62,7 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public class CreateIndexConstantOperation extends IndexConstantAction {
+public class CreateIndexConstantOperation extends IndexConstantOperation {
     private static final Logger LOG = Logger.getLogger(CreateIndexConstantOperation.class);
     /**
      * Is this for a CREATE TABLE, i.e. it is
@@ -95,33 +105,33 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	// CONSTRUCTORS
 	/**
      * 	Make the ConstantAction to create an index.
-     * 
+     *
      * @param forCreateTable                Being executed within a CREATE TABLE
      *                                      statement
      * @param unique		                True means it will be a unique index
      * @param uniqueWithDuplicateNulls      True means index check and disallow
-     *                                      any duplicate key if key has no 
-     *                                      column with a null value.  If any 
+     *                                      any duplicate key if key has no
+     *                                      column with a null value.  If any
      *                                      column in the key has a null value,
      *                                      no checking is done and insert will
      *                                      always succeed.
      * @param indexType	                    type of index (BTREE, for example)
-     * @param schemaName	                schema that table (and index) 
+     * @param schemaName	                schema that table (and index)
      *                                      lives in.
      * @param indexName	                    Name of the index
      * @param tableName	                    Name of table the index will be on
      * @param tableId		                UUID of table
-     * @param columnNames	                Names of the columns in the index, 
+     * @param columnNames	                Names of the columns in the index,
      *                                      in order
-     * @param isAscending	                Array of booleans telling asc/desc 
+     * @param isAscending	                Array of booleans telling asc/desc
      *                                      on each column
-     * @param isConstraint	                TRUE if index is backing up a 
+     * @param isConstraint	                TRUE if index is backing up a
      *                                      constraint, else FALSE
      * @param conglomerateUUID	            ID of conglomerate
-     * @param properties	                The optional properties list 
+     * @param properties	                The optional properties list
      *                                      associated with the index.
-     */	
-	
+     */
+
 	public CreateIndexConstantOperation(
             boolean         forCreateTable,
             boolean			unique,
@@ -148,7 +158,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		this.conglomerateUUID           = conglomerateUUID;
 		this.properties                 = properties;
 		this.conglomId                  = -1L;
-		this.droppedConglomNum          = -1L; 
+		this.droppedConglomNum          = -1L;
 	}
 
 	/**
@@ -210,7 +220,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			}
 		}
 	}
-        
+
 
 
 	public	String	toString() {
@@ -218,7 +228,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	}
 
 	/**
-	 *	This is the guts of the Execution-time logic for 
+	 *	This is the guts of the Execution-time logic for
      *  creating an index.
      *
      *  <P>
@@ -234,7 +244,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantActivation with activation %s",activation);
 		TableDescriptor 			td;
 		UUID 						toid;
@@ -258,13 +268,13 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		if (td == null) {
 			td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
 		}
-		if (td == null) 
+		if (td == null)
 			throw StandardException.newException(SQLState.LANG_CREATE_INDEX_NO_TABLE, indexName, tableName);
 
 		if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
 			throw StandardException.newException(SQLState.LANG_CREATE_SYSTEM_INDEX_ATTEMPTED, indexName, tableName);
 		}
-	
+
 		// invalidate any prepared statements that
 		// depended on this table (including this one)
 		if (! forCreateTable)
@@ -317,7 +327,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		 * If so, we will use a single physical conglomerate--namely, the
 		 * one that already exists--to support both indexes. I.e. we will
 		 * *not* create a new conglomerate as part of this constant action.
-		 */ 
+		 */
 
 		// check if we have similar indices already for this table
 		ConglomerateDescriptor[] congDescs = td.getConglomerateDescriptors();
@@ -358,7 +368,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			 *       set to TRUE and the index being created is non-unique, OR
 			 *    c) both the existing index and the one being created are
 			 *       non-unique and have uniqueWithDuplicateNulls set to FALSE.
-			 */ 
+			 */
 			boolean possibleShare = (irg.isUnique() || !unique) &&
 			    (bcps.length == baseColumnPositions.length);
 
@@ -416,7 +426,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 						isAscending,
 						baseColumnPositions.length);
 
-				//DERBY-655 and DERBY-1343  
+				//DERBY-655 and DERBY-1343
 				// Sharing indexes will have unique logical conglomerate UUIDs.
 				conglomerateUUID = dd.getUUIDFactory().createUUID();
 				shareExisting = true;
@@ -444,19 +454,19 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 										  indexRowGenerator, isConstraint,
 										  conglomerateUUID, td.getUUID(), sd.getUUID() );
 			dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
-			// add newly added conglomerate to the list of conglomerate 
+			// add newly added conglomerate to the list of conglomerate
 			// descriptors in the td.
 			ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
-			cdl.add(cgd);			
+			cdl.add(cgd);
 			// can't just return yet, need to get member "indexTemplateRow"
 			// because create constraint may use it
-			
+
 		}
 
 		// Describe the properties of the index to the store using Properties
 		// RESOLVE: The following properties assume a BTREE index.
 		Properties	indexProperties;
-		
+
 		if (properties != null) {
 			indexProperties = properties;
 		}
@@ -465,16 +475,16 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		}
 
 		SpliceLogUtils.trace(LOG, "Here XXX");
-		
+
 		// Tell it the conglomerate id of the base table
 		indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
-        
+
 		if (uniqueWithDuplicateNulls) {
             if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
 				indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
 			}
 			else {
-				// for lower version of DD there is no unique with nulls 
+				// for lower version of DD there is no unique with nulls
                 // index creating a unique index instead.
 				if (uniqueWithDuplicateNulls) {
 					unique = true;
@@ -499,8 +509,8 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		if (! shareExisting) {
             if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
                 indexRowGenerator = new IndexRowGenerator(
-                                            indexType, 
-                                            unique, 
+                                            indexType,
+                                            unique,
                                             uniqueWithDuplicateNulls,
                                             baseColumnPositions,
                                             isAscending,
@@ -508,7 +518,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			}
 			else {
 				indexRowGenerator = new IndexRowGenerator(
-                                            indexType, 
+                                            indexType,
                                             unique,
                                             baseColumnPositions,
                                             isAscending,
@@ -533,7 +543,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 		 * creating index on new table, so minimize
 		 * work where we can.
 		 */
-		int bulkFetchSize = (forCreateTable) ? 1 : 16;	
+		int bulkFetchSize = (forCreateTable) ? 1 : 16;
 		int numColumns = td.getNumberOfColumns();
 		int approximateRowSize = 0;
 
@@ -624,7 +634,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			int             numColumnOrderings;
             Properties      sortProperties = null;
 			if (unique || uniqueWithDuplicateNulls) {
-				// if the index is a constraint, use constraintname in 
+				// if the index is a constraint, use constraintname in
                 // possible error message
 				String indexOrConstraintName = indexName;
 				if  (conglomerateUUID != null) {
@@ -646,7 +656,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
                     // duplicate nulls sorter, when making createSort() call.
 					sortProperties = new Properties();
 					sortProperties.put(
-                        AccessFactoryGlobals.IMPL_TYPE, 
+                        AccessFactoryGlobals.IMPL_TYPE,
                         AccessFactoryGlobals.SORT_UNIQUEWITHDUPLICATENULLS_EXTERNAL);
 					//use sort operator which treats nulls unequal
 				}
@@ -687,7 +697,7 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 
 		if (!alreadyHaveConglomDescriptor) {
 	        SpliceLogUtils.trace(LOG,"! Conglom Descriptor");
-			
+
 			ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId, indexName, true, indexRowGenerator, isConstraint, conglomerateUUID, td.getUUID(), sd.getUUID() );
 			dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 
@@ -704,30 +714,144 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 			conglomerateUUID = cgd.getUUID();
 		}
 
-
         boolean[] descColumns = new boolean[isAscending.length];
         for(int i=0;i<isAscending.length;i++){
            descColumns[i] = !isAscending[i];
         }
-        final long tableConglomId = td.getHeapConglomerateId();
-        final String transactionId = getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute());
-        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+
+        // Perform tentative DDL change
+        TransactionId tentativeTransaction;
+        Transactor transactor = HTransactorFactory.getTransactor();
+        try {
+            tentativeTransaction = transactor.beginTransaction();
+        } catch (IOException e) {
+            LOG.error("Couldn't start transaction for tentative DDL operation");
+            throw Exceptions.parseException(e);
+        }
+        TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),baseColumnPositions, unique, SpliceUtils.bitSetFromBooleanArray(descColumns));
+        DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+                DDLChange.TentativeType.CREATE_INDEX);
+        ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
+        ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+
+        String notificationId = notifyMetadataChange(ddlChange);
+
+			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+
+        // Add the indexes to the exisiting regions
         JobFuture future = null;
-        try{
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,conglomId,tableConglomId,baseColumnPositions,unique,descColumns));
-            future.completeAll();
-        } catch (ExecutionException e) {
-        	e.printStackTrace();
-            throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
-        	e.printStackTrace();
+        final long tableConglomId = td.getHeapConglomerateId();
+        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+				JobInfo info = null;
+				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+        try {
+						long start = System.currentTimeMillis();
+						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
+						future = SpliceDriver.driver().getJobScheduler().submit(job);
+						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						info.setJobFuture(future);
+						try{
+								future.completeAll(info); //TODO -sf- add status information
+						}catch(CancellationException ce){
+								throw Exceptions.parseException(ce);
+						}catch(Throwable t){
+								info.failJob();
+								throw t;
+						}
+						statementInfo.completeJob(info);
+        } catch (Throwable e) {
+						if(info!=null) info.failJob();
+            LOG.error("Couldn't create indexes on existing regions", e);
+            try {
+                table.close();
+            } catch (IOException e1) {
+                LOG.warn("Couldn't close table", e1);
+            }
             throw Exceptions.parseException(e);
         }finally {
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
             if (future!=null) {
                 try {
                     future.cleanup();
                 } catch (ExecutionException e) {
-    	        	e.printStackTrace();
+                    LOG.error("Couldn't cleanup future", e);
+                    throw Exceptions.parseException(e.getCause());
+                }
+            }
+        }
+
+        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute()));
+        TransactionId indexTransaction;
+        try {
+            indexTransaction = transactor.beginChildTransaction(parentTransactionId, true, true, false, false, false, tentativeTransaction);
+        } catch (IOException e) {
+            LOG.error("Couldn't commit transaction for tentative DDL operation");
+            // TODO must cleanup tentative DDL change
+            throw Exceptions.parseException(e);
+        }
+
+        // Wait for past transactions to die
+        List<TransactionId> active;
+        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, indexTransaction);
+        try {
+            active = waitForConcurrentTransactions(indexTransaction, toIgnore);
+        } catch (IOException e) {
+            LOG.error("Unexpected error while waiting for past transactions to complete", e);
+            throw Exceptions.parseException(e);
+        }
+        if (!active.isEmpty()) {
+            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
+                    new RuntimeException(String.format("There are active transactions %.100", active)));
+        }
+        // TODO handle past transactions gracefully
+//        List<String> tables = getBlockedTables();
+//        forbidActiveTransactionsTableAccess(active, tables);
+
+        /*
+         * Backfill the index with any existing data.
+         *
+         * It's possible that the index will be created on the same node as some system tables are located.
+         * This means that there
+         */
+			//TODO -sf- replace this name with the actual SQL being issued
+			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+        try{
+						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+										conglomId, tableConglomId, baseColumnPositions, unique, descColumns);
+						long start = System.currentTimeMillis();
+						future = SpliceDriver.driver().getJobScheduler().submit(job);
+						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+						info.setJobFuture(future);
+						statementInfo.addRunningJob(info);
+						try{
+								future.completeAll(info); //TODO -sf- add status information
+						}catch(ExecutionException e){
+								info.failJob();
+								throw e;
+						}catch(CancellationException ce){
+								throw Exceptions.parseException(ce);
+						}
+						statementInfo.completeJob(info);
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }finally {
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+            try {
+                transactor.commit(indexTransaction);
+            } catch (IOException e) {
+                LOG.error("Couldn't commit transaction populating index", e);
+                throw Exceptions.parseException(e.getCause());
+            }
+            if (future!=null) {
+                try {
+                    future.cleanup();
+                } catch (ExecutionException e) {
+                    LOG.error("Couldn't cleanup future", e);
                     throw Exceptions.parseException(e.getCause());
                 }
             }
@@ -737,21 +861,6 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
                 SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
             }
         }
-        
-		/*
-		CardinalityCounter cCount = (CardinalityCounter)rowSource;
-
-        long numRows = cCount.getRowCount();
-        if (addStatistics(dd, indexRowGenerator, numRows)) {
-            SpliceLogUtils.trace(LOG,"In if?");
-			long[] c = cCount.getCardinality();
-			for (int i = 0; i < c.length; i++) {
-				StatisticsDescriptor statDesc = 
-					new StatisticsDescriptor(dd, dd.getUUIDFactory().createUUID(), conglomerateUUID, td.getUUID(), "I",new StatisticsImpl(numRows, c[i]), i + 1);
-				dd.addDescriptor(statDesc, null, DataDictionary.SYSSTATISTICS_CATALOG_NUM, true, tc);
-			}
-		}
-		*/        
 	}
 
     /**
@@ -825,9 +934,14 @@ public class CreateIndexConstantOperation extends IndexConstantAction {
 	public UUID getCreatedUUID() {
 		return conglomerateUUID;
 	}
-	
+
     private String getTransactionId(TransactionController tc) {
         Transaction td = ((SpliceTransactionManager)tc).getRawTransaction();
         return SpliceUtils.getTransID(td);
+    }
+
+    @Override
+    protected boolean waitsForConcurrentTransactions() {
+        return true;
     }
 }

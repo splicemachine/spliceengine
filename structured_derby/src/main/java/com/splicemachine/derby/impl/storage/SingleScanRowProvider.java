@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -7,7 +8,9 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
@@ -15,15 +18,18 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.jruby.RubyProcess;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,25 +44,33 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class SingleScanRowProvider  implements RowProvider {
 
-
+	protected SpliceRuntimeContext spliceRuntimeContext;
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
     private boolean shuffled = false;
+		private JobFuture jobFuture;
 
     @Override
-    public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        shuffled=true;
+    public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+    	shuffled=true;
         Scan scan = toScan();
-
+        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
+				spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
         if(scan==null){
             //operate locally
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try{
-                OperationSink opSink = OperationSink.create((SinkingOperation) op,null);
+                OperationSink opSink = OperationSink.create((SinkingOperation) op,null,instructions.getTransactionId());
+
+								JobStats stats;
                 if(op instanceof DMLWriteOperation)
-                    return new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable()));
-                else
-                    return new LocalTaskJobStats(opSink.sink(SpliceConstants.TEMP_TABLE_BYTES));
+                    stats =new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext));
+                else{
+										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+                    stats =new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
+								}
+
+								return new SimpleJobResults(stats,null);
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
@@ -81,17 +95,18 @@ public abstract class SingleScanRowProvider  implements RowProvider {
     }
 
     @Override
-    public JobStats finishShuffle(List<JobFuture> jobFutures) throws StandardException{
+    public JobResults finishShuffle(List<JobFuture> jobFutures) throws StandardException{
 
         StandardException baseError = null;
 
         List<JobStats> stats = new LinkedList();
-        JobStats results = null;
+        JobResults results = null;
 
         long start = System.nanoTime();
 
         for(JobFuture jobFuture : jobFutures){
             try {
+                // PJT add real JobInfo
                 jobFuture.completeAll();
 
                 stats.add(jobFuture.getJobStats());
@@ -122,14 +137,18 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         long end = System.nanoTime();
 
         if(jobFutures.size() > 1){
-            results = new CompositeJobStats(stats, end-start);
+            results = new CompositeJobResults(jobFutures, stats, end - start);
         }else if(jobFutures.size() == 1){
-            results = stats.iterator().next();
+            results = new SimpleJobResults(stats.iterator().next(), jobFutures.get(0));
         }
+         return results;
 
-        return results;
     }
 
+	@Override
+	public SpliceRuntimeContext getSpliceRuntimeContext() {
+		return spliceRuntimeContext;
+	}
 
     /**
      * @return a scan representation of the row provider, or {@code null} if the operation
@@ -137,15 +156,16 @@ public abstract class SingleScanRowProvider  implements RowProvider {
      */
     public abstract Scan toScan();
 
-    @Override
-    public void close() {
-        if(!shuffled) return; //no need to clean temp, it's just a scan
-        Scan scan = toScan();
-        try {
-            SpliceDriver.driver().getTempCleaner().deleteRange(SpliceUtils.getUniqueKey(),scan.getStartRow(),scan.getStopRow());
-        } catch (StandardException e) {
-            throw new RuntimeException(e);
-        }
+		@Override
+		public void close() throws StandardException {
+
+				if(jobFuture!=null){
+						try{
+								jobFuture.cleanup();
+						}catch(ExecutionException e){
+								throw Exceptions.parseException(e);
+						}
+				}
     }
 
     public JobFuture doAsyncShuffle(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
@@ -161,29 +181,40 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
 
         OperationJob job = new OperationJob(scan,instructions,table,readOnly);
-        JobFuture future = null;
         StandardException baseError = null;
+        JobInfo jobInfo = null;
 
         try {
 
-            future = SpliceDriver.driver().getJobScheduler().submit(job);
-            future.addCleanupTask(table);
+            long start = System.currentTimeMillis();
+            jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
+            jobInfo = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), start);
+            jobInfo.setJobFuture(jobFuture);
+            byte[][] allTaskIds = jobFuture.getAllTaskIds();
+            for (byte[] tId : allTaskIds) {
+                jobInfo.taskRunning(tId);
+            }
+            instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(jobInfo);
 
-            return future;
+            //future.addCleanupTask(table);
+
+            return jobFuture;
 
         } catch (ExecutionException ee) {
             SpliceLogUtils.error(LOG, ee);
+            if (jobInfo != null)
+                jobInfo.failJob();
             baseError = Exceptions.parseException(ee.getCause());
             throw baseError;
-        }finally{
-            if(future!=null && baseError != null){
-                try{
-                    future.cleanup();
+        } finally {
+            if (jobFuture != null && baseError != null) {
+                try {
+                    jobFuture.cleanup();
 
-                    if(table != null){
-                        try{
+                    if (table != null) {
+                        try {
                             table.close();
-                        }catch(Exception e) {
+                        } catch (Exception e) {
                             SpliceLogUtils.error(LOG, "Error closing HTable instance", e);
                         }
                     }
@@ -192,8 +223,8 @@ public abstract class SingleScanRowProvider  implements RowProvider {
                     SpliceLogUtils.error(LOG, "Error cleaning up JobFuture", e);
                 }
             }
-            if(baseError!=null){
-                SpliceLogUtils.logAndThrow(LOG,baseError);
+            if (baseError != null) {
+                SpliceLogUtils.logAndThrow(LOG, baseError);
             }
         }
     }
@@ -220,13 +251,13 @@ public abstract class SingleScanRowProvider  implements RowProvider {
         @Override public String getJobName() { return "localJob"; }
 
         @Override
-        public List<String> getFailedTasks() {
+        public List<byte[]> getFailedTasks() {
             return Collections.emptyList();
         }
 
         @Override
-        public Map<String, TaskStats> getTaskStats() {
-            return Collections.singletonMap("localTask",stats);
+        public List<TaskStats> getTaskStats() {
+            return Arrays.asList(stats);
         }
     }
 }

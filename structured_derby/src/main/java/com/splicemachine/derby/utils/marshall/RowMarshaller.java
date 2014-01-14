@@ -1,20 +1,16 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.ByteBufferArrayUtils;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.xerial.snappy.Snappy;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -24,7 +20,6 @@ import java.util.List;
  */
 public class RowMarshaller {
     public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
-    private static final byte[] EMPTY_ROW_COLUMN = Encoding.encode(-101);
 
     private static KeyValue getPackedKv(DataValueDescriptor[] row,
                                         byte[] rowKey,
@@ -64,6 +59,13 @@ public class RowMarshaller {
 
     private static final RowMarshall SPARSE_PACKED = new RowMarshall() {
         @Override
+        public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns,EntryDecoder entryDecoder) throws StandardException {
+            if(!ByteBufferArrayUtils.matchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
+            unpack(fields, columns,entryDecoder);
+        }
+
+        @Override
         public byte[] encodeRow(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder rowEncoder) throws StandardException {
                 pack(row,rowColumns,rowEncoder,false);
                 return rowEncoder.build();
@@ -86,14 +88,8 @@ public class RowMarshaller {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
-            if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
-
-            byte[] data = value.getValue();
-            unpack(fields, reversedKeyColumns, rowDecoder, data);
+            if(!ByteBufferArrayUtils.matchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(), value.getValueOffset(), value.getValueLength());
         }
 
         @Override
@@ -101,6 +97,9 @@ public class RowMarshaller {
             return false;
         }
     };
+
+
+
     private static final RowMarshall PACKED = new RowMarshall() {
         @Override
         public byte[] encodeRow(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder rowEncoder) throws StandardException {
@@ -125,14 +124,15 @@ public class RowMarshaller {
         @Override
         public void decode(KeyValue value, DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder) throws StandardException {
             //data is packed in the single value
-            if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
+            if(!ByteBufferArrayUtils.matchingColumn(value, SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            unpack(fields, reversedKeyColumns, rowDecoder, value.getBuffer(),value.getValueOffset(), value.getValueLength());
+        }
 
-            byte[] data = value.getValue();
-            unpack(fields, reversedKeyColumns, rowDecoder, data);
+        @Override
+        public void decode(KeyValue value, DataValueDescriptor[] fields, int[] columns, EntryDecoder entryDecoder) throws StandardException {
+            if(!ByteBufferArrayUtils.matchingColumn(value,SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
+            entryDecoder.set(value.getBuffer(),value.getValueOffset(),value.getValueLength());
+            unpack(fields,columns,entryDecoder);
         }
 
         @Override
@@ -141,8 +141,8 @@ public class RowMarshaller {
         }
     };
 
-    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder, byte[] data) throws StandardException {
-        rowDecoder.set(data);
+    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns, MultiFieldDecoder rowDecoder, byte[] data, int offset, int length) throws StandardException {
+        rowDecoder.set(data, offset, length);
         if(reversedKeyColumns!=null){
             for(int keyCol:reversedKeyColumns){
                 DataValueDescriptor dvd = fields[keyCol];
@@ -165,71 +165,46 @@ public class RowMarshaller {
         }
     }
 
-    private static final RowMarshall PACKED_COMPRESSED = new RowMarshall() {
-        @Override
-        public byte[] encodeRow(DataValueDescriptor[] row,
-                              int[] rowColumns,
-                              MultiFieldEncoder rowEncoder) throws StandardException {
-            pack(row,rowColumns,rowEncoder,true);
-            try {
-                return Snappy.compress(rowEncoder.build());
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
+    private static void unpack(DataValueDescriptor[] fields, int[] reversedKeyColumns,EntryDecoder entryDecoder) throws StandardException {
+        BitIndex index = entryDecoder.getCurrentIndex();
+        MultiFieldDecoder decoder;
+        try {
+            decoder = entryDecoder.getEntryDecoder();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        if(reversedKeyColumns!=null){
+            for(int i=index.nextSetBit(0);i>=0 && i<reversedKeyColumns.length;i=index.nextSetBit(i+1)){
+                int pos = reversedKeyColumns[i];
+                DataValueDescriptor dvd = fields[pos];
+                if(dvd==null){
+                    entryDecoder.seekForward(decoder,i);
+                    continue;
+                }
+                if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
+                    dvd.setToNull();;
+                    DerbyBytesUtil.skip(decoder,dvd);
+                }else{
+                    DerbyBytesUtil.decodeInto(decoder,dvd);
+                }
+            }
+        }else{
+            for(int i=index.nextSetBit(0);i>=0 && i<fields.length;i=index.nextSetBit(i+1)){
+                DataValueDescriptor dvd = fields[i];
+                if(dvd==null){
+                    entryDecoder.seekForward(decoder,i);
+                    continue;
+                }if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
+                    DerbyBytesUtil.skip(decoder,dvd);
+                }else{
+                    DerbyBytesUtil.decodeInto(decoder,dvd);
+                }
             }
         }
-
-        @Override
-        public void encodeKeyValues(DataValueDescriptor[] row,
-                                    byte[] rowKey,
-                                    int[] rowColumns,
-                                    MultiFieldEncoder rowEncoder,
-                                    List<KeyValue> kvResults) throws StandardException {
-            pack(row,rowColumns,rowEncoder,true);
-            try {
-                byte[] bytes = Snappy.compress(rowEncoder.build());
-                kvResults.add(new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,bytes));
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-
-        @Override
-        public void fill(DataValueDescriptor[] row, int[] rowColumns, MultiFieldEncoder encoder) throws StandardException {
-            pack(row,rowColumns,encoder,true);
-        }
-
-        @Override
-        public void decode(KeyValue value,
-                           DataValueDescriptor[] fields,
-                           int[] reversedKeyColumns,
-                           MultiFieldDecoder rowDecoder) throws StandardException {
-            //data is packed in the single value
-            if(!value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY)) return;
-//            if(Bytes.compareTo(value.getFamily(),SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES)==0)
-//                return;
-//            else if(Bytes.compareTo(PACKED_COLUMN_KEY,value.getQualifier())!=0)
-//                return; //don't try to unpack unless it's the right column
-
-            try {
-                byte[] data = Snappy.uncompress(value.getValue());
-                unpack(fields, reversedKeyColumns, rowDecoder, data);
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
-
-        @Override
-        public boolean isColumnar() {
-            return false;
-        }
-    };
+    }
 
     public static RowMarshall packed(){
         return PACKED;
-    }
-
-    public static RowMarshall packedCompressed(){
-        return PACKED_COMPRESSED;
     }
 
     public static RowMarshall sparsePacked() {

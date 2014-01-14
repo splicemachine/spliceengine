@@ -59,8 +59,8 @@ AUTOCOMMIT OFF;
                 UNION
                 SELECT STAFF.EMPNUM  
                      FROM STAFF
-                     WHERE STAFF.GRADE=13 ;
---Bug 586                     ORDER BY 1 DESC;
+                     WHERE STAFF.GRADE=13 
+                     ORDER BY 1 DESC;
 
 -- PASS:0004 If 5 rows selected and last EMPNUM = 'E1'?
 

@@ -484,8 +484,7 @@ public class SpliceAccessManager extends SpliceUtilities implements AccessFactor
 				rawtran.setup(tc);
 				//tc.commit();
 			}
-
-			rawtran.setDefaultLockingPolicy(system_default_locking_policy);
+            rawtran.setDefaultLockingPolicy(system_default_locking_policy);
 			//LOG.debug(">>>>>in SpliceAccessManager - getAndNameTransaction, transID="+rawtran.getActiveStateTxIdString());
 			//tc.commit();
 

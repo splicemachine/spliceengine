@@ -2,17 +2,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.iapi.services.loader.ClassFactory;
 import org.apache.derby.iapi.services.loader.ClassInspector;
-import org.apache.derby.iapi.services.monitor.Monitor;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-import org.apache.derby.iapi.services.stream.InfoStreams;
 import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ParameterValueSet; 
 import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
@@ -26,15 +21,12 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.impl.sql.execute.UpdatableVTIConstantAction;
-import org.apache.derby.vti.DeferModification;
 import org.apache.derby.vti.IFastPath;
 import org.apache.derby.vti.VTIEnvironment;
-import org.apache.derby.vti.RestrictedVTI;
 import org.apache.derby.vti.Restriction;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,8 +36,7 @@ import java.util.List;
 
 /**
  */
-public class VTIOperation extends SpliceBaseOperation
-	implements CursorResultSet, VTIEnvironment {
+public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment {
 	/* Run time statistics variables */
 	public int rowsReturned;
 	public String javaClassName;
@@ -148,14 +139,10 @@ public class VTIOperation extends SpliceBaseOperation
 	//
 
 
-	/**
-     * Sets state to 'open'.
-	 *
-	 * @exception StandardException thrown if activation closed.
-     */
-	public void	openCore() throws StandardException  {
-        super.openCore();
-	}
+    @Override
+    public void open() throws StandardException, IOException {
+        super.open();
+    }
 
     /**
      * Clone the restriction for a Restricted VTI, filling in parameter values
@@ -257,8 +244,7 @@ public class VTIOperation extends SpliceBaseOperation
 	 * @see NoPutResultSet#openCore
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public void reopenCore() throws StandardException
-	{
+	public void reopenCore() throws StandardException, IOException {
 		if (reuseablePs)
 		{
 			/* close the user ResultSet.
@@ -284,7 +270,7 @@ public class VTIOperation extends SpliceBaseOperation
 		else
 		{
 			close();
-			openCore();	
+            open();
 		}
 	}
 
@@ -294,7 +280,8 @@ public class VTIOperation extends SpliceBaseOperation
 	 *
 	 * @exception StandardException thrown on failure.
      */
-	public ExecRow	getNextRowCore() throws StandardException {
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 

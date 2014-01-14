@@ -21,9 +21,17 @@ public class FixedDecimalEncodingTest {
         BigDecimal decoded = DecimalEncoding.toBigDecimal(encoding,false);
         Assert.assertTrue("Incorrect decoding. Expected <"+value+">, Actual <"+ value+">",value.compareTo(decoded)==0);
 
-        ByteBuffer encodeBuffer = ByteBuffer.wrap(encoding);
-        decoded = DecimalEncoding.toBigDecimal(encodeBuffer,false);
-        Assert.assertTrue("Incorrect decoding. Expected <"+value+">, Actual <"+ value+">",value.compareTo(decoded)==0);
+    }
+
+    @Test
+    public void testCanEncodedOnlyDecimalDescending() {
+        /*
+         * Regression test to ensure this specific number decodes properly.
+         */
+        BigDecimal value = new BigDecimal("0.02308185311033106312805784909869544208049774169921875");
+        byte[] encoding = DecimalEncoding.toBytes(value, true);
+        BigDecimal decoded = DecimalEncoding.toBigDecimal(encoding,true);
+        Assert.assertTrue("Incorrect decoding. Expected <" + value + ">, Actual <" + value + ">", value.compareTo(decoded) == 0);
     }
 
     @Test

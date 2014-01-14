@@ -1,0 +1,88 @@
+package org.apache.derby.impl.sql.execute.operations;
+
+import com.splicemachine.derby.test.framework.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
+/**
+ * @author Scott Fines
+ *         Created on: 10/23/13
+ */
+public class TernaryOperationIT {
+
+    private static final String CLASS_NAME = TernaryOperationIT.class.getSimpleName().toUpperCase();
+    private static SpliceWatcher classWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c varchar(20),a int, b int)");
+
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(classWatcher)
+            .around(schemaWatcher)
+            .around(tableWatcher)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try{
+                        PreparedStatement ps = classWatcher.prepareStatement("insert into "+ tableWatcher+" (c) values (?)");
+                        ps.setString(1,"this world is crazy");
+                        ps.execute();
+
+                        ps.setString(1,"nada");
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement("insert into "+ tableWatcher +"(b) values (?)");
+                        ps.setInt(1,3);
+                        ps.execute();
+                    }catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }finally{
+                        classWatcher.closeAll();
+                    }
+                }
+            });
+    @Rule
+    public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
+
+    @Test
+    public void testLocateWorks() throws Exception {
+        ResultSet rs =  methodWatcher.executeQuery("select locate('crazy',c) from " + tableWatcher);
+        int count = 0;
+        boolean nullFound=false;
+        boolean zeroFound=false;
+        boolean positiveFound=false;
+        while(rs.next()){
+            int val = rs.getInt(1);
+            if(rs.wasNull()){
+                Assert.assertFalse("Null was seen twice!",nullFound);
+                nullFound = true;
+            } else if(val <0){
+                Assert.fail("Should not have seen a negative number");
+            }else if(val >0){
+                Assert.assertFalse("Positive was seen twice!",positiveFound);
+                positiveFound=true;
+            }else{
+                Assert.assertFalse("Zero was seen twice!",zeroFound);
+                zeroFound=true;
+            }
+            count++;
+        }
+        Assert.assertTrue("Null not found!",nullFound);
+        Assert.assertTrue("Negative not found!",zeroFound);
+        Assert.assertTrue("Positive not found!",positiveFound);
+
+        Assert.assertEquals("Incorrect row count returned!",3,count);
+    }
+}
+

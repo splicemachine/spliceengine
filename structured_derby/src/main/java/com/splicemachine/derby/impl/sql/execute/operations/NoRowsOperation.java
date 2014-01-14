@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
@@ -87,27 +88,20 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 	}
 	
 	@Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		return null;
 	}
 
 	protected void setup() throws StandardException {
-		isOpen = true;
-        StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
-        
-        if (sc == null) {
+			isOpen = true;
+			StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
+
+			if (sc == null) {
         	SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
         	return;
         }
-        sc.setTopResultSet(this, subqueryTrackingArray);
-
-        // Pick up any materialized subqueries
-        if (subqueryTrackingArray == null) {
-            subqueryTrackingArray = sc.getSubqueryTrackingArray();
-        }
 	}
 	
-	@Override
 	public boolean isClosed() {
 		return !isOpen;
 	}

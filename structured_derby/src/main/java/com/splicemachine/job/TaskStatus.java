@@ -1,14 +1,19 @@
 package com.splicemachine.job;
 
-import com.google.common.base.Throwables;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Row;
+import org.apache.log4j.Logger;
 
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -23,9 +28,10 @@ public class TaskStatus implements Externalizable{
     private volatile TaskStats stats;
     private volatile String txnId;
 
-    private volatile boolean shouldRetry;
-    private volatile String errorCode;
-    private volatile String errorMessage;
+//    private volatile boolean shouldRetry;
+//    private volatile String errorCode;
+//    private volatile String errorMessage;
+    private volatile ErrorTransport errorTransport;
 
     public static TaskStatus failed(String s) {
         return new TaskStatus(Status.FAILED,new IOException(s));
@@ -35,16 +41,17 @@ public class TaskStatus implements Externalizable{
         return txnId;
     }
 
-    public String getErrorCode() {
-        return errorCode;
+    public Throwable getError() {
+        return errorTransport.getError();
     }
 
 
     public static interface StatusListener{
         void statusChanged(Status oldStatus,Status newStatus,TaskStatus taskStatus);
     }
+
     public TaskStatus(){
-       this.listeners = Collections.newSetFromMap(new ConcurrentHashMap<StatusListener, Boolean>());
+       this.listeners = new CopyOnWriteArraySet<StatusListener>();
     }
 
     public TaskStatus(Status status, Throwable error) {
@@ -52,8 +59,9 @@ public class TaskStatus implements Externalizable{
         this.status = new AtomicReference<Status>(status);
         if(error!=null){
             error = Exceptions.getRootCause(error);
-            this.shouldRetry = Exceptions.shouldRetry(error);
-            this.errorMessage = error.getMessage();
+            errorTransport = ErrorTransport.newTransport(error);
+//            this.shouldRetry = Exceptions.shouldRetry(error);
+//            this.errorMessage = error.getMessage();
         }
     }
 
@@ -61,12 +69,8 @@ public class TaskStatus implements Externalizable{
         this.txnId = txnId;
     }
 
-    public String getErrorMessage(){
-       return errorMessage;
-    }
-
     public boolean shouldRetry(){
-        return shouldRetry;
+        return errorTransport.shouldRetry();
     }
 
     public Status getStatus(){
@@ -82,17 +86,28 @@ public class TaskStatus implements Externalizable{
     }
 
     public byte[] toBytes() throws IOException {
-        ByteArrayOutputStream baos= new ByteArrayOutputStream();
-        ObjectOutput oo = new ObjectOutputStream(baos);
-        oo.writeObject(this);
-        oo.flush();
-        return baos.toByteArray();
+    	Kryo kryo = null;
+    	try {
+    		kryo = SpliceDriver.getKryoPool().get();
+    		Output output = new Output(100,-1);
+    		kryo.writeObject(output,this);
+    		return output.toBytes();
+    	} finally {
+    		if (kryo != null)	
+    			SpliceDriver.getKryoPool().returnInstance(kryo);
+    	}
     }
 
-    public void fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        ObjectInput ii = new ObjectInputStream(bais);
-        readExternal(ii);
+    public static TaskStatus fromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
+        Input input = new Input(bytes);
+        Kryo kryo = null;
+        try {
+        	kryo = SpliceDriver.getKryoPool().get();
+        return kryo.readObject(input,TaskStatus.class);
+        } finally {
+        	if (kryo != null)
+        		SpliceDriver.getKryoPool().returnInstance(kryo);
+        }
     }
 
     public static TaskStatus cancelled(){
@@ -101,7 +116,6 @@ public class TaskStatus implements Externalizable{
 
     /**
      * @param status the new status to set
-     * @return the old status
      */
     public void setStatus(Status status) {
         Status oldStatus = this.status.getAndSet(status);
@@ -112,9 +126,19 @@ public class TaskStatus implements Externalizable{
 
     public void setError(Throwable error) {
         error = Exceptions.getRootCause(error);
-        this.errorMessage = error.getMessage();
-        this.errorCode = Exceptions.getErrorCode(error);
-        this.shouldRetry = Exceptions.shouldRetry(error);
+        this.errorTransport = ErrorTransport.newTransport(error);
+//        this.errorMessage = error.getMessage();
+//        this.errorCode = Exceptions.getErrorCode(error);
+//        if (error instanceof DoNotRetryIOException) {
+//            final String message = error.getMessage();
+//            if (message != null && message.contains("transaction") && message.contains("is not ACTIVE. State is ERROR")) {
+//                this.shouldRetry = true;
+//            } else {
+//                this.shouldRetry = Exceptions.shouldRetry(error);
+//            }
+//        } else {
+//            this.shouldRetry = Exceptions.shouldRetry(error);
+//        }
     }
 
     public void setStats(TaskStats stats){
@@ -126,9 +150,7 @@ public class TaskStatus implements Externalizable{
         Status statusInfo = status.get();
         out.writeUTF(statusInfo.name());
         if(statusInfo==Status.FAILED){
-            out.writeBoolean(shouldRetry);
-            out.writeUTF(errorCode);
-            out.writeUTF((errorMessage != null ? errorMessage : "NULL"));
+            out.writeObject(errorTransport);
         }
         out.writeBoolean(stats!=null);
         if(stats!=null)
@@ -138,28 +160,11 @@ public class TaskStatus implements Externalizable{
             out.writeUTF(txnId);
     }
 
-    private void writeError(ObjectOutput out, Throwable error) throws IOException {
-        Throwable e = Throwables.getRootCause(error);
-
-        if(e instanceof RetriesExhaustedWithDetailsException){
-            RetriesExhaustedWithDetailsException rewde = (RetriesExhaustedWithDetailsException)e;
-            List<String>hostnameAndPorts = Collections.emptyList();
-            RetriesExhaustedWithDetailsException copy = new RetriesExhaustedWithDetailsException(rewde.getCauses(),
-                    Collections.<Row>emptyList(),hostnameAndPorts);
-            e = copy;
-            out.writeObject(e);
-        }else{
-            out.writeObject(error);
-        }
-    }
-
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         status = new AtomicReference<Status>(Status.valueOf(in.readUTF()));
         if(status.get()==Status.FAILED){
-            shouldRetry = in.readBoolean();
-            errorCode = in.readUTF();
-            errorMessage = in.readUTF();
+            errorTransport = (ErrorTransport)in.readObject();
         }
         if(in.readBoolean()){
             stats = (TaskStats)in.readObject();
@@ -171,6 +176,7 @@ public class TaskStatus implements Externalizable{
 
     public void attachListener(StatusListener listener) {
         this.listeners.add(listener);
+        listener.statusChanged(null,status.get(),this);
     }
 
     public void detachListener(StatusListener listener){

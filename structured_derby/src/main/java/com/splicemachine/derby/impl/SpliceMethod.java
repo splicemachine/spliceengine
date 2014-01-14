@@ -1,15 +1,12 @@
 package com.splicemachine.derby.impl;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.impl.sql.execute.BaseActivation;
 import org.apache.log4j.Logger;
-
-import com.google.common.collect.Sets;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class SpliceMethod<T> {
@@ -17,16 +14,13 @@ public class SpliceMethod<T> {
 	protected String methodName;
 	protected Activation activation;
 	protected Method method;
-	protected static enum DirectCalls {
-		e0,e1,e2,e3,e4,e5,e6,e7,e8,e9;
-	  protected static HashSet<String> strings; 
-	  static {
-		  strings = Sets.newHashSet("e0","e1","e2","e3","e4","e5","e6","e7","e8","e9");
-	  }	
-	  public static boolean contains(String s) {
-		  return strings.contains(s);
-	  } 
-	}
+	private static final GeneratedMethod[] directs;
+	 static {
+		directs = new GeneratedMethod[10];
+		for (int i = 0; i < directs.length; i++) {
+			directs[i] = new DirectCall(i);
+		}
+	 }	
 	
 	
 	public SpliceMethod() {
@@ -39,8 +33,8 @@ public class SpliceMethod<T> {
 	
 	@SuppressWarnings("unchecked")
 	public T invoke() throws StandardException{
-		if (DirectCalls.contains(methodName)) 
-			return (T) directInvoke(DirectCalls.valueOf(methodName));
+		if ((methodName.length() == 2) && methodName.startsWith("e"))
+			return (T) (directs[((int) methodName.charAt(1)) - '0']).invoke(activation);
 		else { 	
 			try {
 				if (method == null)
@@ -54,31 +48,54 @@ public class SpliceMethod<T> {
 		}
 	}
 	
-	public Object directInvoke(DirectCalls dc) throws StandardException {
-		BaseActivation ba = ((BaseActivation) activation);
-		switch (dc) {
-		case e0:
-			return ba.e0();
-		case e1:
-			return ba.e1();
-		case e2:
-			return ba.e2();
-		case e3:
-			return ba.e3();
-		case e4:
-			return ba.e4();
-		case e5:
-			return ba.e5();
-		case e6:
-			return ba.e6();
-		case e7:
-			return ba.e7();
-		case e8:
-			return ba.e8();
-		case e9:
-			return ba.e9();
-		default:
-			throw StandardException.unexpectedUserException(new IOException("DirectInvoke Wrong Field"));		
+	static class DirectCall implements GeneratedMethod {
+		private final int which;
+
+		DirectCall(int which) {
+
+			this.which = which;
+		}
+
+		public Object invoke(Object activation)
+			throws StandardException {
+
+			try {
+				BaseActivation ba = ((BaseActivation) activation);
+				switch (which) {
+				case 0:
+					return ba.e0();
+				case 1:
+					return ba.e1();
+				case 2:
+					return ba.e2();
+				case 3:
+					return ba.e3();
+				case 4:
+					return ba.e4();
+				case 5:
+					return ba.e5();
+				case 6:
+					return ba.e6();
+				case 7:
+					return ba.e7();
+				case 8:
+					return ba.e8();
+				case 9:
+					return ba.e9();
+				}
+				return null;
+			} catch (StandardException se) {
+				throw se;
+			}		
+			catch (Throwable t) {
+				throw StandardException.unexpectedUserException(t);
+			}
+		}
+
+//		@Override
+		public String getMethodName() {
+			return "e"+which;
 		}
 	}
+	
 }

@@ -1,7 +1,9 @@
 package com.splicemachine.derby.iapi.storage;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -29,7 +31,7 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 	/**
 	 * Close the iterator
 	 */
-	void close();
+	void close() throws StandardException;
 
     /**
      * @return the current row location.
@@ -42,11 +44,11 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      * @param instructions the instructions to execute
      * @throws StandardException if something goes wrong during the shuffle phase
      */
-    JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
+    JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
     List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
-    JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException;
+    JobResults finishShuffle(List<JobFuture> jobFuture) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.
@@ -60,4 +62,11 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 	 * if it's a scan).
 	 */
 	int getModifiedRowCount();
+	
+	/**
+	 * Retrieve the runtime context.
+	 * @return
+	 */
+	SpliceRuntimeContext getSpliceRuntimeContext();
+
 }

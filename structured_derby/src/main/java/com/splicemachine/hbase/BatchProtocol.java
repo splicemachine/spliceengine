@@ -21,7 +21,7 @@ public interface BatchProtocol extends CoprocessorProtocol {
      * @param bulkWrite the mutations to apply
      * @throws IOException if something goes wrong applying the mutation
      */
-    BulkWriteResult bulkWrite(BulkWrite bulkWrite) throws IOException;
+    byte[] bulkWrite(byte[] bulkWrite) throws IOException;
 
     /**
      * Delete the first row that appears after the specified rowKey, but *only* if it

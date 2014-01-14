@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.util.ArrayList;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -23,9 +24,9 @@ public class HashLeftOuterJoinOperation extends NestedLoopLeftOuterJoinOperation
 	}
 	
 	public HashLeftOuterJoinOperation (
-			NoPutResultSet leftResultSet,
+			SpliceOperation leftResultSet,
 			int leftNumCols,
-			NoPutResultSet rightResultSet,
+			SpliceOperation rightResultSet,
 			int rightNumCols,
 			Activation activation,
 			GeneratedMethod restriction,

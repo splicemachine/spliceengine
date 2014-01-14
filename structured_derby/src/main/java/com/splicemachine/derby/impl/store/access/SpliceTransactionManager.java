@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLController;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -115,6 +118,11 @@ public class SpliceTransactionManager implements XATransactionController,
 	 * locking level to record has no effect.
 	 **/
 	private int transaction_lock_level;
+
+    /**
+     * The ID of the current ddl change coordination.
+     */
+    private String currentDDLChangeId;
 
 	/**************************************************************************
 	 * Constructors for This class:
@@ -1718,14 +1726,17 @@ public class SpliceTransactionManager implements XATransactionController,
 	}
 
 	public void commit() throws StandardException {
-		LOG.debug("commit transaction contextId=="
-				+ ((SpliceTransaction) rawtran).getContextId());
-		if (LOG.isTraceEnabled())
-			LOG.trace("commit transaction contextId=="
-					+ ((SpliceTransaction) rawtran).getContextId());
-		this.closeControllers(false /* don't close held controllers */);
+        this.closeControllers(false /* don't close held controllers */);
+        if(rawtran!=null){
+            if(LOG.isDebugEnabled())
+                LOG.debug("commit transaction contextId=="
+                        + ((SpliceTransaction) rawtran).getContextId());
+            if (LOG.isTraceEnabled())
+                LOG.trace("commit transaction contextId=="
+                        + ((SpliceTransaction) rawtran).getContextId());
+            rawtran.commit();
+        }
 
-		rawtran.commit();
 
 		// for user transaction, set trans=null;
 		// if
@@ -1784,7 +1795,9 @@ public class SpliceTransactionManager implements XATransactionController,
 			throws StandardException {
 		if (LOG.isTraceEnabled())
 			LOG.trace("releaseSavePoint ");
-		return rawtran.releaseSavePoint(name, kindOfSavepoint);
+        if(rawtran!=null)
+            return rawtran.releaseSavePoint(name, kindOfSavepoint);
+        return 0;
 	}
 
 	public int rollbackToSavePoint(String name, boolean close_controllers,
@@ -2169,7 +2182,9 @@ public class SpliceTransactionManager implements XATransactionController,
 	public CompatibilitySpace getLockSpace() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getLockSpace ");
-		return rawtran.getCompatibilitySpace();
+        if(rawtran!=null)
+            return rawtran.getCompatibilitySpace();
+        return null;
 	}
 
 	/**
@@ -2206,7 +2221,9 @@ public class SpliceTransactionManager implements XATransactionController,
 	public String getTransactionIdString() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getTransactionIdString ");
-		return (rawtran.toString());
+        if(rawtran!=null)
+            return (rawtran.toString());
+        return "";
 	}
 
 	/**
@@ -2216,17 +2233,20 @@ public class SpliceTransactionManager implements XATransactionController,
 	public String getActiveStateTxIdString() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getActiveStateTxIdString ");
-		return (rawtran.getActiveStateTxIdString());
+        if(rawtran!=null)
+            return (rawtran.getActiveStateTxIdString());
+        return "";
 	}
 
-	/*
-	 * public String getActiveStateTxIdString(String newTransID) { if
-	 * (LOG.isTraceEnabled())
-	 * LOG.trace("getActiveStateTxIdString with the new transID"); try {
-	 * ((SpliceTransaction)rawtran).setActiveState(newTransID); return
-	 * newTransID; } catch (Exception e) {
-	 * SpliceLogUtils.logAndThrowRuntime(LOG,e); } return null; }
-	 */
+    @Override
+    public void prepareDataDictionaryChange() throws StandardException {
+        currentDDLChangeId = DDLCoordinationFactory.getController().notifyMetadataChange(new DDLChange(getActiveStateTxIdString()));
+    }
+
+    @Override
+    public void commitDataDictionaryChange() throws StandardException {
+        DDLCoordinationFactory.getController().finishMetadataChange(currentDDLChangeId);
+    }
 
 	public String toString() {
 		String str = null;

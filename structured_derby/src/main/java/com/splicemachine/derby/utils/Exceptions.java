@@ -11,7 +11,6 @@ import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintViolation;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraints;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
-import com.splicemachine.hbase.writer.MutationResult;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
@@ -19,11 +18,11 @@ import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -79,7 +78,7 @@ public class Exceptions {
         }
 
         ErrorState state = ErrorState.stateFor(rootCause);
-        return StandardException.newException(state.getSqlState(),rootCause);
+        return state.newException(rootCause);
     }
 
     public static StandardException parseException(RetriesExhaustedWithDetailsException rewde){
@@ -144,24 +143,7 @@ public class Exceptions {
         return true;
     }
 
-    public static Throwable fromString(MutationResult result) {
-//        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
-
-        MutationResult.Code writeErrorCode = result.getCode();
-
-        if(writeErrorCode!=null){
-            if(writeErrorCode== MutationResult.Code.WRITE_CONFLICT)
-                return new WriteConflict(result.getErrorMsg());
-            else if(writeErrorCode==MutationResult.Code.FAILED)
-                return new DoNotRetryIOException(result.getErrorMsg());
-            else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
-        }
-        return new DoNotRetryIOException(result.getErrorMsg());
-    }
-
     public static Throwable fromString(WriteResult result) {
-//        MutationResult.Code writeErrorCode = MutationResult.Code.parse(s);
-
         WriteResult.Code writeErrorCode = result.getCode();
 
         if(writeErrorCode!=null){
@@ -191,13 +173,6 @@ public class Exceptions {
                 error = causes.get(0);
         }
         return error;
-    }
-
-    public static Throwable getWrapperException(String errorMessage,String sqlState) {
-        StandardException se =  StandardException.newException(sqlState,errorMessage);
-        se.setSqlState(sqlState);
-        se.setTextMessage(errorMessage);
-        return se;
     }
 
     public static String getErrorCode(Throwable error) {

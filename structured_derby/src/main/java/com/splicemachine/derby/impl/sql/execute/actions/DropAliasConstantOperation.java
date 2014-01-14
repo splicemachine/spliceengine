@@ -51,7 +51,7 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction for activation {%s}", activation);
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();

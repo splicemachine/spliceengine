@@ -8,7 +8,9 @@ import com.splicemachine.storage.index.BitIndex;
 
 import java.io.IOException;
 
-public class HRowAccumulator implements RowAccumulator<byte[]> {
+import org.apache.hadoop.hbase.KeyValue;
+
+public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
@@ -20,15 +22,15 @@ public class HRowAccumulator implements RowAccumulator<byte[]> {
     }
 
     @Override
-    public boolean isOfInterest(byte[] value) {
-        decoder.set(value);
+    public boolean isOfInterest(KeyValue keyValue) {
+        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
         return currentIndex.intersects(entryAccumulator.getRemainingFields());
     }
 
     @Override
-    public boolean accumulate(byte[] value) throws IOException {
-        decoder.set(value);
+    public boolean accumulate(KeyValue keyValue) throws IOException {
+        decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
             entryAccumulator.reset();

@@ -14,8 +14,7 @@ import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -59,8 +58,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	protected boolean scannerInitialized = false;
 	protected String tableName;
     private int[] rowColumns;
-    private MultiFieldDecoder fieldDecoder;
     private EntryEncoder entryEncoder;
+    private EntryDecoder entryDecoder;
 
     public SpliceScan() {
 		if (LOG.isTraceEnabled())
@@ -135,8 +134,8 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 	
 	public void close() throws StandardException {
-        if(fieldDecoder!=null)
-            fieldDecoder.close();
+        if(entryDecoder!=null)
+            entryDecoder.close();
         if(entryEncoder!=null)
             entryEncoder.close();
 
@@ -262,13 +261,12 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 	}
 
 	public void fetchWithoutQualify(DataValueDescriptor[] destRow) throws StandardException {
-        if(fieldDecoder==null)
-            fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
-        fieldDecoder.reset();
+        if(entryDecoder==null)
+            entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
         try{
             if(destRow!=null){
                 for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.sparsePacked().decode(kv, destRow, rowColumns, fieldDecoder);
+                    RowMarshaller.sparsePacked().decode(kv, destRow, rowColumns, entryDecoder);
                 }
 		    	this.currentRow = destRow;
             }
@@ -317,15 +315,14 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
 			while ((currentResult = scanner.next()) != null) {
 				SpliceLogUtils.trace(LOG,"fetch set iterator %s",currentResult);
-                if(fieldDecoder==null)
-                    fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                if(entryDecoder==null)
+                    entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-                fieldDecoder.reset();
 				fetchedRow = RowUtil.newTemplate(
 						spliceConglomerate.getTransaction().getDataValueFactory(),
 						null, spliceConglomerate.getFormatIds(), spliceConglomerate.getCollationIds());
                 for(KeyValue kv:currentResult.raw()){
-                    RowMarshaller.sparsePacked().decode(kv, fetchedRow, null, fieldDecoder);
+                    RowMarshaller.sparsePacked().decode(kv, fetchedRow, null, entryDecoder);
                 }
 				hashTable.putRow(false, fetchedRow);
 				this.currentRowLocation = new HBaseRowLocation(currentResult.getRow());
@@ -396,16 +393,15 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 			if (results != null && results.length > 0) {
 				SpliceLogUtils.trace(LOG,"HBaseScan fetchNextGroup total number of results=%d",results.length);
 				for (int i = 0; i < results.length; i++) {
-                    if(fieldDecoder==null)
-                        fieldDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                    if(entryDecoder==null)
+                        entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
-                    fieldDecoder.reset();
 					if (results[i] != null) {
 						if (i == 0)
 							template = RowUtil.newRowFromTemplate(row_array[i]);
 						row_array[i] = RowUtil.newRowFromTemplate(template);
                         for(KeyValue kv:results[i].raw()){
-                            RowMarshaller.sparsePacked().decode(kv, row_array[i], null, fieldDecoder);
+                            RowMarshaller.sparsePacked().decode(kv, row_array[i], null, entryDecoder);
                         }
 //						SpliceUtils.populate(results[i], scanColumnList, row_array[i]);
 					}

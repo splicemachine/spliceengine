@@ -32,6 +32,25 @@ public class MultiFieldDecoderTest {
     }
 
     @Test
+    public void testCanDecodeZeroBigDecimalFollowedByNumbers() throws Exception {
+        MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
+        encoder.encodeNext(BigDecimal.ZERO);
+        encoder.encodeNext("c_credit1");
+        encoder.encodeNext("c");
+
+        MultiFieldDecoder decoder = MultiFieldDecoder.create(KryoPool.defaultPool());
+        decoder.set(encoder.build());
+
+        BigDecimal val = decoder.decodeNextBigDecimal();
+        String next = decoder.decodeNextString();
+        String last = decoder.decodeNextString();
+
+        Assert.assertTrue("Incorrect BigDecimal!",val.compareTo(BigDecimal.ZERO)==0);
+        Assert.assertEquals("Incorrect second column!","c_credit1",next);
+        Assert.assertEquals("Incorrect third column!","c",last);
+    }
+
+    @Test
     public void testCanDecodeBigDecimalInMiddle() throws Exception {
         MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(),3);
         encoder.encodeNext("hello");

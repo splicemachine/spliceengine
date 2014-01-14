@@ -1,27 +1,34 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.impl.sql.execute.deprecate.DistinctMerger;
+import com.splicemachine.derby.impl.sql.execute.deprecate.HashBufferSource;
+import com.splicemachine.derby.impl.sql.execute.deprecate.HashMerger;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.KeyType;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.hash.HashFunctions;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
@@ -38,7 +45,6 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -68,7 +74,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private String tableName;
     private String indexName;
     private int[] keyColumns;
-    private RowDecoder rowDecoder;
+    private PairDecoder rowDecoder;
 
     private HashBufferSource hbs;
   
@@ -107,6 +113,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         this.hashKeyItem = hashKeyItem;
         this.tableName = tableName;
         this.indexName = indexName;
+        init(SpliceOperationContext.newContext(activation));
     }
 
     @Override
@@ -135,11 +142,13 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
 
         keyColumns = new int[fihArray.length];
+        
         for(int index=0;index<fihArray.length;index++){
-            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols,fihArray[index].getInt());
+            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(),fihArray[index].getInt());
         }
-
-        RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner, getExecRowDefinition(),baseColumnMap);
+ 
+        RowProviderIterator<ExecRow> sourceProvider = wrapScannerWithProvider(regionScanner,
+                getExecRowDefinition(),operationInformation.getBaseColumnMap());
         MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1);
 
         hbs = new HashBufferSource(uniqueSequenceID, keyColumns, sourceProvider, merger, KeyType.FIXED_PREFIX, mfe);
@@ -156,8 +165,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow getNextSinkRow() throws StandardException {
-
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
         ExecRow row = null;
 
@@ -170,7 +178,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         try {
             regionScanner.next(keyValues);
@@ -180,9 +188,10 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         }
         if(keyValues.isEmpty()) return null;
 
-        if(rowDecoder==null)
-            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
-        return rowDecoder.decode(keyValues);
+        if(rowDecoder==null){
+						rowDecoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
+				}
+        return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
     }
 
     @Override
@@ -196,57 +205,74 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,decoder);
+            if(top != this)
+                SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+			return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+//            return new ClientScanProvider("distinctScanMap",SpliceConstants.TEMP_TABLE_BYTES,reduceScan,
+//										decoder,spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         super.close();
         if(hbs!=null)
             hbs.close();
-        if(reduceScan!=null)
-            SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+    }
 
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		@Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top, decoder, spliceRuntimeContext);
+			
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getMapRowProvider(top, decoder);
-    }
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+        Scan scan = buildScan(runtimeContext);
+        
+        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(scanInformation.getConglomerateId())),scan,null,runtimeContext);
 
-    @Override
-    protected JobStats doShuffle() throws StandardException {
-        Scan scan = buildScan();
-        RowProvider provider = new ClientScanProvider("shuffle",Bytes.toBytes(Long.toString(conglomId)),scan,null);
-
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this,runtimeContext);
         return provider.shuffleRows(soi);
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    	
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
-    @Override
-    public RowEncoder getRowEncoder() throws StandardException {
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
 
-        ExecRow def = getExecRowDefinition();
-        KeyType keyType = KeyType.FIXED_PREFIX;
-        return RowEncoder.create(def.nColumns(), keyColumns,
-                null,
-                uniqueSequenceID,
-                keyType, RowMarshaller.packed());
-    }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				HashPrefix keyPrefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID), HashFunctions.murmur3(0),SpliceDriver.driver().getTempTable().getCurrentSpread());
+				DataHash hash = BareKeyHash.encoder(keyColumns,null);
+				KeyPostfix postfix = NoOpPostfix.INSTANCE;
 
-    @Override
+				return new KeyEncoder(keyPrefix,hash,postfix);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+		}
+
+		@Override
     public String prettyPrint(int indentLevel) {
         return "Distinct"+super.prettyPrint(indentLevel);
     }
@@ -259,7 +285,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
             private ExecRow nextRow;
             private boolean populated = false;
-            private MultiFieldDecoder decoder;
+            private EntryDecoder decoder;
 
             @Override
             public boolean hasNext() throws StandardException {
@@ -276,10 +302,10 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                             DataValueDescriptor[] rowArray = nextRow.getRowArray();
 
                             if(decoder==null)
-                                decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                                decoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
                             for(KeyValue kv:values){
-                                RowMarshaller.sparsePacked().decode(kv, rowArray, null, decoder);
+                                RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, decoder);
                             }
                         }
 

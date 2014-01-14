@@ -1,0 +1,144 @@
+\documentclass[11pt]{article}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{Adaptive Write-Load control Proposal}
+\author{Scott Fines}
+
+\maketitle
+
+\begin{abstract}
+This document describes a proposed mechanism for managing Region overload from a Reactive (and partially Proactive) standpoint, with 
+references to a Prototype implementation currently in place.
+\end{abstract}
+
+\section{Problem Description}
+HBase uses Regions for load control--each region is allowed to accept writes concurrently with other regions. However, to control memory access, an individual 
+region (or more than one) must occasionally flush writes as they are accepted. This mainly occurs when the heap size of the Memstore is larger than some (configurable)
+threshold. When that occurs, all writes to a Region are blocked until the flush has completed.
+
+This blocking period is not infinite. If the flushing actions take beyond some (configurable) timeout threshold, a RegionTooBusyException will be thrown and that
+individual write will fail. The main question then becomes: under what circumstances can this timeout be exceeded, and cause a RegionTooBusyException? 
+
+One situation is obvious--if it takes too long to flush a region, then the timeout may be exceeded. 
+This may occur if disks are particularly slow, or if there is a systemic problem with HDFS which causes exceptionally high flush latency. An additional
+problem may occur in the event of compactions. When enough flushes have occurred, a compaction is required to clean up files on disk and prevent excessive fragmentation.
+When this occurs, all flushes must pause, which in turn will cause additional latency. When that latency is exceeded, the timeout occurs.
+
+A more complex scenario occurs under exceptionally high write load. In this situation, There are enough writes into the system that, by the time a single flush
+has completed, the memstore size has grown to such a point that it must flush again. Since writes cannot proceed until the flush has completed, this may result
+in timing out an individual write. This second situation is particularly difficult to deal with, and is the most likely culprit
+for the stability issues which plague Splice operations.
+
+The next obvious question is to ask in what situations does scenario two occur. This is a simpler answer. Any time in which a large volume of writes are proceeding
+in an essentially non-stop manner runs the risk of encountering situation 2. The faster those writes are submitted to the region, the more likely it is to happen.
+This situation is encountered in any operation which writes a large volume of data to either a Data Table or the TEMP space.
+
+The risk is exacerbated by improvements to the codebase which makes that write submission happen more frequently (such as improving scan speeds on queries, or 
+improving parallelism in imports), or which make individual write submissions happen faster (such as reducing thread contention or improving SI write-write conflict
+detection). It is also exacerbated by adding nodes to a cluster, as this increases the overall number of concurrently executing operations.
+
+Note that this problem is primarily concerned with a single region. As more and more regions are constructed and included in the operation (due to splitting of 
+regions), the amount of data directed to an individual region should reduce, and thus the problem is less likely after region splits. Of course, a hotspot of
+operations could still cause the problem, even with many regions, but in general it becomes less likely.
+ 
+\section{Proposed Solution}
+There are a few solutions to this issue.
+
+An ideal solution would be to obtain (or maintain) a distribution of the expected results of the query, and Pre-split regions so as to ensure that an adequate number
+of regions exist, and that those regions reflect the distribution of the output of the operation so that one can be (reasonably) confident that write load
+is well distributed across the cluster. This is an ideal situation, in fact. However, it requires the presence of a distribution of the data, which in turn requires
+the construction of a mechanism for distributing such statistics information across the entire cluster. Neither constructing a distribution nor providing all 
+involved region servers with said distribution has been implemented as of the time of writing this document(Sep. 2013); 
+implementing those features would be a significant undertaking.
+
+Another solution is to simply reduce the ability of the overall system to write data. This involves reducing thread pool sizes so that fewer tasks can run
+concurrently, and fewer write threads can be used. This is straightforward, easy to do, and currently in place. 
+Unfortunately, it is also insufficient. Firstly, it removes Splice's ability to perform multiple operations in parallel, destroying overall 
+performance of the database. Secondly, the larger the cluster, the more the pool sizes must be tuned down (a manual operation).
+
+The tuning of thread pools isn't always a horrible thing, but the manual nature of the operation is. The correct configuration of the \emph{entire} cluster
+by necessity depends on the operation being executed--the more data that is being shifted across regions, the smaller those configurations need to be to avoid
+region overload. 
+
+Finally, the current implementation makes use only of global limits. Each RegionServer has a single global pool of Threads with which it can perform writes, but
+within that pool, there are no limitations on how many threads can be used to write to a single region. Thus, for example, if the total number of write threads
+is set to 50, then all 50 of those threads can be used to write to a single region. Increase that to a cluster of 10, and 500 threads can be used to write to a
+single region simultaneously (and each thread may be writing 1000 or more rows of data). No RegionServer on earth can withstand 500,000 rows of data being
+written to it simultaneously. It \emph{will} throw a RegionTooBusyException.
+
+This leads us to a possible understanding. It should be \emph{expected} that a RegionTooBusyException is thrown. If that is the case, one must ask what information
+that exception is providing to the writer. Quite simply, this exception informs the writer that she is pushing too many writes too fast for the region to handle. It 
+is in effect a speeding ticket. If the writer were to understand that this is the case, and slow down her writes, one may gracefully recover and continue to write.
+
+In that case,how should Splice deal with a write overload? 
+
+Firstly, it should make use of settings on a per-task, per-region level. That is, for each Task which is 
+executed, and each region being written to, there should be an absolute limit on the number of concurrent writes which are allowed. For example, if there are
+10 tasks which are each attempting to write to a single region, each task should only be allowed a certain number of threads (say, 5) to write to that region
+with. Once that region splits, each task should then be allowed the same number of threads to the new region (5 to each region). This means that a single
+region will only ever receive 5 writes at the same time from a single task. 
+
+This will not prevent an aggressively tuned system from overloading. Thus, we should include \emph{adaptive throttling}. In this world, if a writer receives
+a RegionTooBusy exception, not only will she back off and try that individual write again, but she will \emph{also} reduce the number of 
+writer threads that can be used to write to that region, to prevent future occurrences. 
+
+This adaptive throttling will be carried over during region splits, so that, once discovered, the optimal thread max will be maintained throughout all child
+regions (thus helping to prevent future load issues).
+
+Finally, we may make use of our understanding of the system to predict Region overloading and respond proactively, to prevent it from happening in the first place. 
+
+We know that a Region overloading is preceeded by the blocking of all writes. This blocking of writes should result in a sudden increase in latency (and a 
+corresponding drop in overall throughput). Thus, if we detect an abrupt increase in latency (or an abrupt decrease in throughput), 
+we marginally throttle back the number of write threads temporarily, in an attempt to reduce the load to that region. This would reduce the overall write
+load that that region must deal with, which will allow it the oppurtunity to catch up on region flushes.
+
+This leads to an interesting side point--it is possible to use this mechanism to automatically optimize the writer configuration such that it has optimal throughput,
+given a stability constraint. By seeking to maximize overall throughput, one may start with a small number of allowed concurrent writes, gradually increasing that
+number as long as the throughput continues to increase. One the throughput begins to decay, the optimizer can then automatically reduce the number of threads, to 
+maintain a stable and consistently high write throughput. This is not required for stability, but a properly written implementation should make such an optimization
+relatively easy to implement in the future.
+
+\section{Prototype implementation}
+A prototype implementation is currently in place. This implementation includes a per-region limit on the number of concurrent writes, and automatically reduces
+the number of concurrent writes when it detects a RegionTooBusyException, but does not automatically adjust concurrent writes based on throughput or latency 
+measurements.
+
+The implementation is entirely contained in the following classes
+
+\begin{itemize}
+\item com.splicemachine.hbase.writer.PipedWriteBuffer
+\item com.splicemachine.hbase.writer.RegulatedWriter
+\item com.splicemachine.hbase.tools.Valve
+\end{itemize}
+
+In particular, pay attention to Valve, and it's inner interface \emph{OpeningStrategy}. The \emph{OpeningStrategy} is the location where adjustments to the valve
+can be made dynamically.
+
+As these classes are part of the overall write framework, one may also be interested in 
+
+\begin{itemize}
+\item com.splicemachine.hbase.writer.WriteCoordinator
+\item com.splicemachine.hbase.writer.Writer
+\item com.splicemachine.hbase.writer.CallBuffer
+\end{itemize}
+
+\section{Further information}
+
+For more information about how RegionTooBusyExceptions can be thrown, see \url{http://gbif.blogspot.com.es/2012/07/optimizing-writes-in-hbase.html}, and for
+a direct view of the code where the issue is, consider 
+
+\begin{itemize}
+\item org.apache.hadoop.hbase.regionserver.HRegion.
+\end{itemize}
+
+In particular, the $checkResources()$ method, near line 2969.
+
+For information about tuning parameters in general, and how to improve write performance of HBase via tuning, see \emph{HBase, the Complete Guide}, pages 
+436-439 (in the First Edition). In particular, see the sections on adjusting memstore limits, block multiplier, blocking store files, and region size parameters.
+
+
+\end{document}

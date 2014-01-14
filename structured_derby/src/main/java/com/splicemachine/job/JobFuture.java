@@ -34,7 +34,7 @@ public interface JobFuture {
      *
      * @throws ExecutionException wrapping any underlying exception which is thrown.
      */
-    void completeAll() throws ExecutionException,InterruptedException,CancellationException;
+    void completeAll(StatusHook statusHook) throws ExecutionException,InterruptedException,CancellationException;
 
     /**
      * Waits if necessary for the next task in the computation to complete. Will not wait
@@ -43,7 +43,7 @@ public interface JobFuture {
      *
      * @throws ExecutionException
      */
-    void completeNext() throws ExecutionException, InterruptedException,CancellationException;
+    void completeNext(StatusHook hook) throws ExecutionException, InterruptedException,CancellationException;
 
     /**
      * Cancel the job and any outstanding tasks yet to be completed.
@@ -73,5 +73,24 @@ public interface JobFuture {
 
     void cleanup() throws ExecutionException;
 
-    void addCleanupTask(Closeable closable);
+            /*
+            Added in parallel-msj branch; needed?
+             */
+    //void addCleanupTask(Closeable closable);
+
+    int getNumTasks();
+
+    int getRemainingTasks();
+
+    byte[][] getAllTaskIds();
+
+    public interface StatusHook {
+        void success(byte[] taskId);
+
+        void failure(byte[] taskId);
+
+        void cancelled(byte[] taskId);
+
+        void invalidated(byte[] taskId);
+    }
 }

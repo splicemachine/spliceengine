@@ -1,7 +1,10 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -13,8 +16,11 @@ import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Delegating ResultSet to ensure that operation stacks are re-run when Derby
@@ -32,16 +38,17 @@ import java.sql.Timestamp;
  * @author Scott Fines
  * Created on: 3/28/13
  */
-public class OperationResultSet implements NoPutResultSet,HasIncrement {
+public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorResultSet,ConvertedResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
     private final OperationTree operationTree;
-    private final SpliceOperation topOperation;
+    private SpliceOperation topOperation;
     private NoPutResultSet delegate;
     private boolean closed = false;
+		private StatementInfo statementInfo;
 
-    public OperationResultSet(Activation activation,
+		public OperationResultSet(Activation activation,
                               OperationTree operationTree,
                               SpliceOperation topOperation){
         this.activation = activation;
@@ -52,11 +59,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
     public SpliceOperation getTopOperation() {
         return topOperation;
     }
+
     @Override
     public void markAsTopResultSet() {
         SpliceLogUtils.trace(LOG, "markAsTopResultSet");
-//        checkDelegate();
-//        delegate.markAsTopResultSet();
+        topOperation.markAsTopResultSet();
     }
 
     @Override
@@ -64,16 +71,35 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
-        topOperation.openCore();
+        try {
+						//create and load the Statement information
+						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+						String sql = operationContext.getPreparedStatement().getSource();
+						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+						String txnId = activation.getTransactionController().getActiveStateTxIdString();
+						statementInfo = new StatementInfo(sql,user,txnId,
+										operationTree.getNumSinks(topOperation),
+										SpliceDriver.driver().getUUIDGenerator());
+						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+						topOperation.init(operationContext);
 
-        delegate = operationTree.executeTree(topOperation);
-//        operationTree.traverse(topOperation);
-//        delegate = operationTree.execute();
-        //open the delegate
-        delegate.openCore();
+            topOperation.open();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+				try{
+						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+						runtimeContext.setStatementInfo(statementInfo);
+						delegate = operationTree.executeTree(topOperation,runtimeContext);
+						//open the delegate
+						delegate.openCore();
+				}catch(RuntimeException e){
+						throw Exceptions.parseException(e);
+				}
 
         if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
-            PLAN_LOG.debug(((SpliceOperation)topOperation).prettyPrint(1));
+            PLAN_LOG.debug(topOperation.prettyPrint(1));
         }
     }
 
@@ -162,9 +188,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public boolean returnsRows() {
-    	if (delegate == null)
-    		return false;
-        return delegate.returnsRows();
+        return delegate != null && delegate.returnsRows();
     }
 
     @Override
@@ -257,6 +281,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public void close() throws StandardException {
+				if(statementInfo!=null){
+						statementInfo.markCompleted();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+				}
         if(delegate!=null)delegate.close();
         closed=true;
     }
@@ -323,8 +351,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
 
     @Override
     public void addWarning(SQLWarning w) {
-        checkDelegate();
-        delegate.addWarning(w);
+        activation.addWarning(w);
     }
 
     @Override
@@ -385,4 +412,27 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement {
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
+
+    @Override
+    public RowLocation getRowLocation() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getRowLocation();
+        return null;
+    }
+
+    @Override
+    public ExecRow getCurrentRow() throws StandardException {
+        if(delegate instanceof CursorResultSet)
+            return ((CursorResultSet)delegate).getCurrentRow();
+        return null;
+    }
+
+    @Override
+    public SpliceOperation getOperation() {
+        return topOperation;
+    }
+
+		public StatementInfo getStatementInfo(){
+				return statementInfo;
+		}
 }

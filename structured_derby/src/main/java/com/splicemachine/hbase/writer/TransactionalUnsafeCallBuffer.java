@@ -7,8 +7,8 @@ package com.splicemachine.hbase.writer;
 public class TransactionalUnsafeCallBuffer<E> extends UnsafeCallBuffer<E> implements TransactionalCallBuffer<E>{
     private final String transactionId;
 
-    public TransactionalUnsafeCallBuffer(String transactionId,long maxHeapSize, int maxBufferEntries, Listener<E> listener) {
-        super(maxHeapSize, maxBufferEntries, listener);
+    public TransactionalUnsafeCallBuffer(String transactionId,BufferConfiguration bufferConfiguration, Listener<E> listener) {
+        super(bufferConfiguration, listener);
         this.transactionId = transactionId;
     }
 

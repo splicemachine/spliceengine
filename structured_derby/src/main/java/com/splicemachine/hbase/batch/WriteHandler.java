@@ -3,6 +3,7 @@ package com.splicemachine.hbase.batch;
 import com.splicemachine.hbase.writer.KVPair;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -11,6 +12,8 @@ import java.io.IOException;
 public interface WriteHandler {
 
     void next(KVPair mutation, WriteContext ctx);
+    
+    void next(List<KVPair> mutations, WriteContext ctx);
 
     void finishWrites(WriteContext ctx) throws IOException;
 }

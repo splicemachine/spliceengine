@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
@@ -9,13 +10,9 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -23,10 +20,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -61,12 +55,18 @@ public class ConglomerateUtils extends SpliceConstants {
 			Result result = table.get(get);
 			byte[] data = result.getValue(DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 
-			if(data!=null) {
-                MultiFieldDecoder decoder = MultiFieldDecoder.wrap(data,SpliceDriver.getKryoPool());
-                byte[] nextRaw = decoder.decodeNextBytesUnsorted();
+            EntryDecoder entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            try{
+                if(data!=null) {
+                    entryDecoder.set(data);
+                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                    byte[] nextRaw = decoder.decodeNextBytesUnsorted();
 
-                return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
-			}
+                    return DerbyBytesUtil.fromBytes(nextRaw, instanceClass);
+                }
+            }finally{
+                entryDecoder.close();
+            }
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"readConglomerateException",Exceptions.parseException(e));
 		} finally {

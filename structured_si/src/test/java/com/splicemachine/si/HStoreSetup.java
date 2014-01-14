@@ -18,6 +18,10 @@ import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.STableReaderDelegate;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Tracer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import javax.annotation.Nullable;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -26,14 +30,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 
 public class HStoreSetup implements StoreSetup {
     static int nextBasePort = 12000;
@@ -52,6 +48,30 @@ public class HStoreSetup implements StoreSetup {
     Clock clock = new SystemClock();
 
     HBaseTestingUtility testCluster;
+
+    private static boolean useSingleton;
+    private static HStoreSetup singleton;
+
+    public synchronized static void setUseSingleton(boolean useSingletonValue) {
+        useSingleton = useSingletonValue;
+    }
+
+    public synchronized static HStoreSetup create() {
+        if (useSingleton) {
+            if (singleton == null) {
+                singleton = new HStoreSetup(false);
+            }
+            return singleton;
+        } else {
+            return new HStoreSetup(false);
+        }
+    }
+
+    public synchronized static void destroy(HStoreSetup setup) throws Exception {
+        if (!useSingleton) {
+            setup.getTestCluster().shutdownMiniCluster();
+        }
+    }
 
     public HStoreSetup(boolean usePacked) {
         setupHBaseHarness(usePacked);
@@ -76,7 +96,7 @@ public class HStoreSetup implements StoreSetup {
             testCluster.startMiniCluster(1);
             final TestHTableSource tableSource = new TestHTableSource(testCluster, getPersonTableName(),
                     new String[]{SpliceConstants.DEFAULT_FAMILY, SIConstants.SNAPSHOT_ISOLATION_FAMILY});
-            tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{"siFamily", "siChildrenFamily"});
+            tableSource.addTable(testCluster, SpliceConstants.TRANSACTION_TABLE, new String[]{"siFamily", "permissionFamily"});
             return tableSource;
         } catch (Exception e) {
             throw new RuntimeException(e);

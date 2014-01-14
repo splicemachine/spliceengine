@@ -1,0 +1,79 @@
+This section describes TestNist (NIST Integration Test)
+
+- TestNist: Run all SQL script in the src/test/resourced/nist folder with derby, splice and do script output
+            differencing.  Runs just less than 4 min.  When run this way, a splice server must be running ahead
+            of starting the test.
+
+   - To run manually... (splice server must be running)
+
+   USAGE: mvn clean install -Dtest=TestNist [-Dnoclean] [-Dscript=<scriptName.sql>] [-P <platform>]
+   Where: noclean => do not clean the Derby and Splice DB schema. Default is to remove all foreign schema before and
+                after run.
+          script=<scriptName.sql> => run the Nist script given (plus schema creation scripts before).
+          platform => build and run the test on the given HBase platform.  Default platform is cloudera-cdh4.3.0.
+                Available platforms are "hdp1.3" - HortonWorks, "mapr-0.94.5" - MapR and "apache-hbase-0.94.5" - vanilla
+                HBase. Note that you must have already built (clean install) the given platform.
+          
+   Notes:
+    - Test difference report output goes into TestNist.log
+    - To build, in the splicemachine/structured_test directory, run "> mvn clean install -DskipTests" first.
+    - Start the Splice server manually then run "> ./run.sh" (or "> mvn clean install -Dtest=TestNist")
+
+This section describes SpliceNistIT (NIST Integration Test)
+
+   - This runs as a Maven Profile... (starts/stops server for you)
+
+   USAGE: mvn clean install -P [<profile>,]apache-derby,integration-tests
+        Will run all tests, unit and integ, starting and stopping the splice server for you.
+
+    Notes:
+     - *** SpliceNistIT, the only IT test, is currently disabled. Run TestNist described above. ***
+     - Test difference report output goes into NistIT.log
+     - apache-derby profile is given so that Derby test running code has access to vanilla Derby jars.
+
+This section describes the Nist testing overall
+
+- Structure
+   - Control files located in src/test/resources/nist
+       - skip.tests file is there for you to list tests to skip.
+       - schema.list file is there for you to list all tests that create schema. These are placed
+            at the front of the list of tests to run, because other tests depend on these schema to exist.
+       - derby.filter is the place to put errors, warnings and other output from Derby that you want
+            ignored for output file differencing.
+       - splice.filter is the same as derby.filter except it's for Splice output.
+       - The other area of test output normalization is in NistLineEqualizer. This is an implementation of the
+            Equalizer<T> interface provided by the differencing module we use.
+   - Flow
+       - To get the list and the order (yes, there is a required order) of .sql scripts to run,
+            we get the list of all .sql scripts in the src/test/resources/nist directory, remove the skipped
+            tests using the list in skip.tests, remove the schema creators using the list in schema.list, sort
+            the remainder in alpha order and add the schema creators to the front of the list.
+       - Execute the list against Derby with DerbyNistRunner, which produces target/nist/<scriptName>.derby
+       - Execute the list against Splice with SpliceNistRunner, which produces target/nist/<scriptName>.splice
+       - Difference the .derby files with the .splice files, which produces a collection of DiffReports
+       - Clean up schema created in both Derby and Splice. This is done by querying for schema from the JDBC
+            Connection and, for each schema, query for and remove the Views, Tables and finally the schema.
+            (See caveats)
+       - Print all DiffReports to a file and fail the test if any have differences
+       - Durations are given for Derby and Splice execution time
+
+- Left to do (caveats)
+   - Splice reestablish connection not working
+       - I have code in place to check if a connection gets closed and, if so, create a new one, and it works 
+            for Derby embedded connection, but not for Splice. 
+       - To work around this, I have commented the "disconnect;" directives in basetab.sql, schema1.sql and
+            schema5.sql for now.
+   - The schema cleanup does not always work. Although Views are dropped first from each schema, there are some
+       schemas that have Views that are dependent on other views. If an attempt is made to drop a view on which
+       another view is dependent, the View drop fails and then, of course, the schema drop fails.  Usually it
+       is not a problem to run ITs twice because the clean that runs before the test removes dangling schema
+       that the post test cleanup failed to remove.
+   - Getting maven to launch the Splice server (with splice derby jars) AND to run tests against vanilla Derby
+       (acquire embedded connection, etc) in the same Java VM is not working.  If the splice sever is started
+       manually, one test can be run to exec sql scripts against both vanilla Derby, Splice Machine server,
+       compare and report results. This is how the TestNist test works. This works because the derby client
+       jars are running in separate VMs. To run Nist test scripts against both vanilla Derby and Splice in the
+       same VM, two test classes have to be run. The first, DerbyNistTest, is run against vanilla Derby and its
+       output written to target/nist. Then the splice server is started and SpliceNistIT is run against the
+       splice server with its output going to target/nist. At the end of SpliceNistIT the derby results are
+       compared to the splice results and the NistIT.log report is written.

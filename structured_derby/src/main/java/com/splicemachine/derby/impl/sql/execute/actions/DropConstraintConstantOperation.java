@@ -75,7 +75,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		ConstraintDescriptor		conDesc = null;
 		TableDescriptor				td;

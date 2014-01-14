@@ -1,19 +1,18 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -50,7 +49,7 @@ public class MiscOperation extends NoRowsOperation
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		return new SpliceNoPutResultSet(activation,this,miscRowProvider,false);
 	}
@@ -67,7 +66,12 @@ public class MiscOperation extends NoRowsOperation
 				setup();
 				activation.getConstantAction().executeConstantAction(activation);
 			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, e);
+                try {
+                    activation.getLanguageConnectionContext().internalRollback();
+                } catch (StandardException e1) {
+                    SpliceLogUtils.logAndThrowRuntime(LOG, e1);
+                }
+                SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
 		}
 
@@ -99,7 +103,7 @@ public class MiscOperation extends NoRowsOperation
         @Override public byte[] getTableName() { return null; }
 
         @Override
-        public JobStats shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             throw new UnsupportedOperationException();
         }
 
@@ -109,18 +113,23 @@ public class MiscOperation extends NoRowsOperation
         }
 
         @Override
-        public JobStats finishShuffle(List<JobFuture> jobFuture) throws StandardException {
+        public JobResults finishShuffle(List<JobFuture> jobFuture) throws StandardException {
             throw new UnsupportedOperationException();
         }
 
         @Override
 		public int getModifiedRowCount() {
-			return 0;
+            return (int)activation.getRowsSeen();
 		}
 
 		@Override
 		public String toString(){
 			return "MiscRowProvider";
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
 		}
 	};
 

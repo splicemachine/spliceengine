@@ -66,7 +66,7 @@ public class SetConstraintsConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException
+	public void executeConstantAction( Activation activation ) throws StandardException
 	{
 		ConstraintDescriptor		cd;
 		TableDescriptor				td;

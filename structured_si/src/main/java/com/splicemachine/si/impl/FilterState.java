@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
@@ -23,8 +25,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     /**
      * The transactions that have been loaded as part of running this filter.
      */
-    final Map<Long, Transaction> transactionCache;
-    final Map<Long, VisibleResult> visibleCache;
+    final LongPrimitiveCacheMap<Transaction> transactionCache;
+    final LongPrimitiveCacheMap<VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -33,7 +35,6 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
-    private final boolean includeUncommittedAsOfStart;
     private boolean ignoreDoneWithColumn;
 
     private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> rowState;
@@ -43,7 +44,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private final TransactionSource transactionSource;
 
     FilterState(SDataLib dataLib, DataStore dataStore, TransactionStore transactionStore,
-                RollForwardQueue rollForwardQueue, boolean includeSIColumn, boolean includeUncommittedAsOfStart,
+                RollForwardQueue rollForwardQueue, boolean includeSIColumn,
                 ImmutableTransaction myTransaction) {
         this.transactionSource = new TransactionSource() {
             @Override
@@ -57,11 +58,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         this.transactionStore = transactionStore;
         this.rollForwardQueue = rollForwardQueue;
         this.includeSIColumn = includeSIColumn;
-        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
         this.myTransaction = myTransaction;
 
-        transactionCache = CacheMap.makeCache(false);
-        visibleCache = CacheMap.makeCache(false);
+        transactionCache = new LongPrimitiveCacheMap<Transaction>();
+        visibleCache = new LongPrimitiveCacheMap<VisibleResult>();
 
         // initialize internal state
         this.rowState = new FilterRowState(dataLib);
@@ -85,7 +85,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     void setKeyValue(KeyValue dataKeyValue) {
         keyValue.setKeyValue(dataKeyValue);
         rowState.updateCurrentRow(keyValue);
-        type = dataStore.getKeyValueType(keyValue.family(), keyValue.qualifier(), keyValue.value());
+        type = dataStore.getKeyValueType(keyValue.keyValue());
     }
 
     @Override
@@ -139,8 +139,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     private Filter.ReturnCode processCommitTimestampAsUserData() throws IOException {
         log("processCommitTimestampAsUserData");
         boolean later = false;
-        for (Long tombstoneTimestamp : rowState.tombstoneTimestamps) {
-            if (tombstoneTimestamp < keyValue.timestamp()) {
+        final long[] buffer = rowState.tombstoneTimestamps.buffer;
+        final int size = rowState.tombstoneTimestamps.size();
+        for (int i = 0; i < size; i++) {
+            if (buffer[i] < keyValue.timestamp()) {
                 later = true;
                 break;
             }
@@ -151,12 +153,14 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         } else {
             final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            for (KeyValue kv : rowState.getCommitTimestamps()) {
-                keyValue.setKeyValue(kv);
+            KeyValue[] commits = rowState.getCommitTimestamps().buffer;
+            int commitsSize = rowState.getCommitTimestamps().size();
+            for (int i = 0 ; i < commitsSize; i++) {
+                keyValue.setKeyValue(commits[i]);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
-                }
+                }            	
             }
             keyValue.setKeyValue(oldKeyValue);
             if (include) {
@@ -189,9 +193,9 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
 
     private Transaction processCommitTimestampDirect() throws IOException {
         Transaction transaction;
-        if (dataStore.isSINull(keyValue.value())) {
+        if (dataStore.isSINull(keyValue.keyValue())) {
             transaction = handleUnknownTransactionStatus();
-        } else if (dataStore.isSIFail(keyValue.value())) {
+        } else if (dataStore.isSIFail(keyValue.keyValue())) {
             transaction = transactionStore.makeStubFailedTransaction(keyValue.timestamp());
             transactionCache.put(keyValue.timestamp(), transaction);
         } else {
@@ -249,9 +253,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * transaction up in the transaction table again the next time this row is read.
      */
     private void rollForward(Transaction transaction) throws IOException {
-        if (rollForwardQueue != null && transaction.getEffectiveStatus().isFinished()) {
+        TransactionStatus status = transaction.getEffectiveStatus();
+        if (rollForwardQueue != null && status.isFinished()) {
             // TODO: revisit this in light of nested independent transactions
-            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row());
+            dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), keyValue.row(), true);
         }
     }
 
@@ -261,13 +266,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      */
     private Filter.ReturnCode processTombstone() throws IOException {
         log("processTombstone");
-        if (rowState.setTombstoneTimestamp(keyValue.timestamp()) && includeUncommittedAsOfStart
-                && !rowState.isSiTombstoneIncluded() && keyValue.timestamp() < myTransaction.getTransactionId().getId()) {
-            rowState.setSiTombstoneIncluded();
-            return INCLUDE;
-        } else {
-            return SKIP;
-        }
+        rowState.setTombstoneTimestamp(keyValue.timestamp());
+        return SKIP;
     }
 
     private Filter.ReturnCode processAntiTombstone() throws IOException {
@@ -298,20 +298,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
             proceedToNextColumn();
             return INCLUDE;
         } else {
-            if (includeUncommittedAsOfStart) {
-                if (isUncommittedAsOfStart()) {
-                    return INCLUDE;
-                } else {
-                    return SKIP;
-                }
-            } else {
-                return SKIP;
-            }
+            return SKIP;
         }
-    }
-
-    private boolean isUncommittedAsOfStart() throws IOException {
-        return myTransaction.startedWhileOtherActive(loadTransaction(), transactionSource);
     }
 
     /**
@@ -319,24 +307,26 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * so this manually does the equivalent.
      */
     private void proceedToNextColumn() {
-        rowState.lastValidQualifier = keyValue.qualifier();
+        rowState.lastValidQualifier = keyValue.keyValue();
     }
 
     /**
      * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
      */
     private boolean doneWithColumn() {
-        return dataLib.valuesEqual(keyValue.qualifier(), rowState.lastValidQualifier);
+        return dataLib.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
     }
 
     /**
      * Is there a row level tombstone that supercedes the current cell?
      */
     private boolean tombstoneAfterData() throws IOException {
-        for (long tombstone : rowState.tombstoneTimestamps) {
-            final Transaction tombstoneTransaction = rowState.transactionCache.get(tombstone);
+    	final long[] buffer = rowState.tombstoneTimestamps.buffer;
+    	final int size = rowState.tombstoneTimestamps.size();
+    	for (int i = 0; i < size; i++) {
+            final Transaction tombstoneTransaction = rowState.transactionCache.get(buffer[i]);
             final VisibleResult visibleResult = checkVisibility(tombstoneTransaction);
-            if (visibleResult.visible && (keyValue.timestamp() <= tombstone)) {
+            if (visibleResult.visible && (keyValue.timestamp() <= buffer[i])) {
                 return true;
             }
         }

@@ -56,7 +56,7 @@ public class SpliceTestClusterParticipant extends TestConstants {
 		configuration.set("hbase.regionserver.handler.count", "40");
 		configuration.setInt("hbase.regionserver.port", port);
 		configuration.setInt("hbase.regionserver.info.port", infoPort);
-		configuration.setInt(SpliceConstants.CONFIG_DERBY_BIND_PORT, 1528);
+		configuration.setInt(SpliceConstants.DERBY_BIND_PORT, 1528);
 		coprocessorBaseline(configuration);
 		configuration.reloadConfiguration();
 		SpliceConstants.reloadConfiguration(configuration);

@@ -4,8 +4,6 @@ import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.PushBackIterator;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -26,7 +24,6 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     private final Map<String, Map<String, LRowLock>> locks = new HashMap<String, Map<String, LRowLock>>();
     private final Map<String, Map<LRowLock, String>> reverseLocks = new HashMap<String, Map<LRowLock, String>>();
     private final Map<String, List<LTuple>> relations = new HashMap<String, List<LTuple>>();
-    private final LDataLib tupleReaderWriter = new LDataLib();
     private final Clock clock;
 
     public LStore(Clock clock) {
@@ -52,6 +49,11 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     @Override
     public LTable open(String tableName) {
         return new LTable(tableName);
+    }
+
+    @Override
+    public String getTableName(LTable table) {
+        return table.relationIdentifier;
     }
 
     @Override
@@ -86,8 +88,8 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
         }
         List<LTuple> results = new ArrayList<LTuple>();
         for (LTuple t : tuples) {
-            if ((t.key.equals(get.startTupleKey)) ||
-                    ((t.key.compareTo((String) get.startTupleKey) > 0) && (t.key.compareTo((String) get.endTupleKey) < 0))) {
+            if (get.startTupleKey == null || (t.key.equals(get.startTupleKey)) ||
+                    ((t.key.compareTo((String) get.startTupleKey) > 0) && (get.endTupleKey == null || t.key.compareTo((String) get.endTupleKey) < 0))) {
                 results.add(filterCells(t, get.families, get.columns, get.effectiveTimestamp));
             }
         }
@@ -185,17 +187,26 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
             lock = lockRow(table, put.key);
             LGet get = new LGet(put.key, put.key, null, null, null);
             Iterator results = runScan(table, get);
-            LTuple result = (LTuple) results.next();
+            LTuple result = null;
+            if (results.hasNext()) {
+                result = (LTuple) results.next();
+            }
             assert !results.hasNext();
             boolean match = false;
-            sortValues(result.values);
-            for (LKeyValue kv : result.values) {
-                if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
-                    match = kv.value.equals(expectedValue);
-                    break;
+            boolean found = false;
+            if (result == null) {
+                match = (expectedValue == null);
+            } else {
+                sortValues(result.values);
+                for (LKeyValue kv : result.values) {
+                    if (kv.family.equals(family) && kv.qualifier.equals(qualifier)) {
+                        match = kv.value.equals(expectedValue);
+                        found = true;
+                        break;
+                    }
                 }
             }
-            if (match) {
+            if (match || (expectedValue == null && !found)) {
                 write(table, put, lock);
                 return true;
             } else {
@@ -380,4 +391,5 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
     @Override
     public void openOperation(LTable table) throws IOException {
     }
+
 }

@@ -1,15 +1,21 @@
 package com.splicemachine.derby.impl.sql.execute;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.sql.execute.constraint.*;
 import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.hbase.batch.*;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -17,15 +23,16 @@ import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.SQLException;
-import java.util.BitSet;
-import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -57,7 +64,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     protected final AtomicReference<State> state = new AtomicReference<State>(State.WAITING_TO_START);
 
     public void prepare(){
-        state.compareAndSet(State.WAITING_TO_START,State.READY_TO_START);
+        state.compareAndSet(State.WAITING_TO_START, State.READY_TO_START);
     }
 
     public LocalWriteContextFactory(long congomId) {
@@ -67,19 +74,26 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId,RegionCoprocessorEnvironment rce) throws IOException, InterruptedException {
-        PipelineWriteContext pwc = (PipelineWriteContext)createPassThrough(txnId,rce);
-        //add a region handler
-        pwc.addLast(new RegionWriteHandler(rce.getRegion(),tableWriteLatch, writeBatchSize));
-        return pwc;
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, null));
+        addIndexInformation(1000, context);
+        return context;
     }
 
     @Override
-    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key) throws IOException, InterruptedException {
-        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+    public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
+                               RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
+        context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
+        addIndexInformation(expectedWrites, context);
+        return context;
+    }
+
+    private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         switch (state.get()) {
             case READY_TO_START:
-                SpliceLogUtils.trace(LOG,"Index management for conglomerate %d " +
-                        "has not completed, attempting to start now",congomId);
+                SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
+                        "has not completed, attempting to start now", congomId);
                 start();
                 break;
             case STARTING:
@@ -93,7 +107,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 throw new IOException("management for conglomerate "+ congomId+" is shutdown");
         }
         //only add constraints and indices when we are in a RUNNING state
-        if(state.get()==State.RUNNING){
+        if(state.get()== State.RUNNING){
             //add Constraint checks before anything else
             for(ConstraintFactory constraintFactory:constraintFactories){
                 context.addLast(constraintFactory.create());
@@ -101,9 +115,15 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             //add index handlers
             for(IndexFactory indexFactory:indexFactories){
-                indexFactory.addTo(context,true);
+                indexFactory.addTo(context,true,expectedWrites);
             }
         }
+    }
+
+    @Override
+    public WriteContext createPassThrough(String txnId,RegionCoprocessorEnvironment key,int expectedWrites) throws IOException, InterruptedException {
+        PipelineWriteContext context = new PipelineWriteContext(txnId,key);
+        addIndexInformation(expectedWrites, context);
 
         return context;
     }
@@ -124,11 +144,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     @Override
-    public void addIndex(long indexConglomId, BitSet indexedColumns,int[] mainColToIndexPosMap, boolean unique,BitSet descColumns) {
+    public void addIndex(DDLChange ddlChange) {
         synchronized (tableWriteLatch){
             tableWriteLatch.reset();
             try{
-                indexFactories.add(new IndexFactory(indexConglomId, indexedColumns, mainColToIndexPosMap, unique,descColumns));
+                indexFactories.add(IndexFactory.create(ddlChange));
             }finally{
                 tableWriteLatch.countDown();
             }
@@ -142,21 +162,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 state.set(State.NOT_MANAGED);
             }
         };
-    }
-
-    public long getMainTableConglomerateId() {
-        return congomId;
-    }
-
-    public WriteContext getIndexOnlyWriteHandler(String txnId,long indexConglomId,RegionCoprocessorEnvironment rce) {
-        for(IndexFactory factory:indexFactories){
-            if(factory.indexConglomId==indexConglomId){
-                PipelineWriteContext pipelineWriteContext = new PipelineWriteContext(txnId,rce,false,false);
-                factory.addTo(pipelineWriteContext,false);
-                return pipelineWriteContext;
-            }
-        }
-        return null;
     }
 
     /*
@@ -201,6 +206,11 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private void start() throws IOException,InterruptedException{
+        /*
+         * Ready to Start => switch to STARTING
+         * STARTING => continue through to block on the lock
+         * Any other state => return, because we don't need to perform this method.
+         */
         if(!state.compareAndSet(State.READY_TO_START,State.STARTING)){
             if(state.get()!=State.STARTING) return;
         }
@@ -220,20 +230,24 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource = null;
         try {
+            transactionResource = new SpliceTransactionResourceImpl();
+            transactionResource.prepareContextManager();
             try{
-                transactionResource = new SpliceTransactionResourceImpl();
                 transactor = HTransactorFactory.getTransactorControl();
-                txnId = transactor.beginTransaction(false,true,true);
+                txnId = transactor.beginTransaction(false);
                 transactionResource.marshallTransaction(txnId.getTransactionIdString());
 
                 DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
 
-                dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
-                TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+                if (conglomerateDescriptor != null) {
+                    dataDictionary.getExecutionFactory().newExecutionContext(ContextService.getFactory().getCurrentContextManager());
+                    //Hbase scan
+                    TableDescriptor td = dataDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
 
-                if(td!=null){
-                    startDirect(dataDictionary,td);
+                    if(td!=null){
+                        startDirect(dataDictionary,td,conglomerateDescriptor);
+                    }
                 }
                 transactor.commit(txnId);
                 state.set(State.RUNNING);
@@ -252,19 +266,22 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             }finally{
                 initializationLock.unlock();
 
+                transactionResource.resetContextManager();
                 if(!success&&(transactor!=null && txnId !=null))
                     transactor.rollback(txnId);
             }
+        } catch (SQLException e) {
+            SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
+                    "off so that other writes can try again",e);
+            state.set(State.READY_TO_START);
+            throw new IndexNotSetUpException(e);
         } finally {
-            if (transactionResource != null) {
-                transactionResource.cleanup();
-            }
             if(currentCm!=null)
                 ContextService.getFactory().setCurrentContextManager(currentCm);
         }
     }
 
-    private void startDirect(DataDictionary dataDictionary,TableDescriptor td) throws StandardException,IOException{
+    private void startDirect(DataDictionary dataDictionary,TableDescriptor td,ConglomerateDescriptor cd) throws StandardException,IOException{
         indexFactories.clear();
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if(isSysConglomerate){
@@ -274,6 +291,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         }
 
         //get primary key constraint
+        //-sf- Hbase scan
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for(int i=0;i<constraintDescriptors.size();i++){
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
@@ -306,6 +324,34 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 } else {
                     indexFactories.add(buildIndex(conglomDesc,constraintDescriptors));
                 }
+            }
+        }
+
+        //check ourself for any additional constraints, but only if it's not present already
+        if(!congloms.contains(cd)&&cd.isIndex()){
+            //if we have a constraint, use it
+            addIndexConstraint(td,cd);
+            indexFactories.clear();
+        }
+
+        // check tentative indexes
+        for (DDLChange indexChange : DDLCoordinationFactory.getWatcher().getTentativeIndexes()) {
+            TentativeIndexDesc indexDesc = indexChange.getTentativeIndexDesc();
+            boolean error = false;
+            Transactor transactor = HTransactorFactory.getTransactor();
+            TransactionStatus status = null;
+            try {
+                status = transactor.getTransactionStatus(
+                        new TransactionId(indexChange.getParentTransactionId()));
+            } catch (Exception e) {
+                // Error while checking transaction status, remove change
+                // necessary for backwards compatibility
+                error = true;
+            }
+            if (error || status.isFinished()) {
+                DDLCoordinationFactory.getController().finishMetadataChange(indexChange.getIdentifier());
+            } else if (indexDesc.getBaseConglomerateNumber() == congomId) {
+                indexFactories.add(IndexFactory.create(indexChange));
             }
         }
     }
@@ -372,9 +418,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
             ConstraintFactory that = (ConstraintFactory) o;
 
-            if (!localConstraint.equals(that.localConstraint)) return false;
-
-            return true;
+            return localConstraint.equals(that.localConstraint);
         }
 
         @Override
@@ -390,6 +434,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         private BitSet indexedColumns;
         private int[] mainColToIndexPosMap;
         private BitSet descColumns;
+        private DDLChange ddlChange;
 
         private IndexFactory(long indexConglomId){
             this.indexConglomId = indexConglomId;
@@ -397,27 +442,49 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             this.isUnique=false;
         }
 
-        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,BitSet descColumns) {
+        private IndexFactory(long indexConglomId,BitSet indexedColumns,int[] mainColToIndexPosMap,boolean isUnique,BitSet descColumns, DDLChange ddlChange) {
             this.indexConglomId = indexConglomId;
             this.indexConglomBytes = Long.toString(indexConglomId).getBytes();
             this.isUnique=isUnique;
             this.indexedColumns=indexedColumns;
             this.mainColToIndexPosMap=mainColToIndexPosMap;
             this.descColumns = descColumns;
+            this.ddlChange = ddlChange;
         }
 
         public static IndexFactory create(long conglomerateNumber,int[] indexColsToMainColMap,boolean isUnique,BitSet descColumns){
-            BitSet indexedCols = new BitSet();
-            for(int indexCol:indexColsToMainColMap){
-                indexedCols.set(indexCol-1);
-            }
-            int[] mainColToIndexPosMap = new int[indexedCols.length()];
+            BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
+            int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
+
+            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique,
+                    descColumns, null);
+        }
+
+        public static IndexFactory create(DDLChange ddlChange){
+            TentativeIndexDesc tentativeIndexDesc = ddlChange.getTentativeIndexDesc();
+            int[] indexColsToMainColMap = tentativeIndexDesc.getIndexColsToMainColMap();
+            BitSet indexedCols = getIndexedCols(indexColsToMainColMap);
+            int[] mainColToIndexPosMap = getMainColToIndexPosMap(indexColsToMainColMap, indexedCols);
+
+            return new IndexFactory(tentativeIndexDesc.getConglomerateNumber(),indexedCols,mainColToIndexPosMap,tentativeIndexDesc.isUnique(),
+                    tentativeIndexDesc.getDescColumns(), ddlChange);
+        }
+
+        private static int[] getMainColToIndexPosMap(int[] indexColsToMainColMap, BitSet indexedCols) {
+            int[] mainColToIndexPosMap = new int[(int)indexedCols.length()];
             for(int indexCol=0;indexCol<indexColsToMainColMap.length;indexCol++){
                 int mainCol = indexColsToMainColMap[indexCol];
                 mainColToIndexPosMap[mainCol-1] = indexCol;
             }
+            return mainColToIndexPosMap;
+        }
 
-            return new IndexFactory(conglomerateNumber,indexedCols,mainColToIndexPosMap,isUnique, descColumns);
+        private static BitSet getIndexedCols(int[] indexColsToMainColMap) {
+            BitSet indexedCols = new BitSet();
+            for(int indexCol:indexColsToMainColMap){
+                indexedCols.set(indexCol-1);
+            }
+            return indexedCols;
         }
 
         public static IndexFactory create(long conglomerateNumber, IndexDescriptor indexDescriptor) {
@@ -437,14 +504,22 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             return create(conglomerateNumber,indexColsToMainColMap,isUnique,descColumns);
         }
 
-        public void addTo(PipelineWriteContext ctx,boolean keepState){
+        public void addTo(PipelineWriteContext ctx,boolean keepState,int expectedWrites) throws IOException {
 
-            if(isUnique){
-                ctx.addLast(new UniqueIndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new UniqueIndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-            }else{
-                ctx.addLast(new IndexDeleteWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
-                ctx.addLast(new IndexUpsertWriteHandler(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState));
+            IndexDeleteWriteHandler deleteHandler = new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, isUnique, expectedWrites);
+            IndexUpsertWriteHandler writeHandler;
+            if (isUnique) {
+                writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, expectedWrites);
+            } else {
+                writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns, keepState, false, expectedWrites);
+            }
+            if (ddlChange == null) {
+                ctx.addLast(deleteHandler);
+                ctx.addLast(writeHandler);
+            } else {
+                DDLFilter ddlFilter = HTransactorFactory.getTransactor().newDDLFilter(ddlChange.getTransactionId());
+                ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
+                ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }
         }
 

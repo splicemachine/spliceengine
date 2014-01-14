@@ -1,7 +1,8 @@
 package com.splicemachine.storage.index;
 
 import java.util.Arrays;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * Lazy implementation of an Uncompressed, Dense BitIndex.
@@ -44,25 +45,26 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
             //either float or scalar type
             if(!bitReader.hasNext()){
                 //must be 10 = float type
-                decodedFloatFields.set(pos);
+                setFloatField(pos);
                 return pos;
             }
             if(bitReader.next()!=0)
-                decodedScalarFields.set(pos);
+                setScalarField(pos);
             else
-                decodedFloatFields.set(pos);
+                setFloatField(pos);
         }else{
             //either a double or untyped
             if(!bitReader.hasNext())
                 return pos; //untyped
 
             if(bitReader.next()!=0)
-                decodedDoubleFields.set(pos);
+                setDoubleField(pos);
         }
 
         lastSetBit=pos;
         return pos;
     }
+
 
 
     public static void main(String... args) throws Exception{

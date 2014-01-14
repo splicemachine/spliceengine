@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
  * Abstraction that makes HBase tables and regions have a uniform interface.
  */
 public interface IHTable {
+    String getName();
     void close() throws IOException;
     Result get(Get get) throws IOException;
     Iterator<Result> scan(Scan scan) throws IOException;
@@ -32,6 +34,6 @@ public interface IHTable {
 
     Integer lockRow(byte[] rowKey) throws IOException;
     void unLockRow(Integer lock) throws IOException;
-	void startOperation() throws IOException;
-	void closeOperation() throws IOException;	
+    void startOperation() throws IOException;
+    void closeOperation() throws IOException;
 }

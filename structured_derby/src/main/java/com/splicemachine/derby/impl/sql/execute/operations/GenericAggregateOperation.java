@@ -1,45 +1,37 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Strings;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.loader.GeneratedMethod;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.ExecIndexRow;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Vector;
-import com.google.common.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import org.apache.derby.iapi.error.SQLWarningFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.loader.ClassFactory;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.execute.ExecIndexRow;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.impl.sql.execute.AggregatorInfo;
-import org.apache.derby.impl.sql.execute.AggregatorInfoList;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
+    private static final long serialVersionUID = 1l;
 	private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
-	protected NoPutResultSet source;
-	protected String rowAllocatorMethodName;
-	protected int aggregateItem;
-	protected SpliceGenericAggregator[] aggregates;	
+	protected SpliceOperation source;
+    protected AggregateContext aggregateContext;
+	protected SpliceGenericAggregator[] aggregates;
 	protected SpliceMethod<ExecRow> rowAllocator;
-	protected AggregatorInfoList aggInfoList;	
-	protected ExecIndexRow sourceExecIndexRow;
+    protected ExecIndexRow sourceExecIndexRow;
 	protected ExecIndexRow sortTemplateRow;
 	protected static List<NodeType> nodeTypes; 
 	protected Scan reduceScan;
@@ -53,7 +45,16 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
     	super();
     	SpliceLogUtils.trace(LOG, "instantiated");
     }
-    public GenericAggregateOperation (NoPutResultSet source,
+
+    public GenericAggregateOperation(SpliceOperation source,
+                                     OperationInformation baseOpInformation,
+                                     AggregateContext aggregateContext) throws StandardException{
+        super(baseOpInformation);
+        this.source = source;
+        this.aggregateContext = aggregateContext;
+    }
+
+    public GenericAggregateOperation (SpliceOperation source,
 		int	aggregateItem,
 		Activation activation,
 		GeneratedMethod	ra,
@@ -62,16 +63,25 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		double optimizerEstimatedCost) throws StandardException {
     	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
     	this.source = source;
-    	this.rowAllocatorMethodName = (ra == null) ? null : ra.getMethodName();
-    	this.aggregateItem = aggregateItem;
+        this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
 	}
-    
+
+    public GenericAggregateOperation (SpliceOperation source,
+                                      Activation activation,
+                                      int resultSetNumber,
+                                      double optimizerEstimatedRowCount,
+                                      double optimizerEstimatedCost,
+                                      AggregateContext context) throws StandardException {
+        super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+        this.source = source;
+        this.aggregateContext = context;
+    }
+
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		SpliceLogUtils.trace(LOG,"readExternal");
 		super.readExternal(in);
-		rowAllocatorMethodName = readNullableString(in);	
-		aggregateItem = in.readInt();
+        this.aggregateContext = (AggregateContext)in.readObject();
 		source = (SpliceOperation)in.readObject();
 	}
 
@@ -79,9 +89,8 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG,"writeExternal");
 		super.writeExternal(out);
-		writeNullableString(rowAllocatorMethodName, out);		
-		out.writeInt(aggregateItem);
-		out.writeObject((SpliceOperation)source);
+        out.writeObject(aggregateContext);
+		out.writeObject(source);
 	}
 	@Override
 	public List<NodeType> getNodeTypes() {
@@ -93,7 +102,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	public List<SpliceOperation> getSubOperations() {
 		SpliceLogUtils.trace(LOG, "getSubOperations");
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add((SpliceOperation) source);
+		operations.add(source);
 		return operations;
 	}
 
@@ -102,103 +111,15 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	public void init(SpliceOperationContext context) throws StandardException{
 		SpliceLogUtils.trace(LOG, "init called");
 		super.init(context);
-		((SpliceOperation)source).init(context);
-		try {
-            GenericStorablePreparedStatement statement = context.getPreparedStatement();
-            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-			rowAllocator = (rowAllocatorMethodName == null) ? null : new SpliceMethod<ExecRow>(rowAllocatorMethodName, activation);
-			aggInfoList = (AggregatorInfoList) (statement.getSavedObject(aggregateItem));
-			aggregates = getSortAggregators(aggInfoList, false, lcc);
-			ExecutionFactory factory = activation.getExecutionFactory();
-			sortTemplateRow = factory.getIndexableRow(rowAllocator.invoke());
-			sourceExecIndexRow = factory.getIndexableRow(sortTemplateRow);
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-		}			
+		source.init(context);
+        aggregateContext.init(context);
+        aggregates = aggregateContext.getAggregators();
+        sortTemplateRow = aggregateContext.getSortTemplateRow();
+        sourceExecIndexRow = aggregateContext.getSourceIndexRow();
 	}
-	
-	protected final SpliceGenericAggregator[] getSortAggregators (
-		AggregatorInfoList 			list,
-		boolean 					eliminateDistincts,
-		LanguageConnectionContext	lcc) throws StandardException {
-		SpliceLogUtils.trace(LOG,"getSortAggregators");
-		SpliceGenericAggregator[] 	aggregators; 
-		Vector<SpliceGenericAggregator> tmpAggregators = new Vector<SpliceGenericAggregator>();
-		ClassFactory		cf = lcc.getLanguageConnectionFactory().getClassFactory();
-		int count = list.size();
-		for (int i = 0; i < count; i++) {
-			AggregatorInfo aggInfo = (AggregatorInfo) list.elementAt(i);
-			if (! (eliminateDistincts && aggInfo.isDistinct())){
-			// if (eliminateDistincts == aggInfo.isDistinct()) 
-				tmpAggregators.addElement(new SpliceGenericAggregator(aggInfo, cf));
-			}
-		}
-		aggregators = new SpliceGenericAggregator[tmpAggregators.size()];
-		tmpAggregators.copyInto(aggregators);
-		return aggregators;
-	}
-	
-	private List<SpliceOperation> getOperations(){
-		SpliceLogUtils.trace(LOG, "getOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		generateLeftOperationStack(operations);
-		return operations;
-	}	
-		
-	/**
-	 * Finish the aggregation for the current row.  
-	 * Basically call finish() on each aggregator on
-	 * this row.  Called once per grouping on a vector
-	 * aggregate or once per table on a scalar aggregate.
-	 *
-	 * If the input row is null, then rowAllocator is
-	 * invoked to create a new row.  That row is then
-	 * initialized and used for the output of the aggregation.
-	 *
-	 * @param 	row	the row to finish aggregation
-	 *
-	 * @return	the result row.  If the input row != null, then
-	 *	the result row == input row
-	 *
-	 * @exception StandardException Thrown on error
-	 */
-	
-	protected final AggregateFinisher<ByteBuffer,ExecRow> aggregateFinisher = new AggregateFinisher<ByteBuffer,ExecRow>() {
 
-		@Override
-		public ExecRow finishAggregation(ExecRow row) throws StandardException {
-			SpliceLogUtils.trace(LOG, "finishAggregation");
-			int	size = aggregates.length;
-
-			/*
-			** If the row in which we are to place the aggregate
-			** result is null, then we have an empty input set.
-			** So we'll have to create our own row and set it
-			** up.  Note: we needn't initialize in this case,
-			** finish() will take care of it for us.
-			*/ 
-			if (row == null) {
-				row = getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
-			}
-			setCurrentRow(row);
-			boolean eliminatedNulls = false;
-			for (int i = 0; i < size; i++) {
-				SpliceGenericAggregator currAggregate = aggregates[i];
-				if (currAggregate.finish(row))
-					eliminatedNulls = true;
-			}
-
-			if (eliminatedNulls)
-				addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
-		
-			return row;
-		}
-	
-	};
-	
-	protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
+    protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
 		SpliceLogUtils.trace(LOG, "finishAggregation");
-		int	size = aggregates.length;
 
 		/*
 		** If the row in which we are to place the aggregate
@@ -212,37 +133,33 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		}
 		setCurrentRow(row);
 		boolean eliminatedNulls = false;
-		for (int i = 0; i < size; i++) {
-			SpliceGenericAggregator currAggregate = aggregates[i];
-			if (currAggregate.finish(row))
-				eliminatedNulls = true;
-		}
+        for (SpliceGenericAggregator currAggregate : aggregates) {
+            if (currAggregate.finish(row))
+                eliminatedNulls = true;
+        }
 
+        /*
 		if (eliminatedNulls)
 			addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+	    */
 	
 		return row;
 	}
 
-	public void finish() throws StandardException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("finish");
-		source.finish();
-		super.finish();
-	}
 	@Override
 	public SpliceOperation getLeftOperation() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("getLeftOperation");
-		return (SpliceOperation) this.source;
+		return this.source;
 	}
 
-	@Override
+//	@Override
 	public void cleanup() {
 		if (LOG.isTraceEnabled())
 			LOG.trace("cleanup");
 	}
-	public NoPutResultSet getSource() {
+
+	public SpliceOperation getSource() {
 		return this.source;
 	}
 	
@@ -255,31 +172,35 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
     @Override
     public String prettyPrint(int indentLevel) {
         String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-        return new StringBuilder("Aggregate:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
-                .toString();
+        return "Aggregate:" + indent +
+                "resultSetNumber:" + operationInformation.getResultSetNumber() + indent +
+                "source:" + source.prettyPrint(indentLevel + 1);
     }
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
-        if(((SpliceOperation)source).isReferencingTable(tableNumber))
-            return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+        if(source.isReferencingTable(tableNumber))
+            return source.getRootAccessedCols(tableNumber);
 
         return null;
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return ((SpliceOperation)source).isReferencingTable(tableNumber);
+        return source.isReferencingTable(tableNumber);
     }
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
 }

@@ -1,7 +1,6 @@
 package com.splicemachine.hbase.writer;
 
-import java.util.Collection;
-import java.util.List;
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * @author Scott Fines
@@ -32,7 +31,7 @@ public interface CallBuffer<E> {
      * @throws Exception if the buffer is flushed, and then something goes wrong during
      * the buffer flush operation.
      */
-    void addAll(Collection<? extends E> elements) throws Exception;
+    void addAll(ObjectArrayList<E> elements) throws Exception;
 
     /**
      * Flush the buffer.
@@ -73,6 +72,6 @@ public interface CallBuffer<E> {
          * @param entries the entries to operate against (the contents of the entire buffer).
          * @throws Exception if the operation fails in some say.
          */
-        void bufferFlushed(List<T> entries,CallBuffer<T> source) throws Exception;
+        void bufferFlushed(ObjectArrayList<T> entries,CallBuffer<T> source) throws Exception;
     }
 }

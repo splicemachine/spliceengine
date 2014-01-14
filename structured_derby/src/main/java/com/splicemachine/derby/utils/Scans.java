@@ -1,11 +1,9 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Comparator;
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
@@ -24,6 +22,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+import org.apache.hadoop.hbase.util.Pair;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -143,12 +142,13 @@ public class Scans extends SpliceUtils {
      * {@link #buildKeyFilter(org.apache.derby.iapi.types.DataValueDescriptor[],
      * 												int, org.apache.derby.iapi.store.access.Qualifier[][])}
      *
+     *
      * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
      * @param startSearchOperator the operator for the start. Can be any of
-     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * {@link org.apache.derby.iapi.store.access.ScanController#GT}, {@link org.apache.derby.iapi.store.access.ScanController#GE}, {@link org.apache.derby.iapi.store.access.ScanController#NA}
      * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
      * @param stopSearchOperator the operator for the stop. Can be any of
-     * {@link ScanController#GT}, {@link ScanController#GE}, {@link ScanController#NA}
+     * {@link org.apache.derby.iapi.store.access.ScanController#GT}, {@link org.apache.derby.iapi.store.access.ScanController#GE}, {@link org.apache.derby.iapi.store.access.ScanController#NA}
      * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
      *                   the amount of data returned.
      * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.
@@ -159,7 +159,7 @@ public class Scans extends SpliceUtils {
      * @throws IOException if {@code startKeyValue}, {@code stopKeyValue}, or {@code qualifiers} is unable to be
      * properly serialized into a byte[].
      */
-    public static Scan setupScan(DataValueDescriptor[] startKeyValue,int startSearchOperator,
+    public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                  DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
                                  Qualifier[][] qualifiers,
                                  boolean[] sortOrder,
@@ -187,11 +187,11 @@ public class Scans extends SpliceUtils {
         scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
     }
 
-    private static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
-                                                      int startSearchOperator,
-                                                      Qualifier[][] qualifiers,
-                                                      FormatableBitSet scanColumnList) throws StandardException {
-        List<Predicate> predicates;
+    public static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
+                                                     int startSearchOperator,
+                                                     Qualifier[][] qualifiers,
+                                                     FormatableBitSet scanColumnList) throws StandardException {
+        ObjectArrayList<Predicate> predicates;
         BitSet colsToReturn = new BitSet();
         if(qualifiers!=null){
             predicates = getQualifierPredicates(qualifiers);
@@ -201,7 +201,7 @@ public class Scans extends SpliceUtils {
                 }
             }
         }else
-            predicates = Lists.newArrayListWithCapacity(1);
+            predicates = ObjectArrayList.newInstanceWithCapacity(1);
 
         if(scanColumnList!=null){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
@@ -218,15 +218,15 @@ public class Scans extends SpliceUtils {
         }else{
             colsToReturn.clear(); //we want everything
         }
-        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
-            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
-            if(indexPredicate!=null)
-                predicates.add(indexPredicate);
-        }
-        return new EntryPredicateFilter(colsToReturn,predicates);
+//        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
+//            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
+//            if(indexPredicate!=null)
+//                predicates.add(indexPredicate);
+//        }
+        return new EntryPredicateFilter(colsToReturn,predicates,true);
     }
 
-    private static List<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
+    public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
         /*
          * Qualifiers are set up as follows:
          *
@@ -235,16 +235,16 @@ public class Scans extends SpliceUtils {
          * be satisfied. E.g. for an i in [1:qualifiers.length], qualifiers[i] is a collection of OR clauses,
          * but ALL the OR-clause collections are bound together using an AND clause.
          */
-        List<Predicate> andPreds = Lists.newArrayListWithExpectedSize(qualifiers[0].length);
+    	ObjectArrayList<Predicate> andPreds = ObjectArrayList.newInstanceWithCapacity(qualifiers[0].length);
         for(Qualifier andQual:qualifiers[0]){
             andPreds.add(getPredicate(andQual));
         }
 
 
-        List<Predicate> andedOrPreds = Lists.newArrayList();
+        ObjectArrayList<Predicate> andedOrPreds = new ObjectArrayList<Predicate>();
         for(int i=1;i<qualifiers.length;i++){
             Qualifier[] orQuals = qualifiers[i];
-            List<Predicate> orPreds = Lists.newArrayListWithCapacity(orQuals.length);
+            ObjectArrayList<Predicate> orPreds = ObjectArrayList.newInstanceWithCapacity(orQuals.length);
             for(Qualifier orQual:orQuals){
                 orPreds.add(getPredicate(orQual));
             }
@@ -254,7 +254,7 @@ public class Scans extends SpliceUtils {
             andPreds.addAll(andedOrPreds);
 
         Predicate firstAndPredicate = new AndPredicate(andPreds);
-        return Lists.newArrayList(firstAndPredicate);
+        return ObjectArrayList.from(firstAndPredicate);
     }
 
     private static Predicate getPredicate(Qualifier qualifier) throws StandardException {
@@ -281,7 +281,7 @@ public class Scans extends SpliceUtils {
     }
 
     public static Predicate generateIndexPredicate(DataValueDescriptor[] descriptors, int compareOp) throws StandardException {
-        List<Predicate> predicates = Lists.newArrayListWithCapacity(descriptors.length);
+        ObjectArrayList<Predicate> predicates = ObjectArrayList.newInstanceWithCapacity(descriptors.length);
         for(int i=0;i<descriptors.length;i++){
             DataValueDescriptor dvd = descriptors[i];
             if(dvd!=null &&!dvd.isNull() && 
@@ -518,4 +518,35 @@ public class Scans extends SpliceUtils {
 			throw new IOException(e);
 		}
 	}
+
+    public static Pair<byte[],byte[]> getStartAndStopKeys(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                                          DataValueDescriptor[]stopKeyValue, int stopSearchOperator,
+                                                          boolean[] sortOrder) throws IOException {
+        try{
+            boolean generateKey = true;
+            if(startKeyValue!=null && stopKeyValue!=null){
+                for(DataValueDescriptor startDesc: startKeyValue){
+                    if(startDesc ==null || startDesc.isNull()){
+                        generateKey=false;
+                        break;
+                    }
+                }
+            }
+
+            //TODO -sf- do type-casting, overflow checks, etc. to make sure that we don't miss scans
+            //TODO -sf- remove trailing null entries with Strings here
+            if(generateKey){
+                byte[] start = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue,startSearchOperator,sortOrder);
+                byte[] stop  = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue,stopSearchOperator,sortOrder);
+                if(start==null)
+                    start = HConstants.EMPTY_START_ROW;
+                if(stop==null)
+                    stop = HConstants.EMPTY_END_ROW;
+                return Pair.newPair(start,stop);
+            }else
+                return Pair.newPair(null,null);
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
 }

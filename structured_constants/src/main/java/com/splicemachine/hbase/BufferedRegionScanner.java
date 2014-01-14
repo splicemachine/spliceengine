@@ -1,7 +1,10 @@
 package com.splicemachine.hbase;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.utils.ConcurrentRingBuffer;
+import com.splicemachine.utils.Filler;
+import com.splicemachine.utils.UnsafeRingBuffer;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -9,7 +12,6 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.List;
@@ -55,13 +57,13 @@ import java.util.concurrent.ExecutionException;
  */
 public class BufferedRegionScanner implements RegionScanner{
     private final RegionScanner delegate;
+    protected ObjectArrayList<KeyValue> buffer;
+    
+    private UnsafeRingBuffer<List<KeyValue>> ringBuffer;
 
-    private ConcurrentRingBuffer<List<KeyValue>> ringBuffer;
-
-    public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
+	public BufferedRegionScanner(HRegion region,RegionScanner delegate,int bufferSize) {
         this.delegate = delegate;
-        List<KeyValue>[] template = new List[bufferSize];
-        this.ringBuffer = new ConcurrentRingBuffer<List<KeyValue>>(bufferSize,template,new ReadFiller(delegate,region));
+        this.ringBuffer = new UnsafeRingBuffer<List<KeyValue>>(bufferSize,new ReadFiller(delegate,region));
     }
 
     @Override
@@ -159,13 +161,15 @@ public class BufferedRegionScanner implements RegionScanner{
         delegate.close();
     }
 
-    private static class ReadFiller implements ConcurrentRingBuffer.Filler<List<KeyValue>> {
+    private static class ReadFiller implements Filler<List<KeyValue>> {
         private final RegionScanner scanner;
         private final HRegion region;
+        private boolean exhausted;
 
         public ReadFiller(RegionScanner scanner, HRegion region) {
             this.scanner = scanner;
             this.region = region;
+            this.exhausted = false;
         }
 
         @Override
@@ -191,16 +195,22 @@ public class BufferedRegionScanner implements RegionScanner{
                 old.clear();
             try {
                 scanner.nextRaw(old,null);
+                exhausted = old.isEmpty();
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
-
-            return old;
+            return exhausted?null:old; // We have a null check on the get next and not an empty...
         }
 
         @Override
         public void finishFill() {
             region.closeRegionOperation();
         }
+
+		@Override
+		public boolean isExhausted() throws ExecutionException {
+			return exhausted;
+		}
+
     }
 }

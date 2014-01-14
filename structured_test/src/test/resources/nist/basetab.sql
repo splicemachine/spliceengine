@@ -121,4 +121,4 @@ AUTOCOMMIT OFF;
       SELECT * FROM HU.UPUNIQ ORDER BY NUMKEY,COL2;
 -- PASS:Setup if count = 6?
 -- *************************************************////END-OF-MODULE
---disconnect;
+-- disconnect;

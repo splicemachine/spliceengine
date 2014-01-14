@@ -1,22 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.Snowflake;
+
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
@@ -27,117 +29,134 @@ import java.util.List;
 public class OperationSink {
     private static final Logger LOG = Logger.getLogger(OperationSink.class);
 
-    public static interface Translator{
-        @Nonnull List<Mutation> translate(@Nonnull ExecRow row,byte[] postfix) throws IOException;
-
-        /**
-         * @return true if mutations with the same row key should be pushed to the same location in TEMP
-         */
-        boolean mergeKeys();
-    }
-
-    private final WriteCoordinator tableWriter;
+		/**
+		 * A chain of tasks for identifying parent and child tasks. The last byte[] in
+		 * the list is the immediate parent of other tasks.
+		 */
+		public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<List<byte[]>>();
+    private final CallBufferFactory<KVPair> tableWriter;
     private final SinkingOperation operation;
     private final byte[] taskId;
+    private final String transactionId;
 
-    private long rowCount = 0;
-    private byte[] postfix;
-
-    private OperationSink(byte[] taskId,SinkingOperation operation,WriteCoordinator tableWriter) {
+		public OperationSink(byte[] taskId,
+												 SinkingOperation operation,
+												 CallBufferFactory<KVPair> tableWriter,
+												 String transactionId) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
+        this.transactionId = transactionId;
     }
 
-    public static OperationSink create(SinkingOperation operation, byte[] taskId) throws IOException {
-        //TODO -sf- move this to a static initializer somewhere
-
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter());
+    public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
     }
 
-    public TaskStats sink(byte[] destinationTable) throws Exception {
-        TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
+    public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
+				TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
         stats.start();
 
+				//add ourselves to the task id list
+				List<byte[]> bytes = taskChain.get();
+				if(bytes==null){
+						bytes = Lists.newLinkedList(); //LL used to avoid wasting space here
+						taskChain.set(bytes);
+				}
+				bytes.add(taskId);
         CallBuffer<KVPair> writeBuffer;
-        byte[] postfix = getPostfix(false);
-        RowEncoder encoder = null;
+				long rowsRead = 0l;
+				long rowsWritten = 0l;
+				PairEncoder encoder;
         try{
-            encoder = operation.getRowEncoder();
-            encoder.setPostfix(postfix);
-            String txnId = operation.getTransactionID();
-            writeBuffer = tableWriter.writeBuffer(destinationTable, txnId);
+						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
+						DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
+
+						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
+						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
+						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
+            String txnId = getTransactionId(destinationTable);
+						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId));
 
             ExecRow row;
-            do{
-//                debugFailIfDesired(writeBuffer);
 
-                long start = System.nanoTime();
-                //row = operation.getNextRowCore();
-                row = operation.getNextSinkRow();
+            do{
+				SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
+                long start = 0l;
+                if(stats.readAccumulator().shouldCollectStats()){
+                    start = System.nanoTime();
+                }
+                row = operation.getNextSinkRow(spliceRuntimeContext);
                 if(row==null) continue;
 
-                stats.readAccumulator().tick(System.nanoTime()-start);
+								rowsRead++;
+                if(stats.readAccumulator().shouldCollectStats()){
+                    stats.readAccumulator().tick(System.nanoTime()-start);
+                }
 
-                start = System.nanoTime();
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    start = System.nanoTime();
+                }
 
-                encoder.write(row,writeBuffer);
+								writeBuffer.add(encoder.encode(row));
+								rowsWritten++;
 
-//                debugFailIfDesired(writeBuffer);
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    stats.writeAccumulator().tick(System.nanoTime() - start);
+                }
 
-                stats.writeAccumulator().tick(System.nanoTime() - start);
             }while(row!=null);
+
+            if( !stats.writeAccumulator().shouldCollectStats() ){
+                stats.writeAccumulator().tickRecords(rowsWritten);
+            }
+
+            if( !stats.readAccumulator().shouldCollectStats() ){
+                stats.readAccumulator().tickRecords(rowsRead);
+            }
+
+
             writeBuffer.flushBuffer();
             writeBuffer.close();
-        } catch (Exception e) { //TODO -sf- deal with Primary Key and Unique Constraints here
-        	SpliceLogUtils.error(LOG, "Error in Operation Sink",e);
-            SpliceLogUtils.logAndThrow(LOG, Exceptions.parseException(e));
-        }finally{
-            if(encoder!=null)
-                encoder.close();
+        } catch (Exception e) {
+						//unwrap interruptedExceptions
+						@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
+						if(t instanceof InterruptedException)
+								throw (InterruptedException)t;
+						else
+								throw e;
+				}finally{
+						bytes = taskChain.get();
+						bytes.remove(bytes.size()-1);
+						if(bytes.size()<=0){
+								taskChain.remove();
+						}
+						operation.close();
+
+						if(LOG.isDebugEnabled()){
+								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
+								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
+						}
         }
         return stats.finish();
     }
 
-    private byte[] getPostfix(boolean shouldMakUnique) {
-        if(taskId==null && shouldMakUnique)
-            return SpliceUtils.getUniqueKey();
-        else if(taskId==null)
-            postfix = SpliceUtils.getUniqueKey();
-        if(postfix == null){
-            postfix = new byte[taskId.length+(shouldMakUnique?8:0)];
-            System.arraycopy(taskId,0,postfix,0,taskId.length);
-        }
-        if(shouldMakUnique){
-            rowCount++;
-            System.arraycopy(Bytes.toBytes(rowCount),0,postfix,taskId.length,8);
-        }
-        return postfix;
-    }
-
-    private void debugFailIfDesired(CallBuffer<Mutation> writeBuffer) throws Exception {
-    /*
-     * For testing purposes, if the flag FAIL_TASKS_RANDOMLY is set, then randomly decide whether
-     * or not to fail this task.
-     */
-        if(SpliceConstants.debugFailTasksRandomly){
-            double shouldFail = Math.random();
-            if(shouldFail<SpliceConstants.debugTaskFailureRate){
-                //make sure that we flush the buffer occasionally
-//                if(Math.random()<2*SpliceConstants.debugTaskFailureRate)
-                    writeBuffer.flushBuffer();
-                //wait for 1 second, then fail
-                try {
-                    Thread.sleep(1000l);
-                } catch (InterruptedException e) {
-                    //we were interrupted! sweet, fail early!
-                    throw new IOException(e);
-                }
-
-                //now fail with a retryable exception
-                throw new IOException("Random task failure as determined by debugFailTasksRandomly");
-            }
-        }
-    }
+		private String getTransactionId(byte[] destinationTable) {
+				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+				if(Bytes.equals(destinationTable, tempTableBytes)){
+						/*
+						 * We are writing to the TEMP Table.
+						 *
+						 * The timestamp has a useful meaning in the TEMP table, which is that
+						 * it should be the longified version of the job id (to facilitate dropping
+						 * data from TEMP efficiently--See TempTablecompactionScanner for more information).
+						 *
+						 * However, timestamps can't be negative, so we just take the time portion of the
+						 * uuid out and stringify that
+						 */
+						return Long.toString(Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId())));
+				}
+				return transactionId == null ? operation.getTransactionID() : transactionId;
+		}
 
 }

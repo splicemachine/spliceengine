@@ -1,8 +1,7 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -25,7 +24,7 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     @Override
     @Before
     public void setUp() {
-        RollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
         this.storeSetup = classStoreSetup;
         this.transactorSetup = classTransactorSetup;
         baseSetUp();
@@ -49,27 +48,7 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     }
 
     @Test
-    public void writeScanWithDeleteActiveUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanTwoVersionsUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
     public void writeReadViaFilterResult() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanWithManyDeletesUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanMixSameRowUncommittedAsOfStart() throws IOException {
         // temporarily mask test in parent class
     }
 

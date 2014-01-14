@@ -1,14 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
+import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -188,9 +193,9 @@ public class CreateIndexConstantOperationScott extends IndexConstantOperation im
             for(int i=0;i<ascending.length;i++){
                 desc[i] = !ascending[i];
             }
-            future = SpliceDriver.driver().getJobScheduler().submit(new CreateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique,desc));
+            future = SpliceDriver.driver().getJobScheduler().submit(new PopulateIndexJob(table,transactionId,indexConglomId,tableConglomId,baseColumnPositions,isUnique,desc));
 
-            future.completeAll();
+            future.completeAll(null); //TODO -sf- add status hook
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
         } catch (InterruptedException e) {

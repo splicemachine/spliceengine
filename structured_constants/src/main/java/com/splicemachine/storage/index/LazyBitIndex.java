@@ -2,7 +2,8 @@ package com.splicemachine.storage.index;
 
 import com.splicemachine.storage.BitReader;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * BitIndex which lazily decodes entries as needed, and which does not re-encode entries.
@@ -27,16 +28,13 @@ abstract class LazyBitIndex implements BitIndex{
         this.offset = offset;
         this.length = length;
         this.decodedBits = new BitSet();
-        this.decodedScalarFields = new BitSet();
-        this.decodedFloatFields = new BitSet();
-        this.decodedDoubleFields = new BitSet();
         this.bitReader = new BitReader(encodedBitMap,offset,length,bitPos);
     }
 
     @Override
     public int length() {
         decodeAll();
-        return decodedBits.length();
+        return (int) decodedBits.length();
     }
 
     private void decodeAll() {
@@ -97,7 +95,7 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public int cardinality() {
         decodeAll();
-        return decodedBits.cardinality();
+        return (int) decodedBits.cardinality();
     }
 
     @Override
@@ -112,7 +110,7 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public boolean intersects(BitSet bitSet) {
-        decodeUntil(bitSet.length());
+        decodeUntil((int) bitSet.length());
         return decodedBits.intersects(bitSet);
     }
 
@@ -124,7 +122,7 @@ abstract class LazyBitIndex implements BitIndex{
 
     @Override
     public BitSet and(BitSet bitSet) {
-        decodeUntil(bitSet.length());
+        decodeUntil((int)bitSet.length());
         final BitSet bits = (BitSet) decodedBits.clone();
         bits.and(bitSet);
         return bits;
@@ -145,19 +143,19 @@ abstract class LazyBitIndex implements BitIndex{
     @Override
     public boolean isScalarType(int position) {
         decodeUntil(position);
-        return decodedScalarFields.get(position);
+        return decodedScalarFields!=null && decodedScalarFields.get(position);
     }
 
     @Override
     public boolean isDoubleType(int position) {
         decodeUntil(position);
-        return decodedDoubleFields.get(position);
+        return decodedDoubleFields !=null && decodedDoubleFields.get(position);
     }
 
     @Override
     public boolean isFloatType(int position) {
         decodeUntil(position);
-        return decodedFloatFields.get(position);
+        return decodedFloatFields!=null && decodedFloatFields.get(position);
     }
 
     @Override
@@ -176,6 +174,40 @@ abstract class LazyBitIndex implements BitIndex{
     public BitSet getFloatFlields() {
         decodeAll();
         return decodedDoubleFields;
+    }
+
+    protected void setScalarField(int pos) {
+        if(decodedScalarFields==null)
+            decodedScalarFields = new BitSet(pos);
+        decodedScalarFields.set(pos);
+    }
+
+    protected void setDoubleField(int pos) {
+        if(decodedDoubleFields==null)
+            decodedDoubleFields = new BitSet(pos);
+        decodedDoubleFields.set(pos);
+    }
+
+    protected void setFloatField(int pos) {
+        if(decodedFloatFields==null)
+            decodedFloatFields = new BitSet(pos);
+        decodedFloatFields.set(pos);
+    }
+
+    protected void setDoubleRange(int startPos, int stopPos) {
+        if(decodedDoubleFields==null)
+            decodedDoubleFields = new BitSet(stopPos);
+        decodedDoubleFields.set(startPos,stopPos);
+    }
+    protected void setFloatRange(int startPos, int stopPos) {
+        if(decodedFloatFields==null)
+            decodedFloatFields = new BitSet(stopPos);
+        decodedFloatFields.set(startPos,stopPos);
+    }
+    protected void setScalarRange(int startPos, int stopPos) {
+        if(decodedScalarFields==null)
+            decodedScalarFields = new BitSet(stopPos);
+        decodedScalarFields.set(startPos,stopPos);
     }
 }
 

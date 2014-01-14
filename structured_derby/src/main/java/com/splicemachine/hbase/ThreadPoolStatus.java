@@ -57,5 +57,7 @@ public interface ThreadPoolStatus {
      */
     int getLargestThreadCount();
 
+    long getTotalRejectedTasks();
+
 
 }

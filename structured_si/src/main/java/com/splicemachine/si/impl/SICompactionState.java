@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
 
 import java.io.IOException;
@@ -44,12 +45,12 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
             results.add(mutate(keyValue));
         }
     }
-
+    
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private KeyValue mutate(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
-        final KeyValueType keyValueType = dataStore.getKeyValueType(kv.family(), kv.qualifier(), kv.value());
+        final KeyValueType keyValueType = dataStore.getKeyValueType(kv.keyValue());
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
             return mutateCommitTimestamp(kv);
         }else{
@@ -62,7 +63,7 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
      */
     private KeyValue mutateCommitTimestamp(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
         KeyValue result = kv.keyValue();
-        if (dataStore.isSINull(kv.value())) {
+        if (dataStore.isSINull(kv.keyValue())) {
             final Transaction transaction = getFromCache(kv.timestamp());
             final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.isFinished()) {
@@ -70,7 +71,7 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
                 final Data commitTimestampValue = effectiveStatus.isCommitted() ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
-                result = dataLib.newKeyValue(kv.row(), kv.family(), kv.qualifier(), kv.timestamp(), commitTimestampValue);
+                result = dataLib.newKeyValue(kv.keyValue(), commitTimestampValue);
             }
         }
         return result;

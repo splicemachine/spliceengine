@@ -1,7 +1,9 @@
 package com.splicemachine.derby.impl.job.index;
 
+import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
@@ -20,48 +22,19 @@ import java.util.Map;
  */
 public class CreateIndexJob implements CoprocessorJob{
     private final HTableInterface table;
+    private final DDLChange ddlChange;
     private final String transactionId;
-    private final long indexConglomId;
-    private final long baseConglomId;
-    private final int[] mainColToIndexPosMap;
-    private final BitSet indexedColumns;
-    private final boolean isUnique;
-    private final BitSet descColumns;
 
     public CreateIndexJob(HTableInterface table,
-                          String transactionId,
-                          long indexConglomId,
-                          long baseConglomId,
-                          int[] indexColToMainColPosMap,
-                          boolean unique,
-                          boolean[] descColumns) {
+                          DDLChange ddlChange) {
         this.table = table;
-        this.transactionId = transactionId;
-        this.indexConglomId = indexConglomId;
-        this.baseConglomId = baseConglomId;
-        isUnique = unique;
-
-
-        this.indexedColumns = new BitSet();
-        for(int indexCol:indexColToMainColPosMap){
-            indexedColumns.set(indexCol-1);
-        }
-        this.mainColToIndexPosMap = new int[indexedColumns.length()];
-        for(int indexCol=0;indexCol<indexColToMainColPosMap.length;indexCol++){
-            int mainCol = indexColToMainColPosMap[indexCol];
-            mainColToIndexPosMap[mainCol-1] = indexCol;
-        }
-        this.descColumns = new BitSet(descColumns.length);
-        for(int col=0;col<descColumns.length;col++){
-            if(descColumns[col])
-                this.descColumns.set(col);
-        }
+        this.transactionId = ddlChange.getTransactionId();
+        this.ddlChange = ddlChange;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateIndexTask task = new CreateIndexTask(transactionId,indexConglomId,
-                        baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId(),descColumns);
+        CreateIndexTask task = new CreateIndexTask(getJobId(), ddlChange);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

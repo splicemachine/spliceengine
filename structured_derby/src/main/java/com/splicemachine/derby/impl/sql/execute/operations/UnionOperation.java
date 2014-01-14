@@ -1,19 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -40,33 +40,10 @@ public class UnionOperation extends SpliceBaseOperation {
     /* Pull rows from firstResultSet, then secondResultSet*/
     public SpliceOperation firstResultSet;
     public SpliceOperation secondResultSet;
-    private boolean readBoth = false;
-
     public int rowsSeenLeft = 0;
     public int rowsSeenRight = 0;
     public int rowsReturned= 0;
-
-    private static enum Source{
-        LEFT(1),
-        RIGHT(2),
-        BOTH(3);
-
-        private final int position;
-
-        private Source(int position) {
-            this.position = position;
-        }
-
-        public static Source valueOf(int position){
-            for(Source source:values())
-                if(source.position==position) return source;
-            throw new IllegalArgumentException("No Source available with position number "+ position);
-        }
-
-    }
-
-    private Source currentSource = null;
-    private boolean isScan = false;
+    private Boolean isLeft = null;
     private static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
 
     public UnionOperation(){
@@ -82,7 +59,6 @@ public class UnionOperation extends SpliceBaseOperation {
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.firstResultSet = firstResultSet;
         this.secondResultSet = secondResultSet;
-
         init(SpliceOperationContext.newContext(activation));
     }
 
@@ -91,9 +67,7 @@ public class UnionOperation extends SpliceBaseOperation {
         super.readExternal(in);
         firstResultSet = (SpliceOperation)in.readObject();
         secondResultSet = (SpliceOperation)in.readObject();
-        int ordinal = in.readInt();
-        currentSource = Source.valueOf(ordinal);
-        readBoth = in.readBoolean();
+        isLeft = null;
     }
 
     @Override
@@ -101,13 +75,11 @@ public class UnionOperation extends SpliceBaseOperation {
         super.writeExternal(out);
         out.writeObject(firstResultSet);
         out.writeObject(secondResultSet);
-        out.writeInt(currentSource.position);
-        out.writeBoolean(readBoth);
     }
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
-        if(currentSource!=Source.LEFT)
+        if(isLeft == null || isLeft)
             return firstResultSet.getExecRowDefinition();
         else return secondResultSet.getExecRowDefinition();
     }
@@ -118,25 +90,11 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public List<SpliceOperation> getRightOperationStack() {
-        List<SpliceOperation> ops = Lists.newArrayList(secondResultSet.getSubOperations());
-        ops.add(secondResultSet);
-        return ops;
-    }
-
-    @Override
-    public NoPutResultSet executeScan() throws StandardException {
-        if(!isScan){
-            init(SpliceOperationContext.newContext(activation));
-            return new SpliceNoPutResultSet(activation,this,RowProviders.sourceProvider(this,LOG));
-        }
-
-        currentSource = Source.LEFT;
-        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,firstResultSet.getRowEncoder().getDual(getExecRowDefinition()));
-
-        currentSource = Source.RIGHT;
-        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,secondResultSet.getRowEncoder().getDual(getExecRowDefinition()));
-
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    	SpliceRuntimeContext spliceLeftRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+    	SpliceRuntimeContext spliceRightRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);    	
+        RowProvider leftProvider =firstResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(firstResultSet,spliceLeftRuntimeContext),spliceLeftRuntimeContext);
+        RowProvider rightProvider = secondResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(secondResultSet,spliceRightRuntimeContext),spliceRightRuntimeContext);
         return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
     }
 
@@ -146,10 +104,10 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        firstResultSet.openCore();
-        secondResultSet.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        firstResultSet.open();
+        secondResultSet.open();
     }
 
     @Override
@@ -158,49 +116,6 @@ public class UnionOperation extends SpliceBaseOperation {
         firstResultSet.init(context);
         secondResultSet.init(context);
 
-        if(currentSource==null){
-            boolean isScan = false;
-            isScan = checkScan(firstResultSet);
-            if(!isScan){
-                isScan = checkScan(secondResultSet);
-            }
-//            for(SpliceOperation subOps:firstResultSet.getSubOperations()){
-//                if(subOps instanceof ScanOperation){
-//                    isScan = true;
-//                    break;
-//                }
-//            }
-//            if(firstResultSet instanceof ScanOperation)
-//                isScan=true;
-//            if(!isScan){
-//                for(SpliceOperation subOps:secondResultSet.getSubOperations()){
-//                    if(subOps instanceof ScanOperation){
-//                        isScan = true;
-//                        break;
-//                    }
-//                }
-//            }
-//            if(secondResultSet instanceof ScanOperation)
-//                isScan=true;
-            this.isScan = isScan;
-            if(!isScan){
-                currentSource = Source.BOTH;
-                readBoth = true;
-            }else
-                currentSource = Source.LEFT;
-        }
-    }
-
-    private boolean checkScan(SpliceOperation operation){
-        if(operation instanceof ScanOperation)
-             return true;
-        else{
-            boolean isScan = false;
-            for(SpliceOperation op:operation.getSubOperations()){
-                isScan = checkScan(op);
-            }
-            return isScan;
-        }
     }
 
     @Override
@@ -214,26 +129,27 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-        ExecRow row = null;
-        switch (currentSource) {
-            case BOTH:
-                currentSource = Source.LEFT;
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    	ExecRow row;
+        SpliceRuntimeContext.Side side = spliceRuntimeContext.getPathSide(resultSetNumber);
+        switch (side) {
             case LEFT:
-                row = firstResultSet.getNextRowCore();
-                if(row!=null || !readBoth){
+                row = firstResultSet.nextRow(spliceRuntimeContext);
+                if(row!=null)
                     rowsSeenLeft++;
-                    break;
-                }
-
-                currentSource=Source.RIGHT;
-                secondResultSet.openCore();
+                break;
             case RIGHT:
-                row = secondResultSet.getNextRowCore();
-                if(row==null)
-                    currentSource = Source.LEFT;
-                else
+                row = secondResultSet.nextRow(spliceRuntimeContext);
+                if(row!=null)
                     rowsSeenRight++;
+                break;
+            case MERGED:
+                row = firstResultSet.nextRow(spliceRuntimeContext);
+                if(row==null)
+                    row = secondResultSet.nextRow(spliceRuntimeContext);
+                break;
+            default:
+                throw new IllegalStateException("Unknown side state "+ side);
         }
         setCurrentRow(row);
         if(row!=null)
@@ -242,45 +158,25 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        if(!isScan){
-            top.init(SpliceOperationContext.newContext(activation));
-            return RowProviders.sourceProvider(top,LOG);
-        }else{
-            /*
-             * This relies on the fact that Scans are constructed under the getMapRowProvider calls as
-             * a side effect, which calls serialization on us. Since that happens, we can effectively swap
-             * our state depending on which source we want to push to.
-             */
-            readBoth=false;
-            currentSource = Source.LEFT;
-            RowProvider firstProvider = firstResultSet.getMapRowProvider(top,decoder);
-            currentSource = Source.RIGHT;
-            RowProvider secondProvider = secondResultSet.getMapRowProvider(top,decoder);
-
-            return RowProviders.combine(firstProvider, secondProvider);
-        }
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    	SpliceRuntimeContext left = spliceRuntimeContext.copy();
+    	SpliceRuntimeContext right = spliceRuntimeContext.copy();
+    	left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+    	right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
+    	RowProvider firstProvider = firstResultSet.getMapRowProvider(top,decoder,left);
+        RowProvider secondProvider = secondResultSet.getMapRowProvider(top,decoder,right);
+        return RowProviders.combine(firstProvider, secondProvider);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        if(!isScan){
-            top.init(SpliceOperationContext.newContext(activation));
-            return RowProviders.sourceProvider(top,LOG);
-        }else{
-            /*
-             * This relies on the fact that Scans are constructed under the getMapRowProvider calls as
-             * a side effect, which calls serialization on us. Since that happens, we can effectively swap
-             * our state depending on which source we want to push to.
-             */
-            readBoth=false;
-            currentSource = Source.LEFT;
-            RowProvider firstProvider = firstResultSet.getReduceRowProvider(top, decoder);
-            currentSource = Source.RIGHT;
-            RowProvider secondProvider = secondResultSet.getReduceRowProvider(top, decoder);
-
-            return RowProviders.combine(firstProvider, secondProvider);
-        }
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    	SpliceRuntimeContext left = spliceRuntimeContext.copy();
+    	SpliceRuntimeContext right = spliceRuntimeContext.copy();
+    	left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+    	right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
+    	RowProvider firstProvider = firstResultSet.getReduceRowProvider(top,decoder,left);
+        RowProvider secondProvider = secondResultSet.getReduceRowProvider(top,decoder,right);
+        return RowProviders.combine(firstProvider, secondProvider);
     }
 
     @Override
@@ -299,12 +195,11 @@ public class UnionOperation extends SpliceBaseOperation {
                 .append(indent).append("resultSetNumber:").append(resultSetNumber)
                 .append(indent).append("firstResultSet:").append(firstResultSet)
                 .append(indent).append("secondResultSet:").append(secondResultSet)
-                .append(indent).append("readBoth:").append(readBoth)
                 .toString();
     }
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         if(firstResultSet.isReferencingTable(tableNumber))
             return firstResultSet.getRootAccessedCols(tableNumber);
         else if(secondResultSet.isReferencingTable(tableNumber))

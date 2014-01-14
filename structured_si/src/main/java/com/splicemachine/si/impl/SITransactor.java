@@ -1,10 +1,6 @@
 package com.splicemachine.si.impl;
 
-import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.api.PutToRun;
-import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.TransactorListener;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
@@ -30,11 +26,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import static com.splicemachine.si.impl.TransactionStatus.ACTIVE;
-import static com.splicemachine.si.impl.TransactionStatus.COMMITTED;
-import static com.splicemachine.si.impl.TransactionStatus.COMMITTING;
-import static com.splicemachine.si.impl.TransactionStatus.ERROR;
-import static com.splicemachine.si.impl.TransactionStatus.ROLLED_BACK;
+import static com.splicemachine.si.api.TransactionStatus.ACTIVE;
+import static com.splicemachine.si.api.TransactionStatus.COMMITTED;
+import static com.splicemachine.si.api.TransactionStatus.COMMITTING;
+import static com.splicemachine.si.api.TransactionStatus.ERROR;
+import static com.splicemachine.si.api.TransactionStatus.ROLLED_BACK;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
@@ -45,6 +41,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         Delete extends OperationWithAttributes, Lock, OperationStatus, Scanner>
         implements Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
+    public static final int MAX_ACTIVE_COUNT = 1000;
 
     private final TimestampSource timestampSource;
     private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
@@ -94,8 +91,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     @Override
     public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
             throws IOException {
-        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, readUncommitted,
-                readCommitted);
+        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, false, readUncommitted,
+                readCommitted, null);
     }
 
     @Override
@@ -105,21 +102,49 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
-        return beginChildTransaction(parent, dependent, allowWrites, null, null);
+        return beginChildTransaction(parent, dependent, allowWrites, false, null, null, null);
     }
 
     @Override
-    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, Boolean readUncommitted,
-                                               Boolean readCommitted) throws IOException {
-        if (allowWrites || readCommitted != null || readUncommitted != null) {
-            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, readUncommitted, readCommitted);
-            final long timestamp = assignTransactionId();
+    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
+                                               boolean additive, Boolean readUncommitted, Boolean readCommitted,
+                                               TransactionId transactionToCommit) throws IOException {
+        Long timestamp = commitIfNeeded(transactionToCommit);
+        if (allowWrites || readCommitted != null || readUncommitted != null || timestamp != null) {
+            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, additive, readUncommitted, readCommitted);
+            if (timestamp == null) {
+                timestamp = assignTransactionId();
+            }
             final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
             transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
             listener.beginTransaction(!parent.isRootTransaction());
             return new TransactionId(timestamp);
         } else {
             return createLightweightChildTransaction(parent.getId());
+        }
+    }
+
+    private Long commitIfNeeded(TransactionId transactionToCommit) throws IOException {
+        if (transactionToCommit == null) {
+            return null;
+        } else {
+            return commitAndReturnTimestamp(transactionToCommit);
+        }
+    }
+
+    private Long commitAndReturnTimestamp(TransactionId transactionToCommit) throws IOException {
+        final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(transactionToCommit);
+        if (!immutableTransaction.getImmutableParent().isRootTransaction()) {
+            throw new RuntimeException("Cannot begin a child transaction at the time a non-root transaction commits: "
+                    + transactionToCommit.getTransactionIdString());
+        }
+        commit(transactionToCommit);
+        final Transaction transaction = transactionStore.getTransaction(transactionToCommit.getId());
+        final Long commitTimestampDirect = transaction.getCommitTimestampDirect();
+        if (commitTimestampDirect.equals(transaction.getEffectiveCommitTimestamp())) {
+            return commitTimestampDirect;
+        } else {
+            throw new RuntimeException("commit times did not match");
         }
     }
 
@@ -228,6 +253,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
     }
 
+    @Override
+    public TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException {
+        return transactionStore.getTransaction(transactionId).status;
+    }
+
     private boolean isIndependentReadOnly(TransactionId transactionId) {
         return transactionId.independentReadOnly;
     }
@@ -258,12 +288,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public void initializeGet(String transactionId, Get get) throws IOException {
-        initializeOperation(transactionId, get, true, false);
+        initializeOperation(transactionId, get, true);
     }
 
     @Override
-    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn, boolean includeUncommittedAsOfStart) {
-        initializeOperation(transactionId, scan, includeSIColumn, includeUncommittedAsOfStart);
+    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
+        initializeOperation(transactionId, scan, includeSIColumn);
     }
 
     @Override
@@ -273,13 +303,11 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     private void initializeOperation(String transactionId, OperationWithAttributes operation) {
-        initializeOperation(transactionId, operation, false, false);
+        initializeOperation(transactionId, operation, false);
     }
 
-    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn,
-                                     boolean includeUncommittedAsOfStart) {
-        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn,
-                includeUncommittedAsOfStart, operation);
+    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn) {
+        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn, operation);
     }
 
     @Override
@@ -292,7 +320,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private Put createDeletePutDirect(long transactionId, Data rowKey) {
         final Put deletePut = dataLib.newPut(rowKey);
-        flagForSITreatment(transactionId, false, false, deletePut);
+        flagForSITreatment(transactionId, false, deletePut);
         dataStore.setTombstoneOnPut(deletePut, transactionId);
         dataStore.setDeletePutAttribute(deletePut);
         return deletePut;
@@ -309,16 +337,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * later when the operation comes through for processing we will know how to handle it.
      */
     private void flagForSITreatment(long transactionId, boolean includeSIColumn,
-                                    boolean includeUncommittedAsOfStart, OperationWithAttributes operation) {
+                                    OperationWithAttributes operation) {
         dataStore.setSINeededAttribute(operation, includeSIColumn);
-        if (includeUncommittedAsOfStart) {
-            dataStore.setIncludeUncommittedAsOfStart(operation);
-        }
         dataStore.setTransactionId(transactionId, operation);
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
-
 
     @Override
     public void preProcessGet(Get readOperation) throws IOException {
@@ -371,6 +395,9 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             return dataStore.writeBatch(table, new Pair[0]);
         }
 
+        // TODO add back the check if it is needed for DDL operations
+        // checkPermission(table, mutations);
+
         Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
         Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);
         try {
@@ -393,6 +420,21 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         } finally {
             releaseLocksForPutBatch(table, locks);
         }
+    }
+
+    private void checkPermission(Table table, Mutation[] mutations) throws IOException {
+        final String tableName = dataStore.getTableName(table);
+        for (TransactionId t : getTransactionIds(mutations)) {
+            transactionStore.confirmPermission(t, tableName);
+        }
+    }
+
+    private Set<TransactionId> getTransactionIds(Mutation[] mutations) {
+        Set<TransactionId> writingTransactions = new HashSet<TransactionId>();
+        for (Mutation m : mutations) {
+            writingTransactions.add(dataStore.getTransactionIdFromOperation(m));
+        }
+        return writingTransactions;
     }
 
     private void releaseLocksForPutBatch(Table table, Map<Hashable, Lock> locks) {
@@ -427,13 +469,22 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
         for (Hashable hashableRowKey : keys) {
             for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
-                final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
-                final ConflictResults conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
+                ConflictResults conflictResults;
+                if (unsafeWrites()) {
+                    conflictResults = new ConflictResults(Collections.EMPTY_SET, Collections.EMPTY_SET, false);
+                } else {
+                    final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
+                    conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
+                }
                 final PutToRun<Mutation, Lock> putToRun = getMutationLockPutToRun(table, rollForwardQueue, putInBatch.put, putInBatch.transaction, putInBatch.rowKey, locks.get(hashableRowKey), conflictResults);
                 mutationsAndLocks[putInBatch.index] = putToRun.putAndLock;
                 conflictingChildren[putInBatch.index] = putToRun.conflictingChildren;
             }
         }
+    }
+
+    private boolean unsafeWrites() {
+        return Boolean.getBoolean("splice.unsafe.writes");
     }
 
     private void obtainLocksForPutBatchAndPrepNonSIPuts(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Map<Hashable,
@@ -466,32 +517,13 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private ScanBounds<Data> findScanBounds(Map<Hashable, List<PutInBatch<Data, Put>>> putInProgressMap) {
-        Hashable hashableMin = null;
-        Hashable hashableMax = null;
-        ScanBounds<Data> scanBounds = new ScanBounds<Data>();
-        for (Map.Entry<Hashable, List<PutInBatch<Data, Put>>> entry : putInProgressMap.entrySet()) {
-            final Hashable hashableRowKey = entry.getKey();
-            final Data rowKey = entry.getValue().get(0).rowKey;
-            if (hashableMin == null || hashableRowKey.compareTo(hashableMin) < 0) {
-                hashableMin = hashableRowKey;
-                scanBounds.minKey = rowKey;
-            }
-            if (hashableMax == null || hashableRowKey.compareTo(hashableMax) > 0) {
-                hashableMax = hashableRowKey;
-                scanBounds.maxKey = rowKey;
-            }
-        }
-        return scanBounds;
-    }
-
     private PutToRun<Mutation, Lock> getMutationLockPutToRun(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction, Data rowKey, Lock lock, ConflictResults conflictResults) throws IOException {
         final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
                 conflictResults.hasTombstone);
         dataStore.suppressIndexing(newPut);
-        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey);
+        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey, false);
         for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey);
+            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey, false);
         }
         return new PutToRun<Mutation, Lock>(new Pair<Mutation, Lock>(newPut, lock), conflictResults.childConflicts);
     }
@@ -505,7 +537,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
         return hashableRowKey;
     }
-
 
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
         if (!conflictingChildren.isEmpty()) {
@@ -540,7 +571,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     private ConflictResults checkTimestampsHandleNull(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues) throws IOException {
         if (dataCommitKeyValues == null) {
-            return new ConflictResults(Collections.EMPTY_SET, Collections.EMPTY_SET, null);
+            return new ConflictResults(Collections.<Long>emptySet(),Collections.<Long>emptySet(), null);
         } else {
             return checkCommitTimestampsForConflicts(updateTransaction, dataCommitKeyValues);
         }
@@ -565,13 +596,15 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
             final Data commitTimestampValue = dataLib.getKeyValueValue(dataCommitKeyValue);
-            if (dataStore.isSINull(commitTimestampValue)) {
+            if (dataStore.isSINull(dataCommitKeyValue)) {
                 // Unknown transaction status
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 if (dataTransaction.getEffectiveStatus().isFinished()) {
                     // Transaction is now in a final state so asynchronously update the data row with the status
                     toRollForward.add(dataTransactionId);
                 }
+                if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
+                    return; //can't conflict with a rolled back transaction
                 final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
                 switch (conflictType) {
                     case CHILD:
@@ -579,27 +612,27 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
-                            throw new WriteConflict("write/write conflict");
+                            throw new WriteConflict("Write conflict detected between active transactions "+ dataTransactionId+" and "+ updateTransaction.getTransactionId());
                         }
                         break;
                 }
-            } else if (dataStore.isSIFail(commitTimestampValue)) {
+            } else if (dataStore.isSIFail(dataCommitKeyValue)) {
                 // Can't conflict with failed transaction.
             } else {
                 // Committed transaction
                 final long dataCommitTimestamp = (Long) dataLib.decode(commitTimestampValue, Long.class);
                 if (dataCommitTimestamp > updateTransaction.getEffectiveBeginTimestamp()) {
-                    throw new WriteConflict("write/write conflict");
+                    throw new WriteConflict("Write transaction "+ updateTransaction.getTransactionId()+" conflicts with committed transaction " + dataTransactionId);
                 }
             }
         }
     }
 
     /**
-     * @param updateTransaction
-     * @param dataTransaction
+     * @param updateTransaction the transaction for the new change
+     * @param dataTransaction the transaction for the existing data
      * @return true if there is a conflict
-     * @throws IOException
+     * @throws IOException if something goes wrong fetching transaction information
      */
     private boolean doubleCheckConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction) throws IOException {
         // If the transaction has timed out then it might be possible to make it fail and proceed without conflict.
@@ -637,7 +670,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private ConflictType checkTransactionConflict(ImmutableTransaction updateTransaction, Transaction dataTransaction)
             throws IOException {
-        if (updateTransaction.sameTransaction(dataTransaction)) {
+        if (updateTransaction.sameTransaction(dataTransaction) || updateTransaction.isAdditive() || dataTransaction.isAdditive()) {
             return ConflictType.NONE;
         } else {
             return updateTransaction.isInConflictWith(dataTransaction, transactionSource);
@@ -686,28 +719,23 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     @Override
-    public boolean isScanIncludeUncommittedAsOfStart(Scan scan) {
-        return dataStore.isScanIncludeUncommittedAsOfStart(scan);
-    }
-
-    @Override
     public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-        return newFilterState(null, transactionId, false, false);
+        return newFilterState(null, transactionId, false);
     }
 
     @Override
     public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
-                                       boolean includeSIColumn, boolean includeUncommittedAsOfStart)
+                                       boolean includeSIColumn)
             throws IOException {
         return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
-                includeUncommittedAsOfStart, transactionStore.getImmutableTransaction(transactionId));
+                transactionStore.getImmutableTransaction(transactionId));
     }
 
     @Override
     public IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
-                                             TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                                             TransactionId transactionId, boolean includeSIColumn) throws IOException {
         return new FilterStatePacked(tableName, dataLib, dataStore,
-                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn, includeUncommittedAsOfStart),
+                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn),
                 new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
     }
 
@@ -779,9 +807,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     // Roll-forward / compaction
 
     @Override
-    public void rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
+    public Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
-        if (transaction.getEffectiveStatus().isFinished()) {
+        final Boolean isFinished = transaction.getEffectiveStatus().isFinished();
+        if (isFinished) {
             for (Data row : rows) {
                 try {
                     if (transaction.getEffectiveStatus().isCommitted()) {
@@ -796,6 +825,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             }
         }
         Tracer.traceTransactionRollForward(transactionId);
+        return isFinished;
     }
 
     @Override
@@ -806,6 +836,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     @Override
     public void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException {
         compactionState.mutate(rawList, results);
+    }
+
+    @Override
+    public DDLFilter newDDLFilter(String transactionId) throws IOException {
+        return new DDLFilter(
+                transactionStore.getTransaction(transactionIdFromString(transactionId)),
+                transactionStore
+                );
     }
 // Helpers
 
@@ -820,9 +858,17 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      * Throw an exception if the transaction is not active.
      */
     private void ensureTransactionActive(Transaction transaction) throws IOException {
-        if (transaction.status.isFinished()) {
-            throw new DoNotRetryIOException("transaction is not ACTIVE: " +
-                    transaction.getTransactionId().getTransactionIdString());
+        /*
+         * If the transaction is not finished, then it's active, so no worries.
+         *
+         * If it's committed, or COMMITTING, then it's also considered still active, so we
+         * ignore it
+         */
+        if(transaction.status.isFinished()
+                && transaction.status!=TransactionStatus.COMMITTED
+                && transaction.status!=TransactionStatus.COMMITTING){
+            String txnIdStr = transaction.getTransactionId().getTransactionIdString();
+            throw new DoNotRetryIOException("transaction " + txnIdStr + " is not ACTIVE. State is " + transaction.status);
         }
     }
 
@@ -834,4 +880,35 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             throw new DoNotRetryIOException("transaction is read only: " + transaction.getTransactionId().getTransactionIdString());
         }
     }
+
+    @Override
+    public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException {
+        final long currentMin = timestampSource.retrieveTimestamp();
+        final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
+                true, false, false, false, false);
+        final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
+                currentMin, max.getId(), MAX_ACTIVE_COUNT, missingParams, TransactionStatus.ERROR);
+        final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());
+        if (!oldestActiveTransactions.isEmpty()) {
+            final long oldestId = oldestActiveTransactions.get(0).getTransactionId().getId();
+            if (oldestId > currentMin) {
+                timestampSource.rememberTimestamp(oldestId);
+            }
+            final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
+            if (youngestId.equals(max)) {
+                for (Transaction t : oldestActiveTransactions) {
+                    result.add(t.getTransactionId());
+                }
+            } else {
+                throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException {
+        return transactionStore.forbidPermission(tableName, transactionId);
+    }
+
 }

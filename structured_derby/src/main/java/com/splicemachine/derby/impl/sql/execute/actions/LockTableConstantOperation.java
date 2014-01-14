@@ -42,7 +42,7 @@ public class LockTableConstantOperation implements ConstantAction {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		throw StandardException.newException(SQLState.LANG_CANT_LOCK_TABLE, fullTableName, (exclusiveMode) ? "EXCLUSIVE" : "SHARE");
 	}
 }

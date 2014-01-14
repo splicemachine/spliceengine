@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
@@ -24,6 +25,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.types.RowLocation;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
 
 /**
@@ -37,7 +39,7 @@ import com.splicemachine.derby.impl.sql.execute.IndexRow;
  * rows that needs to be deleted on dependent tables. Using the row location 
  * we got from the index , base row is fetched.
 */
-public class DependentOperation extends ScanOperation implements CursorResultSet {
+public class DependentOperation extends ScanOperation {
 
 
 	ConglomerateController heapCC;
@@ -300,9 +302,11 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	  @return The base row row or null.
 	  @exception StandardException Ooops
 	  */
-	private ExecRow fetchBaseRow() throws StandardException { 
+	private ExecRow fetchBaseRow() throws StandardException {
+        ExecRow candidate = scanInformation.getResultRow();
+        FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
 		if (currentRow == null) {
-			currentRow = getCompactRow(activation.getLanguageConnectionContext(),candidate, accessedCols, isKeyed);
+			currentRow = operationInformation.compactRow(candidate, accessedCols, isKeyed);
 		} 
 
 		baseRowLocation = (RowLocation) indexRow.getColumn(indexRow.getRowArray().length);
@@ -322,7 +326,8 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	ExecRow searchRow = null; //the current row we are searching for
 
 	//this function will return an index row on dependent table 
-	public ExecRow	getNextRowCore() throws StandardException 
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException
 	{
 		
 		if (searchRow == null) {
@@ -447,33 +452,27 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 	  Close the all the opens we did in this result set.
 	  */
 	public void close()
-        throws StandardException
-	{
+					throws StandardException, IOException {
 		//save the information for the runtime stastics
 		// This is where we get the scan properties for the reference index scans
-		if (runTimeStatisticsOn)
-		{
+		if (runTimeStatisticsOn) {
 			startPositionString = printStartPosition();
 			stopPositionString = printStopPosition();
 			scanProperties = getScanProperties();
 		}
 
-		if (indexSC != null) 
-		{
+		if (indexSC != null)  {
 			indexSC.close();
 			indexSC = null;
 		}
 
-		if ( heapCC != null )
-		{
+		if ( heapCC != null ) {
 			heapCC.close();
 			heapCC = null;
 		}
-		if(isOpen)
-		{
-			source.close();  
-		}
-		
+			super.close();
+			source.close();
+
 	}
 
 	public void	finish() throws StandardException {
@@ -481,9 +480,9 @@ public class DependentOperation extends ScanOperation implements CursorResultSet
 			source.finish();
 	}
 
-	public void openCore() throws StandardException {
-        super.openCore();
-        if(source!=null)source.openCore();
+	public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
 		initIsolationLevel();
 		sVector = activation.getParentResultSet(parentResultSetId);
 		int size = sVector.size();

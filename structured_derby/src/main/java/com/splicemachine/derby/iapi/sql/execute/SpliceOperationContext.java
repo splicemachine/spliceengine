@@ -1,18 +1,15 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.error.SpliceStandardException;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 
@@ -37,12 +34,15 @@ public class SpliceOperationContext {
     private boolean isSink;
     private SpliceOperation topOperation;
     private SpliceOperationRegionScanner spliceRegionScanner;
+    private boolean cacheBlocks = true;
+    private SpliceRuntimeContext spliceRuntimeContext;
 
     public SpliceOperationContext(HRegion region,
                                   Scan scan,
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
-                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation){
+                                  LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
+                                  SpliceRuntimeContext spliceRuntimeContext){
         this.region= region;
         this.scan = scan;
         this.activation = activation;
@@ -50,6 +50,7 @@ public class SpliceOperationContext {
         this.lcc = lcc;
         this.isSink = isSink;
         this.topOperation = topOperation;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     public SpliceOperationContext(RegionScanner scanner,
@@ -58,7 +59,8 @@ public class SpliceOperationContext {
                                   Activation activation,
                                   GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
-                                  boolean isSink,SpliceOperation topOperation ){
+                                  boolean isSink,SpliceOperation topOperation,
+                                  SpliceRuntimeContext spliceRuntimeContext){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
         this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching());
@@ -67,6 +69,7 @@ public class SpliceOperationContext {
         this.lcc = lcc;
         this.isSink=isSink;
         this.topOperation = topOperation;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     public void setSpliceRegionScanner(SpliceOperationRegionScanner sors){
@@ -81,15 +84,31 @@ public class SpliceOperationContext {
         return isSink;
     }
 
+    /**
+     * Indicate whether passed operation is currently sinking rows
+     */
+    public boolean isOpSinking(SinkingOperation op){
+        return isSink && topOperation == op;
+    }
+
     public RegionScanner getScanner() throws IOException {
+        return getScanner(cacheBlocks);
+    }
+
+    public RegionScanner getScanner(boolean enableBlockCache) throws IOException{
         if(scanner==null){
             if(region==null)return null;
 
+            Scan scan = new Scan(this.scan);
+            scan.setCacheBlocks(enableBlockCache);
             scanner = region.getCoprocessorHost().preScannerOpen(scan);
             if (scanner == null) {
                 scanner = region.getScanner(scan);
             }
-            scanner = new BufferedRegionScanner(region,scanner,scan.getCaching());
+            int caching = scan.getCaching();
+            if(caching<0)
+                caching=100;
+            scanner = new BufferedRegionScanner(region,scanner,100);
         }
         return scanner;
     }
@@ -101,15 +120,23 @@ public class SpliceOperationContext {
     	return lcc;
     }
 
-    public void close(boolean commit) throws IOException {
+    public void close() throws IOException, StandardException {
         try{
-        if(activation!=null) try {
-            activation.close();
-        } catch (StandardException e) {
-            throw new DoNotRetryIOException(new SpliceStandardException(e).getTextMessage());
-        }
+            closeDerby();
         }finally{
-                getLanguageConnectionContext().popStatementContext(getLanguageConnectionContext().getStatementContext(), null);
+            if(scanner!=null)
+                scanner.close();
+        }
+    }
+
+    private void closeDerby() throws StandardException {
+        try{
+            if(activation!=null)
+                activation.close();
+        }finally{
+//            LanguageConnectionContext languageConnectionContext = getLanguageConnectionContext();
+//            if(languageConnectionContext.get)
+//            languageConnectionContext.popStatementContext(languageConnectionContext.getStatementContext(), null);
         }
     }
 
@@ -125,7 +152,7 @@ public class SpliceOperationContext {
         return new SpliceOperationContext(null,null,
                 a,
                 (GenericStorablePreparedStatement)a.getPreparedStatement(),
-                null,false,null);
+                null,false,null, new SpliceRuntimeContext());
     }
 
     public SpliceOperation getTopOperation() {
@@ -138,5 +165,9 @@ public class SpliceOperationContext {
 
     public SpliceOperationRegionScanner getSpliceRegionScanner(){
         return spliceRegionScanner;
+    }
+
+    public void setCacheBlocks(boolean cacheBlocks) {
+        this.cacheBlocks = cacheBlocks;
     }
 }

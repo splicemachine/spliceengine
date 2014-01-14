@@ -1,18 +1,16 @@
 package com.splicemachine.test.suites;
 
-import org.apache.derby.impl.sql.execute.operations.DistinctScanOperationTest;
-import org.apache.derby.impl.sql.execute.operations.MetatablesTest;
-import org.apache.derby.impl.sql.execute.operations.ProjectRestrictOperationTest;
-import org.apache.derby.impl.sql.execute.operations.RowCountOperationTest;
-import org.apache.derby.impl.sql.execute.operations.SortOperationTest;
-import org.apache.derby.impl.sql.execute.operations.TableScanOperationTest;
-import org.apache.derby.impl.sql.execute.operations.TimeTableScanTest;
-import org.apache.derby.impl.sql.execute.operations.UnionOperationTest;
+import org.apache.derby.impl.sql.execute.operations.DistinctScanOperationIT;
+import org.apache.derby.impl.sql.execute.operations.MetatablesIT;
+import org.apache.derby.impl.sql.execute.operations.ProjectRestrictOperationIT;
+import org.apache.derby.impl.sql.execute.operations.RowCountOperationIT;
+import org.apache.derby.impl.sql.execute.operations.SortOperationIT;
+import org.apache.derby.impl.sql.execute.operations.TableScanOperationIT;
+import org.apache.derby.impl.sql.execute.operations.TimeTableScanIT;
+import org.apache.derby.impl.sql.execute.operations.UnionOperationIT;
 import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-
-import com.splicemachine.test.suites.OperationCategories.Transactional;
 
 /**
  * @author Scott Fines
@@ -22,13 +20,13 @@ import com.splicemachine.test.suites.OperationCategories.Transactional;
 @RunWith(Categories.class)
 @Categories.ExcludeCategory(OperationCategories.Transactional.class)
 @Suite.SuiteClasses({
-        DistinctScanOperationTest.class,
-        ProjectRestrictOperationTest.class,
-        TableScanOperationTest.class,
-        UnionOperationTest.class,
-        SortOperationTest.class,
-        MetatablesTest.class,
-        TimeTableScanTest.class,
-        RowCountOperationTest.class
+	DistinctScanOperationIT.class,
+        ProjectRestrictOperationIT.class,
+        TableScanOperationIT.class,
+        UnionOperationIT.class,
+        SortOperationIT.class,
+        MetatablesIT.class,
+        TimeTableScanIT.class,
+        RowCountOperationIT.class
 })
 public class ScanSuite { }

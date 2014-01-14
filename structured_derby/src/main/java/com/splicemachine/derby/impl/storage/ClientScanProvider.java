@@ -1,13 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -29,25 +26,21 @@ public class ClientScanProvider extends AbstractScanProvider {
     private final byte[] tableName;
     private HTableInterface htable;
     private final Scan scan;
-
     private ResultScanner scanner;
 
 
-	public ClientScanProvider(String type,byte[] tableName, Scan scan,RowDecoder decoder) {
-		super(decoder, type);
+	public ClientScanProvider(String type,
+			byte[] tableName, Scan scan,
+			PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) {
+		super(decoder, type, spliceRuntimeContext);
 		SpliceLogUtils.trace(LOG, "instantiated");
 		this.tableName = tableName;
 		this.scan = scan;
 	}
 
 	@Override
-    public Result getResult() throws StandardException {
-		try {
-			return scanner.next();
-		} catch (IOException e) {
-            SpliceLogUtils.logAndThrow(LOG,"Unable to getResult",Exceptions.parseException(e));
-            return null;//won't happen
-		}
+    public Result getResult() throws StandardException, IOException {
+        return scanner.next();
 	}
 
 	@Override
@@ -63,7 +56,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 	}
 
 	@Override
-	public void close() {
+	public void close() throws StandardException {
         super.close();
 		SpliceLogUtils.trace(LOG, "closed after calling hasNext %d times",called);
 		if(scanner!=null)scanner.close();
@@ -84,4 +77,5 @@ public class ClientScanProvider extends AbstractScanProvider {
 	public byte[] getTableName() {
 		return tableName;
 	}
+
 }

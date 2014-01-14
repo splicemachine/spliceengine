@@ -62,6 +62,7 @@ public class ActivationSerializer {
 
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
+//        factories.add(new OperationFieldFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
@@ -194,7 +195,7 @@ public class ActivationSerializer {
 
     private static FieldStorage getFieldStorage(Object o, Class<?> type) {
         for(FieldStorageFactory factory:factories){
-            if(factory.isType(type)){
+            if(factory.isType(o, type)){
                 return factory.create(o,type);
             }
         }
@@ -209,8 +210,9 @@ public class ActivationSerializer {
     private static interface FieldStorageFactory<F extends FieldStorage> {
         F create(Object objectToStore, @SuppressWarnings("rawtypes") Class type);
 
-        boolean isType(Class type);
+        boolean isType(Object instance, Class type);
     }
+
 
     public static class ArrayFieldStorage implements FieldStorage{
         private static final long serialVersionUID = 4l;
@@ -279,7 +281,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return type.isArray();
         }
     }
@@ -293,7 +295,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return DataValueDescriptor.class.isAssignableFrom(type);
         }
 
@@ -349,7 +351,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return ExecRow.class.isAssignableFrom(type);
         }
     }
@@ -404,7 +406,7 @@ public class ActivationSerializer {
         }
 
         @Override
-        public boolean isType(Class type) {
+        public boolean isType(Object instance, Class type) {
             return Serializable.class.isAssignableFrom(type);
         }
     }

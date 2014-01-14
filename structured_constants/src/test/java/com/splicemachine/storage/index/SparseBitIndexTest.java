@@ -1,11 +1,5 @@
 package com.splicemachine.storage.index;
 
-import com.google.common.collect.Maps;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.util.BitSet;
-import java.util.Map;
 
 /**
  * @author Scott Fines

@@ -3,10 +3,10 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -35,7 +35,6 @@ public class SIFilterPacked extends FilterBase {
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
     private boolean includeSIColumn;
-    private boolean includeUncommittedAsOfStart;
 
     // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
     private Boolean extraKeyValueIncluded = null;
@@ -47,14 +46,13 @@ public class SIFilterPacked extends FilterBase {
 
     public SIFilterPacked(String tableName, Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
                           TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
-                          boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException {
+                          boolean includeSIColumn) throws IOException {
         this.tableName = tableName;
         this.transactor = transactor;
         this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
-        this.includeUncommittedAsOfStart = includeUncommittedAsOfStart;
     }
 
     @Override
@@ -73,8 +71,14 @@ public class SIFilterPacked extends FilterBase {
                     if (extraKeyValueIncluded == null) {
                         extraKeyValueIncluded = true;
                         returnCode = ReturnCode.INCLUDE;
-                    }
+                    } 
                     break;
+                case NEXT_COL:
+                	returnCode = ReturnCode.SKIP;
+                    break;
+          // We are still re-seeking - TODO JL
+          //      case NEXT_COL:
+          //      	returnCode = ReturnCode.SKIP;
             }
             return returnCode;
         } catch (IOException e) {
@@ -85,7 +89,7 @@ public class SIFilterPacked extends FilterBase {
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
             filterState = transactor.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactor.transactionIdFromString(transactionIdString), includeSIColumn, includeUncommittedAsOfStart);
+                    transactor.transactionIdFromString(transactionIdString), includeSIColumn);
         }
     }
 
@@ -125,11 +129,10 @@ public class SIFilterPacked extends FilterBase {
 
     @Override
     public void readFields(DataInput in) throws IOException {
-        transactionIdString = in.readUTF();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
-        out.writeUTF(transactionIdString);
+        throw new UnsupportedOperationException("This filter should not be serialized");
     }
 }

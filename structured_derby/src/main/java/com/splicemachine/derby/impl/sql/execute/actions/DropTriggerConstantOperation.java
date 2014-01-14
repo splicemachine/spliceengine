@@ -47,7 +47,7 @@ public class DropTriggerConstantOperation extends DDLSingleTableConstantOperatio
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		TriggerDescriptor 			triggerd;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();

@@ -6,6 +6,7 @@ package com.splicemachine.si.impl;
 public class EncodedTransactionSchema<Data> {
     final String tableName;
     final Data siFamily;
+    final Data permissionFamily;
     final Data siNull;
 
     final Data idQualifier;
@@ -13,6 +14,7 @@ public class EncodedTransactionSchema<Data> {
     final Data parentQualifier;
     final Data dependentQualifier;
     final Data allowWritesQualifier;
+    final Data additiveQualifier;
     final Data readUncommittedQualifier;
     final Data readCommittedQualifier;
     final Data commitQualifier;
@@ -21,13 +23,14 @@ public class EncodedTransactionSchema<Data> {
     final Data keepAliveQualifier;
     final Data counterQualifier;
 
-    public EncodedTransactionSchema(String tableName, Data siFamily, Data siNull, Data idQualifier, Data startQualifier,
-                                    Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
-                                    Data readUncommittedQualifier, Data readCommittedQualifier, Data keepAliveQualifier,
-                                    Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
+    public EncodedTransactionSchema(String tableName, Data siFamily, Data permissionFamily, Data siNull, Data idQualifier,
+                                    Data startQualifier, Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
+                                    Data additiveQualifier, Data readUncommittedQualifier, Data readCommittedQualifier,
+                                    Data keepAliveQualifier, Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
                                     Data counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
+        this.permissionFamily = permissionFamily;
         this.siNull = siNull;
 
         this.idQualifier = idQualifier;
@@ -35,6 +38,7 @@ public class EncodedTransactionSchema<Data> {
         this.parentQualifier = parentQualifier;
         this.dependentQualifier = dependentQualifier;
         this.allowWritesQualifier = allowWritesQualifier;
+        this.additiveQualifier = additiveQualifier;
         this.readUncommittedQualifier = readUncommittedQualifier;
         this.readCommittedQualifier = readCommittedQualifier;
         this.commitQualifier = commitQualifier;

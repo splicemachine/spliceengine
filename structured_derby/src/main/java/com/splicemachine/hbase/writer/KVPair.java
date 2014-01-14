@@ -1,8 +1,8 @@
 package com.splicemachine.hbase.writer;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -24,7 +24,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     private Type type;
 
     public static KVPair delete(byte[] rowKey) {
-        return new KVPair(rowKey, RowEncoder.EMPTY_BYTES,Type.DELETE);
+        return new KVPair(rowKey, HConstants.EMPTY_BYTE_ARRAY,Type.DELETE);
     }
 
     public long getSize() {
@@ -32,12 +32,29 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     }
 
     public enum Type{
-        INSERT,
-        UPDATE,
-        DELETE
-    }
+        INSERT((byte)0x01),
+        UPDATE((byte)0x02),
+        DELETE((byte)0x03);
 
-    public KVPair(){}
+				private final byte typeCode;
+
+				private Type(byte typeCode) { this.typeCode = typeCode; }
+
+				public static Type decode(byte typeByte) {
+						for(Type type:values()){
+								if(type.typeCode==typeByte) return type;
+						}
+						throw new IllegalArgumentException("Incorrect typeByte "+ typeByte);
+				}
+
+				public byte asByte() {
+						return typeCode;
+				}
+		}
+
+    public KVPair(){
+        this.type = Type.INSERT;
+    }
 
     public KVPair(byte[] rowKey, byte[] value) {
         this(rowKey, value,Type.INSERT);
@@ -59,6 +76,14 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
 
     public Type getType(){
         return type;
+    }
+
+    public void setValue(byte[] value){
+        this.value = value;
+    }
+
+    public void setKey(byte[] key){
+        this.rowKey = key;
     }
 
     public Put toPut(){
@@ -102,7 +127,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
 
         KVPair kvPair = (KVPair) o;
 
-        return Arrays.equals(rowKey, kvPair.rowKey) && type == kvPair.type;
+        return type == kvPair.type && Bytes.equals(rowKey,kvPair.rowKey);
 
     }
 

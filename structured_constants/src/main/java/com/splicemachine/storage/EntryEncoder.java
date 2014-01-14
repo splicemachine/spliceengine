@@ -4,9 +4,9 @@ package com.splicemachine.storage;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.index.*;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import java.io.IOException;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * @author Scott Fines
@@ -33,12 +33,6 @@ public class EntryEncoder {
     private EntryEncoder(KryoPool kryoPool,BitIndex bitIndex){
         this.bitIndex = bitIndex;
         this.encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
-        this.kryoPool = kryoPool;
-    }
-
-    public EntryEncoder(KryoPool kryoPool,int size, AllFullBitIndex allFullBitIndex) {
-        this.encoder = MultiFieldEncoder.create(kryoPool,size);
-        this.bitIndex = allFullBitIndex;
         this.kryoPool = kryoPool;
     }
 
@@ -85,9 +79,31 @@ public class EntryEncoder {
             bitIndex = BitIndexing.getBestIndex(nonNullFields,bitIndex.getScalarFields(),
                     bitIndex.getFloatFlields(),bitIndex.getDoubleFields());
         }
+				resetEncoder();
     }
+		public void reset(BitIndex newIndex){
+				this.bitIndex = newIndex;
+				resetEncoder();
+		}
 
-    public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
+		private void resetEncoder() {
+				if(encoder==null) return;
+				/*
+				 * It is possible that we changed the underlying bitset in the bitIndex out from under
+				 * us, which means that the encoder is using out of date information. Check for that,
+				 * and if so, reset the encoder
+				 */
+
+				if(encoder.getNumFields()==bitIndex.cardinality()){
+						encoder.reset();
+				}else{
+						//close the old encoder to prevent resource leaks
+						encoder.close();
+						encoder = MultiFieldEncoder.create(kryoPool, bitIndex.cardinality());
+				}
+		}
+
+		public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();
         boolean differs=newIndex.cardinality()!=oldCardinality;
@@ -120,10 +136,7 @@ public class EntryEncoder {
             bitIndex = BitIndexing.getBestIndex(newIndex, newScalarFields, newFloatFields, newDoubleFields);
         }
 
-        if(oldCardinality==bitIndex.cardinality())
-            encoder.reset();
-        else
-            encoder = MultiFieldEncoder.create(kryoPool,bitIndex.cardinality());
+				resetEncoder();
     }
 
     public void close(){

@@ -15,10 +15,11 @@ final class ByteEncoding {
     private static final String TWO_ZERO_PAD="00";
 
     /*Lookup table for encoding */
-    private static final byte[] BCD_ENC_LOOKUP = new byte[]{3,4,5,6,7,9,10,12,14,15};
+//    private static final byte[] BCD_ENC_LOOKUP = new byte[]{3,4,5,6,7,9,10,12,14,15};
 
     /*Lookup table for decoding. -1 means ignored*/
-    private static final byte[] BCD_DEC_LOOKUP = new byte[]{-1,-1,-1,0,1,2,3,4,-1,5,6,-1,7,-1,8,9};
+    private static final byte[] BCD_ENC_LOOKUP = new byte[]{      2,3,4,5,6,7,8,9,   11,13,14};
+    private static final byte[] BCD_DEC_LOOKUP = new byte[]{-1,-1,0,1,2,3,4,5,6,7,-1,8,-1,9,10};
 
     static byte[] encode(byte[] value, boolean desc){
         StringBuilder sb = new StringBuilder();

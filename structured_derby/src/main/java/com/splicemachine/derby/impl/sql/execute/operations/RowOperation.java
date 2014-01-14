@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,13 +22,14 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
-public class RowOperation extends SpliceBaseOperation implements CursorResultSet{
+public class RowOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
 	private static Logger LOG = Logger.getLogger(RowOperation.class);
 	protected int rowsReturned;
@@ -104,14 +107,20 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
         }
 	}
 	
-	public void	openCore() throws StandardException  {
-        super.openCore();
-		SpliceLogUtils.trace(LOG, "openCore");
+	@Override
+	public void	open() throws StandardException  {
+        try {
+            super.open();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        SpliceLogUtils.trace(LOG, "openCore");
 	   	next = false;
 	}
 	
-	public ExecRow	getNextRowCore() throws StandardException {
-		SpliceLogUtils.trace(LOG, "getNextRowCore, next=%s, cachedRow=%s",next,cachedRow);
+	@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		SpliceLogUtils.trace(LOG, "nextRow, next=%s, cachedRow=%s",next,cachedRow);
 		currentRow = null;
 		if (!next) {
 			next = true;
@@ -185,33 +194,31 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
-		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+		return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
 	}
 	
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException{
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
 		SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
 		top.init(SpliceOperationContext.newContext(activation));
-		return RowProviders.sourceProvider(top, LOG);
+
+        //make sure the runtime context knows it can be merged
+        spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
+        return RowProviders.sourceProvider(top, LOG, spliceRuntimeContext);
 	}
 	
 	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder rowDecoder) throws StandardException {
-        return getMapRowProvider(top,rowDecoder);
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
 	}
 
 	@Override
-	public ExecRow getExecRowDefinition() {
-		try {
-			ExecRow row = getRow();
-			SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
-			return row;
-		} catch (StandardException e) {
-			SpliceLogUtils.logAndThrowRuntime(LOG, e);
-			return null;
-		}
+    public ExecRow getExecRowDefinition() throws StandardException {
+        ExecRow row = getRow();
+        SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
+        return row;
 	}
 	
 	public int getRowsReturned() {
@@ -219,22 +226,22 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG,"close in RowOp");
-	    
+
 		beginTime = getCurrentTimeMillis();
-		if (isOpen) {
-
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-	    	clearCurrentRow();
-	    	next = false;
-
 			super.close();
-		}
+//		if (isOpen) {
+//
+//			// we don't want to keep around a pointer to the
+//			// row ... so it can be thrown away.
+//			// REVISIT: does this need to be in a finally
+//			// block, to ensure that it is executed?
+//	    	clearCurrentRow();
+	    	next = false;
+//
+//			super.close();
+//		}
 		
 		closeTime += getElapsedMillis(beginTime);
 	}
@@ -266,4 +273,5 @@ public class RowOperation extends SpliceBaseOperation implements CursorResultSet
     public boolean isReferencingTable(long tableNumber) {
         return false;
     }
+
 }

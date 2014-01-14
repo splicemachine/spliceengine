@@ -92,10 +92,8 @@ public class RowDecoder {
 
     public ExecRow decode(KeyValue[] keyValues) throws StandardException{
         boolean rowSet = keyType == null; //if keyType!=null, we want to set on the keyDecoder, otherwise don't bother
+        template.resetRowArray();
         DataValueDescriptor []fields = template.getRowArray();
-        for(DataValueDescriptor field:fields){
-            field.setToNull(); //unset the value, so that previous runs don't break
-        }
         for(KeyValue value: keyValues){
             if(!rowSet){
                 if(keyDecoder==null)

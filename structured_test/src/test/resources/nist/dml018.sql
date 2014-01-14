@@ -16,11 +16,13 @@ AUTOCOMMIT OFF;
 -- date_time print
 
 -- TEST:0069 HAVING COUNT with WHERE, GROUP BY!
+--splicetest: ignore-order start
      SELECT PNUM
           FROM WORKS
           WHERE PNUM > 'P1'
           GROUP BY PNUM
           HAVING COUNT(*) > 1;
+---splicetest: ignore-order stop
 -- PASS:0069 If 3 rows are selected with PNUMs = 'P2', 'P4', 'P5'?
 
 -- END TEST >>> 0069 <<< END TEST
@@ -37,10 +39,12 @@ AUTOCOMMIT OFF;
 -- ***********************************************************
 
 -- TEST:0071 HAVING MIN, MAX with GROUP BY 3 columns!
+--splicetest: ignore-order start
      SELECT EMPNUM, PNUM, HOURS
           FROM WORKS
           GROUP BY PNUM, EMPNUM, HOURS
           HAVING MIN(HOURS) > 12 AND MAX(HOURS) < 80;
+--splicetest: ignore-order stop
 -- PASS:0071 If 7 rows are selected: EMPNUM/PNUMs are 'E1'/'P1',?
 -- PASS:0071      'E1'/'P2','E1'/'P4', 'E2'/'P1',?
 -- PASS:0071      'E3'/'P2', 'E4'/'P2', 'E4'/'P4'?
@@ -49,6 +53,7 @@ AUTOCOMMIT OFF;
 -- *************************************************************
 
 -- TEST:0072 Nested HAVING IN with no outer reference!
+--splicetest: ignore-order start
      SELECT WORKS.PNUM
           FROM WORKS
           GROUP BY WORKS.PNUM
@@ -57,7 +62,10 @@ AUTOCOMMIT OFF;
                     GROUP BY PROJ.PNUM
                     HAVING SUM(PROJ.BUDGET) > 25000)
 -- Derby change to standardize order for diff
-	order by works.pnum;
+-- Bug 840 prevents from running order by
+--	order by works.pnum
+;
+--splicetest: ignore-order stop
 -- PASS:0072 If 3 rows are selected: WORKS.PNUMs are 'P2', 'P3', 'P6'?
 
 -- END TEST >>> 0072 <<< END TEST

@@ -49,14 +49,14 @@ class SparseLazyBitIndex extends LazyBitIndex{
             //either scalar or float
             if(!bitReader.hasNext()){
                 //type information truncated, assume float
-                decodedFloatFields.set(pos);
+                setFloatField(pos);
                 return;
             }
 
             if(bitReader.next()!=0)
-                decodedScalarFields.set(pos);
+                setScalarField(pos);
             else
-                decodedFloatFields.set(pos);
+                setFloatField(pos);
         }else{
             //either double or untyped
             if(!bitReader.hasNext()){
@@ -65,7 +65,7 @@ class SparseLazyBitIndex extends LazyBitIndex{
             }
 
             if(bitReader.next()!=0){
-                decodedDoubleFields.set(pos);
+                setDoubleField(pos);
             }
         }
     }

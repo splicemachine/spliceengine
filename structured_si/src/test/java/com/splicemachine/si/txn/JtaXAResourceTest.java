@@ -6,7 +6,7 @@ import com.splicemachine.si.TransactorSetup;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.TransactionStatus;
+import com.splicemachine.si.api.TransactionStatus;
 import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;

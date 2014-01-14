@@ -31,6 +31,7 @@ public interface WriterStatus {
 
     long getMinFlushTime();
 
+    long getTotalFlushTime();
 
     long getMaxFlushedBufferSize();
 
@@ -40,6 +41,7 @@ public interface WriterStatus {
 
     long getMinFlushedBufferSize();
 
+    double getAvgFlushTime();
 
     long getMaxFlushedBufferEntries();
 
@@ -48,6 +50,8 @@ public interface WriterStatus {
     double getAvgFlushedBufferEntries();
 
     long getMinFlushedBufferEntries();
+
+    void reset();
 
 
 }

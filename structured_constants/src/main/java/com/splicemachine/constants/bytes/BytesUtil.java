@@ -1,16 +1,15 @@
 package com.splicemachine.constants.bytes;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * 
@@ -24,39 +23,28 @@ import org.apache.hadoop.hbase.util.Pair;
  */
 public class BytesUtil {
 
+    /**
+     * Concats a list of byte[].
+     *
+     * @param list
+     * @return the result byte array
+     */
 
-
-
-	/**
-	 * Concats a list of byte[].  Inserts null byte (0x00) between each element of the list 
-	 * 
-	 * @param list
-	 * @return the result byte array 
-	 */
-	
-	public static byte[] concat(List<byte[]> list) {
+    public static byte[] concat(List<byte[]> list) {
         int length = 0;
         for (byte[] bytes : list) {
             length += bytes.length;
         }
-        int listlen = list.size();
-        if (listlen > 1)
-        	length += listlen - 1; // tack on room for null terminators between each element
         byte[] result = new byte[length];
         int pos = 0;
-        int listelem = 0;
         for (byte[] bytes : list) {
-        	listelem++;
             System.arraycopy(bytes, 0, result, pos, bytes.length);
             pos += bytes.length;
-            if (listelem < listlen) { 
-            	result[pos] = 0x00;  // null terminator for bytes string
-            	pos++;
-            }
         }
         return result;
     }
-	/**
+
+    /**
 	 * 
 	 * Increments a byte[]
 	 * 
@@ -141,6 +129,19 @@ public class BytesUtil {
         return s;
     }
 
+    public static byte[] concatenate(byte headerByte,byte[] ... bytes){
+        int length = 2;
+        for(byte[] bytes1:bytes){
+            length+=bytes1.length;
+        }
+
+        byte[] concatenatedBytes = new byte[length+bytes.length-1];
+        concatenatedBytes[0] = headerByte;
+        concatenatedBytes[1] = 0x00;
+        copyInto(bytes,concatenatedBytes,2);
+        return concatenatedBytes;
+    }
+
     public static byte[] concatenate(byte[] ... bytes){
         int length = 0;
         for(byte[] bytes1:bytes){
@@ -162,38 +163,8 @@ public class BytesUtil {
         return concatedBytes;
     }
 
-    public static byte[] concatenate(ByteBuffer[] fields){
-        int size = 0;
-        boolean isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else
-                size++;
-
-            if (field != null)
-                size += field.remaining();
-        }
-
-        byte[] bytes = new byte[size];
-        int offset=0;
-        isFirst=true;
-        for (ByteBuffer field : fields) {
-            if (isFirst) isFirst = false;
-            else {
-                bytes[offset] = 0x00;
-                offset++;
-            }
-            if (field != null) {
-                int newOffset = offset+field.remaining();
-                field.get(bytes, offset, field.remaining());
-                offset=newOffset;
-            }
-        }
-        return bytes;
-    }
-
-    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
-        int offset = 0;
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
+        int offset = initialPos;
         boolean isStart=true;
         for(byte[] nextBytes:bytes){
             if(nextBytes==null) break;
@@ -208,51 +179,97 @@ public class BytesUtil {
         }
     }
 
-    public static Comparator<byte[]> emptyBeforeComparator = new Comparator<byte[]>() {
+    private static void copyInto(byte[][] bytes, byte[] concatedBytes) {
+        copyInto(bytes,concatedBytes,0);
+    }
+
+    /**
+     * Lexicographical byte[] comparator that places empty byte[] values before non-empty values.
+     */
+    public static Comparator<byte[]> startComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
-            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
-                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                    return 0;
-                else return -1;
-            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                return 1;
-            else return Bytes.compareTo(o1,o2);
+            return compareBytes(false, o1, o2);
         }
     };
 
-    public static Comparator<byte[]> emptyAfterComparator = new Comparator<byte[]>() {
+    /**
+     * Lexicographical byte[] comparator that places empty byte[] values after non-empty values.
+     */
+    public static Comparator<byte[]> endComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
-            if(Bytes.compareTo(o1,HConstants.EMPTY_START_ROW)==0){
-                if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                    return 0;
-                else return 1;
-            }else if(Bytes.compareTo(o2,HConstants.EMPTY_START_ROW)==0)
-                return -1;
-            else return Bytes.compareTo(o1,o2);
+            return compareBytes(true, o1, o2);
         }
     };
 
-    public static Pair<byte[],byte[]> intersect(byte[] a1,byte[] a2, byte[] r1,byte[] r2){
-        if(Bytes.compareTo(r2,HConstants.EMPTY_END_ROW)!=0 &&
-                Bytes.compareTo(a1,HConstants.EMPTY_START_ROW)!=0 &&
-                Bytes.compareTo(r2,a1)<0) return null;
-        else if(Bytes.compareTo(r1,HConstants.EMPTY_END_ROW)!=0 &&
-                Bytes.compareTo(a2,HConstants.EMPTY_START_ROW)!=0 &&
-                Bytes.compareTo(r1,a2)>=0) return null;
-
-        if(emptyBeforeComparator.compare(a1,r1)<=0){
-            if(emptyAfterComparator.compare(a2,r2)<=0)
-                return Pair.newPair(r1,a2);
-            else
-                return Pair.newPair(r1,r2);
-        }else{
-            if(emptyAfterComparator.compare(a2,r2)<=0)
-                return Pair.newPair(a1,a2);
-            else
-                return Pair.newPair(a1,r2);
+    /**
+     * Parameterized lexicographical byte[] comparison.
+     *
+     * @param emptyGreater indicates whether empty byte[] are greater or less than non-empty values.
+     */
+    private static int compareBytes(boolean emptyGreater, byte[] x, byte[] y) {
+        if (empty(x)) {
+            if (empty(y)) {
+                return 0;
+            } else {
+                return emptyGreater ? 1 : -1;
+            }
+        } else if (empty(y)) {
+            return emptyGreater ? -1 : 1;
+        } else {
+            return Bytes.compareTo(x, y);
         }
+    }
+
+    /**
+     * @return whether or not the given byte[] is empty
+     */
+    private static boolean empty(byte[] x) {
+        return Bytes.compareTo(x, HConstants.EMPTY_BYTE_ARRAY) == 0;
+    }
+
+    /**
+     * @return a [start, end) pair identifying the ranges of values that are in both [start1, end1) and [start2, end2)
+     *         under lexicographic sorting of values.
+     */
+    public static Pair<byte[], byte[]> intersect(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+        if (overlap(start1, end1, start2, end2)) {
+            return Pair.newPair(
+                    max(startComparator, start1, start2),
+                    min(endComparator, end1, end2));
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return whether [start1, end1) and [start2, end2) share any values
+     */
+    private static boolean overlap(byte[] start1, byte[] end1, byte[] start2, byte[] end2) {
+        return startLessThanEnd(start1, end2) && startLessThanEnd(start2, end1);
+    }
+
+    /**
+     * @return whether the given start range value is less than the end range value considering lexicographical ordering
+     *         and treating empty byte[] as -infinity in starting positions and infinity in ending positions
+     */
+    private static boolean startLessThanEnd(byte[] start1, byte[] end2) {
+        return (empty(end2) || empty(start1) || Bytes.compareTo(start1, end2) < 0);
+    }
+
+    /**
+     * @return the value that sorts lowest.
+     */
+    private static byte[] min(Comparator<byte[]> comparator, byte[] x, byte[] y) {
+        return (comparator.compare(y, x) <= 0) ? y : x;
+    }
+
+    /**
+     * @return the value that sorts highest.
+     */
+    private static byte[] max(Comparator<byte[]> comparator, byte[] x, byte[] y) {
+        return (comparator.compare(x, y) <= 0) ? y : x;
     }
 
     private static final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
@@ -266,6 +283,14 @@ public class BytesUtil {
             hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
         return new String(hexChars);
+    }
+
+    public static String toHex(ByteBuffer bytes) {
+        if(bytes==null || bytes.remaining()<=0) return "";
+        byte[] bits = new byte[bytes.remaining()];
+        bytes.get(bits);
+
+        return toHex(bits);
     }
 
     public static void main(String... args) throws Exception{
@@ -301,8 +326,8 @@ public class BytesUtil {
     }
 
     public static byte[] toByteArray(BitSet bits) {
-        byte[] bytes = new byte[(bits.length()+7)/8+4];
-        intToBytes((bits.length()+7)/8,bytes,0);
+        byte[] bytes = new byte[ (int) ((bits.length()+7)/8+4)];
+        intToBytes((int)(bits.length()+7)/8,bytes,0);
         for (int i=0; i<bits.length(); i++) {
             if (bits.get(i)) {
                 bytes[(bytes.length-4)-i/8-1+4] |= 1<<(i%8);
@@ -326,4 +351,10 @@ public class BytesUtil {
         }
         return Pair.newPair(bitSet,offset+numBytes+4);
     }
+
+		public static byte[] slice(byte[] data, int offset, int length) {
+				byte[] slice = new byte[length];
+				System.arraycopy(data,offset,slice,0,length);
+				return slice;
+		}
 }

@@ -9,17 +9,27 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.sql.execute.deprecate.DistinctMerger;
+import com.splicemachine.derby.impl.sql.execute.deprecate.HashBufferSource;
+import com.splicemachine.derby.impl.sql.execute.deprecate.HashMerger;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -27,7 +37,6 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
@@ -49,7 +58,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     private static final HashMerger merger = new DistinctMerger();
 
-    protected NoPutResultSet source;
+    protected SpliceOperation source;
     protected boolean distinct;
     protected int orderingItem;
     protected int[] keyColumns;
@@ -65,7 +74,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
     }
 
-    private RowDecoder rowDecoder;
+    private PairDecoder rowDecoder;
 
     /*
      * Used for serialization. DO NOT USE
@@ -75,7 +84,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 //		SpliceLogUtils.trace(LOG, "instantiated without parameters");
     }
 
-    public SortOperation(NoPutResultSet s,
+    public SortOperation(SpliceOperation s,
                          boolean distinct,
                          int orderingItem,
                          int numColumns,
@@ -122,23 +131,18 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     public List<SpliceOperation> getSubOperations() {
         SpliceLogUtils.trace(LOG, "getSubOperations");
         List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
-        ops.add((SpliceOperation) source);
+        ops.add(source);
         return ops;
     }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
+    	hbs = null;
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        ((SpliceOperation) source).init(context);
+        source.init(context);
 
-        FormatableArrayHolder fah = null;
-        for (Object o : activation.getPreparedStatement().getSavedObjects()) {
-            if (o instanceof FormatableArrayHolder) {
-                fah = (FormatableArrayHolder) o;
-                break;
-            }
-        }
+        FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(orderingItem);
         if (fah == null) {
             LOG.error("Unable to find column ordering for sorting!");
             throw new RuntimeException("Unable to find Column ordering for sorting!");
@@ -152,129 +156,149 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             keyColumns[i] = order[i].getColumnId();
             descColumns[i] = order[i].getIsAscending();
         }
-
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumns, wrapOperationWithProviderIterator(source), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1));
-
         SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
+    
+    private void createHashBufferSource(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        int columns[] = new int[getExecRowDefinition().nColumns()];
+        for (int i = 0; i < columns.length; ++i) {
+            columns[i] = i;
+        }
+    	hbs = new HashBufferSource(uniqueSequenceID, columns, new WrapOperationWithProviderIterator(source,spliceRuntimeContext), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1));
+    }
 
-    public ExecRow getNextSinkRow() throws StandardException {
-
+    @Override
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {    	
         ExecRow nextRow = null;
 
         if(!distinct){
-            nextRow = source.getNextRowCore();
-        }else{
-
-
+            nextRow = source.nextRow(spliceRuntimeContext);
+        }else{ 
+        	if (hbs == null) {
+        		createHashBufferSource(spliceRuntimeContext);
+        	}
             Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
-
             if(result != null){
                 nextRow = result.getSecond();
             }
         }
-
         setCurrentRow(nextRow);
 
         return nextRow;
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-        SpliceLogUtils.trace(LOG, "getNextRowCore");
-        sortResult = getNextRowFromScan();
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG, "nextRow");
+        sortResult = getNextRowFromScan(spliceRuntimeContext);
         if (sortResult != null)
             setCurrentRow(sortResult);
         return sortResult;
     }
 
-    private ExecRow getNextRowFromScan() throws StandardException {
+    private ExecRow getNextRowFromScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
-        try {
-            regionScanner.next(keyValues);
-        } catch (IOException ioe) {
-            SpliceLogUtils.logAndThrow(LOG,
-                    StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, ioe));
-        }
+        regionScanner.next(keyValues);
         if(keyValues.isEmpty()) return null;
 
         if(rowDecoder==null)
-            rowDecoder = getRowEncoder().getDual(getExecRowDefinition(),true);
-        return rowDecoder.decode(keyValues);
+            rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+        return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
     }
 
     @Override
     public SpliceOperation getLeftOperation() {
-//		SpliceLogUtils.trace(LOG,"getLeftOperation");
-        return (SpliceOperation) this.source;
+        return this.source;
     }
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
-//		SpliceLogUtils.trace(LOG, "getExecRowDefinition");
         if (execRowDefinition == null){
-            execRowDefinition = ((SpliceOperation) source).getExecRowDefinition();
+            execRowDefinition = source.getExecRowDefinition();
         }
         return execRowDefinition;
     }
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
-        return ((SpliceOperation) source).getRootAccessedCols(tableNumber);
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+        return source.getRootAccessedCols(tableNumber);
     }
 
     @Override
     public boolean isReferencingTable(long tableNumber) {
-        return ((SpliceOperation) source).isReferencingTable(tableNumber);
+        return source.isReferencingTable(tableNumber);
     }
 
-    @Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
-        try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
-            if (failedTasks.size() > 0 && !distinct) {
-                //we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
-                reduceScan.setFilter(new SuccessFilter(failedTasks, distinct));
-            }
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        if(top!=this)
-            SpliceUtils.setInstructions(reduceScan,getActivation(),top);
-		return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
-	}
+		@Override
+		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				try {
+						//be sure and include the hash prefix
+						byte[] range = new byte[uniqueSequenceID.length+1];
+						range[0] = spliceRuntimeContext.getHashBucket();
+						System.arraycopy(uniqueSequenceID,0,range,1,uniqueSequenceID.length);
+						reduceScan = Scans.buildPrefixRangeScan(range, SpliceUtils.NA_TRANSACTION_ID);
+						if (failedTasks.size() > 0 && !distinct) {
+								//we don't need the filter when distinct is true, because we'll overwrite duplicates anyway
+								reduceScan.setFilter(new SuccessFilter(failedTasks));
+						}
+				} catch (IOException e) {
+						throw Exceptions.parseException(e);
+				}
+				if(top!=this)
+						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
 
+				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+		}
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
-		SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
-		nextTime += getCurrentTimeMillis() - beginTime;
-		return rs;
+	public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
+			SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
+			nextTime += getCurrentTimeMillis() - beginTime;
+			return rs;
 	}
 
-    @Override
-    public RowEncoder getRowEncoder() throws StandardException {
-        ExecRow def = getExecRowDefinition();
-        KeyType keyType = distinct? KeyType.FIXED_PREFIX: KeyType.FIXED_PREFIX_UNIQUE_POSTFIX;
-        return RowEncoder.create(def.nColumns(), keyColumns,
-                descColumns,
-                uniqueSequenceID,
-                keyType, RowMarshaller.packed());
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+
+				/*
+				 * Sorted TEMP keys always start with
+				 *
+				 * <fixed hash> <unique sequence id> <keyed columns>
+				 *
+				 * but end differently depending on whether or not the sort is distinct or not.
+				 *
+		     * If the sort is distinct, then there is no postfix. If it is not distinct, then
+		     * a unique postfix is appended
+				 */
+				HashPrefix prefix = new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(),new FixedPrefix(uniqueSequenceID));
+				DataHash hash = BareKeyHash.encoder(keyColumns,descColumns);
+				KeyPostfix postfix = distinct? NoOpPostfix.INSTANCE : new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
+
+				return new KeyEncoder(prefix,hash,postfix);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return BareKeyHash.encoder(IntArrays.complement(keyColumns,getExecRowDefinition().nColumns()),null);
+		}
+
+		@Override
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder rowDecoder) throws StandardException {
-        return getReduceRowProvider(top, rowDecoder);
-    }
-
-    @Override
-    protected JobStats doShuffle() throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
-
+        final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime += System.currentTimeMillis() - start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
 
@@ -284,12 +308,12 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        if (source != null) source.openCore();
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(source!=null)source.open();
     }
 
-    public NoPutResultSet getSource() {
+    public SpliceOperation getSource() {
         return this.source;
     }
 
@@ -298,34 +322,39 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public void close() throws StandardException {
+    public void close() throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "close in Sort");
         beginTime = getCurrentTimeMillis();
-        if (isOpen) {
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-            clearCurrentRow();
-
-            sortResult = null;
+//        if (isOpen) {
+//            if(reduceScan!=null)
+//                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
+//            clearCurrentRow();
+//
+//            sortResult = null;
             source.close();
 
             super.close();
-        }
+//        }
 
         closeTime += getElapsedMillis(beginTime);
 
         isOpen = false;
     }
 
-    @Override
-    public long getTimeSpent(int type) {
-        long totTime = constructorTime + openTime + nextTime + closeTime;
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
 
-        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-            return totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-        else
-            return totTime;
-    }
+//    @Override
+//    public long getTimeSpent(int type) {
+//        long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//            return totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//        else
+//            return totTime;
+//    }
 
     public Properties getSortProperties() {
         if (sortProperties == null)
@@ -356,18 +385,22 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .append(indent).append("source:").append(((SpliceOperation) source).prettyPrint(indentLevel + 1))
                 .toString();
     }
+    
+    public class WrapOperationWithProviderIterator implements RowProviderIterator<ExecRow> {
+        private ExecRow nextRow;
+        private boolean populated = false;
+        protected SpliceOperation operationSource;
+        protected SpliceRuntimeContext spliceRuntimeContext;
 
-    private RowProviderIterator<ExecRow> wrapOperationWithProviderIterator(final NoPutResultSet operationSource){
-        return new RowProviderIterator<ExecRow>() {
-
-            private ExecRow nextRow;
-            private boolean populated = false;
+    	public WrapOperationWithProviderIterator(SpliceOperation operationSource, SpliceRuntimeContext spliceRuntimeContext) {
+    		this.operationSource = operationSource;
+    		this.spliceRuntimeContext = spliceRuntimeContext;
+    	}
 
             @Override
-            public boolean hasNext() throws StandardException {
-
+            public boolean hasNext() throws StandardException, IOException {
                 if(!populated){
-                    nextRow = operationSource.getNextRowCore();
+                    nextRow = operationSource.nextRow(spliceRuntimeContext); 
                     populated=true;
                 }
 
@@ -375,7 +408,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             }
 
             @Override
-            public ExecRow next() throws StandardException {
+            public ExecRow next() throws StandardException, IOException {
 
                 if(!populated){
                     hasNext();
@@ -387,6 +420,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
                 return nextRow;
             }
-        };
-    }
+
+    	}    
 }

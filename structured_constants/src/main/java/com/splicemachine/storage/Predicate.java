@@ -1,13 +1,12 @@
 package com.splicemachine.storage;
 
-import java.io.Externalizable;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
  * Created on: 7/8/13
  */
-public interface Predicate extends Externalizable {
+public interface Predicate{
 
     boolean applies(int column);
 
@@ -23,4 +22,5 @@ public interface Predicate extends Externalizable {
     void reset();
 
     byte[] toBytes();
+
 }
