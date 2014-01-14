@@ -57,16 +57,4 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
         super.reset();
         remainingFields = (BitSet)allFields.clone();
     }
-
-//    @Override
-//    public boolean fieldsMatch(EntryAccumulator oldKeyAccumulator) {
-//        for(int myFields=allFields.nextSetBit(0);myFields>=0;myFields=allFields.nextSetBit(myFields+1)){
-//            if(!oldKeyAccumulator.hasField(myFields)) return false;
-//            ByteBuffer field = fields[myFields];
-//            if(field==null){
-//                if(oldKeyAccumulator.getField(myFields)!=null) return false;
-//            } else if(!field.equals(oldKeyAccumulator.getField(myFields))) return false;
-//        }
-//        return true;
-//    }
 }
