@@ -234,7 +234,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
         @Override
         public ExecRow next() {
-            SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+            SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
             return mergedRow;
         }
 
