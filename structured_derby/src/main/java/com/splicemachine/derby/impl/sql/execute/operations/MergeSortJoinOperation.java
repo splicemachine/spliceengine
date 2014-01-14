@@ -143,7 +143,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     @Override
     public void open() throws StandardException, IOException {
-        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner ",(joiner != null ? "not " : ""),"null");
+        SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner ", (joiner != null ? "not " : ""), "null");
         super.open();
         if (joiner != null) {
             isOpen = false;
@@ -210,11 +210,15 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         SpliceLogUtils.trace(LOG, "executeShuffle");
         long start = System.currentTimeMillis();
         SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+        spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
         SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+        spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
         RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
         RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
         RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, new SpliceRuntimeContext());
+        SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
+        instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, instructionContext);
         JobResults stats = combined.shuffleRows(soi);
         nextTime += System.currentTimeMillis() - start;
         return stats;
@@ -244,64 +248,21 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             return getKeyEncoder(JoinSide.RIGHT, rightHashKeys, spliceRuntimeContext.getCurrentTaskId());
     }
 
-		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeShuffle");
-				long start = System.currentTimeMillis();
-				SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
-				spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
-				SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
-				spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
-				RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceLRuntimeContext),spliceLRuntimeContext);
-				RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this,spliceRRuntimeContext),spliceRRuntimeContext);
-				RowProvider combined = RowProviders.combine(leftProvider, rightProvider);
-				SpliceRuntimeContext instructionContext = new SpliceRuntimeContext();
-				instructionContext.setStatementInfo(runtimeContext.getStatementInfo());
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this, instructionContext);
-				JobResults stats = combined.shuffleRows(soi);
-				nextTime+=System.currentTimeMillis()-start;
-				return stats;
-		}
+    @Override
+    public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        if (spliceRuntimeContext.isLeft(resultSetNumber)) {
+            return BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null);
+        } else
+            return BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null);
+    }
 
-		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG,"executeScan");
-				final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
-				this.generateLeftOperationStack(opStack);
-				SpliceLogUtils.trace(LOG,"operationStack=%s",opStack);
+    private KeyEncoder getKeyEncoder(JoinSide joinSide, int[] keyColumns, byte[] taskId) throws StandardException {
+        HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID),
+                HashFunctions.murmur3(0),
+                SpliceDriver.driver().getTempTable().getCurrentSpread());
+        final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
 
-				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
-				return new SpliceNoPutResultSet(activation,this,provider);
-	}
-
-		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
-
-		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				if(spliceRuntimeContext.isLeft(resultSetNumber)){
-						return getKeyEncoder(JoinSide.LEFT,leftHashKeys,spliceRuntimeContext.getCurrentTaskId());
-				}else
-						return getKeyEncoder(JoinSide.RIGHT,rightHashKeys,spliceRuntimeContext.getCurrentTaskId());
-		}
-
-		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				if(spliceRuntimeContext.isLeft(resultSetNumber)){
-						return BareKeyHash.encoder(IntArrays.complement(leftHashKeys,leftNumCols),null);
-				}else
-						return BareKeyHash.encoder(IntArrays.complement(rightHashKeys,rightNumCols),null);
-		}
-
-		private KeyEncoder getKeyEncoder(JoinSide joinSide,int[] keyColumns,byte[] taskId) throws StandardException{
-				HashPrefix prefix = new BucketingPrefix(new FixedPrefix(uniqueSequenceID),
-								HashFunctions.murmur3(0),
-								SpliceDriver.driver().getTempTable().getCurrentSpread());
-				final byte[] joinSideBytes = Encoding.encode(joinSide.ordinal());
-
-				DataHash hash = BareKeyHash.encoder(keyColumns, null);
+        DataHash hash = BareKeyHash.encoder(keyColumns, null);
 
 				/*
                  * The postfix looks like
