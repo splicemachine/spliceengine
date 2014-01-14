@@ -255,7 +255,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             return broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID), new Callable<Map<ByteBuffer, List<ExecRow>>>() {
                 @Override
                 public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
-                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
+                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID %s",uniqueSequenceID);
                     return loadRightSide(runtimeContext);
                 }
             });
