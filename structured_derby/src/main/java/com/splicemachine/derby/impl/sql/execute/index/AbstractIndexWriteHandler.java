@@ -1,11 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.*;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.writer.*;
@@ -13,16 +11,14 @@ import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.RegionTooBusyException;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
+import org.jruby.util.collections.IntHashMap;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.nio.ByteBuffer;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -53,7 +49,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected boolean failed;
 
-    protected final Map<KVPair,KVPair> indexToMainMutationMap = Maps.newHashMap();
+    protected final ObjectObjectOpenHashMap<KVPair,KVPair> indexToMainMutationMap = ObjectObjectOpenHashMap.newInstance();
 
     /*
      * The columns in the main table which are indexed (ordered by the position in the main table).
@@ -87,13 +83,10 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         }
     }
 
-
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if(failed)
             ctx.notRun(mutation);
-//        else if(mutation.getAttribute(IndexSet.INDEX_UPDATED)!=null)
-//            ctx.sendUpstream(mutation);
         else{
             boolean sendUp = updateIndex(mutation,ctx);
             if(sendUp){
@@ -110,12 +103,13 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
             SpliceLogUtils.error(LOG,e);
             if(e instanceof WriteFailedException){
                 WriteFailedException wfe = (WriteFailedException)e;
-                for(KVPair originalMutation:indexToMainMutationMap.values()){
-                    ctx.failed(originalMutation, WriteResult.failed(wfe.getMessage()));
+                Object[] buffer = indexToMainMutationMap.values;
+                int size = indexToMainMutationMap.size();
+                for (int i = 0; i<size; i++) {
+                	ctx.failed((KVPair)buffer[i], WriteResult.failed(wfe.getMessage()));
                 }
             }
             else throw new IOException(e); //something unexpected went bad, need to propagate
-
         }
     }
 
@@ -123,19 +117,22 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
     protected abstract void finish(WriteContext ctx) throws Exception;
 
-    protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx) throws Exception {
+    protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx,int expectedSize) throws Exception {
         WriteCoordinator.PreFlushHook flushHook = new WriteCoordinator.PreFlushHook() {
             @Override
-            public List<KVPair> transform(List<KVPair> buffer) throws Exception {
-                return Lists.newArrayList(Collections2.filter(buffer,new Predicate<KVPair>() {
-                    @Override
-                    public boolean apply(@Nullable KVPair input) {
-                        return ctx.canRun(input);
-                    }
-                }));
+            public ObjectArrayList<KVPair> transform(ObjectArrayList<KVPair> buffer) throws Exception {
+            	ObjectArrayList<KVPair> newList = ObjectArrayList.newInstance();
+            	Object[] array = buffer.buffer;
+            	int size = buffer.size();
+            	for (int i = 0; i< size; i++) {
+                    KVPair mainInput = indexToMainMutationMap.get((KVPair)array[i]);
+                    if (ctx.canRun(mainInput))
+                    	newList.add((KVPair)array[i]);
+            	}
+            	return newList;
             }
         };
-        Writer.RetryStrategy retryStrategy = new Writer.RetryStrategy() {
+        Writer.WriteConfiguration writeConfiguration = new Writer.WriteConfiguration() {
             @Override
             public int getMaximumRetries() {
                 return SpliceConstants.numRetries;
@@ -143,23 +140,48 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-                return t instanceof NotServingRegionException ? Writer.WriteResponse.RETRY: Writer.WriteResponse.THROW_ERROR;
+                if(t instanceof RegionTooBusyException){
+                    try {
+                        Thread.sleep(2*getPause());
+                    } catch (InterruptedException e) {
+                        LOG.info("Interrupted while waiting due to a RegionTooBusyException",e);
+                    }
+
+                    return Writer.WriteResponse.RETRY;
+                }
+                if( t instanceof ConnectException
+                 || t instanceof WrongRegionException
+                 || t instanceof NotServingRegionException
+                 || t instanceof IndexNotSetUpException){
+                    return Writer.WriteResponse.RETRY;
+                }else
+                    return Writer.WriteResponse.THROW_ERROR;
             }
 
             @Override
             public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-                Map<Integer,WriteResult> failedRows = result.getFailedRows();
+                IntHashMap<WriteResult> failedRows = result.getFailedRows();
                 boolean canRetry = true;
+                boolean regionTooBusy = false;
                 for(WriteResult writeResult: failedRows.values()){
                     if(!writeResult.canRetry()){
                         canRetry=false;
                         break;
-                    }
+                    }if(writeResult.getCode()== WriteResult.Code.REGION_TOO_BUSY)
+                        regionTooBusy = true;
                 }
 
+                if(regionTooBusy){
+                    try{
+                        Thread.sleep(2*getPause());
+                    } catch (InterruptedException e) {
+                        LOG.info("Interrupted while waiting due to a RegionTooBusyException",e);
+                    }
+                    return Writer.WriteResponse.RETRY;
+                }
                 if(canRetry) return Writer.WriteResponse.RETRY;
                 else{
-                    List<KVPair> indexMutations = request.getMutations();
+                    ObjectArrayList<KVPair> indexMutations = request.getMutations();
                     for(Integer row:failedRows.keySet()){
                         KVPair kvPair = indexMutations.get(row);
                         ctx.failed(indexToMainMutationMap.get(kvPair),failedRows.get(row));
@@ -170,11 +192,15 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public long getPause() {
-                return WriteCoordinator.pause;
+                return SpliceConstants.pause;
             }
-        };
 
-        return ctx.getWriteBuffer(indexConglomBytes,flushHook,retryStrategy);
+						@Override
+						public void writeComplete(long timeTakenMs, long numRecordsWritten) {
+						}
+				};
+
+        return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize*2+10); //make sure we don't flush before we can
     }
 
     protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
@@ -189,6 +215,7 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
     }
 
     protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
+        if(entry==null) return null;
         entry.mark();
         byte[] data = new byte[entry.remaining()];
         entry.get(data);

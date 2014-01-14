@@ -1,23 +1,29 @@
 package com.splicemachine.derby.utils;
 
-import com.google.common.io.Closeables;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -28,21 +34,19 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.datanucleus.store.valuegenerator.UUIDHexGenerator;
+import org.codehaus.jackson.util.ByteArrayBuilder;
 
 import java.io.*;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.UUID;
 
 /**
- * Utility methods
- * @author jessiezhang
- * @author johnleach
- * @author scottfines
+ * 
+ * Splice Utility Methods
+ * 
  */
 
 public class SpliceUtils extends SpliceUtilities {
@@ -59,7 +63,7 @@ public class SpliceUtils extends SpliceUtilities {
      */
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
-            if(dvd.isNull()){
+            if(dvd != null && dvd.isNull()){
                 switch(dvd.getTypeFormatId()){
                     case StoredFormatIds.SQL_DOUBLE_ID:
                         dvd.setValue((double)defaultValue); //set to one to prevent /-by-zero errors
@@ -119,19 +123,8 @@ public class SpliceUtils extends SpliceUtilities {
                 fieldsToReturn = new BitSet(destRow.length);
                 fieldsToReturn.set(0,destRow.length);
             }
-
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, Collections.<Predicate>emptyList());
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-//			if(validColumns!=null){
-//				for(int i= validColumns.anySetBit();i!=-1;i = validColumns.anySetBit(i)){
-//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-//				}
-//			}else{
-//				for(int i=0;i<destRow.length;i++){
-//					get.addColumn(DEFAULT_FAMILY_BYTES, Encoding.encode(i));
-//				}
-//			}
-
 			return get;
 		} catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
@@ -185,7 +178,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Scan attachTransaction(Scan op, String transactionId, boolean includeSI) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializeScan(transactionId, op, includeSI, false);
+            getTransactor().initializeScan(transactionId, op, includeSI);
         }
         return op;
     }
@@ -229,7 +222,9 @@ public class SpliceUtils extends SpliceUtilities {
         if (exempt != null && Bytes.toBoolean(exempt)) {
             return NA_TRANSACTION_ID;
         }
-        return getTransactor().transactionIdFromPut((Put) mutation).getTransactionIdString();
+        TransactionId transactionId = getTransactor().transactionIdFromPut((Put) mutation);
+        if(transactionId==null) return null;
+        return transactionId.getTransactionIdString();
     }
 
     public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
@@ -246,20 +241,18 @@ public class SpliceUtils extends SpliceUtilities {
 	public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
 		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
 		if(instructions==null) return null;
-		//Putting this here to prevent some kind of weird NullPointer situation
-		//where the LanguageConnectionContext doesn't get initialized properly
-		ByteArrayInputStream bis = null;
-		ObjectInputStream ois = null;
+
+        Kryo kryo = SpliceDriver.getKryoPool().get();
 		try {
-			bis = new ByteArrayInputStream(instructions);
-			ois = new ObjectInputStream(bis);
-			SpliceObserverInstructions soi = (SpliceObserverInstructions) ois.readObject();
+            Input input = new Input(instructions);
+            KryoObjectInput koi = new KryoObjectInput(input,kryo);
+			SpliceObserverInstructions soi = (SpliceObserverInstructions) koi.readObject();
 			return soi;
 		} catch (Exception e) {
-			Closeables.closeQuietly(ois);
-			Closeables.closeQuietly(bis);			
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
-		}
+		}finally{
+            SpliceDriver.getKryoPool().returnInstance(kryo);
+        }
 		return null;
 	}
 
@@ -326,27 +319,28 @@ public class SpliceUtils extends SpliceUtilities {
         return Long.toString(SpliceDriver.driver().getUUIDGenerator().nextUUID());
     }
 
-	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation) {
-        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation);
+	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
+        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
         return generateInstructions(instructions);
     }
 
     public static byte[] generateInstructions(SpliceObserverInstructions instructions) {
+        Kryo kryo = SpliceDriver.getKryoPool().get();
         try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(out);
-            oos.writeObject(instructions);
-            oos.flush();
-            oos.close();
-            return out.toByteArray();
+            Output output = new Output(4096,-1);
+            KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
+            koo.writeObject(instructions);
+            return output.toBytes();
         } catch (IOException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Error generating Splice instructions:" + e.getMessage(), e);
             return null;
+        }finally{
+            SpliceDriver.getKryoPool().returnInstance(kryo);
         }
     }
 
-    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation){
-		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation));
+    public static void setInstructions(Scan scan, Activation activation, SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext){
+		scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS,generateInstructions(activation,topOperation,spliceRuntimeContext));
 	}
 
     public static void setInstructions(Scan scan, SpliceObserverInstructions instructions){
@@ -405,4 +399,42 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return zeroIndexed;
     }
+
+    public static BitSet bitSetFromBooleanArray(boolean[] array) {
+        BitSet bitSet = new BitSet(array.length);
+        for (int col = 0; col < array.length; col++) {
+            if (array[col])
+                bitSet.set(col);
+        }
+        return bitSet;
+    }
+
+        private static final CompressionCodecFactory compressionFactory
+						= new CompressionCodecFactory(SpliceConstants.config);
+		public static CompressionCodecFactory getCompressionFactory() {
+				return compressionFactory;
+		}
+
+		private static final CompressionCodec snappyCodec;
+		static {
+				CompressionCodec codec;
+				try{
+						codec = compressionFactory.getCodecByName("snappy");
+						codec.createOutputStream(new ByteArrayOutputStream());
+				}catch(UnsatisfiedLinkError ule){
+						/*
+						 * This can happen if there's a problem with how
+						 * the native libraries are built (particularly on
+						 * Macs). In that case, default back to an
+						 * uncompressed format.
+						 */
+						codec = null;
+				} catch (IOException e) {
+						codec = null;
+				}
+				snappyCodec = codec;
+		}
+		public static CompressionCodec getSnappyCodec(){
+				return snappyCodec;
+		}
 }

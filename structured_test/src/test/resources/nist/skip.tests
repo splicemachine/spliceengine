@@ -29,7 +29,6 @@ dml057
 dml073
 # Bug 601
 dml075
-#dml079
 # dml081 - divide by zero
 dml081
 # dml083 - NULL in column where Max(column)
@@ -64,8 +63,6 @@ xts742
 xts752
 yts797
 yts798
-# yts799: bug 494
-yts799
 drop
 # regressions: 7/17/2013
 #Bug 682 - cdr027, dml023 
@@ -78,3 +75,4 @@ drop
 #Bug 687 - dml080
 #Bug 662 - dml085, dml087
 #Bug 683 - dml181, dml182
+# Bug 910 dml079

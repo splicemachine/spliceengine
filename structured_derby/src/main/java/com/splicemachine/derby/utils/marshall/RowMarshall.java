@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils.marshall;
 
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.storage.EntryDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -37,6 +38,11 @@ public interface RowMarshall {
                 DataValueDescriptor[] fields,
                 int[] reversedKeyColumns,
                 MultiFieldDecoder rowDecoder) throws StandardException;
+
+    void decode(KeyValue value,
+                DataValueDescriptor[] fields,
+                int[] reversedKeyColumns,
+                EntryDecoder entryDecoder) throws StandardException;
 
     boolean isColumnar();
 }

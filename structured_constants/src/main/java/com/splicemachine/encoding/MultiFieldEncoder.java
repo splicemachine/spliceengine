@@ -4,9 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Preconditions;
 import com.splicemachine.utils.kryo.KryoPool;
-
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
@@ -49,11 +47,7 @@ public class MultiFieldEncoder {
 
 
     public MultiFieldEncoder encodeNext(boolean value){
-//        assert currentPos<fields.length;
-        byte[] next = ScalarEncoding.toBytes(value,false);
-        currentSize+=next.length;
-        fields[currentPos] = next;
-        currentPos++;
+        encodeNext(value,false);
         return this;
     }
 
@@ -79,11 +73,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(short value){
-//        assert currentPos<fields.length;
-        byte[] next = ScalarEncoding.toBytes(value, false);
-        currentSize+=next.length;
-        fields[currentPos] = next;
-        currentPos++;
+        encodeNext(value,false);
         return this;
     }
 
@@ -97,11 +87,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(int value){
-//        assert currentPos<fields.length;
-        byte[]  next = ScalarEncoding.toBytes(value, false);
-        currentSize+=next.length;
-        fields[currentPos] = next;
-        currentPos++;
+        encodeNext(value,false);
         return this;
     }
 
@@ -116,11 +102,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(long value){
-//        assert currentPos<fields.length;
-        byte[] bytes = ScalarEncoding.toBytes(value, false);
-        currentSize+=bytes.length;
-        fields[currentPos] = bytes;
-        currentPos++;
+        encodeNext(value,false);
         return this;
     }
 
@@ -134,12 +116,7 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(float value){
-//        assert currentPos<fields.length;
-        byte[] bytes = DecimalEncoding.toBytes(value, false);
-        currentSize+=bytes.length;
-        fields[currentPos] = bytes;
-        currentPos++;
-        return this;
+        return encodeNext(value,false);
     }
 
     public MultiFieldEncoder encodeNext(float value,boolean desc){
@@ -225,6 +202,10 @@ public class MultiFieldEncoder {
         return this;
     }
 
+    public MultiFieldEncoder encodeNext(byte[] value){
+        return encodeNext(value,false);
+    }
+
     public MultiFieldEncoder encodeNext(byte[] value,boolean desc){
 //        assert currentPos<fields.length;
         byte[] encode = ByteEncoding.encode(value, desc);
@@ -283,21 +264,60 @@ public class MultiFieldEncoder {
         initalSize=currentSize;
     }
 
-    public byte[] getEncodedBytes(int i) {
-        Preconditions.checkArgument(i<currentPos,"No bytes available in the current encoder");
-        return fields[i];
+    public byte[] getEncodedBytes(int position) {
+        Preconditions.checkArgument(position<currentPos,"No bytes available in the current encoder");
+        return fields[position];
     }
 
-    public MultiFieldEncoder setRawBytes(byte[] keyPrefix) {
-        assert currentPos < numFields;
-        fields[currentPos] = keyPrefix;
-        currentPos++;
-        currentSize+=keyPrefix!=null?keyPrefix.length: 0;
+    /**
+     * Directly set raw bytes into the resulting array.
+     *
+     * This is a dangerous method, because it won't deal with terminators appropriately. If
+     * the passed in byte[] contains 0x00 somewhere in the array, then decoding may not
+     * work correctly.
+     *
+     * Thus, this is to be used <em>only</em> when one of the following conditions holds:
+     *
+     * 1. It is known at all times <em>exactly</em> how long the bytes being set are (that is,
+     * it is known to always be 8 bytes, or something). This typically occurs when prepending
+     * a UUID or some other such known byte[].
+     * 2. It is known that the bytes are <em>already correctly encoded</em>. This occurs when
+     * it is known that the bytes have been encoded by a separate operation.
+     *
+     * @param bytes the bytes to set
+     * @return an encoder that can be used to encode the next fields
+     */
+    public MultiFieldEncoder setRawBytes(byte[] bytes) {
+        setRawBytes(bytes,0,bytes==null?0:bytes.length);
         return this;
     }
 
+    /**
+     * Directly set raw bytes into the resulting array.
+     *
+     * This is a dangerous method, because it won't deal with terminators appropriately. If
+     * the passed in byte[] contains 0x00 somewhere in the array, then decoding may not
+     * work correctly.
+     *
+     * Thus, this is to be used <em>only</em> when one of the following conditions holds:
+     *
+     * 1. It is known at all times <em>exactly</em> how long the bytes being set are (that is,
+     * it is known to always be 8 bytes, or something). This typically occurs when prepending
+     * a UUID or some other such known byte[].
+     * 2. It is known that the bytes are <em>already correctly encoded</em>. This occurs when
+     * it is known that the bytes have been encoded by a separate operation.
+     *
+     * @param value the bytes to set
+     * @param offset the start of the bytes to set
+     * @param length the length of the bytes to set
+     * @return an encoder that can be used to encode the next fields
+     */
     public MultiFieldEncoder setRawBytes(byte[] value, int offset, int length){
         assert currentPos < numFields;
+        if(value==null||length==0){
+            currentPos++;
+            return this;
+        }
         byte[] copy = new byte[length];
         System.arraycopy(value,offset,copy,0,length);
         fields[currentPos] = copy;
@@ -319,4 +339,8 @@ public class MultiFieldEncoder {
     public MultiFieldEncoder encodeEmptyDouble(){
         return setRawBytes(Encoding.encodedNullDouble());
     }
+
+		public int getNumFields() {
+				return fields.length;
+		}
 }

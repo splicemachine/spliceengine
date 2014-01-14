@@ -117,6 +117,11 @@ public class SpliceWatcher extends TestWatcher {
 		resultSets.add(rs);
 		return rs;
 	}
+
+    public int executeUpdate(String sql) throws Exception {
+        Statement s = getStatement();
+        return s.executeUpdate(sql);
+    }
 	
 	   public Statement getStatement() throws Exception {
 			Statement s = getOrCreateConnection().createStatement();

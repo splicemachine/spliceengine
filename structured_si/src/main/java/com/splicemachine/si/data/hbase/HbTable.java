@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.Iterator;
@@ -25,17 +26,30 @@ public class HbTable implements IHTable {
     }
 
     @Override
+    public String getName() {
+        return Bytes.toString(table.getTableName());
+    }
+
+    @Override
     public void close() throws IOException {
         table.close();
     }
 
     @Override
     public Result get(Get get) throws IOException {
-        return table.get(get);
+        final Result result = table.get(get);
+        if (result.isEmpty()) {
+           return null;
+        } else {
+            return result;
+        }
     }
 
     @Override
     public Iterator<Result> scan(Scan scan) throws IOException {
+        if(scan.getStartRow() == null) {
+            scan.setStartRow(new byte[]{});
+        }
         final ResultScanner scanner = table.getScanner(scan);
         return scanner.iterator();
     }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stats;
 
 import com.google.common.util.concurrent.AtomicDouble;
+import com.splicemachine.constants.SpliceConstants;
 import com.yammer.metrics.stats.ExponentiallyDecayingSample;
 import com.yammer.metrics.stats.Sample;
 import com.yammer.metrics.stats.Snapshot;
@@ -9,6 +10,7 @@ import com.yammer.metrics.stats.UniformSample;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.splicemachine.derby.stats.TimeUtils.toSeconds;
@@ -50,6 +52,13 @@ public class TimingStats implements Stats{
         percentiles[3] = timingSample.get98thPercentile();
         percentiles[4] = timingSample.get99thPercentile();
         percentiles[5] = timingSample.get999thPercentile();
+    }
+
+    public TimingStats(long totalTime, long totalRecords){
+        this.totalTime = totalTime;
+        this.totalRecords = totalRecords;
+        this.percentiles = new double[6];
+        Arrays.fill(this.percentiles, 0.0);
     }
 
     /**
@@ -190,12 +199,31 @@ public class TimingStats implements Stats{
     }
 
     public static com.splicemachine.derby.stats.Accumulator uniformAccumulator(){
-        return new Accumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
+
+        com.splicemachine.derby.stats.Accumulator acc;
+
+        if(SpliceConstants.collectStats){
+            acc = new Accumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
+        }else{
+            acc = new RecordAccumulator();
+        }
+
+        return acc;
     }
 
     public static com.splicemachine.derby.stats.Accumulator uniformSafeAccumulator(){
-        return new ThreadSafeAccumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
+
+        com.splicemachine.derby.stats.Accumulator acc;
+
+        if(SpliceConstants.collectStats){
+            acc = new ThreadSafeAccumulator(new UniformSample(DEFAULT_SAMPLE_SIZE));
+        }else{
+            acc = new RecordAccumulator();
+        }
+
+        return acc;
     }
+
     public static com.splicemachine.derby.stats.Accumulator uniformAccumulator(int sampleSize){
         return new Accumulator(new UniformSample(sampleSize));
     }
@@ -238,8 +266,23 @@ public class TimingStats implements Stats{
             this.start = System.nanoTime();
         }
 
+        @Override
+        public void tickRecords(long numRecords) {
+            totalRecords += numRecords;
+        }
+
+        @Override
+        public void tickRecords() {
+            totalRecords++;
+        }
+
+        @Override
+        public boolean shouldCollectStats() {
+            return true;
+        }
+
         public void tick(long numRecords,long time){
-            this.totalRecords+=numRecords;
+            tickRecords(numRecords);
             this.totalTime+=time;
             this.processSample.update(time);
             updateMax(time);
@@ -278,6 +321,48 @@ public class TimingStats implements Stats{
         }
     }
 
+    private static class RecordAccumulator implements com.splicemachine.derby.stats.Accumulator{
+
+        private AtomicLong totalRecords = new AtomicLong(0l);
+        private AtomicLong startTime = new AtomicLong(0l);
+
+        @Override
+        public void start() {
+            startTime.compareAndSet(0l,System.nanoTime());
+        }
+
+        @Override
+        public Stats finish() {
+            long end = System.nanoTime();
+            return new TimingStats(end - startTime.get(), totalRecords.get());
+        }
+
+        @Override
+        public void tick(long numRecords, long timeTaken) {
+            tickRecords(numRecords);
+        }
+
+        @Override
+        public void tick(long timeTaken) {
+            tickRecords(1l);
+        }
+
+        @Override
+        public void tickRecords(long numRecords) {
+            totalRecords.addAndGet(numRecords);
+        }
+
+        @Override
+        public void tickRecords() {
+            totalRecords.incrementAndGet();
+        }
+
+        @Override
+        public boolean shouldCollectStats() {
+            return false;
+        }
+    }
+
     private static class ThreadSafeAccumulator implements com.splicemachine.derby.stats.Accumulator{
         private AtomicLong totalTime = new AtomicLong(0l);
         private AtomicLong totalRecords = new AtomicLong(0l);
@@ -306,9 +391,24 @@ public class TimingStats implements Stats{
         }
 
         @Override
-        public void tick(long numRecords, long timeTaken) {
-            totalTime.addAndGet(timeTaken);
+        public void tickRecords(long numRecords) {
             totalRecords.addAndGet(numRecords);
+        }
+
+        @Override
+        public void tickRecords() {
+            totalRecords.incrementAndGet();
+        }
+
+        @Override
+        public boolean shouldCollectStats() {
+            return true;
+        }
+
+        @Override
+        public void tick(long numRecords, long timeTaken) {
+            tickRecords(numRecords);
+            totalTime.addAndGet(timeTaken);
             updateMax(timeTaken);
             updateMin(timeTaken);
             updateAvg(timeTaken);

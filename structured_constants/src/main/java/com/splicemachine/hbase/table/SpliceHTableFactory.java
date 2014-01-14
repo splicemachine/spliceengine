@@ -1,20 +1,16 @@
 package com.splicemachine.hbase.table;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -25,7 +21,8 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 	private static Logger LOG = Logger.getLogger(SpliceHTableFactory.class);
 	private boolean autoFlush = true;
     private ThreadPoolExecutor tableExecutor;
-    private HConnection connection;
+    protected IntObjectOpenHashMap<HConnection> connections = new IntObjectOpenHashMap<HConnection>();
+    protected static AtomicInteger increment = new AtomicInteger();  
 
 	public SpliceHTableFactory() {
         this(true);
@@ -34,13 +31,17 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 	public SpliceHTableFactory(boolean autoFlush) {
 		SpliceLogUtils.trace(LOG, "instantiated with autoFlush set to %s",autoFlush);
 		this.autoFlush = autoFlush;
-
         tableExecutor = getExecutor(SpliceConstants.config);
-        try {
-            connection = HConnectionManager.getConnection(SpliceConstants.config);
-        } catch (ZooKeeperConnectionException e) {
-            throw new RuntimeException(e);
-        }
+        
+        for (int i = 0; i< 10; i++) {
+        	Configuration configuration = new Configuration(SpliceConstants.config);
+						configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
+						try {
+								connections.put(i, SpliceHConnection.createConnection(configuration));
+						} catch (ZooKeeperConnectionException e) {
+								throw new RuntimeException(e);
+						}
+				}
 	}
 
     private ThreadPoolExecutor getExecutor(Configuration config) {
@@ -52,36 +53,15 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
 
         return new ThreadPoolExecutor(1,maxThreads,keepAliveTime, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
-                new NamedThreadFactory());
+                new NamedThreadFactory(),
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
     @Override
 	  public HTableInterface createHTableInterface(Configuration config, final byte[] tableName) {
 			SpliceLogUtils.trace(LOG, "createHTableInterface for %s",Bytes.toString(tableName));
 	    try {
-	    	final HTable htable = new HTable(tableName,connection,tableExecutor){
-                @Override
-                public <T extends CoprocessorProtocol, R> void coprocessorExec(Class<T> protocol,
-                                                                               byte[] startKey,
-                                                                               byte[] endKey,
-                                                                               Batch.Call<T, R> callable,
-                                                                               Batch.Callback<R> callback) throws IOException, Throwable {
-                    Pair<byte[][],byte[][]> startEndKeys = getStartEndKeys();
-                    byte[][] starts = startEndKeys.getFirst();
-                    byte[][] ends = startEndKeys.getSecond();
-
-                    List<byte[]> startKeysToUse = Lists.newArrayList();
-                    for(int i=0;i<starts.length;i++){
-                        byte[] start = starts[i];
-                        byte[] end = ends[i];
-                        Pair<byte[],byte[]> intersect = BytesUtil.intersect(startKey,endKey,start,end);
-                        if(intersect!=null){
-                           startKeysToUse.add(intersect.getFirst());
-                        }
-                    }
-                    connection.processExecs(protocol,startKeysToUse,tableName,tableExecutor,callable,callback);
-                }
-            };
+	    	final HTable htable =new SpliceHTable(tableName,connections.get(increment.incrementAndGet()%10),tableExecutor, HBaseRegionCache.getInstance());
 	    	htable.setAutoFlush(autoFlush);
 	    	return htable;
 	    } catch (IOException ioe) {

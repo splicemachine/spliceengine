@@ -8,6 +8,7 @@ import javax.management.MXBean;
  */
 @MXBean
 public interface JobSchedulerManagement {
+    public static final String SEP_CHAR = "|";
 
     public long getTotalSubmittedJobs();
 
@@ -19,4 +20,15 @@ public interface JobSchedulerManagement {
 
     public int getNumRunningJobs();
 
+    /**
+     *
+     * @return [jobID,statement]
+     */
+    String[] getRunningJobs();
+
+    /**
+     *
+     * @return [jobID,taskID,taskStatus]
+     */
+    String[] getRunningTasks();
 }

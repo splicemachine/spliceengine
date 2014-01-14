@@ -2,9 +2,7 @@ package com.splicemachine.si;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.si.impl.TransactionStatus;
-
+import com.splicemachine.si.api.TransactionStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
@@ -13,16 +11,18 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Set;
 
 public class SIBrowser extends SIConstants {
     public static void main(String[] args) throws IOException {
@@ -30,6 +30,7 @@ public class SIBrowser extends SIConstants {
         try {
             transactionTable = new HTable(HBaseConfiguration.create(), TRANSACTION_TABLE);
             Scan scan = new Scan();
+            scan.setMaxVersions();
             ResultScanner scanner = transactionTable.getScanner(scan);
             Iterator<Result> results = scanner.iterator();
             Map<Long, Object> x = new HashMap<Long, Object>();
@@ -38,23 +39,34 @@ public class SIBrowser extends SIConstants {
             Result toFind = null;
             while (results.hasNext()) {
                 Result r = results.next();
+                final String rowKey = bytesToString(r.getRow());
                 final long id = getLong(r, Bytes.toBytes(TRANSACTION_ID_COLUMN));
                 Long globalCommit = getLong(r, Bytes.toBytes(TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN));
                 final long beginTimestamp = getLong(r, Bytes.toBytes(TRANSACTION_START_TIMESTAMP_COLUMN));
+                String startTimestamp = getStartTimestamp(r, Bytes.toBytes(TRANSACTION_STATUS_COLUMN));
                 TransactionStatus status = getStatus(r, Bytes.toBytes(TRANSACTION_STATUS_COLUMN));
+                String statusTimestamp = getStatusTimestamp(r, Bytes.toBytes(TRANSACTION_STATUS_COLUMN));
                 Long commitTimestamp = getLong(r, Bytes.toBytes(TRANSACTION_COMMIT_TIMESTAMP_COLUMN));
                 Long counter = getLong(r, Bytes.toBytes(TRANSACTION_COUNTER_COLUMN));
                 Long parent = getLong(r, TRANSACTION_PARENT_COLUMN_BYTES);
                 Boolean writes = getBoolean(r, TRANSACTION_ALLOW_WRITES_COLUMN_BYTES);
+                Boolean additive = getBoolean(r, TRANSACTION_ADDITIVE_COLUMN_BYTES);
                 Boolean dependent = getBoolean(r, TRANSACTION_DEPENDENT_COLUMN_BYTES);
                 Boolean readUncommitted = getBoolean(r, TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES);
                 Boolean readCommitted = getBoolean(r, TRANSACTION_READ_COMMITTED_COLUMN_BYTES);
                 String keepAliveValue = getTimestampString(r, Bytes.toBytes(TRANSACTION_KEEP_ALIVE_COLUMN));
 
-                x.put(id, new Object[]{beginTimestamp, parent, writes, status, commitTimestamp, globalCommit, keepAliveValue, dependent, readUncommitted, readCommitted, counter});
+                Set<String> permissions = new HashSet<String>();
+                Set<String> forbidden = new HashSet<String>();
+                readPermissions(r, permissions, forbidden);
+
+                x.put(id, new Object[]{beginTimestamp, parent, writes, startTimestamp, status, statusTimestamp,
+                        commitTimestamp, globalCommit, keepAliveValue, dependent, additive, readUncommitted, readCommitted, counter,
+                        rowKey, setToString(permissions), setToString(forbidden)});
                 if (idToFind != null && beginTimestamp == idToFind) {
                     toFind = r;
                 }
+
                 //System.out.println(beginTimestamp + " " + status + " " + commitTimestamp);
             }
 
@@ -68,17 +80,17 @@ public class SIBrowser extends SIConstants {
             } else {
                 final ArrayList<Long> list = new ArrayList<Long>(x.keySet());
                 Collections.sort(list);
-                System.out.println("transaction beginTimestamp parent writesAllowed status commitTimestamp globalCommitTimestamp keepAliveTimestamp dependent readUncommitted readCommitted counter");
+                System.out.println("transaction\tbeginTimestamp\tparent\twritesAllowed\tstartClockTime\tstatus\tstatusClockTime\tcommitTimestamp\tglobalCommitTimestamp\tkeepAliveClockTime\tdependent\tadditive\treadUncommitted\treadCommitted\tcounter\trowKey\tpermissions\tforbidden");
                 for (Long k : list) {
                     Object[] v = (Object[]) x.get(k);
-                    System.out.println(k + " " + v[0] + " " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5] + " " + v[6] + " " + v[7] + " " + v[8] + " " + v[9] + " " + v[10]);
+                    System.out.println(k + "\t" + v[0] + "\t" + v[1] + "\t" + v[2] + "\t" + v[3] + "\t" + v[4] + "\t" + v[5] + "\t" + v[6] + "\t" + v[7] + "\t" + v[8] + "\t" + v[9] + "\t" + v[10] + "\t" + v[11] + "\t" + v[12] + "\t" + v[13] + "\t" + v[14] + "\t" + v[15] + "\t" + v[16]);
                 }
 
                 //dumpTable("conglomerates", "16");
                 //dumpTable("SYCOLUMNS_INDEX2", "161");
 
                 //dumpTable("p", "SPLICE_CONGLOMERATE");
-                dumpTable("p2", "1200");
+                //dumpTable("p2", "1200");
             }
         } catch (IOException e) {
             throw e;
@@ -88,13 +100,53 @@ public class SIBrowser extends SIConstants {
         }
     }
 
+    private static void readPermissions(Result r, Set<String> permissions, Set<String> forbidden) {
+        final NavigableMap<byte[],byte[]> permissionMap = r.getFamilyMap(SI_PERMISSION_FAMILY.getBytes());
+        for (byte[] k : permissionMap.keySet()) {
+            final byte[] v = permissionMap.get(k);
+            final String tableName = Bytes.toString(k);
+            if (v[0] == 0) {
+                forbidden.add(tableName);
+            } else if (v[0] == 1) {
+                permissions.add(tableName);
+            } else {
+                throw new RuntimeException("unknown permission value: " + bytesToString(v));
+            }
+        }
+    }
+
+    private static String setToString(Set<String> set) {
+        final StringBuilder result = new StringBuilder("[");
+        for(String s : set) {
+            result.append(" '");
+            result.append(s);
+            result.append("'");
+        }
+        result.append(" ");
+        result.append("]");
+        return result.toString();
+    }
+
+
     private static TransactionStatus getStatus(Result r, byte[] qualifier) {
+        final KeyValue columnLatest = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        columnLatest.getTimestamp();
         final byte[] statusValue = r.getValue(TRANSACTION_FAMILY_BYTES, qualifier);
         TransactionStatus status = null;
         if (statusValue != null) {
             status = TransactionStatus.values()[Bytes.toInt(statusValue)];
         }
         return status;
+    }
+
+    private static String getStatusTimestamp(Result r, byte[] qualifier) {
+        final KeyValue keyValue = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
+        return toTimestampString(keyValue.getTimestamp());
+    }
+
+    private static String getStartTimestamp(Result r, byte[] qualifier) {
+        final List<KeyValue> keyValueList = r.getColumn(TRANSACTION_FAMILY_BYTES, qualifier);
+        return toTimestampString(keyValueList.get(keyValueList.size()-1).getTimestamp());
     }
 
     private static Long getLong(Result r, byte[] qualifier) {
@@ -110,9 +162,13 @@ public class SIBrowser extends SIConstants {
         final KeyValue keepAlive = r.getColumnLatest(TRANSACTION_FAMILY_BYTES, qualifier);
         String keepAliveValue = null;
         if (keepAlive != null) {
-            keepAliveValue = new Timestamp(keepAlive.getTimestamp()).toString();
+            keepAliveValue = toTimestampString(keepAlive.getTimestamp());
         }
         return keepAliveValue;
+    }
+
+    private static String toTimestampString(long timestamp) {
+        return "'" + new Timestamp(timestamp).toString() + "'";
     }
 
     private static Boolean getBoolean(Result r, byte[] qualifier) {
@@ -141,6 +197,9 @@ public class SIBrowser extends SIConstants {
             while (results.hasNext()) {
                 Result r = results.next();
                 final byte[] row = r.getRow();
+                i++;
+                System.out.println(i + " " + bytesToString(row));
+
                 final List<KeyValue> list = r.list();
                 for (KeyValue kv : list) {
                     final byte[] f = kv.getFamily();
@@ -151,34 +210,41 @@ public class SIBrowser extends SIConstants {
                     if (Arrays.equals(SNAPSHOT_ISOLATION_FAMILY_BYTES, f)
                             && Arrays.equals(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, q)) {
                         Long timestamp = null;
-                        if (v.length > 0) {
+                        if (v.length > 1) {
                             timestamp = Bytes.toLong(v);
                         }
                         System.out.println("timestamp " + timestamp + " @ " + ts);
                     } else {
-                        String v2 = Bytes.toString(v);
-                        char qualifier = (char) q[0];
-                        String byteValue = "" + v.length + "[";
-                        for (byte b : v) {
-                            if (b >= 32 && b <= 122) {
-                                char c = (char) b;
-                                byteValue += c;
-                            } else {
-                                byteValue += b;
-                                byteValue += " ";
-                            }
-                        }
-                        byteValue += "]";
-                        System.out.println(Bytes.toString(row) + " " + family + " " + qualifier + " @ " + ts + " " + byteValue + " " + v2);
+                        String byteValue = bytesToString(v);
+                        System.out.println(bytesToString(row) + " " + family + "." + bytesToString(q) + "@ " + ts + " = " + byteValue);
                     }
                 }
-                i++;
-                System.out.println(i + " " + row + " " + BytesUtil.debug(row));
             }
         } catch (IOException e) {
             throw e;
         } finally {
             Closeables.closeQuietly(cTable);
         }
+    }
+
+    public static String bytesToString (byte[] bytes) {
+        if (bytes == null) {
+            return "<null>";
+        } else {
+            return bytesToString(bytes, 0, bytes.length);
+        }
+    }
+
+    public static String bytesToString (byte[] bytes, int offset, int length) {
+        if (bytes == null) {
+            return "<null>";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("[ ");
+        for (int i = offset; i<offset + length; i++) {
+            sb.append(String.format("%02X ", bytes[i]));
+        }
+        sb.append("] ");
+        return sb.toString();
     }
 }

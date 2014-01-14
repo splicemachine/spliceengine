@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -9,9 +10,10 @@ import com.splicemachine.derby.utils.EncodingUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.ConglomerateController;
@@ -28,7 +30,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController {
@@ -159,8 +160,12 @@ public abstract class SpliceController implements ConglomerateController {
 			Get get = SpliceUtils.createGet(loc, destRow, validColumns, transID);
 			Result result = htable.get(get);
             if(result==null||result.isEmpty()) return false;
-            MultiFieldDecoder decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+            EntryDecoder decoder = new EntryDecoder(SpliceDriver.getKryoPool());
             try {
+                for(DataValueDescriptor dvd:destRow){
+                	if (dvd != null)
+                		dvd.restoreToNull();
+                }
                 for(KeyValue kv:result.raw()){
                     RowMarshaller.sparsePacked().decode(kv, destRow, null, decoder);
                 }

@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -21,20 +23,28 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
-import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
  * RowProvider which uses Key-matching to ensure safe execution
  * in the face of multiple RowProviders being used in Parallel.
  *
+ * It handles cases were part of the rows needed for an aggregation /
+ * merge sort are on different sides of a split. One alternative would
+ * be to make sure splits always happen on the right places (aggregation
+ * boundaries...) but this has problems of its own:
+ *  - regions could get very big if the aggregation cardinality is low
+ *  (group by <field with few values>)
+ *  - region splitter would need to know where splits can happen
+ *  - it could create uneven splits 
+ *
  * @author Scott Fines
  *         Created: 1/17/13 2:49 PM
  */
-public class RegionAwareScanner implements Closeable {
+public class RegionAwareScanner implements SpliceResultScanner {
     private static final Logger LOG = Logger.getLogger(RegionAwareScanner.class);
     private final ScanBoundary boundary;
     private final HRegion region;
@@ -54,9 +64,11 @@ public class RegionAwareScanner implements Closeable {
     private byte[] regionStart;
     private final String transactionId;
     private final Scan scan;
-    private byte[] tableName;
-
-    private RegionAwareScanner(String transactionId,
+		private int totalRowsSeen=0;
+		private int lookBehindRowsSeen=0;
+		private int lookAheadRowsSeen=0;
+		private int localRowsSeen =0;
+		private RegionAwareScanner(String transactionId,
                                HTableInterface table,
                                HRegion region,
                                Scan scan,
@@ -98,29 +110,36 @@ public class RegionAwareScanner implements Closeable {
     /**
      * @return the new RowResult in the scan, or {@code null} if no more rows are to be returned.
      */
-    public Result getNextResult(){
+    public Result getNextResult() throws IOException {
         Result currentResult;
-        try{
-	        //get next row from scanner
-	        if(!lookBehindExhausted){
-	            currentResult = lookBehindScanner.next();
-	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
-	            else
-	                lookBehindExhausted=true;
-	        }
-	        if(!localExhausted){
-                keyValues = new ArrayList<KeyValue>();
-	            localExhausted = !localScanner.next(keyValues);
-	            return new Result(keyValues);
-	        }
-	        if(!lookAheadExhausted){
-	            currentResult = lookAheadScanner.next();
-	            if(currentResult!=null&&!currentResult.isEmpty()) return currentResult;
-	            else
-	                lookAheadExhausted = true;
-	        }
-        }catch(IOException ioe){
-            SpliceLogUtils.logAndThrowRuntime(LOG,ioe);
+        //get next row from scanner
+        if(!lookBehindExhausted){
+            currentResult = lookBehindScanner.next();
+            if(currentResult!=null&&!currentResult.isEmpty()) {
+								lookBehindRowsSeen++;
+								return currentResult;
+						}
+            else
+                lookBehindExhausted=true;
+        }
+        if(!localExhausted){
+            if(keyValues==null)
+                keyValues = Lists.newArrayList();
+            keyValues.clear();
+            localExhausted = !localScanner.next(keyValues);
+						if(keyValues.size()>0){
+								localRowsSeen++;
+								return new Result(keyValues);
+						}else
+								localExhausted=true;
+        }
+        if(!lookAheadExhausted){
+            currentResult = lookAheadScanner.next();
+            if(currentResult!=null&&!currentResult.isEmpty()){
+								lookAheadRowsSeen++;
+								return currentResult;
+						}else
+                lookAheadExhausted = true;
         }
         return null;
     }
@@ -138,7 +157,8 @@ public class RegionAwareScanner implements Closeable {
      */
     public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
                                             byte[] tableName,
-                                            byte[] scanStart,byte[] scanFinish){
+                                            byte[] scanStart,
+                                            byte[] scanFinish){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
         return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary);
     }
@@ -159,11 +179,37 @@ public class RegionAwareScanner implements Closeable {
     }
 
     @Override
-    public void close() throws IOException{
+    public Result next() throws IOException {
+        return getNextResult();
+    }
+
+    @Override
+    public Result[] next(int nbRows) throws IOException {
+        List<Result> results = Lists.newArrayListWithExpectedSize(nbRows);
+        for(int i=0;i<nbRows;i++){
+            Result r = next();
+            if(r==null) break;
+            results.add(r);
+        }
+
+        return results.toArray(new Result[results.size()]);
+    }
+
+    @Override
+    public void close() {
+				if(LOG.isDebugEnabled()){
+						LOG.debug(String.format("Saw %d rows from lookBehind scanner",lookBehindRowsSeen));
+						LOG.debug(String.format("Saw %d rows from local scanner",localRowsSeen));
+						LOG.debug(String.format("Saw %d rows from lookAhead scanner",lookAheadRowsSeen));
+				}
         if(lookBehindScanner !=null) lookBehindScanner.close();
         if(lookAheadScanner!=null) lookAheadScanner.close();
-        if(localScanner!=null) localScanner.close();
-        if(table!=null) table.close();
+        try{
+            if(localScanner!=null) localScanner.close();
+            if(table!=null) table.close();
+        }catch(IOException ioe){
+            throw new RuntimeException(ioe);
+        }
     }
 
     private void buildScans() throws IOException {
@@ -183,13 +229,13 @@ public class RegionAwareScanner implements Closeable {
         }
         Scan localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
-        localScanner = region.getScanner(localScan);
+        localScanner = new BufferedRegionScanner(region,region.getScanner(localScan),localScan.getCaching());
         if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
             lookBehindScanner = table.getScanner(lookBehindScan);
         }if(remoteFinish!=null){
-            Scan lookAheadScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
+            Scan lookAheadScan = boundary.buildScan(transactionId,regionFinish,remoteFinish);
             lookAheadScan.setFilter(scan.getFilter());
             lookAheadScanner = table.getScanner(lookAheadScan);
         }
@@ -246,8 +292,9 @@ public class RegionAwareScanner implements Closeable {
     }
     private void handleStartOfRegion() throws IOException {
         byte[] scanStart = scan.getStartRow();
+        byte[] scanStop = scan.getStopRow();
         //deal with the start of the region
-        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0){
+        if(Bytes.compareTo(scanStart,regionStart)>=0||regionStart.length<=0||BytesUtil.intersect(scanStart, scanStop, regionStart, regionFinish) == null){
             //cool, no remoteStarts!
             localStart = scanStart;
             lookBehindExhausted=true;
@@ -260,7 +307,7 @@ public class RegionAwareScanner implements Closeable {
             startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
             RegionScanner localScanner = null;
             try{
-                localScanner = region.getScanner(startScan);
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan.getCaching());
                 List<KeyValue> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {
@@ -301,7 +348,7 @@ public class RegionAwareScanner implements Closeable {
         }
         /*
          * If we have no transaction id, we need to make sure and remove the SI Filter from the list,
-         * because otherwise shit'll break
+         * because otherwise it'll break
          */
         if(filter instanceof SIFilter) return null;
         else if(filter instanceof FilterList){
@@ -329,6 +376,11 @@ public class RegionAwareScanner implements Closeable {
     }
 
     public byte[] getTableName() {
-        return tableName;
+        return region.getTableDesc().getName();
+    }
+
+    @Override
+    public Iterator<Result> iterator() {
+        return null;
     }
 }

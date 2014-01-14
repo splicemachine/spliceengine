@@ -17,18 +17,16 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     private final DataStore dataStore;
     private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
             Hashable, Mutation, IHTable, Scanner> simpleFilter;
-    private final RowAccumulator<Data> accumulator;
-    private Data qualifier = null;
-    private Data family = null;
-    private Data rowKey = null;
-    private Long timestamp = null;
+    private final RowAccumulator<Data,KeyValue> accumulator;
+    private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
+    private boolean siNullSkip = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
                                      OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
-                             RowAccumulator<Data> accumulator) {
+                             RowAccumulator<Data,KeyValue> accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
         this.dataStore = dataStore;
@@ -47,11 +45,12 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
             case OTHER:
                 return simpleFilter.filterByColumnType();
             case USER_DATA:
-                if (dataStore.isSINull(simpleFilter.keyValue.value())) {
-                    final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
+                if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) {
+                	final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
                     switch (returnCode) {
                         case INCLUDE:
                         case INCLUDE_AND_NEXT_COL:
+                        	siNullSkip = true;
                             return Filter.ReturnCode.NEXT_COL;
                         case SKIP:
                         case NEXT_COL:
@@ -60,8 +59,8 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                         default:
                             throw new RuntimeException("unknown return code");
                     }
-                } else if (accumulator.isOfInterest(simpleFilter.keyValue.value())) {
-                    return accumulateUserData(dataKeyValue);
+                } else if (accumulator.isOfInterest(simpleFilter.keyValue.keyValue()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
+                	return accumulateUserData(dataKeyValue);
                 } else {
                     if (!hasAccumulation) {
                         final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
@@ -81,10 +80,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
 
     private void accumulated() {
         hasAccumulation = true;
-        family = simpleFilter.keyValue.family();
-        qualifier = simpleFilter.keyValue.qualifier();
-        timestamp = simpleFilter.keyValue.timestamp();
-        rowKey = simpleFilter.keyValue.row();
+        accumulatedKeyValue = simpleFilter.keyValue.keyValue();
     }
 
     private Filter.ReturnCode accumulateUserData(KeyValue dataKeyValue) throws IOException {
@@ -92,14 +88,14 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         switch (returnCode) {
             case INCLUDE:
             case INCLUDE_AND_NEXT_COL:
-                if (!accumulator.accumulate(simpleFilter.keyValue.value())) {
+                if (!accumulator.accumulate(simpleFilter.keyValue.keyValue())) {
                     excludeRow = true;
                     return Filter.ReturnCode.NEXT_COL;
                 }
                 if (hasAccumulation) {
-                    if (!dataLib.valuesEqual(family, simpleFilter.keyValue.family()) ||
-                            !dataLib.valuesEqual(rowKey, simpleFilter.keyValue.row()) ||
-                            !dataLib.valuesEqual(qualifier, simpleFilter.keyValue.qualifier())) {
+                    if (!dataLib.matchingFamilyKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !dataLib.matchingRowKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !dataLib.matchingQualifierKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue())) {
                         throw new RuntimeException("key value mis-match");
                     }
                 } else {
@@ -123,7 +119,7 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         if (hasAccumulation) {
             final Data resultData = accumulator.result();
             if (resultData != null) {
-                final KeyValue keyValue = dataLib.newKeyValue(rowKey, family, qualifier, timestamp, resultData);
+                final KeyValue keyValue = dataLib.newKeyValue(accumulatedKeyValue, resultData);
                 return keyValue;
             } else {
                 excludeRow = true;
@@ -144,10 +140,8 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         simpleFilter.nextRow();
         hasAccumulation = false;
         excludeRow = false;
-        qualifier = null;
-        family = null;
-        rowKey = null;
-        timestamp = null;
+        accumulatedKeyValue = null;
+        siNullSkip = false;
     }
 
 }

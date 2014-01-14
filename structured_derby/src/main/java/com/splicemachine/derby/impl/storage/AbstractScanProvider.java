@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -30,22 +32,23 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
     protected ExecRow currentRow;
     protected RowLocation currentRowLocation;
 
-    protected FormatableBitSet fbt;
     protected int called = 0;
-    protected RowDecoder decoder;
+    protected PairDecoder decoder;
 
     protected TaskStats.SinkAccumulator accumulator;
     private final String type;
-    private RowDecoder rowDecoder;
 
-    protected AbstractScanProvider(RowDecoder decoder,String type){
+    protected AbstractScanProvider(PairDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
         this.decoder = decoder;
         this.type = type;
+        this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     protected AbstractScanProvider(AbstractScanProvider copy){
         this.type = copy.type;
         this.decoder = copy.decoder;
+        this.spliceRuntimeContext = copy.spliceRuntimeContext;
+
     }
 
     @Override
@@ -60,8 +63,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
 	@Override
-    public boolean hasNext() throws StandardException {
-
+    public boolean hasNext() throws StandardException,IOException {
         if(populated)return true;
         called++;
         if(accumulator==null){
@@ -72,26 +74,32 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
-            currentRow = decoder.decode(result.raw());
+            currentRow = decoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
 
-            accumulator.readAccumulator().tick(System.nanoTime()-start);
+            if(accumulator.readAccumulator().shouldCollectStats()){
+                accumulator.readAccumulator().tick(System.nanoTime()-start);
+            }else{
+                accumulator.readAccumulator().tickRecords();
+            }
+
             return true;
         }
+        currentRowLocation=null;
         SpliceLogUtils.trace(LOG,"no result returned");
         return false;
 	}
 
-	public abstract Result getResult() throws StandardException;
+	public abstract Result getResult() throws StandardException,IOException;
 
     public ExecRow getRowTemplate(){
         return decoder.getTemplate();
     }
 
 	@Override
-	public ExecRow next() throws StandardException{
+	public ExecRow next() throws StandardException,IOException{
 		SpliceLogUtils.trace(LOG, "next");
 		if(!hasNext()) throw new NoSuchElementException();
 		populated =false;
@@ -99,7 +107,7 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 	}
 
     @Override
-    public void close() {
+    public void close() throws StandardException {
         if(accumulator!=null){
             TaskStats finish = accumulator.finish();
             JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.Encoding;
@@ -9,6 +10,8 @@ import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResourcePool;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.services.context.ContextManager;
+import org.apache.derby.iapi.services.context.ContextService;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.ColumnDescriptorList;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -159,15 +162,20 @@ public class Sequence {
         private long autoIncrement;
 
         private boolean systemTableSearched = false;
+        private final DataDictionary metaDictionary;
 
         public Key(HTableInterface table,
                    byte[] sysColumnsRow,
-                   String txnId,long seqConglomId,int columnNum) {
+                   String txnId,
+                   long seqConglomId,
+                   int columnNum,
+                   DataDictionary metaDictionary) {
             this.sysColumnsRow = sysColumnsRow;
             this.table = table;
             this.txnId = txnId;
             this.seqConglomId = seqConglomId;
             this.columnNum = columnNum;
+            this.metaDictionary = metaDictionary;
         }
 
         public byte[] getSysColumnsRow(){
@@ -207,41 +215,18 @@ public class Sequence {
 
         private void getStartAndIncrementFromSystemTables() throws StandardException {
             if(systemTableSearched) return;
-            SpliceTransactionResourceImpl stri = null;
-//            ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
-            try{
-                stri = new SpliceTransactionResourceImpl();
-//                //get a read-only child transaction
-                final TransactorControl transactor = HTransactorFactory.getTransactorControl();
-                TransactionId parent = transactor.transactionIdFromString(txnId);
-                TransactionId child = transactor.beginChildTransaction(parent,false,false);
-                try{
-                    stri.marshallTransaction(txnId);
-
-                    DataDictionary dd = stri.getDatabase().getDataDictionary();
-                    ConglomerateDescriptor conglomerateDescriptor = dd.getConglomerateDescriptor(seqConglomId);
-                    TableDescriptor tableDescriptor = dd.getTableDescriptor(conglomerateDescriptor.getTableID());
-                    ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
-                    for(Object o:columnDescriptorList){
-                        ColumnDescriptor cd = (ColumnDescriptor)o;
-                        if(cd.getPosition()==columnNum){
-                            autoIncStart = cd.getAutoincStart();
-                            autoIncrement = cd.getAutoincInc();
-                            break;
-                        }
-                    }
-                    systemTableSearched = true;
-                }finally{
-                    transactor.commit(child);
+            ConglomerateDescriptor conglomerateDescriptor = metaDictionary.getConglomerateDescriptor(seqConglomId);
+            TableDescriptor tableDescriptor = metaDictionary.getTableDescriptor(conglomerateDescriptor.getTableID());
+            ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
+            for(Object o:columnDescriptorList){
+                ColumnDescriptor cd = (ColumnDescriptor)o;
+                if(cd.getPosition()==columnNum){
+                    autoIncStart = cd.getAutoincStart();
+                    autoIncrement = cd.getAutoincInc();
+                    break;
                 }
-            } catch (SQLException e) {
-                throw Exceptions.parseException(e);
-            } catch(IOException ioe){
-                throw Exceptions.parseException(ioe);
-            }finally{
-                if(stri!=null)
-                    stri.restoreContextStack();
             }
+            systemTableSearched = true;
         }
     }
 }

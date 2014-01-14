@@ -31,14 +31,14 @@ public class ExternalizableSerializer extends Serializer<Externalizable> {
             KryoObjectInput koi = new KryoObjectInput(input,kryo);
             e.readExternal(koi);
             return e;
-        } catch (InstantiationException e1) {
-            throw new RuntimeException(e1);
-        } catch (IllegalAccessException e1) {
-            throw new RuntimeException(e1);
         } catch (IOException e1) {
             throw new RuntimeException(e1);
         } catch (ClassNotFoundException e1) {
             throw new RuntimeException(e1);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 }

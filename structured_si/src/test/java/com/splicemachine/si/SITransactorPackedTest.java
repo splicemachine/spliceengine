@@ -12,27 +12,7 @@ public class SITransactorPackedTest extends SITransactorTest {
     }
 
     @Test
-    public void writeScanWithDeleteActiveUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanTwoVersionsUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
     public void writeReadViaFilterResult() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanWithManyDeletesUncommittedAsOfStart() throws IOException {
-        // temporarily mask test in parent class
-    }
-
-    @Test
-    public void writeScanMixSameRowUncommittedAsOfStart() throws IOException {
         // temporarily mask test in parent class
     }
 }

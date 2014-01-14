@@ -1,31 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.google.common.base.Throwables;
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.Mutations;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.BatchProtocol;
+import com.splicemachine.hbase.batch.WriteContext;
+import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.*;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.utils.ByteDataOutput;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.storage.SparseEntryAccumulator;
+
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,14 +29,47 @@ import java.util.List;
 public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     private final List<KVPair> deletes = Lists.newArrayListWithExpectedSize(0);
+    private final IndexTransformer transformer;
+    private CallBuffer<KVPair> indexBuffer;
+    private final int expectedWrites;
 
-    public IndexDeleteWriteHandler(BitSet indexedColumns,int[] mainColToIndexPosMap,byte[] indexConglomBytes,BitSet descColumns, boolean keepState){
+    public IndexDeleteWriteHandler(BitSet indexedColumns,
+                                   int[] mainColToIndexPosMap,
+                                   byte[] indexConglomBytes,
+                                   BitSet descColumns,
+                                   boolean keepState,
+                                   int expectedWrites){
+        this(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState,false,expectedWrites);
+    }
+
+    public IndexDeleteWriteHandler(BitSet indexedColumns,
+                                   int[] mainColToIndexPosMap,
+                                   byte[] indexConglomBytes,
+                                   BitSet descColumns,
+                                   boolean keepState,
+                                   boolean unique,
+                                   int expectedWrites){
         super(indexedColumns,mainColToIndexPosMap,indexConglomBytes,descColumns,keepState);
+        BitSet nonUniqueIndexColumn = (BitSet)translatedIndexColumns.clone();
+        nonUniqueIndexColumn.set(translatedIndexColumns.length());
+        this.expectedWrites = expectedWrites;
+        this.transformer = new IndexTransformer(indexedColumns,
+                translatedIndexColumns,
+                nonUniqueIndexColumn,
+                descColumns,mainColToIndexPosMap,unique);
     }
 
     @Override
     protected boolean updateIndex(KVPair mutation, WriteContext ctx) {
         if(mutation.getType()!= KVPair.Type.DELETE) return true;
+        if(indexBuffer==null){
+            try{
+                indexBuffer = getWriteBuffer(ctx,expectedWrites);
+            }catch(Exception e){
+                ctx.failed(mutation,WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+                failed=true;
+            }
+        }
 
         delete(mutation,ctx);
         return !failed;
@@ -51,41 +77,23 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected void finish(final WriteContext ctx) throws Exception {
-        for(final KVPair delete:deletes){
-            if(failed){
-                ctx.notRun(delete);
-            }else{
-                final byte[] indexStop = BytesUtil.unsignedCopyAndIncrement(delete.getRow());
-                HTableInterface table = ctx.getHTable(indexConglomBytes);
-                try {
-                    table.coprocessorExec(BatchProtocol.class,
-                            delete.getRow(),indexStop,new Batch.Call<BatchProtocol, WriteResult>() {
-                        @Override
-                        public WriteResult call(BatchProtocol instance) throws IOException {
-                            return instance.deleteFirstAfter(
-                                    ctx.getTransactionId(),delete.getRow(),indexStop);
-                        }
-                    });
-                } catch (Throwable throwable) {
-                    //noinspection ThrowableResultOfMethodCallIgnored
-                    Throwable t = Throwables.getRootCause(throwable);
-                    ctx.failed(delete, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
-                    failed=true;
-                }
-            }
+        if(indexBuffer!=null){
+            indexBuffer.flushBuffer();
+            indexBuffer.close();
         }
     }
 
     private void delete(KVPair mutation, WriteContext ctx) {
         /*
-         * Deleting a row involves first getting the row, then
-         * constructing an index row key from the row, then issuing a
-         * delete request against the index.
+         * To delete the correct row, we do the following:
+         *
+         * 1. do a Get() on all the indexed columns of the main table
+         * 2. transform the results into an index row (as if we were inserting it)
+         * 3. issue a delete against the index table
          */
         try {
-
             Get get = SpliceUtils.createGet(ctx.getTransactionId(), mutation.getRow());
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, Collections.<Predicate>emptyList(),true);
+            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
             get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
             Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){
@@ -94,41 +102,30 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
                 return;
             }
 
-            EntryDecoder getDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
-            try{
-                getDecoder.set(result.getValue(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY));
-
-                EntryAccumulator indexKeyAccumulator = new SparseEntryAccumulator(null,indexedColumns,false);
-                BitIndex getIndex = getDecoder.getCurrentIndex();
-                MultiFieldDecoder fieldDecoder = getDecoder.getEntryDecoder();
-                for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
-                    if(descColumns.get(i))
-                        accumulate(indexKeyAccumulator,getIndex,getDescendingBuffer(getDecoder.nextAsBuffer(fieldDecoder,i)),i);
-                    else
-                        accumulate(indexKeyAccumulator,getIndex,getDecoder.nextAsBuffer(fieldDecoder,i),i);
+            KeyValue resultValue = null;
+            for(KeyValue value:result.raw()){
+                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
+                    resultValue = value;
+                    break;
                 }
-
-                byte[] indexRowKey = indexKeyAccumulator.finish();
-
-                KVPair delete = KVPair.delete(indexRowKey);
-                if(keepState)
-                    indexToMainMutationMap.put(delete,mutation);
-
-                performDelete(delete,ctx);
-            }finally{
-                getDecoder.close();
             }
-
+            KVPair resultPair = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
+            KVPair indexDelete = transformer.translate(resultPair);
+            indexBuffer.add(indexDelete);
         } catch (IOException e) {
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
         }
     }
 
-    protected void performDelete(final KVPair deleteOp, WriteContext ctx) throws Exception {
-        deletes.add(deleteOp);
-    }
+	@Override
+	public void next(List<KVPair> mutations, WriteContext ctx) {
+		// XXX JLEACH TODO
+		throw new RuntimeException("Not Supported");
+	}
+
 }

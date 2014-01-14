@@ -1,10 +1,13 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.derby.iapi.storage.RowProvider;
+
+import java.io.IOException;
 import java.util.List;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.derby.utils.marshall.RowEncoder;
+
+import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
@@ -17,7 +20,7 @@ import org.apache.derby.iapi.types.RowLocation;
  *
  */
 
-public interface SpliceOperation extends NoPutResultSet {
+public interface SpliceOperation  {
 
     RowLocation getCurrentRowLocation();
 
@@ -35,85 +38,83 @@ public interface SpliceOperation extends NoPutResultSet {
 	 *  
 	 */
 	public enum NodeType { SCAN, MAP, REDUCE, SINK, SCROLL}
-	
-	/**
-	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
-	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
-	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
-	
-	/**
-	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
-	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
-	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException;
 
-    /**
-     * Encoder for writing ExecRows into HBase (temp table or other location).
-     *
-     * @return
-     * @throws StandardException
-     */
-    public RowEncoder getRowEncoder() throws StandardException;
+    public int modifiedRowCount();
+
+    public Activation getActivation();
+
+    public void clearCurrentRow();
+
+    public void close() throws StandardException,IOException;
+
+    public void markAsTopResultSet();
+
+    public void open() throws StandardException,IOException;
+
+    public int resultSetNumber();
+
+    public void setCurrentRow(ExecRow row);
+
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
+
+	/**
+	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
+	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
+	 */
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+	
+	/**
+	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
+	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
+	 */
+	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 
-	 * @param statement
-	 * @param llc
-	 * @throws StandardException 
+	 * @throws StandardException
 	 */
 	public void init(SpliceOperationContext operationContext) throws StandardException;
 
 	/**
-	 * Cleanup any node external connections or resources.
-	 * 
-	 * @param statement
-	 * @param llc
-	 */
-	public void cleanup();
-	/**
 	 * List of Node Types that determine the Operation's behaviour pattern.
 	 * 
-	 * @param statement
-	 * @param llc
 	 */
 	public List<NodeType> getNodeTypes();
+
 	/**
 	 * Set of operations for a node.
 	 * 
-	 * @param statement
-	 * @param llc
 	 */
 	public List<SpliceOperation> getSubOperations();
+
 	/**
 	 * Unique node sequence id.  Should move from Zookeeper to uuid generator.
 	 * 
-	 * @param statement
-	 * @param llc
 	 */
-	public String getUniqueSequenceID();
+	public byte[] getUniqueSequenceID();
 	/**
 	 * Execute a sink operation.  Must be a sink node.  This operation will be called from the OperationTree. 
 	 * 
-	 * @param statement
-	 * @param llc
-	 * 
 	 * @see com.splicemachine.derby.impl.sql.execute.operations.OperationTree
 	 */
-	public void executeShuffle() throws StandardException;
+	public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException;
 	/**
 	 * 
 	 * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.
 	 * 
 	 * @return
 	 */
-	public NoPutResultSet executeScan() throws StandardException;
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException;
+
 	/**
 	 * 
 	 * Probe scan for hash joins.  This may not belong in the interface and is just a once off.
 	 * 
-	 * @param activation
-	 * @param operations
 	 * @return
 	 */
 	public NoPutResultSet executeProbeScan() throws StandardException;
@@ -169,7 +170,7 @@ public interface SpliceOperation extends NoPutResultSet {
      * @param tableNumber
      * @return
      */
-    int[] getRootAccessedCols(long tableNumber);
+    int[] getRootAccessedCols(long tableNumber) throws StandardException;
 
     /**
      * Returns true if this operation references the given table number.  For a join,

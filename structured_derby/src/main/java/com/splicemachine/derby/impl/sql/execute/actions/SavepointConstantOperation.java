@@ -44,7 +44,7 @@ public class SavepointConstantOperation extends DDLConstantOperation {
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
         throw StandardException.newException(MessageId.SPLICE_UNSUPPORTED_OPERATION, getClass().getSimpleName());
 //		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 //			//Bug 4507 - savepoint not allowed inside trigger

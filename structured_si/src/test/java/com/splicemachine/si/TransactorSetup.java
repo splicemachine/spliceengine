@@ -3,6 +3,7 @@ package com.splicemachine.si;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.ClientTransactor;
+import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -10,9 +11,9 @@ import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
 import com.splicemachine.si.impl.CacheMap;
 import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.ImmutableTransaction;
-import com.splicemachine.si.impl.RollForwardQueue;
+import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.impl.PermissionArgs;
 import com.splicemachine.si.impl.SITransactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
@@ -23,8 +24,8 @@ import java.util.Map;
 
 public class TransactorSetup extends SIConstants {
     final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
-            -1, "id", "begin", "parent", "dependent", "allowWrites", "readUncommited", "readCommitted",
-            "keepAlive", "status", "commit", "globalCommit", "counter");
+            "permissionFamily", -1, "id", "begin", "parent", "dependent", "allowWrites", "additive", "readUncommited",
+            "readCommitted", "keepAlive", "status", "commit", "globalCommit", "counter");
     Object family;
     Object ageQualifier;
     Object jobQualifier;
@@ -37,6 +38,7 @@ public class TransactorSetup extends SIConstants {
     public final TransactionStore transactionStore;
     public RollForwardQueue rollForwardQueue;
     public DataStore dataStore;
+    public TimestampSource timestampSource = new SimpleTimestampSource();
 
     public TransactorSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();
@@ -53,18 +55,20 @@ public class TransactorSetup extends SIConstants {
         final Map<Long, Transaction> cache = CacheMap.makeCache(true);
         final Map<Long, Transaction> committedCache = CacheMap.makeCache(true);
         final Map<Long, Transaction> failedCache = CacheMap.makeCache(true);
+        final Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
         final ManagedTransactor listener = new ManagedTransactor();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
-                cache, committedCache, failedCache, 1000, listener);
+                cache, committedCache, failedCache, permissionCache, 1000, listener);
 
         final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
         final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
         dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
-                "si_include_uncommitted_as_of_start", 1, "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
+                "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
                 commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
-        transactor = new SITransactor(new SimpleTimestampSource(), dataLib, writer,
+        timestampSource = new SimpleTimestampSource();
+        transactor = new SITransactor(timestampSource, dataLib, writer,
                 dataStore,
                 transactionStore, storeSetup.getClock(), 1500, storeSetup.getHasher(), listener);
         if (!simple) {

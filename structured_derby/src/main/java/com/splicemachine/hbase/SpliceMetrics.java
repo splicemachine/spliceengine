@@ -91,12 +91,12 @@ public class SpliceMetrics implements Updater {
             totalCancelledTasks.pushMetric(this.taskMetrics);
 
             //get current view of the Job Scheduler
-            JobSchedulerManagement jobManagement = SpliceDriver.driver().getJobSchedulerManagement();
-            numRunningJobs.set(jobManagement.getNumRunningJobs());
-            totalSubmittedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalCompletedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalFailedJobs.set(jobManagement.getTotalSubmittedJobs());
-            totalCancelledJobs.set(jobManagement.getTotalSubmittedJobs());
+//            JobSchedulerManagement jobManagement = SpliceDriver.driver().getJobSchedulerManagement();
+//            numRunningJobs.set(jobManagement.getNumRunningJobs());
+//            totalSubmittedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalCompletedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalFailedJobs.set(jobManagement.getTotalSubmittedJobs());
+//            totalCancelledJobs.set(jobManagement.getTotalSubmittedJobs());
 
             numRunningJobs.pushMetric(this.jobMetrics);
             totalSubmittedJobs.pushMetric(this.jobMetrics);
@@ -105,7 +105,7 @@ public class SpliceMetrics implements Updater {
             totalCompletedJobs.pushMetric(this.jobMetrics);
 
             /*get TableWriter statistics*/
-            WriteCoordinator writer = SpliceDriver.driver().getTableWriter();
+//             writer = SpliceDriver.driver().getTableWriter();
 //            maxBufferHeapSizeWriter.set(writer.getMaxBufferHeapSize());
 //            maxBufferEntriesWriter.set(writer.getMaxBufferEntries());
 //            maxFlushesPerBufferWriter.set(writer.getMaxFlushesPerBuffer());

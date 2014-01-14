@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableHashtable;
@@ -53,9 +58,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		super();
 	}
 	
-	public JoinOperation(NoPutResultSet leftResultSet,
+	public JoinOperation(SpliceOperation leftResultSet,
 			   int leftNumCols,
-			   NoPutResultSet rightResultSet,
+			   SpliceOperation rightResultSet,
 			   int rightNumCols,
 			   Activation activation,
 			   GeneratedMethod restriction,
@@ -72,16 +77,14 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		this.notExistsRightSide = notExistsRightSide;
 		this.userSuppliedOptimizerOverrides = userSuppliedOptimizerOverrides;
 		this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
-		this.leftResultSet = (SpliceOperation) leftResultSet;
+		this.leftResultSet = leftResultSet;
 		this.leftResultSetNumber = leftResultSet.resultSetNumber();
-		this.rightResultSet = (SpliceOperation) rightResultSet;
+		this.rightResultSet = rightResultSet;
 		recordConstructorTime();
 	}
 	
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("readExternal");
 		super.readExternal(in);
 		leftResultSetNumber = in.readInt();
 		leftNumCols = in.readInt();
@@ -99,8 +102,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("writeExternal");
 		super.writeExternal(out);
 		out.writeInt(leftResultSetNumber);
 		out.writeInt(leftNumCols);
@@ -136,30 +137,17 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         SpliceLogUtils.trace(LOG, "leftResultSet=%s,rightResultSet=%s", leftResultSet, rightResultSet);
         leftRow = ((SpliceOperation) this.leftResultSet).getExecRowDefinition();
         rightRow = ((SpliceOperation) this.rightResultSet).getExecRowDefinition();
+        mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         SpliceLogUtils.trace(LOG, "leftRow=%s,rightRow=%s", leftRow, rightRow);
     }
 
-    protected int[] generateHashKeys(int hashKeyItem, SpliceBaseOperation resultSet) {
-
-        FormatableHashtable hashKeyInfo =  (FormatableHashtable) activation.getPreparedStatement().getSavedObject(hashKeyItem);
-
-        FormatableArrayHolder fah = (FormatableArrayHolder) hashKeyInfo.get(JoinNode.HASH_KEYS_ARRAY_KEY);
-        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-
-        FormatableLongHolder tableNumber = (FormatableLongHolder) hashKeyInfo.get(JoinNode.TABLE_NUMBER_KEY);
-
-        int[] rootAccessedCols = resultSet.getRootAccessedCols(tableNumber.getLong());
-        int[] keyColumns = new int[fihArray.length];
-
-        for(int i=0;i<fihArray.length;i++){
-            keyColumns[i] = rootAccessedCols != null ? rootAccessedCols[fihArray[i].getInt()-1] : fihArray[i].getInt()-1;
+    protected int[] generateHashKeys(int hashKeyItem) {
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) activation.getPreparedStatement().getSavedObject(hashKeyItem);
+        int[] cols = new int[fihArray.length];
+        for (int i = 0, s = fihArray.length; i < s; i++){
+            cols[i] = fihArray[i].getInt();
         }
-        return keyColumns;
-	}
-
-	@Override
-	public void cleanup() {
-		SpliceLogUtils.trace(LOG, "cleanup");
+        return cols;
 	}
 
 	public SpliceOperation getRightResultSet() {
@@ -172,13 +160,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public SpliceOperation getLeftOperation() {
-//		SpliceLogUtils.trace(LOG,"getLeftOperation");
 		return leftResultSet;
 	}
 
 	@Override
 	public SpliceOperation getRightOperation() {
-//		SpliceLogUtils.trace(LOG,"getRightOperation");
 		return rightResultSet;
 	}
 
@@ -205,18 +191,17 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	
 	@Override
 	public String toString() {
-		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",resultSetNumber,leftResultSet,rightResultSet);
+		return String.format("JoinOperation {resultSetNumber=%d,left=%s,right=%s}",operationInformation.getResultSetNumber(),leftResultSet,rightResultSet);
 	}
 	@Override
-	public void	close() throws StandardException
-	{
-		SpliceLogUtils.trace(LOG, "close in Join");
-		if ( isOpen )
-	    {
+	public void	close() throws StandardException, IOException {
+			super.close();
+//		SpliceLogUtils.trace(LOG, "close in Join");
+//		if ( isOpen )
+//	    {
 	        leftResultSet.close();
 	        rightResultSet.close();
-			super.close();
-	    }
+//	    }
 		
 		leftRow = null;
 		rightRow = null;
@@ -224,14 +209,14 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	}
 
     @Override
-    public void openCore() throws StandardException {
-        super.openCore();
-        leftResultSet.openCore();
-        rightResultSet.openCore();
+    public void open() throws StandardException,IOException {
+        super.open();
+        leftResultSet.open();
+        rightResultSet.open();
     }
 
     @Override
-     public int[] getRootAccessedCols(long tableNumber) {
+     public int[] getRootAccessedCols(long tableNumber) throws StandardException {
 
         int[] rootCols = null;
 
@@ -256,7 +241,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         String indent = "\n"+Strings.repeat("\t",indentLevel);
 
         return new StringBuilder()
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
+                .append(indent).append("resultSetNumber:").append(operationInformation.getResultSetNumber())
                 .append(indent).append("leftNumCols:").append(leftNumCols).append(",")
                 .append(indent).append("leftResultSetNumber:").append(leftResultSetNumber)
                 .append(indent).append("leftResultSet:").append(leftResultSet.prettyPrint(indentLevel+1))
@@ -265,4 +250,28 @@ public abstract class JoinOperation extends SpliceBaseOperation {
                 .append(indent).append("restrictionMethodName:").append(restrictionMethodName)
                 .toString();
     }
+
+    @Override
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
+
+		@Override
+		public ExecRow getExecRowDefinition() throws StandardException {
+				if(mergedRow==null)
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols+rightNumCols);
+				JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(),false,rightNumCols,leftNumCols,mergedRow);
+				return mergedRow;
+		}
+
+		@Override
+		public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				SpliceLogUtils.trace(LOG, "executeScan");
+				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext));
+		}
 }

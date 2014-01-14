@@ -3,13 +3,12 @@ package com.splicemachine.derby.impl.db;
 import java.util.*;
 
 import javax.security.auth.login.Configuration;
+
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
-import com.splicemachine.derby.impl.ast.ISpliceVisitor;
-import com.splicemachine.derby.impl.ast.JoinConditionVisitor;
-import com.splicemachine.derby.impl.ast.RepeatedPredicateVisitor;
-import com.splicemachine.derby.impl.ast.SpliceASTWalker;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.impl.ast.*;
 import com.splicemachine.derby.utils.Exceptions;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.monitor.Monitor;
@@ -22,6 +21,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.db.BasicDatabase;
 import org.apache.derby.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
@@ -38,7 +38,7 @@ public class SpliceDatabase extends BasicDatabase {
          * they may be materialized over the wire and it won't work right. DO NOT CHANGE THIS SETTING.
          * See Bug #292 for more information.
          */
-        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
+//        System.setProperty("derby.language.maxMemoryPerTable",Integer.toString(-1));
 	    //SanityManager.DEBUG_SET("ByteCodeGenInstr");
         if(SpliceConstants.dumpClassFile)
     	    SanityManager.DEBUG_SET("DumpClassFile");
@@ -73,16 +73,22 @@ public class SpliceDatabase extends BasicDatabase {
 
         LanguageConnectionContext lctx = super.setupConnection(cm, user, drdaID, dbname);
 
+        DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
+
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
         afterOptVisitors.add(AssignRSNVisitor.class);
-        afterOptVisitors.add(JoinConditionVisitor.class);
+        afterOptVisitors.add(JoinSelector.class);
+        afterOptVisitors.add(MSJJoinConditionVisitor.class);
+        afterOptVisitors.add(FindHashJoinColumns.class);
+        afterOptVisitors.add(FixSubqueryColRefs.class);
+        afterOptVisitors.add(PlanPrinter.class);
 
         List<Class<? extends ISpliceVisitor>> afterBindVisitors = new ArrayList<Class<? extends ISpliceVisitor>>(1);
         afterBindVisitors.add(RepeatedPredicateVisitor.class);
 
         lctx.setASTVisitor(new SpliceASTWalker(Collections.EMPTY_LIST, afterBindVisitors, afterOptVisitors));
 
-		   return lctx;
+		return lctx;
 	   }
 
 

@@ -156,7 +156,8 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
 
     @Override
     public DataValueDescriptor recycle() {
-        return null;
+        restoreToNull();
+        return this;
     }
 
     @Override
@@ -165,30 +166,13 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-
-        out.writeInt(typeFormatId);
-        out.writeBoolean(sdv != null);
-        writeDvdBytes(out);
-
-    }
-
-    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
-        StringDataValue extSDV = null;
+        super.readExternal(in);
+        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeFormatId);
 
-        int typeId = in.readInt();
-
-        if(in.readBoolean()){
-            extSDV = (StringDataValue) createNullDVD(typeId);
-        }
-
-        readDvdBytes(in);
-
-        DVDSerializer extSerializer = LazyDataValueFactory.getDVDSerializer(typeId);
-
-        init(extSDV, extSerializer);
+        sdv = (StringDataValue)dvd;
+        init(sdv, extSerializer);
     }
 
     public String toString() {

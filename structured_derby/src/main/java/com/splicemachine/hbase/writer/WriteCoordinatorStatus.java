@@ -4,7 +4,7 @@ import javax.management.MXBean;
 
 /**
  * @author Scott Fines
- *         Created on: 8/14/13
+ * Created on: 8/14/13
  */
 @MXBean
 public interface WriteCoordinatorStatus {
@@ -24,4 +24,10 @@ public interface WriteCoordinatorStatus {
     long getPauseTime();
 
     void setPauseTime(long newPauseTimeMs);
+
+    int getMaxFlushesPerRegion();
+
+    void setMaxFlushesPerRegion(int newMaxFlushesPerRegion);
+
+    long getSynchronousFlushCount();
 }

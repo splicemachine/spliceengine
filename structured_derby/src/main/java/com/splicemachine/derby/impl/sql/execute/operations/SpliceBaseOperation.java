@@ -1,25 +1,31 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.*;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.execute.*;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.ResultDescription;
+import org.apache.derby.iapi.sql.ResultSet;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -30,16 +36,15 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import javax.annotation.Nullable;
+
 import java.io.*;
 import java.sql.SQLWarning;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable, NoPutResultSet {
+public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
     private static final long serialVersionUID = 4l;
 	private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
 	/* Run time statistics variables */
@@ -55,12 +60,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	public long closeTime;
 	protected boolean statisticsTimingOn;
 	protected HRegion region;
-	protected double optimizerEstimatedRowCount;
-	protected double optimizerEstimatedCost;
-	
+
 	protected Activation activation;
-	protected int resultSetNumber;
-    private String transactionID;
+    protected String transactionID;
 
     /**
      * Used to communicate a child transaction ID down to the sink operation in a sub-class.
@@ -73,7 +75,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	protected ExecRow currentRow;
 	protected RowLocation currentRowLocation;
 	protected List<SpliceOperation> leftOperationStack;
-	protected List<SpliceOperation> rightOperationStack;
 
 	protected boolean executed = false;
 	protected DataValueDescriptor[] sequence;
@@ -82,7 +83,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	
 	protected boolean isOpen = true;
 	RegionStats regionStats;
-	public NoPutResultSet[]	subqueryTrackingArray;
 
     /*
      * Used to indicate rows which should be excluded from TEMP because their backing operation task
@@ -91,33 +91,37 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      */
     protected List<byte[]> failedTasks = Collections.emptyList();
 
-	/*
-	 * Defines a mapping between any FormattableBitSet's column entries
-	 * and a compactRow. This is only used in conjuction with getCompactRow.
-	 */
-	protected int[] baseColumnMap;
+    protected int resultSetNumber;
+    protected OperationInformation operationInformation;
+		private JobResults jobResults;
 
-    public SpliceBaseOperation() {
+		public SpliceBaseOperation() {
 		super();
 	}
 
-	public SpliceBaseOperation(Activation activation, int resultSetNumber, double optimizerEstimatedRowCount,double optimizerEstimatedCost) throws StandardException {
+    public SpliceBaseOperation(OperationInformation information) throws StandardException {
+        this.operationInformation = information;
+        this.resultSetNumber = operationInformation.getResultSetNumber();
+        sequence = new DataValueDescriptor[1];
+        sequence[0] = information.getSequenceField(uniqueSequenceID);
+    }
+
+	public SpliceBaseOperation(Activation activation,
+                               int resultSetNumber,
+                               double optimizerEstimatedRowCount,
+                               double optimizerEstimatedCost) throws StandardException {
 		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();		
-		this.optimizerEstimatedCost = optimizerEstimatedCost;
-		this.optimizerEstimatedRowCount = optimizerEstimatedRowCount;
+		    beginTime = startExecutionTime = getCurrentTimeMillis();
+        this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 		this.activation = activation;
-		this.resultSetNumber = resultSetNumber;
+        this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
 		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
-		sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
+		sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
 			return;
 		}
-		//TODO: need to getStatementContext from somewhere
-		if (subqueryTrackingArray == null)
-			subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
 	}
 	
 	public ExecutionFactory getExecutionFactory(){
@@ -126,14 +130,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-//		SpliceLogUtils.trace(LOG, "readExternal");
-		optimizerEstimatedCost = in.readDouble();
-		optimizerEstimatedRowCount = in.readDouble();
-		resultSetNumber = in.readInt();
+        this.operationInformation = (OperationInformation)in.readObject();
         transactionID = readNullableString(in);
         isTopResultSet = in.readBoolean();
         uniqueSequenceID = new byte[in.readInt()];
-        in.read(uniqueSequenceID);
+        in.readFully(uniqueSequenceID);
 
 		statisticsTimingOn = in.readBoolean();
 		constructorTime = in.readLong();
@@ -145,17 +146,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		rowsSeen = in.readInt();
 		rowsFiltered = in.readInt();
         failedTasks = (List<byte[]>)in.readObject();
-//        if(in.readBoolean()){
-//            operationParams = (ParameterValueSet)in.readObject();
-//        }
 	}
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		SpliceLogUtils.trace(LOG, "writeExternal");
-		out.writeDouble(optimizerEstimatedCost);
-		out.writeDouble(optimizerEstimatedRowCount);		
-		out.writeInt(resultSetNumber);
+        out.writeObject(operationInformation);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
         out.writeInt(uniqueSequenceID.length);
@@ -170,305 +166,79 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		out.writeInt(rowsSeen);
 		out.writeInt(rowsFiltered);
         out.writeObject(failedTasks);
-//		out.writeBoolean(operationParams!=null);
-//		if(operationParams!=null){
-//			out.writeObject(operationParams);
-//		}
 	}
 
-	@Override
-	public boolean needsRowLocation() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
 	@Override
 	public SpliceOperation getLeftOperation() {
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
 	}
 
-	@Override
-	public void rowLocation(RowLocation rl) throws StandardException {
-		// TODO Auto-generated method stub
-	}
-	
-	@Override
-	public boolean returnsRows() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
-	@Override
+    @Override
 	public int modifiedRowCount() {
-		// TODO Auto-generated method stub
 		return 0;
-	}
-	
-	@Override
-	public ResultDescription getResultDescription() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 	
 	@Override
 	public Activation getActivation() {
 		return activation;
 	}
-	@Override
-	public void open() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public ExecRow getAbsoluteRow(int row) throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getRelativeRow(int row) throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow setBeforeFirstRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getFirstRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getNextRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getPreviousRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow getLastRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public ExecRow setAfterLastRow() throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 	@Override
 	public void clearCurrentRow() {
-        activation.clearCurrentRow(resultSetNumber);
+        if(activation!=null){
+						int resultSetNumber = operationInformation.getResultSetNumber();
+						if(resultSetNumber!=-1)
+								activation.clearCurrentRow(resultSetNumber);
+        }
         currentRow=null;
 	}
 
 	@Override
-	public boolean checkRowPosition(int isType) throws StandardException {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public int getRowNumber() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public void close() throws StandardException {
-		if (!isOpen)
-			return;
-
-		/* If this is the top ResultSet then we must  close all of the open subqueries for the
-		 * entire query.
-		 */
-
-
-        isOpen = false;
-
+	public void close() throws StandardException,IOException {
+			if(LOG.isTraceEnabled())
+					LOG.trace("closing operation "+ this);
+			clearCurrentRow();
+			if(regionScanner!=null)
+					regionScanner.close();
+			if(jobResults!=null)
+					jobResults.cleanup();
 	}
 	
-	@Override
-	public void cleanUp() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public boolean isClosed() {
-		return false;
-	}
-	@Override
-	public void finish() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	@Override
-	public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-		if (subqueryTrackingArray == null)
-			subqueryTrackingArray = new NoPutResultSet[numSubqueries];
-		return subqueryTrackingArray;
-	}
-	
-	@Override
-	public ResultSet getAutoGeneratedKeysResultset() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public String getCursorName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
+
+//	@Override
 	public void addWarning(SQLWarning w) {
-		// TODO Auto-generated method stub
-		
+        activation.addWarning(w);
 	}
-	@Override
+
+//	@Override
 	public SQLWarning getWarnings() {
-		// TODO Auto-generated method stub
-		return null;
+        return activation.getWarnings();
 	}
-	@Override
-	public DataValueDescriptor[] getNextRowFromRowSource()
-			throws StandardException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public boolean needsToClone() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public FormatableBitSet getValidColumns() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-	@Override
-	public void closeRowSource() {
-		// TODO Auto-generated method stub
-		
-	}
+
 	@Override
 	public void markAsTopResultSet() {
 		this.isTopResultSet = true;		
 	}
 	@Override
-	public void openCore() throws StandardException {
-        this.uniqueSequenceID = SpliceUtils.getUniqueKey();
-        init(SpliceOperationContext.newContext(activation));
+	public void open() throws StandardException, IOException {
+        this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
+//        init(SpliceOperationContext.newContext(activation));
 	}
-	@Override
-	public void reopenCore() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public int getPointOfAttachment() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public int getScanIsolationLevel() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-	@Override
-	public void setTargetResultSet(TargetResultSet trs) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void setNeedsRowLocation(boolean needsRowLocation) {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
+//	@Override
 	public double getEstimatedRowCount() {
-		return this.optimizerEstimatedRowCount;
+		return operationInformation.getEstimatedRowCount();
 	}
+
 	@Override
 	public int resultSetNumber() {
-		return this.resultSetNumber;
+		return operationInformation.getResultSetNumber();
 	}
 	@Override
 	public void setCurrentRow(ExecRow row) {
-		activation.setCurrentRow(row, resultSetNumber);
+        operationInformation.setCurrentRow(row);
 		currentRow = row;
 	}
-	@Override
-	public boolean requiresRelocking() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public boolean isForUpdate() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	@Override
-	public void updateRow(ExecRow row, RowChanger rowChanger)
-			throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void markRowAsDeleted() throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
-	@Override
-	public void positionScanAtRowLocation(RowLocation rLoc)
-			throws StandardException {
-		// TODO Auto-generated method stub
-		
-	}
 
-    protected ExecRow getCompactRow(LanguageConnectionContext lcc,
-                                    ExecRow candidate,
-                                    FormatableBitSet accessedCols,
-                                    boolean isKeyed) throws StandardException {
-        int	numCandidateCols = candidate.nColumns();
-		ExecRow compactRow = null;
-		if (accessedCols == null) {
-			compactRow =  candidate;
-			baseColumnMap = new int[numCandidateCols];
-			for (int i = 0; i < baseColumnMap.length; i++)
-				baseColumnMap[i] = i;
-		}
-		else {
-			int numCols = accessedCols.getNumBitsSet();
-			baseColumnMap = new int[numCandidateCols];
-
-            ExecutionFactory ex = lcc.getLanguageConnectionFactory().getExecutionFactory();
-            if (isKeyed) {
-                compactRow = ex.getIndexableRow(numCols);
-            }
-            else {
-                compactRow = ex.getValueRow(numCols);
-            }
-            int position = 0;
-			for (int i = accessedCols.anySetBit();i != -1; i = accessedCols.anySetBit(i)) {
-				// Stop looking if there are columns beyond the columns
-				// in the candidate row. This can happen due to the
-				// otherCols bit map.
-				if (i >= numCandidateCols)
-					break;
-				DataValueDescriptor sc = candidate.getColumn(i+1);
-				if (sc != null) {
-					compactRow.setColumn(position + 1,sc);
-				}
-				baseColumnMap[i] = position;
-				position++;
-			}
-		}
-
-		return compactRow;
-	}
-	
 	public static void writeNullableString(String value, DataOutput out) throws IOException {
 		if (value != null) {
 			out.writeBoolean(true);
@@ -487,8 +257,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException{
 		this.activation = context.getActivation();
+        this.operationInformation.initialize(context);
+        this.resultSetNumber = operationInformation.getResultSetNumber();
 		sequence = new DataValueDescriptor[1];
-        sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
+        sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		try {
 			this.regionScanner = context.getScanner();
 			this.region = context.getRegion();
@@ -498,18 +270,34 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 	}
 
 	@Override
-	public String getUniqueSequenceID() {
-		return Long.toString(Bytes.toLong(uniqueSequenceID));
+	public byte[] getUniqueSequenceID() {
+			return uniqueSequenceID;
 	}
 
-    @Override
-    public RowEncoder getRowEncoder() throws StandardException {
-        ExecRow row = getExecRowDefinition();
-        return RowEncoder.create(row.nColumns(),
-                null,null,null,
-                KeyType.BARE, RowMarshaller.packed());
-    }
+		@Override
+		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+			/*
+			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
+			 * In this case, we encode with either the current row location or a
+			 * random UUID (if the current row location is null).
+			 */
+				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								if(currentRowLocation!=null)
+										return currentRowLocation.getBytes();
+								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
+						}
+				});
 
+				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
+		}
+
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				ExecRow defnRow = getExecRowDefinition();
+				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
+		}
 
     /**
      * Called during the executeShuffle() phase, for the execution of parallel operations.
@@ -523,7 +311,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
 	}
 
@@ -539,40 +327,29 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
      * @throws StandardException if something goes wrong
      */
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
     }
 
     @Override
-    public void cleanup() {
-        throw new RuntimeException("Finish Not Implemented for this node " + this.getClass());
-    }
-
-    private static final Function<String,byte[]> taskToBytes = new Function<String, byte[]>() {
-        @Override
-        public byte[] apply(@Nullable String input) {
-            return Bytes.toBytes(input);
-        }
-    };
-
-    @Override
-    public final void executeShuffle() throws StandardException {
+    public final void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         /*
          * Marked final so that subclasses don't accidentally screw up their error-handling of the
          * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
          */
-        JobStats stats = doShuffle();
-        JobStatsUtils.logStats(stats);
-        failedTasks = new ArrayList<byte[]>(Lists.transform(stats.getFailedTasks(),taskToBytes));
+        jobResults = doShuffle(runtimeContext);
+        JobStatsUtils.logStats(jobResults.getJobStats());
+        failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
 	}
 
-    protected JobStats doShuffle() throws StandardException {
+    protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
+        final RowProvider rowProvider = getMapRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
 
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
-        return rowProvider.shuffleRows(soi);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,spliceRuntimeContext);
+				jobResults = rowProvider.shuffleRows(soi);
+        return jobResults;
     }
 
     protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException {
@@ -585,7 +362,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		throw new RuntimeException("Execute Scan Not Implemented for this node " + this.getClass());														
 	}
 
@@ -627,38 +404,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		operations.add(this);				
 	}
 
-	public List<SpliceOperation> getRightOperationStack(){
-		if(rightOperationStack==null){
-			rightOperationStack = new LinkedList<SpliceOperation>();
-			generateRightOperationStack(true,rightOperationStack);
-		}
-		return rightOperationStack;
-	}
 	@Override
 	public SpliceOperation getRightOperation() {
 		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
-	}
-	
-//	@Override
-//    public int[] getRootAccessedCols(long tableNumber) {
-//		throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement getRootAccessedCols");
-//	}
-//
-//    @Override
-//    public boolean isReferencingTable(long tableNumber) {
-//        throw new UnsupportedOperationException("class "+ this.getClass()+" does not implement isReferencingTable");
-//    }
-	
-	public double getOptimizerEstimatedRowCount() {
-		return this.optimizerEstimatedRowCount;
-	}
-	
-	public double getOptimizerEstimatedCost() {
-		return this.optimizerEstimatedCost;
-	}
-	
-	public int getResultSetNumber() {
-		return this.resultSetNumber;
 	}
 	
 	public long getExecuteTime()
@@ -666,32 +414,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return getTimeSpent(ResultSet.ENTIRE_RESULTSET_TREE);
 	}
 
-	/**
-	 * Get the Timestamp for the beginning of execution.
-	 *
-	 * @return Timestamp		The Timestamp for the beginning of execution.
-	 */
-	public Timestamp getBeginExecutionTimestamp()
-	{
-		if (startExecutionTime == 0)
-			return null;
-		else
-			return new Timestamp(startExecutionTime);
-	}
-
-	/**
-	 * Get the Timestamp for the end of execution.
-	 *
-	 * @return Timestamp		The Timestamp for the end of execution.
-	 */
-	public Timestamp getEndExecutionTimestamp()
-	{
-		if (endExecutionTime == 0)
-			return null;
-		else
-			return new Timestamp(endExecutionTime);
-	}
-	
 	protected final long getCurrentTimeMillis()
 	{
 		if (statisticsTimingOn)
@@ -735,7 +457,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                         ": " + qual.getColumnId() + "\n";
                     
                 int operator = qual.getOperator();
-                String opString = null;
+                String opString;
                 switch (operator)
                 {
                   case Orderable.ORDER_OP_EQUALS:
@@ -792,10 +514,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
     }
 
-    public void setChildTransactionID(String childTransactionID) {
-        this.childTransactionID = childTransactionID;
-    }
-
     public void clearChildTransactionID() {
         this.childTransactionID = null;
     }
@@ -819,4 +537,30 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     public void setCurrentRowLocation(RowLocation rowLocation) {
         currentRowLocation = rowLocation;
     }
+
+    public int getResultSetNumber() {
+        return resultSetNumber;
+    }
+
+    public double getEstimatedCost() {
+        return operationInformation.getEstimatedCost();
+    }
+	/**
+	 * Since task cancellation is performed via interruption, detect interruption
+     * and bail
+     */
+    public static void checkInterrupt() throws IOException {
+		if(Thread.currentThread().isInterrupted())
+			throw new IOException(new InterruptedException());
+	}
+    /**
+	 * Since task cancellation is performed via interruption, detect interruption
+     * and bail
+     */
+    public static void checkInterrupt(long numRecords, int checkEveryNRecords) throws IOException {
+    	if (numRecords%checkEveryNRecords == 0) {
+    		if(Thread.currentThread().isInterrupted())
+    			throw new IOException(new InterruptedException());
+    	}
+	}
 }

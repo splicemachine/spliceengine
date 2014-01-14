@@ -4,13 +4,19 @@ import com.google.common.base.Throwables;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.*;
+import com.splicemachine.hbase.table.IncorrectRegionException;
+import com.splicemachine.job.Status;
+import com.splicemachine.job.TaskFuture;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -47,7 +53,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                     task.markInvalid();
             } catch (ExecutionException e) {
                 SpliceLogUtils.error(LOG,"Unexpected error invalidating task "+
-                        task.getTaskId()+", corresponding job may fail",e.getCause());
+                        Bytes.toString(task.getTaskId())+", corresponding job may fail",e.getCause());
             }
         }
         runningTasks.clear();
@@ -57,8 +63,13 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
     @Override
-    public TaskFutureContext submit(final RegionTask task) throws IOException {
+    public TaskFutureContext submit(byte[] taskStart,byte[] taskEnd,final RegionTask task) throws IOException {
         RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+
+        //make sure that the task is fully contained within this region
+        if(!HRegionUtil.containsRange(rce.getRegion(),taskStart,taskEnd))
+            throw new IncorrectRegionException("Incorrect region for Task submission");
+
         return doSubmit(task, rce);
     }
 
@@ -79,8 +90,11 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                         case FAILED:
                         case COMPLETED:
                         case CANCELLED:
-                            LOG.trace("Removing task "+task.getTaskId()+" from running task list");
-                            runningTasks.remove(task);
+														if(LOG.isTraceEnabled())
+																LOG.trace("Removing task "+Bytes.toString(task.getTaskId())+" from running task list");
+
+														runningTasks.remove(task);
+														status.detachListener(this);
                             break;
                     }
                 }

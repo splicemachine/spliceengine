@@ -26,6 +26,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.nio.ByteBuffer;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Calendar;
 
 /**
@@ -65,6 +66,11 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     public LazyDataValueDescriptor(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
        init(dvd, dvdSerializer);
+    }
+
+    public void setDescendingOrder(boolean descendingOrder){
+        assert isNull();
+        this.descendingOrder = descendingOrder;
     }
 
     protected void init(DataValueDescriptor dvd, DVDSerializer dvdSerializer){
@@ -241,7 +247,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public DataValueDescriptor recycle() {
-        return null;
+        restoreToNull();
+        return this;
     }
 
     @Override
@@ -625,7 +632,7 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             forceSerialization();
         }
 
-        byte[] bytes = null;
+        byte[] bytes;
 
         try{
             bytes = getBytes();
@@ -643,36 +650,45 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-
         out.writeInt(typeFormatId);
-        out.writeBoolean(dvd != null);
-        writeDvdBytes(out);
+        boolean isN = isNull();
+        out.writeBoolean(isN);
+        if(!isN){
+            if(!isSerialized())
+                forceSerialization();
+            byte[] bytes;
+            try {
+                bytes = getBytes();
+            } catch (StandardException e) {
+                throw new IOException(e);
+            }
 
+            out.writeInt(bytes.length);
+            out.write(bytes);
+        }
     }
 
     protected void readDvdBytes(ObjectInput in) throws IOException, ClassNotFoundException {
-        if(in.readBoolean()){
+        if(!in.readBoolean()) return;
 
-            int numBytes = in.readInt();
+        int numBytes = in.readInt();
 
-            dvdBytes = new byte[numBytes];
-            in.read(dvdBytes);
-        }
+        dvdBytes = new byte[numBytes];
+        in.readFully(dvdBytes);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-
-        DataValueDescriptor externalDVD = null;
-
-        int typeId = in.readInt();
-
-        if(in.readBoolean()){
-            externalDVD = createNullDVD(typeId);
+        typeFormatId = in.readInt();
+        if(!in.readBoolean()){
+            dvdBytes = new byte[in.readInt()];
+            in.readFully(dvdBytes);
+        }else{
+            isNull = true;
         }
-        readDvdBytes(in);
 
-        init(externalDVD, LazyDataValueFactory.getDVDSerializer(typeId));
+        DataValueDescriptor externalDVD= createNullDVD(typeFormatId);
+        init(externalDVD, LazyDataValueFactory.getDVDSerializer(typeFormatId));
     }
 
     protected DataValueDescriptor createNullDVD(int typeId) throws IOException {
@@ -721,13 +737,15 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
             if(otherDVD.isLazy()){
                 LazyDataValueDescriptor ldvd = (LazyDataValueDescriptor) otherDVD;
 
-                if(dvdBytes!=null && ldvd.dvdBytes!=null){
-                    return dvdBytes.equals(ldvd.dvdBytes);
+                if(dvdBytes!=null && ldvd.dvdBytes!=null
+                        && descendingOrder == ldvd.descendingOrder){
+                    return Arrays.equals(dvdBytes, ldvd.dvdBytes);
+                    //return dvdBytes.equals(ldvd.dvdBytes);
                 } else {
+                    ldvd.forceDeserialization();
                     result = dvd.equals(ldvd.dvd);
                 }
             } else{
-                forceDeserialization();
                 result = dvd.equals(otherDVD);
             }
         }
@@ -743,7 +761,13 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
         byte[] bytes = getBytes();
         byte[] retBytes = new byte[bytes.length];
         System.arraycopy(bytes,0,retBytes,0,bytes.length);
-        if(desc){
+        if(desc && !this.descendingOrder){
+            //need to convert to descending order
+            for(int i=0;i<retBytes.length;i++){
+                retBytes[i] ^=0xff;
+            }
+        }else if(!desc && this.descendingOrder){
+            //need to convert to ascending order
             for(int i=0;i<retBytes.length;i++){
                 retBytes[i] ^=0xff;
             }

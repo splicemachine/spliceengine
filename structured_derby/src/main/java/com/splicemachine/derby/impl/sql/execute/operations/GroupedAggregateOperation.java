@@ -1,85 +1,106 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.storage.RowProviderIterator;
+import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.storage.BaseHashAwareScanBoundary;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
+import com.splicemachine.derby.impl.storage.*;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.hash.ByteHash32;
+import com.splicemachine.utils.hash.HashFunctions;
+import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.storage.SimpleRegionAwareRowProvider;
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.derby.stats.TimingStats;
-import com.splicemachine.utils.SpliceLogUtils;
-import org.datanucleus.sco.backed.Map;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Properties;
 
 public class GroupedAggregateOperation extends GenericAggregateOperation {
+    private static final long serialVersionUID = 1l;
 	private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
+    private static final byte[] nonDistinctOrdinal = {0x01};
+    private static final byte[] distinctOrdinal = {0x00};
 	protected boolean isInSortedOrder;
 	protected boolean isRollup;
-	protected int orderingItem;
-	protected List<Integer> keyColumns;
-	protected List<Integer> groupByColumns;
-	protected List<Integer> nonGroupByUniqueColumns;
-	protected List<Boolean> groupByDescAscInfo;	
-	protected List<Boolean> descAscInfo;
-	protected List<Integer> allKeyColumns;
-	HashMap<Integer,List<DataValueDescriptor>> distinctValues;
-	private int numDistinctAggs = 0;
-	protected ColumnOrdering[] order;
-	private HashBuffer<ByteBuffer,ExecRow> currentAggregations = new HashBuffer<ByteBuffer,ExecRow>(SpliceConstants.ringBufferSize);
-	private ExecRow[] resultRows;
-	private boolean completedExecution = false;
-    protected KeyMarshall hasher;
     protected byte[] currentKey;
-    protected MultiFieldEncoder sinkEncoder;
-    protected RowProvider rowProvider;
-    private Accumulator scanAccumulator = TimingStats.uniformAccumulator();
-
-    private HashBufferSource hbs;
-
-    private boolean isTemp;
+    private boolean isCurrentDistinct;
+    private StandardIterator<GroupedRow> aggregator;
+    private GroupedAggregateContext groupedAggregateContext;
+    private Snowflake.Generator uuidGen;
+    private Scan baseScan;
 
     public GroupedAggregateOperation () {
     	super();
     	SpliceLogUtils.trace(LOG,"instantiate without parameters");
     }
-  
-    public GroupedAggregateOperation(NoPutResultSet s,
+
+    public GroupedAggregateOperation(
+            SpliceOperation source,
+            OperationInformation baseOpInformation,
+            AggregateContext genericAggregateContext,
+            GroupedAggregateContext groupedAggregateContext,
+            boolean isInSortedOrder,
+            boolean isRollup) throws StandardException {
+        super(source,baseOpInformation,genericAggregateContext);
+        this.isRollup = isRollup;
+        this.isInSortedOrder = isInSortedOrder;
+        this.groupedAggregateContext = groupedAggregateContext;
+    }
+
+    @SuppressWarnings("UnusedParameters")
+    public GroupedAggregateOperation(
+            SpliceOperation s,
+			boolean isInSortedOrder,
+			int	aggregateItem,
+			Activation a,
+			GeneratedMethod ra,
+			int maxRowSize,
+			int resultSetNumber,
+		    double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isRollup,
+            GroupedAggregateContext groupedAggregateContext) throws StandardException  {
+    	super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+    	this.isInSortedOrder = isInSortedOrder;
+    	this.isRollup = isRollup;
+        this.groupedAggregateContext = groupedAggregateContext;
+    	recordConstructorTime();
+    }
+
+    public GroupedAggregateOperation(SpliceOperation s,
 			boolean isInSortedOrder,
 			int	aggregateItem,
 			int	orderingItem,
@@ -90,12 +111,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		    double optimizerEstimatedRowCount,
 			double optimizerEstimatedCost,
 			boolean isRollup) throws StandardException  {
-    	super(s,aggregateItem,a,ra,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	SpliceLogUtils.trace(LOG, "instantiate with isInSortedOrder %s, aggregateItem %d, orderingItem %d, isRollup %s",isInSortedOrder,aggregateItem,orderingItem,isRollup);
-    	this.isInSortedOrder = isInSortedOrder;
-    	this.isRollup = isRollup;
-    	this.orderingItem = orderingItem;
-    	recordConstructorTime();
+        this(s,isInSortedOrder,aggregateItem,a,ra,maxRowSize,resultSetNumber,
+                optimizerEstimatedRowCount,optimizerEstimatedCost,isRollup,new DerbyGroupedAggregateContext(orderingItem));
     }
     
 	@Override
@@ -103,7 +120,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		super.readExternal(in);
 		isInSortedOrder = in.readBoolean();
 		isRollup = in.readBoolean();
-		orderingItem = in.readInt();
+        groupedAggregateContext = (GroupedAggregateContext)in.readObject();
 	}
 
     @Override
@@ -111,498 +128,337 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         super.writeExternal(out);
         out.writeBoolean(isInSortedOrder);
         out.writeBoolean(isRollup);
-        out.writeInt(orderingItem);
+        out.writeObject(groupedAggregateContext);
     }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
+        context.setCacheBlocks(false);
         super.init(context);
-        ((SpliceOperation)source).init(context);
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
-        order = (ColumnOrdering[])
-                ((FormatableArrayHolder) (statement.getSavedObject(orderingItem))).getArray(ColumnOrdering.class);        
-        keyColumns = new ArrayList<Integer>();
-        nonGroupByUniqueColumns = new ArrayList<Integer>();
-        groupByColumns = new ArrayList<Integer>();
-        descAscInfo = new ArrayList<Boolean>();
-        groupByDescAscInfo = new ArrayList<Boolean>();
-        final int[] keyCols = new int[order.length];
-        for (int index = 0; index < order.length; index++) {
-            keyColumns.add(order[index].getColumnId());
-            descAscInfo.add(order[index].getIsAscending());
-            keyCols[index] = order[index].getColumnId();
-        }
-        
-        for(SpliceGenericAggregator agg: aggregates){
-            if(agg.isDistinct()) {
-            	if (!keyColumns.contains(agg.getAggregatorInfo().getInputColNum()))
-            		nonGroupByUniqueColumns.add(agg.getAggregatorInfo().getInputColNum());
-            	numDistinctAggs++;
-            }
-        }
-        // Create the Distinct Values Map
-    	distinctValues = new HashMap<Integer,List<DataValueDescriptor>>();
-        // Make sure the lists are clear, who is unique and who is group by
-        if (numDistinctAggs > 0) {
-        	groupByColumns.addAll(keyColumns.subList(0, keyColumns.size()-1));
-        	nonGroupByUniqueColumns.add(nonGroupByUniqueColumns.size(),keyColumns.get(keyColumns.size()-1));
-        	groupByDescAscInfo.addAll(descAscInfo.subList(0, descAscInfo.size()-1));
-        	for (Integer unique: nonGroupByUniqueColumns) {
-        		groupByDescAscInfo.add(true);
-        	}
-        } else {
-        	groupByColumns.addAll(keyColumns);
-        	groupByDescAscInfo.addAll(descAscInfo);        	
-        }
-        
-        
-        sinkEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
-        sinkEncoder.setRawBytes(uniqueSequenceID).mark();
-//        scanEncoder = MultiFieldEncoder.create(groupByColumns.size());
-    	allKeyColumns = new ArrayList<Integer>(groupByColumns);
-    	allKeyColumns.addAll(nonGroupByUniqueColumns);
-        if(regionScanner==null){
-            isTemp = true;
-        } else {
-            RowEncoder scanEncoder = RowEncoder.create(sourceExecIndexRow.nColumns(),convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo),
-                    sinkEncoder.getEncodedBytes(0),
-                    KeyType.FIXED_PREFIX,
-                    RowMarshaller.packed());
-
-            //build a ScanBoundary based off the type of the entries
-            final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
-            ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
-                @Override
-                public byte[] getStartKey(Result result) {
-                    MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
-                    fieldDecoder.seek(9); //skip the prefix value
-
-                    return DerbyBytesUtil.slice(fieldDecoder,keyCols,cols);
-                }
-
-                @Override
-                public byte[] getStopKey(Result result) {
-                    byte[] start = getStartKey(result);
-                    BytesUtil.unsignedIncrement(start,start.length-1);
-                    return start;
-                }
-            };
-            rowProvider = new SimpleRegionAwareRowProvider(
-                    "groupedAggregateRowProvider",
-                    SpliceUtils.NA_TRANSACTION_ID,
-                    context.getRegion(),
-                    context.getScan(),
-                    SpliceConstants.TEMP_TABLE_BYTES,
-                    SpliceConstants.DEFAULT_FAMILY_BYTES,
-                    scanEncoder.getDual(sourceExecIndexRow),
-                    boundary); // Make sure the partitioner (Region Aware) worries about group by keys, not the additonal unique keys
-            rowProvider.open();
-            isTemp = !context.isSink() || context.getTopOperation()!=this;
-        }
-        hasher = KeyType.BARE;
-
-        MultiFieldEncoder mfe = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),groupByColumns.size() + nonGroupByUniqueColumns.size()+1);
-        boolean[] groupByDescAscArray = convertBooleans(groupByDescAscInfo);
-        int[] keyColumnArray = convertIntegers(allKeyColumns);
-        RowProviderIterator<ExecRow> sourceProvider = createSourceIterator();
-
-        hbs = new HashBufferSource(uniqueSequenceID, keyColumnArray, sourceProvider, merger, KeyType.BARE, mfe, groupByDescAscArray, aggregateFinisher);
+        source.init(context);
+        baseScan = context.getScan();
+        groupedAggregateContext.init(context,aggregateContext);
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+    public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        buildReduceScan();
+        if(top!=this && top instanceof SinkingOperation){
+            SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
+            return new DistributedClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+        }else{
+            return RowProviders.openedSourceProvider(top,LOG,spliceRuntimeContext);
+        }
+    }
+
+    private void buildReduceScan() throws StandardException {
+        if(reduceScan!=null) return;
         try {
-            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+            reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        SuccessFilter filter = new SuccessFilter(failedTasks,false);
-        reduceScan.setFilter(filter);
-        SpliceUtils.setInstructions(reduceScan, activation, top);
-        return new ClientScanProvider("groupedAggregateReduce",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder);
+        if(failedTasks.size()>0){
+            SuccessFilter filter = new SuccessFilter(failedTasks);
+            reduceScan.setFilter(filter);
+        }
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getReduceRowProvider(top,decoder);
+    public void open() throws StandardException, IOException {
+        super.open();
+        if(aggregator!=null){
+            aggregator.close();
+            aggregator = null;
+        }
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getReduceRowProvider(top,decoder,spliceRuntimeContext);
+    }
+
+    @Override
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext ) throws StandardException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = ((SpliceOperation)source).getMapRowProvider(this, getRowEncoder().getDual(getExecRowDefinition()));
+        final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return rowProvider.shuffleRows(soi);
     }
 
-    @Override
-    public RowEncoder getRowEncoder() throws StandardException {
-        return RowEncoder.create(sourceExecIndexRow.nColumns(), convertIntegers(allKeyColumns),convertBooleans(groupByDescAscInfo), null, new KeyMarshall() {
-            @Override
-            public void encodeKey(DataValueDescriptor[] columns,
-                                  int[] keyColumns,
-                                  boolean[] sortOrder,
-                                  byte[] keyPostfix,
-                                  MultiFieldEncoder keyEncoder) throws StandardException {
-                //TODO -sf- this might break DistinctGroupedAggregations
-                byte[] key = BytesUtil.concatenate(currentKey,SpliceUtils.getUniqueKey());
-                keyEncoder.setRawBytes(key);
-                keyEncoder.setRawBytes(keyPostfix);
-            }
-
-            @Override
-            public void decode(DataValueDescriptor[] columns,
-                               int[] reversedKeyColumns,
-                               boolean[] sortOrder,
-                               MultiFieldDecoder rowDecoder) throws StandardException {
-                hasher.decode(columns, reversedKeyColumns, sortOrder, rowDecoder);
-            }
-
-            @Override
-            public int getFieldCount(int[] keyColumns) {
-                return 2;
-            }
-        }, RowMarshaller.packed());
-    }
-
-    @Override
-	public void cleanup() { 
-		
-	}
-
-    @Override
-    public ExecRow getNextSinkRow() throws StandardException {
-        ExecRow row = doSinkAggregation();
-        if (LOG.isTraceEnabled())
-        	SpliceLogUtils.trace(LOG, "getNextSinkRow %s",row);
-        return row;
-    }
-
-	@Override
-	public ExecRow getNextRowCore() throws StandardException {
-		ExecRow row = doScanAggregation();
-        if (LOG.isTraceEnabled())
-        	SpliceLogUtils.trace(LOG, "getNextRowCore %s",row);
-        return row;
-	}
-	
-	private final HashMerger merger = new HashMerger<ByteBuffer,ExecRow>() {
 		@Override
-		public ExecRow shouldMerge(HashBuffer<ByteBuffer, ExecRow> hashBuffer, ByteBuffer key){
-			return hashBuffer.get(key);
+		public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * We use the cached currentKey, with some extra fun bits to determine the hash
+				 * prefix.
+				 *
+				 * Our currentKey is also the grouping key, which makes life easy. However,
+				 * our Postfix is different depending on whether or not the row is "distinct".
+				 *
+				 * All rows look like:
+				 *
+				 * <hash> <uniqueSequenceId> <grouping key> 0x00 <postfix>
+				 *
+				 * if the row is distinct, then <postfix> = 0x00 which indicates a distinct
+ 				 * row. This allows multiple distinct rows to be written into the same
+ 				 * location on TEMP, which will eliminate duplicates.
+ 				 *
+ 				 * If the row is NOT distinct, then <postfix> = <uuid> <taskId>
+ 				 * The row looks this way so that the SuccessFilter can be applied
+ 				 * correctly to strip out rows from failed tasks. Be careful when considering
+ 				 * the row as a whole to recognize that this row has a 16-byte postfix
+				 */
+				HashPrefix prefix = getHashPrefix();
+
+				DataHash dataHash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+						@Override
+						public byte[] get() throws StandardException {
+								return currentKey;
+						}
+				}){
+						@Override
+						public KeyHashDecoder getDecoder() {
+								return BareKeyHash.decoder(groupedAggregateContext.getGroupingKeys(),
+												groupedAggregateContext.getGroupingKeyOrder());
+						}
+				};
+
+				final KeyPostfix uniquePostfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId(),operationInformation.getUUIDGenerator());
+				KeyPostfix postfix = new KeyPostfix() {
+						@Override
+						public int getPostfixLength(byte[] hashBytes) throws StandardException {
+								if(isCurrentDistinct) return distinctOrdinal.length;
+								else
+										return uniquePostfix.getPostfixLength(hashBytes);
+						}
+
+						@Override
+						public void encodeInto(byte[] keyBytes, int postfixPosition, byte[] hashBytes) {
+								if(isCurrentDistinct){
+										System.arraycopy(distinctOrdinal,0,keyBytes,postfixPosition,distinctOrdinal.length);
+								}else{
+										uniquePostfix.encodeInto(keyBytes,postfixPosition,hashBytes);
+								}
+						}
+				};
+				return new KeyEncoder(prefix,dataHash,postfix);
 		}
 
-		@Override
-		public void merge(HashBuffer<ByteBuffer, ExecRow> hashBuffer, ExecRow curr,ExecRow next){
-			try {
-				mergeVectorAggregates(next,curr);
-			} catch (StandardException e) {
-				SpliceLogUtils.logAndThrowRuntime(LOG, e);
-			}
-		}};
-	
-	private ExecRow doSinkAggregation() throws StandardException {
-
-        if(resultRows==null){
-        	resultRows = isRollup?new ExecRow[groupByColumns.size()+1]:new ExecRow[1]; // Need to fix Group By Columns
-        }
-
-        Pair<ByteBuffer,ExecRow> nextRow = hbs.getNextAggregatedRow();
-        ExecRow rowResult = null;
-        if(nextRow != null){
-		    makeCurrent(nextRow.getFirst(),nextRow.getSecond());
-            rowResult = nextRow.getSecond();
-        }else{
-            SpliceLogUtils.trace(LOG, "finalizeResults");
-            completedExecution=true;
-        }
-
-        if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG,"next aggregated row = %s",nextRow);
-		return rowResult;
-	}
-
-	private ExecRow doScanAggregation() throws StandardException {
-		if (completedExecution) {
-			if (currentAggregations.size()>0) {
-				ByteBuffer key = currentAggregations.keySet().iterator().next();
-				return makeCurrent(key,currentAggregations.remove(key));
-			} else 
-				return null; // Done
+		private HashPrefix getHashPrefix() {
+				return new AggregateBucketingPrefix(new FixedPrefix(uniqueSequenceID),
+										HashFunctions.murmur3(0),
+										SpliceDriver.driver().getTempTable().getCurrentSpread());
 		}
-		long start = System.nanoTime();
-        if(resultRows==null)
-                resultRows = new ExecRow[1];
-    	ExecRow nextRow = getNextRowFromScan();
-		if(nextRow ==null)
-            return finalizeResults();
-        //TODO -sf- stash these away somewhere so we're not constantly autoboxing
-        int[] groupByCols = convertIntegers(groupByColumns);
-		do{
-	        resultRows[0] = nextRow;
-	        ExecRow[] rolledUpRows = resultRows;
-            for(ExecRow rolledUpRow:rolledUpRows) {
-                sinkEncoder.reset();
-                ((KeyMarshall)hasher).encodeKey(rolledUpRow.getRowArray(), groupByCols, null, null, sinkEncoder);
-                ByteBuffer keyBuffer = ByteBuffer.wrap(sinkEncoder.build());
-				if(!currentAggregations.merge(keyBuffer, rolledUpRow, merger)){
-					ExecRow row = rolledUpRow.getClone();
-                    refreshDistinctValues(row);
-					Map.Entry<ByteBuffer,ExecRow> finalized = currentAggregations.add(keyBuffer,row);
-                    if(finalized!=null&&finalized !=row){
-						return makeCurrent(finalized.getKey(),finishAggregation(finalized.getValue()));
-					}
+
+		private class AggregateBucketingPrefix extends BucketingPrefix{
+				private MultiFieldDecoder decoder;
+				private final int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+				private final DataValueDescriptor[] fields = sortTemplateRow.getRowArray();
+
+				public AggregateBucketingPrefix(HashPrefix delegate, ByteHash32 hashFunction, SpreadBucket spreadBucket) {
+						super(delegate, hashFunction, spreadBucket);
 				}
-            }
-			nextRow = getNextRowFromScan();
-			scanAccumulator.tick(System.nanoTime()-start);
-            start = System.nanoTime();
-		} while (nextRow!=null);
-		
-		 ExecRow next = finalizeResults();
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG,"next aggregated row = %s",next);
-        return next;
-	}
 
-	private void refreshDistinctValues(ExecRow row) throws StandardException {
-		distinctValues.clear();
-		for (int i = 0; i < aggregates.length; i++) {				
-			SpliceGenericAggregator agg = aggregates[i];
-            if(agg.isDistinct()) {
-            		DataValueDescriptor value = agg.getInputColumnValue(row);
-            		List<DataValueDescriptor> values;
-        			values = new ArrayList<DataValueDescriptor>();
-        			values.add(value);
-        			distinctValues.put(i, values);
-            }
+				@Override
+				protected byte bucket(byte[] hashBytes) {
+						if(!isCurrentDistinct)
+								return super.bucket(hashBytes);
+
+						/*
+						 * If the row is distinct, then the grouping key is a combination of <actual grouping keys> <distinct column>
+						 * So to get the proper bucket, we need to hash only the grouping keys, so we have to first strip out
+						 * the excess grouping keys
+						 */
+						if(decoder==null)
+								decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+
+						decoder.set(hashBytes);
+						int offset = decoder.offset();
+						int length = DerbyBytesUtil.skip(decoder, groupingKeys, fields);
+
+						if(offset+length>hashBytes.length)
+							length = hashBytes.length-offset;
+						return spreadBucket.bucket(hashFunction.hash(hashBytes,offset,length));
+				}
 		}
-		
-	}
 
-    private ExecRow[] getRolledUpRows(ExecRow rowToRollUp) throws StandardException {
-        if(!isRollup){
-            resultRows[0] = rowToRollUp;
-            return resultRows;
-        }
-        int rollUpPos = groupByColumns.size();
-        int pos = 0;
-        ExecRow nextRow = rowToRollUp.getClone();
-        SpliceLogUtils.trace(LOG,"setting rollup cols to null");
-        do{
-            SpliceLogUtils.trace(LOG,"adding row %s",nextRow);
-            resultRows[pos] = nextRow;
+		@Override
+		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				/*
+				 * Only encode the fields which aren't grouped into the row.
+				 */
+				ExecRow defn = getExecRowDefinition();
+				int[] nonGroupedFields = IntArrays.complement(groupedAggregateContext.getGroupingKeys(),defn.nColumns());
+				return BareKeyHash.encoder(nonGroupedFields,null);
+		}
 
-            //strip out the next key in the rollup
-            if(rollUpPos>0){
-	            nextRow = nextRow.getClone();
-	            DataValueDescriptor rollUpCol = nextRow.getColumn(order[rollUpPos-1].getColumnId()+1);
-	            rollUpCol.setToNull();
-            }
-            rollUpPos--;
-            pos++;
-        }while(rollUpPos>=0);
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
 
-        return resultRows;
+		@Override
+    public void cleanup() {
+
     }
-	
-	protected void initializeVectorAggregation(ExecRow row) throws StandardException{
-	   for(SpliceGenericAggregator aggregator: aggregates){
-			aggregator.initialize(row);
-			aggregator.accumulate(row, row);
-		}
-	}
-	
-	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow) throws StandardException {
-		for (int i=0; i< aggregates.length; i++) {
-			SpliceGenericAggregator agg = aggregates[i];
-			DataValueDescriptor value = agg.getInputColumnValue(newRow).cloneValue(false);
-            if(agg.isDistinct()) {
-            	if (!isTemp)
-            		continue;
-            	else {
-            		List<DataValueDescriptor> values;
-            		if (distinctValues.containsKey(i)) {
-            			values = distinctValues.get(i);
-            			if (values.contains(value)) {
-            				continue; // Already there, skip...
-            			}
-            			values.add(value);
-            			distinctValues.put(i, values);
-            		} else {
-            			values = new ArrayList<DataValueDescriptor>();
-            			values.add(value);
-            			distinctValues.put(i, values);
-            		}
-            	}
+
+    @Override
+    public ExecRow getNextSinkRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(aggregator==null){
+        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(spliceRuntimeContext,source);
+            StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
+            int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+            boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
+            int[] nonGroupedUniqueColumns = groupedAggregateContext.getNonGroupedUniqueColumns();
+            GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
+                    aggregateContext.getDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
+            GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(SpliceConstants.ringBufferSize,
+                    aggregateContext.getNonDistinctAggregators(),false,emptyRowSupplier,groupedAggregateContext,false);
+            aggregator = new SinkGroupedAggregateIterator(nonDistinctBuffer,distinctBuffer,sourceIterator,isRollup,
+                    groupingKeys,groupingKeyOrder,nonGroupedUniqueColumns);
+            aggregator.open();
+        }
+
+        GroupedRow row = aggregator.next();
+        if(row==null){
+            currentKey=null;
+            clearCurrentRow();
+            aggregator.close();
+            return null;
+        }
+        currentKey = row.getGroupingKey();
+        isCurrentDistinct = row.isDistinct();
+        ExecRow execRow = row.getRow();
+        setCurrentRow(execRow);
+        return execRow;
+    }
+
+    @Override
+    public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(aggregator==null){
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    return aggregateContext.getSortTemplateRow();
+                }
+            };
+            /*
+             * When scanning from TEMP, we know that all the intermediate results with the same
+             * hash key are grouped together, which means that we only need to keep a single buffer entry
+             * in memory.
+             */
+            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true);
+
+            int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
+            boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
+            SpliceResultScanner scanner = getResultScanner(groupingKeys,spliceRuntimeContext,getHashPrefix().getPrefixLength());
+            StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
+            aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,groupingKeys,groupingKeyOrder,false);
+            aggregator.open();
+        }
+        boolean shouldClose = true;
+        try{
+            GroupedRow row = aggregator.next();
+            if(row==null){
+                clearCurrentRow();
+                return null;
             }
-			agg.merge(newRow,currRow);
-		}
-	}
-	
-	protected ExecRow getNextRowFromScan() throws StandardException {
-		SpliceLogUtils.trace(LOG,"getting next row from scan");
-        if(rowProvider.hasNext())
-            return rowProvider.next();
-        else return null;
-	}
+            //don't close the aggregator unless you have no more data
+            shouldClose =false;
+            currentKey = row.getGroupingKey();
+            isCurrentDistinct = row.isDistinct();
+            ExecRow execRow = row.getRow();
+            setCurrentRow(execRow);
 
-	private ExecRow getNextRowFromSource() throws StandardException{
-		ExecRow sourceRow;
-		ExecRow inputRow = null;
+//            if(LOG.isTraceEnabled())
+//                LOG.trace("nextRow = "+ execRow);
+            return execRow;
+        }finally{
+            if(shouldClose)
+                aggregator.close();
+        }
+    }
 
-		if ((sourceRow = source.getNextRowCore())!=null){
-			sourceExecIndexRow.execRowToExecIndexRow(sourceRow);
-			inputRow = sourceExecIndexRow;
-		}
+    private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext, final int prefixOffset) {
+        if(!spliceRuntimeContext.isSink()){
+						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+            return new ClientResultScanner(tempTableBytes,reduceScan,true);
+				}
 
-		return inputRow;
-	}
-	
-	private ExecRow finalizeResults() throws StandardException {
-		SpliceLogUtils.trace(LOG, "finalizeResults");
-		completedExecution=true;
-		currentAggregations = currentAggregations.finishAggregates(aggregateFinisher);
-		if(currentAggregations.size()>0) {
-			ByteBuffer key = currentAggregations.keySet().iterator().next();
-			return makeCurrent(key,currentAggregations.remove(key));
-		}
-		else 
-			return null;
-	}
-	
-	private ExecRow makeCurrent(ByteBuffer key, ExecRow row) throws StandardException{
-		setCurrentRow(row);
-        currentKey = key.array();
-		return row;
-	}
+        //we are under another sink, so we need to use a RegionAwareScanner
+        final DataValueDescriptor[] cols = sourceExecIndexRow.getRowArray();
+        ScanBoundary boundary = new BaseHashAwareScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES){
+            @Override
+            public byte[] getStartKey(Result result) {
+                MultiFieldDecoder fieldDecoder = MultiFieldDecoder.wrap(result.getRow(),SpliceDriver.getKryoPool());
+                fieldDecoder.seek(prefixOffset+1); //skip the prefix value
 
-	@Override
-	public ExecRow getExecRowDefinition() {
-		SpliceLogUtils.trace(LOG,"getExecRowDefinition");
+                byte[] slice = DerbyBytesUtil.slice(fieldDecoder, groupColumns, cols);
+                fieldDecoder.reset();
+                MultiFieldEncoder encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),2);
+                encoder.setRawBytes(fieldDecoder.slice(prefixOffset+1));
+                encoder.setRawBytes(slice);
+                return encoder.build();
+            }
+
+            @Override
+            public byte[] getStopKey(Result result) {
+                byte[] start = getStartKey(result);
+                BytesUtil.unsignedIncrement(start,start.length-1);
+                return start;
+            }
+        };
+        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary);
+    }
+
+    @Override
+    public ExecRow getExecRowDefinition() {
+        SpliceLogUtils.trace(LOG,"getExecRowDefinition");
         return sourceExecIndexRow.getClone();
-	}
+    }
 
-	@Override
-	public String toString() {
-		return "GroupedAggregateOperation {source="+source;
-	}
+    @Override
+    public String toString() {
+        return "GroupedAggregateOperation {source="+source;
+    }
 
 
-	public boolean isInSortedOrder() {
-		return this.isInSortedOrder;
-	}
-	
-	public boolean hasDistinctAggregate() {
-		return this.numDistinctAggs>0;
-	}
-	
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
+    public boolean isInSortedOrder() {
+        return this.isInSortedOrder;
+    }
 
-		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
-	@Override
-	public void	close() throws StandardException
-	{
-        if(hbs!=null)
-            hbs.close();
-		SpliceLogUtils.trace(LOG, "close in GroupedAggregate");
-		beginTime = getCurrentTimeMillis();
-		if ( isOpen )
-	    {
-            if(reduceScan!=null)
-                SpliceDriver.driver().getTempCleaner().deleteRange(uniqueSequenceID,reduceScan.getStartRow(),reduceScan.getStopRow());
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-		    clearCurrentRow();
-			source.close();
+    public boolean hasDistinctAggregate() {
+        return groupedAggregateContext.getNumDistinctAggregates()>0;
+    }
 
-			super.close();
-		}
-		closeTime += getElapsedMillis(beginTime);
+//    @Override
+//    public long getTimeSpent(int type)
+//    {
+//        long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
+//            return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//        else
+//            return totTime;
+//    }
+    @Override
+    public void	close() throws StandardException, IOException {
+				super.close();
+				source.close();
+    }
 
-		isOpen = false;
-	}
-	
-	public Properties getSortProperties() {
-		Properties sortProperties = new Properties();
-		sortProperties.setProperty("numRowsInput", ""+getRowsInput());
-		sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
-		return sortProperties;
-	}
+    public Properties getSortProperties() {
+        Properties sortProperties = new Properties();
+        sortProperties.setProperty("numRowsInput", ""+getRowsInput());
+        sortProperties.setProperty("numRowsOutput", ""+getRowsOutput());
+        return sortProperties;
+    }
 
     @Override
     public String prettyPrint(int indentLevel) {
         return "Grouped"+super.prettyPrint(indentLevel);
     }
-    public static int[] convertIntegers(List<Integer> integers) {
-        int[] ret = new int[integers.size()];
-        for (int i=0; i < ret.length; i++) {
-            ret[i] = integers.get(i).intValue();
-        }
-        return ret;
-    }
-    public static boolean[] convertBooleans(List<Boolean> booleans) {
-        boolean[] ret = new boolean[booleans.size()];
-        for (int i=0; i < ret.length; i++) {
-            ret[i] = booleans.get(i).booleanValue();
-        }
-        return ret;
-    }
-
-    private RowProviderIterator<ExecRow> createSourceIterator() {
-        return new RowProviderIterator<ExecRow>(){
-
-            private Iterator<ExecRow> rolledUpRows = Collections.<ExecRow>emptyList().iterator();
-            private boolean populated;
-
-            @Override
-            public boolean hasNext() throws StandardException {
-
-                if(!populated && rolledUpRows != null && !rolledUpRows.hasNext()){
-                    ExecRow nextRow = getNextRowFromSource();
-
-                    if(nextRow != null){
-                        rolledUpRows = Arrays.asList(getRolledUpRows(nextRow)).iterator();
-                        populated = true;
-                    }else{
-                        rolledUpRows = null;
-                        populated = true;
-                    }
-                }
-
-                return rolledUpRows != null && rolledUpRows.hasNext();
-            }
-
-            @Override
-            public ExecRow next() throws StandardException {
-
-                if(!populated){
-                    hasNext();
-                }
-
-                ExecRow nextRow = null;
-
-                if( rolledUpRows != null){
-                    nextRow = rolledUpRows.next();
-                    populated = false;
-                    initializeVectorAggregation(nextRow);
-                }
-
-                return nextRow;
-            }
-        };
-    }
-
 
 }

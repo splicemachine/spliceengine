@@ -6,20 +6,21 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.collections.PredicateUtils;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
-
-import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Scott Fines
@@ -60,12 +61,12 @@ public class ZkTaskMonitor implements TaskMonitor{
         }
     };
     @Override
-    public List<String> getRunningTasks() {
+    public String[] getRunningTasks() {
         List<String> runningTasks = Lists.newArrayList();
         for(String region:runningTaskMap.keySet()){
             runningTasks.addAll(Collections2.transform(Collections2.filter(runningTaskMap.get(region),executingFilter),taskIdMapper));
         }
-        return runningTasks;
+        return runningTasks.toArray(new String[]{});
     }
 
     @Override
@@ -86,19 +87,21 @@ public class ZkTaskMonitor implements TaskMonitor{
     }
 
     @Override
-    public List<String> getRunningJobs() {
+    public String[] getRunningJobs() {
+        List<String> runningJobs = Lists.newArrayList();
         try {
-            return zooKeeper.getChildren(CoprocessorTaskScheduler.getJobPath(),false);
+            runningJobs.addAll(zooKeeper.getChildren(CoprocessorTaskScheduler.getJobPath(), false));
         } catch (KeeperException e) {
             if(e.code() ==KeeperException.Code.NONODE){
                 SpliceLogUtils.info(LOG,"No tasks have been submitted to this cluster. Ever");
-                return Collections.emptyList();
+                return new String[0];
             }
             SpliceLogUtils.error(LOG,"Unable to get running jobs!"+e.getMessage(),e);
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+        return runningJobs.toArray(new String[]{});
     }
 
     @Override

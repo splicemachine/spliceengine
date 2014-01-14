@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -13,28 +14,28 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -69,8 +70,10 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		nodeTypes.add(NodeType.MAP);
 		nodeTypes.add(NodeType.REDUCE);		
 	}
-	
-	public HashScanOperation() {
+
+    private int[] baseColumnMap;
+
+    public HashScanOperation() {
 		super();
 		SpliceLogUtils.trace(LOG, "instantiated");
 	}
@@ -138,16 +141,14 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
     public void init(SpliceOperationContext context) throws StandardException{
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
-        GeneratedMethod generatedMethod = statement.getActivationClass().getMethod(resultRowAllocatorMethodName);
-        ExecRow candidate = (ExecRow) generatedMethod.invoke(activation);
+        ExecRow candidate = scanInformation.getResultRow();//(ExecRow) generatedMethod.invoke(activation);
         FormatableArrayHolder fah = (FormatableArrayHolder)(activation.getPreparedStatement().getSavedObject(hashKeyItem));
         FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
-        LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-        currentRow = getCompactRow(lcc,candidate, accessedCols, false);
+        currentRow = operationInformation.compactRow(candidate, scanInformation.getAccessedColumns(), false);
+        baseColumnMap = operationInformation.getBaseColumnMap();
         keyColumns = new int[fihArray.length];
         for (int index = 0; index < fihArray.length; index++) {
-            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(accessedCols, fihArray[index].getInt());
+            keyColumns[index] = FormatableBitSetUtils.currentRowPositionFromBaseRow(scanInformation.getAccessedColumns(), fihArray[index].getInt());
         }
     }
 
@@ -168,25 +169,26 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
 	@Override
-	public RowProvider getMapRowProvider(SpliceOperation top,RowDecoder decoder) throws StandardException {
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         try{
             Scan scan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
-            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,decoder);
+            return new ClientScanProvider("hashScanMap",SpliceOperationCoprocessor.TEMP_TABLE,scan,
+										OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
 	}
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return getMapRowProvider(top,decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top,decoder, spliceRuntimeContext);
     }
 
     @Override
-    protected JobStats doShuffle() throws StandardException {
-        Scan scan = buildScan();
-        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null);
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this);
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
+        Scan scan = buildScan(runtimeContext);
+        RowProvider provider =  new ClientScanProvider("shuffler",Bytes.toBytes(tableName),scan,null,runtimeContext);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
         return provider.shuffleRows(soi);
     }
 
@@ -196,21 +198,14 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		try {
 			sequence = new DataValueDescriptor[1];
 			sequence[0] = activation.getDataValueFactory().getBitDataValue(uniqueSequenceID);
-//			Qualifier[][] probe = (Qualifier[][]) activation.getClass().getField(nextQualifierField).get(activation);
-//			Scan scan = Scans.newScan(DerbyBytesUtil.generateSortedHashScan(probe,sequence[0]),
-//																DerbyBytesUtil.generateIncrementedSortedHashScan(probe,sequence[0]), getTransactionID());
-			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition())));
+			SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
+			return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,spliceRuntimeContext), spliceRuntimeContext));
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "executeProbeScan failed!", e);
 			return null;
 		} 
 	}
 	
-	@Override
-	public void cleanup() {
-		SpliceLogUtils.trace(LOG,"cleanup");
-	}
-
 	@Override
 	public void generateLeftOperationStack(List<SpliceOperation> operations) {
 		SpliceLogUtils.trace(LOG,"generateLeftOperationStac");
@@ -222,24 +217,30 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 		return currentRow;
 	}
 
-    public ExecRow getNextSinkRow() throws StandardException {
-        return getNextRowCore();
+	@Override
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return nextRow(spliceRuntimeContext);
     }
 
-	@Override
-	public ExecRow getNextRowCore() throws StandardException {
-		  SpliceLogUtils.trace(LOG, "getNextRowCore");
+		@Override
+		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
+		@Override
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		  SpliceLogUtils.trace(LOG, "nextRow");
 		  List<KeyValue> keyValues = new ArrayList<KeyValue>();	
 		  try {
 			regionScanner.next(keyValues);
               if (!keyValues.isEmpty()) {
-                  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved hbase values %s", keyValues);
+                  SpliceLogUtils.trace(LOG, "nextRow retrieved hbase values %s", keyValues);
 
                   DataValueDescriptor[] rowArray = currentRow.getRowArray();
                   for(KeyValue kv:keyValues){
-                      RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, null);
+                      RowMarshaller.sparsePacked().decode(kv, rowArray, baseColumnMap, (MultiFieldDecoder)null);
                   }
-                  SpliceLogUtils.trace(LOG, "getNextRowCore retrieved derby row %s", currentRow);
+                  SpliceLogUtils.trace(LOG, "nextRow retrieved derby row %s", currentRow);
                   this.setCurrentRow(currentRow);
                   currentRowLocation = new HBaseRowLocation(keyValues.get(0).getRow());
                   return currentRow;
@@ -253,8 +254,8 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
-        RowProvider provider = getReduceRowProvider(this,getRowEncoder().getDual(getExecRowDefinition()));
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+        RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
 
@@ -267,38 +268,18 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 	
 	@Override
-	public void	close() throws StandardException
-	{
+	public void	close() throws StandardException, IOException {
 		SpliceLogUtils.trace(LOG, "close in HashScan");
-		beginTime = getCurrentTimeMillis();
-		if ( isOpen )
-	    {
-			// we don't want to keep around a pointer to the
-			// row ... so it can be thrown away.
-			// REVISIT: does this need to be in a finally
-			// block, to ensure that it is executed?
-		    clearCurrentRow();
-		    
-		    //TODO: need to get ScanInfo to store in runtime statistics
-		    scanProperties = getScanProperties();
-			
-			// This is where we get the positioner info for inner tables
-			if (runTimeStatisticsOn)
-			{
-				startPositionString = printStartPosition();
-				stopPositionString = printStopPosition();
-			}
-
-			startPosition = null;
-			stopPosition = null;
-
 			super.close();
-	    }
-		
 		closeTime += getElapsedMillis(beginTime);
 	}
-	
-	public Properties getScanProperties()
+
+		@Override
+		public byte[] getUniqueSequenceId() {
+				return uniqueSequenceID;
+		}
+
+		public Properties getScanProperties()
 	{
 		//TODO: need to get ScanInfo to store in runtime statistics
 		if (scanProperties == null) 

@@ -9,11 +9,13 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -79,9 +81,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         super();
     }
 
-    public BroadcastJoinOperation(NoPutResultSet leftResultSet,
+    public BroadcastJoinOperation(SpliceOperation leftResultSet,
                                   int leftNumCols,
-                                  NoPutResultSet rightResultSet,
+                                  SpliceOperation rightResultSet,
                                   int rightNumCols,
                                   int leftHashKeyItem,
                                   int rightHashKeyItem,
@@ -119,13 +121,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public ExecRow getNextRowCore() throws StandardException {
-        SpliceLogUtils.trace(LOG, "getNextRowCore");
+    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        SpliceLogUtils.trace(LOG, "nextRow");
         if (rightSideMap == null)
-            rightSideMap = retrieveRightSideCache();
+            rightSideMap = retrieveRightSideCache(spliceRuntimeContext);
 
         while (broadcastIterator == null || !broadcastIterator.hasNext()) {
-            if ((leftRow = leftResultSet.getNextRowCore()) == null) {
+            if ((leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
                 mergedRow = null;
                 this.setCurrentRow(mergedRow);
                 return mergedRow;
@@ -137,13 +139,13 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return leftResultSet.getReduceRowProvider(top, decoder);
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getReduceRowProvider(top, decoder, spliceRuntimeContext);
     }
 
     @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, RowDecoder decoder) throws StandardException {
-        return leftResultSet.getMapRowProvider(top, decoder);
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return leftResultSet.getMapRowProvider(top, decoder, spliceRuntimeContext);
     }
 
 
@@ -151,15 +153,15 @@ public class BroadcastJoinOperation extends JoinOperation {
     public void init(SpliceOperationContext context) throws StandardException {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        leftHashKeys = generateHashKeys(leftHashKeyItem, (SpliceBaseOperation) this.leftResultSet);
-        rightHashKeys = generateHashKeys(rightHashKeyItem, (SpliceBaseOperation) this.rightResultSet);
+        leftHashKeys = generateHashKeys(leftHashKeyItem);
+        rightHashKeys = generateHashKeys(rightHashKeyItem);
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         rightResultSet.init(context);
     }
 
     @Override
-    public NoPutResultSet executeScan() throws StandardException {
+    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
         final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
         this.generateLeftOperationStack(opStack);
@@ -169,11 +171,11 @@ public class BroadcastJoinOperation extends JoinOperation {
         SpliceOperation regionOperation = opStack.get(opStack.size() - 1);
         SpliceLogUtils.trace(LOG, "regionOperation=%s", opStack);
         RowProvider provider;
-        RowDecoder decoder = getRowEncoder().getDual(getExecRowDefinition());
+				PairDecoder decoder = OperationUtils.getPairDecoder(this,runtimeContext);
         if (regionOperation.getNodeTypes().contains(NodeType.REDUCE)) {
-            provider = regionOperation.getReduceRowProvider(this, decoder);
+            provider = regionOperation.getReduceRowProvider(this, decoder, runtimeContext);
         } else {
-            provider = regionOperation.getMapRowProvider(this, decoder);
+            provider = regionOperation.getMapRowProvider(this, decoder, runtimeContext);
         }
         return new SpliceNoPutResultSet(activation, this, provider);
     }
@@ -232,7 +234,7 @@ public class BroadcastJoinOperation extends JoinOperation {
 
         @Override
         public ExecRow next() {
-            SpliceLogUtils.trace(LOG, "next row=" + mergedRow);
+            SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
             return mergedRow;
         }
 
@@ -246,7 +248,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         throw new RuntimeException("Should only be called on outer joins");
     }
 
-    private Map<ByteBuffer, List<ExecRow>> retrieveRightSideCache() throws StandardException {
+    private Map<ByteBuffer, List<ExecRow>> retrieveRightSideCache(final SpliceRuntimeContext runtimeContext) throws StandardException {
         try {
             // Cache population is what we want here concurrency-wise: only one Callable will be invoked to
             // populate the cache for a given key; any other concurrent .get(k, callable) calls will block
@@ -254,7 +256,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 @Override
                 public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
                     SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
-                    return loadRightSide();
+                    return loadRightSide(runtimeContext);
                 }
             });
         } catch (Exception e) {
@@ -263,12 +265,12 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
     }
 
-    private Map<ByteBuffer, List<ExecRow>> loadRightSide() throws StandardException, IOException {
+    private Map<ByteBuffer, List<ExecRow>> loadRightSide(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         ByteBuffer hashKey;
         List<ExecRow> rows;
         Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
         KeyMarshall hasher = KeyType.BARE;
-        NoPutResultSet resultSet = rightResultSet.executeScan();
+        NoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
         resultSet.openCore();
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rightNumCols);
         try{

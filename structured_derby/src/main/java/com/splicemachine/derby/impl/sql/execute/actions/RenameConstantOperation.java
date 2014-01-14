@@ -159,10 +159,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 	 *
 	 * @exception StandardException Thrown on failure
 	 */
-	public void executeConstantAction
-	(
-				   Activation activation)
-		throws StandardException
+    public void executeConstantAction(Activation activation) throws StandardException
 	{
 		TableDescriptor td;
 		UUID tableID;

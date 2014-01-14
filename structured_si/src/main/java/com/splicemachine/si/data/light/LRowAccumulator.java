@@ -6,21 +6,22 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LRowAccumulator implements RowAccumulator<Map<String, Object>> {
+public class LRowAccumulator implements RowAccumulator< Map<String, Object>,LKeyValue> {
     private Map<String, Object> accumulation = new HashMap<String, Object>();
 
     @Override
-    public boolean isOfInterest(Map<String, Object> value) {
+    public boolean isOfInterest(LKeyValue value) {
         return true;
     }
 
     @Override
-    public boolean accumulate(Map<String, Object> packedRow) throws IOException {
-        for (String k : packedRow.keySet()) {
-            if (!accumulation.containsKey(k)) {
-                accumulation.put(k, packedRow.get(k));
-            }
-        }
+    public boolean accumulate(LKeyValue keyValue) throws IOException {
+    	Map<String,Object> packedRow = (Map<String,Object>) keyValue.value;
+    	for (String k : packedRow.keySet()) {
+              if (!accumulation.containsKey(k)) {
+                  accumulation.put(k, packedRow.get(k));
+              }
+          }
         return true;
     }
 

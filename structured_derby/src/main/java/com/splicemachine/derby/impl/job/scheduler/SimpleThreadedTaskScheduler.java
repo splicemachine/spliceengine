@@ -1,13 +1,13 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.base.Function;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
 import com.splicemachine.tools.BalancedBlockingQueue;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SimpleThreadedTaskScheduler<T extends Task> implements TaskScheduler<T>,TaskSchedulerManagement {
     private static final Logger WORKER_LOG = Logger.getLogger(TaskCallable.class);
-    private static final int DEFAULT_MAX_WORKERS = 10;
-    private static final int DEFAULT_PRIORITY_LEVELS = 5;
-    private static final int DEFAULT_INTERLEAVE_COUNT = 10;
+    public static final int DEFAULT_MAX_WORKERS = 10;
+    public static final int DEFAULT_PRIORITY_LEVELS = 5;
+    public static final int DEFAULT_INTERLEAVE_COUNT = 10;
 
     private static final Function<Runnable,Integer> priorityMapper = new Function<Runnable, Integer>() {
         @Override
@@ -46,9 +46,17 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         int numPriorityLevels = configuration.getInt("splice.task.priorityLevels", DEFAULT_PRIORITY_LEVELS);
         int tasksPerLevel = configuration.getInt("splice.task.priorityInterleave", DEFAULT_INTERLEAVE_COUNT);
 
+        /*
+         * Attach an UncaughtExceptionHandler to every thread, to make sure that any accidental errors
+         * are captured and dealt with appropriately
+         */
+        ThreadFactory factory = new ThreadFactoryBuilder()
+                .setNameFormat("taskWorker-%d")
+                .setDaemon(true)
+                .setUncaughtExceptionHandler(new ExceptionLogger()).build();
         ThreadPoolExecutor executor = new TaskThreadPool(maxWorkers,maxWorkers,60,TimeUnit.SECONDS,
                 new BalancedBlockingQueue<Runnable>(numPriorityLevels,tasksPerLevel,priorityMapper),
-                new NamedThreadFactory());
+                factory);
         executor.allowCoreThreadTimeOut(true);
 
         return new SimpleThreadedTaskScheduler<T>(executor);
@@ -56,13 +64,18 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
     @Override
     public TaskFuture submit(T task) throws ExecutionException {
-        ListeningFuture future = new ListeningFuture(task,statsListener.numPending.incrementAndGet());
+        ListeningFuture future = new ListeningFuture(task,statsListener.numPending.get());
         task.getTaskStatus().attachListener(statsListener);
-        future.future = executor.submit(new TaskCallable<T>(task, statsListener));
+        future.future = executor.submit(new TaskCallable<T>(task));
         return future;
     }
 
-/*********************************************************************************************************************/
+		@Override
+		public boolean isShutdown() {
+				return executor.isShutdown();
+		}
+
+		/*********************************************************************************************************************/
     /*Statistics gathering*/
     @Override public int getNumPendingTasks() { return statsListener.numPending.get(); }
     @Override public int getCurrentWorkers() { return executor.getPoolSize(); }
@@ -75,117 +88,10 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
     @Override public long getTotalInvalidatedTasks() { return statsListener.invalidatedCount.get(); }
     @Override public int getNumRunningTasks() { return statsListener.numExecuting.get(); }
 
-    @Override
-    public int getHighestWorkerLoad() {
-        if(executor.getPoolSize()>0)
-            return executor.getQueue().size()/executor.getPoolSize();
-        return 0; //no threads means the executor is idle, so we can't possibly have any tasks waiting
-    }
-
-    @Override
-    public int getLowestWorkerLoad() {
-        return getHighestWorkerLoad(); //in this model, all workers have the same load
-    }
-
-    private static class TaskCallable<T extends Task> implements Callable<Void> {
-        private final T task;
-        private final StatsListener listener;
-
-        public TaskCallable(T task, StatsListener listener) {
-            this.task = task;
-            this.listener = listener;
-        }
-
-        @Override
-        public Void call() throws Exception {
-            try{
-                switch (task.getTaskStatus().getStatus()) {
-                    case INVALID:
-                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", task.getTaskId());
-                        cleanUpTask(task);
-                        return null;
-                    case FAILED:
-                        SpliceLogUtils.trace(WORKER_LOG,"Task %s has failed, but was not removed from the queue, removing now and skipping",task.getTaskId());
-                        cleanUpTask(task);
-                        return null;
-                    case COMPLETED:
-                        SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", task.getTaskId());
-                        cleanUpTask(task);
-                        return null;
-                    case CANCELLED:
-                        SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",task.getTaskId());
-                        cleanUpTask(task);
-                        return null;
-                }
-            }catch(ExecutionException ee){
-                SpliceLogUtils.error(WORKER_LOG,
-                        "task "+ task.getTaskId()+" had an unexpected error while checking status, unable to execute",ee.getCause());
-                return null;
-            }
-
-            try{
-                SpliceLogUtils.trace(WORKER_LOG,"executing task %s",task.getTaskId());
-                try{
-                    task.markStarted();
-                }catch(CancellationException ce){
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s was cancelled",task.getTaskId());
-                    return null;
-                }
-                task.execute();
-                SpliceLogUtils.trace(WORKER_LOG,"task %s finished executing, marking completed",task.getTaskId());
-                task.markCompleted();
-            }catch(ExecutionException ee){
-                Throwable t = ee.getCause();
-                if(t instanceof NotServingRegionException){
-                    /*
-                     * We were accidentally assigned this task, but we aren't responsible for it, so we need
-                     * to invalidate it and send it back to the client to re-submit
-                     */
-                    SpliceLogUtils.trace(WORKER_LOG,"task %s was assigned to the incorrect region, invalidating:%s",task.getTaskId(),t.getMessage());
-                    task.markInvalid();
-                }else{
-                    SpliceLogUtils.error(WORKER_LOG,"task "+ task.getTaskId()+" had an unexpected error",ee.getCause());
-                    try{
-                        task.markFailed(ee.getCause());
-                    }catch(ExecutionException failEx){
-                        SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
-                    }
-                }
-            }catch(Throwable t){
-                SpliceLogUtils.error(WORKER_LOG, "task " + task.getTaskId() + " had an unexpected error while setting state", t);
-                try{
-                    task.markFailed(t);
-                }catch(ExecutionException failEx){
-                    SpliceLogUtils.error(WORKER_LOG,"Unable to indicate task failure",failEx.getCause());
-                }
-            }
-            return null;
-        }
-
-        private void cleanUpTask(T task)  throws ExecutionException{
-            //if we clean up the task, then we never got a chance to decrement the pending count
-            listener.numPending.decrementAndGet();
-            task.cleanup();
-        }
-    }
-
-    private static class NamedThreadFactory implements ThreadFactory {
-        private final AtomicLong threadCount = new AtomicLong(0l);
-        private final Thread.UncaughtExceptionHandler eh = new ExceptionLogger();
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread t = new Thread(r);
-            t.setName("taskWorker-"+threadCount.incrementAndGet());
-            t.setDaemon(true);
-            t.setUncaughtExceptionHandler(eh);
-            return t;
-        }
-    }
-
     private static final class ExceptionLogger implements Thread.UncaughtExceptionHandler{
         @Override
         public void uncaughtException(Thread t, Throwable e) {
-            WORKER_LOG.error("Worker Thread t failed with unexpected exception: ",e);
+            WORKER_LOG.error("Worker Thread "+t+" failed with unexpected exception: ",e);
         }
     }
 
@@ -258,15 +164,20 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
 
         @Override
         public void statusChanged(Status oldStatus, Status newStatus, TaskStatus taskStatus) {
-            switch (oldStatus) {
-                case PENDING:
-                    numPending.decrementAndGet();
-                    break;
-                case EXECUTING:
-                    numExecuting.decrementAndGet();
-                    break;
+            if(oldStatus!=null){
+                switch (oldStatus) {
+                    case PENDING:
+                        numPending.decrementAndGet();
+                        break;
+                    case EXECUTING:
+                        numExecuting.decrementAndGet();
+                        break;
+                }
             }
             switch (newStatus) {
+                case PENDING:
+                    numPending.incrementAndGet();
+                    return;
                 case FAILED:
                     failedCount.incrementAndGet();
                     taskStatus.detachListener(this);
@@ -299,7 +210,7 @@ public class SimpleThreadedTaskScheduler<T extends Task> implements TaskSchedule
         @Override
         protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
             if(callable instanceof TaskCallable)
-                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).task.getPriority());
+                return new PriorityTaskRunnableFuture<T>(callable,((TaskCallable)callable).getPriority());
             //when in doubt, just default to the original
             return super.newTaskFor(callable);
         }

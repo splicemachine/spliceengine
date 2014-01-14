@@ -1,13 +1,18 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
+import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManagerContext;
-import com.splicemachine.utils.ByteDataInput;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.kryo.KryoObjectInput;
+import com.splicemachine.utils.kryo.KryoObjectOutput;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.sql.Activation;
@@ -20,7 +25,6 @@ import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
 import org.apache.derby.impl.sql.GenericActivationHolder;
 import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -46,6 +50,7 @@ public class SpliceObserverInstructions implements Externalizable {
     private ActivationContext activationContext;
     protected SchemaDescriptor defaultSchemaDescriptor;
     protected String sessionUserName;
+    protected SpliceRuntimeContext spliceRuntimeContext;
 
     // propagate transactionId to all co-processors running operations for this SQL statement
     private String transactionId;
@@ -56,7 +61,8 @@ public class SpliceObserverInstructions implements Externalizable {
 	}
 
 	public SpliceObserverInstructions(GenericStorablePreparedStatement statement,  SpliceOperation topOperation,
-                                      ActivationContext activationContext, String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) {
+                                      ActivationContext activationContext, String transactionId, String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
+                                      SpliceRuntimeContext spliceRuntimeContext) {
 		SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 		this.statement = statement;
 		this.topOperation = topOperation;
@@ -64,6 +70,7 @@ public class SpliceObserverInstructions implements Externalizable {
         this.transactionId = transactionId;
         this.sessionUserName = sessionUserName;
         this.defaultSchemaDescriptor = defaultSchemaDescriptor;
+        this.spliceRuntimeContext = spliceRuntimeContext;
 	}
 
     public String getTransactionId() {
@@ -79,6 +86,7 @@ public class SpliceObserverInstructions implements Externalizable {
         this.transactionId = in.readUTF();
         this.sessionUserName = in.readUTF();
         this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
+        this.spliceRuntimeContext = (SpliceRuntimeContext) in .readObject();
 	}
 
 	@Override
@@ -90,7 +98,18 @@ public class SpliceObserverInstructions implements Externalizable {
         out.writeUTF(transactionId);
         out.writeUTF(sessionUserName);
         out.writeObject(defaultSchemaDescriptor);
+        out.writeObject(spliceRuntimeContext);
 	}
+	
+	
+	public SpliceRuntimeContext getSpliceRuntimeContext() {
+		return spliceRuntimeContext;
+	}
+
+	public void setSpliceRuntimeContext(SpliceRuntimeContext spliceRuntimeContext) {
+		this.spliceRuntimeContext = spliceRuntimeContext;
+	}
+
 	/**
 	 * Retrieve the GenericStorablePreparedStatement: This contains the byte code for the activation.
 	 *
@@ -124,13 +143,16 @@ public class SpliceObserverInstructions implements Externalizable {
     }
 
     public static SpliceObserverInstructions create(Activation activation,
-                                                    SpliceOperation topOperation) {
+                                                    SpliceOperation topOperation,
+                                                    SpliceRuntimeContext spliceRuntimeContext) {
         ActivationContext activationContext = ActivationContext.create(activation,topOperation);
         final String transactionID = getTransactionId(activation);
 
         return new SpliceObserverInstructions(
 				(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-				topOperation,activationContext, transactionID, activation.getLanguageConnectionContext().getSessionUserId(), activation.getLanguageConnectionContext().getDefaultSchema() );
+				topOperation,activationContext, transactionID,
+								activation.getLanguageConnectionContext().getSessionUserId(),
+								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
 	}
 
     private static String getTransactionId(Activation activation) {
@@ -162,7 +184,7 @@ public class SpliceObserverInstructions implements Externalizable {
      * the activation properly serialize. Someday, it would be nice to move all of this into making
      * Activation properly serializable.
      */
-    private static class ActivationContext implements Externalizable{
+    public static class ActivationContext implements Externalizable{
         private static final long serialVersionUID = 5l;
         private Map<String,Integer> setOps;
         private boolean statementAtomic;
@@ -204,8 +226,8 @@ public class SpliceObserverInstructions implements Externalizable {
 
                         final Object fieldValue = field.get(activation);
                         SpliceOperation op;
-                        if (fieldValue instanceof OperationResultSet) {
-                            op = ((OperationResultSet) fieldValue).getTopOperation();
+                        if (fieldValue instanceof ConvertedResultSet) {
+                            op = ((ConvertedResultSet) fieldValue).getOperation();
                         } else {
                             op = (SpliceOperation) fieldValue;
                         }
@@ -221,36 +243,6 @@ public class SpliceObserverInstructions implements Externalizable {
                 }
             }
 
-//		/*
-//		 * Serialize out any non-null result rows that are currently stored in the activation.
-//		 *
-//		 * This is necessary if you are pushing out a set of Operation to a Table inside of a Sink.
-//		 */
-//            int rowPos=1;
-//            Map<Integer,ExecRow> rowMap = new HashMap<Integer,ExecRow>();
-//            boolean shouldContinue=true;
-//            while(shouldContinue){
-//                try{
-//                    ExecRow row = (ExecRow)activation.getCurrentRow(rowPos);
-//                    if(row!=null){
-//                        rowMap.put(rowPos,row);
-//                    }
-//                    rowPos++;
-//                }catch(IndexOutOfBoundsException ie){
-//                    //we've reached the end of the row group in activation, so stop
-//                    shouldContinue=false;
-//                }
-//            }
-//            ExecRow[] currentRows = new ExecRow[rowPos];
-//            for(Integer rowPosition:rowMap.keySet()){
-//                ExecRow row = new SerializingExecRow(rowMap.get(rowPosition));
-//                if(row instanceof ExecIndexRow)
-//                    currentRows[rowPosition] = new SerializingIndexRow(row);
-//                else
-//                    currentRows[rowPosition] =  row;
-//            }
-//            SpliceLogUtils.trace(LOG,"serializing current rows: %s", Arrays.toString(currentRows));
-
         /*
          * Serialize out all the pieces of the StatementContext so that it can be recreated on the
          * other side
@@ -264,14 +256,19 @@ public class SpliceObserverInstructions implements Externalizable {
 
             ParameterValueSet pvs = activation.getParameterValueSet().getClone();
 
-            ByteDataOutput bdo = new ByteDataOutput();
+            Kryo kryo = SpliceDriver.getKryoPool().get();
+            Output output = new Output(4096,-1);
             try {
-                ActivationSerializer.write(activation,bdo);
-                return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
-                        stmtText,stmtRollBackParentContext,stmtTimeout,bdo.toByteArray());
+                KryoObjectOutput koo = new KryoObjectOutput(output,kryo);
+                ActivationSerializer.write(activation,koo);
             } catch (IOException e) {
                 throw new RuntimeException(e); //should never happen
+            }finally{
+                output.flush();
+                SpliceDriver.getKryoPool().returnInstance(kryo);
             }
+            return new ActivationContext(pvs,setOps,statementAtomic,statementReadOnly,
+                    stmtText,stmtRollBackParentContext,stmtTimeout,output.toBytes());
         }
 
         @Override
@@ -285,7 +282,8 @@ public class SpliceObserverInstructions implements Externalizable {
             out.writeBoolean(pvs!=null);
             if(pvs!=null)
                 out.writeObject(pvs);
-            out.writeObject(activationData);
+            out.writeInt(activationData.length);
+            out.write(activationData);
         }
 
         @SuppressWarnings("unchecked")
@@ -300,13 +298,20 @@ public class SpliceObserverInstructions implements Externalizable {
             if(in.readBoolean()){
                 this.pvs = (ParameterValueSet)in.readObject();
             }
-            activationData = (byte[])in.readObject();
+            activationData = new byte[in.readInt()];
+            in.readFully(activationData);
         }
 
         public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {
-
             try{
-                ActivationSerializer.readInto(new ByteDataInput(activationData),activation);
+                Kryo kryo = SpliceDriver.getKryoPool().get();
+                try{
+                    Input input = new Input(activationData);
+                    KryoObjectInput koi = new KryoObjectInput(input,kryo);
+                    ActivationSerializer.readInto(koi,activation);
+                }finally{
+                    SpliceDriver.getKryoPool().returnInstance(kryo);
+                }
 			/*
 			 * Set the populated operations with their comparable operation
 			 */
@@ -316,7 +321,8 @@ public class SpliceObserverInstructions implements Externalizable {
                     SpliceOperation op = ops.get(setOps.get(setField));
                     Field fieldToSet = activation.getClass().getDeclaredField(setField);
                     if(!fieldToSet.isAccessible())fieldToSet.setAccessible(true);
-                    fieldToSet.set(activation, op);
+                    ConversionResultSet crs = new ConversionResultSet(op,activation);
+                    fieldToSet.set(activation, crs);
                 }
 
 
@@ -327,11 +333,11 @@ public class SpliceObserverInstructions implements Externalizable {
                 activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
                         statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
                 return activation;
-            }catch (NoSuchFieldException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
+            }catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
             } catch (IllegalAccessException e) {
-                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-            } catch (IOException e) {
+                SpliceLogUtils.logAndThrowRuntime(LOG,e);
+            } catch (NoSuchFieldException e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG,e);
             }
             return null;
@@ -353,5 +359,10 @@ public class SpliceObserverInstructions implements Externalizable {
 
 	public void setSessionUserName(String sessionUserName) {
 		this.sessionUserName = sessionUserName;
+	}
+
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
 	}    
+	
 }

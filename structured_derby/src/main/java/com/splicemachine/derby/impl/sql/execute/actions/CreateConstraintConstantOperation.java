@@ -110,12 +110,12 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 	 *  </UL>
 
 	 *  @see ConstraintDescriptor
-	 *  @see CreateIndexConstantAction
+	 *  @see CreateIndexConstantOperation
 	 *	@see ConstantAction#executeConstantAction
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public void	executeConstantAction( Activation activation ) throws StandardException {
+	public void executeConstantAction( Activation activation ) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeConstantAction");
 		ConglomerateDescriptor		conglomDesc = null;
 		ConglomerateDescriptor[]	conglomDescs = null;
@@ -304,9 +304,9 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
         ConglomerateDescriptor[] conglomDescs;
         String backingIndexName;
         ConglomerateDescriptor conglomDesc = null;
-	IndexConstantAction iAction;
-        if (indexAction instanceof IndexConstantAction) {
-	    iAction = (IndexConstantAction)indexAction;
+	IndexConstantOperation iAction;
+        if (indexAction instanceof IndexConstantOperation) {
+	    iAction = (IndexConstantOperation)indexAction;
             if ( iAction.getIndexName() == null ) {
 				/* Set the index name */
                 backingIndexName =  uuidFactory.createUUID().toString();
@@ -316,7 +316,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             	backingIndexName = iAction.getIndexName(); 
             }
 			/* Create the index */
-            indexAction.executeConstantAction(activation);
+            ((CreateIndexConstantOperation)indexAction).executeConstantAction(activation);
 
 			/* Get the conglomerate descriptor for the backing index */
             conglomDescs = td.getConglomerateDescriptors();

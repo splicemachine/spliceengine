@@ -9,6 +9,7 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -40,7 +41,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public String getJobId() {
-        return instructions.getTopOperation().getUniqueSequenceID();
+        return Long.toString(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()));
     }
 
     public Scan getScan(){

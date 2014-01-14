@@ -161,11 +161,13 @@ public class SpliceTransaction implements Transaction {
 	}
 	
 	public void close() throws StandardException {
-		SpliceLogUtils.debug(LOG,"close");	
+		SpliceLogUtils.debug(LOG,"close");
 
-		transContext.popMe();
-		transContext = null;
-		transactionId = null;
+        if (transContext != null) {
+            transContext.popMe();
+            transContext = null;
+        }
+        transactionId = null;
         transactor = null;
 		state = CLOSED;
 	}

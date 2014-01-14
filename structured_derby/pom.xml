@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>splice_machine</artifactId>
 	<packaging>jar</packaging>
@@ -9,12 +8,11 @@
 	<parent>
 		<artifactId>structured_hbase</artifactId>
 		<groupId>com.splicemachine</groupId>
-		<version>1.0.1-SNAPSHOT</version>
+		<version>0.5rc6-SNAPSHOT</version>
 	</parent>
 
 
 	<dependencies>
-
 		<dependency>
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derby</artifactId>
@@ -54,12 +52,12 @@
 		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
+			<version>0.5rc6-SNAPSHOT</version>
 			<type>jar</type>
 			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -99,11 +97,6 @@
 			<artifactId>ehcache-core</artifactId>
 			<version>2.6.6</version>
 		</dependency>
-        <dependency>
-            <groupId>com.esotericsoftware.kryo</groupId>
-            <artifactId>kryo</artifactId>
-            <version>2.21</version>
-        </dependency>
 	</dependencies>
 	<build>
 		<resources>
@@ -123,40 +116,82 @@
 			and the site phase. These plugins inherit their options from the <reporting> 
 			section below. These settings can be overwritten here. -->
 		<plugins>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<shortRevisionLength>10</shortRevisionLength>
+					<doCheck>false</doCheck>
+					<doUpdate>false</doUpdate>
+				</configuration>
+			</plugin>
+
+
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.15</version>
-				<configuration>		
-				<!--  
-					<parallel>classes</parallel>
-          			<threadCount>5</threadCount>
-          			<perCoreThreadCount>false</perCoreThreadCount> 
-					-->
+				<configuration>
+					<!-- <parallel>classes</parallel> <threadCount>5</threadCount> <perCoreThreadCount>false</perCoreThreadCount> -->
 					<argLine>-Xms256M -Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
-					<includes>
-						<include>${runClass}</include>
-					</includes>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+			        <excludes>
+			            <exclude>**/*IT.java</exclude>
+			        </excludes>
 				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>com.splicemachine</groupId>
-						<artifactId>structured_si</artifactId>
-						<version>1.0.1-SNAPSHOT</version>
-									          		<classifier>${envClassifier}</classifier>
-					</dependency>
-
-				</dependencies>
+			</plugin>
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <version>2.12.2</version>
+                <configuration>
+				    <skipTests>${skip.integration.tests}</skipTests>
+					<argLine>-Xms256M -Xmx1024M</argLine>
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/*Test.java</exclude>
+                    </excludes>
+				</configuration>
 			</plugin>
 
-				<plugin>
+			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
 					<source>6</source>
 					<descriptors>
 						<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+						<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
 					</descriptors>
 					<archive>
+						<manifestEntries>
+							<Implementation-Version>${buildNumber}</Implementation-Version>
+							<Release>0.5</Release>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
+							<URL>http://www.splicemachine.com</URL>
+						</manifestEntries>
 					</archive>
 				</configuration>
 				<executions>
@@ -174,6 +209,62 @@
 	</build>
 
 	<profiles>
+        <profile>
+            <id>integration-tests</id>
+            <properties>
+                <!-- enable failsafe integration tests -->
+                <skip.integration.tests>false</skip.integration.tests>
+                
+                <!-- skip server start/stop if server already running -->
+                <server.start.skip>skipServerStart</server.start.skip>
+                
+                <!-- ant task start/stop server args -->
+                <run.command>/bin/sh</run.command>
+                <splice.start.script>start-splice.sh</splice.start.script>
+                <splice.stop.script>stop-splice.sh</splice.stop.script>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>############## start-splice ################</id>
+                                <phase>pre-integration-test</phase>
+                                <configuration>
+                                    <target name="StartSpliceServer" unless="${server.start.skip}">
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
+                                            <arg value="${basedir}/../${splice.start.script}" />
+                                            <arg value="${failTasksRandomly}" />
+                                            <arg value="${envClassifier}" />
+                                        </exec>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>############## stop-splice ################</id>
+                                <phase>post-integration-test</phase>
+                                <configuration>
+                                    <target name="StopSpliceServer" unless="${server.start.skip}">
+                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
+                                            <arg value="${basedir}/../${splice.stop.script}" />
+                                        </exec>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
 		<profile>
 			<id>splice</id>
 			<activation>
@@ -201,15 +292,21 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-                        <argument>-Djava.awt.headless=true</argument>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
-                                <argument>-enableassertions</argument>
+								<argument>-enableassertions</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
+								<argument>-Dderby.debug.true=DumpClassFile,DumpParseTree,DumpBindTree,DumpOptimizedTree,ByteCodeGenInstr</argument>
+                                <argument>-Dderby.language.logQueryPlan=true</argument>
+                                <argument>-Dderby.language.logStatementText=true</argument>
+                                <argument>-Dderby.language.useStatistics=true</argument>
+				                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>${project.build.directory}/hbase</argument>
+								<argument>file://${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
@@ -245,7 +342,8 @@
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-                        	<argument>-Djava.awt.headless=true</argument>	
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/trace-log4j.properties</argument>
 								<argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
@@ -298,6 +396,7 @@
 							</filesets>
 						</configuration>
 					</plugin>
+					
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
@@ -305,25 +404,29 @@
 						<executions>
 							<execution>
 								<goals>
-									<goal>java</goal>
+									<goal>exec</goal>
 								</goals>
 							</execution>
 						</executions>
 						<configuration>
-							<mainClass>org.apache.zookeeper.server.ZooKeeperServerMain</mainClass>
-							<executable>maven</executable>
+							<classpathScope>compile</classpathScope>
+							<executable>java</executable>
 							<arguments>
+								<argument>-cp</argument>
+								<classpath>${maven.runtime.classpath}</classpath>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>
+								<argument>-Xmx2g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
+								<argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
 								<argument>2181</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
 								<argument>10</argument>
 								<argument>0</argument>
 							</arguments>
-                     <systemProperties>
-                        <systemProperty>
-                           <key>java.awt.headless</key>
-                           <value>true</value>
-                        </systemProperty>
-                     </systemProperties>
 						</configuration>
 					</plugin>
 				</plugins>
@@ -352,22 +455,30 @@
 						<configuration>
 							<classpathScope>compile</classpathScope>
 							<executable>java</executable>
+                            <workingDirectory>${basedir}</workingDirectory>
 							<arguments>
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
 								<argument>-Xdebug</argument>
-								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
+                                <argument>-Djava.awt.headless=true</argument>
+								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/hbase-log4j.properties</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
 								<argument>-Xmx3g</argument>
 								<argument>-Xms1g</argument>
-                                <argument>-enableassertions</argument>
+								<argument>-enableassertions</argument>
 								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
 								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>${project.build.directory}/hbase</argument>
+								<argument>file://${project.build.directory}/hbase</argument>
 								<argument>60021</argument>
 								<argument>60022</argument>
 								<argument>60023</argument>
 								<argument>60024</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
+
 						</configuration>
 					</plugin>
 				</plugins>
@@ -396,14 +507,15 @@
 						<configuration>
 							<classpathScope>compile</classpathScope>
 							<executable>java</executable>
-							<arguments>							
+							<arguments>
 								<argument>-cp</argument>
 								<classpath>${maven.runtime.classpath}</classpath>
-								                        	<argument>-Djava.awt.headless=true</argument>	
+								<argument>-Djava.awt.headless=true</argument>
 								<argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
-								<argument>-Xmx2g</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Xmx2g</argument>
 								<argument>-Xms1g</argument>
- 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
 								<argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
 								<argument>${project.build.directory}/hbase</argument>
 								<argument>60021</argument>
@@ -440,53 +552,65 @@
 							<executable>maven</executable>
 							<arguments>
 								<argument>${project.build.directory}/zookeeper</argument>
-								<argument>${project.build.directory}/hbase</argument>
+								<argument>file://${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
 							</arguments>
 						</configuration>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
-        <profile>
-            <id>spliceFast</id>
-            <activation><property><name>spliceFast</name></property></activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.2.1</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <classpathScope>compile</classpathScope>
-                            <executable>java</executable>
-                            <arguments>
-                                <argument>-cp</argument>
-                                <classpath>${maven.runtime.classpath}</classpath>
-                                <argument>-Xdebug</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-Dlog4j.configuration=file:${basedir}/src/main/resources/info-log4j.properties</argument>
-                                <argument>-Djava.awt.headless=true</argument>
-                                <argument>-Xmx2g</argument>
-                                <argument>-Xms1g</argument>
-                                <argument>-XX:MaxPermSize=128M</argument>
-                                <argument>-enableassertions</argument>
-                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
-                                <argument>com.splicemachine.test.SpliceTestPlatform</argument>
-                                <argument>${project.build.directory}/zookeeper</argument>
-                                <argument>${project.build.directory}/hbase</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-		</build>
-	</profile>
+		<profile>
+			<id>spliceFast</id>
+			<activation>
+				<property>
+					<name>spliceFast</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>1.2.1</version>
+						<executions>
+							<execution>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<classpathScope>compile</classpathScope>
+							<executable>java</executable>
+							<arguments>
+								<argument>-cp</argument>
+								<classpath>${maven.runtime.classpath}</classpath>
+								<argument>-Xdebug</argument>
+								<argument>-XX:+UseConcMarkSweepGC</argument>
+								<argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+								<argument>-Djava.net.preferIPv4Stack=true</argument>
+								<argument>-Djava.awt.headless=true</argument>
+								<argument>-Dzookeeper.sasl.client=false</argument>			
+								<argument>-Dcom.sun.management.jmxremote.ssl=false</argument>	
+								<argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+								<argument>-Dcom.sun.management.jmxremote.port=10102</argument>	
+								<argument>-Xmx3g</argument>
+								<argument>-Xms1g</argument>
+								<argument>-XX:MaxPermSize=128M</argument>
+								<argument>-XX:MaxDirectMemorySize=1g</argument>
+								<argument>-enableassertions</argument>
+								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
+								<argument>com.splicemachine.test.SpliceTestPlatform</argument>
+								<argument>${project.build.directory}/zookeeper</argument>
+								<argument>file://${project.build.directory}/hbase</argument>
+                                <argument>${failTasksRandomly}</argument>
+							</arguments>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 
 		<profile>
 			<id>ij</id>
@@ -509,6 +633,12 @@
 							</execution>
 						</executions>
 						<configuration>
+                            <systemProperties>
+                                <systemProperty>
+                                    <key>ij.connection.splice</key>
+                                    <value>jdbc:splice://localhost:1527/splicedb</value>
+                                </systemProperty>
+                            </systemProperties>
 							<mainClass>org.apache.derby.tools.ij</mainClass>
 							<includeProjectDependencies>true</includeProjectDependencies>
 							<executable>maven</executable>

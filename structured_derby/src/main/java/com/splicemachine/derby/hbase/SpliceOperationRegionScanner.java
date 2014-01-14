@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.Serializer;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
@@ -46,10 +46,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
     private TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
     private TaskStats finalStats;
     private SpliceOperationContext context;
-
     private final List<Pair<byte[],byte[]>> additionalColumns = Lists.newArrayListWithExpectedSize(0);
     private boolean finished = false;
     private MultiFieldEncoder rowEncoder;
+    private SpliceRuntimeContext spliceRuntimeContext;
 
     public SpliceOperationRegionScanner(SpliceOperation topOperation,
                                         SpliceOperationContext context) throws StandardException {
@@ -74,14 +74,18 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		stats.start();
 		SpliceLogUtils.trace(LOG, ">>>>statistics starts for SpliceOperationRegionScanner at %d",stats.getStartTime());
 		this.regionScanner = regionScanner;
+        boolean prepared = false;
         try {
+            impl = new SpliceTransactionResourceImpl();
+            impl.prepareContextManager();
+            prepared=true;
 			SpliceObserverInstructions soi = SpliceUtils.getSpliceObserverInstructions(scan);
 	        statement = soi.getStatement();
 	        topOperation = soi.getTopOperation();
-	        impl = new SpliceTransactionResourceImpl();
 	        impl.marshallTransaction(soi);
 	        activation = soi.getActivation(impl.getLcc());
-	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation);
+	        spliceRuntimeContext = soi.getSpliceRuntimeContext();
+	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
             context.setSpliceRegionScanner(this);
 
 	        topOperation.init(context);
@@ -91,6 +95,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 		} catch (Exception e) {
             ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
+        }finally{
+            if(prepared)
+                impl.resetContextManager();
         }
 	}
 
@@ -100,12 +107,24 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	public boolean next(final List<KeyValue> results) throws IOException {
 		SpliceLogUtils.trace(LOG, "next ");
         if(finished)return false;
+        impl.prepareContextManager();
 		try {
 			ExecRow nextRow;
-	        long start = System.nanoTime();
-	        if ( (nextRow = topOperation.getNextRowCore()) != null) {
-	            stats.readAccumulator().tick(System.nanoTime()-start);
-	            start = System.nanoTime();
+	        long start = 0l;
+
+            if(stats.readAccumulator().shouldCollectStats()){
+                start = System.nanoTime();
+            }
+
+	        if ( (nextRow = topOperation.nextRow(spliceRuntimeContext)) != null) {
+
+                if(stats.readAccumulator().shouldCollectStats()){
+                    stats.readAccumulator().tick(System.nanoTime()-start);
+                    start = System.nanoTime();
+                }else{
+                    stats.readAccumulator().tickRecords();
+                }
+
                 //TODO -sf- can we do this better?
                 DataValueDescriptor[] rowArray = nextRow.getRowArray();
                 RowLocation location = topOperation.getCurrentRowLocation();
@@ -128,8 +147,14 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 }
 
 	            SpliceLogUtils.trace(LOG,"next returns results: %s",nextRow);
-	            stats.writeAccumulator().tick(System.nanoTime()-start);
-	        }else{
+
+                if(stats.writeAccumulator().shouldCollectStats()){
+                    stats.writeAccumulator().tick(System.nanoTime()-start);
+                }else{
+                    stats.writeAccumulator().tickRecords();
+                }
+
+            }else{
                 finished=true;
                 //check for additional columns
                 if(additionalColumns.size()>0){
@@ -151,6 +176,8 @@ public class SpliceOperationRegionScanner implements RegionScanner {
             ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
             SpliceLogUtils.logAndThrow(LOG,"Unable to get next row",Exceptions.getIOException(e));
             return false; //won't happen since logAndThrow will throw an exception
+        }finally{
+            impl.resetContextManager();
         }
 	}
 
@@ -181,7 +208,11 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 finalStats = stats.finish();
                 ((SpliceBaseOperation)topOperation).nextTime +=finalStats.getTotalTime();
                 SpliceLogUtils.trace(LOG, ">>>>statistics finishes for sink for SpliceOperationRegionScanner at %d",stats.getFinishTime());
-                context.close(success);
+                try {
+                    context.close();
+                } catch (StandardException e) {
+                    throw Exceptions.getIOException(e);
+                }
             }
         } finally {
             if (impl != null) {

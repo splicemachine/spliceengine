@@ -3,7 +3,8 @@ package com.splicemachine.storage.index;
 import com.splicemachine.storage.BitReader;
 import com.splicemachine.storage.BitWriter;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
+
 
 /**
  * A Sparse implementation of a BitIndex.
@@ -45,7 +46,7 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public int length() {
-        return bitSet.length();
+        return (int) bitSet.length();
     }
 
     @Override
@@ -74,12 +75,12 @@ class SparseBitIndex implements BitIndex {
         int initBitPos=6;
         if(bitSet.get(0)){
             initBitPos+=2;
-            if(scalarFields.get(0)){
+            if(scalarFields!=null && scalarFields.get(0)){
                 //set two bits after
                 encodedVersion[0] =0x0E;
-            }else if(floatFields.get(0)){
+            }else if(floatFields!=null && floatFields.get(0)){
                 encodedVersion[0] = 0x0C;
-            }else if(doubleFields.get(0)){
+            }else if(doubleFields!=null && doubleFields.get(0)){
                 encodedVersion[0] = 0x0A;
             }else
                 encodedVersion[0] = 0x08;
@@ -91,12 +92,12 @@ class SparseBitIndex implements BitIndex {
         for(int i=bitSet.nextSetBit(1);i>=0;i=bitSet.nextSetBit(i+1)){
             int valueToEncode = i-lastSetPos;
             DeltaCoding.encode(valueToEncode,writer);
-            if(scalarFields.get(i))
+            if(scalarFields!=null && scalarFields.get(i))
                 writer.set(2);
-            else if(floatFields.get(i)){
+            else if(floatFields!=null && floatFields.get(i)){
                 writer.setNext();
                 writer.skipNext();
-            }else if(doubleFields.get(i)){
+            }else if(doubleFields!=null && doubleFields.get(i)){
                 writer.skipNext();
                 writer.setNext();
             }else{
@@ -151,7 +152,7 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public int cardinality() {
-        return bitSet.cardinality();
+        return (int) bitSet.cardinality();
     }
 
     @Override
@@ -213,17 +214,17 @@ class SparseBitIndex implements BitIndex {
 
     @Override
     public boolean isScalarType(int position) {
-        return scalarFields.get(position);
+        return scalarFields!=null && scalarFields.get(position);
     }
 
     @Override
     public boolean isDoubleType(int position) {
-        return doubleFields.get(position);
+        return doubleFields!=null && doubleFields.get(position);
     }
 
     @Override
     public boolean isFloatType(int position) {
-        return floatFields.get(position);
+        return floatFields!=null && floatFields.get(position);
     }
 
     @Override
@@ -243,12 +244,21 @@ class SparseBitIndex implements BitIndex {
 
     public static SparseBitIndex create(BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields) {
         BitSet cols = (BitSet)setCols.clone();
-        BitSet sF = (BitSet)scalarFields.clone();
-        sF.and(cols);
-        BitSet fF = (BitSet)floatFields.clone();
-        fF.and(cols);
-        BitSet dF = (BitSet)doubleFields.clone();
-        dF.and(cols);
+        BitSet sF = null;
+        if(scalarFields!=null){
+            sF = (BitSet)scalarFields.clone();
+            sF.and(cols);
+        }
+        BitSet fF = null;
+        if(floatFields!=null){
+            fF = (BitSet)floatFields.clone();
+            fF.and(cols);
+        }
+        BitSet dF = null;
+        if(doubleFields!=null){
+            dF = (BitSet)doubleFields.clone();
+            dF.and(cols);
+        }
         return new SparseBitIndex(cols,sF,fF,dF);
     }
 

@@ -1,6 +1,6 @@
 package com.splicemachine.storage.index;
 
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * Main class for constructing BitIndices of proper type.
@@ -163,9 +163,9 @@ public class BitIndexing {
     }
 
     public static BitIndex getBestIndex(BitSet setCols,BitSet scalarFields,BitSet floatFields, BitSet doubleFields) {
-            if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
-            if(floatFields==null)floatFields = new BitSet();
-            if(doubleFields==null)doubleFields= new BitSet();
+//            if(scalarFields==null)scalarFields = new BitSet(); //default to no length-delimited fields
+//            if(floatFields==null)floatFields = new BitSet();
+//            if(doubleFields==null)doubleFields= new BitSet();
             BitIndex indexToUse = BitIndexing.uncompressedBitMap(setCols,scalarFields,floatFields,doubleFields);
             //see if we can improve space via compression
             BitIndex denseCompressedBitIndex = BitIndexing.compressedBitMap(setCols,scalarFields,floatFields,doubleFields);
@@ -178,6 +178,19 @@ public class BitIndexing {
                 indexToUse = sparseBitMap;
             }
             return indexToUse;
+    }
+
+    public static BitIndex wrap(byte[] bytes,int offset,int length){
+        byte headerByte = bytes[offset];
+        if((headerByte & 0x80) != 0){
+            if((headerByte & 0x40)!=0){
+                return BitIndexing.compressedBitMap(bytes,offset,length);
+            }else{
+                return BitIndexing.uncompressedBitMap(bytes,offset,length);
+            }
+        }else{
+            return BitIndexing.sparseBitMap(bytes,offset,length);
+        }
     }
 
     public static void main(String...args) throws Exception{

@@ -1,13 +1,8 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.util.Pair;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
@@ -20,12 +15,6 @@ public class NullPredicate implements Predicate{
     private boolean isDoubleColumn;
     private boolean isFloatColumn;
     private int column;
-
-    /**
-     * Used for Serialization, DO NOT USE
-     */
-    @Deprecated
-    public NullPredicate() { }
 
     public NullPredicate(boolean filterIfMissing, boolean isNullNumericalComparison,
                          int column,boolean isDoubleColumn,boolean isFloatColumn) {
@@ -75,24 +64,6 @@ public class NullPredicate implements Predicate{
          * checks).
          */
         return true;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(filterIfMissing);
-        out.writeBoolean(isNullNumericalComparision);
-        out.writeBoolean(isDoubleColumn);
-        out.writeBoolean(isFloatColumn);
-        out.writeInt(column);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        filterIfMissing = in.readBoolean();
-        isNullNumericalComparision = in.readBoolean();
-        isDoubleColumn = in.readBoolean();
-        isFloatColumn = in.readBoolean();
-        column = in.readInt();
     }
 
     @Override

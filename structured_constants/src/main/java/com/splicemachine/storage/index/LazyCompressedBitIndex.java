@@ -39,21 +39,21 @@ class LazyCompressedBitIndex extends LazyBitIndex{
             if(bitReader.next()!=0){
                 //scalar type
                 int numScalars = DeltaCoding.decode(bitReader);
-                decodedBits.set(lastSetPos,lastSetPos+numScalars);
-                decodedScalarFields.set(lastSetPos,lastSetPos+numScalars);
+                decodedBits.set(lastSetPos, lastSetPos + numScalars);
+                setScalarRange(lastSetPos, lastSetPos + numScalars);
                 lastSetPos+=numScalars;
             }else{
                 //float type
                 int count = DeltaCoding.decode(bitReader);
                 decodedBits.set(lastSetPos,lastSetPos+count);
-                decodedFloatFields.set(lastSetPos,lastSetPos+count);
+                setFloatRange(lastSetPos,lastSetPos+count);
                 lastSetPos+=count;
             }
         }else{
             if(bitReader.next()!=0){
                 int numDoubles = DeltaCoding.decode(bitReader);
                 decodedBits.set(lastSetPos,lastSetPos+numDoubles);
-                decodedDoubleFields.set(lastSetPos,lastSetPos+numDoubles);
+                setDoubleRange(lastSetPos,lastSetPos+numDoubles);
                 lastSetPos+=numDoubles;
             }else{
                 int numUntyped = DeltaCoding.decode(bitReader);
@@ -63,5 +63,6 @@ class LazyCompressedBitIndex extends LazyBitIndex{
         }
         return pos;
     }
+
 
 }

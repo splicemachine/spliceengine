@@ -163,55 +163,6 @@ final class DecimalEncoding {
         return toBigDecimal(data,0,data.length,desc);
     }
 
-    public static BigDecimal toBigDecimal(ByteBuffer data, boolean desc){
-        data.mark();
-        int h = data.get();
-        if(desc)
-            h ^=0xff;
-        h &=0xff;
-        h >>>=Byte.SIZE-2;
-        if(h==0x00) return null;
-        if(h==0x02) return BigDecimal.ZERO;
-        data.reset();
-
-        byte sign = (byte)(h==0x01 ? -1:0);
-        long[] expOffset = ScalarEncoding.toLongWithOffset(data,2, desc);
-        long exp =  expOffset[0];
-
-        int length=((data.remaining())*2);
-        int maxPos = data.remaining();
-        if((data.get(data.remaining()) & 0xf) ==0){
-            length-=1;
-            maxPos++;
-        }
-
-        //deserialize the digits
-        char[] chars = new char[length];
-        int pos=0;
-        for(int i=0;i<maxPos;i++){
-            byte next = data.get();
-            if(desc)
-                next ^=0xff;
-            byte f = (byte)((next>>>4) & 0xf);
-            chars[pos] = (char)('0'+f-1);
-            pos++;
-
-            f = (byte)(next&0xf);
-            if(f==0)
-                break;
-            else{
-                chars[pos] = (char)('0'+f-1);
-                pos++;
-            }
-        }
-
-
-        int scale = (int)(exp-length+1l);
-        BigInteger i = new BigInteger(sign==0?new String(chars): '-'+new String(chars));
-        return new BigDecimal(i,-scale);
-
-    }
-
     public static BigDecimal toBigDecimal(byte[] data,int dataOffset,int dataLength, boolean desc){
         int h = data[dataOffset];
         if(desc)

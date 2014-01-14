@@ -1,7 +1,7 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.RollForwardQueue;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -36,8 +36,6 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
     boolean isGetIncludeSIColumn(Get get);
     boolean isScanIncludeSIColumn(Scan scan);
 
-    boolean isScanIncludeUncommittedAsOfStart(Scan scan);
-
     /**
      * Perform server-side pre-processing of operations. This is before they are actually executed.
      */
@@ -50,10 +48,10 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
      */
     IFilterState newFilterState(TransactionId transactionId) throws IOException;
     IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
-                                boolean includeSIColumn, boolean includeUncommittedAsOfStart) throws IOException;
-    IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue,EntryPredicateFilter predicateFilter,
-                                      TransactionId transactionId, boolean includeSIColumn, boolean includeUncommittedAsOfStart)
-            throws IOException;
+                                boolean includeSIColumn) throws IOException;
+    IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue,
+                                      EntryPredicateFilter predicateFilter, TransactionId transactionId,
+                                      boolean includeSIColumn) throws IOException;
 
     /**
      * Consider whether to use a key value in light of a given filterState.
@@ -76,7 +74,7 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
      * Attempt to update all of the data rows on the table to reflect the final status of the transaction with the given
      * transactionId.
      */
-    void rollForward(Table table, long transactionId, List<Data> rows) throws IOException;
+    Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException;
 
     /**
      * Create an object to keep track of the state of an HBase table compaction operation.
@@ -88,4 +86,11 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
      * that should be used to represent this data in the newly compacted table.
      */
     void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException;
+
+    /**
+     * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations
+     * @param transactionId Transaction ID which identifies the DDL change
+     * @return Object that tracks visibility
+     */
+    DDLFilter newDDLFilter(String transactionId) throws IOException;
 }

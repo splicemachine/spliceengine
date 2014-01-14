@@ -1,0 +1,172 @@
+\documentclass[10pt]{article}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+
+\newcommand{\shellcmd}[1]{\\\indent\indent\texttt{\footnotesize\# #1}\\}
+
+\begin{document}
+
+\title{Diagnostic Tools}
+\author{Scott Fines}
+
+
+\maketitle
+
+\begin{abstract}
+This document describes the tools that are available to help run diagnostic analysis on larger data sets.
+\end{abstract}
+
+\section{Overview}
+Considering the level of overall complexity of SpliceMachine and it's overall complexity, diagnosing potential errors which occur when running against large
+data sets is a particular challenge for us. To help in dealing with these cases, There are a few tools that are available to perform specific, highly simplified
+operations against Splice data, which can then be used to compare against SQL output and/or expectations of data. 
+
+These tools come in two groups: \emph{Data Collection}, and \emph{Data parsing}. The first group deals with collecting and massaging data, the second with parsing
+output in simple ways to provide human-readable information.
+
+\section{Data Collection Tools}
+There are 5 data collection tools in the diagnostics toolkit:
+
+\begin{enumerate}
+\item COLUMN\_DUMP
+\item TRANSACTION\_SUMMARY
+\item COUNT
+\item SCAN
+\item TRANSACTION\_COUNT
+\end{enumerate}
+
+All tools collect information about a \emph{single} table using Splice's asynchronous execution framework. To avoid any unnecessary complexity (and thus chances for 
+error), these tools collect information about a single region and then dump that information into a known directory in \emph{HDFS}\footnote{If you are running in a single-server mode without HDFS, this is the local hard drive of the server. Otherwise, you'll need to go through HDFS to get the output}. There is no merging of region
+level results.
+
+For example, the count operation counts the number of rows in a table. In point of fact, it counts the number of rows in each region of a table, and then spits that
+number out to a file in HDFS. It is then up to the caller to take that information and merge it together manually (unix CLI tools are sufficient to do this effectively
+and easily).
+
+All collection tools are invoked from the command line, using the command 
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger <command> <commandOptions>}
+
+\subsection{Help}
+There is a \emph{very} basic help command available to remind you how to use specific commands (or to remind you what commands are available). To use it, just type
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger help [command]}
+
+if no command is specified, then help will list the available commands. If the command is specified, it will print helpful information about that specific
+command.
+
+\subsection{Classpath}
+The classpath must contain the splicemachine jars, as well as all of HBase's dependencies. Note also that Cloudera Manager puts HBase's Hadoop dependencies in a different directory, so you'll need to make sure you include those as well.
+
+\subsection{COLUMN\_DUMP}
+The Column Dump tool is to allow you to dump all the entries in a given column to HDFS. This allows you to look at questions like "well, which entries are missing",
+or determining the distinct entries in a column. Be aware, however, that this tool is equivalent to "select <column name> from <table>" queries. There are no limits,
+so if the table has 1 billion rows, then 1 billion rows will be dumped\footnote{This makes it useful for primarily small tables, since most tools will choke
+on a billion entries}.
+
+There are three required fields to perform a Column Dump:
+
+\begin{description}
+\item[tableName] The name of the Table to scan. This is the \emph{HBase} name, \emph{not} the SQL name. To determine the HBase name from the SQL name, scan sys.sysconglomerates.
+\item[columnNumber] The column number to dump (indexed from 0)\footnote{All the diagnostic tools deliberately avoid using actual SQL, so mapping a column name to a column number must be done manually}
+\item[destinationDirectory] The destination directory (in HDFS) to write output to. This directory must exist and the hbase user must be allowed to write to it.
+\end{description}
+
+To find the column number from the column name, one can use tools like DBVisualizer or ij to query the metadata tables.
+
+The format for the command is
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger cdump <tableName> <columnNumber> <destinationDirectory>}
+
+\subsection{TRANSACTION\_SUMMARY}
+The Transaction Summary tool dumps the Transaction table into a human-readable format, which allows one to determine which transactions rolled back, which were
+child transactions, when they were committed, etc. For developers who are familiar with it, this is a very simple variation on the SIBrowser tool.
+
+To use Transaction Summary, you must supply a Destination directory, which must exist in HDFS and be writable by the hbase user.
+
+The command looks like
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger tsummary <destinationDirectory>}
+
+\subsection{COUNT}
+Count counts the number of records in a table. This is useful for determining whether or not an import succceeded, and validating the correctness of count(*) queries.
+
+To use the count tool, two arguments are needed:
+
+\begin{description}
+\item[tableName] The name of the table to scan. This is the HBase name, not the SQL name. 
+\item[destinationDirectory] The destination directory to write output to, in HDFS.
+\end{description}
+
+to execute, issue:
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger count <tableName> <destinationDirectory>}
+
+\subsection{SCAN}
+The Scan tool scans a table for any rows which have a column matching a specified value. This is functionally equivalent to "select * from <table> where <column> = <value>", but ignoring transactions, and dumping additional information as well (like transaction ids).
+
+Be aware that this may dump a large number of rows (if there is a large degree of cardinality). Further, this tool will dump the \emph{entire} row if it matches. 
+
+To use scan, one must have five arguments:
+
+\begin{description}
+\item[tableName] The HBase name of the table to scan.
+\item[destinationDirectory] The destination directory in HDFS. Must exist and be writable by the hbase user.
+\item[columnNumber] the column number to match, indexed from zero.
+\item[columnType] The type of the column to scan. For more information, see the section on Column types
+\item[columnValue] The string representation of the column value. Must be parseable according to the specified column type.
+\end{description}
+
+To execute, issue:
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger scan <tableName> <destinationDirectory> <columnNumber> <columnType> <columnValue>}
+
+\subsection{TRANSACTION\_COUNT}
+Transaction counting groups all rows up by the transaction that it was written (or modified) under. Thus, if transaction 1 wrote 800 records, and transaction 3 wrote 350, then the output will be $1:800, 3:350$. This is useful (particularly in conjunction with the Transaction summary tool) in determining whether or not specific 
+transactions wrote the correct amount of data.
+
+To use, you must have the following:
+
+\begin{description}
+\item[tableName] The HBase name of the table to scan
+\item[destinationDirectory] The directory in HDFS to dump output to. 
+\end{description}
+
+and to use, issue:
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.SpliceTableDebugger tcount <tableName> <destinationDirectory>}
+
+\section{Parsing tools}
+Parsing tools are oriented towards converting between Splice's custom storage format and a human-readable format. They are primarily oriented towards
+the DebugEntryParser tool, which is a command line tool for parsing Splice's custom format into a humand readalbe format.
+
+to use the DebugEntryParser, you must issue
+\shellcmd{java -cp \$CLASSPATH com.splicemachine.hbase.debug.DebugEntryParser -t <types> [-d delimiter] [-h]}
+
+where the arguments are:
+
+\begin{description}
+\item[-t type information] a comma-separated list of column types. For more information, see the section on type information
+\item[-d fieldDelimiter] the string to use that separates fields. The default is ,
+\item[-h] when set, the parser will output raw hex values for binary fields. If not set, it will use a "binary string" representation. The binary string representation
+is used by HBase's tools (such as the hbase shell), but is harder to parse into direct binary. The output of most Splice tools is raw hex, rather than binary string,
+which means comparing between two different tools may require a raw hex dump.
+\end{description}
+
+The DebugEntryParser is designed to accept input via Standard In, and output via Standard Out, which makes it useful in unix pipes. 
+
+\section{Column Type information}
+Column information in Splice is not stored using a self-describing format. As a result, you can't tell what type of information is stored in a given row without
+having additional information supplied externally. When issuing SQL queries, this information is obtained by querying metadata tables and the table schema, but
+the diagnostic tools do not have access to this information. Thus, some tools (the DebugEntryParser and the Scan utilities, to name two) require the user
+to supply column type information in order to get human-readable formats (or, conversely, to convert a human-readable format into its binary representation).
+
+All of these tools use the same type information representation, which is as follows:
+
+\begin{description}
+\item[b] Boolean
+\item[l] Scalar type. This includes TINYINT, SMALLINT,INTEGER, and LONGINT SQL types
+\item[f] Float type. Includes SQL Real type.
+\item[d] Double type.
+\item[B] BigDecimal type. Equivalent to SQL DECIMAL type
+\item[s] String type. Includes CHAR type
+\item[a] Sorted bytes. If a column is stored in sorted-byte order. This is rarely the case, which should only be tried if unsorted bytes returns garbage results.
+\item[u] Unsorted bytes. If the column is binary that has not been sorted. This is the typical case, and should be tried before attempting sorted bytes.
+\end{description}
+
+\end{document}

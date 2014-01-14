@@ -8,5 +8,5 @@ import java.util.List;
  * decoupled.
  */
 public interface RollForwardAction<Data> {
-    void rollForward(long transactionId, List<Data> rowList) throws IOException;
+    Boolean rollForward(long transactionId, List<Data> rowList) throws IOException;
 }

@@ -14,7 +14,15 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     public Object newRowKey(Object... args) {
         StringBuilder builder = new StringBuilder();
         for (Object a : args) {
-            builder.append(a);
+            Object toAppend = a;
+            if (a instanceof Short) {
+                toAppend = String.format("%1$06d", a);
+            } else if (a instanceof Long) {
+                toAppend = String.format("%1$020d", a);
+            } else if (a instanceof Byte) {
+                toAppend = String.format("%1$02d", a);
+            }
+            builder.append(toAppend);
         }
         return builder.toString();
     }
@@ -112,6 +120,11 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     @Override
     public LGet newGet(Object rowKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
         return new LGet(rowKey, rowKey, families, columns, effectiveTimestamp);
+    }
+
+    @Override
+    public Object getGetRow(LGet get) {
+        return get.startTupleKey;
     }
 
     @Override
@@ -254,10 +267,6 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
         return values;
     }
 
-    @Override
-    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
-        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
-    }
 
     @Override
     public Object getKeyValueRow(LKeyValue keyValue) {
@@ -292,5 +301,55 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     @Override
     public void addKeyValueToDelete(LTuple delete, Object family, Object qualifier, long timestamp) {
         addKeyValueToTuple(delete, family, qualifier, timestamp, null);
+    }
+
+    @Override
+    public boolean matchingColumn(LKeyValue keyValue, Object family, Object qualifier) {
+        return valuesMatch(keyValue.family, family) && valuesMatch(keyValue.qualifier, qualifier);
+    }
+
+    @Override
+    public boolean matchingFamily(LKeyValue keyValue, Object family) {
+        return valuesMatch(keyValue.family, family);
+    }
+
+    @Override
+    public boolean matchingQualifier(LKeyValue keyValue, Object qualifier) {
+        return valuesMatch(keyValue.qualifier, qualifier);
+    }
+
+    @Override
+    public boolean matchingValue(LKeyValue keyValue, Object value) {
+        return valuesMatch(keyValue.value, value);
+    }
+
+    @Override
+    public boolean matchingFamilyKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return valuesMatch(keyValue.family, other.family);
+    }
+
+    @Override
+    public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.qualifier, other.qualifier);
+    }
+
+    @Override
+    public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.value, other.value);
+    }
+
+    @Override
+    public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
+        return other == null ? false : valuesMatch(keyValue.rowKey, other.rowKey);
+    }
+
+    @Override
+    public LKeyValue newKeyValue(LKeyValue keyValue, Object value) {
+        return new LKeyValue(keyValue.rowKey, keyValue.family, keyValue.qualifier, keyValue.timestamp, value);
+    }
+
+    @Override
+    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
+        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
     }
 }

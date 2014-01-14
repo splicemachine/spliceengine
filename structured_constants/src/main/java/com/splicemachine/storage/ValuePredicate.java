@@ -1,15 +1,11 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.encoding.Encoding;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import com.carrotsearch.hppc.BitSet;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.BitSet;
 
 /**
  * @author Scott Fines
@@ -22,12 +18,6 @@ public class ValuePredicate implements Predicate {
     private byte[] compareValue;
 
     private boolean removeNullEntries;
-
-    /**
-     * Used for serialization, DO NOT USE
-     */
-    @Deprecated
-    public ValuePredicate() {}
 
     public ValuePredicate(CompareFilter.CompareOp compareOp, int column, byte[] compareValue,boolean removeNullEntries) {
         this.compareOp = compareOp;
@@ -46,6 +36,8 @@ public class ValuePredicate implements Predicate {
         if(this.column!=column) return true; //no need to perform anything, because it isn't the correct column
 
         if(data==null||length==0){
+            if(compareValue==null||compareValue.length<=0)
+                return true; //null matches null
             /*
              * The value passed in was null. Some comparisons can still be done, but numerical ones (for example)
              * cannot be--they are implicitly non-null comparisons. Thus, if a Predicate is a "nonNull predicate",
@@ -79,27 +71,6 @@ public class ValuePredicate implements Predicate {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(column);
-        out.writeBoolean(removeNullEntries);
-        out.writeInt(compareOp.ordinal());
-        out.writeInt(compareValue.length);
-        out.write(compareValue);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        column = in.readInt();
-        removeNullEntries = in.readBoolean();
-        int compareOrdinal = in.readInt();
-        compareOp = getCompareOp(compareOrdinal);
-        compareValue = new byte[in.readInt()];
-        in.readFully(compareValue);
-    }
-
-
-
-    @Override
     public boolean checkAfter() {
         /*
          * Remove null entries is an implicit not-null check--we thus need to make sure that
@@ -114,9 +85,7 @@ public class ValuePredicate implements Predicate {
     }
 
     @Override
-    public void reset() {
-        //no-op
-    }
+    public void reset() { } //no-op
 
     @Override
     public byte[] toBytes() {
@@ -164,4 +133,5 @@ public class ValuePredicate implements Predicate {
         }
         throw new IllegalArgumentException("Unable to find Compare op for ordinal "+ compareOrdinal);
     }
+
 }

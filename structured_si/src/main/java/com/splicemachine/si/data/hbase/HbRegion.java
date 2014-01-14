@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -7,20 +8,34 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
 public class HbRegion implements IHTable {
+    static final Logger LOG = Logger.getLogger(HbRegion.class);
+    static final Result EMPTY_RESULT = new Result(new ArrayList<KeyValue>());
+    
     final HRegion region;
 
     public HbRegion(HRegion region) {
         this.region = region;
+    }
+
+    @Override
+    public String getName() {
+        return region.getTableDesc().getNameAsString();
     }
 
     @Override
@@ -30,7 +45,20 @@ public class HbRegion implements IHTable {
 
     @Override
     public Result get(Get get) throws IOException {
-        return region.get(get, null);
+        final byte[] checkBloomFamily = get.getAttribute(CHECK_BLOOM_ATTRIBUTE_NAME);
+        if (checkBloomFamily == null || rowExists(checkBloomFamily, get.getRow())) {
+            return region.get(get);
+        } else {
+            return emptyResult();
+        }
+    }
+
+    private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
+        return HRegionUtil.keyExists(region.getStore(checkBloomFamily), rowKey);
+    }
+
+    private Result emptyResult() {
+        return EMPTY_RESULT;
     }
 
     @Override
@@ -53,6 +81,7 @@ public class HbRegion implements IHTable {
         region.put(put);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void put(Put put, Integer rowLock) throws IOException {
         region.put(put, rowLock);
@@ -78,6 +107,7 @@ public class HbRegion implements IHTable {
         throw new RuntimeException("not implemented");
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void delete(Delete delete, Integer rowLock) throws IOException {
         region.delete(delete, rowLock, true);
@@ -96,4 +126,5 @@ public class HbRegion implements IHTable {
     public void unLockRow(Integer lock) throws IOException {
         region.releaseRowLock(lock);
     }
+
 }

@@ -4,13 +4,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
@@ -46,7 +45,7 @@ public class OperationTree {
         return new OperationTree(executor);
     }
 
-    public NoPutResultSet executeTree(SpliceOperation operation) throws StandardException{
+    public NoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
@@ -62,7 +61,7 @@ public class OperationTree {
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
-                            opToShuffle.executeShuffle();
+                            opToShuffle.executeShuffle(runtimeContext);
                             return null;
                         }
                     }));
@@ -81,12 +80,12 @@ public class OperationTree {
                 }
             }else{
                 for(SpliceOperation op:levelOps){
-                    op.executeShuffle();
+                    op.executeShuffle(runtimeContext);
                 }
             }
         }
         //operation is the highest level, it has the final scan
-        return operation.executeScan();
+        return operation.executeScan(runtimeContext);
     }
 
     private NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
@@ -112,4 +111,14 @@ public class OperationTree {
         }
     }
 
+		public int getNumSinks(SpliceOperation topOperation) {
+				List<SpliceOperation> children = topOperation.getSubOperations();
+				int numSinks = 0;
+				for(SpliceOperation child:children){
+						numSinks+=getNumSinks(child);
+				}
+				if(topOperation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
+						numSinks++;
+				return numSinks;
+		}
 }

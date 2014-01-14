@@ -15,4 +15,10 @@ public interface Accumulator {
     void tick(long numRecords, long timeTaken);
 
     void tick(long timeTaken);
+
+    void tickRecords(long numRecords);
+
+    void tickRecords();
+
+    boolean shouldCollectStats();
 }

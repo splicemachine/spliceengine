@@ -2,8 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
-import java.io.IOException;
-
 /**
  * Indicates a Constraint Violation
  *

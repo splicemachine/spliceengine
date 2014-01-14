@@ -8,44 +8,48 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.types.DataType;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 
 /**     
- *     @author jessiezhang: currently we use an UUIDHexGenerator to generate RowKey (not use PrimaryKey from
- *     						the base table so I will comment out primary key impl). I am making this class as byte[] DataType
- **/
+ * 
+ * 
+ * 
+ */
 
 public class HBaseRowLocation extends DataType implements RowLocation {
 
-	private byte[] rowKey;
+	private ByteArraySlice slice;
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( HBaseRowLocation.class);
     private static final int RECORD_HANDLE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( org.apache.derby.impl.store.raw.data.RecordId.class);
 
 	public HBaseRowLocation()
 	{
 	}
-		
+
 	public HBaseRowLocation(byte[] rowKey) {
-		this.rowKey = rowKey;
+		this.slice = new ByteArraySlice(rowKey);
 	}
 	
-    public int estimateMemoryUsage()
-    {
+	public HBaseRowLocation(ByteArraySlice slice) {
+		this.slice = slice;
+	}
+	
+    public int estimateMemoryUsage() {
         return BASE_MEMORY_USAGE;
-    } // end of estimateMemoryUsage
+    } 
 
-    public final void setValue(byte[] theValue)
-	{
-		this.rowKey = theValue;
+    @Override
+    public final void setValue(byte[] theValue) {
+    	this.slice = new ByteArraySlice(theValue);
 	}
     
-    public final byte[]	getBytes() throws StandardException
-	{
-		return this.rowKey;
+    public final byte[]	getBytes() throws StandardException {
+		return slice != null?slice.getBytes():null;
 	}
-    
+    @Override
 	public String getTypeName() {
 		return "HBaseRowLocation";
 	}
@@ -57,9 +61,14 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	public DataValueDescriptor getNewNull() {
 		return new HBaseRowLocation();
 	}
-
+	@Override
 	public Object getObject() {
-		return this.rowKey;
+		return this.slice;
+	}
+
+	@Override
+	public void setValue(Object theValue) throws StandardException {
+		this.slice = (ByteArraySlice) theValue;
 	}
 
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
@@ -71,7 +80,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	}
 	
 	public int getLength() {
-		return this.rowKey == null ? 0 : this.rowKey.length;//what is the length of the primary key?
+		return this.slice == null ? 0 : this.slice.getLength();//what is the length of the primary key?
 	}
 
 	/*
@@ -114,9 +123,9 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 		HBaseRowLocation arg = (HBaseRowLocation) other;
 
-		if (this.rowKey.hashCode() < arg.rowKey.hashCode())
+		if (this.slice.hashCode() < arg.slice.hashCode())
 			return -1;
-		else if (this.rowKey.hashCode() > arg.rowKey.hashCode())
+		else if (this.slice.hashCode() > arg.slice.hashCode())
 			return 1;
 		else
 			return 0;
@@ -130,7 +139,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 	/* For cloning */
 	public HBaseRowLocation(HBaseRowLocation other) {
-		this.rowKey = other.rowKey;
+		this.slice = other.slice;
 	}
 
 	/*
@@ -147,55 +156,25 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	}
 
     public boolean isNull() {
-    	return rowKey == null;
+    	return slice == null;
     }
 
-	public void writeExternal(ObjectOutput out) 
-        throws IOException
-    {
-		//Need it? This is already byte array
-		//int len = this.rowKey.length;
-        //writeLength( out, len );
-		//out.write(this.rowKey, 0, this.rowKey.length);
+	public void writeExternal(ObjectOutput out) throws IOException {
+		//throw new IOException("Not Implemented");
     }
-
-	/*private void writeLength( ObjectOutput out, int len ) throws IOException
-    {
-		if (len <= 31)
-		{
-			out.write((byte) (0x80 | (len & 0xff)));
-		}
-		else if (len <= 0xFFFF)
-		{
-			out.write((byte) 0xA0);
-			out.writeShort((short) len);
-		}
-		else
-		{
-			out.write((byte) 0xC0);
-			out.writeInt(len);
-
-		}
-    }*/
 	/**
 	  @exception java.lang.ClassNotFoundException A class needed to read the
 	  stored form of this object could not be found.
 	  @see java.io.Externalizable#readExternal
 	  */
-	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
-    {
-        //FIXME: need it?
+	public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
+		//throw new IOException("Not Implemented");
     }
-	public void readExternalFromArray(ArrayInputStream in) 
-        throws IOException, ClassNotFoundException
-    {
-        //FIXME: need it?
+	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
+		//throw new IOException("Not Implemented");
     }
 
     public void restoreToNull() {
-	//	if (SanityManager.DEBUG) 
-	//		SanityManager.THROWASSERT("HBaseRowLocation is never null");
     }
     
 	protected void setFrom(DataValueDescriptor theValue)  {
@@ -203,9 +182,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
             SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
                     "Should only be set from another HeapRowLocation");
         HBaseRowLocation that = (HBaseRowLocation) theValue;
-        //this.primaryKey = that.primaryKey;
-        //this.primaryKeyType = that.primaryKeyType;
-        this.rowKey = that.rowKey;
+        this.slice = that.slice;
 	}
 	/*
 	**		Methods of Object
@@ -219,7 +196,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	public boolean equals(Object ref)  {
 		if ((ref instanceof HBaseRowLocation)) {
             HBaseRowLocation other = (HBaseRowLocation) ref;
-            return((this.rowKey == other.rowKey) && (this.rowKey == other.rowKey));
+            return((this.slice == other.slice) && (this.slice == other.slice));
         }
         else {
 			return false;
@@ -232,17 +209,14 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 		<BR>
 		MT - thread safe
 	*/
-	public int hashCode() 
-    {
-		return this.rowKey.hashCode();
+	public int hashCode()  {
+		return this.slice.hashCode();
 	}
 
     /*
      * Standard toString() method.
      */
-    public String toString()
-    {
-        //return ("(" + this.primaryKey + " of type " + this.primaryKeyType + ")";
-        return("(row key "+this.rowKey+")");
+    public String toString() {
+        return("(row key "+this.slice+")");
     }
 }

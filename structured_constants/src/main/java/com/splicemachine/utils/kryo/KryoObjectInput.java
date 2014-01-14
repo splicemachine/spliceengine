@@ -2,7 +2,7 @@ package com.splicemachine.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-
+import com.esotericsoftware.kryo.io.UnsafeInput;
 import java.io.IOException;
 import java.io.ObjectInput;
 
@@ -13,7 +13,7 @@ import java.io.ObjectInput;
 public class KryoObjectInput implements ObjectInput {
     private final Input input;
     private final Kryo kryo;
-
+    
     public KryoObjectInput(Input input, Kryo kryo) {
         this.input = input;
         this.kryo = kryo;
@@ -94,7 +94,7 @@ public class KryoObjectInput implements ObjectInput {
 
     @Override
     public int readUnsignedShort() throws IOException {
-        return (short)input.readShortUnsigned();
+        return input.readShortUnsigned();
     }
 
     @Override

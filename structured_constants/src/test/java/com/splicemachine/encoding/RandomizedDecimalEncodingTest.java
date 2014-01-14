@@ -61,18 +61,6 @@ public class RandomizedDecimalEncodingTest {
     }
 
     @Test
-    public void testCanSerializeAndDeserializeByteBuffersCorrectly() throws Exception {
-        for(BigDecimal decimal:data){
-            byte[] data = DecimalEncoding.toBytes(decimal,false);
-            BigDecimal ret = DecimalEncoding.toBigDecimal(ByteBuffer.wrap(data), false);
-
-            Assert.assertTrue("Incorrect serialization of value " + decimal,ret.compareTo(decimal)==0);
-
-
-        }
-    }
-
-    @Test
     public void testSortsBytesCorrectly() throws Exception {
         byte[][] serData = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){

@@ -22,7 +22,6 @@ public class ValuePredicateTest {
         byte[] testVal = Encoding.encode(1);
 
         Assert.assertTrue(predicate.match(0, testVal, 0, testVal.length));
-
     }
 
     @Test
@@ -34,6 +33,35 @@ public class ValuePredicateTest {
         byte[] testVal = Encoding.encode(1);
 
         Assert.assertFalse(predicate.match(0, testVal, 0, testVal.length));
+    }
+
+    @Test
+    public void testMatchIsCorrectNotMatchingNull() throws Exception {
+        byte[] correctVal = Encoding.encode(2);
+
+        ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,correctVal,true);
+
+
+        Assert.assertFalse(predicate.match(0, null, 0, 0));
+    }
+
+    @Test
+    public void testMatchIsCorrectNotMatchingNullWithoutRemovingNulls() throws Exception {
+        byte[] correctVal = Encoding.encode(2);
+
+        ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,correctVal,false);
+
+
+        Assert.assertFalse(predicate.match(0, null, 0, 0));
+    }
+
+    @Test
+    public void testCanMatchNull() throws Exception {
+
+        ValuePredicate predicate = new ValuePredicate(CompareFilter.CompareOp.EQUAL,0,null,true);
+
+        Assert.assertTrue("does not match null!",predicate.match(0, null, 0, 0));
+        Assert.assertTrue("does not match empty byte[]!",predicate.match(0, new byte[]{}, 0, 0));
     }
 
     @Test

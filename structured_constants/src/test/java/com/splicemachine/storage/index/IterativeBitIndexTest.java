@@ -5,8 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import java.util.BitSet;
+import com.carrotsearch.hppc.BitSet;
 import java.util.Collection;
 import java.util.Random;
 
@@ -28,13 +27,17 @@ public class IterativeBitIndexTest {
             BitSet floatFields = new BitSet(i);
             BitSet doubleFields = new BitSet(i);
             for(int j=0;j<=i;j++){
-                bitSet.set(j,random.nextBoolean());
+            	if (random.nextBoolean())
+                bitSet.set(j);
                 if(bitSet.get(j)){
-                    lengthDelimitedBits.set(j,random.nextBoolean());
+                	if (random.nextBoolean())
+                    lengthDelimitedBits.set(j);
                     if(!lengthDelimitedBits.get(j)){
-                        floatFields.set(j,random.nextBoolean());
+                    	if (random.nextBoolean())
+                    		floatFields.set(j);
                         if(!floatFields.get(j)){
-                            doubleFields.set(j,random.nextBoolean());
+                        	if (random.nextBoolean())
+                        		doubleFields.set(j);
                         }
                     }
                 }

@@ -1,9 +1,11 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE;
 
@@ -27,8 +30,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     private final String siNeededAttribute;
     private final Data siNeededValue;
     private final Data includeSIColumnValue;
-    private final String includeUncommittedAsOfStartAttribute;
-    private final Data includeUncommittedAsOfStartValue;
     private final String transactionIdAttribute;
     private final String deletePutAttribute;
 
@@ -43,8 +44,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
 
     public DataStore(SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus>
                              dataLib, STableReader reader, STableWriter writer, String siNeededAttribute,
-                     Object siNeededValue, Object includeSIColumnValue, String includeUncommittedAsOfStartAttribute,
-                     Object includeUncommittedAsOfStartValue, String transactionIdAttribute, String deletePutAttribute,
+                     Object siNeededValue, Object includeSIColumnValue, String transactionIdAttribute, String deletePutAttribute,
                      String siMetaFamily, Object siCommitQualifier, Object siTombstoneQualifier,
                      Object siNull, Object siAntiTombstoneValue, Object siFail, Object userColumnFamily) {
         this.dataLib = dataLib;
@@ -54,8 +54,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         this.siNeededAttribute = siNeededAttribute;
         this.siNeededValue = dataLib.encode(siNeededValue);
         this.includeSIColumnValue = dataLib.encode(includeSIColumnValue);
-        this.includeUncommittedAsOfStartAttribute = includeUncommittedAsOfStartAttribute;
-        this.includeUncommittedAsOfStartValue = dataLib.encode(includeUncommittedAsOfStartValue);
         this.transactionIdAttribute = transactionIdAttribute;
         this.deletePutAttribute = deletePutAttribute;
         this.siFamily = dataLib.encode(siMetaFamily);
@@ -77,14 +75,6 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
 
     boolean isIncludeSIColumn(OperationWithAttributes operation) {
         return dataLib.valuesEqual(dataLib.getAttribute(operation, siNeededAttribute), includeSIColumnValue);
-    }
-
-    void setIncludeUncommittedAsOfStart(OperationWithAttributes operation) {
-        dataLib.addAttribute(operation, includeUncommittedAsOfStartAttribute, includeUncommittedAsOfStartValue);
-    }
-
-    boolean isScanIncludeUncommittedAsOfStart(OperationWithAttributes operation) {
-        return dataLib.valuesEqual(dataLib.getAttribute(operation, includeUncommittedAsOfStartAttribute), includeUncommittedAsOfStartValue);
     }
 
     void setDeletePutAttribute(Put operation) {
@@ -169,48 +159,55 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
                 Arrays.asList(siFamily, commitTimestampQualifier));
         Get get = dataLib.newGet(rowKey, null, columns, null);
         suppressIndexing(get);
+        checkBloom(get);
         Result result = reader.get(table, get);
         if (result != null) {
-            return new List[]{dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
+            return new List[]{
+                    dataLib.getResultColumn(result, siFamily, tombstoneQualifier),
                     dataLib.getResultColumn(result, siFamily, commitTimestampQualifier)};
         }
         return new List[]{null, null};
+    }
+
+    public void checkBloom(OperationWithAttributes operation) {
+        dataLib.addAttribute(operation, CHECK_BLOOM_ATTRIBUTE_NAME, siFamily);
     }
 
     boolean isAntiTombstone(KeyValue keyValue) {
         return dataLib.valuesEqual(siAntiTombstoneValue, dataLib.getKeyValueValue(keyValue));
     }
 
-    public KeyValueType getKeyValueType(Data family, Data qualifier, Data value) {
-        final boolean isSIFamily = dataLib.valuesEqual(family, siFamily);
-        if (isSIFamily && dataLib.valuesEqual(qualifier, commitTimestampQualifier)) {
-            return KeyValueType.COMMIT_TIMESTAMP;
-        } else if (isSIFamily && dataLib.valuesEqual(qualifier, tombstoneQualifier)) {
-            if (dataLib.valuesEqual(value, siNull)) {
-                return KeyValueType.TOMBSTONE;
-            } else if (dataLib.valuesEqual(value, siAntiTombstoneValue)) {
-                return KeyValueType.ANTI_TOMBSTONE;
-            } else {
-                return KeyValueType.OTHER;
-            }
-        } else if (dataLib.valuesEqual(family, userColumnFamily)) {
-            return KeyValueType.USER_DATA;
-        } else {
-            return KeyValueType.OTHER;
-        }
+    public KeyValueType getKeyValueType(KeyValue keyValue) {
+        if (dataLib.matchingFamily(keyValue, siFamily)) {
+	        if (dataLib.matchingQualifier(keyValue, commitTimestampQualifier)) {
+	            return KeyValueType.COMMIT_TIMESTAMP;
+	        } else { // Took out the check...
+	            if (dataLib.matchingValue(keyValue, siNull)) {
+	                return KeyValueType.TOMBSTONE;
+	            } else if (dataLib.matchingValue(keyValue, siAntiTombstoneValue)) {
+	                return KeyValueType.ANTI_TOMBSTONE;
+	            } else {
+	                return KeyValueType.OTHER;
+	            }
+	        }
+	   } else if (dataLib.matchingFamily(keyValue, userColumnFamily)) {
+		   return KeyValueType.USER_DATA;
+	   } else {
+	       return KeyValueType.OTHER;
+	   }
     }
 
-    public boolean isSINull(Data value) {
-        return dataLib.valuesEqual(value, siNull);
+    public boolean isSINull(KeyValue keyValue) {
+        return dataLib.matchingValue(keyValue, siNull);
     }
 
-    public boolean isSIFail(Data value) {
-        return dataLib.valuesEqual(value, siFail);
+    public boolean isSIFail(KeyValue keyValue) {
+        return dataLib.matchingValue(keyValue, siFail);
     }
 
-    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row) {
+    public void recordRollForward(RollForwardQueue<Data, Hashable> rollForwardQueue, long transactionId, Data row, Boolean knownToBeCommitted) {
         if (rollForwardQueue != null) {
-            rollForwardQueue.recordRow(transactionId, row);
+            rollForwardQueue.recordRow(transactionId, row, knownToBeCommitted);
         }
     }
 
@@ -297,11 +294,14 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
     }
 
     public void closeLowLevelOperation(IHTable table) throws IOException {
-    	reader.closeOperation(table);
+        reader.closeOperation(table);
     }
 
     public void startLowLevelOperation(IHTable table) throws IOException {
         reader.openOperation(table);
     }
 
+    public String getTableName(IHTable table) {
+        return reader.getTableName(table);
+    }
 }

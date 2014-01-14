@@ -5,9 +5,15 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 
+import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
+import com.splicemachine.derby.management.StatementInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -15,11 +21,13 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.impl.jdbc.EmbedResultSet;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -63,7 +71,7 @@ public class CallStatementOperation extends NoRowsOperation {
 	}
 	
 	@Override
-	public NoPutResultSet executeScan() throws StandardException {
+	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG,"executeScan");
 		return new SpliceNoPutResultSet(activation,this,callableRowProvider,false);
 	}
@@ -78,7 +86,8 @@ public class CallStatementOperation extends NoRowsOperation {
         return false;
     }
 
-    private final RowProvider callableRowProvider = new SingleScanRowProvider(){
+		private List<StatementInfo> dynamicStatementInfo;
+		private final RowProvider callableRowProvider = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
 
 		@Override public ExecRow next() { return null; }
@@ -88,7 +97,29 @@ public class CallStatementOperation extends NoRowsOperation {
 			SpliceLogUtils.trace(LOG, "open");
 			try {
 				setup();
-				methodCall.invoke();
+					Object invoked = methodCall.invoke();
+					ResultSet[][] dynamicResults = activation.getDynamicResults();
+					if(dynamicResults==null) {
+							dynamicStatementInfo = Collections.emptyList();
+							return;
+					}
+
+					dynamicStatementInfo = Lists.newArrayListWithExpectedSize(dynamicResults.length);
+					for(ResultSet[] dResults:dynamicResults){
+						if(dResults==null) continue;
+
+							for(ResultSet rs:dResults){
+									if(rs==null) continue;
+
+									if(rs instanceof EmbedResultSet){
+											org.apache.derby.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
+											if(underlyingSet instanceof OperationResultSet){
+													OperationResultSet ors = (OperationResultSet)underlyingSet;
+													dynamicStatementInfo.add(ors.getStatementInfo());
+											}
+									}
+							}
+					}
 			} catch (StandardException e) {
 				SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
@@ -113,7 +144,8 @@ public class CallStatementOperation extends NoRowsOperation {
 				for (int i = 0; i < dynamicResults.length; i++)
 				{
 					ResultSet[] param = dynamicResults[i];
-					ResultSet drs = param[0];
+                    ResultSet drs = null;
+                    if (param != null) drs = param[0];
 
 					// Can be null if the procedure never set this parameter
 					// or if the dynamic results were processed by JDBC (EmbedStatement).
@@ -138,8 +170,15 @@ public class CallStatementOperation extends NoRowsOperation {
 						param[0] = null;
 					}
 				}
-			} 
+			}
 
+//				//close any Statements that aren't already closed
+//				for(StatementInfo info:dynamicStatementInfo){
+//					if(!info.isComplete()){
+//							info.markCompleted();
+//							SpliceDriver.driver().getStatementManager().completedStatement(info);
+//					}
+//				}
 			try {
 				int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
 
@@ -158,6 +197,7 @@ public class CallStatementOperation extends NoRowsOperation {
 			} catch (Exception e) {
 				SpliceLogUtils.error(LOG, e);
 			}
+
 		}
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
@@ -166,12 +206,17 @@ public class CallStatementOperation extends NoRowsOperation {
 
 		@Override
 		public int getModifiedRowCount() {
-			return 0;
+				return (int)activation.getRowsSeen();
 		}
 
 		@Override
 		public String toString(){
 			return "CallableRowProvider";
+		}
+
+		@Override
+		public SpliceRuntimeContext getSpliceRuntimeContext() {
+			return null;
 		}
 	};
 

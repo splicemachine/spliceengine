@@ -8,8 +8,11 @@ import com.yammer.metrics.stats.Snapshot;
 import com.yammer.metrics.stats.UniformSample;
 
 import org.apache.log4j.Logger;
+
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,25 +38,21 @@ public class JobStatsUtils {
             JOB_STATS_LOGGER.debug(summaryInfo);
         }
         if(JOB_STATS_LOGGER.isTraceEnabled()){
-            Map<String,TaskStats> stats = Maps.newHashMapWithExpectedSize(1);
-            stats.put("scan-"+scanLabel,finish);
-            JOB_STATS_LOGGER.trace(getDetails(stats));
+            JOB_STATS_LOGGER.trace(getDetails(Arrays.asList(finish)));
         }
     }
 
-    private static String getDetails(Map<String, TaskStats> taskStats) {
+    public static String getDetails(List<TaskStats> taskStats) {
         StringBuilder sb = new StringBuilder("Task Details (taskId\trecords|max|min|p50|p75|p95|p98|p99|p999):\n");
 
         StringBuilder readBuilder = new StringBuilder("Read Time:");
         StringBuilder writeBuilder = new StringBuilder("Write Time:");
 
-        for(String taskId:taskStats.keySet()){
-            TaskStats taskStat = taskStats.get(taskId);
+        for(TaskStats taskStat: taskStats){
             Stats readStats = taskStat.getReadStats();
             Stats writeStats = taskStat.getWriteStats();
 
            readBuilder = readBuilder.append("\n\t")
-                    .append(taskId).append("\t")
                     .append(readStats.getTotalRecords())
                     .append("|").append(toMicros(readStats.getMaxTime()))
                     .append("|").append(toMicros(readStats.getMinTime()))
@@ -64,7 +63,6 @@ public class JobStatsUtils {
                     .append("|").append(toMicros(readStats.get99P()))
                     .append("|").append(toMicros(readStats.get999P()));
             writeBuilder = writeBuilder.append("\n\t")
-                    .append(taskId).append("\t")
                     .append(writeStats.getTotalRecords())
                     .append("|").append(toMicros(writeStats.getMaxTime()))
                     .append("|").append(toMicros(writeStats.getMinTime()))
@@ -98,7 +96,7 @@ public class JobStatsUtils {
                 .append("\n\t").append("Cancelled Tasks: ").append(stats.getNumCancelledTasks())
                 .append("\nTask Summary (max|min|p50|p75|p95|p98|p99|p999)");
 
-        Collection<TaskStats> statValues = stats.getTaskStats().values();
+        Collection<TaskStats> statValues = stats.getTaskStats();
         TaskStats[] statsArray = new TaskStats[statValues.size()];
         statValues.toArray(statsArray);
 

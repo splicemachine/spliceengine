@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 public class TransactionManagerHBaseTest extends TransactionManagerTest {
     @BeforeClass
     public static void setUp() {
-        storeSetup = new HStoreSetup(false);
+        storeSetup = HStoreSetup.create();
         transactorSetup = new TransactorSetup(storeSetup, false);
         HTransactorFactory.setTransactor(transactorSetup.hTransactor);
         baseSetUp();
@@ -17,7 +17,7 @@ public class TransactionManagerHBaseTest extends TransactionManagerTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        storeSetup.getTestCluster().shutdownMiniCluster();
+        HStoreSetup.destroy((HStoreSetup) storeSetup);
     }
 
 }

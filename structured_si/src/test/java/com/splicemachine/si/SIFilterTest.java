@@ -4,7 +4,6 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.impl.FilterState;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
 import org.junit.After;
@@ -55,7 +54,7 @@ public class SIFilterTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final Transactor transactor = transactorSetup.transactor;
         final TransactionId t1 = transactor.beginTransaction();
-        final IFilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false, false);
+        final IFilterState filterState = transactor.newFilterState(transactorSetup.rollForwardQueue, t1, false);
         insertAge(t1, "bill", 20);
         transactor.commit(t1);
 

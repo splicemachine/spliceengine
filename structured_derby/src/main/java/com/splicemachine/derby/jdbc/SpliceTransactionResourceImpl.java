@@ -45,7 +45,8 @@ public final class SpliceTransactionResourceImpl {
 		username = IdUtil.getUserNameFromURLProps(info); // Static
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null); // Static
 		cm = csf.newContextManager(); // Needed
-		ContextService.getFactory().setCurrentContextManager(cm);
+        if(csf.getCurrentContextManager()==null)
+            csf.setCurrentContextManager(cm);
 		database = (SpliceDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
         if(database==null){
             SpliceLogUtils.debug(LOG,"database has not yet been created, creating now");
@@ -78,7 +79,16 @@ public final class SpliceTransactionResourceImpl {
 		lcc = database.generateLanguageConnectionContext(transactionID,cm, username, drdaID, dbname);
 	}
 
-	
+
+    public void close(){
+        if(cm!=null){
+            while(!cm.isEmpty()){
+               cm.popContext();
+            }
+            csf.resetCurrentContextManager(cm);
+        }
+    }
+
 	public ContextService getCsf() {
 		return csf;
 	}
@@ -172,5 +182,17 @@ public final class SpliceTransactionResourceImpl {
         return cm.cleanupOnError(e, diagActive);
     }
 
+    public void resetContextManager(){
+        csf.forceRemoveContext(cm);
+    }
+
+    public void prepareContextManager() {
+        cm.setActiveThread();
+        csf.setCurrentContextManager(cm);
+    }
+
+    public void popContextManager() {
+        csf.resetCurrentContextManager(cm);
+    }
 }
 

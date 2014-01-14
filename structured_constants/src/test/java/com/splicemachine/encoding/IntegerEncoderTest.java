@@ -82,15 +82,5 @@ public class IntegerEncoderTest {
         //compare the two arrays
         Assert.assertTrue("Incorrect sort!",Arrays.equals(data,sortedData));
     }
-
-    @Test
-    public void testDeserializingByteBuffersWorks() throws Exception {
-        for(int datum:data){
-            byte[] serialized = ScalarEncoding.toBytes(datum,false);
-            ByteBuffer buffer  = ByteBuffer.wrap(serialized);
-            int deserialized = ScalarEncoding.getInt(buffer,false);
-            Assert.assertEquals("Incorrect deserialization of value "+ datum, datum,deserialized);
-        }
-
-    }
 }
+

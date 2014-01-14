@@ -29,6 +29,11 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
     }
 
     @Override
+    public String getTableName(Table table) {
+        return delegate.getTableName(table);
+    }
+
+    @Override
     public Result get(Table table, Get get) throws IOException {
         return delegate.get(table, get);
     }

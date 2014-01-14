@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.writer;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.impl.sql.execute.constraint.Constraint;
 import com.splicemachine.derby.impl.sql.execute.constraint.ConstraintContext;
 
@@ -34,7 +36,13 @@ public class WriteResult implements Externalizable{
         this.code = code;
     }
 
-    @Override
+		public WriteResult(Code code, String errorMessage, ConstraintContext context) {
+				this.code = code;
+				this.constraintContext = context;
+				this.errorMessage = errorMessage;
+		}
+
+		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeUTF(code.name());
         if(code == Code.FAILED){
@@ -45,6 +53,23 @@ public class WriteResult implements Externalizable{
             out.writeObject(constraintContext);
         }
     }
+
+		public void write(Output output) throws IOException{
+			output.writeInt(code.ordinal());
+				if(code==Code.FAILED){
+						output.writeString(errorMessage);
+				}
+				output.writeBoolean(constraintContext!=null);
+				if(constraintContext!=null)
+						constraintContext.write(output);
+		}
+
+		public static WriteResult fromBytes(Input input) throws IOException{
+				Code code = Code.fromOrdinal(input.readInt());
+				String errorMessage = code==Code.FAILED?input.readString():null;
+				ConstraintContext context = input.readBoolean()? ConstraintContext.fromBytes(input):null;
+				return new WriteResult(code,errorMessage,context);
+		}
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
@@ -69,7 +94,7 @@ public class WriteResult implements Externalizable{
     }
 
     public boolean canRetry() {
-        return code==Code.NOT_SERVING_REGION||code==Code.WRONG_REGION;
+        return code.canRetry();
     }
 
     public static WriteResult notRun() {
@@ -107,6 +132,10 @@ public class WriteResult implements Externalizable{
         return new WriteResult(Code.NOT_SERVING_REGION);
     }
 
+    public static WriteResult regionTooBusy() {
+        return new WriteResult(Code.REGION_TOO_BUSY);
+    }
+
     public enum Code {
         FAILED,
         WRITE_CONFLICT,
@@ -115,8 +144,41 @@ public class WriteResult implements Externalizable{
         UNIQUE_VIOLATION,
         FOREIGN_KEY_VIOLATION,
         CHECK_VIOLATION,
-        NOT_SERVING_REGION,
-        WRONG_REGION,
-        NOT_RUN
-    }
+        NOT_SERVING_REGION{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        WRONG_REGION{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        REGION_TOO_BUSY{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        },
+        NOT_RUN{
+            @Override
+            public boolean canRetry() {
+                return true;
+            }
+        };
+
+        public boolean canRetry(){
+            return false;
+        }
+
+				public static Code fromOrdinal(int ordinal){
+						for(Code code:values()){
+								if(code.ordinal()==ordinal)
+										return code;
+						}
+						return null;
+				}
+		}
 }

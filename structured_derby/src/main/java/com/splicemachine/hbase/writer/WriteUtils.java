@@ -1,11 +1,8 @@
 package com.splicemachine.hbase.writer;
 
-import com.google.common.collect.Lists;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.hbase.table.SpliceHTableUtil;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -28,12 +25,15 @@ public class WriteUtils {
         }
     };
 
-    public static boolean bucketWrites(List<KVPair> buffer,List<BulkWrite> buckets) throws Exception{
+    public static boolean bucketWrites(ObjectArrayList<KVPair> buffer,List<BulkWrite> buckets) throws Exception{
         //make sure regions are in sorted order
         Collections.sort(buckets, writeComparator);
-        List<KVPair> regionLessWrites = Lists.newArrayListWithExpectedSize(0);
+       // ObjectArrayList<KVPair> regionLessWrites = ObjectArrayList.newInstanceWithCapacity(0); XXX - TODO Where we supposed to do something with this?
 
-        for(KVPair kv:buffer){
+        Object[] buffers = buffer.buffer;
+        int iBuffer = buffer.size();
+        for (int i = 0; i<iBuffer;i++) {
+        	KVPair kv = (KVPair) buffers[i];
             byte[] row = kv.getRow();
             boolean less;
             Iterator<BulkWrite> bucketList = buckets.listIterator();
@@ -57,12 +57,8 @@ public class WriteUtils {
         return true;
     }
 
-    static long getWaitTime(int tryNum,long pause) {
-        long retryWait;
-        if(tryNum>= HConstants.RETRY_BACKOFF.length)
-            retryWait = HConstants.RETRY_BACKOFF[HConstants.RETRY_BACKOFF.length-1];
-        else
-            retryWait = HConstants.RETRY_BACKOFF[tryNum];
-        return retryWait*pause;
+    public static long getWaitTime(int tryNum,long pause) {
+        //refactored to make use of this method elsewhere as well.
+        return SpliceHTableUtil.getWaitTime(tryNum,pause);
     }
 }

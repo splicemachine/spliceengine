@@ -4,18 +4,16 @@ import com.google.common.base.Strings;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.services.sanity.SanityManager;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.CursorResultSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
 import org.apache.derby.iapi.services.io.FormatableArrayHolder;
 import org.apache.derby.iapi.services.io.FormatableIntHolder;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -24,7 +22,7 @@ import java.util.Properties;
  * Builds a hash table on the underlying result set tree.
  *
  */
-public class HashTableOperation extends SpliceBaseOperation implements CursorResultSet {
+public class HashTableOperation extends SpliceBaseOperation  {
 	/* Run time statistics variables */
 	public long restrictionTime;
 	public long projectionTime;
@@ -33,7 +31,7 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 
     // set in constructor and not altered during
     // life of object.
-    public NoPutResultSet source;
+    public SpliceOperation source;
     public GeneratedMethod singleTableRestriction;
 	public Qualifier[][] nextQualifiers;
     private GeneratedMethod projection;
@@ -57,11 +55,12 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 	private ExecRow nextCandidate;
 	private ExecRow projRow;
 	private BackingStoreHashtable ht;
+    public NoPutResultSet[] subqueryTrackingArray;
 
     //
     // class interface
     //
-    public HashTableOperation(NoPutResultSet s,
+    public HashTableOperation(SpliceOperation s,
 					Activation a,
 					GeneratedMethod str,
 					String equijoinQualifiers,
@@ -127,7 +126,7 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
 	}
 
     @Override
-    public int[] getRootAccessedCols(long tableNumber) {
+    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
         return ((SpliceOperation)source).getRootAccessedCols(tableNumber);
     }
 
@@ -137,30 +136,20 @@ public class HashTableOperation extends SpliceBaseOperation implements CursorRes
     }
 
     @Override
-	public ExecRow getNextRowCore() throws StandardException {
+	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 		throw new RuntimeException("Not Implemented Yet");
 	}
 
-	@Override
-	public RowLocation getRowLocation() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
-	@Override
-	public ExecRow getCurrentRow() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
-	@Override
-	public long getTimeSpent(int type)
-	{
-		long totTime = constructorTime + openTime + nextTime + closeTime;
-
-		if (type == CURRENT_RESULTSET_ONLY)
-			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-		else
-			return totTime;
-	}
+//	@Override
+//	public long getTimeSpent(int type)
+//	{
+//		long totTime = constructorTime + openTime + nextTime + closeTime;
+//
+//		if (type == CURRENT_RESULTSET_ONLY)
+//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
+//		else
+//			return totTime;
+//	}
 
     @Override
     public String prettyPrint(int indentLevel) {
