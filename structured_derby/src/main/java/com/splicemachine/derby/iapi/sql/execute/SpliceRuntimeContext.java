@@ -58,6 +58,10 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         return spliceRuntimeContext;
     }
 
+    public void addSinkRuntimeContext(boolean firstStepInMultistep) {
+    	this.firstStepInMultistep = firstStepInMultistep;  	
+    }
+
     
     public SpliceRuntimeContext copy() {
         SpliceRuntimeContext copy = new SpliceRuntimeContext();
