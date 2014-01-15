@@ -549,8 +549,7 @@ public class ImportTaskTest {
     private List<ExecRow> getCorrectExecRows(List<String[]> lines,
                                              final ImportContext ctx,
                                              ExecRow template) {
-        //final RowParser parser = new RowParser(template,null,null,null);
-    	final RowParser parser = new RowParser(template,null,null,true);
+        final RowParser parser = new RowParser(template,null,null,null);
         return Lists.newArrayList(Lists.transform(lines, new Function<String[], ExecRow>() {
             @Override
             public ExecRow apply(@Nullable String[] input) {
