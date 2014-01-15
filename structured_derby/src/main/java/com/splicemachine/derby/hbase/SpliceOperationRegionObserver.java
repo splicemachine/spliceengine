@@ -19,7 +19,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public class SpliceOperationRegionObserver extends BaseRegionObserver {
 	private static Logger LOG = Logger.getLogger(SpliceOperationRegionObserver.class);
-	public static String SPLICE_OBSERVER_INSTRUCTIONS = "SpliceServerInstructions";
+	public static String SPLICE_OBSERVER_INSTRUCTIONS = "Z"; // Reducing this so the amount of network traffic will be reduced...
 	/**
 	 * Logs the start of the observer.
 	 */
