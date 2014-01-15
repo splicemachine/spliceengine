@@ -23,7 +23,7 @@ public class RowParser {
     private DateFormat dateFormat;
     private DateFormat timeFormat;
 
-    private final String timestampFormatStr;
+    private String timestampFormatStr;
     private final String dateFormatStr;
     private final String timeFormatStr;
 
@@ -101,7 +101,28 @@ public class RowParser {
                     column.setToNull();
                     break;
                 }
-
+                if(column instanceof SQLTimestamp){
+                	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}[-,+]\\d{2}")) {
+                		timestampFormatStr = "yyyy-MM-dd HH:mm:ssZ";
+                		//if not append 00, cannot parse correctly
+                		elem = elem + "00";
+                    }
+                	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{2}[-,+]\\d{2}")) {
+                		timestampFormatStr = "yyyy-MM-dd HH:mm:ss.SSZ";
+                		elem = elem + "00";
+                    }
+                    if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}[-,+]\\d{2}")) {
+                    	timestampFormatStr = "yyyy-MM-dd HH:mm:ss.SSSZ";
+                    	elem = elem + "00";
+                    }
+                    
+                }
+                if(column instanceof SQLDate) {
+                	String yesSQLDate = "y";
+                }
+                if(column instanceof SQLTime) {
+                	String yesSQLTime = "y";
+                }
                 DateFormat format = getDateFormat(column);
                 try{
                     Date value = format.parse(elem);
