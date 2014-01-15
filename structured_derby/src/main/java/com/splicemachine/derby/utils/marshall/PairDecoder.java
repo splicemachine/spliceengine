@@ -50,4 +50,9 @@ public class PairDecoder {
 		public ExecRow getTemplate() {
 				return templateRow;
 		}
+
+		@Override
+		public String toString() {
+			return String.format("PairDecoder { keyDecoder=%s rowDecoder=%s, templateRow=%s}",keyDecoder,rowDecoder,templateRow);
+		}		
 }
