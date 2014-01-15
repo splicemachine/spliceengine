@@ -158,7 +158,8 @@ public class ParallelImporter implements Importer{
             this.importProcessor = new RowParser(row,
                     importContext.getDateFormat(),
                     importContext.getTimeFormat(),
-                    importContext.getTimestampFormat());
+                    true);
+                    //importContext.getTimestampFormat());
         }
 
         @Override

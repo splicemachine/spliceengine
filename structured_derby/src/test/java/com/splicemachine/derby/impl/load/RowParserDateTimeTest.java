@@ -39,5 +39,17 @@ public class RowParserDateTimeTest {
         processed = parser.process(testLine1,new ColumnContext[]{ctx});
 
         Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,1,1,0,0,0,0),processed.getColumn(1).getTimestamp(null));
+        
+        
+        testLine1 = new String[]{"2013-02-01 00:00:00-00"};
+        parser = new RowParser(testRow,null,null,"yyyy-MM-dd HH:mm:ssZ");
+        Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,1,1,0,0,0,0),processed.getColumn(1).getTimestamp(null));
+        testLine1 = new String[]{"2013-02-01 00:00:00.00-00"};
+        parser = new RowParser(testRow,null,null,"yyyy-MM-dd HH:mm:ss.SSZ");
+        Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,1,1,0,0,0,0),processed.getColumn(1).getTimestamp(null));
+        testLine1 = new String[]{"2013-02-01 00:00:00.000-00"};
+        parser = new RowParser(testRow,null,null,"yyyy-MM-dd HH:mm:ss.SSSZ");
+        Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,1,1,0,0,0,0),processed.getColumn(1).getTimestamp(null));
+        
     }
 }

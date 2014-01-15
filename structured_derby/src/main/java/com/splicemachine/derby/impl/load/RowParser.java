@@ -22,9 +22,10 @@ public class RowParser {
     private DateFormat timestampFormat;
     private DateFormat dateFormat;
     private DateFormat timeFormat;
-    
+    private final String timestampFormatStr;
     private final String dateFormatStr;
     private final String timeFormatStr;
+    private final boolean isImport;
 
     public RowParser(ExecRow template,
                      String dateFormat,
@@ -37,7 +38,24 @@ public class RowParser {
         if(timeFormat==null)
             timeFormat = "HH:mm:ss";
         this.timeFormatStr = timeFormat;
-        
+        if(timestampFormat==null)
+        	timestampFormat = "yyyy-MM-dd HH:mm:ss";
+        this.timestampFormatStr = timestampFormat;
+        this.isImport = false;
+    }
+    public RowParser(ExecRow template,
+            String dateFormat,
+            String timeFormat,
+            boolean isImport) {
+    	this.template = template;
+    	if(dateFormat==null)
+    		dateFormat = "yyyy-MM-dd";
+    	this.dateFormatStr = dateFormat;
+    	if(timeFormat==null)
+    		timeFormat = "HH:mm:ss";
+    	this.timeFormatStr = timeFormat;
+    	this.isImport = isImport;
+    	this.timestampFormatStr = null;
     }
 
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
@@ -97,23 +115,22 @@ public class RowParser {
                     column.setToNull();
                     break;
                 }
-                String timestampFormatStr = "yyyy-MM-dd hh:mm:ss";
+                String timestampFormatStr2 = "yyyy-MM-dd hh:mm:ss";
                 
                 if(column instanceof SQLTimestamp){
                 	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}[-,+]\\d{2}")) {
-                		timestampFormatStr = "yyyy-MM-dd HH:mm:ssZ";
+                		timestampFormatStr2 = "yyyy-MM-dd HH:mm:ssZ";
                 		//if not append 00, cannot parse correctly
                 		elem = elem + "00";
                     }
                 	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{2}[-,+]\\d{2}")) {
-                		timestampFormatStr = "yyyy-MM-dd HH:mm:ss.SSZ";
+                		timestampFormatStr2 = "yyyy-MM-dd HH:mm:ss.SSZ";
                 		elem = elem + "00";
                     }
                     if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}[-,+]\\d{2}")) {
-                    	timestampFormatStr = "yyyy-MM-dd HH:mm:ss.SSSZ";
+                    	timestampFormatStr2 = "yyyy-MM-dd HH:mm:ss.SSSZ";
                     	elem = elem + "00";
                     }
-                    
                 }
                 if(column instanceof SQLDate) {
                 	String yesSQLDate = "y";
@@ -121,7 +138,7 @@ public class RowParser {
                 if(column instanceof SQLTime) {
                 	String yesSQLTime = "y";
                 }
-                DateFormat format = getDateFormat(column, timestampFormatStr);
+                DateFormat format = getDateFormat(column, timestampFormatStr2);
                 try{
                     Date value = format.parse(elem);
                     column.setValue(new Timestamp(value.getTime()));
@@ -138,9 +155,13 @@ public class RowParser {
     private DateFormat getDateFormat(DataValueDescriptor dvd, String tsfm) throws StandardException {
         DateFormat format;
         if(dvd instanceof SQLTimestamp){
-            //if(timestampFormat==null){
-                timestampFormat = new SimpleDateFormat(tsfm);
-            //}
+        	if(isImport) {
+        		timestampFormat = new SimpleDateFormat(tsfm);
+        	} else {
+                if(timestampFormat==null){
+                    timestampFormat = new SimpleDateFormat(timestampFormatStr);
+                }
+        	}
             format = timestampFormat;
         }else if(dvd instanceof SQLDate){
             if(dateFormat==null){
