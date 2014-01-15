@@ -91,8 +91,10 @@ public class UnionOperation extends SpliceBaseOperation {
 
     @Override
     public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-    	SpliceRuntimeContext spliceLeftRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
-    	SpliceRuntimeContext spliceRightRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);    	
+    	SpliceRuntimeContext spliceLeftRuntimeContext = runtimeContext.copy();
+    	spliceLeftRuntimeContext.addLeftRuntimeContext(resultSetNumber);
+    	SpliceRuntimeContext spliceRightRuntimeContext = runtimeContext.copy();
+    	spliceRightRuntimeContext.addRightRuntimeContext(resultSetNumber);	
         RowProvider leftProvider =firstResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(firstResultSet,spliceLeftRuntimeContext),spliceLeftRuntimeContext);
         RowProvider rightProvider = secondResultSet.getMapRowProvider(this,OperationUtils.getPairDecoder(secondResultSet,spliceRightRuntimeContext),spliceRightRuntimeContext);
         return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
