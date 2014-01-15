@@ -22,8 +22,7 @@ public class RowParser {
     private DateFormat timestampFormat;
     private DateFormat dateFormat;
     private DateFormat timeFormat;
-
-    private String timestampFormatStr;
+    
     private final String dateFormatStr;
     private final String timeFormatStr;
 
@@ -38,10 +37,7 @@ public class RowParser {
         if(timeFormat==null)
             timeFormat = "HH:mm:ss";
         this.timeFormatStr = timeFormat;
-        if(timestampFormat ==null)
-            timestampFormat = "yyyy-MM-dd hh:mm:ss"; //iso format
-
-        this.timestampFormatStr = timestampFormat;
+        
     }
 
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
@@ -101,6 +97,8 @@ public class RowParser {
                     column.setToNull();
                     break;
                 }
+                String timestampFormatStr = "yyyy-MM-dd hh:mm:ss";
+                
                 if(column instanceof SQLTimestamp){
                 	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}[-,+]\\d{2}")) {
                 		timestampFormatStr = "yyyy-MM-dd HH:mm:ssZ";
@@ -123,7 +121,7 @@ public class RowParser {
                 if(column instanceof SQLTime) {
                 	String yesSQLTime = "y";
                 }
-                DateFormat format = getDateFormat(column);
+                DateFormat format = getDateFormat(column, timestampFormatStr);
                 try{
                     Date value = format.parse(elem);
                     column.setValue(new Timestamp(value.getTime()));
@@ -137,12 +135,12 @@ public class RowParser {
         columnContext.validate(column);
     }
 
-    private DateFormat getDateFormat(DataValueDescriptor dvd) throws StandardException {
+    private DateFormat getDateFormat(DataValueDescriptor dvd, String tsfm) throws StandardException {
         DateFormat format;
         if(dvd instanceof SQLTimestamp){
-            if(timestampFormat==null){
-                timestampFormat = new SimpleDateFormat(timestampFormatStr);
-            }
+            //if(timestampFormat==null){
+                timestampFormat = new SimpleDateFormat(tsfm);
+            //}
             format = timestampFormat;
         }else if(dvd instanceof SQLDate){
             if(dateFormat==null){
