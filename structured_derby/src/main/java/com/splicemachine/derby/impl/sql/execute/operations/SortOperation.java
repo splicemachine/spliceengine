@@ -2,7 +2,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationCoprocessor;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -13,20 +13,23 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.sql.execute.deprecate.DistinctMerger;
-import com.splicemachine.derby.impl.sql.execute.deprecate.HashBufferSource;
-import com.splicemachine.derby.impl.sql.execute.deprecate.HashMerger;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -39,13 +42,11 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,9 +56,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private static final long serialVersionUID = 2l;
     private static Logger LOG = Logger.getLogger(SortOperation.class);
     private static final List<NodeType> nodeTypes;
-
-    private static final HashMerger merger = new DistinctMerger();
-
+    private StandardIterator<GroupedRow> aggregator;   
     protected SpliceOperation source;
     protected boolean distinct;
     protected int orderingItem;
@@ -68,7 +67,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private Scan reduceScan;
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
-    private HashBufferSource hbs;
+    private MultiFieldDecoder decoder;
 
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
@@ -137,7 +136,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
-    	hbs = null;
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         source.init(context);
@@ -156,35 +154,32 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
             keyColumns[i] = order[i].getColumnId();
             descColumns[i] = order[i].getIsAscending();
         }
-        SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
+        if (LOG.isTraceEnabled()) 
+        	SpliceLogUtils.trace(LOG, "keyColumns %s, distinct %s", Arrays.toString(keyColumns), distinct);
     }
     
-    private void createHashBufferSource(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        int columns[] = new int[getExecRowDefinition().nColumns()];
-        for (int i = 0; i < columns.length; ++i) {
-            columns[i] = i;
-        }
-    	hbs = new HashBufferSource(uniqueSequenceID, columns, new WrapOperationWithProviderIterator(source,spliceRuntimeContext), merger, KeyType.FIXED_PREFIX, MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length + 1));
-    }
-
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {    	
-        ExecRow nextRow = null;
-
-        if(!distinct){
-            nextRow = source.nextRow(spliceRuntimeContext);
-        }else{ 
-        	if (hbs == null) {
-        		createHashBufferSource(spliceRuntimeContext);
-        	}
-            Pair<ByteBuffer,ExecRow> result = hbs.getNextAggregatedRow();
-            if(result != null){
-                nextRow = result.getSecond();
-            }
+        GroupedRow groupedRow = null;
+        if (aggregator ==null) {
+        	StandardSupplier<ExecRow> supplier = new StandardSupplier<ExecRow>() {
+				@Override
+				public ExecRow get() throws StandardException {
+					// TODO Auto-generated method stub
+					return execRowDefinition;
+				}
+        	};
+        	aggregator = new SinkSortIterator(distinct?new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,
+        			null,supplier):null,new SourceIterator(spliceRuntimeContext, source),keyColumns,descColumns);
         }
-        setCurrentRow(nextRow);
+        groupedRow = aggregator.next();	
 
-        return nextRow;
+        if (groupedRow == null) {
+        	setCurrentRow(null);
+        	return null;
+        }
+        setCurrentRow(groupedRow.getRow());
+        return groupedRow.getRow();
     }
 
     @Override
@@ -200,7 +195,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         List<KeyValue> keyValues = new ArrayList<KeyValue>();
         regionScanner.next(keyValues);
         if(keyValues.isEmpty()) return null;
-
         if(rowDecoder==null)
             rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
         return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
@@ -231,7 +225,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		@Override
 		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				try {
+			try {
 						//be sure and include the hash prefix
 						byte[] range = new byte[uniqueSequenceID.length+1];
 						range[0] = spliceRuntimeContext.getHashBucket();
@@ -243,11 +237,14 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 						}
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
+				}			
+				if(top!=this) {
+						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);						
+						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);						
+						PairDecoder barrierDecoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(getExecRowDefinition().nColumns()),null),getExecRowDefinition());
+						return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, barrierDecoder, spliceRuntimeContext);
 				}
-				if(top!=this)
-						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
-
-				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
+				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, decoder, spliceRuntimeContext);
 		}
 
 	@Override
@@ -346,15 +343,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				return uniqueSequenceID;
 		}
 
-//    @Override
-//    public long getTimeSpent(int type) {
-//        long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//        if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//            return totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//        else
-//            return totTime;
-//    }
 
     public Properties getSortProperties() {
         if (sortProperties == null)
