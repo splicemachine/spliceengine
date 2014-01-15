@@ -24,4 +24,11 @@ public class KeyDecoder {
 		public int getPrefixOffset() {
 				return prefixOffset;
 		}
+
+		@Override
+		public String toString() {
+			return String.format("KeyDecoder { hashDecoder=%s, prefixOffset=%d",hashDecoder,prefixOffset);
+		}
+		
+		
 }
