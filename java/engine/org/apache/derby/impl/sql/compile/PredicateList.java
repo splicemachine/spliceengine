@@ -861,6 +861,8 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 						currentStartPosition = thisIndexPosition;
 						thisPredMarked = true;
 						seenGT = (thisPred.getStartOperator(optTable) == ScanController.GT);
+						if(!seenGT)
+										thisPred.markQualifier();
 					}
 				}
 			}
