@@ -508,44 +508,7 @@ public class Scans extends SpliceUtils {
 						if(generateKey){
 								byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder);
 								scan.setStartRow(startRow);
-								/*
-								 * DIRTY HACK ALERT!!
-								 *
-								 * With Strings, our storage model doesn't behave quite how you would expect.
-								 *
-								 * Let's say you have a startKey= '1' and a stopKey='1' with an equals clause. In order to
-								 * get any rows at all, we must make the stop key strictly greater than the start key (using
-								 * Bytes.COMPARATOR). However, with strings, this is equivalent to making stopKey = '2', which
-								 * will return '11','1100','100','10', and so on, which are incorrect.
-								 *
-								 * The cheap and dirty way to resolve this is to make the stop key identical to the start key,
-								 * but with one extra byte. That is, if startKey encodes to [b1,b2,...bN], then encode
-								 * stopKey to [b1,b2,...,bN,0].
-								 *
-								 * How does this work? Knowing it works depends on an understanding of our storage system.
-								 *
-								 * 0x00 is used as a field separator in our encoding, so for some data types(CHAR,VARCHAR,byte,
-								 * binary,numeric) we can't ever have a zero. For these data types, attaching a 0x00 to the end of the scan
-								 * implies that there would be additional fields after the fact. But since there's no data after the 0x00,
-								 * then there are no rows for HBase to see (since the next field would have to start). Numeric
-								 *  data types(smallint, int, bigint,float/real,double) on the other hand are allowed to have zeros,
-								 *  but they are not allowed to be only a single 0x00, so appending a 0x00 is not sufficient to encode
-								 *  any numeric type, thus the extra 0x00 will not be confused with another data type, and there
-								 *  is no possibility that a row with the same data type but a slightly expanded byte encoding
-								 *  can be included.
-								 *
-								 *  Additionally, no extra fields can be included, because 0x00 would be used as a field delimiter,
-								 *  and THEN additional fields would be set, resulting in a row key that was longer than that
-								 *  specified.
-								 *
-								 *  Thus, we are assured that only fields which match our equals clause can be returned, and we don't
-								 *  need any predicates.
-								 */
-								byte[] stopRow;
-								if(startRow!=null && sameStartStopPosition){
-										stopRow = Arrays.copyOf(startRow,startRow.length+1);
-								}else
-										stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder);
+								byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder);
 								scan.setStopRow(stopRow);
 								if(startRow==null)
 										scan.setStartRow(HConstants.EMPTY_START_ROW);

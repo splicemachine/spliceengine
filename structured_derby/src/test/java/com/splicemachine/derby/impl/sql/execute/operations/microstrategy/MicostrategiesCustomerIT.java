@@ -35,7 +35,14 @@ public class MicostrategiesCustomerIT extends SpliceUnitTest {
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @Test
+		@Test
+		public void testRepeatedSelectDistincts() throws Exception {
+			for(int i=0;i<100;i++){
+					testSelectDistinctSelectsDistincts();
+			}
+		}
+
+		@Test
     public void testSelectDistinctSelectsDistincts() throws Exception{
 	    String userDir = System.getProperty("user.dir");
 	    if(!userDir.endsWith("structured_derby"))

@@ -87,8 +87,8 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
 		private static final Map<Pair<String,String>,Integer> correctData = Maps.newHashMap();
-    private static final int pk1Size = 10;
-    private static final int pk2Size = 10;
+    private static final int pk1Size = 11;
+    private static final int pk2Size = 11;
 
     /*
     @Test
@@ -243,7 +243,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
 
     @Test
     public void testScanWithLessThanOperator() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 < 'pk_1_"+(pk1Size-1)+"'", this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1 < 'pk_1_"+(pk1Size-2)+"'", this.getTableReference(TABLE_NAME)));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(rs.next()){
             String pk1 = rs.getString(1);
@@ -270,7 +270,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect value for pair!",correctData.get(pair).intValue(),val);
             results.add(String.format("pk_1: %s,pk_2: %s, val:%d",pk1,pk2,val));
         }
-        Assert.assertEquals("Incorrect number of rows returned!",pk2Size*(pk1Size-1),results.size());
+        Assert.assertEquals("Incorrect number of rows returned!",pk2Size*pk1Size,results.size());
     }
 
     @Test
@@ -286,12 +286,12 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect value for pair!",correctData.get(pair).intValue(),val);
             results.add(String.format("pk_1: %s,pk_2: %s, val:%d",pk1,pk2,val));
         }
-        Assert.assertEquals("Incorrect number of rows returned!",pk2Size*(pk1Size-2),results.size());
+        Assert.assertEquals("Incorrect number of rows returned!",pk2Size*(pk1Size-1),results.size());
     }
 
     @Test
     public void testScanGreaterEqualLessEquals() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1>= 'pk_1_1' and pk_1 <='pk_1_"+(pk1Size-2)+"'", this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1>= 'pk_1_1' and pk_1 <='pk_1_"+(pk1Size-3)+"'", this.getTableReference(TABLE_NAME)));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(rs.next()){
             String pk1 = rs.getString(1);
@@ -307,7 +307,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
 
     @Test
     public void testScanGreaterThanLess() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1> 'pk_1_0' and pk_1 <'pk_1_"+(pk1Size-1)+"'", this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1> 'pk_1_0' and pk_1 <'pk_1_"+(pk1Size-2)+"'", this.getTableReference(TABLE_NAME)));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(rs.next()){
             String pk1 = rs.getString(1);
@@ -323,7 +323,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
 
     @Test
     public void testScanGreaterEqualsLess() throws Exception{
-        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1>= 'pk_1_1' and pk_1 <'pk_1_"+(pk1Size-1)+"'", this.getTableReference(TABLE_NAME)));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where pk_1>= 'pk_1_1' and pk_1 <'pk_1_"+(pk1Size-2)+"'", this.getTableReference(TABLE_NAME)));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
         while(rs.next()){
             String pk1 = rs.getString(1);
