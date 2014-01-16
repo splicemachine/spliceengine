@@ -50,6 +50,14 @@ public class RowParserDateTimeTest {
         testLine1 = new String[]{"2013-02-01 00:00:00.000-00"};
         parser = new RowParser(testRow,null,null,"yyyy-MM-dd HH:mm:ss.SSSZ");
         Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,1,1,0,0,0,0),processed.getColumn(1).getTimestamp(null));
-        
+
+        RowParser parser1 = new RowParser(testRow,null,null,"MM/dd/yyyy HH:mm:ss@1");      
+        ColumnContext ctx1 = new ColumnContext.Builder()
+                                    .columnType(Types.TIMESTAMP)
+                .nullable(true)
+                .build();
+        testLine1 = new String[]{"01/01/2013 00:00:00"};
+        ExecRow processed1 = parser1.process(testLine1,new ColumnContext[]{ctx1});
+        Assert.assertEquals("Incorrect parsed timestamp!",new Timestamp(2013-1900,0,1,0,0,0,0),processed1.getColumn(1).getTimestamp(null)); 
     }
 }
