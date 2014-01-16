@@ -173,7 +173,8 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         			null,supplier):null,new SourceIterator(spliceRuntimeContext, source),keyColumns,descColumns);
         }
         groupedRow = aggregator.next();	
-
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG,"getNextSinkRow aggregator returns row=%s", groupedRow==null?"null":groupedRow.getRow());
         if (groupedRow == null) {
         	setCurrentRow(null);
         	return null;
@@ -184,8 +185,9 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        SpliceLogUtils.trace(LOG, "nextRow");
         sortResult = getNextRowFromScan(spliceRuntimeContext);
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG,"nextRow from scan row=%s", sortResult);
         if (sortResult != null)
             setCurrentRow(sortResult);
         return sortResult;
@@ -238,10 +240,10 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}			
-				if(top!=this) {
+				if(top!=this && top instanceof SinkingOperation) {
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);						
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);						
-						PairDecoder barrierDecoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(getExecRowDefinition().nColumns()),null),getExecRowDefinition());
+						PairDecoder barrierDecoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
 						return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, barrierDecoder, spliceRuntimeContext);
 				}
 				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, decoder, spliceRuntimeContext);
