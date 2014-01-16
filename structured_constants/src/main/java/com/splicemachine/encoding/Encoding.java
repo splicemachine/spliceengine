@@ -1,5 +1,8 @@
 package com.splicemachine.encoding;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 
@@ -681,8 +684,9 @@ public final class Encoding {
     }
 
     public static void main(String... args) throws Exception{
-				byte[] base = Encoding.encode("1");
+				byte[] base = Encoding.encode("pk_1_10");
 				byte[] baseExtra = Arrays.copyOf(base,base.length+1);
-				System.out.println(Encoding.decodeString(baseExtra));
+				System.out.println(BytesUtil.toHex(base));
+				System.out.println(BytesUtil.toHex(baseExtra));
     }
 }
