@@ -322,6 +322,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
 
         GroupedRow row = aggregator.next();
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG, "getNextSinkRow from aggregator row=%s",row==null?"null":row.getRow());
         if(row==null){
             currentKey=null;
             clearCurrentRow();
@@ -355,6 +357,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         boolean shouldClose = true;
         try{
             GroupedRow row = aggregator.next();
+            if (LOG.isTraceEnabled())
+            	SpliceLogUtils.trace(LOG, "getNextRow from aggregator row=%s",row==null?"null":row.getRow());
             if(row==null){
                 clearCurrentRow();
                 return null;
