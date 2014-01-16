@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -19,13 +19,13 @@ import java.util.Date;
 public class RowParser {
     private final ExecRow template;
 
-    private DateFormat timestampFormat;
-    private DateFormat dateFormat;
-    private DateFormat timeFormat;
+    private SimpleDateFormat timestampFormat;
+    private SimpleDateFormat dateFormat;
+    private SimpleDateFormat timeFormat;
     private final String timestampFormatStr;
     private final String dateFormatStr;
     private final String timeFormatStr;
-    //private final boolean isImport;
+    private final HashMap<String,String> columnTimestampFormats;
 
     public RowParser(ExecRow template,
                      String dateFormat,
@@ -39,7 +39,16 @@ public class RowParser {
             timeFormat = "HH:mm:ss";
         this.timeFormatStr = timeFormat;
         
-        this.timestampFormatStr = timestampFormat;       
+        this.timestampFormatStr = timestampFormat;   
+        columnTimestampFormats = new HashMap<String,String>();
+        if(timestampFormat != null && timestampFormat.contains("@")) {
+        	String[] tmp = timestampFormat.split("\\|");
+        	for (int i = 0; i < tmp.length; i++) {
+        		int indexOfAt = tmp[i].indexOf("@");
+        		columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
+        	}
+        }
+            
     }
 
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
@@ -48,6 +57,13 @@ public class RowParser {
         int pos=0;
         for(ColumnContext context:columnContexts){
             String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
+            if (timestampFormatStr != null && timestampFormatStr.contains("@") && context.getColumnType() == 93 && context.getColumnNumber() == pos) {
+            	String tmpstr = columnTimestampFormats.get(String.valueOf(context.getColumnNumber()+1));
+            	if (tmpstr.equals("null") || tmpstr == null)
+            	    context.setFormatStr(null);
+            	else
+            		context.setFormatStr(tmpstr);
+            }
             setColumn(context, value);
             pos++;
         }
@@ -99,7 +115,7 @@ public class RowParser {
                     column.setToNull();
                     break;
                 }
-                //temp fix for DB-911
+                //default formats supported, can be expanded on demand later
                 String timestampFormatStr2 = "yyyy-MM-dd hh:mm:ss";
                 
                 if(column instanceof SQLTimestamp){
@@ -119,9 +135,9 @@ public class RowParser {
                 if(column instanceof SQLTime) {
                 	String yesSQLTime = "y";
                 }
-                DateFormat format = getDateFormat(column, timestampFormatStr2);
-                try{
-                	if(timestampFormatStr==null && !timestampFormatStr2.equals("yyyy-MM-dd hh:mm:ss"))
+                SimpleDateFormat format = getDateFormat(columnContext, column, timestampFormatStr2);
+                try{                   	
+                	if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X"))
                 		//if not append 00, cannot parse correctly
                 		elem = elem + "00";
                     Date value = format.parse(elem);
@@ -136,13 +152,20 @@ public class RowParser {
         columnContext.validate(column);
     }
 
-    private DateFormat getDateFormat(DataValueDescriptor dvd, String tsfm) throws StandardException {
-        DateFormat format;
+    private SimpleDateFormat getDateFormat(ColumnContext columnContext, DataValueDescriptor dvd, String tsfm) throws StandardException {
+        SimpleDateFormat format;
         if(dvd instanceof SQLTimestamp){
         	if(timestampFormatStr == null) {
         		timestampFormat = new SimpleDateFormat(tsfm);
         	} else {
+        		if(columnContext.isFormatStrSet()) {
+        			if(columnContext.getFormatStr() != null)
+        			    timestampFormat = new SimpleDateFormat(columnContext.getFormatStr());
+        			else 
+        				timestampFormat = new SimpleDateFormat(tsfm);
+        		} else {
                     timestampFormat = new SimpleDateFormat(timestampFormatStr);
+        		}
         	}
             format = timestampFormat;
         }else if(dvd instanceof SQLDate){
@@ -158,6 +181,7 @@ public class RowParser {
         }else{
             throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
         }
+        
         return format;
     }
 }
