@@ -306,8 +306,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public ExecRow getNextSinkRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if(aggregator==null){
-        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(spliceRuntimeContext,source);
+        if(aggregator==null) {
+        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(source);
             StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
@@ -321,7 +321,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             aggregator.open();
         }
 
-        GroupedRow row = aggregator.next();
+        GroupedRow row = aggregator.next(spliceRuntimeContext);
         if (LOG.isTraceEnabled())
         	SpliceLogUtils.trace(LOG, "getNextSinkRow from aggregator row=%s",row==null?"null":row.getRow());
         if(row==null){
@@ -356,7 +356,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         boolean shouldClose = true;
         try{
-            GroupedRow row = aggregator.next();
+            GroupedRow row = aggregator.next(spliceRuntimeContext);
             if (LOG.isTraceEnabled())
             	SpliceLogUtils.trace(LOG, "getNextRow from aggregator row=%s",row==null?"null":row.getRow());
             if(row==null){

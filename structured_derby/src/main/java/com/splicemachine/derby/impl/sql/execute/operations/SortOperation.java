@@ -11,7 +11,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
@@ -26,7 +25,6 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
@@ -68,12 +66,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     private ExecRow execRowDefinition = null;
     private Properties sortProperties = new Properties();
     private MultiFieldDecoder decoder;
-
+    private long rowsRead;
     static {
         nodeTypes = Arrays.asList(NodeType.REDUCE, NodeType.SCAN);
     }
 
     private PairDecoder rowDecoder;
+    
 
     /*
      * Used for serialization. DO NOT USE
@@ -99,6 +98,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         this.numColumns = numColumns;
         init(SpliceOperationContext.newContext(a));
         recordConstructorTime();
+        aggregator = null;
     }
 
     @Override
@@ -113,7 +113,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        SpliceLogUtils.trace(LOG, "writeExternal");
         super.writeExternal(out);
         out.writeObject(source);
         out.writeBoolean(distinct);
@@ -128,7 +127,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public List<SpliceOperation> getSubOperations() {
-        SpliceLogUtils.trace(LOG, "getSubOperations");
         List<SpliceOperation> ops = new ArrayList<SpliceOperation>();
         ops.add(source);
         return ops;
@@ -136,7 +134,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
-        SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         source.init(context);
 
@@ -165,14 +162,14 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         	StandardSupplier<ExecRow> supplier = new StandardSupplier<ExecRow>() {
 				@Override
 				public ExecRow get() throws StandardException {
-					// TODO Auto-generated method stub
 					return execRowDefinition;
 				}
         	};
+        	        	
         	aggregator = new SinkSortIterator(distinct?new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,
-        			null,supplier):null,new SourceIterator(spliceRuntimeContext, source),keyColumns,descColumns);
+        			null,supplier):null,new SourceIterator(source),keyColumns,descColumns);
         }
-        groupedRow = aggregator.next();	
+        groupedRow = aggregator.next(spliceRuntimeContext);	
         if (LOG.isTraceEnabled())
         	SpliceLogUtils.trace(LOG,"getNextSinkRow aggregator returns row=%s", groupedRow==null?"null":groupedRow.getRow());
         if (groupedRow == null) {
@@ -240,7 +237,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}			
-				if(top!=this && top instanceof SinkingOperation) {
+				if(top!=this) {
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);						
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);						
 						PairDecoder barrierDecoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
@@ -375,41 +372,5 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
                 .append(indent).append("source:").append(((SpliceOperation) source).prettyPrint(indentLevel + 1))
                 .toString();
     }
-    
-    public class WrapOperationWithProviderIterator implements RowProviderIterator<ExecRow> {
-        private ExecRow nextRow;
-        private boolean populated = false;
-        protected SpliceOperation operationSource;
-        protected SpliceRuntimeContext spliceRuntimeContext;
-
-    	public WrapOperationWithProviderIterator(SpliceOperation operationSource, SpliceRuntimeContext spliceRuntimeContext) {
-    		this.operationSource = operationSource;
-    		this.spliceRuntimeContext = spliceRuntimeContext;
-    	}
-
-            @Override
-            public boolean hasNext() throws StandardException, IOException {
-                if(!populated){
-                    nextRow = operationSource.nextRow(spliceRuntimeContext); 
-                    populated=true;
-                }
-
-                return nextRow != null;
-            }
-
-            @Override
-            public ExecRow next() throws StandardException, IOException {
-
-                if(!populated){
-                    hasNext();
-                }
-
-                if(nextRow != null){
-                    populated = false;
-                }
-
-                return nextRow;
-            }
-
-    	}    
+     
 }

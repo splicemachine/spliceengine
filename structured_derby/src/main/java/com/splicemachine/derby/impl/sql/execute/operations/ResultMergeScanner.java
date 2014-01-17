@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.storage.ClientResultScanner;
 import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
@@ -14,6 +15,7 @@ import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Result;
@@ -56,7 +58,7 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
     }
 
     @Override
-    public JoinSideExecRow next() throws StandardException, IOException {
+    public JoinSideExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         Result result = scanner.next();
         if(result==null) return null;
         byte[] rowKey = result.getRow();

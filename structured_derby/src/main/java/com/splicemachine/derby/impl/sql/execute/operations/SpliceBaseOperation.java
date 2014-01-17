@@ -112,7 +112,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.activation = activation;
         this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
-		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
@@ -146,7 +145,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG, "writeExternal");
         out.writeObject(operationInformation);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
@@ -375,7 +373,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void generateLeftOperationStack(List<SpliceOperation> operations) {
-//		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
 		OperationUtils.generateLeftOperationStack(this, operations);
 	}
 
@@ -387,7 +384,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return leftOperationStack;
 	}
 	public void generateRightOperationStack(boolean initial,List<SpliceOperation> operations) {
-		SpliceLogUtils.trace(LOG, "generateRightOperationStack");
 		SpliceOperation op;
 		if (initial) 
 			op = getRightOperation();

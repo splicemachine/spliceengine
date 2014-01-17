@@ -2,29 +2,32 @@ package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import java.io.IOException;
 import java.util.List;
 
 /**
  * Aggregator for use with Sinking aggregates.
  *
- * Unlike {@link ScanGroupedAggregateIterator}, this implementation makes a distinction
+ * Unlike {@link ScanDistinctIterator}, this implementation makes a distinction
  * between distinct aggregates and non-distinct aggregates.
  *
  * @author Scott Fines
  * Created on: 11/5/13
  */
-public class SinkSortIterator implements StandardIterator<GroupedRow> {
+public class SinkSortIterator extends AbstractStandardIterator {
     private final DistinctSortAggregateBuffer distinctBuffer;
-    private final StandardIterator<ExecRow> source;
     private final int[] sortColumns;
     private boolean[] sortColumnOrder;
     private long rowsRead;
@@ -36,24 +39,19 @@ public class SinkSortIterator implements StandardIterator<GroupedRow> {
                                  StandardIterator<ExecRow> source,
                                  int[] sortColumns,
                                  boolean[] sortColumnOrder) {  
+    	super(source);
     	this.distinctBuffer = distinctBuffer;
-        this.source = source;
         this.sortColumns = sortColumns;
         this.sortColumnOrder = sortColumnOrder;
     }
 
     @Override
-    public void open() throws StandardException, IOException {
-        source.open();
-    }
-
-    @Override
-    public GroupedRow next() throws StandardException, IOException {
+    public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
     	if(groupedRow==null)
     		groupedRow = new GroupedRow();
 
     	if (distinctBuffer == null) {
-    		groupedRow.setRow(source.next());
+    		groupedRow.setRow(source.next(spliceRuntimeContext));
     		return groupedRow;
     	}
         if(completed){
@@ -67,7 +65,7 @@ public class SinkSortIterator implements StandardIterator<GroupedRow> {
         GroupedRow toReturn = null;
         do{
 			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-            ExecRow nextRow = source.next();
+            ExecRow nextRow = source.next(spliceRuntimeContext);
             shouldContinue = nextRow!=null;
             if(!shouldContinue)
                 continue; //iterator exhausted, break from the loop
@@ -91,14 +89,7 @@ public class SinkSortIterator implements StandardIterator<GroupedRow> {
         //the buffer has nothing in it either, just return null
         return null;
     }
-
-
-
-    @Override
-    public void close() throws StandardException, IOException {
-        source.close();
-    }
-
+    
     private byte[] groupingKey(ExecRow nextRow) throws StandardException {
         if(encoder==null)
             encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),sortColumns.length);
