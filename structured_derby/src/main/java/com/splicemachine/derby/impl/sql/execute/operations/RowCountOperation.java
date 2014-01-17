@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
@@ -624,12 +625,12 @@ public class RowCountOperation extends SpliceBaseOperation{
         }
 
         @Override
-        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.asyncShuffleRows(instructions);
         }
 
         @Override
-        public JobResults finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+        public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
             return provider.finishShuffle(jobFutures);
         }
 

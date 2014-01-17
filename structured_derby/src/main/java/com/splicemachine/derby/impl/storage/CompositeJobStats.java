@@ -5,6 +5,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.JobStats;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -77,10 +78,10 @@ public class CompositeJobStats implements JobStats {
     }
 
     @Override
-    public Map<String, TaskStats> getTaskStats() {
-        Map<String,TaskStats> allTaskStats = new HashMap<String,TaskStats>();
+    public List<TaskStats> getTaskStats() {
+        List<TaskStats> allTaskStats = new LinkedList<TaskStats>();
         for(JobStats stat:stats){
-            allTaskStats.putAll(stat.getTaskStats());
+            allTaskStats.addAll(stat.getTaskStats());
         }
         return allTaskStats;
     }
@@ -91,8 +92,8 @@ public class CompositeJobStats implements JobStats {
     }
 
     @Override
-    public List<String> getFailedTasks() {
-        List<String> failedTasks = Lists.newArrayList();
+    public List<byte[]> getFailedTasks() {
+        List<byte[]> failedTasks = Lists.newArrayList();
         for(JobStats stat:stats){
             failedTasks.addAll(stat.getFailedTasks());
         }
