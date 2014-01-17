@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -185,4 +186,13 @@ public interface SpliceOperation  {
      * @return a pretty-printed string representation of this operation.
      */
     String prettyPrint(int indentLevel);
+
+		/**
+		 * Get the recorded metrics for the Operation. This should only be called when trace
+		 * metrics gathering is enabled.
+		 *
+		 * @return the metrics recorded by this operation. Return {@code null} if no
+		 * metrics have been collected.
+		 */
+		OperationRuntimeStats getMetrics(long statementId,long taskId);
 }
