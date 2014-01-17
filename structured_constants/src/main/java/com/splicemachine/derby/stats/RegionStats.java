@@ -42,8 +42,9 @@ public class RegionStats {
     }
     
     public void addRegionStats(byte[] region, TaskStats stats){
-        this.processStats.put(region,stats.getReadStats());
-        this.sinkStats.put(region,stats.getWriteStats());
+				this.totalProcessedRecords+=(stats.getTotalRowsProcessed());
+				this.totalTimeTaken+=(stats.getTotalTime());
+				this.totalSunkRecords+=(stats.getTotalRowsWritten());
     }
 
     public void start(){

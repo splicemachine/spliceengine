@@ -82,7 +82,7 @@ public class SpliceOperationCoprocessor extends BaseEndpointCoprocessor implemen
                 SpliceOperationRegionScanner spliceScanner = new SpliceOperationRegionScanner(instructions.getTopOperation(),context);
                 SpliceLogUtils.trace(LOG,"performing sink");
                 TaskStats out = spliceScanner.sink();
-                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getWriteStats().getTotalRecords());
+                SpliceLogUtils.trace(LOG, "Coprocessor sunk %d records",out.getTotalRowsWritten());
                 spliceScanner.close();
                 return out;
             } catch (SQLException e) {

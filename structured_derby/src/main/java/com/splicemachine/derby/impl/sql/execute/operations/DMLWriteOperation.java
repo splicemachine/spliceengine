@@ -174,7 +174,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				JobResults jobResults = super.doShuffle(runtimeContext);
 				long rowsModified = 0;
 				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
-						rowsModified+=stats.getWriteStats().getTotalRecords();
+						rowsModified+=stats.getTotalRowsWritten();
 				}
 				this.rowsSunk = rowsModified;
 				return jobResults;
@@ -233,7 +233,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			JobResults jobStats = rowProvider.shuffleRows(instructions);
 			long i = 0;
         	for (TaskStats stat: jobStats.getJobStats().getTaskStats()) {
-        		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
+        		i = i + stat.getTotalRowsWritten();
         	}
         	rowsModified = i;
 			return jobStats;
@@ -314,7 +314,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 	JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
                 	long i = 0;
                 	for (TaskStats stat: stats.getJobStats().getTaskStats()) {
-                		i = i + stat.getReadStats().getTotalRecords(); // Do I have to check for failures? XXX - TODO JLEACH
+                		i = i + stat.getTotalRowsWritten(); // Do I have to check for failures? XXX - TODO JLEACH
                 	}
                     //modifiedProvider.setRowsModified(stats.get.getTotalRecords());
                     modifiedProvider.setRowsModified(i);
