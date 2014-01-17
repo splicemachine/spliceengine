@@ -31,74 +31,75 @@ import java.util.concurrent.ExecutionException;
  * cover the entire row space.
  *
  * @author Scott Fines
- * Created on: 3/26/13
+ *         Created on: 3/26/13
  */
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
     protected SpliceRuntimeContext spliceRuntimeContext;
-    
+
     private boolean shuffled = false;
-		private List<JobFuture> jobFutures;
+    private List<JobFuture> jobFutures;
 
     @Override
-    public JobResults shuffleRows( SpliceObserverInstructions instructions) throws StandardException {
+    public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        /*
         shuffled = true;
         List<Scan> scans = getScans();
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
-				LinkedList<Pair<JobFuture,JobInfo>> outstandingJobs = Lists.newLinkedList();
-        jobFutures =  Lists.newArrayList();
+        LinkedList<Pair<JobFuture, JobInfo>> outstandingJobs = Lists.newLinkedList();
+        jobFutures = Lists.newArrayList();
         List<JobStats> stats = Lists.newArrayList();
-        try{
+        try {
 
             Throwable error = null;
-            try{
-								long start = System.nanoTime();
-								for(Scan scan:scans){
-										long startTimeMs = System.currentTimeMillis();
-										OperationJob job = getJob(table,instructions,scan);
-										JobFuture jobFuture = doShuffle(job);
-										JobInfo info = new JobInfo(job.getJobId(),jobFuture.getNumTasks(),startTimeMs);
-										info.setJobFuture(jobFuture);
-										info.tasksRunning(jobFuture.getAllTaskIds());
-										instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
-										outstandingJobs.add(Pair.newPair(jobFuture, info));
-										jobFutures.add(jobFuture);
-								}
+            try {
+                long start = System.nanoTime();
+                for (Scan scan : scans) {
+                    long startTimeMs = System.currentTimeMillis();
+                    OperationJob job = getJob(table, instructions, scan);
+                    JobFuture jobFuture = doShuffle(job);
+                    JobInfo info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
+                    info.setJobFuture(jobFuture);
+                    info.tasksRunning(jobFuture.getAllTaskIds());
+                    instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
+                    outstandingJobs.add(Pair.newPair(jobFuture, info));
+                    jobFutures.add(jobFuture);
+                }
 
-								//we have to wait for all of them to complete, so just wait in order
-                while(outstandingJobs.size()>0){
-                    Pair<JobFuture,JobInfo> next = outstandingJobs.pop();
-										JobFuture jobFuture = next.getFirst();
-										JobInfo jobInfo = next.getSecond();
+                //we have to wait for all of them to complete, so just wait in order
+                while (outstandingJobs.size() > 0) {
+                    Pair<JobFuture, JobInfo> next = outstandingJobs.pop();
+                    JobFuture jobFuture = next.getFirst();
+                    JobInfo jobInfo = next.getSecond();
 
-										try{
-												jobFuture.completeAll(jobInfo);
-										}catch(ExecutionException e){
-												jobInfo.failJob();
-												throw e;
-										}
-										instructions.getSpliceRuntimeContext().getStatementInfo().completeJob(jobInfo);
+                    try {
+                        jobFuture.completeAll(jobInfo);
+                    } catch (ExecutionException e) {
+                        jobInfo.failJob();
+                        throw e;
+                    }
+                    instructions.getSpliceRuntimeContext().getStatementInfo().completeJob(jobInfo);
                     jobFutures.add(jobFuture);
                     stats.add(jobFuture.getJobStats());
                 }
 
                 long stop = System.nanoTime();
                 //construct the job stats to return
-                return new CompositeJobResults(jobFutures,stats,stop-start);
+                return new CompositeJobResults(jobFutures, stats, stop - start);
             } catch (InterruptedException e) {
                 error = e;
                 throw Exceptions.parseException(e);
             } catch (ExecutionException e) {
                 error = e.getCause();
                 throw Exceptions.parseException(e.getCause());
-            }finally{
-                if(error!=null){
+            } finally {
+                if (error != null) {
                     cancelAll(outstandingJobs);
                 }
             }
 
-        }finally{
+        } finally {
             try {
                 table.close();
             } catch (IOException e) {
@@ -106,16 +107,50 @@ public abstract class MultiScanRowProvider implements RowProvider {
                         Exceptions.parseException(e));
             }
         }
+        */
+        return finishShuffle(asyncShuffleRows(instructions));
     }
 
     @Override
-    public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        return null;
+    public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        shuffled = true;
+        StandardException baseError = null;
+        List<Scan> scans = getScans();
+        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
+        HTableInterface table = SpliceAccessManager.getHTable(getTableName());
+        LinkedList<Pair<JobFuture, JobInfo>> outstandingJobs = Lists.newLinkedList();
+        try {
+            long start = System.nanoTime();
+            for (Scan scan : scans) {
+                long startTimeMs = System.currentTimeMillis();
+                OperationJob job = getJob(table, instructions, scan);
+                JobFuture jobFuture = doShuffle(job);
+                JobInfo info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
+                info.setJobFuture(jobFuture);
+                info.tasksRunning(jobFuture.getAllTaskIds());
+                instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
+                outstandingJobs.add(Pair.newPair(jobFuture, info));
+                jobFuture.addCleanupTask(table);
+            }
+            return outstandingJobs;
+
+        } catch (ExecutionException e) {
+            LOG.error(e);
+            for (Pair<JobFuture, JobInfo> futureAndInfo : outstandingJobs) {
+                futureAndInfo.getSecond().failJob();
+            }
+            baseError = Exceptions.parseException(e.getCause());
+            throw baseError;
+        } finally {
+            if (baseError != null) {
+                cancelAll(outstandingJobs);
+            }
+        }
     }
 
     @Override
-    public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
-        return null;
+    public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
+        return SingleScanRowProvider.completeAllJobs(jobs);
     }
 
     private void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
@@ -150,7 +185,9 @@ public abstract class MultiScanRowProvider implements RowProvider {
         }
     }
 
-    /********************************************************************************************************************/
+    /**
+     * ****************************************************************************************************************
+     */
     /*private helper methods*/
     private JobFuture doShuffle(OperationJob job) throws StandardException {
         try {

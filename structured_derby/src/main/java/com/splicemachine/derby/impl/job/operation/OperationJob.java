@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.job.operation;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -40,8 +41,12 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         this.table = table;
         this.taskPriority = operationTaskPriority;
         this.readOnly = readOnly;
-        this.jobId = SpliceUtils.getUniqueKeyString();
+        this.jobId = String.format("%s-%s", operationString(instructions.getTopOperation()),
+                                    SpliceUtils.getUniqueKeyString());
+    }
 
+    private static String operationString(SpliceOperation op){
+        return String.format("%s[%s]", op.getClass().getSimpleName(), op.resultSetNumber());
     }
 
     @Override
@@ -79,12 +84,14 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(jobId);
         scan.write(out);
         out.writeObject(instructions);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        jobId = (String)in.readObject();
         scan = new Scan();
         scan.readFields(in);
         instructions = (SpliceObserverInstructions)in.readObject();

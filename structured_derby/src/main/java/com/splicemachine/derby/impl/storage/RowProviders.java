@@ -306,9 +306,12 @@ public class RowProviders {
         }
 
         public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            /*
         	JobResults firstStats = firstRowProvider.shuffleRows(instructions);
             JobResults secondStats = secondRowProvider.shuffleRows(instructions);
             return new CombinedJobResults(firstStats,secondStats);
+            */
+            return finishShuffle (asyncShuffleRows(instructions) );
         }
 
         @Override
