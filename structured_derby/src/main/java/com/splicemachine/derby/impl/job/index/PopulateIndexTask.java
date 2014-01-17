@@ -17,6 +17,8 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Stats;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -134,6 +136,8 @@ public class PopulateIndexTask extends ZkTask {
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, ObjectArrayList.<Predicate>newInstance() ,true);
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
+				//TODO -sf- disable when stats tracking is disabled
+				MetricFactory metricFactory = Stats.basicMetricFactory();
         long totalReadTime = 0l;
         long numRecordsRead = 0l;
         try{
@@ -142,7 +146,7 @@ public class PopulateIndexTask extends ZkTask {
             RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
             if(sourceScanner==null)
                 sourceScanner = region.getScanner(regionScan);
-            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,SpliceConstants.DEFAULT_CACHE_SIZE);
+            BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
             try{
                 List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
                 boolean shouldContinue = true;

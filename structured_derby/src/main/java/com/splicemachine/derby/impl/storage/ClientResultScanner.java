@@ -5,8 +5,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.RowKeyDistributorByHa
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.BucketHasher;
 import com.splicemachine.derby.utils.marshall.SpreadBucket;
+import com.splicemachine.stats.*;
 
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -28,7 +30,13 @@ public class ClientResultScanner implements SpliceResultScanner{
 
     private HTableInterface table;
 
-    public ClientResultScanner(byte[] tableName, Scan scan,boolean bucketed) {
+		private final Timer remoteReadTimer;
+		private final Counter remoteBytesRead;
+
+    public ClientResultScanner(byte[] tableName,
+															 Scan scan,
+															 boolean bucketed,
+															 MetricFactory metricFactory) {
         this.tableName = tableName;
         this.scan = scan;
         if(bucketed){
@@ -36,6 +44,8 @@ public class ClientResultScanner implements SpliceResultScanner{
             keyDistributor = new RowKeyDistributorByHashPrefix(BucketHasher.getHasher(bucketingStrategy));
 				}else
             keyDistributor = null;
+				this.remoteReadTimer = metricFactory.newTimer();
+				this.remoteBytesRead = metricFactory.newCounter();
     }
 
     @Override
@@ -51,15 +61,43 @@ public class ClientResultScanner implements SpliceResultScanner{
             scanner = DistributedScanner.create(table,scan,keyDistributor);
     }
 
-    @Override
-    public Result next() throws IOException {
-        return scanner.next();
-    }
+		@Override public Timer getRemoteReadTime() { return remoteReadTimer; }
+		@Override public Counter getRemoteBytesRead() { return remoteBytesRead; }
+		@Override public Timer getLocalReadTime() { return Timers.noOpTimer(); }
+		@Override public Counter getLocalBytesRead() { return Counters.noOpCounter(); }
 
-    @Override
-    public Result[] next(int nbRows) throws IOException {
-        return scanner.next(nbRows);
-    }
+		@Override public Result next() throws IOException {
+				remoteReadTimer.startTiming();
+				Result r = scanner.next();
+				if(r!=null&&r.size()>0){
+						remoteReadTimer.tick(1);
+						if(remoteBytesRead.isActive()){
+							for(KeyValue kv:r.raw()){
+								remoteBytesRead.add(kv.getLength());
+							}
+						}
+				}else{
+						remoteReadTimer.tick(0);
+				}
+				return r;
+		}
+
+    @Override public Result[] next(int nbRows) throws IOException {
+				remoteReadTimer.startTiming();
+				Result[] results = scanner.next(nbRows);
+				if(results!=null && results.length>0){
+						remoteReadTimer.tick(results.length);
+						if(remoteBytesRead.isActive()){
+								for(Result r:results){
+										for(KeyValue kv:r.raw()){
+												remoteBytesRead.add(kv.getLength());
+										}
+								}
+						}
+				}else
+						remoteReadTimer.tick(0);
+				return results;
+		}
 
     @Override
     public void close() {

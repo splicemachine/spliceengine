@@ -15,6 +15,7 @@ import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.stats.MetricFactory;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -110,18 +111,20 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
                                                   String txnId,
                                                   PairDecoder leftDecoder,
                                                   PairDecoder rightDecoder,
-                                                  HRegion region) {
+                                                  HRegion region,
+																									MetricFactory metricFactory) {
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
         RegionAwareScanner ras = RegionAwareScanner.create(txnId,region,scan, tempTableBytes,
-                new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder.getKeyPrefixOffset()));
+                new MergeSortScanBoundary(SpliceConstants.DEFAULT_FAMILY_BYTES, rightDecoder.getKeyPrefixOffset()),metricFactory);
         return new ResultMergeScanner(ras,leftDecoder,rightDecoder);
     }
 
     public static ResultMergeScanner clientScanner(Scan reduceScan,
 																									 PairDecoder leftDecoder,
-																									 PairDecoder rightDecoder) {
+																									 PairDecoder rightDecoder,
+																									 MetricFactory metricFactory) {
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-        ClientResultScanner scanner = new ClientResultScanner(tempTableBytes,reduceScan,true);
+        ClientResultScanner scanner = new ClientResultScanner(tempTableBytes,reduceScan,true,metricFactory);
         return new ResultMergeScanner(scanner,leftDecoder,rightDecoder);
     }
 }

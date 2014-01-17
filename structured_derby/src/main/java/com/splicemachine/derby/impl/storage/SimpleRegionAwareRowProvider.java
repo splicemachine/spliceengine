@@ -36,7 +36,7 @@ public class SimpleRegionAwareRowProvider extends  AbstractScanProvider{
                                         SpliceRuntimeContext spliceRuntimeContext){
         super(decoder, type, spliceRuntimeContext);
         this.table = tableName;
-        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName, boundary);
+        this.scanner = RegionAwareScanner.create(txnId,region,scan,tableName, boundary,spliceRuntimeContext);
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
@@ -17,7 +18,6 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,13 +25,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -114,7 +111,7 @@ public class TableScanOperationTest {
         Pair<List<KeyValue>,List<ExecRow>> serializedRows = createRepresentativeRows(10,dataTypes);
         final List<KeyValue> actualRows = Lists.newArrayList(serializedRows.getFirst());
 
-        RegionScanner mockScanner = mock(RegionScanner.class);
+        MeasuredRegionScanner mockScanner = mock(MeasuredRegionScanner.class);
         //noinspection unchecked
         Answer<Boolean> answer = new Answer<Boolean>() {
             @Override
