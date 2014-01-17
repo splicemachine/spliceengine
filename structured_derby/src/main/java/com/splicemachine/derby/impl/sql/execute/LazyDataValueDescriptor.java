@@ -241,8 +241,9 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
     @Override
     public boolean hasStream() {
-        forceDeserialization();
-        return dvd.hasStream();
+    	return false;
+//        forceDeserialization();
+//       return dvd.hasStream();
     }
 
     @Override
