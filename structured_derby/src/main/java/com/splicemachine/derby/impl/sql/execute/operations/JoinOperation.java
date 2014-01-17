@@ -120,8 +120,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public List<SpliceOperation> getSubOperations() {
 		SpliceLogUtils.trace(LOG, "getSubOperations");
 		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add((SpliceOperation) leftResultSet);
-		operations.add((SpliceOperation) rightResultSet);
+		operations.add(leftResultSet);
+		operations.add(rightResultSet);
 		return operations;
 	}
 
@@ -134,8 +134,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         leftResultSet.init(context);
         rightResultSet.init(context);
         SpliceLogUtils.trace(LOG, "leftResultSet=%s,rightResultSet=%s", leftResultSet, rightResultSet);
-        leftRow = ((SpliceOperation) this.leftResultSet).getExecRowDefinition();
-        rightRow = ((SpliceOperation) this.rightResultSet).getExecRowDefinition();
+        leftRow = this.leftResultSet.getExecRowDefinition();
+        rightRow = this.rightResultSet.getExecRowDefinition();
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         SpliceLogUtils.trace(LOG, "leftRow=%s,rightRow=%s", leftRow, rightRow);
     }

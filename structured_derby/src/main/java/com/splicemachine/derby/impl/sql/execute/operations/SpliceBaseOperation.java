@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
@@ -536,7 +537,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return resultSetNumber;
     }
 
-    public double getEstimatedCost() {
+		@Override
+		public OperationRuntimeStats getMetrics(long statementId,long taskId) {
+				throw new UnsupportedOperationException("Metrics gathering has not been implemented for "+this.getClass());
+		}
+
+		public double getEstimatedCost() {
         return operationInformation.getEstimatedCost();
     }
 	/**
@@ -557,4 +563,5 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     			throw new IOException(new InterruptedException());
     	}
 	}
+
 }
