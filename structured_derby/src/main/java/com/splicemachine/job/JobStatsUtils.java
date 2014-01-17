@@ -49,29 +49,11 @@ public class JobStatsUtils {
         StringBuilder writeBuilder = new StringBuilder("Write Time:");
 
         for(TaskStats taskStat: taskStats){
-            Stats readStats = taskStat.getReadStats();
-            Stats writeStats = taskStat.getWriteStats();
+						readBuilder = readBuilder.append("\n\t")
+										.append(taskStat.getTotalRowsProcessed());
 
-           readBuilder = readBuilder.append("\n\t")
-                    .append(readStats.getTotalRecords())
-                    .append("|").append(toMicros(readStats.getMaxTime()))
-                    .append("|").append(toMicros(readStats.getMinTime()))
-                    .append("|").append(toMicros(readStats.getMedian()))
-                    .append("|").append(toMicros(readStats.get75P()))
-                    .append("|").append(toMicros(readStats.get95P()))
-                    .append("|").append(toMicros(readStats.get98P()))
-                    .append("|").append(toMicros(readStats.get99P()))
-                    .append("|").append(toMicros(readStats.get999P()));
             writeBuilder = writeBuilder.append("\n\t")
-                    .append(writeStats.getTotalRecords())
-                    .append("|").append(toMicros(writeStats.getMaxTime()))
-                    .append("|").append(toMicros(writeStats.getMinTime()))
-                    .append("|").append(toMicros(writeStats.getMedian()))
-                    .append("|").append(toMicros(writeStats.get75P()))
-                    .append("|").append(toMicros(writeStats.get95P()))
-                    .append("|").append(toMicros(writeStats.get98P()))
-                    .append("|").append(toMicros(writeStats.get99P()))
-                    .append("|").append(toMicros(writeStats.get999P()));
+                    .append(taskStat.getTotalRowsWritten());
         }
         sb = sb.append(readBuilder);
         sb = sb.append("\n");
@@ -122,8 +104,6 @@ public class JobStatsUtils {
         Sample writeRecordsSummarySample = new UniformSample(allTaskStats.length);
 
         for(TaskStats stats:allTaskStats){
-            Stats readStats = stats.getReadStats();
-            Stats writeStats = stats.getWriteStats();
             long totalTime = stats.getTotalTime();
             if(maxTotalTime<totalTime)
                 maxTotalTime = totalTime;
@@ -138,21 +118,24 @@ public class JobStatsUtils {
             if(minWriteTime > totalTime)
                 minWriteTime = totalTime;
 
-            if(minRecordsRead > readStats.getTotalRecords())
-                minRecordsRead = readStats.getTotalRecords();
-            if(maxRecordsRead < readStats.getTotalRecords())
-                maxRecordsRead = readStats.getTotalRecords();
-            if(minRecordsWritten > writeStats.getTotalRecords())
-                minRecordsWritten = writeStats.getTotalRecords();
-            if(maxRecordsWritten < writeStats.getTotalRecords())
-                maxRecordsWritten = writeStats.getTotalRecords();
+						long rowsProcessed = stats.getTotalRowsProcessed();
+						if(minRecordsRead > rowsProcessed)
+                minRecordsRead = rowsProcessed;
+            if(maxRecordsRead < rowsProcessed)
+                maxRecordsRead = rowsProcessed;
+
+						long rowsWritten = stats.getTotalRowsWritten();
+            if(minRecordsWritten > rowsWritten)
+                minRecordsWritten = rowsWritten;
+            if(maxRecordsWritten < rowsWritten)
+                maxRecordsWritten = rowsWritten;
 
 
             totalTimeSummarySample.update(totalTime);
-            readTimeSummarySample.update(stats.getReadStats().getTotalTime());
-            writeTimeSummarySample.update(stats.getWriteStats().getTotalTime());
-            readRecordsSummarySample.update(stats.getReadStats().getTotalRecords());
-            writeRecordsSummarySample.update(stats.getWriteStats().getTotalRecords());
+            readTimeSummarySample.update(stats.getTotalTime());
+            writeTimeSummarySample.update(stats.getTotalTime());
+            readRecordsSummarySample.update(rowsProcessed);
+            writeRecordsSummarySample.update(rowsWritten);
         }
 
         Snapshot totalTimeSummary = totalTimeSummarySample.getSnapshot();

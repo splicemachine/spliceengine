@@ -30,14 +30,14 @@ public class IntegerEncodingMicroBenchmark {
         System.out.printf("Serialization comparison%n");
         Stats numSerStats = numericStats.getFirst();
         Stats rowSerStats = rowKeyStats.getFirst();
-        double serializationTimeRatio = (double)numSerStats.getTotalTime()/rowSerStats.getTotalTime();
+        double serializationTimeRatio = (double)numSerStats.getWallClockTime()/rowSerStats.getWallClockTime();
         System.out.printf("numericStats.time/rowKeyStats.time: %f%n",serializationTimeRatio);
         System.out.println("-----");
 
         System.out.printf("Deserialization comparison%n");
         Stats numDeStats = numericStats.getSecond();
         Stats rowDeStats = rowKeyStats.getSecond();
-        double deserializationTimeRatio = (double)numDeStats.getTotalTime()/rowDeStats.getTotalTime();
+        double deserializationTimeRatio = (double)numDeStats.getWallClockTime()/rowDeStats.getWallClockTime();
         System.out.printf("numericStats.time/rowKeyStats.time: %f%n",deserializationTimeRatio);
         System.out.println("-----");
     }

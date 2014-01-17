@@ -13,8 +13,9 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.stats.Timer;
+import com.splicemachine.stats.Timers;
 import com.splicemachine.utils.Snowflake;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -39,6 +40,8 @@ public class OperationSink {
     private final byte[] taskId;
     private final String transactionId;
 
+		private final Timer totalTimer;
+
 		public OperationSink(byte[] taskId,
 												 SinkingOperation operation,
 												 CallBufferFactory<KVPair> tableWriter,
@@ -47,6 +50,8 @@ public class OperationSink {
         this.taskId = taskId;
         this.operation = operation;
         this.transactionId = transactionId;
+				//we always record this time information, because it's cheap relative to the per-row timing
+				this.totalTimer = Timers.newTimer();
     }
 
     public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
@@ -54,9 +59,6 @@ public class OperationSink {
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
-				TaskStats.SinkAccumulator stats = TaskStats.uniformAccumulator();
-        stats.start();
-
 				//add ourselves to the task id list
 				List<byte[]> bytes = taskChain.get();
 				if(bytes==null){
@@ -65,9 +67,9 @@ public class OperationSink {
 				}
 				bytes.add(taskId);
         CallBuffer<KVPair> writeBuffer;
-				long rowsRead = 0l;
-				long rowsWritten = 0l;
 				PairEncoder encoder;
+				long rowsRead = 0;
+				long rowsWritten = 0;
         try{
 						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
 						DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
@@ -80,44 +82,24 @@ public class OperationSink {
 
             ExecRow row;
 
-            do{
-				SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-                long start = 0l;
-                if(stats.readAccumulator().shouldCollectStats()){
-                    start = System.nanoTime();
-                }
-                row = operation.getNextSinkRow(spliceRuntimeContext);
+						totalTimer.startTiming();
+						do{
+								SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
+								row = operation.getNextSinkRow(spliceRuntimeContext);
                 if(row==null) continue;
 
 								rowsRead++;
-                if(stats.readAccumulator().shouldCollectStats()){
-                    stats.readAccumulator().tick(System.nanoTime()-start);
-                }
-
-                if(stats.writeAccumulator().shouldCollectStats()){
-                    start = System.nanoTime();
-                }
-
 								writeBuffer.add(encoder.encode(row));
 								rowsWritten++;
 
-                if(stats.writeAccumulator().shouldCollectStats()){
-                    stats.writeAccumulator().tick(System.nanoTime() - start);
-                }
-
             }while(row!=null);
-
-            if( !stats.writeAccumulator().shouldCollectStats() ){
-                stats.writeAccumulator().tickRecords(rowsWritten);
-            }
-
-            if( !stats.readAccumulator().shouldCollectStats() ){
-                stats.readAccumulator().tickRecords(rowsRead);
-            }
-
 
             writeBuffer.flushBuffer();
             writeBuffer.close();
+
+						//stop timing events. We do this inside of the try block because we don't care
+						//if the task fails for some reason
+						totalTimer.stopTiming();
         } catch (Exception e) {
 						//unwrap interruptedExceptions
 						@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
@@ -138,7 +120,7 @@ public class OperationSink {
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
 						}
         }
-        return stats.finish();
+				return new TaskStats(totalTimer.getWallClockTime(),rowsRead,rowsWritten);
     }
 
 		private String getTransactionId(byte[] destinationTable) {

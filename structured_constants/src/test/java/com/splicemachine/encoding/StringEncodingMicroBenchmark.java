@@ -31,14 +31,14 @@ public class StringEncodingMicroBenchmark {
         System.out.printf("Serialization Comparison%n");
         Stats encoderSerStats = encoderStats.getFirst();
         Stats rowSerStats = rowKeyStats.getFirst();
-        double serializationTimeRatio = (double)encoderSerStats.getTotalTime()/rowSerStats.getTotalTime();
+        double serializationTimeRatio = (double)encoderSerStats.getWallClockTime()/rowSerStats.getWallClockTime();
         System.out.printf("encoder.time/rowKey.time: %f%n",serializationTimeRatio);
         System.out.println("-------");
 
         System.out.printf("Deserialization Comparison%n");
         Stats encoderDeStats = encoderStats.getSecond();
         Stats rowDeStats = rowKeyStats.getSecond();
-        double deserializationTimeRatio = (double)encoderDeStats.getTotalTime()/rowDeStats.getTotalTime();
+        double deserializationTimeRatio = (double)encoderDeStats.getWallClockTime()/rowDeStats.getWallClockTime();
         System.out.printf("encoder.time/rowKey.time: %f%n",deserializationTimeRatio);
         System.out.println("-------");
     }

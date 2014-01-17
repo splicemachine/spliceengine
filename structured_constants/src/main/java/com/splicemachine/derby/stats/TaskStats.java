@@ -13,24 +13,28 @@ import java.io.ObjectOutput;
  */
 public class TaskStats implements Externalizable{
     private static final long serialVersionUID = 1l;
-    private Stats processStats;
-    private Stats sinkStats;
-    
+
     private long totalTime;
+		private long totalRowsProcessed;
+		private long totalRowsWritten;
 
     public TaskStats(){}
     
-    public Stats getReadStats(){return processStats;}
-
-    public Stats getWriteStats(){return sinkStats;}
-
-    public long getTotalTime(){ return totalTime;}
-
     public TaskStats(Stats processStats, Stats sinkStats, long totalTime){
-        this.processStats = processStats;
-        this.sinkStats = sinkStats;
+				this.totalRowsProcessed = processStats.getTotalRecords();
+				this.totalRowsWritten = sinkStats.getTotalRecords();
         this.totalTime = totalTime;
     }
+
+		public long getTotalTime() { return totalTime; }
+		public long getTotalRowsProcessed() { return totalRowsProcessed; }
+		public long getTotalRowsWritten() { return totalRowsWritten; }
+
+		public TaskStats(long totalTime,long totalRowsProcessed,long totalRowsWritten){
+				this.totalRowsProcessed = totalRowsProcessed;
+				this.totalRowsWritten = totalRowsWritten;
+				this.totalTime = totalTime;
+		}
 
     public static SinkAccumulator uniformAccumulator(){
         return new SinkAccumulator(TimingStats.uniformAccumulator(), TimingStats.uniformAccumulator());
@@ -38,18 +42,17 @@ public class TaskStats implements Externalizable{
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeObject(processStats);
-        out.writeObject(sinkStats);
+				out.writeLong(totalRowsProcessed);
+				out.writeLong(totalRowsWritten);
         out.writeLong(totalTime);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        processStats = (Stats)in.readObject();
-        sinkStats = (Stats)in.readObject();
+				totalRowsProcessed = in.readLong();
+				totalRowsWritten = in.readLong();
         totalTime = in.readLong();
     }
-
 
     public static class SinkAccumulator{
         private Accumulator processAccumulator;

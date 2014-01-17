@@ -260,6 +260,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
         @Override
         public void flushBuffer() throws Exception {
+						if(buffer.size()<=0) return; //don't do anything if we don't need to flush
+
             //check previously finished flushes for errors, and explode if any of them have failed
             Iterator<Future<Void>> futureIterator = outstandingRequests.iterator();
             while(futureIterator.hasNext()){

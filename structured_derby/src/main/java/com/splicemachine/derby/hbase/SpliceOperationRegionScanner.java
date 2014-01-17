@@ -250,9 +250,9 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                 .append("\t").append("Region name: ").append(regionScanner.getRegionInfo().getRegionNameAsString())
                 .append("\n")
                 .append("ProcessStats:\n")
-                .append("\t").append(finalStats.getReadStats())
-                .append("\nWriteStats:\n")
-                .append("\t").append(finalStats.getWriteStats());
+                .append("\t").append("Total Rows Processed: ").append(finalStats.getTotalRowsProcessed())
+								.append("\t").append("Total Rows Written: ").append(finalStats.getTotalRowsWritten())
+								.append("\t").append("Total Time(ns): ").append(finalStats.getTotalTime());
         logger.debug(summaryBuilder.toString());
     }
 

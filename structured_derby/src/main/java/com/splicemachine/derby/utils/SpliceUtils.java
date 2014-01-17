@@ -5,7 +5,6 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -34,14 +33,11 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.codehaus.jackson.util.ByteArrayBuilder;
 
-import java.io.*;
+import java.io.IOException;
 
 /**
  * 
@@ -58,7 +54,7 @@ public class SpliceUtils extends SpliceUtilities {
      * This is used mainly to prevent NullPointerExceptions from occurring in administrative
      * operations such as getExecRowDefinition().
      *
-     * @param dvds
+     * @param dvds the descriptors to populate
      * @throws StandardException
      */
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
@@ -99,38 +95,32 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
-    public static Get createGet(Mutation mutation, byte[] row) throws IOException {
-        return createGet(getTransactionId(mutation), row);
-    }
-
-    public static Get createGet(String transactionId, byte[] row) throws IOException {
+		public static Get createGet(String transactionId, byte[] row) throws IOException {
         return attachTransaction(new Get(row), transactionId);
     }
 
-    public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createGet %s",loc.getBytes());
-		try {
-			Get get = createGet(transID, loc.getBytes());
-            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
-            BitSet fieldsToReturn;
-            if(validColumns!=null){
-                fieldsToReturn = new BitSet(validColumns.size());
-                for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
-                    fieldsToReturn.set(i);
-                }
-            }else{
-                fieldsToReturn = new BitSet(destRow.length);
-                fieldsToReturn.set(0,destRow.length);
-            }
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-			return get;
-		} catch (Exception e) {
-            SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
-            return null; //can't happen
+		public static Get createGet(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, String transID) throws StandardException {
+				try {
+						Get get = createGet(transID, loc.getBytes());
+						get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
+						BitSet fieldsToReturn;
+						if(validColumns!=null){
+								fieldsToReturn = new BitSet(validColumns.size());
+								for(int i=validColumns.anySetBit();i>=0;i=validColumns.anySetBit(i)){
+										fieldsToReturn.set(i);
+								}
+						}else{
+								fieldsToReturn = new BitSet(destRow.length);
+								fieldsToReturn.set(0,destRow.length);
+						}
+						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
+						get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+						return get;
+				} catch (Exception e) {
+						SpliceLogUtils.logAndThrow(LOG,"createGet Failed",Exceptions.parseException(e));
+						return null; //can't happen
+				}
 		}
-	}
 
     /**
      * Perform a Delete against a table. The operation which is actually performed depends on the transactional semantics.
@@ -204,11 +194,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static boolean isDelete(Mutation mutation) {
-        if(mutation instanceof Delete) {
-            return true;
-        } else {
-            return HTransactorFactory.getClientTransactor().isDeletePut(mutation);
-        }
+				return mutation instanceof Delete || HTransactorFactory.getClientTransactor().isDeletePut(mutation);
     }
 
     /**
@@ -227,18 +213,7 @@ public class SpliceUtils extends SpliceUtilities {
         return transactionId.getTransactionIdString();
     }
 
-    public static void handleNullsInUpdate(Put put, DataValueDescriptor[] row, FormatableBitSet validColumns) {
-        if (validColumns != null) {
-            int numrows = (validColumns != null ? validColumns.getLength() : row.length);  // bug 118
-            for (int i = 0; i < numrows; i++) {
-                if (validColumns.isSet(i) && row[i] != null && row[i].isNull())
-                    put.add(SpliceConstants.DEFAULT_FAMILY.getBytes(), (new Integer(i)).toString().getBytes(), 0, SIConstants.EMPTY_BYTE_ARRAY);
-            }
-        }
-    }
-
-
-	public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
+		public static SpliceObserverInstructions getSpliceObserverInstructions(Scan scan) {
 		byte[] instructions = scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS);
 		if(instructions==null) return null;
 
@@ -246,8 +221,7 @@ public class SpliceUtils extends SpliceUtilities {
 		try {
             Input input = new Input(instructions);
             KryoObjectInput koi = new KryoObjectInput(input,kryo);
-			SpliceObserverInstructions soi = (SpliceObserverInstructions) koi.readObject();
-			return soi;
+				return (SpliceObserverInstructions) koi.readObject();
 		} catch (Exception e) {
 			SpliceLogUtils.logAndThrowRuntime(LOG, "Issues reading serialized data",e);
 		}finally{
@@ -256,33 +230,6 @@ public class SpliceUtils extends SpliceUtilities {
 		return null;
 	}
 
-//	public static boolean update(RowLocation loc, DataValueDescriptor[] row,
-//			FormatableBitSet validColumns, HTableInterface htable, String transID) throws StandardException {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("update row " + row);
-//
-//		try {
-//			//FIXME: Check if the record exists. Not using htable.checkAndPut because it's one column at a time
-//			//May need to read more HTableInteface's checkAndPut
-//			Get get = createGet(transID, loc.getBytes());
-//
-//			Result result = htable.get(get);
-//			if (result.isEmpty()) {
-//				LOG.error("Row with the key "+ loc.getBytes() +" does not exists. Cannot perform update operation");
-//				return false;
-//			}
-//
-//            Put put = createPut(loc.getBytes(),transID);
-//            RowMarshaller.sparsePacked().encodeRow(row, bitSetToMap(validColumns), put, null);
-//			//FIXME: checkAndPut can only do one column at a time, too expensive
-//			htable.put(put);
-//			return true;
-//		} catch (IOException ie) {
-//			LOG.error(ie.getMessage(), ie);
-//		}
-//		return false;
-//	}
-	
 	public static String getTransIDString(Transaction trans) {
 		if (trans == null)
 			return null;
@@ -315,11 +262,7 @@ public class SpliceUtils extends SpliceUtilities {
         return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
 	}
 
-    public static String getUniqueKeyString() {
-        return Long.toString(SpliceDriver.driver().getUUIDGenerator().nextUUID());
-    }
-
-	public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
+		public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
         SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
         return generateInstructions(instructions);
     }
@@ -390,17 +333,7 @@ public class SpliceUtils extends SpliceUtilities {
         return validCols;
     }
 
-    public static int[] translateToZeroIndexed(int[] oneIndexed) {
-        if(oneIndexed==null) return null;
-        if(oneIndexed.length<=0) return oneIndexed;
-        int[] zeroIndexed = new int[oneIndexed.length];
-        for(int i=0;i<oneIndexed.length;i++){
-            zeroIndexed[i] = oneIndexed[i] -1;
-        }
-        return zeroIndexed;
-    }
-
-    public static BitSet bitSetFromBooleanArray(boolean[] array) {
+		public static BitSet bitSetFromBooleanArray(boolean[] array) {
         BitSet bitSet = new BitSet(array.length);
         for (int col = 0; col < array.length; col++) {
             if (array[col])
@@ -408,33 +341,4 @@ public class SpliceUtils extends SpliceUtilities {
         }
         return bitSet;
     }
-
-        private static final CompressionCodecFactory compressionFactory
-						= new CompressionCodecFactory(SpliceConstants.config);
-		public static CompressionCodecFactory getCompressionFactory() {
-				return compressionFactory;
-		}
-
-		private static final CompressionCodec snappyCodec;
-		static {
-				CompressionCodec codec;
-				try{
-						codec = compressionFactory.getCodecByName("snappy");
-						codec.createOutputStream(new ByteArrayOutputStream());
-				}catch(UnsatisfiedLinkError ule){
-						/*
-						 * This can happen if there's a problem with how
-						 * the native libraries are built (particularly on
-						 * Macs). In that case, default back to an
-						 * uncompressed format.
-						 */
-						codec = null;
-				} catch (IOException e) {
-						codec = null;
-				}
-				snappyCodec = codec;
-		}
-		public static CompressionCodec getSnappyCodec(){
-				return snappyCodec;
-		}
 }
