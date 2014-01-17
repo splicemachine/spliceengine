@@ -2,12 +2,14 @@ package com.splicemachine.derby.iapi.storage;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.util.Pair;
 
 import java.util.List;
 
@@ -46,9 +48,9 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      */
     JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
-    List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException;
+    List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException;
 
-    JobResults finishShuffle(List<JobFuture> jobFuture) throws StandardException;
+    JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException;
 
     /**
      * Gets the "table name" of the backing storage, or {@code null} if there is none.

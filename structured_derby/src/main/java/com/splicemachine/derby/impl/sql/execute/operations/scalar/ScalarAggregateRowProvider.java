@@ -3,15 +3,20 @@ package com.splicemachine.derby.impl.sql.execute.operations.scalar;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * When no row is returned from the actual operation, this provides a default value ONCE.
@@ -57,8 +62,15 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
 		@Override public byte[] getTableName() { return delegate.getTableName(); }
 		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
-		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {return delegate.shuffleRows(instructions);}
-		@Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
+		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            return delegate.shuffleRows(instructions);}
+         @Override public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions)
+                 throws StandardException {
+             return delegate.asyncShuffleRows(instructions); }
+        @Override public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
+            return delegate.finishShuffle(jobFuture); }
+
+        @Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
 
 		@Override
 		public ExecRow next() throws StandardException, IOException {

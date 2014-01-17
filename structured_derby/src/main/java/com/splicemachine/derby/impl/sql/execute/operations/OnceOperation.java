@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -23,6 +24,7 @@ import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.sanity.SanityManager;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -181,7 +183,7 @@ public class OnceOperation extends SpliceBaseOperation {
 		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
 		SpliceOperation regionOperation = operationStack.get(0);
 		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
+		RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 		return new SpliceNoPutResultSet(activation,this, provider);
 	}
 
@@ -266,12 +268,12 @@ public class OnceOperation extends SpliceBaseOperation {
         }
 
         @Override
-        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return delegate.asyncShuffleRows(instructions);
         }
 
         @Override
-        public JobResults finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+        public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
             return delegate.finishShuffle(jobFutures);
         }
 

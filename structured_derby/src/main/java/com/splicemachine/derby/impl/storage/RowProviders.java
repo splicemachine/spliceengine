@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -20,6 +22,7 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -110,12 +113,12 @@ public class RowProviders {
         }
 
         @Override
-        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return provider.asyncShuffleRows(instructions);
         }
 
         @Override
-        public JobResults finishShuffle(List<JobFuture> jobFuture) throws StandardException {
+        public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
             return provider.finishShuffle(jobFuture);
         }
 
@@ -278,35 +281,35 @@ public class RowProviders {
             else return secondRowProvider.getCurrentRowLocation();
         }
 
+        /*
         @Override
         public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             return finishShuffle( asyncShuffleRows(instructions) );
         }
+        */
 
         @Override
-        public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            List<JobFuture> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
-            List<JobFuture> secondFutures = secondRowProvider.asyncShuffleRows(instructions);
+        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            List<Pair<JobFuture,JobInfo>> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
+            List<Pair<JobFuture,JobInfo>> secondFutures = secondRowProvider.asyncShuffleRows(instructions);
 
-            List<JobFuture> l = new LinkedList<JobFuture>();
+            List<Pair<JobFuture,JobInfo>> l = new LinkedList<Pair<JobFuture,JobInfo>>();
             l.addAll(firstFutures);
             l.addAll(secondFutures);
             return l;
         }
 
         @Override
-        public JobResults finishShuffle(List<JobFuture> jobFutures) throws StandardException {
+        public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
             // PJT revisit
             return firstRowProvider.finishShuffle(jobFutures);
         }
 
-        /*
         public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
         	JobResults firstStats = firstRowProvider.shuffleRows(instructions);
             JobResults secondStats = secondRowProvider.shuffleRows(instructions);
             return new CombinedJobResults(firstStats,secondStats);
         }
-        */
 
         @Override
         public byte[] getTableName() {

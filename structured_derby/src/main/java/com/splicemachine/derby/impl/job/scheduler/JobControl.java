@@ -84,86 +84,86 @@ class JobControl implements JobFuture {
 
     @Override
     public void completeNext(StatusHook statusHook) throws ExecutionException, InterruptedException, CancellationException {
-        if(failedTasks.size()>0){
-            for(RegionTaskControl taskControl:failedTasks)
+        if (failedTasks.size() > 0) {
+            for (RegionTaskControl taskControl : failedTasks)
                 taskControl.complete(); //throw the error right away
-        }else if(cancelled)
+        } else if (cancelled)
             throw new CancellationException();
 
         RegionTaskControl changedFuture;
         int futuresRemaining = getRemainingTasks();
-        SpliceLogUtils.trace(LOG,"[%s]Tasks remaining: %d",job.getJobId(),futuresRemaining);
+        SpliceLogUtils.trace(LOG, "[%s]Tasks remaining: %d", job.getJobId(), futuresRemaining);
         boolean found;
-        while(futuresRemaining>0){
+        while (futuresRemaining > 0) {
             changedFuture = changedTasks.take();
-						if(cancelled==true)
-								throw new CancellationException();
+            if (cancelled == true)
+                throw new CancellationException();
             found = !completedTasks.contains(changedFuture) &&
                     !failedTasks.contains(changedFuture) &&
                     !cancelledTasks.contains(changedFuture);
 
             futuresRemaining = getRemainingTasks();
-            if(!found) continue;
+            if (!found) continue;
 
             Status status = changedFuture.getStatus();
             switch (status) {
                 case INVALID:
-										changedFuture.cleanup();
-                    SpliceLogUtils.trace(LOG,"[%s] Task %s is invalid, resubmitting",job.getJobId(),changedFuture.getTaskNode());
+                    changedFuture.cleanup();
+                    SpliceLogUtils.trace(LOG, "[%s] Task %s is invalid, resubmitting", job.getJobId(), changedFuture.getTaskNode());
                     stats.invalidTaskCount.incrementAndGet();
-										if(statusHook!=null)
-												statusHook.invalidated(changedFuture.getTaskId());
+                    if (statusHook != null)
+                        statusHook.invalidated(changedFuture.getTaskId());
 
-                    if(changedFuture.rollback(maxResubmissionAttempts)){
-                        resubmit(changedFuture,changedFuture.tryNumber());
-                    }else{
+                    if (changedFuture.rollback(maxResubmissionAttempts)) {
+                        resubmit(changedFuture, changedFuture.tryNumber());
+                    } else {
                         //we were unable to roll back, so we have to bomb out
                         failedTasks.add(changedFuture);
                         completeNext(statusHook); //throw the proper error
                     }
                     break;
                 case FAILED:
-										if(statusHook!=null)
-												statusHook.failure(changedFuture.getTaskId());
-										changedFuture.cleanup();
-                    try{
-                        SpliceLogUtils.trace(LOG, "[%s] Task %s failed",job.getJobId(),changedFuture.getTaskNode());
+                    if (statusHook != null)
+                        statusHook.failure(changedFuture.getTaskId());
+                    changedFuture.cleanup();
+                    try {
+                        SpliceLogUtils.trace(LOG, "[%s] Task %s failed", job.getJobId(), changedFuture.getTaskNode());
                         stats.addFailedTask(changedFuture.getTaskId());
                         changedFuture.dealWithError();
-                    }catch(ExecutionException ee){
+                    } catch (ExecutionException ee) {
                         //update our metrics
                         failedTasks.add(changedFuture);
                         throw ee;
                     }
                     break;
                 case COMPLETED:
-                    SpliceLogUtils.trace(LOG,"[%s] Task %s completed successfully",job.getJobId(),changedFuture.getTaskNode());
-										changedFuture.cleanup();
-                    if(changedFuture.commit(maxResubmissionAttempts)){
+                    SpliceLogUtils.trace(LOG, "[%s] Task %s completed successfully", job.getJobId(), changedFuture.getTaskNode());
+                    changedFuture.cleanup();
+                    if (changedFuture.commit(maxResubmissionAttempts)) {
                         TaskStats taskStats = changedFuture.getTaskStats();
-                        if(taskStats!=null)
-                            this.stats.addTaskStatus(changedFuture.getTaskNode(),taskStats);
+                        if (taskStats != null)
+                            this.stats.addTaskStatus(changedFuture.getTaskNode(), taskStats);
                         completedTasks.add(changedFuture);
-												if(statusHook!=null)
-														statusHook.success(changedFuture.getTaskId());
-												return;
-                    }else{
+                        if (statusHook != null)
+                            statusHook.success(changedFuture.getTaskId());
+                        return;
+                    } else {
                         //our commit failed, we have to resubmit the task (if possible)
-                        SpliceLogUtils.debug(LOG,"[%s] Task %s did not successfully commit",job.getJobId(),changedFuture.getTaskNode());
-												if(statusHook!=null)
-														statusHook.failure(changedFuture.getTaskId());
+                        SpliceLogUtils.debug(LOG, "[%s] Task %s did not successfully commit", job.getJobId(), changedFuture.getTaskNode());
+                        if (statusHook != null)
+                            statusHook.failure(changedFuture.getTaskId());
                         changedFuture.dealWithError();
                     }
                     break;
                 case CANCELLED:
-                    SpliceLogUtils.trace(LOG,"[%s] Task %s is cancelled",job.getJobId(),changedFuture.getTaskNode());
-										if(statusHook!=null)
-												statusHook.cancelled(changedFuture.getTaskId());
-										changedFuture.cleanup();
+                    SpliceLogUtils.trace(LOG, "[%s] Task %s is cancelled", job.getJobId(), changedFuture.getTaskNode());
+                    if (statusHook != null)
+                        statusHook.cancelled(changedFuture.getTaskId());
+                    changedFuture.cleanup();
                     cancelledTasks.add(changedFuture);
                     throw new CancellationException();
                 default:
-                    SpliceLogUtils.trace(LOG,"[%s] Task %s is in state %s",job.getJobId(),changedFuture.getTaskNode(),status);
+                    SpliceLogUtils.trace(LOG, "[%s] Task %s is in state %s", job.getJobId(), changedFuture.getTaskNode(), status);
             }
         }
 
@@ -171,7 +171,7 @@ class JobControl implements JobFuture {
 //        Status finalStatus = getStatus();
 //        jobMetrics.removeJob(job.getJobId(), finalStatus);
 //
-        SpliceLogUtils.trace(LOG,"completeNext finished");
+        SpliceLogUtils.trace(LOG, "completeNext finished");
     }
 
     @Override

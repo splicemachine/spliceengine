@@ -203,20 +203,20 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     }
 
     private void markCancelled(boolean propagate) throws ExecutionException{
-        switch(status.getStatus()){
+        switch (status.getStatus()) {
             case FAILED:
             case COMPLETED:
             case CANCELLED:
                 return;
         }
         status.setStatus(Status.CANCELLED);
-        if(propagate)
+        if (propagate)
             updateStatus(false);
 
-				if(executionThread!=null){
-						LOG.info("Task "+ Bytes.toString(taskId) +" has been cancelled, interrupting worker thread");
-						executionThread.interrupt();
-				}
+        if (executionThread != null) {
+            LOG.info("Task " + Bytes.toString(taskId) + " has been cancelled, interrupting worker thread");
+            executionThread.interrupt();
+        }
     }
 
     private void updateStatus(final boolean cancelOnError) throws ExecutionException{
@@ -332,49 +332,49 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         return true;
     }
 
-		@Override
-		public byte[] getParentTaskId() {
-				return parentTaskId;
-		}
+    @Override
+    public byte[] getParentTaskId() {
+        return parentTaskId;
+    }
 
-		@Override
-		public String getJobId() {
-				return jobId;
-		}
+    @Override
+    public String getJobId() {
+        return jobId;
+    }
 
-		private static class TaskWatcher implements Watcher {
-				private volatile ZkTask task;
+    private static class TaskWatcher implements Watcher {
+        private volatile ZkTask task;
 
-				private TaskWatcher(ZkTask task) {
-						this.task = task;
-				}
+        private TaskWatcher(ZkTask task) {
+            this.task = task;
+        }
 
-				@Override
-				public void process(WatchedEvent event) {
-						if(event.getType()!= Event.EventType.NodeDeleted)
-								return;
+        @Override
+        public void process(WatchedEvent event) {
+            if (event.getType() != Event.EventType.NodeDeleted)
+                return;
 
 						/*
-						 * If the watch was triggered after
+                         * If the watch was triggered after
 						 * dereferencing us, then we don't care about it
 						 */
-						if(task==null) return;
+            if (task == null) return;
 
-						switch(task.status.getStatus()){
-								case FAILED:
-								case COMPLETED:
-								case CANCELLED:
-										task = null;
-										return;
-						}
+            switch (task.status.getStatus()) {
+                case FAILED:
+                case COMPLETED:
+                case CANCELLED:
+                    task = null;
+                    return;
+            }
 
-						try{
-								task.markCancelled(false);
-						}catch(ExecutionException ee){
-								SpliceLogUtils.error(task.LOG,"Unable to cancel task with id "+ Bytes.toString(task.getTaskId()),ee.getCause());
-						}finally{
-								task = null;
-						}
-				}
-		}
+            try {
+                task.markCancelled(false);
+            } catch (ExecutionException ee) {
+                SpliceLogUtils.error(task.LOG, "Unable to cancel task with id " + Bytes.toString(task.getTaskId()), ee.getCause());
+            } finally {
+                task = null;
+            }
+        }
+    }
 }

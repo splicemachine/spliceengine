@@ -109,12 +109,12 @@ public abstract class MultiScanRowProvider implements RowProvider {
     }
 
     @Override
-    public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+    public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
         return null;
     }
 
     @Override
-    public JobResults finishShuffle(List<JobFuture> jobFuture) throws StandardException {
+    public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
         return null;
     }
 

@@ -135,7 +135,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         nextTime+= System.currentTimeMillis()-start;
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
-        return rowProvider.shuffleRows(soi);
+        //return rowProvider.shuffleRows(soi);
+        return rowProvider.finishShuffle(rowProvider.asyncShuffleRows(soi));
     }
     
     @Override

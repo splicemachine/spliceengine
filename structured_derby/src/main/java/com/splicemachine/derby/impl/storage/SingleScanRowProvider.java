@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -11,7 +12,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
+import com.splicemachine.derby.impl.job.operation.SinkTask;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -19,14 +23,19 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.jruby.RubyProcess;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +43,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -51,97 +61,103 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
     @Override
     public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-    	shuffled=true;
+        shuffled = true;
         Scan scan = toScan();
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
-				spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
-        if(scan==null){
+        spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
+        if (scan == null) {
             //operate locally
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
-            try{
-                OperationSink opSink = OperationSink.create((SinkingOperation) op,null,instructions.getTransactionId());
+            try {
+                OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTransactionId());
 
-								JobStats stats;
-                if(op instanceof DMLWriteOperation)
-                    stats =new LocalTaskJobStats(opSink.sink(((DMLWriteOperation)op).getDestinationTable(), spliceRuntimeContext));
-                else{
-										byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-                    stats =new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
-								}
+                JobStats stats;
+                if (op instanceof DMLWriteOperation)
+                    stats = new LocalTaskJobStats(opSink.sink(((DMLWriteOperation) op).getDestinationTable(), spliceRuntimeContext));
+                else {
+                    byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+                    stats = new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
+                }
 
-								return new SimpleJobResults(stats,null);
+                return new SimpleJobResults(stats, null);
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
-        }else{
-
-            List<JobFuture> jobFutures = asyncShuffleRows(instructions, scan);
-            return finishShuffle(jobFutures);
-
+        } else {
+            return finishShuffle(asyncShuffleRows(instructions, scan));
         }
     }
 
      @Override
-     public List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-
+     public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
         return asyncShuffleRows(instructions, toScan());
-
     }
 
-    private List<JobFuture> asyncShuffleRows(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
-
+    private List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
         return Collections.singletonList( doAsyncShuffle(instructions, scan) );
     }
 
     @Override
-    public JobResults finishShuffle(List<JobFuture> jobFutures) throws StandardException{
+    public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobs) throws StandardException{
 
         StandardException baseError = null;
 
-        List<JobStats> stats = new LinkedList();
+        List<JobStats> stats = new LinkedList<JobStats>();
         JobResults results = null;
 
         long start = System.nanoTime();
 
-        for(JobFuture jobFuture : jobFutures){
+        for (Pair<JobFuture, JobInfo> job : jobs) {
             try {
-                // PJT add real JobInfo
-                jobFuture.completeAll();
+                job.getFirst().completeAll(job.getSecond());
 
-                stats.add(jobFuture.getJobStats());
+                stats.add(job.getFirst().getJobStats());
+                LOG.error(String.format("Async job completed for %s", Bytes.toString(getTableName())));
 
             } catch (ExecutionException ee) {
                 SpliceLogUtils.error(LOG, ee);
+                if (job.getSecond() != null) {
+                    job.getSecond().failJob();
+                }
                 baseError = Exceptions.parseException(ee.getCause());
                 throw baseError;
             } catch (InterruptedException e) {
                 SpliceLogUtils.error(LOG, e);
+                if (job.getSecond() != null) {
+                    job.getSecond().failJob();
+                }
                 baseError = Exceptions.parseException(e);
                 throw baseError;
-            }finally{
-                if(jobFuture!=null){
-                    try{
-                        jobFuture.cleanup();
+            } finally {
+                if (jobFuture != null) {
+                    try {
+                        job.getFirst().cleanup();
+                        //jobFuture.cleanup();
                     } catch (ExecutionException e) {
-                        if(baseError==null)
+                        if (baseError == null)
                             baseError = Exceptions.parseException(e.getCause());
                     }
                 }
-                if(baseError!=null){
-                    SpliceLogUtils.logAndThrow(LOG,baseError);
+                if (baseError != null) {
+                    SpliceLogUtils.logAndThrow(LOG, baseError);
                 }
             }
         }
 
         long end = System.nanoTime();
 
-        if(jobFutures.size() > 1){
-            results = new CompositeJobResults(jobFutures, stats, end - start);
-        }else if(jobFutures.size() == 1){
-            results = new SimpleJobResults(stats.iterator().next(), jobFutures.get(0));
+        if (jobs.size() > 1) {
+            results = new CompositeJobResults(Lists.transform(jobs, new Function<Pair<JobFuture, JobInfo>, JobFuture>() {
+                @Override
+                public JobFuture apply(Pair<JobFuture, JobInfo> job) {
+                    return job.getFirst();
+                }
+            }), stats, end - start);
+        } else if (jobs.size() == 1) {
+            results = new SimpleJobResults(stats.iterator().next(), jobs.get(0).getFirst());
         }
-         return results;
+        return results;
 
     }
 
@@ -156,22 +172,23 @@ public abstract class SingleScanRowProvider  implements RowProvider {
      */
     public abstract Scan toScan();
 
-		@Override
-		public void close() throws StandardException {
+    @Override
+    public void close() throws StandardException {
 
-				if(jobFuture!=null){
-						try{
-								jobFuture.cleanup();
-						}catch(ExecutionException e){
-								throw Exceptions.parseException(e);
-						}
-				}
+        if (jobFuture != null) {
+            try {
+                jobFuture.cleanup();
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
     }
 
-    public JobFuture doAsyncShuffle(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
+    public Pair<JobFuture,JobInfo> doAsyncShuffle(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
 
-        if(scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS)==null)
-            SpliceUtils.setInstructions(scan,instructions);
+        // PJT We're getting scan == null here
+        if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
+            SpliceUtils.setInstructions(scan, instructions);
 
         //get transactional stuff from scan
 
@@ -196,9 +213,11 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             }
             instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(jobInfo);
 
+            LOG.error(String.format("Async job submitted for %s (job %s)", Bytes.toString(getTableName()), job.getJobId()));
+
             //future.addCleanupTask(table);
 
-            return jobFuture;
+            return Pair.newPair(jobFuture, jobInfo);
 
         } catch (ExecutionException ee) {
             SpliceLogUtils.error(LOG, ee);
@@ -208,6 +227,7 @@ public abstract class SingleScanRowProvider  implements RowProvider {
             throw baseError;
         } finally {
             if (jobFuture != null && baseError != null) {
+                /*
                 try {
                     jobFuture.cleanup();
 
@@ -221,6 +241,14 @@ public abstract class SingleScanRowProvider  implements RowProvider {
 
                 } catch (ExecutionException e) {
                     SpliceLogUtils.error(LOG, "Error cleaning up JobFuture", e);
+                }
+                */
+                if (table != null) {
+                    try {
+                        table.close();
+                    } catch (Exception e) {
+                        SpliceLogUtils.error(LOG, "Error closing HTable instance", e);
+                    }
                 }
             }
             if (baseError != null) {
