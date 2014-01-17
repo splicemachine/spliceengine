@@ -73,10 +73,7 @@ public interface JobFuture {
 
     void cleanup() throws ExecutionException;
 
-            /*
-            Added in parallel-msj branch; needed?
-             */
-    //void addCleanupTask(Closeable closable);
+    void addCleanupTask(Closeable closable);
 
     int getNumTasks();
 

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -14,8 +15,11 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -51,6 +55,7 @@ class JobControl implements JobFuture {
     private final int maxResubmissionAttempts;
     private final JobMetrics jobMetrics;
     private final String jobPath;
+    private final LinkedList<Closeable> closables;
     private volatile boolean cancelled = false;
 
     JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
@@ -65,6 +70,7 @@ class JobControl implements JobFuture {
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
+        this.closables = Lists.newLinkedList();
         this.maxResubmissionAttempts = maxResubmissionAttempts;
     }
 
@@ -196,28 +202,42 @@ class JobControl implements JobFuture {
         SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
         try {
             ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-						zooKeeper.delete(jobPath,-1,new AsyncCallback.VoidCallback() {
-								@Override
-								public void processResult(int i, String s, Object o) {
-										LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
-								}
-						},this);
-            for(RegionTaskControl task:tasksToWatch){
-								zooKeeper.delete(task.getTaskNode(),-1,new AsyncCallback.VoidCallback() {
-										@Override
-										public void processResult(int i, String s, Object o) {
-												LOG.trace("Result for deleting path "+ jobPath+": i="+i+", s="+s);
-										}
-								},this);
+            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
+                @Override
+                public void processResult(int i, String s, Object o) {
+                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                }
+            }, this);
+            for (RegionTaskControl task : tasksToWatch) {
+                zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+                    @Override
+                    public void processResult(int i, String s, Object o) {
+                        LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+                    }
+                }, this);
             }
-        }catch (ZooKeeperConnectionException e) {
+        } catch (ZooKeeperConnectionException e) {
             throw new ExecutionException(e);
-        }finally{
-						completedTasks.clear();
-						failedTasks.clear();
-						tasksToWatch.clear();
-						changedTasks.clear();
-				}
+        } finally {
+            try {
+                for (Closeable c : closables) {
+                    c.close();
+                }
+            } catch (IOException ioe) {
+                throw new ExecutionException(ioe);
+            } finally {
+                closables.clear();
+                completedTasks.clear();
+                failedTasks.clear();
+                tasksToWatch.clear();
+                changedTasks.clear();
+            }
+        }
+    }
+
+    @Override
+    public void addCleanupTask(Closeable closable) {
+        closables.add(0, closable);
     }
 
     @Override public JobStats getJobStats() { return stats; }
