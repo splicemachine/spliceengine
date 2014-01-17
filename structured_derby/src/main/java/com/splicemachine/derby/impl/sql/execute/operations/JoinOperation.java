@@ -129,8 +129,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
     public void init(SpliceOperationContext context) throws StandardException {
         SpliceLogUtils.trace(LOG, "init called");
         super.init(context);
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
-        restriction = restrictionMethodName == null ?
+				restriction = restrictionMethodName == null ?
                         null : new SpliceMethod<DataValueDescriptor>(restrictionMethodName, activation);
         leftResultSet.init(context);
         rightResultSet.init(context);

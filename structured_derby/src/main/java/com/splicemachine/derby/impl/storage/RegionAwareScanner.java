@@ -8,7 +8,11 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.error.StandardException;
@@ -50,7 +54,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private final ScanBoundary boundary;
     private final HRegion region;
     private final HTableInterface table;
-    private RegionScanner localScanner;
+    private MeasuredRegionScanner localScanner;
     private ResultScanner lookBehindScanner;
     private ResultScanner lookAheadScanner;
     private boolean lookBehindExhausted = false;
@@ -65,20 +69,23 @@ public class RegionAwareScanner implements SpliceResultScanner {
     private byte[] regionStart;
     private final String transactionId;
     private final Scan scan;
-		private int totalRowsSeen=0;
-		private int lookBehindRowsSeen=0;
-		private int lookAheadRowsSeen=0;
-		private int localRowsSeen =0;
+
+		//statistics stuff
+		private final MetricFactory metricFactory;
+		private final Timer remoteReadTimer;
+		private final Counter remoteBytesRead;
+
 		private RegionAwareScanner(String transactionId,
-                               HTableInterface table,
-                               HRegion region,
-                               Scan scan,
-                               ScanBoundary scanBoundary){
+															 HTableInterface table,
+															 HRegion region,
+															 Scan scan,
+															 ScanBoundary scanBoundary, MetricFactory metricFactory){
         this.table = table;
         this.region = region;
         this.boundary = scanBoundary;
         this.scan =scan;
-        if(region!=null){
+				this.metricFactory = metricFactory;
+				if(region!=null){
             this.regionFinish = region.getEndKey();
             this.regionStart = region.getStartKey();
         }else{
@@ -86,42 +93,57 @@ public class RegionAwareScanner implements SpliceResultScanner {
             this.regionStart = scan.getStopRow();
         }
         this.transactionId = transactionId;
+				this.remoteReadTimer = metricFactory.newTimer();
+				this.remoteBytesRead = metricFactory.newCounter();
     }
 
     private RegionAwareScanner(String transactionId,
-                               HTableInterface table,
-                               HRegion region,
-                               byte[] scanStart,
-                               byte[] scanFinish,
-                               ScanBoundary scanBoundary){
-        this.table = table;
-        this.region = region;
-        this.scan = new Scan(scanStart,scanFinish);
-        this.boundary = scanBoundary;
-        if(region!=null){
-	        this.regionFinish = region.getEndKey();
-	        this.regionStart = region.getStartKey();
-        }else{
-            this.regionFinish = scanFinish;
-            this.regionStart = scanStart;
-        }
-        this.transactionId = transactionId;
+															 HTableInterface table,
+															 HRegion region,
+															 byte[] scanStart,
+															 byte[] scanFinish,
+															 ScanBoundary scanBoundary, MetricFactory metricFactory){
+				this(transactionId,table,region,new Scan(scanStart,scanFinish),scanBoundary,metricFactory);
+//        this.table = table;
+//        this.region = region;
+//				this.metricFactory = metricFactory;
+//				this.scan = new Scan(scanStart,scanFinish);
+//        this.boundary = scanBoundary;
+//        if(region!=null){
+//	        this.regionFinish = region.getEndKey();
+//	        this.regionStart = region.getStartKey();
+//        }else{
+//            this.regionFinish = scanFinish;
+//            this.regionStart = scanStart;
+//        }
+//        this.transactionId = transactionId;
     }
 
-    /**
+		@Override public Timer getRemoteReadTime() { return remoteReadTimer; }
+		@Override public Counter getRemoteBytesRead() { return remoteBytesRead; }
+
+		@Override public Timer getLocalReadTime() { return localScanner.getReadTime(); }
+		@Override public Counter getLocalBytesRead() { return localScanner.getBytesRead(); }
+
+		/**
      * @return the new RowResult in the scan, or {@code null} if no more rows are to be returned.
      */
     public Result getNextResult() throws IOException {
         Result currentResult;
         //get next row from scanner
         if(!lookBehindExhausted){
+						remoteReadTimer.startTiming();
             currentResult = lookBehindScanner.next();
             if(currentResult!=null&&!currentResult.isEmpty()) {
-								lookBehindRowsSeen++;
+								remoteReadTimer.tick(1);
+								if(remoteBytesRead.isActive()){
+										measureResult(currentResult);
+								}
 								return currentResult;
-						}
-            else
+						}else{
+								remoteReadTimer.tick(0);
                 lookBehindExhausted=true;
+						}
         }
         if(!localExhausted){
             if(keyValues==null)
@@ -129,23 +151,36 @@ public class RegionAwareScanner implements SpliceResultScanner {
             keyValues.clear();
             localExhausted = !localScanner.next(keyValues);
 						if(keyValues.size()>0){
-								localRowsSeen++;
 								return new Result(keyValues);
 						}else
 								localExhausted=true;
         }
         if(!lookAheadExhausted){
+						remoteReadTimer.startTiming();
             currentResult = lookAheadScanner.next();
             if(currentResult!=null&&!currentResult.isEmpty()){
-								lookAheadRowsSeen++;
+								remoteReadTimer.tick(1);
+								if(remoteBytesRead.isActive()){
+										measureResult(currentResult);
+								}
 								return currentResult;
-						}else
+						}else{
+								remoteReadTimer.tick(0);
                 lookAheadExhausted = true;
+						}
         }
         return null;
     }
 
-    /**
+		protected void measureResult(Result currentResult) {
+				long byteSize = 0;
+				for (KeyValue aRaw : currentResult.raw()) {
+						byteSize += aRaw.getLength();
+				}
+				remoteBytesRead.add(byteSize);
+		}
+
+		/**
      * Create a new RegionAwareScanner from the region and tableName.
      *
      * @param region the region to scan over
@@ -159,15 +194,16 @@ public class RegionAwareScanner implements SpliceResultScanner {
     public static RegionAwareScanner create(String transactionId, HRegion region, ScanBoundary boundary,
                                             byte[] tableName,
                                             byte[] scanStart,
-                                            byte[] scanFinish){
+                                            byte[] scanFinish,
+																						MetricFactory metricFactory){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
-        return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary);
+        return new RegionAwareScanner(transactionId,table,region,scanStart,scanFinish,boundary, metricFactory);
     }
 
     public static RegionAwareScanner create(String txnId, HRegion region, Scan localScan,
-                                            byte[] tableName,ScanBoundary boundary){
+                                            byte[] tableName,ScanBoundary boundary, MetricFactory metricFactory){
         HTableInterface table = SpliceAccessManager.getHTable(tableName);
-        return new RegionAwareScanner(txnId,table,region,localScan,boundary);
+        return new RegionAwareScanner(txnId,table,region,localScan,boundary, metricFactory);
     }
 
     public void open() throws StandardException {
@@ -198,11 +234,11 @@ public class RegionAwareScanner implements SpliceResultScanner {
 
     @Override
     public void close() {
-				if(LOG.isDebugEnabled()){
-						LOG.debug(String.format("Saw %d rows from lookBehind scanner",lookBehindRowsSeen));
-						LOG.debug(String.format("Saw %d rows from local scanner",localRowsSeen));
-						LOG.debug(String.format("Saw %d rows from lookAhead scanner",lookAheadRowsSeen));
-				}
+//				if(LOG.isDebugEnabled()){
+//						LOG.debug(String.format("Saw %d rows from lookBehind scanner", lookBehindRowsSeen));
+//						LOG.debug(String.format("Saw %d rows from local scanner",localRowsSeen));
+//						LOG.debug(String.format("Saw %d rows from lookAhead scanner",lookAheadRowsSeen));
+//				}
         if(lookBehindScanner !=null) lookBehindScanner.close();
         if(lookAheadScanner!=null) lookAheadScanner.close();
         try{
@@ -230,9 +266,11 @@ public class RegionAwareScanner implements SpliceResultScanner {
         }
         Scan localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
-        localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        localScanner = new BufferedRegionScanner(region,region.getScanner(localScan),localScan.getCaching());
-        if(remoteStart!=null){
+				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+        localScanner = new BufferedRegionScanner(region,
+								region.getScanner(localScan),
+								SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
+				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
             lookBehindScan.setFilter(scan.getFilter());
             lookBehindScanner = table.getScanner(lookBehindScan);
@@ -309,7 +347,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
             RegionScanner localScanner = null;
             try{
-            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan.getCaching());
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan.getCaching(),metricFactory);
                 List<KeyValue> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {

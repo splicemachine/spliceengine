@@ -3,7 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.hbase.BufferedRegionScanner;
-
+import com.splicemachine.hbase.MeasuredRegionScanner;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -32,7 +32,7 @@ public class SpliceOperationContext {
     private final HRegion region;
     private final Activation activation;
     private final Scan scan;
-    private RegionScanner scanner;
+    private MeasuredRegionScanner scanner;
     private LanguageConnectionContext lcc;
     private boolean isSink;
     private SpliceOperation topOperation;
@@ -66,7 +66,7 @@ public class SpliceOperationContext {
                                   SpliceRuntimeContext spliceRuntimeContext){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching());
+        this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching(),spliceRuntimeContext);
         this.region=region;
         this.scan = scan;
         this.lcc = lcc;
@@ -94,24 +94,24 @@ public class SpliceOperationContext {
         return isSink && topOperation == op;
     }
 
-    public RegionScanner getScanner() throws IOException {
+    public MeasuredRegionScanner getScanner() throws IOException {
         return getScanner(cacheBlocks);
     }
 
-    public RegionScanner getScanner(boolean enableBlockCache) throws IOException{
+    public MeasuredRegionScanner getScanner(boolean enableBlockCache) throws IOException{
         if(scanner==null){
             if(region==null)return null;
 
             Scan scan = new Scan(this.scan);
             scan.setCacheBlocks(enableBlockCache);
-            scanner = region.getCoprocessorHost().preScannerOpen(scan);
-            if (scanner == null) {
-                scanner = region.getScanner(scan);
+						RegionScanner baseScanner = region.getCoprocessorHost().preScannerOpen(scan);
+            if (baseScanner == null) {
+                baseScanner = region.getScanner(scan);
             }
             int caching = scan.getCaching();
             if(caching<0)
                 caching=SpliceConstants.DEFAULT_CACHE_SIZE;
-            scanner = new BufferedRegionScanner(region,scanner,caching);
+            scanner = new BufferedRegionScanner(region,baseScanner, SpliceConstants.DEFAULT_CACHE_SIZE,spliceRuntimeContext);
         }
         return scanner;
     }

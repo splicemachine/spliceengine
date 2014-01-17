@@ -382,7 +382,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private SpliceResultScanner getResultScanner(final int[] groupColumns,SpliceRuntimeContext spliceRuntimeContext, final int prefixOffset) {
         if(!spliceRuntimeContext.isSink()){
 						byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
-            return new ClientResultScanner(tempTableBytes,reduceScan,true);
+            return new ClientResultScanner(tempTableBytes,reduceScan,true,spliceRuntimeContext);
 				}
 
         //we are under another sink, so we need to use a RegionAwareScanner
@@ -408,7 +408,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary);
+        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
     }
 
     @Override

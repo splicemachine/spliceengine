@@ -373,7 +373,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         if(!spliceRuntimeContext.isSink()){
 			byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 	        buildReduceScan(uniqueSequenceID);
-            return new ClientResultScanner(tempTableBytes,reduceScan,true);
+            return new ClientResultScanner(tempTableBytes,reduceScan,true,spliceRuntimeContext);
         }
 
         //we are under another sink, so we need to use a RegionAwareScanner
@@ -396,7 +396,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                 return start;
             }
         };
-        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary);
+        return RegionAwareScanner.create(getTransactionID(),region,baseScan,SpliceConstants.TEMP_TABLE_BYTES,boundary,spliceRuntimeContext);
     }
 
 }

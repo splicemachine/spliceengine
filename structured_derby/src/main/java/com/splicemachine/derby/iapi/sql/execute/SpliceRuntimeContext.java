@@ -4,18 +4,14 @@ import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.stats.CompositeTimer;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.stats.Timers;
+import com.splicemachine.stats.*;
 
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-public class SpliceRuntimeContext<Row> implements Externalizable {
-
-
+public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		private static final long serialVersionUID = 1l;
 		private IntIntOpenHashMap paths = new IntIntOpenHashMap();
 		/*
@@ -159,9 +155,16 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
 
 		public void recordTraceMetrics(){ this.recordTraceMetrics = true; }
 
-		public Timer newTimerInstance(){
+		@Override
+		public Timer newTimer(){
 				if(!recordTraceMetrics) return Timers.noOpTimer();
 				return Timers.newTimer();
+		}
+
+		@Override
+		public Counter newCounter(){
+				if(!recordTraceMetrics) return Counters.noOpCounter();
+				return Counters.basicCounter();
 		}
 
 		public void addScanStartOverride(Row startKey){

@@ -11,6 +11,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.IntArrays;
@@ -74,7 +76,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	protected boolean executed = false;
 	protected DataValueDescriptor[] sequence;
-	protected RegionScanner regionScanner;
+	protected MeasuredRegionScanner regionScanner;
 	protected long rowsSunk;
 	
 	protected boolean isOpen = true;

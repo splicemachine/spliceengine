@@ -152,13 +152,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "next");
-        if (joiner == null) {
-            joiner = createMergeJoiner(outer, spliceRuntimeContext);
-        } else if (!isOpen && !spliceRuntimeContext.isSink()) {
-            init(SpliceOperationContext.newContext(activation));
-            joiner = createMergeJoiner(outer, spliceRuntimeContext);
-        }
-        isOpen = true;
+				if(joiner==null){
+						if(!spliceRuntimeContext.isSink())
+								init(SpliceOperationContext.newContext(activation));
+						joiner = createMergeJoiner(outer, spliceRuntimeContext);
+						isOpen = true;
+				}
         beginTime = getCurrentTimeMillis();
         boolean shouldClose = true;
         try {
@@ -381,9 +380,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         StandardIterator<JoinSideExecRow> scanner;
         if (spliceRuntimeContext.isSink()) {
-            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region);
+            scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region,spliceRuntimeContext);
         } else {
-            scanner = ResultMergeScanner.clientScanner(reduceScan, leftDecoder, rightDecoder);
+            scanner = ResultMergeScanner.clientScanner(reduceScan, leftDecoder, rightDecoder,spliceRuntimeContext);
         }
         return scanner;
     }

@@ -472,12 +472,14 @@ public class SpliceConstants {
     public static int kryoPoolSize;
 
 
-	/**
-	 * The Default Cache size for Scans.
-	 *
-	 * This determines the default number of rows that will be cached on each scan returned.
-	 */
-	public static final int DEFAULT_CACHE_SIZE = 1024;
+		/**
+		 * The Default Cache size for Scans.
+		 *
+		 * This determines the default number of rows that will be cached on each scan returned.
+		 *
+		 * We make it a power of two to make it easier to write buffers which are powers of 2.
+		 */
+		public static final int DEFAULT_CACHE_SIZE = 1024;
 
     
     /*
