@@ -1,9 +1,11 @@
 package com.splicemachine.derby.impl.job.operation;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
@@ -28,6 +30,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     private HTableInterface table;
     private int taskPriority;
     private boolean readOnly;
+    private String jobId;
 
     public OperationJob(){}
 
@@ -37,11 +40,13 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         this.table = table;
         this.taskPriority = operationTaskPriority;
         this.readOnly = readOnly;
+        this.jobId = SpliceUtils.getUniqueKeyString();
+
     }
 
     @Override
     public String getJobId() {
-        return Long.toString(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()));
+        return jobId;
     }
 
     public Scan getScan(){
