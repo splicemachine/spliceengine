@@ -149,7 +149,6 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan(spliceRuntimeContext);
 		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);

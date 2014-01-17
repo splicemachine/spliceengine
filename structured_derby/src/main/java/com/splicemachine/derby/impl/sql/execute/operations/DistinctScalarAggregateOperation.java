@@ -203,10 +203,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 	private ExecRow getStep1Row(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		if (step1Aggregator == null) {   
             DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.ONE);
-            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(spliceRuntimeContext,source),keyColumns);
+            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(source),keyColumns);
             step1Aggregator.open();
         }   
-        GroupedRow row = step1Aggregator.next();
+        GroupedRow row = step1Aggregator.next(spliceRuntimeContext);
         if(row==null){
             currentKey=null;
             clearCurrentRow();
@@ -229,7 +229,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		 }
 		 boolean shouldClose = true;
 		 try{
-			 GroupedRow row = step2Aggregator.next();
+			 GroupedRow row = step2Aggregator.next(spliceRuntimeContext);
 		     if(row==null) {
 		    	 clearCurrentRow();
 		         return null;
@@ -255,7 +255,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     	if (step3Closed)
     		return null;
         try{
-            GroupedRow row = step3Aggregator.next();
+            GroupedRow row = step3Aggregator.next(spliceRuntimeContext);
             step3Closed = true;
             if(row==null){
                 clearCurrentRow();
