@@ -122,6 +122,7 @@ public abstract class SingleScanRowProvider implements RowProvider {
         StandardException baseError = null;
         jobFuture = null;
         JobInfo jobInfo = null;
+        StatementInfo stmtInfo = instructions.getSpliceRuntimeContext().getStatementInfo();
 
         try {
 
@@ -130,8 +131,9 @@ public abstract class SingleScanRowProvider implements RowProvider {
             jobInfo = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), start);
             jobInfo.setJobFuture(jobFuture);
             jobInfo.tasksRunning(jobFuture.getAllTaskIds());
-            instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(jobInfo);
+            stmtInfo.addRunningJob(jobInfo);
             jobFuture.addCleanupTask(table);
+            jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, jobInfo));
 
             return Pair.newPair(jobFuture, jobInfo);
 
