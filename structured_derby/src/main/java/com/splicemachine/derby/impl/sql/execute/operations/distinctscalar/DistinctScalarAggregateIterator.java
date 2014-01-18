@@ -1,45 +1,43 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+
 import java.io.IOException;
 
 /**
  * @author Scott Fines
  * Created on: 11/1/13
  */
-public class DistinctScalarAggregateIterator implements StandardIterator<GroupedRow>{
+public class DistinctScalarAggregateIterator extends AbstractStandardIterator {
     private final DistinctAggregateBuffer buffer;
-    private final StandardIterator<ExecRow> source;
     private MultiFieldEncoder keyEncoder;
     private KeyMarshall keyHasher;
     private boolean completed;
     private int[] keyColumns;
 
     public DistinctScalarAggregateIterator(DistinctAggregateBuffer buffer,StandardIterator<ExecRow> source, int[] keyColumns) {
+    	super(source);
         this.buffer = buffer;
-        this.source = source;
         this.keyHasher = KeyType.BARE;
         this.keyColumns = keyColumns;
     }
 
-    @Override
-    public void open() throws StandardException, IOException {
-        source.open();
-    }
-
-    public GroupedRow next() throws StandardException, IOException {
+    public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
     	if (!completed) {
 	        boolean shouldContinue;
 	        GroupedRow toReturn = null;
 	        do{
-	            ExecRow nextRow = source.next();
+	            ExecRow nextRow = source.next(spliceRuntimeContext);
 	            shouldContinue = nextRow!=null;
 	            if(!shouldContinue)
 	                continue; //iterator exhausted, break from the loop
@@ -63,9 +61,5 @@ public class DistinctScalarAggregateIterator implements StandardIterator<Grouped
         keyEncoder.reset();
         ((KeyMarshall)keyHasher).encodeKey(row.getRowArray(), keyColumns, null, null, keyEncoder);
         return keyEncoder.build();
-    }
-
-    public void close() throws IOException, StandardException {
-        source.close();
     }
 }

@@ -11,9 +11,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -34,9 +32,7 @@ import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -116,7 +112,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		this.activation = activation;
         this.resultSetNumber = resultSetNumber;
 		sequence = new DataValueDescriptor[1];
-		SpliceLogUtils.trace(LOG, "dataValueFactor=%s",activation.getDataValueFactory());
 		sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
 		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
 			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
@@ -150,7 +145,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG, "writeExternal");
         out.writeObject(operationInformation);
         writeNullableString(getTransactionID(), out);
 		out.writeBoolean(isTopResultSet);
@@ -379,7 +373,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public void generateLeftOperationStack(List<SpliceOperation> operations) {
-//		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
 		OperationUtils.generateLeftOperationStack(this, operations);
 	}
 
@@ -391,7 +384,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		return leftOperationStack;
 	}
 	public void generateRightOperationStack(boolean initial,List<SpliceOperation> operations) {
-		SpliceLogUtils.trace(LOG, "generateRightOperationStack");
 		SpliceOperation op;
 		if (initial) 
 			op = getRightOperation();

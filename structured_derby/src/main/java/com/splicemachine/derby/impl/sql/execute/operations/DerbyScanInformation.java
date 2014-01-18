@@ -185,7 +185,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 accessedCols,
-                txnId);
+                txnId,sameStartStop);
     }
 
     @Override
@@ -226,6 +226,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
             for(Qualifier[] qualifiers:scanQualifiers){
                 for(int qualPos=0;qualPos<qualifiers.length;qualPos++){
                     Qualifier qualifier = qualifiers[qualPos];
+										qualifier.clearOrderableCache();
                     int columnFormat = format_ids[qualifier.getColumnId()];
                     DataValueDescriptor dvd = qualifier.getOrderable();
                     if (dvd==null)

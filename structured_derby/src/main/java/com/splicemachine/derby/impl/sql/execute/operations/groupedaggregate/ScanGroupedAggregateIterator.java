@@ -3,7 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
@@ -21,9 +23,8 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 11/1/13
  */
-public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow>{
+public class ScanGroupedAggregateIterator extends AbstractStandardIterator {
     private final GroupedAggregateBuffer buffer;
-    private final StandardIterator<ExecRow> source;
     private final int[] groupColumns;
     private final boolean[] groupSortByColumns;
     private final boolean isRollup;
@@ -39,8 +40,8 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
                                  int[] groupColumns,
                                  boolean[] groupSortByColumns,
                                  boolean isRollup) {
+    	super(source);
         this.buffer = buffer;
-        this.source = source;
         this.groupColumns = groupColumns;
         this.groupSortByColumns = groupSortByColumns;
         this.isRollup= isRollup;
@@ -48,13 +49,8 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
         int maxEvicted = isRollup? groupColumns.length+1: 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvicted);
     }
-
     @Override
-    public void open() throws StandardException, IOException {
-        source.open();
-    }
-
-    public GroupedRow next() throws StandardException, IOException {
+    public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //return any previously evicted rows first
         if(evictedRows.size()>0)
             return evictedRows.remove(0);
@@ -68,7 +64,7 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
         GroupedRow toReturn = null;
         do{
 			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-            ExecRow nextRow = source.next();
+            ExecRow nextRow = source.next(spliceRuntimeContext);
             shouldContinue = nextRow!=null;
             if(!shouldContinue)
                 continue; //iterator exhausted, break from the loop
@@ -144,9 +140,5 @@ public class ScanGroupedAggregateIterator implements StandardIterator<GroupedRow
             rollUpPos--;
             pos++;
         }while(rollUpPos>=0);
-    }
-
-    public void close() throws IOException, StandardException {
-        source.close();
     }
 }

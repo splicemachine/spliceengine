@@ -3,7 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractStandardIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
@@ -27,9 +29,8 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 11/5/13
  */
-public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow> {
+public class SinkGroupedAggregateIterator extends AbstractStandardIterator {
     private final DoubleBuffer buffer;
-    private final StandardIterator<ExecRow> source;
     private final boolean isRollup;
     private final int[] groupColumns;
     private boolean completed = false;
@@ -43,8 +44,8 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
                                  boolean rollup,
                                  int[] groupColumns,
                                  boolean[] groupSortOrder,
-                                 int[] nonGroupedUniqueColumns) {    	
-        this.source = source;
+                                 int[] nonGroupedUniqueColumns) {  
+    	super(source);
         isRollup = rollup;
         this.groupColumns = groupColumns;
 
@@ -62,12 +63,7 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
     }
 
     @Override
-    public void open() throws StandardException, IOException {
-        source.open();
-    }
-
-    @Override
-    public GroupedRow next() throws StandardException, IOException {
+    public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if(evictedRows.size()>0)
             return evictedRows.remove(0);
         if(completed){
@@ -81,7 +77,7 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
         GroupedRow toReturn = null;
         do{
 			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-            ExecRow nextRow = source.next();
+            ExecRow nextRow = source.next(spliceRuntimeContext);
             shouldContinue = nextRow!=null;
             if(!shouldContinue)
                 continue; //iterator exhausted, break from the loop
@@ -126,11 +122,6 @@ public class SinkGroupedAggregateIterator implements StandardIterator<GroupedRow
             }
             return firstEvicted;
         }
-    }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        source.close();
     }
 
     private void rollupRows(ExecRow row) throws StandardException{

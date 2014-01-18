@@ -1,12 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
-import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.DistinctScalarBufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**

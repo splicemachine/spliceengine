@@ -309,20 +309,20 @@ public class DerbyBytesUtil {
 
     }
 
-	public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,int startSearchOperator, boolean[] sortOrder) throws IOException, StandardException {
-        if(startKeyValue==null)return null;
-		switch(startSearchOperator) { // public static final int GT = -1;
-            case ScanController.NA:
-            case ScanController.GE:
-                return generateIndexKey(startKeyValue,sortOrder);
-            case ScanController.GT:
-                byte[] indexKey = generateIndexKey(startKeyValue,sortOrder);
-                BytesUtil.unsignedIncrement(indexKey,indexKey.length-1);
-                return indexKey;
-            default:
-                throw new RuntimeException("Error with Key Generation");
+		public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,int startSearchOperator, boolean[] sortOrder) throws IOException, StandardException {
+				if(startKeyValue==null)return null;
+				switch(startSearchOperator) { // public static final int GT = -1;
+						case ScanController.NA:
+						case ScanController.GE:
+								return generateIndexKey(startKeyValue,sortOrder);
+						case ScanController.GT:
+								byte[] indexKey = generateIndexKey(startKeyValue,sortOrder);
+								BytesUtil.unsignedIncrement(indexKey,indexKey.length-1);
+								return indexKey;
+						default:
+								throw new RuntimeException("Error with Key Generation");
+				}
 		}
-	}
 
     public static void decodeInto(MultiFieldDecoder rowDecoder, DataValueDescriptor column) throws StandardException{
         decodeInto(rowDecoder, column,false);

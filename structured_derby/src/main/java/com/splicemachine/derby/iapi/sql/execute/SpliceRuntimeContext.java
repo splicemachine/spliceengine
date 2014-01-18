@@ -43,11 +43,23 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         spliceRuntimeContext.addPath(resultSetNumber, 1);
         return spliceRuntimeContext;
     }
+    
+    public void addLeftRuntimeContext(int resultSetNumber) {
+    	this.addPath(resultSetNumber, 0);
+    }
+
+    public void addRightRuntimeContext(int resultSetNumber) {
+    	this.addPath(resultSetNumber, 1);    	
+    }
 
     public static SpliceRuntimeContext generateSinkRuntimeContext(boolean firstStepInMultistep) {
         SpliceRuntimeContext spliceRuntimeContext = new SpliceRuntimeContext();
         spliceRuntimeContext.firstStepInMultistep = firstStepInMultistep;
         return spliceRuntimeContext;
+    }
+
+    public void addSinkRuntimeContext(boolean firstStepInMultistep) {
+    	this.firstStepInMultistep = firstStepInMultistep;  	
     }
 
     

@@ -306,8 +306,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public ExecRow getNextSinkRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if(aggregator==null){
-        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(spliceRuntimeContext,source);
+        if(aggregator==null) {
+        	StandardIterator<ExecRow> sourceIterator = new SourceIterator(source);
             StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
@@ -321,7 +321,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             aggregator.open();
         }
 
-        GroupedRow row = aggregator.next();
+        GroupedRow row = aggregator.next(spliceRuntimeContext);
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG, "getNextSinkRow from aggregator row=%s",row==null?"null":row.getRow());
         if(row==null){
             currentKey=null;
             clearCurrentRow();
@@ -338,18 +340,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if(aggregator==null){
-            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-                @Override
-                public ExecRow get() throws StandardException {
-                    return aggregateContext.getSortTemplateRow();
-                }
-            };
             /*
              * When scanning from TEMP, we know that all the intermediate results with the same
              * hash key are grouped together, which means that we only need to keep a single buffer entry
              * in memory.
              */
-            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,emptyRowSupplier,groupedAggregateContext,true);
+            GroupedAggregateBuffer buffer = new GroupedAggregateBuffer(16, aggregates,true,new EmptyRowSupplier(aggregateContext),groupedAggregateContext,true);
 
             int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
             boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
@@ -360,7 +356,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
         boolean shouldClose = true;
         try{
-            GroupedRow row = aggregator.next();
+            GroupedRow row = aggregator.next(spliceRuntimeContext);
+            if (LOG.isTraceEnabled())
+            	SpliceLogUtils.trace(LOG, "getNextRow from aggregator row=%s",row==null?"null":row.getRow());
             if(row==null){
                 clearCurrentRow();
                 return null;

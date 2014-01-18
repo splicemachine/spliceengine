@@ -802,7 +802,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         }
         if (!active.isEmpty()) {
             throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("There are active transactions %.100", active)));
+                    new RuntimeException(String.format("There are active transactions %s", active)));
         }
         // TODO handle past transactions gracefully
 //        List<String> tables = getBlockedTables();
