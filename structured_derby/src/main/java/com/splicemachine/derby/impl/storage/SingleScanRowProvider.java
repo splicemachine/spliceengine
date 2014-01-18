@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.storage;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
@@ -16,6 +14,7 @@ import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -24,14 +23,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -44,10 +41,8 @@ public abstract class SingleScanRowProvider implements RowProvider {
 
     protected SpliceRuntimeContext spliceRuntimeContext;
     private static final Logger LOG = Logger.getLogger(SingleScanRowProvider.class);
-    private JobFuture jobFuture;
 
     public JobResults shuffleSourceRows(SpliceObserverInstructions instructions) throws StandardException {
-        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
         SpliceOperation op = instructions.getTopOperation();
         op.init(SpliceOperationContext.newContext(op.getActivation()));
@@ -84,68 +79,7 @@ public abstract class SingleScanRowProvider implements RowProvider {
 
     @Override
     public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
-        return completeAllJobs(jobs);
-    }
-
-    public static JobResults completeAllJobs(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
-
-        StandardException baseError = null;
-
-        List<JobStats> stats = new LinkedList<JobStats>();
-        JobResults results = null;
-
-        long start = System.nanoTime();
-
-        for (Pair<JobFuture, JobInfo> job : jobs) {
-            try {
-                job.getFirst().completeAll(job.getSecond());
-
-                stats.add(job.getFirst().getJobStats());
-                //LOG.error(String.format("Async job completed for %s", job.getSecond().getJobId()));
-
-            } catch (ExecutionException ee) {
-                SpliceLogUtils.error(LOG, ee);
-                if (job.getSecond() != null) {
-                    job.getSecond().failJob();
-                }
-                baseError = Exceptions.parseException(ee.getCause());
-                throw baseError;
-            } catch (InterruptedException e) {
-                SpliceLogUtils.error(LOG, e);
-                if (job.getSecond() != null) {
-                    job.getSecond().failJob();
-                }
-                baseError = Exceptions.parseException(e);
-                throw baseError;
-            } finally {
-                if (job.getFirst() != null) {
-                    try {
-                        job.getFirst().cleanup();
-                    } catch (ExecutionException e) {
-                        if (baseError == null)
-                            baseError = Exceptions.parseException(e.getCause());
-                    }
-                }
-                if (baseError != null) {
-                    SpliceLogUtils.logAndThrow(LOG, baseError);
-                }
-            }
-        }
-
-        long end = System.nanoTime();
-
-        if (jobs.size() > 1) {
-            results = new CompositeJobResults(Lists.transform(jobs, new Function<Pair<JobFuture, JobInfo>, JobFuture>() {
-                @Override
-                public JobFuture apply(Pair<JobFuture, JobInfo> job) {
-                    return job.getFirst();
-                }
-            }), stats, end - start);
-        } else if (jobs.size() == 1) {
-            results = new SimpleJobResults(stats.iterator().next(), jobs.get(0).getFirst());
-        }
-        return results;
-
+        return RowProviders.completeAllJobs(jobs);
     }
 
     @Override
@@ -162,23 +96,16 @@ public abstract class SingleScanRowProvider implements RowProvider {
     @Override
     public void close() throws StandardException {
 
-        if (jobFuture != null) {
-            try {
-                jobFuture.cleanup();
-            } catch (ExecutionException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
     }
 
     public Pair<JobFuture, JobInfo> doAsyncShuffle(SpliceObserverInstructions instructions, Scan scan) throws StandardException {
 
         JobFuture jobFuture;
 
+        instructions.setSpliceRuntimeContext(spliceRuntimeContext);
+
         if (scan == null){
-            jobFuture = new JobFutureFromResults(shuffleSourceRows(instructions));
-            return Pair.newPair(jobFuture,
-                                    new JobInfo("localjob", jobFuture.getNumTasks(), System.currentTimeMillis()));
+            return RowProviders.futurePairForResults(shuffleSourceRows(instructions));
         }
 
         if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
@@ -202,14 +129,8 @@ public abstract class SingleScanRowProvider implements RowProvider {
             jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
             jobInfo = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), start);
             jobInfo.setJobFuture(jobFuture);
-            byte[][] allTaskIds = jobFuture.getAllTaskIds();
-            for (byte[] tId : allTaskIds) {
-                jobInfo.taskRunning(tId);
-            }
+            jobInfo.tasksRunning(jobFuture.getAllTaskIds());
             instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(jobInfo);
-
-            //LOG.error(String.format("Async job submitted for %s (job %s)", Bytes.toString(getTableName()), job.getJobId()));
-
             jobFuture.addCleanupTask(table);
 
             return Pair.newPair(jobFuture, jobInfo);
