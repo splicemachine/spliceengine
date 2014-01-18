@@ -10,6 +10,7 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
@@ -114,6 +115,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
         HTableInterface table = SpliceAccessManager.getHTable(getTableName());
         LinkedList<Pair<JobFuture, JobInfo>> outstandingJobs = Lists.newLinkedList();
+        StatementInfo stmtInfo = instructions.getSpliceRuntimeContext().getStatementInfo();
         try {
             long start = System.nanoTime();
             for (Scan scan : scans) {
@@ -123,9 +125,10 @@ public abstract class MultiScanRowProvider implements RowProvider {
                 JobInfo info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
                 info.setJobFuture(jobFuture);
                 info.tasksRunning(jobFuture.getAllTaskIds());
-                instructions.getSpliceRuntimeContext().getStatementInfo().addRunningJob(info);
+                stmtInfo.addRunningJob(info);
                 outstandingJobs.add(Pair.newPair(jobFuture, info));
                 jobFuture.addCleanupTask(table);
+                jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
             }
             return outstandingJobs;
 

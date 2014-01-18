@@ -6,6 +6,8 @@ import com.splicemachine.utils.Snowflake;
 
 import javax.management.openmbean.*;
 import java.beans.ConstructorProperties;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -126,5 +128,14 @@ public class StatementInfo {
 				}
 				runningJobIds.clear();
 		}
+
+    public static Closeable completeOnClose(final StatementInfo stInfo, final JobInfo jobInfo){
+        return new Closeable() {
+            @Override
+            public void close() throws IOException {
+                stInfo.completeJob(jobInfo);
+            }
+        };
+    }
 }
 
