@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,9 +35,6 @@ import java.util.concurrent.ExecutionException;
 public abstract class MultiScanRowProvider implements RowProvider {
     private static final Logger LOG = Logger.getLogger(MultiScanRowProvider.class);
     protected SpliceRuntimeContext spliceRuntimeContext;
-
-    private boolean shuffled = false;
-    private List<JobFuture> jobFutures;
 
     @Override
     public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
@@ -113,7 +109,6 @@ public abstract class MultiScanRowProvider implements RowProvider {
 
     @Override
     public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-        shuffled = true;
         StandardException baseError = null;
         List<Scan> scans = getScans();
         instructions.setSpliceRuntimeContext(spliceRuntimeContext);
@@ -150,7 +145,7 @@ public abstract class MultiScanRowProvider implements RowProvider {
 
     @Override
     public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobs) throws StandardException {
-        return SingleScanRowProvider.completeAllJobs(jobs);
+        return RowProviders.completeAllJobs(jobs, true);
     }
 
     private void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
@@ -174,15 +169,6 @@ public abstract class MultiScanRowProvider implements RowProvider {
 
     @Override
     public void close() {
-        if (jobFutures != null) {
-            for (JobFuture completedJob : jobFutures) {
-                try {
-                    completedJob.cleanup();
-                } catch (ExecutionException e) {
-                    SpliceLogUtils.error(LOG, "Unable to clean up job", e.getCause());
-                }
-            }
-        }
     }
 
     /**

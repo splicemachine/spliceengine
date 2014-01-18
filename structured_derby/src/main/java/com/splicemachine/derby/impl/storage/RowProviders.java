@@ -1,22 +1,18 @@
 package com.splicemachine.derby.impl.storage;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
-import com.google.common.collect.Iterables;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
+import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -26,9 +22,9 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Static utility methods for managing RowProviders.
@@ -38,6 +34,8 @@ import java.util.NoSuchElementException;
  * RowProviders.
  */
 public class RowProviders {
+
+    private static final Logger LOG = Logger.getLogger(RowProviders.class);
 
 	private static final SingleScanRowProvider EMPTY_PROVIDER = new SingleScanRowProvider(){
 		@Override public boolean hasNext() { return false; }
@@ -86,11 +84,91 @@ public class RowProviders {
         return new CombinedRowProvider(first,second);
     }
 
+    public static RowProvider combineInSeries(RowProvider first,RowProvider second){
+        return new SerialCombinedRowProvider(first,second);
+    }
+
     public static RowProvider emptyProvider() {
         return EMPTY_PROVIDER;
     }
 
-	public static abstract class DelegatingRowProvider implements RowProvider{
+    public static JobResults completeAllJobs(List<Pair<JobFuture, JobInfo>> jobs)
+            throws StandardException {
+        return completeAllJobs(jobs, false);
+    }
+
+    public static JobResults completeAllJobs(List<Pair<JobFuture, JobInfo>> jobs,
+                                             boolean cancelOnError) throws StandardException {
+        JobResults results = null;
+        StandardException baseError = null;
+        List<JobStats> stats = new LinkedList<JobStats>();
+
+        long start = System.nanoTime();
+
+        for (Pair<JobFuture, JobInfo> job : jobs) {
+            try {
+                job.getFirst().completeAll(job.getSecond());
+                stats.add(job.getFirst().getJobStats());
+
+            } catch (ExecutionException ee) {
+                SpliceLogUtils.error(LOG, ee);
+                if (job.getSecond() != null) {
+                    job.getSecond().failJob();
+                }
+                baseError = Exceptions.parseException(ee.getCause());
+                throw baseError;
+            } catch (InterruptedException e) {
+                SpliceLogUtils.error(LOG, e);
+                if (job.getSecond() != null) {
+                    job.getSecond().failJob();
+                }
+                baseError = Exceptions.parseException(e);
+                throw baseError;
+            } finally {
+                if (job.getFirst() != null) {
+                    try {
+                        job.getFirst().cleanup();
+                    } catch (ExecutionException e) {
+                        if (baseError == null)
+                            baseError = Exceptions.parseException(e.getCause());
+                    }
+                }
+                if (baseError != null) {
+                    if (cancelOnError){
+                        cancelAll(jobs);
+                    }
+                    SpliceLogUtils.logAndThrow(LOG, baseError);
+                }
+            }
+        }
+
+        long end = System.nanoTime();
+
+        if (jobs.size() > 1) {
+            results = new CompositeJobResults(Lists.transform(jobs, new Function<Pair<JobFuture, JobInfo>, JobFuture>() {
+                @Override
+                public JobFuture apply(Pair<JobFuture, JobInfo> job) {
+                    return job.getFirst();
+                }
+            }), stats, end - start);
+        } else if (jobs.size() == 1) {
+            results = new SimpleJobResults(stats.iterator().next(), jobs.get(0).getFirst());
+        }
+
+        return results;
+    }
+
+    public static void cancelAll(Collection<Pair<JobFuture, JobInfo>> jobs) {
+        for (Pair<JobFuture, JobInfo> jobToCancel : jobs) {
+            try {
+                jobToCancel.getFirst().cancel();
+            } catch (ExecutionException e) {
+                SpliceLogUtils.error(LOG, "Unable to cancel job", e.getCause());
+            }
+        }
+    }
+
+    public static abstract class DelegatingRowProvider implements RowProvider{
 
         protected final RowProvider provider;
 
@@ -248,10 +326,14 @@ public class RowProviders {
 
 	}
 
+    /*
+     * RowProvider that combines two row providers. Rows from the two source providers
+     * are shuffled in parallel.
+     */
     private static class CombinedRowProvider implements RowProvider{
-        private final RowProvider firstRowProvider;
-        private final RowProvider secondRowProvider;
-        private boolean onFirst = true;
+        protected final RowProvider firstRowProvider;
+        protected final RowProvider secondRowProvider;
+        protected boolean onFirst = true;
 
         private CombinedRowProvider(RowProvider firstRowProvider, RowProvider secondRowProvider) {
             this.firstRowProvider = firstRowProvider;
@@ -281,13 +363,6 @@ public class RowProviders {
             else return secondRowProvider.getCurrentRowLocation();
         }
 
-        /*
-        @Override
-        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            return finishShuffle( asyncShuffleRows(instructions) );
-        }
-        */
-
         @Override
         public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
             List<Pair<JobFuture,JobInfo>> firstFutures = firstRowProvider.asyncShuffleRows(instructions);
@@ -301,17 +376,11 @@ public class RowProviders {
 
         @Override
         public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
-            // PJT revisit
             return firstRowProvider.finishShuffle(jobFutures);
         }
 
         public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            /*
-        	JobResults firstStats = firstRowProvider.shuffleRows(instructions);
-            JobResults secondStats = secondRowProvider.shuffleRows(instructions);
-            return new CombinedJobResults(firstStats,secondStats);
-            */
-            return finishShuffle (asyncShuffleRows(instructions) );
+            return finishShuffle( asyncShuffleRows(instructions) );
         }
 
         @Override
@@ -352,6 +421,39 @@ public class RowProviders {
 			return String.format("CombinedRowProvider { firstRowProvider=%s, secondRowProvider=%s } ",firstRowProvider, secondRowProvider);
 		}
 
+    }
+
+    /*
+     * RowProvider that combines two row providers. Rows from the two source providers
+     * are shuffled in series (first then second).
+     */
+    private static class SerialCombinedRowProvider extends CombinedRowProvider{
+
+        private SerialCombinedRowProvider(RowProvider firstRowProvider, RowProvider secondRowProvider) {
+            super(firstRowProvider, secondRowProvider);
+        }
+
+        @Override
+        public List<Pair<JobFuture, JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            List<Pair<JobFuture, JobInfo>> l = new LinkedList<Pair<JobFuture, JobInfo>>();
+            for (RowProvider rp : Arrays.asList(firstRowProvider, secondRowProvider)) {
+                l.add(futurePairForResults(rp.finishShuffle(rp.asyncShuffleRows(instructions))));
+            }
+            return l;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("SerialCombinedRowProvider { firstRowProvider=%s, secondRowProvider=%s } ", firstRowProvider, secondRowProvider);
+        }
+
+    }
+
+    public static Pair<JobFuture,JobInfo> futurePairForResults(JobResults results){
+        JobFuture future = new JobFutureFromResults(results);
+        JobInfo info = new JobInfo(results.getJobStats().getJobName(), future.getNumTasks());
+        info.setJobFuture(future);
+        return Pair.newPair(future, info);
     }
 
     private static class CombinedJobResults implements JobResults {
