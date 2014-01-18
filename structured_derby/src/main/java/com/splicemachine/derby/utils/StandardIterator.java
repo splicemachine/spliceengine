@@ -2,6 +2,8 @@ package com.splicemachine.derby.utils;
 
 import org.apache.derby.iapi.error.StandardException;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+
 import java.io.IOException;
 
 /**
@@ -29,7 +31,7 @@ public interface StandardIterator<T> {
      * @throws StandardException
      * @throws IOException
      */
-    T next() throws StandardException,IOException;
+    T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
 
     /**
      * Close the iterator. Should be called after the last

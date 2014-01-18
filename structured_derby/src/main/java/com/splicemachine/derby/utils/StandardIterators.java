@@ -4,6 +4,8 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
@@ -43,7 +45,7 @@ public class StandardIterators {
         @Override public void close() throws StandardException, IOException { } //no-op
 
         @Override
-        public T next() throws StandardException, IOException {
+        public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
             if(!delegate.hasNext())
                 return null;
             return delegate.next();
@@ -64,7 +66,7 @@ public class StandardIterators {
         }
 
         @Override
-        public ExecRow next() throws StandardException, IOException {
+        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
             return noPut.getNextRowCore();
         }
 
@@ -108,7 +110,7 @@ public class StandardIterators {
         public boolean hasNext(){
             if (needToCheckDelegate && !hasException()){
                 try {
-                    value = delegate.next();
+                    value = delegate.next(null);
                     needToCheckDelegate = false;
                 } catch (StandardException e){
                     se = e;
@@ -181,7 +183,7 @@ public class StandardIterators {
         public void close() {}
 
         @Override
-        public T next() throws StandardException, IOException {
+        public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
             try {
                 return callable.call();
             } catch (StandardException se){

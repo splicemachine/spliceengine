@@ -81,6 +81,21 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                 Qualifier[][] scanQualifiers = populateQualifiers();
                 ObjectArrayList<Predicate> scanPredicates;
                 if(scanQualifiers!=null){
+										/*
+										 * The first qualifier is the qualifier for the start and stop keys, so
+										 * set it on that field.
+										 *
+										 * TODO -sf- this could be wrong--it's very hard to tell how Derby
+										 * is to interact with us here.
+										 */
+										Qualifier[] ands  = scanQualifiers[0];
+										if(ands!=null){
+												Qualifier first = ands[0];
+												if(first!=null){
+														first.clearOrderableCache();
+														first.getOrderable().setValue(probeValue);
+												}
+										}
                     scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
                     if(accessedCols!=null){
                         for(Qualifier[] qualifierList:scanQualifiers){

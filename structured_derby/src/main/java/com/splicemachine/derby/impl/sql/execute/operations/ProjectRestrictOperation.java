@@ -229,8 +229,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		beginTime = getCurrentTimeMillis();
 		do {
 			candidateRow = source.nextRow(spliceRuntimeContext);
-			if (LOG.isDebugEnabled())
-				SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp: Candidate: ",candidateRow);
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "nextRow before projection row=%s",candidateRow);
 			if (candidateRow != null) {
 				/* If restriction is null, then all rows qualify */
 				if (restriction == null) {
@@ -253,8 +253,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		} while ( (candidateRow != null) && (! restrict ) );
 		if (candidateRow != null)  {
 			result = doProjection(candidateRow);
-			if (LOG.isDebugEnabled())
-				SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp Result: ",result);
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "nextRow after projection row=%s",result);
 		}
 		/* Clear the current row, if null */
 		else {

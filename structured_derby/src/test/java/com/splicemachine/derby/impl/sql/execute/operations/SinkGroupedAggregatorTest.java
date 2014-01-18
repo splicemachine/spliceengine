@@ -92,7 +92,7 @@ public class SinkGroupedAggregatorTest {
         List<GroupedRow> distinctResults = Lists.newArrayListWithExpectedSize(size/3 + size%3);
         Set<byte[]> nonDistinctValues = Sets.newTreeSet(Bytes.BYTES_COMPARATOR);
         List<GroupedRow> allRows = Lists.newArrayList();
-        GroupedRow row = aggregator.next();
+        GroupedRow row = aggregator.next(null);
         while(row!=null){
             if(row.isDistinct()){
                 distinctResults.add(row.deepCopy());
@@ -102,7 +102,7 @@ public class SinkGroupedAggregatorTest {
                 nonDistinctResults.add(row.deepCopy());
             }
             allRows.add(row.deepCopy());
-            row = aggregator.next();
+            row = aggregator.next(null);
         }
 
         Assert.assertEquals("Incorrect nonDistinctSize results",size/3,nonDistinctResults.size());
@@ -122,10 +122,10 @@ public class SinkGroupedAggregatorTest {
         ScanGroupedAggregateIterator scanAggregator = new ScanGroupedAggregateIterator(scanBuffer,scanSource,groupColumns,groupSortOrder,false);
 
         List<GroupedRow> scanRows = Lists.newArrayListWithExpectedSize(3);
-        row = scanAggregator.next();
+        row = scanAggregator.next(null);
         while(row!=null){
             scanRows.add(row.deepCopy());
-            row = scanAggregator.next();
+            row = scanAggregator.next(null);
         }
         Assert.assertEquals("incorrect size!",size/3,scanRows.size());
 

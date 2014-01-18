@@ -16,7 +16,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -30,7 +29,6 @@ import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -225,7 +223,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             if (rightSideIterator != null && rightSideIterator.hasNext()) {
                 mergedRow = JoinUtils.getMergedRow(leftRow, rightSideIterator.next(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
                 setCurrentRow(mergedRow);
-                currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
+//                currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
                 SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
                 return true;
             }
@@ -255,7 +253,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             return broadcastJoinCache.get(Bytes.mapKey(uniqueSequenceID), new Callable<Map<ByteBuffer, List<ExecRow>>>() {
                 @Override
                 public Map<ByteBuffer, List<ExecRow>> call() throws Exception {
-                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID " + uniqueSequenceID);
+                    SpliceLogUtils.trace(LOG, "Load right-side cache for BroadcastJoin, uniqueSequenceID %s",uniqueSequenceID);
                     return loadRightSide(runtimeContext);
                 }
             });

@@ -155,15 +155,38 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 		try {
             boolean[] sortOrder = spliceConglomerate==null?null:
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
+				boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
             scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
-                    sortOrder, scanColumnList, transID);
+                    sortOrder, scanColumnList, transID,sameStartStop);
 		} catch (Exception e) {
 			LOG.error("Exception creating start key");
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public OpenSpliceConglomerate getOpenConglom() {
+
+		private boolean isSameStartStop(DataValueDescriptor[] startKeyValue, int startSearchOperator, DataValueDescriptor[] stopKeyValue, int stopSearchOperator) throws StandardException {
+				/*
+				 * Determine if the start and stop operators are actually, in fact the same.
+				 *
+				 * This assumes that the start and stop key operators are actually of the same type. While
+				 * I don't think that this is a bad assumption, I suppose it could be in some circumstances.
+				 */
+				if(startSearchOperator!=stopSearchOperator) return false;
+
+				if(startKeyValue==null){
+						return stopKeyValue == null;
+				}else if(stopKeyValue==null) return false;
+				for(int i=0;i<startKeyValue.length;i++){
+						if(i>=stopKeyValue.length) return false;
+						DataValueDescriptor startDvd = startKeyValue[i];
+						DataValueDescriptor stopDvd = stopKeyValue[i];
+						if(startDvd.getTypeFormatId()!=stopDvd.getTypeFormatId()) return false;
+						if(startDvd.compare(stopDvd)!=0) return false;
+				}
+				return true;
+		}
+
+		public OpenSpliceConglomerate getOpenConglom() {
 		return spliceConglomerate;
 	}
 	

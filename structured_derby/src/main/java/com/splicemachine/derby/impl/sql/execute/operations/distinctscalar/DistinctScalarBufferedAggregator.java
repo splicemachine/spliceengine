@@ -31,7 +31,6 @@ public class DistinctScalarBufferedAggregator implements BufferedAggregator {
      * Initialize Aggregator
      */
     public void initialize(ExecRow row) throws StandardException{
-    	System.out.println("initialize: " + row);
         this.currentRow = row.getClone();
         if (!alreadyInitialized) { // In the case we are reading from temp an already initialized aggregations.
 	        for(SpliceGenericAggregator aggregator:aggregates){
@@ -41,19 +40,16 @@ public class DistinctScalarBufferedAggregator implements BufferedAggregator {
 	        	}
 	        }
         }
-    	System.out.println("after initialize: " + row);
     }
     /**
      * Merge Non Distinct Aggregates
      * 
      */
     public void merge(ExecRow newRow) throws StandardException{
-    	System.out.println("merge: currentRow " + currentRow + " with newRow " + newRow);
     	for(SpliceGenericAggregator aggregator:aggregates) {
         	if (!aggregator.isDistinct() || isSorted) // Merge Non Distinct Aggregates and Distinct Aggregates if Source is Sorted
         		aggregator.merge(currentRow, newRow);
         }
-    	System.out.println("After Merge " + currentRow);
     }
 
     public boolean isInitialized() {
@@ -64,12 +60,10 @@ public class DistinctScalarBufferedAggregator implements BufferedAggregator {
         if(currentRow==null)
             currentRow = emptyRowSupplier.get();
         boolean eliminatedNulls = false;
-        System.out.println("Finish " + currentRow);
         for(SpliceGenericAggregator aggregate:aggregates){
             if(aggregate.finish(currentRow))
                 eliminatedNulls=true;
         }
-        System.out.println("After Finish " + currentRow);
         if(eliminatedNulls)
             warningCollector.addWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION);
         //once finished, return this to an unitialized state so it can be reused

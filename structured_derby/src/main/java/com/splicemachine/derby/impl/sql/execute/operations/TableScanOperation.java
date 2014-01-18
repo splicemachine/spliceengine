@@ -149,7 +149,6 @@ public class TableScanOperation extends ScanOperation {
 
 	@Override
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-		SpliceLogUtils.trace(LOG, "getMapRowProvider");
 		beginTime = System.currentTimeMillis();
 		Scan scan = buildScan(spliceRuntimeContext);
 		SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
@@ -227,6 +226,8 @@ public class TableScanOperation extends ScanOperation {
                 		RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
                 	}
                 }
+                if (LOG.isTraceEnabled())
+                	SpliceLogUtils.trace(LOG, "nextRow row=%s",currentRow);
                 if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
                     /*
                      * If indexName !=null, then we are currently scanning an index,
@@ -237,7 +238,6 @@ public class TableScanOperation extends ScanOperation {
                 } else {
                 	slice.updateSlice(keyValues.get(0).getBuffer(), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
                 	currentRowLocation.setValue(slice);
-//                    currentRowLocation.setValue(keyValues.get(0).getRow()); Removed the Array Copy Here for each row...
                 }
 			}
 		}finally{
@@ -253,8 +253,7 @@ public class TableScanOperation extends ScanOperation {
 		public String toString() {
 				try {
 						return String.format("TableScanOperation {tableName=%s,isKeyed=%b,resultSetNumber=%s}",tableName,scanInformation.isKeyed(),resultSetNumber);
-				} catch (StandardException e) {
-						LOG.error(e); //shouldn't happen
+				} catch (Exception e) {
 						return String.format("TableScanOperation {tableName=%s,isKeyed=%s,resultSetNumber=%s}", tableName, "UNKNOWN", resultSetNumber);
 				}
 		}

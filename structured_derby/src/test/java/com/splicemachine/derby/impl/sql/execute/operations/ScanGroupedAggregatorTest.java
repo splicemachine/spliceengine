@@ -78,10 +78,10 @@ public class ScanGroupedAggregatorTest {
                 source,groupColumns,groupSortOrder,true);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(21);
-        GroupedRow row = aggregator.next();
+        GroupedRow row = aggregator.next(null);
         while(row!=null){
             results.add(row.deepCopy());
-            row = aggregator.next();
+            row = aggregator.next(null);
         }
 
         Assert.assertEquals("Incorrect number of grouped rows returned!",21,results.size());
@@ -156,10 +156,10 @@ public class ScanGroupedAggregatorTest {
                 source,groupColumns,groupSortOrder,false);
 
         List<GroupedRow> results = Lists.newArrayListWithExpectedSize(10);
-        GroupedRow row = aggregator.next();
+        GroupedRow row = aggregator.next(null);
         while(row!=null){
             results.add(row.deepCopy());
-            row = aggregator.next();
+            row = aggregator.next(null);
         }
 
         Assert.assertEquals("Incorrect number of grouped rows returned!",10,results.size());
