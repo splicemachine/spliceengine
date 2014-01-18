@@ -163,7 +163,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         	secondStep.setStatementInfo(runtimeContext.getStatementInfo());        	
         	final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), firstStep); // Step 1
         	final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this,runtimeContext), secondStep); // Step 2
-        	provider = RowProviders.combine(step1, step2);
+        	provider = RowProviders.combineInSeries(step1, step2);
         } else {
         	SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(false);
         	secondStep.setStatementInfo(runtimeContext.getStatementInfo());        	
@@ -178,10 +178,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         try{
             reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID, SpliceUtils.NA_TRANSACTION_ID);
             //make sure that we filter out failed tasks
-						if(failedTasks.size()>0){
-								SuccessFilter filter = new SuccessFilter(failedTasks);
-								reduceScan.setFilter(filter);
-						}
+            if (failedTasks.size() > 0) {
+                SuccessFilter filter = new SuccessFilter(failedTasks);
+                reduceScan.setFilter(filter);
+            }
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -216,7 +216,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         currentKey = row.getGroupingKey();
         ExecRow execRow = row.getRow();
         setCurrentRow(execRow);
-        return execRow;    	
+        return execRow;
 	}
 	
 	private ExecRow getStep2Row(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -361,8 +361,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 
         isTemp = !context.isSink() || context.getTopOperation()!=this;
 		baseScan = context.getScan();
-        if(isTemp){
-        }
     }
 
 	@Override
