@@ -43,7 +43,8 @@ if [[ -z "${PROFILE}" ]]; then
     PROFILE="cloudera-cdh4.3.0"
 fi
 
-TARBALL="${ROOT_DIR}"/target/splice_machine-0.5rc6-SNAPSHOT-${PROFILE}_simple.tar.gz
+SPLICE_VERSION=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)')
+TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
     usage "Cannot find ${TARBALL}. An unexpected profile was provided \\"${PROFILE}\\" or the project needs to be built."
