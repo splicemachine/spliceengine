@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.Visitable;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -112,11 +113,17 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
         if (rsn instanceof FromBaseTable){
             FromBaseTable fbt = (FromBaseTable) rsn;
+            ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
             info.put("table", String.format("%s,%s",
                                 fbt.getTableDescriptor().getName(),
                                 fbt.getTableDescriptor().getHeapConglomerateId()));
             info.put("quals", Lists.transform(JoinSelector.preds(rsn),
                                                 PredicateUtils.predToString));
+            if (cd.isIndex()) {
+                info.put("using-index", String.format("%s,%s", cd.getConglomerateName(),
+                                                                cd.getConglomerateNumber()));
+            }
+
         }
         if (rsn instanceof IndexToBaseRowNode){
             IndexToBaseRowNode idx = (IndexToBaseRowNode) rsn;
