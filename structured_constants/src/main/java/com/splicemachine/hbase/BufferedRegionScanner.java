@@ -5,13 +5,16 @@ import com.google.common.collect.Lists;
 import com.splicemachine.utils.ConcurrentRingBuffer;
 import com.splicemachine.utils.Filler;
 import com.splicemachine.utils.UnsafeRingBuffer;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.List;
@@ -165,6 +168,7 @@ public class BufferedRegionScanner implements RegionScanner{
         private final RegionScanner scanner;
         private final HRegion region;
         private boolean exhausted;
+        private long reads;
 
         public ReadFiller(RegionScanner scanner, HRegion region) {
             this.scanner = scanner;
@@ -176,6 +180,7 @@ public class BufferedRegionScanner implements RegionScanner{
         public void prepareToFill() throws ExecutionException {
             try {
                 region.startRegionOperation();
+                reads = 0;
             } catch (NotServingRegionException e) {
                 throw new ExecutionException(e);
             } catch (RegionTooBusyException e) {
@@ -199,12 +204,15 @@ public class BufferedRegionScanner implements RegionScanner{
             } catch (IOException e) {
                 throw new ExecutionException(e);
             }
+            if (!exhausted)
+            	reads++;
             return exhausted?null:old; // We have a null check on the get next and not an empty...
         }
 
         @Override
         public void finishFill() {
-            region.closeRegionOperation();
+            HRegionUtil.updateReadRequests(region, reads);
+        	region.closeRegionOperation();
         }
 
 		@Override
