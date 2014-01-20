@@ -10,7 +10,7 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
     private KeyValue keyValue;
     private Data row;
     private Data value;
-    private Long timestamp;
+    private long timestamp;
 
     public DecodedKeyValue(SDataLib dataLib) {
         this.dataLib = dataLib;
@@ -19,7 +19,7 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
     public void setKeyValue(KeyValue keyValue) {
         this.row = null;
         this.value = null;
-        this.timestamp = null;
+        this.timestamp = -1;
         this.keyValue = keyValue;
     }
 
@@ -41,7 +41,7 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
     }
 
     public long timestamp() {
-        if (timestamp == null) {
+        if (timestamp == -1) {
             timestamp = dataLib.getKeyValueTimestamp(keyValue);
         }
         return timestamp;
