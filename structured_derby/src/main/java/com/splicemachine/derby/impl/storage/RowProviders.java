@@ -4,19 +4,29 @@ import java.util.*;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
@@ -168,6 +178,49 @@ public class RowProviders {
         }
     }
 
+    public static Pair<JobFuture,JobInfo> submitScanJob(Scan scan, HTableInterface table,
+                                                        SpliceObserverInstructions instructions,
+                                                        SpliceRuntimeContext runtimeContext)
+            throws StandardException {
+        instructions.setSpliceRuntimeContext(runtimeContext);
+        JobFuture jobFuture = null;
+        JobInfo info = null;
+        StatementInfo stmtInfo = instructions.getSpliceRuntimeContext().getStatementInfo();
+        try {
+            long startTimeMs = System.currentTimeMillis();
+            OperationJob job = getJob(table, instructions, scan);
+            jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
+            info.setJobFuture(jobFuture);
+            info.tasksRunning(jobFuture.getAllTaskIds());
+            stmtInfo.addRunningJob(info);
+            jobFuture.addCleanupTask(table);
+            jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
+            return Pair.newPair(jobFuture, info);
+
+        } catch (ExecutionException e) {
+            LOG.error(e);
+            if (info != null){
+                info.failJob();
+            }
+            if (jobFuture != null){
+                try {
+                    jobFuture.cleanup();
+                } catch (ExecutionException ee){
+                    LOG.error("Error cleaning up Scan Job future", ee);
+                }
+            }
+            throw Exceptions.parseException(e.getCause());
+        }
+    }
+
+    private static OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
+        if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
+            SpliceUtils.setInstructions(scan, instructions);
+        boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
+        return new OperationJob(scan, instructions, table, readOnly);
+    }
+
     public static abstract class DelegatingRowProvider implements RowProvider{
 
         protected final RowProvider provider;
@@ -284,6 +337,34 @@ public class RowProviders {
 			} catch (IOException e) {
                 SpliceLogUtils.logAndThrowRuntime(log,e);
             }
+        }
+
+        @Override
+        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+            spliceRuntimeContext.setCurrentTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes());
+            SpliceOperation op = instructions.getTopOperation();
+            op.init(SpliceOperationContext.newContext(op.getActivation()));
+            try {
+                OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTransactionId());
+
+                JobStats stats;
+                if (op instanceof DMLWriteOperation)
+                    stats = new LocalTaskJobStats(opSink.sink(((DMLWriteOperation) op).getDestinationTable(), spliceRuntimeContext));
+                else {
+                    byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+                    stats = new LocalTaskJobStats(opSink.sink(tempTableBytes, spliceRuntimeContext));
+                }
+
+                return new SimpleJobResults(stats, null);
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+
+        @Override
+        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions)
+                throws StandardException {
+            return Collections.singletonList(futurePairForResults(shuffleRows(instructions)));
         }
 
 		@Override public RowLocation getCurrentRowLocation() { return null; }
@@ -545,4 +626,61 @@ public class RowProviders {
         }
     }
 
+    private static class LocalTaskJobStats implements JobStats {
+        private final TaskStats stats;
+
+        public LocalTaskJobStats(TaskStats stats) {
+            this.stats = stats;
+        }
+
+        @Override
+        public int getNumTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumSubmittedTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumCompletedTasks() {
+            return 1;
+        }
+
+        @Override
+        public int getNumFailedTasks() {
+            return 0;
+        }
+
+        @Override
+        public int getNumInvalidatedTasks() {
+            return 0;
+        }
+
+        @Override
+        public int getNumCancelledTasks() {
+            return 0;
+        }
+
+        @Override
+        public long getTotalTime() {
+            return stats.getTotalTime();
+        }
+
+        @Override
+        public String getJobName() {
+            return "localJob";
+        }
+
+        @Override
+        public List<byte[]> getFailedTasks() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public List<TaskStats> getTaskStats() {
+            return Arrays.asList(stats);
+        }
+    }
 }

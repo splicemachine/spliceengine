@@ -237,6 +237,7 @@ class JobControl implements JobFuture {
 
     @Override
     public void addCleanupTask(Closeable closable) {
+        // prepend, so closables are closed in reverse
         closables.add(0, closable);
     }
 
