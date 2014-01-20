@@ -43,12 +43,7 @@ if [[ -z "${PROFILE}" ]]; then
     PROFILE="cloudera-cdh4.3.0"
 fi
 
-SPLICE_VERSION=$(mvn -o org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)')
-## Hack for DB-896; no maven env on the build box
-if [[ -z ${SPLICE_VERSION} ]]; then
-    SPLICE_VERSION="0.5rc7-SNAPSHOT"
-fi
-## End hack
+SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)')
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
