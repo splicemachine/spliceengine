@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -78,156 +79,167 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute();
+		TransactionController tc = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
 
-		if ((sd != null) && sd.getSchemaName().equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME)) {
-			td = lcc.getTableDescriptorForDeclaredGlobalTempTable(tableName); //check if this is a temp table before checking data dictionary
+        try {
 
-			if (td == null) //td null here means it is not a temporary table. Look for table in physical SESSION schema
-				td = dd.getTableDescriptor(tableName, sd, tc);
+            if ((sd != null) && sd.getSchemaName().equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME)) {
+                td = lcc.getTableDescriptorForDeclaredGlobalTempTable(tableName); //check if this is a temp table before checking data dictionary
 
-			if (td == null) //td null means tableName is not a temp table and it is not a physical table in SESSION schema
-			{
-				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
-			}
+                if (td == null) //td null here means it is not a temporary table. Look for table in physical SESSION schema
+                    td = dd.getTableDescriptor(tableName, sd, tc);
 
-			if (td.getTableType() ==  TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
-				dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
-				tc.dropConglomerate(td.getHeapConglomerateId());
-				lcc.dropDeclaredGlobalTempTable(tableName);
-				return;
-			}
-    }
+                if (td == null) //td null means tableName is not a temp table and it is not a physical table in SESSION schema
+                {
+                    throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
+                }
 
-		/* Lock the table before we access the data dictionary
-		 * to prevent deadlocks.
-		 *
-		 * Note that for DROP TABLE replayed at Targets during REFRESH,
-		 * the conglomerateNumber will be 0. That's ok. During REFRESH,
-		 * we don't need to lock the conglomerate.
-		 */
-		if ( conglomerateNumber != 0 ) { 
-			// XXX - TODO NO LOCK - JL lockTableForDDL(tc, conglomerateNumber, true); 	
-		}
+                if (td.getTableType() ==  TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+                    dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
+                    tc.dropConglomerate(td.getHeapConglomerateId());
+                    lcc.dropDeclaredGlobalTempTable(tableName);
+                    return;
+                }
+            }
 
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+            /* Lock the table before we access the data dictionary
+             * to prevent deadlocks.
+             *
+             * Note that for DROP TABLE replayed at Targets during REFRESH,
+             * the conglomerateNumber will be 0. That's ok. During REFRESH,
+             * we don't need to lock the conglomerate.
+             */
+            if ( conglomerateNumber != 0 ) {
+                // XXX - TODO NO LOCK - JL lockTableForDDL(tc, conglomerateNumber, true);
+            }
 
-		/* Get the table descriptor. */
-		td = dd.getTableDescriptor(tableId);
+            /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+            dd.startWriting(lcc);
 
-		if (td == null)
-		{
-			throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
-		}
+            /* Get the table descriptor. */
+            td = dd.getTableDescriptor(tableId);
 
-		/* Get an exclusive table lock on the table. */
-		long heapId = td.getHeapConglomerateId();
-		// XXX-TODO NO LOCK lockTableForDDL(tc, heapId, true);
+            if (td == null)
+            {
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
+            }
 
-		/* Drop the triggers */
-		GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
-        for (Iterator descIter = tdl.iterator(); descIter.hasNext(); ) {
-            TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
-            trd.drop(lcc);
-		}
+            /* Get an exclusive table lock on the table. */
+            long heapId = td.getHeapConglomerateId();
+            // XXX-TODO NO LOCK lockTableForDDL(tc, heapId, true);
 
-		/* Drop all defaults */
-		ColumnDescriptorList cdl = td.getColumnDescriptorList();
-		int					 cdlSize = cdl.size();
-		
-		for (int index = 0; index < cdlSize; index++)
-		{
-			ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+            /* Drop the triggers */
+            GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
+            for (Iterator descIter = tdl.iterator(); descIter.hasNext(); ) {
+                TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
+                trd.drop(lcc);
+            }
 
-			// If column has a default we drop the default and
-			// any dependencies
-			if (cd.getDefaultInfo() != null)
-			{
-				DefaultDescriptor defaultDesc = cd.getDefaultDescriptor(dd);
-				dm.clearDependencies(lcc, defaultDesc);
-			}
-		}
+            /* Drop all defaults */
+            ColumnDescriptorList cdl = td.getColumnDescriptorList();
+            int					 cdlSize = cdl.size();
 
-		/* Drop the columns */
-		dd.dropAllColumnDescriptors(tableId, tc);
+            for (int index = 0; index < cdlSize; index++)
+            {
+                ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
 
-		/* Drop all table and column permission descriptors */
-		dd.dropAllTableAndColPermDescriptors(tableId, tc);
+                // If column has a default we drop the default and
+                // any dependencies
+                if (cd.getDefaultInfo() != null)
+                {
+                    DefaultDescriptor defaultDesc = cd.getDefaultDescriptor(dd);
+                    dm.clearDependencies(lcc, defaultDesc);
+                }
+            }
 
-		/* Drop the constraints */
-		dropAllConstraintDescriptors(td, activation);
+            /* Drop the columns */
+            dd.dropAllColumnDescriptors(tableId, tc);
 
-		/*
-		** Drop all the conglomerates.  Drop the heap last, because the
-		** store needs it for locking the indexes when they are dropped.
-		*/
-		cds = td.getConglomerateDescriptors();
+            /* Drop all table and column permission descriptors */
+            dd.dropAllTableAndColPermDescriptors(tableId, tc);
 
-		long[] dropped = new long[cds.length - 1];
-		int numDropped = 0;
-		for (int index = 0; index < cds.length; index++)
-		{
-			ConglomerateDescriptor cd = cds[index];
+            /* Drop the constraints */
+            dropAllConstraintDescriptors(td, activation);
 
-			/* if it's for an index, since similar indexes share one
-			 * conglomerate, we only drop the conglomerate once
-			 */
-			if (cd.getConglomerateNumber() != heapId)
-			{
-				long thisConglom = cd.getConglomerateNumber();
+            /*
+            ** Drop all the conglomerates.  Drop the heap last, because the
+            ** store needs it for locking the indexes when they are dropped.
+            */
+            cds = td.getConglomerateDescriptors();
 
-				int i;
-				for (i = 0; i < numDropped; i++)
-				{
-					if (dropped[i] == thisConglom)
-						break;
-				}
-				if (i == numDropped)	// not dropped
-				{
-					dropped[numDropped++] = thisConglom;
-					tc.dropConglomerate(thisConglom);
-					dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
-				}
-			}
-		}
+            long[] dropped = new long[cds.length - 1];
+            int numDropped = 0;
+            for (int index = 0; index < cds.length; index++)
+            {
+                ConglomerateDescriptor cd = cds[index];
 
-		/* Prepare all dependents to invalidate.  (This is there chance
-		 * to say that they can't be invalidated.  For example, an open
-		 * cursor referencing a table/view that the user is attempting to
-		 * drop.) If no one objects, then invalidate any dependent objects.
-		 * We check for invalidation before we drop the table descriptor
-		 * since the table descriptor may be looked up as part of
-		 * decoding tuples in SYSDEPENDS.
-		 */
+                /* if it's for an index, since similar indexes share one
+                 * conglomerate, we only drop the conglomerate once
+                 */
+                if (cd.getConglomerateNumber() != heapId)
+                {
+                    long thisConglom = cd.getConglomerateNumber();
 
-		dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
+                    int i;
+                    for (i = 0; i < numDropped; i++)
+                    {
+                        if (dropped[i] == thisConglom)
+                            break;
+                    }
+                    if (i == numDropped)	// not dropped
+                    {
+                        dropped[numDropped++] = thisConglom;
+                        tc.dropConglomerate(thisConglom);
+                        dd.dropStatisticsDescriptors(td.getUUID(), cd.getUUID(), tc);
+                    }
+                }
+            }
 
-        //
-        // The table itself can depend on the user defined types of its columns.
-        // Drop all of those dependencies now.
-        //
-        adjustUDTDependencies( lcc, dd, td, null, true );
+            /* Prepare all dependents to invalidate.  (This is there chance
+             * to say that they can't be invalidated.  For example, an open
+             * cursor referencing a table/view that the user is attempting to
+             * drop.) If no one objects, then invalidate any dependent objects.
+             * We check for invalidation before we drop the table descriptor
+             * since the table descriptor may be looked up as part of
+             * decoding tuples in SYSDEPENDS.
+             */
 
-		/* Drop the table */
-		dd.dropTableDescriptor(td, sd, tc);
+            dm.invalidateFor(td, DependencyManager.DROP_TABLE, lcc);
 
-		/* Drop the conglomerate descriptors */
-		dd.dropAllConglomerateDescriptors(td, tc);
+            //
+            // The table itself can depend on the user defined types of its columns.
+            // Drop all of those dependencies now.
+            //
+            adjustUDTDependencies( lcc, dd, td, null, true );
 
-		/* Drop the store element at last, to prevent dangling reference
-		 * for open cursor, beetle 4393.
-		 */
-		tc.dropConglomerate(heapId);
+            /* Drop the table */
+            dd.dropTableDescriptor(td, sd, tc);
 
+            /* Drop the conglomerate descriptors */
+            dd.dropAllConglomerateDescriptors(td, tc);
+
+            /* Drop the store element at last, to prevent dangling reference
+             * for open cursor, beetle 4393.
+             */
+            tc.dropConglomerate(heapId);
+
+        } catch (StandardException se) {
+            tc.abort();
+            throw se;
+        } catch (Throwable t) {
+            tc.abort();
+            throw Exceptions.parseException(t);
+        }
+
+        tc.commit();
 	}
 
 	private void dropAllConstraintDescriptors(TableDescriptor td, Activation activation)

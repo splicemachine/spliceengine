@@ -1768,8 +1768,6 @@ public class SpliceTransactionManager implements XATransactionController,
 		this.closeControllers(true /* close all controllers */);
 		rawtran.abort();
 
-		if (parent_tran != null)
-			parent_tran.abort();
 	}
 
 	/**
