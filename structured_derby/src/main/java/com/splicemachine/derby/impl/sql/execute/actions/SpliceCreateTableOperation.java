@@ -131,13 +131,14 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 					 * the insert node will explode with a "Table does not exist" exception (or lots
 					 * of NullPointers if you try and fix it).
 					 */
+                    insertNode.treePrint();
 						GenericStorablePreparedStatement gsps = new GenericStorablePreparedStatement();
-						CompilerContext cc = lcc.pushCompilerContext(insertNode.getSchemaDescriptor(schemaName));
-						CompilerContext compilerContext = insertNode.getCompilerContext();
-						Dependent oldDependent = compilerContext.getCurrentDependent();
-						if(oldDependent==null)
-								compilerContext.setCurrentDependent(gsps);
-
+						//CompilerContext cc = lcc.pushCompilerContext(insertNode.getSchemaDescriptor(schemaName));
+						CompilerContext cc = insertNode.getCompilerContext();
+						Dependent oldDependent = cc.getCurrentDependent();
+						if(oldDependent==null) {
+								cc.setCurrentDependent(gsps);
+                        }
 						/*
 						 * The following section is a stripped-down version of what occurs inside
 						 * for GenericStatement.prepMinion (minus the parsing). If we can somehow
