@@ -1,18 +1,16 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.management.StatementInfo;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SpliceRuntimeContext<Row> implements Externalizable {
     private static final long serialVersionUID = 1l;
-    private List<Path> paths = new ArrayList<Path>();
+    private IntIntOpenHashMap paths = new IntIntOpenHashMap();
     private boolean isSink;
     private Row scanStartOverride;
     private byte[] currentTaskId;
@@ -65,8 +63,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     
     public SpliceRuntimeContext copy() {
         SpliceRuntimeContext copy = new SpliceRuntimeContext();
-        for (Path path : paths) {
-            copy.addPath(path.copy());
+        for (int resultSet: paths.keys) {
+        	copy.addPath(resultSet, paths.get(resultSet));
         }
         copy.scanStartOverride = scanStartOverride;
         copy.hashBucket = hashBucket;
@@ -80,42 +78,25 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
 				this.statementInfo = statementInfo;
 		}
 
-    public void addPath(Path path) {
-        paths.add(0, path);
-    }
 
     public void addPath(int resultSetNumber, int state) {
-        addPath(new Path(resultSetNumber, state));
+    	paths.put(resultSetNumber, state);
     }
 
     public void addPath(int resultSetNumber, Side side) {
-        addPath(new Path(resultSetNumber, side));
+    	paths.put(resultSetNumber, side.stateNum);
     }
 
     public Side getPathSide(int resultSetNumber) {
-        for (Path path : paths) {
-            if (path.resultSetNumber == resultSetNumber) {
-                return path.state;
-            }
-        }
-        throw new IllegalStateException("No Path found for the specified result set!");
+    	return Side.getSide(paths.get(resultSetNumber));
     }
 
     public boolean hasPathForResultset(int resultSetNumber) {
-        for (Path path : paths) {
-            if (path.resultSetNumber == resultSetNumber)
-                return true;
-        }
-        return false;
+    	return paths.containsKey(resultSetNumber);
     }
 
     public boolean isLeft(int resultSetNumber) {
-        for (Path path : paths) {
-            if (path.resultSetNumber == resultSetNumber) {
-                return path.state == Side.LEFT;
-            }
-        }
-        return false;
+    	return paths.get(resultSetNumber) == Side.LEFT.stateNum;
     }
 
     public void markAsSink() {
@@ -166,8 +147,9 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(paths.size());
-        for (Path path : paths) {
-            out.writeObject(path);
+        for (int resultSetNumber: paths.keys) {
+        	out.writeInt(resultSetNumber);
+        	out.writeInt(paths.get(resultSetNumber));
         }
         out.writeByte(hashBucket);
         out.writeBoolean(firstStepInMultistep);
@@ -176,9 +158,9 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         int size = in.readInt();
-        paths = new ArrayList<Path>(size);
+        paths = new IntIntOpenHashMap(size);
         for (int i = 0; i < size; i++) {
-            paths.add((Path) in.readObject());
+        	paths.put(in.readInt(), in.readInt());
         }
         hashBucket = in.readByte();
         firstStepInMultistep = in.readBoolean();
@@ -188,9 +170,9 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("SpliceRuntimeContext {  ");
-        for (Path path : paths) {
-            sb.append(path);
+        sb.append("SpliceRuntimeContext { paths=");
+        for (int resultSetNumber: paths.keys) {
+            sb.append("{ resultSetNumber=" + resultSetNumber + ", path=" + paths.get(resultSetNumber) +  "}");
         }
         sb.append(", hashBucket=");
         sb.append(hashBucket);
@@ -226,7 +208,6 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
                 throw new IllegalArgumentException("Incorrect stateNum: " + stateNum);
         }
     }
-
     public static class Path implements Externalizable {
         private int resultSetNumber;
         private Side state;
@@ -267,5 +248,4 @@ public class SpliceRuntimeContext<Row> implements Externalizable {
         }
 
     }
-
 }
