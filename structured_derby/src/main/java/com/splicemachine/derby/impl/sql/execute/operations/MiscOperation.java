@@ -68,11 +68,6 @@ public class MiscOperation extends NoRowsOperation
 				setup();
 				activation.getConstantAction().executeConstantAction(activation);
 			} catch (StandardException e) {
-                try {
-                    activation.getLanguageConnectionContext().internalRollback();
-                } catch (StandardException e1) {
-                    SpliceLogUtils.logAndThrowRuntime(LOG, e1);
-                }
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
 			}
 		}
