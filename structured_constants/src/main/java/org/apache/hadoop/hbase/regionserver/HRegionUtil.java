@@ -122,14 +122,15 @@ public class HRegionUtil {
 	}
 
     public static void updateWriteRequests(HRegion region, long numWrites){
-
         Counter writeRequestsCount = region.writeRequestsCount;
         if(writeRequestsCount!=null)
             writeRequestsCount.add(numWrites);
     }
 
     public static void updateReadRequests(HRegion region, long numReads){
-        region.readRequestsCount.add(numReads);
+        Counter readRequestsCount = region.readRequestsCount;
+        if(readRequestsCount!=null)
+            readRequestsCount.add(numReads);
     }
 
     public static boolean containsRange(HRegion region, byte[] taskStart, byte[] taskEnd) {
