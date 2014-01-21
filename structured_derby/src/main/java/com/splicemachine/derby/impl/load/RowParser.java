@@ -2,6 +2,9 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -26,7 +29,9 @@ public class RowParser {
     private final String dateFormatStr;
     private final String timeFormatStr;
     private final HashMap<String,String> columnTimestampFormats;
-
+    private final ImportContext importContext;
+    private Sequence[] sequences;
+    
     public RowParser(ExecRow template,
                      String dateFormat,
                      String timeFormat,
@@ -48,12 +53,51 @@ public class RowParser {
         		columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
         	}
         }
+        this.importContext = null;
             
     }
+    
+    public RowParser(ExecRow template,
+            String dateFormat,
+            String timeFormat,
+            String timestampFormat,
+            ImportContext importContext) {
+    	this.template = template;
+    	if(dateFormat==null)
+    		dateFormat = "yyyy-MM-dd";
+    	this.dateFormatStr = dateFormat;
+    	if(timeFormat==null)
+    		timeFormat = "HH:mm:ss";
+    	this.timeFormatStr = timeFormat;
 
+    	this.timestampFormatStr = timestampFormat;   
+    	columnTimestampFormats = new HashMap<String,String>();
+    	if(timestampFormat != null && timestampFormat.contains("@")) {
+    		String[] tmp = timestampFormat.split("\\|");
+    		for (int i = 0; i < tmp.length; i++) {
+    			int indexOfAt = tmp[i].indexOf("@");
+    			columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
+    		}
+    	}
+    	this.importContext = importContext;
+        if (importContext.getAutoIncrementColumnContext() != null) {
+        	 this.sequences = new Sequence[importContext.getAutoIncrementColumnContext().length];
+        	 for(int i = 0; i < importContext.getAutoIncrementColumnContext().length; i++) {
+        		 if(importContext.getAutoIncrementColumnContext()[i] != null) {
+        		 sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+        				             50*importContext.getAutoIncrementColumnContext()[i].getAutoincInc(), 
+        				             importContext.getAutoIncrementColumnContext()[i].getSequenceRowLocation(),
+        				             importContext.getAutoIncrementColumnContext()[i].getAutoincStart(),
+        				             importContext.getAutoIncrementColumnContext()[i].getAutoincInc());
+        		 } else {
+        			 sequences[i] = null;
+        		 }
+        	 }
+        }
+}
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
         template.resetRowArray();
-
+        
         int pos=0;
         for(ColumnContext context:columnContexts){
             String value = pos>=line.length ||line[pos]==null||line[pos].length()==0?null: line[pos];
@@ -94,6 +138,9 @@ public class RowParser {
                 elem = elem.trim();
                 if(elem.length()==0) {
                 	elem = columnContext.getColumnDefault();
+                }
+                if(importContext != null && importContext.getAutoIncrementColumnContext() != null && importContext.getAutoIncrementColumnContext()[columnContext.getColumnNumber()] != null) {
+                	elem = String.valueOf(sequences[columnContext.getColumnNumber()].getNext());
                 }
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();

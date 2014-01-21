@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -21,9 +22,14 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.DataDictionary;
+import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
@@ -179,7 +185,27 @@ public class HdfsImport extends ParallelVTI {
 				builder = builder.destinationTable(conglomId);
 				HdfsImport importer;
 				try {
-						importer = new HdfsImport(builder.build());
+					    LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+					    DataDictionary dd = lcc.getDataDictionary();
+					    TransactionController tc = lcc.getTransactionExecute();
+					    SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName.toUpperCase(), tc, true);
+					    TableDescriptor td = dd.getTableDescriptor(tableName.toUpperCase(), sd, tc);
+					    RowLocation[] rls = dd.computeAutoincRowLocations(tc,td);
+					    ImportContext ic = builder.build();
+					    if(rls != null) {
+					    	AutoIncrementColumnContext[] autoincContext = new AutoIncrementColumnContext[rls.length];
+					    	
+					    	for (int i = 0; i < rls.length; i++) {
+					    		if(td.getColumnDescriptorList().elementAt(i).isAutoincrement()) {
+					    		    autoincContext[i] = new AutoIncrementColumnContext(td.getColumnDescriptorList().elementAt(i).getAutoincStart(), 
+					    		    												   td.getColumnDescriptorList().elementAt(i).getAutoincInc(), 
+					    		    												   ((HBaseRowLocation)rls[i]).getBytes());
+					    		}
+					    	}
+					    	ic.setAutoIncrementColumnContext(autoincContext);
+					    }
+					    
+						importer = new HdfsImport(ic);
 						importer.open();
 						importer.executeShuffle(new SpliceRuntimeContext());
 				} catch (StandardException e) {
@@ -227,9 +253,28 @@ public class HdfsImport extends ParallelVTI {
 								1,SpliceDriver.driver().getUUIDGenerator());
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
-						importer = new HdfsImport(builder.build());
-						importer.open();
-						importer.executeShuffle(new SpliceRuntimeContext());
+					LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
+				    DataDictionary dd = lcc.getDataDictionary();
+				    TransactionController tc = lcc.getTransactionExecute();
+				    SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName.toUpperCase(), tc, true);
+				    TableDescriptor td = dd.getTableDescriptor(tableName.toUpperCase(), sd, tc);
+				    RowLocation[] rls = dd.computeAutoincRowLocations(tc,td);
+				    ImportContext ic = builder.build();
+				    AutoIncrementColumnContext[] autoincContext = null;
+				    if(rls != null) {
+				    	autoincContext = new AutoIncrementColumnContext[rls.length];
+                        for (int i = 0; i < rls.length; i++) {
+				    		if(td.getColumnDescriptorList().elementAt(i).isAutoincrement()) {
+				    		    autoincContext[i] = new AutoIncrementColumnContext(td.getColumnDescriptorList().elementAt(i).getAutoincStart(), 
+				    		    												   td.getColumnDescriptorList().elementAt(i).getAutoincInc(), 
+				    		    												   ((HBaseRowLocation)rls[i]).getBytes());
+				    		}
+				    	}
+				    }
+				    if(autoincContext != null)
+				    	ic.setAutoIncrementColumnContext(autoincContext);
+					importer = new HdfsImport(ic);
+					importer.executeShuffle(new SpliceRuntimeContext());
 				} catch(AssertionError ae){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {

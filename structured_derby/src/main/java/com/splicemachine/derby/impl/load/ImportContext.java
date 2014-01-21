@@ -39,6 +39,7 @@ public class ImportContext implements Externalizable{
 	private long tableId;
 
     private ColumnContext[] columnInformation;
+    private AutoIncrementColumnContext[] columnAutoIncrement; 
 	/*
 	 * Not everyone formats their timestamps the same way. This is so that
 	 * we can be told how to format them. null can be specified if your timestamps
@@ -51,7 +52,7 @@ public class ImportContext implements Externalizable{
 
     private long byteOffset;
     private int bytesToRead;
-
+    private AutoIncrementColumnContext[] autoIncrementColumnContext;
     public ImportContext(){}
 
     private ImportContext(String transactionId,
@@ -125,7 +126,12 @@ public class ImportContext implements Externalizable{
     public int getBytesToRead() {
         return bytesToRead;
     }
-
+    public AutoIncrementColumnContext[] getAutoIncrementColumnContext () {
+    	return autoIncrementColumnContext;
+    }
+    public void setAutoIncrementColumnContext (AutoIncrementColumnContext[] autoinc) {
+    	autoIncrementColumnContext = autoinc;
+    }
     @Override
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeUTF(transactionId);
@@ -138,6 +144,14 @@ public class ImportContext implements Externalizable{
         out.writeInt(columnInformation.length);
         for(ColumnContext context:columnInformation){
             out.writeObject(context);
+        }
+     
+        out.writeBoolean(autoIncrementColumnContext != null);
+        if(autoIncrementColumnContext != null) {
+        	out.writeInt(columnInformation.length);
+        	for(AutoIncrementColumnContext autoincs:autoIncrementColumnContext){
+        		out.writeObject(autoincs);
+        	}
         }
         out.writeBoolean(timestampFormat!=null);
 		if(timestampFormat!=null)
@@ -157,6 +171,12 @@ public class ImportContext implements Externalizable{
         columnInformation = new ColumnContext[in.readInt()];
         for(int i=0;i<columnInformation.length;i++){
             columnInformation[i] = (ColumnContext)in.readObject();
+        }
+        if(in.readBoolean()) {
+        	autoIncrementColumnContext = new AutoIncrementColumnContext[in.readInt()];
+        	for(int i=0;i<columnInformation.length;i++){
+        		autoIncrementColumnContext[i] = (AutoIncrementColumnContext)in.readObject();
+        	}
         }
         if(in.readBoolean())
 			timestampFormat = in.readUTF();
