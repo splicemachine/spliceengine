@@ -96,7 +96,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				DataHash hash;
 				FormatableBitSet heapList = getHeapList();
 				if(!modifiedPrimaryKeys(heapList)){
-						hash = new DataHash() {
+						hash = new DataHash<ExecRow>() {
 								private ExecRow currentRow;
 								@Override
 								public void setRow(ExecRow rowToEncode) {

@@ -13,6 +13,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
@@ -250,7 +251,7 @@ public class HdfsImport extends ParallelVTI {
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
 								user,transactionId,
-								1,SpliceDriver.driver().getUUIDGenerator());
+								1,SpliceDriver.driver().getUUIDGenerator(),Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",-1l)));
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
 					LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();

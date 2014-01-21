@@ -212,7 +212,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				 */
 				HashPrefix prefix = getHashPrefix();
 
-				DataHash dataHash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+				DataHash<ExecRow> dataHash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
 						@Override
 						public byte[] get() throws StandardException {
 								return currentKey;

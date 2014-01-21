@@ -113,7 +113,7 @@ public class BareKeyHash{
 
 		}
 
-		private static class Encoder extends BareKeyHash implements DataHash {
+		private static class Encoder extends BareKeyHash implements DataHash<ExecRow> {
 				private MultiFieldEncoder encoder;
 
 				private ExecRow currentRow;

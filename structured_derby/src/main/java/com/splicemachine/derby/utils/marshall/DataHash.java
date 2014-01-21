@@ -12,9 +12,9 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 11/15/13
  */
-public interface DataHash {
+public interface DataHash<T> {
 
-		void setRow(ExecRow rowToEncode);
+		void setRow(T rowToEncode);
 
 		/**
 		 * @return the byte encoding for the hash;

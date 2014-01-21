@@ -9,14 +9,14 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 11/18/13
  */
-public class FixedDataHash implements DataHash {
+public class FixedDataHash<T> implements DataHash<T> {
 		private final byte[] bytes;
 
 		public FixedDataHash(byte[] bytes) {
 				this.bytes = bytes;
 		}
 
-		@Override public void setRow(ExecRow rowToEncode) {  }
+		@Override public void setRow(T rowToEncode) {  }
 		@Override public KeyHashDecoder getDecoder() { return null; }
 
 		@Override

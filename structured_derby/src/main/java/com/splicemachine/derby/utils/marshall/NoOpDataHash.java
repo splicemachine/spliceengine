@@ -14,8 +14,12 @@ public class NoOpDataHash implements DataHash,KeyHashDecoder{
 
 		private NoOpDataHash(){}
 
+		@SuppressWarnings("unchecked")
+		public static <T> DataHash<T> instance(){
+				return (DataHash<T>)INSTANCE;
+		}
 		@Override
-		public void setRow(ExecRow rowToEncode) {
+		public void setRow(Object rowToEncode) {
 				//no-op
 		}
 

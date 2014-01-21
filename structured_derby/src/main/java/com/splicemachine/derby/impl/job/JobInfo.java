@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class JobInfo implements JobFuture.StatusHook {
 
+
 		public static enum JobState{
 				RUNNING,
 				CANCELLED,
@@ -110,6 +111,10 @@ public class JobInfo implements JobFuture.StatusHook {
 		public void failJob(){
 				this.jobState = JobState.FAILED;
 				jobFuture=null;
+		}
+
+		public int totalTaskCount() {
+				return taskIds.length;
 		}
 
 		public void tasksRunning(byte[][] allTaskIds) {
