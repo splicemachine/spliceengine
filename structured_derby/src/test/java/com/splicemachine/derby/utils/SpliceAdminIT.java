@@ -78,6 +78,15 @@ public class SpliceAdminIT {
     }
 
     @Test
+    public void testGetSchemaInfo() throws Exception {
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()", rs);
+        System.out.println(fr.toString());
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
     @Ignore("Ignoring until we can address admin methods")
     public void testGetActiveTaskStaus() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_TASK_STATUS()");

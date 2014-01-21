@@ -34,11 +34,13 @@ import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 /**
@@ -556,10 +558,8 @@ public class SpliceAdmin {
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
-            // todo implement
-            // do sys query for conglomerate for schema?
-            // find all tables in schema
-            // perform major compaction on each
+            // TODO implement - do sys query for conglomerate for schema?
+            // find conglom #s for all tables in schema perform major compaction on each
             Collection<byte[]> tables = Arrays.asList(new byte[0]);
             for (byte[] table : tables) {
                 try {
@@ -588,16 +588,12 @@ public class SpliceAdmin {
             admin = SpliceUtils.getAdmin();
             // sys query for conglomerate for table/schema
             long conglomID = getConglomid(getDefaultConn(), schemaName, tableName);
-            // TODO impl
-            byte[] table = new byte[0];
-            if (table != null && table.length > 0) {
-                try {
-                    admin.majorCompact(table);
-                } catch (IOException e) {
-                    throw new SQLException(e);
-                } catch (InterruptedException e) {
-                    throw new SQLException(e);
-                }
+            try {
+                admin.majorCompact(Bytes.toBytes(conglomID));
+            } catch (IOException e) {
+                throw new SQLException(e);
+            } catch (InterruptedException e) {
+                throw new SQLException(e);
             }
         } finally {
             if (admin != null) {
@@ -626,6 +622,7 @@ public class SpliceAdmin {
 
     public static long getConglomid(Connection conn, String schemaName, String tableName) throws SQLException {
         if (schemaName == null)
+            // default schema
             schemaName = "APP";
         ResultSet rs = null;
         PreparedStatement s = null;
@@ -754,6 +751,55 @@ public class SpliceAdmin {
         }
         return servers;
     }
+
+    public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
+
+        ResultSet allSchema = getDefaultConn().prepareStatement("select s.schemaname, t.tablename, c.isindex, " +
+                "c.conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
+                "where c.tableid = t.tableid and t.schemaid = s.schemaid and s.schemaname not like 'SYS%'").executeQuery();
+        StringBuilder sb = new StringBuilder("select * from (values ");
+
+        int i = 0;
+        int nCols = allSchema.getMetaData().getColumnCount();
+        HBaseAdmin admin = null;
+        try {
+            admin = SpliceUtils.getAdmin();
+            StringBuilder regionBuilder = new StringBuilder();
+            while (allSchema.next()) {
+                for (int j=1; j<nCols; j++) {
+                    if (i != 0) {
+                        sb.append(", ");
+                    }
+                    String conglom = allSchema.getObject("CONGLOMERATENUMBER").toString();
+                    regionBuilder.setLength(0);
+                    for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
+                        String regionName = ri.getRegionNameAsString();
+                        if (regionName != null && ! regionName.isEmpty()) {
+                            regionBuilder.append('(').append(regionName).append(')');
+                        }
+                    }
+                    sb.append(String.format("('%s','%s','%s','%s')",
+                            allSchema.getObject("SCHEMANAME"),
+                            allSchema.getObject("TABLENAME"),
+                            allSchema.getObject("ISINDEX"),
+                            regionBuilder.toString()));
+                    i++;
+                }
+            }
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (admin != null)
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+        }
+        sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)");
+        resultSet[0] = executeStatement(sb);
+    }
+
 
     private static class Trip<T, U, V> {
         private final T first;
