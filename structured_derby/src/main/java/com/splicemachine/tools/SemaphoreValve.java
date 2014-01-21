@@ -3,6 +3,12 @@ package com.splicemachine.tools;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Logger;
+import org.mortbay.log.Log;
+
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.utils.SpliceLogUtils;
+
 /**
  * Entity for managing throughput of individual actions.
  *
@@ -18,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SemaphoreValve implements Valve {
     private final OpeningPolicy openingPolicy;
-
+	private static Logger LOG = Logger.getLogger(SemaphoreValve.class);
     private AtomicInteger version;
     private ReducingSemaphore gate;
     private AtomicInteger maxPermits;
@@ -96,12 +102,14 @@ public class SemaphoreValve implements Valve {
 
         int max = maxPermits.get();
         int newMax = openingPolicy.reduceSize(max,suggestion);
-        System.out.printf("[%s], reducing valve,currentMax=%d,newMax=%d%n",Thread.currentThread().getName(),max,newMax);
+        if (LOG.isDebugEnabled())
+        	SpliceLogUtils.debug(LOG, "[%s], reducing valve,currentMax=%d,newMax=%d%n",Thread.currentThread().getName(),max,newMax);
         if(newMax>=max) return; //nothing to do
 
         if(maxPermits.compareAndSet(max,newMax))
             gate.reducePermits(max-newMax);
-        System.out.printf("[%s], availablePermits=%d%n",Thread.currentThread().getName(),gate.availablePermits());
+        if (LOG.isDebugEnabled())
+        	SpliceLogUtils.debug(LOG, "[%s], availablePermits=%d%n",Thread.currentThread().getName(),gate.availablePermits());
     }
 
 		int adjustUpwards(int version, SizeSuggestion suggestion){
