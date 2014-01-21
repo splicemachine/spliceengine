@@ -120,10 +120,14 @@ public class RowParser {
             elem=null;
         DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
         if(elem==null){
-        	elem = columnContext.getColumnDefault();
-        	column.setValue(elem);
-            columnContext.validate(column);
-            return;
+        	if(importContext != null && importContext.getAutoIncrementColumnContext() != null && importContext.getAutoIncrementColumnContext()[columnContext.getColumnNumber()] != null) {
+        		elem = "";  //set it as empty string
+        	} else {
+        		elem = columnContext.getColumnDefault();
+        		column.setValue(elem);
+            	columnContext.validate(column);
+            	return;
+        	}
         }
         switch(column.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
