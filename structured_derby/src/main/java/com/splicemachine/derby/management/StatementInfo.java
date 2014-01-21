@@ -1,5 +1,6 @@
 package com.splicemachine.derby.management;
 
+import com.google.common.collect.Sets;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.utils.Snowflake;
@@ -19,7 +20,6 @@ import java.util.concurrent.ExecutionException;
  * Date: 1/6/14
  */
 public class StatementInfo {
-		/*true if the statement includes task lookups*/
 		private final String sql;
 		private final String user;
 		private final int numSinks;
@@ -42,11 +42,14 @@ public class StatementInfo {
 		private volatile long stopTimeMs = -1l;
 		private volatile boolean isCancelled;
 
+		private final Set<OperationInfo> operationInfo;
+
 		public StatementInfo(String sql,
 												 String user,
 												 String txnId,
 												 int numSinks,
-												 Snowflake snowflake) {
+												 Snowflake snowflake,
+												 Collection<OperationInfo> operationInfos) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
@@ -58,15 +61,22 @@ public class StatementInfo {
 				}else{
 						runningJobIds = completedJobIds = null;
 				}
+				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
+				operationInfo.addAll(operationInfos);
 
 				this.statementUuid = snowflake.nextUUID();
 				this.startTimeMs = System.currentTimeMillis();
 		}
 
-		@ConstructorProperties({"sql","user","txnId","numJobs","statementUuid","runningJobs","completedJobs","startTimeMs","stopTimeMs"})
+		@ConstructorProperties({"sql","user","txnId","numJobs",
+						"statementUuid","runningJobs","completedJobs",
+						"startTimeMs","stopTimeMs","operationInfo"})
 		public StatementInfo(String sql,String user,String txnId,
 												 int numSinks,long statementUuid,
-												 Set<JobInfo> runningJobs, Set<JobInfo> completedJobs,long startTimeMs,long stopTimeMs){
+												 Set<JobInfo> runningJobs,
+												 Set<JobInfo> completedJobs,
+												 long startTimeMs,long stopTimeMs,
+												 Set<OperationInfo> operationInfo){
 				this.sql = sql;
 				this.user = user;
 				this.txnId = txnId;
@@ -76,6 +86,7 @@ public class StatementInfo {
 				this.completedJobIds = completedJobs;
 				this.startTimeMs = startTimeMs;
 				this.stopTimeMs = stopTimeMs;
+				this.operationInfo = operationInfo;
 		}
 
 		public void addRunningJob(JobInfo jobInfo) throws ExecutionException {
@@ -100,7 +111,11 @@ public class StatementInfo {
 		public long getStopTimeMs() { return stopTimeMs; }
 		public String getUser() { return user; }
 
+		public Set<OperationInfo> getOperationInfo() { return operationInfo; }
+//		public Set<Long> getOperationInfo(){ return Sets.newHashSet(1l);}
+
 		public void markCompleted(){ this.stopTimeMs = System.currentTimeMillis(); }
+
 		@Override
 		public boolean equals(Object o) {
 				if (this == o) return true;
@@ -127,6 +142,38 @@ public class StatementInfo {
 						completedJobIds.add(runningJob);
 				}
 				runningJobIds.clear();
+		}
+
+		public String status() {
+				if(isCancelled) return "CANCELLED";
+				for(JobInfo completeInfo:completedJobIds){
+						switch(completeInfo.getJobState()){
+								case CANCELLED:
+										return "CANCELLED";
+								case FAILED:
+										return "FAILED";
+								default: //left empty so that the doesn't loop warning doesn't appear
+						}
+				}
+				return "SUCCESS";
+		}
+
+		public int numCancelledJobs() {
+				int numCancelled=0;
+				for(JobInfo info:completedJobIds){
+						if(info.getJobState()== JobInfo.JobState.CANCELLED)
+								numCancelled++;
+				}
+				return numCancelled;
+		}
+
+		public int numFailedJobs() {
+				int numFailed=0;
+				for(JobInfo info:completedJobIds){
+					if(info.getJobState()== JobInfo.JobState.FAILED)
+							numFailed++;
+				}
+				return numFailed;
 		}
 
     public static Closeable completeOnClose(final StatementInfo stInfo, final JobInfo jobInfo){

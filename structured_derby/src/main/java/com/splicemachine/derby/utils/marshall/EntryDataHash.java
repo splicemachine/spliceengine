@@ -13,7 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 11/15/13
  */
-public class EntryDataHash extends BareKeyHash implements DataHash{
+public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected EntryEncoder entryEncoder;
 		protected ExecRow currentRow;
 

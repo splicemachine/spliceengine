@@ -13,7 +13,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 11/18/13
  */
-public class SuppliedDataHash implements DataHash{
+public class SuppliedDataHash implements DataHash<ExecRow>{
 		private final StandardSupplier<byte[]> supplier;
 
 		public SuppliedDataHash(StandardSupplier<byte[]> supplier) {

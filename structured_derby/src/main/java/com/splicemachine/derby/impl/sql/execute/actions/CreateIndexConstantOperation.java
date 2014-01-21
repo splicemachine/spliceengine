@@ -11,6 +11,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
+import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
@@ -744,7 +745,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
 				JobInfo info = null;
 				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator(),
+								Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",-1l)));
         try {
 						long start = System.currentTimeMillis();
 						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
@@ -816,7 +818,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
          */
 			//TODO -sf- replace this name with the actual SQL being issued
 			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator(),
+							Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"PopulateIndex",-1l)));
 			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
 						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),

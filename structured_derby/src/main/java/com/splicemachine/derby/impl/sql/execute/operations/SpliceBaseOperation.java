@@ -166,7 +166,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public SpliceOperation getLeftOperation() {
-		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
+			return null;
 	}
 
     @Override
@@ -400,7 +400,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 	@Override
 	public SpliceOperation getRightOperation() {
-		throw new UnsupportedOperationException("class "+this.getClass()+" does not implement getLeftOperation!");
+			return null;
 	}
 	
 	public long getExecuteTime()

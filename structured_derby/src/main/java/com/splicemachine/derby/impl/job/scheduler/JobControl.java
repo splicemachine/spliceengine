@@ -174,7 +174,7 @@ class JobControl implements JobFuture {
         }
 
 //        //update our job metrics
-//        Status finalStatus = getStatus();
+//        Status finalStatus = status();
 //        jobMetrics.removeJob(job.getJobId(), finalStatus);
 //
         SpliceLogUtils.trace(LOG, "completeNext finished");

@@ -1,8 +1,11 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
+import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
+import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -15,11 +18,13 @@ import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.*;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -77,13 +82,15 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						String sql = operationContext.getPreparedStatement().getSource();
 						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 						String txnId = activation.getTransactionController().getActiveStateTxIdString();
-						statementInfo = new StatementInfo(sql,user,txnId,
-										operationTree.getNumSinks(topOperation),
-										SpliceDriver.driver().getUUIDGenerator());
-						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 						topOperation.init(operationContext);
 
             topOperation.open();
+
+						List<OperationInfo> operationInfo = getOperationInfo();
+						statementInfo = new StatementInfo(sql,user,txnId,
+										operationTree.getNumSinks(topOperation),
+										SpliceDriver.driver().getUUIDGenerator(),operationInfo);
+						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -103,7 +110,23 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
-    @Override
+		private List<OperationInfo> getOperationInfo() {
+				List<OperationInfo> info = Lists.newArrayList();
+				populateOpInfo(-1,false,topOperation,info);
+				return info;
+		}
+
+		private void populateOpInfo(long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
+				if(operation==null) return;
+				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
+				OperationInfo opInfo = new OperationInfo(operationUuid,
+								operation.getClass().getSimpleName().replace("Operation",""),parentOperationId);
+				infos.add(opInfo);
+				populateOpInfo(operationUuid,false,operation.getLeftOperation(),infos);
+				populateOpInfo(operationUuid,true,operation.getRightOperation(),infos);
+		}
+
+		@Override
     public void reopenCore() throws StandardException {
         openCore();
     }

@@ -1,5 +1,7 @@
 package com.splicemachine.derby.metrics;
 
+import org.apache.derby.iapi.sql.dictionary.SystemColumn;
+
 /**
  * @author Scott Fines
  * Date: 1/16/14
@@ -61,6 +63,5 @@ public enum OperationMetric {
 		}
 
 		public int getPosition(){ return indexPosition; }
-
 }
 

@@ -7,6 +7,7 @@ import com.splicemachine.derby.utils.SpliceAdmin;
 import java.util.List;
 import java.util.Map;
 import org.apache.derby.catalog.UUID;
+import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
@@ -20,8 +21,9 @@ import org.apache.derby.impl.sql.catalog.Procedure;
 public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
+		private static final String XPLAIN_SCHEMA_NAME = "SYSCS_SET_XPLAIN_SCHEMA";
 
-    public SpliceSystemProcedures(DataDictionary dictionary) {
+		public SpliceSystemProcedures(DataDictionary dictionary) {
         super(dictionary);
     }
 
@@ -37,7 +39,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
          * the map and replace it with our own Procedure
          */
         for(Object key : sysProcedures.keySet()){
-            List<Procedure> procedures = (List<Procedure>)sysProcedures.get(key);
+            @SuppressWarnings("unchecked") List<Procedure> procedures = (List<Procedure>)sysProcedures.get(key);
             for(int i=0;i<procedures.size();i++){
                 Procedure sysProc = procedures.get(i);
                 if(IMPORT_DATA_NAME.equalsIgnoreCase(sysProc.getName())){
@@ -54,7 +56,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("dateFormat",32672)
                             .varchar("timeFormat",32672).build();
                     procedures.set(i,newImport);
-                }
+                }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
+										Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
+														.numOutputParams(0).numResultSets(0)
+														.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+														.ownerClass(SpliceXplainUtils.class.getCanonicalName())
+														.catalog("schemaName")
+														.build();
+										procedures.set(i,newXplain);
+								}
             }
 
             if (key.equals(sysUUID)) {

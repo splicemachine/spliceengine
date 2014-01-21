@@ -52,7 +52,7 @@ public class DeleteOperation extends DMLWriteOperation {
 
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash(){
+				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
 						private ExecRow currentRow;
 
 						@Override
