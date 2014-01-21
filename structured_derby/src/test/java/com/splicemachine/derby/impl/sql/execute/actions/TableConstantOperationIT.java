@@ -47,8 +47,10 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
     public static final String EMP_PRIV_TABLE1 = "emp_priv1";
     public static final String EMP_PRIV_TABLE2 = "emp_priv2";
+    public static final String EMP_PRIV_TABLE3 = "emp_priv3";
 
     public static final String EMP_NAME_PRIV_VIEW = "emp_name_priv";
+    public static final String EMP_NAME_PRIV_VIEW2 = "emp_name_priv2";
 
     protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -57,11 +59,13 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher empNameTable = new SpliceTableWatcher(EMP_NAME_TABLE1,CLASS_NAME, eNameDef);
     protected static SpliceTableWatcher empPrivTable = new SpliceTableWatcher(EMP_PRIV_TABLE1,CLASS_NAME, ePrivDef);
     protected static SpliceTableWatcher empPrivTable2 = new SpliceTableWatcher(EMP_PRIV_TABLE2,CLASS_NAME, ePrivDef);
+    protected static SpliceTableWatcher empPrivTable3 = new SpliceTableWatcher(EMP_PRIV_TABLE3,CLASS_NAME, ePrivDef);
 
-    private static String viewDef =
-            String.format("(id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id",
-            empNameTable.toString(), empPrivTable2.toString());
+    private static String viewFormat = "(id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id";
+    private static String viewDef = String.format(viewFormat, empNameTable.toString(), empPrivTable2.toString());
+    private static String viewDef2 = String.format(viewFormat, empNameTable.toString(), empPrivTable3.toString());
     protected static SpliceViewWatcher empNamePrivView = new SpliceViewWatcher(EMP_NAME_PRIV_VIEW,CLASS_NAME, viewDef);
+    protected static SpliceViewWatcher empNamePrivView2 = new SpliceViewWatcher(EMP_NAME_PRIV_VIEW2,CLASS_NAME, viewDef2);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -69,7 +73,9 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             .around(empNameTable)
             .around(empPrivTable)
             .around(empPrivTable2)
+            .around(empPrivTable3)
             .around(empNamePrivView)
+            .around(empNamePrivView2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -87,6 +93,11 @@ public class TableConstantOperationIT extends SpliceUnitTest {
                         //  load emp_priv (view) table
                         for (String rowVal : empPrivVals) {
                             spliceClassWatcher.getStatement().executeUpdate("insert into " + empPrivTable2.toString() + " values " + rowVal);
+                        }
+
+                        //  load emp_priv2 (view) table
+                        for (String rowVal : empPrivVals) {
+                            spliceClassWatcher.getStatement().executeUpdate("insert into " + empPrivTable3.toString() + " values " + rowVal);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -156,7 +167,27 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testRenameTableWithView() throws Exception {
+    public void testDropTableWithView() throws Exception {
+        Connection connection = methodWatcher.createConnection();
+        connection.setAutoCommit(false);
+        connection.createStatement().execute(String.format("delete from %s where id = 1", empPrivTable3.toString()));
+        ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView2.toString()));
+        Assert.assertEquals(4, resultSetSize(resultSet));
+
+        try {
+            connection.createStatement().execute(String.format("drop table %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE3));
+            Assert.fail("Expected exception but didn't get one.");
+        } catch (SQLException e) {
+            // expected
+        }
+
+        resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView2.toString()));
+        Assert.assertEquals(4, resultSetSize(resultSet));
+        connection.commit();
+    }
+
+    @Test
+     public void testRenameTableWithView() throws Exception {
         Connection connection = methodWatcher.createConnection();
         ResultSet resultSet = connection.createStatement().executeQuery(String.format("select * from %s", empNamePrivView.toString()));
         Assert.assertEquals(5, resultSetSize(resultSet));
