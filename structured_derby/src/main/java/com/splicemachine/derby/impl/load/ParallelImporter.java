@@ -66,10 +66,10 @@ public class ParallelImporter implements Importer{
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
             CallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId);
-            futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest)));
+            futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest,importCtx)));
         }
     }
-
+    
     @Override
     public void process(String[] parsedRow) throws Exception {
         boolean shouldContinue;
@@ -147,18 +147,21 @@ public class ParallelImporter implements Importer{
         private int numProcessed;
         private long totalPopulateTime;
         private long totalWriteTime;
+        private ImportContext importContext;
 
         private Processor(ExecRow row,
                           BlockingQueue<String[]> queue,
-                          CallBuffer<KVPair> writeDestination ){
+                          CallBuffer<KVPair> writeDestination,
+                          ImportContext importContext){
             this.queue = queue;
             this.writeDestination = writeDestination;
             this.entryEncoder = newEntryEncoder(row);
-
+            this.importContext = importContext;
             this.importProcessor = new RowParser(row,
                     importContext.getDateFormat(),
                     importContext.getTimeFormat(),
-                    importContext.getTimestampFormat());
+                    importContext.getTimestampFormat(),
+                    importContext);
         }
 
         @Override

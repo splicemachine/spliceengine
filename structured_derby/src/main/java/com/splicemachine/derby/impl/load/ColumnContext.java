@@ -27,7 +27,6 @@ public class ColumnContext implements Externalizable {
     private String colName;
     private int length;
     private int decimalDigits;
-    private String autoIncrement;
     private String columnDefault;
     private String formatStr;
     private boolean isFormatStrSet;
@@ -41,7 +40,6 @@ public class ColumnContext implements Externalizable {
                           String colName,
                           int length,
                           int decimalDigits,
-                          String autoIncrement,
                           String columnDefault) {
         this.colNumber = colNumber;
         this.columnType = colType;
@@ -50,7 +48,6 @@ public class ColumnContext implements Externalizable {
         this.colName = colName;
         this.length = length;
         this.decimalDigits = decimalDigits;
-        this.autoIncrement = autoIncrement;
         this.columnDefault = columnDefault;
         this.isFormatStrSet = false;
     }
@@ -68,9 +65,6 @@ public class ColumnContext implements Externalizable {
         out.writeBoolean(decimalDigits>0);
         if (decimalDigits>0) 
         	out.writeInt(decimalDigits);
-        out.writeBoolean(autoIncrement!=null);
-        if (autoIncrement != null)
-        	out.writeUTF(autoIncrement);
         out.writeBoolean(columnDefault!=null);
         if (columnDefault != null) 
         	out.writeUTF(columnDefault);
@@ -87,8 +81,6 @@ public class ColumnContext implements Externalizable {
             length = in.readInt();
         if(in.readBoolean())
         	decimalDigits = in.readInt();
-        if(in.readBoolean())
-        	autoIncrement = in.readUTF();
         if (in.readBoolean())
         	columnDefault = in.readUTF();
         	
@@ -122,10 +114,6 @@ public class ColumnContext implements Externalizable {
     	return decimalDigits;
     }
 
-    public String getAutoIncrement() {
-    	return autoIncrement;
-    }
-    
     public String getFormatStr() {
     	return formatStr;
     }
@@ -164,7 +152,6 @@ public class ColumnContext implements Externalizable {
         private String colName;
         private int length = -1;
         private int decimalDigits;
-        private String autoIncrement;
         private String columnDefault;
         
         public Builder length(int length){
@@ -205,16 +192,13 @@ public class ColumnContext implements Externalizable {
         	this.decimalDigits = decimalDigits;
         	return this;
         }
-        public Builder autoIncrement(String autoIncrement) {
-        	this.autoIncrement = autoIncrement;
-        	return this;
-        }
+
         public Builder columnDefault(String columnDefault) {
         	this.columnDefault = columnDefault;
         	return this;
         }
         public ColumnContext build(){
-            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, autoIncrement, columnDefault);
+            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, columnDefault);
         }
     }
 }
