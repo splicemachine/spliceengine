@@ -157,29 +157,30 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .build();
                 procedures.add(getActiveJobIDs);
 
-								/*Procedure to get the completed statement's summary*/
-								Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
-												.numOutputParams(0)
-												.numResultSets(1)
-												.ownerClass(SpliceAdmin.class.getCanonicalName())
-												.build();
-								procedures.add(getCompletedStatements);
+                /*Procedure to get the completed statement's summary*/
+                Procedure getCompletedStatements = Procedure.newBuilder().name("SYSCS_GET_PAST_STATEMENT_SUMMARY")
+                                .numOutputParams(0)
+                                .numResultSets(1)
+                                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                                .build();
+                procedures.add(getCompletedStatements);
 
-								/*Procedure to get running statement's summary*/
-								Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
-												.numOutputParams(0)
-												.numResultSets(1)
-												.ownerClass(SpliceAdmin.class.getCanonicalName())
-												.build();
-								procedures.add(getRunningStatements);
+                /*Procedure to get running statement's summary*/
+                Procedure getRunningStatements = Procedure.newBuilder().name("SYSCS_GET_STATEMENT_SUMMARY")
+                                .numOutputParams(0)
+                                .numResultSets(1)
+                                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                                .build();
+                procedures.add(getRunningStatements);
 
-								Procedure killStatement = Procedure.newBuilder().name("SYSCS_KILL_STATEMENT")
-												.numOutputParams(0)
-												.numResultSets(0)
-												.bigint("statementUuid")
-												.ownerClass(SpliceAdmin.class.getCanonicalName())
-												.build();
-								procedures.add(killStatement);
+                Procedure killStatement = Procedure.newBuilder().name("SYSCS_KILL_STATEMENT")
+                                .numOutputParams(0)
+                                .numResultSets(0)
+                                .bigint("statementUuid")
+                                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                                .build();
+                procedures.add(killStatement);
+
                 /*
                  * Procedure set the max task workers
                  */
@@ -232,8 +233,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 procedures.add(getWritePool);
 
                 /*
+                 * Procedure get table info in all schema
+                 */
+                Procedure getSchemaInfo = Procedure.newBuilder().name("SYSCS_GET_SCHEMA_INFO")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getSchemaInfo);
+
+                /*
                  * Procedure to perform major compaction on all tables in a schema
-                 * TODO: finish impl
                  */
                 Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
                         .numOutputParams(0)

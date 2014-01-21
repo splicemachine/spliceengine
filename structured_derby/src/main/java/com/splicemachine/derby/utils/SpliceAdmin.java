@@ -16,7 +16,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -34,11 +33,14 @@ import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
+import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HServerLoad;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
 /**
@@ -553,46 +555,29 @@ public class SpliceAdmin {
     }
 
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA(String schemaName) throws SQLException {
-        HBaseAdmin admin = null;
-        try {
-            admin = SpliceUtils.getAdmin();
-            // todo implement
-            // do sys query for conglomerate for schema?
-            // find all tables in schema
-            // perform major compaction on each
-            Collection<byte[]> tables = Arrays.asList(new byte[0]);
-            for (byte[] table : tables) {
-                try {
-                    admin.majorCompact(table);
-                } catch (IOException e) {
-                    throw new SQLException(e);
-                } catch (InterruptedException e) {
-                    throw new SQLException(e);
-                }
-            }
-        } finally {
-            if (admin != null) {
-                try {
-                    admin.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-        }
+        // sys query for all table conglomerates in schema
+        SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(schemaName, null);
     }
 
+    /**
+     * Perform a major compaction
+     * @param schemaName the name of the database schema to discriminate the tablename.  If null,
+     *                   defaults to the 'APP' schema.
+     * @param tableName the table name on which to run compaction. If null, compaction will be run
+     *                  on all tables in the schema.  Note that a given tablename can produce more
+     *                  than one table, if the table has an index, for instance.
+     * @throws SQLException
+     */
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName, String tableName)
             throws SQLException {
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
-            // sys query for conglomerate for table/schema
-            long conglomID = getConglomid(getDefaultConn(), schemaName, tableName);
-            // TODO impl
-            byte[] table = new byte[0];
-            if (table != null && table.length > 0) {
+            // sys query for table conglomerate for in schema
+            long[] conglomIDs = getConglomids(getDefaultConn(), schemaName, tableName);
+            for (long conglomID : conglomIDs) {
                 try {
-                    admin.majorCompact(table);
+                    admin.majorCompact(Bytes.toBytes(conglomID));
                 } catch (IOException e) {
                     throw new SQLException(e);
                 } catch (InterruptedException e) {
@@ -610,6 +595,62 @@ public class SpliceAdmin {
         }
     }
 
+    public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
+        ResultSet allSchema = getDefaultConn().prepareStatement("select s.schemaname, t.tablename, c.isindex, " +
+                "c.conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
+                "where c.tableid = t.tableid and t.schemaid = s.schemaid and s.schemaname not like 'SYS%'").executeQuery();
+        StringBuilder sb = new StringBuilder("select * from (values ");
+
+        int i = 0;
+        int nCols = allSchema.getMetaData().getColumnCount();
+        Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
+        HBaseAdmin admin = null;
+        try {
+            admin = SpliceUtils.getAdmin();
+            StringBuilder regionBuilder = new StringBuilder();
+            while (allSchema.next()) {
+                for (int j=1; j<nCols; j++) {
+                    if (i != 0) {
+                        sb.append(", ");
+                    }
+                    String conglom = allSchema.getObject("CONGLOMERATENUMBER").toString();
+                    regionBuilder.setLength(0);
+                    for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
+                        String regionName = Bytes.toString(ri.getRegionName());
+                        if (regionName != null && ! regionName.isEmpty()) {
+                            int regionSize = regionLoadMap.get(regionName).getStorefileSizeMB();
+                            regionBuilder.append('(').append(regionName).append(' ').append(regionSize).append(" MB)");
+                        }
+                    }
+                    sb.append(String.format("('%s','%s','%s','%s')",
+                            allSchema.getObject("SCHEMANAME"),
+                            allSchema.getObject("TABLENAME"),
+                            allSchema.getObject("ISINDEX"),
+                            regionBuilder.toString()));
+                    i++;
+                }
+            }
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (admin != null) {
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+            if (allSchema != null) {
+                try {
+                    allSchema.close();
+                } catch (SQLException e) {
+                    // ignore
+                }
+            }
+        }
+        sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)");
+        resultSet[0] = executeStatement(sb);
+    }
 
     public static void getActiveTasks() throws MasterNotRunningException, ZooKeeperConnectionException {
         HBaseAdmin admin = SpliceUtils.getAdmin();
@@ -625,19 +666,38 @@ public class SpliceAdmin {
     }
 
     public static long getConglomid(Connection conn, String schemaName, String tableName) throws SQLException {
+        long[] congomIDs = getConglomids(conn, schemaName, tableName);
+        if (congomIDs.length > 0) return congomIDs[0];
+        return 0l;
+    }
+
+    public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+        List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
+            // default schema
             schemaName = "APP";
+
+        String allTablesInSchema =  "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
+                "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?";
+
+        String query =  "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
+                "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?";
+
+        if (tableName == null)
+            // all tables in schema
+        query = allTablesInSchema;
+
         ResultSet rs = null;
         PreparedStatement s = null;
         try {
-            s = conn.prepareStatement(
-                    "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
-                            "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?");
+            s = conn.prepareStatement(query);
             s.setString(1, schemaName.toUpperCase());
-            s.setString(2, tableName.toUpperCase());
+            if (tableName != null) {
+                s.setString(2, tableName.toUpperCase());
+            }
             rs = s.executeQuery();
             if (rs.next()) {
-                return rs.getLong(1);
+                conglomIDs.add(rs.getLong(1));
             } else {
                 throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
             }
@@ -645,6 +705,14 @@ public class SpliceAdmin {
             if (rs != null) rs.close();
             if (s != null) s.close();
         }
+        if (conglomIDs.isEmpty()) {
+            return new long[0];
+        }
+        long[] congloms = new long[conglomIDs.size()];
+        for (int i =0; i<conglomIDs.size(); i++) {
+            congloms[i] = conglomIDs.get(i);
+        }
+        return congloms;
     }
 
 
@@ -708,6 +776,34 @@ public class SpliceAdmin {
             names.add(sname.getHostname());
         }
         return names;
+    }
+
+    /* @return  Map<regionNameAsString,HServerLoad.RegionLoad> */
+    private static Map<String, HServerLoad.RegionLoad> getRegionLoad() throws SQLException {
+        Map<String, HServerLoad.RegionLoad> regionLoads = new HashMap<String, HServerLoad.RegionLoad>();
+        HBaseAdmin admin = null;
+        admin = SpliceUtils.getAdmin();
+        try {
+            ClusterStatus clusterStatus = admin.getClusterStatus();
+            for (ServerName serverName : clusterStatus.getServers()) {
+                final HServerLoad serverLoad = clusterStatus.getLoad(serverName);
+
+                for (Map.Entry<byte[], HServerLoad.RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()) {
+                    regionLoads.put(Bytes.toString(entry.getKey()), entry.getValue());
+                }
+            }
+        } catch (IOException e) {
+            throw new SQLException(e);
+        } finally {
+            if (admin != null)
+                try {
+                    admin.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+        }
+
+        return regionLoads;
     }
 
     private static Map<ServerName, HServerLoad> getLoad() throws SQLException {
