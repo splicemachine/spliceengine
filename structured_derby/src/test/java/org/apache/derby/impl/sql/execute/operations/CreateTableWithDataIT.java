@@ -30,11 +30,13 @@ public class CreateTableWithDataIT {
 
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CreateTableWithDataIT.class.getSimpleName());
 		protected static SpliceTableWatcher baseTable = new SpliceTableWatcher("T",spliceSchemaWatcher.schemaName,"(a int, b int)");
+        protected static SpliceTableWatcher rightTable = new SpliceTableWatcher("R",spliceSchemaWatcher.schemaName,"(b int, c int)");
 
 		@ClassRule
 		public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 						.around(spliceSchemaWatcher)
-						.around(baseTable).around(new SpliceDataWatcher() {
+						.around(baseTable)
+                        .around(rightTable).around(new SpliceDataWatcher() {
 								@Override
 								protected void starting(Description description) {
 										try {
@@ -48,6 +50,18 @@ public class CreateTableWithDataIT {
 										} catch (Exception e) {
 												throw new RuntimeException(e);
 										}
+
+                                        try {
+                                            PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s (b,c) values (?,?)",rightTable));
+                                            for(int i=0;i<10;i++){
+                                                ps.setInt(1, 2 * i);
+                                                ps.setInt(2, i);
+                                            ps.addBatch();
+                                        }
+                                            ps.executeBatch();
+                                        } catch (Exception e) {
+                                            throw new RuntimeException(e);
+                                        }
 								}
 						});
 
@@ -88,4 +102,25 @@ public class CreateTableWithDataIT {
 						methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t3");
 				}
 		}
+
+        @Test
+        public void testCreateTableWithData2() throws Exception {
+            PreparedStatement ps = methodWatcher.prepareStatement(String.format("create table %s.t4 as select t1.a, t2.c from %s t1, %s t2 where t1.b = t2.b with data",spliceSchemaWatcher.schemaName,baseTable,rightTable));
+            try{
+                int numRows = ps.executeUpdate();
+                Assert.assertEquals("It claims to have updated rows!", 10,numRows);
+
+                ResultSet rs = methodWatcher.executeQuery("select * from "+spliceSchemaWatcher.schemaName+".t4");
+                int count = 0;
+                while(rs.next()){
+                    int first = rs.getInt(1);
+                    int second = rs.getInt(2);
+                    Assert.assertEquals("Incorrect row: ("+ first+","+second+")",first,second);
+                    count++;
+                }
+                Assert.assertEquals("Incorrect row count",10,count);
+            }finally{
+                methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t4");
+            }
+        }
 }
