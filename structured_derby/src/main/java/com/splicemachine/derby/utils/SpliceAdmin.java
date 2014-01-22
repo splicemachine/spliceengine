@@ -294,10 +294,10 @@ public class SpliceAdmin {
                 StringBuilder sb = new StringBuilder("select * from (values ");
                 int i = 0;
                 for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    if (i != 0) sb.append(", ");
-
                     StatementManagement management = managementPair.getSecond();
                     Collection<StatementInfo> completedStatements = management.getExecutingStatementInfo();
+                    if (i != 0 && completedStatements != null && completedStatements.size() > 0) sb.append(", ");
+
                     boolean isStart = true;
                     for (StatementInfo completedStatement : completedStatements) {
                         if (isStart) isStart = false;
