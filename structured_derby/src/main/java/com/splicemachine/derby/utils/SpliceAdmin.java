@@ -30,6 +30,10 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
+
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -339,6 +343,26 @@ public class SpliceAdmin {
                 }
             }
         });
+    }
+
+    public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
+        try {
+            HTransactorFactory.getTransactorControl().fail(new TransactionId(Long.toString(transactionId)));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
+        try {
+            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
+            for (TransactionId txnId : active) {
+                transactor.fail(txnId);
+            }
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     static String escape(String first) {
