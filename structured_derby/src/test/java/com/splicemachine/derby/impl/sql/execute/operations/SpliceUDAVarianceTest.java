@@ -16,7 +16,6 @@ public class SpliceUDAVarianceTest {
     }
 
     @Test
-    @Ignore
     public void testNumericalAccuracy() {
         SpliceStddevSamp<Double> stddevSamp;
         for (Double constant : new double[]{0, 1E4, 1E6, 1E8, 1E10, 1E12}) {
