@@ -28,10 +28,9 @@ public class StddevIT extends SpliceUnitTest {
 										PreparedStatement ps;
 										try {
 												ps = spliceClassWatcher.prepareStatement(
-																String.format("insert into %s (i,d) values (?,?)", spliceTableWatcher));
+																String.format("insert into %s (i) values (?)", spliceTableWatcher));
 												for(int i=0;i<10;i++){
 														ps.setInt(1,i);
-														ps.setDouble(2, i);
 														for(int j=0;j<100;j++){
 																ps.addBatch();
 														}
@@ -79,6 +78,22 @@ public class StddevIT extends SpliceUnitTest {
         while(rs.next()) {
             Assert.assertEquals((int)rs.getDouble(1), 2);
         }
+        rs.close();
 
+        rs = methodWatcher.executeQuery(
+                String.format("select SYSCS_UTIL.stddev_pop(d) from %s", this.getTableReference(TABLE_NAME)));
+
+        while(rs.next()){
+            Assert.assertEquals((int)rs.getDouble(1), 0);
+        }
+        rs.close();
+
+        rs = methodWatcher.executeQuery(
+                String.format("select SYSCS_UTIL.stddev_samp(d) from %s", this.getTableReference(TABLE_NAME)));
+
+        while(rs.next()) {
+            Assert.assertEquals((int)rs.getDouble(1), 0);
+        }
+        rs.close();
     }
 }

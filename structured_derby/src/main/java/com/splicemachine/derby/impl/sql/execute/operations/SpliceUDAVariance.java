@@ -23,9 +23,9 @@ import org.apache.derby.iapi.error.StandardException;
  *
  */
 public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,SpliceUDAVariance<K>> {
-    int count;
-    double sum;
+    long count;
     double variance;
+    double mean;
 
     public SpliceUDAVariance() {
 
@@ -33,18 +33,16 @@ public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,Splic
 
     public void init() {
         count = 0;
-        sum = 0;
         variance = 0;
+        mean = 0;
     }
 
     public void accumulate( K value ) {
         count++;
-        double v = value.doubleValue();
-        sum += v;
-        if (count > 1) {
-            double t = count*v - sum;
-            variance += (t*t) / ((double)count*(count-1));
-        }
+        double x = value.doubleValue();
+        double delta = x - mean;
+        mean = mean + delta/count;
+        variance = variance + delta*(x - mean);
     }
 
     public void merge( SpliceUDAVariance<K> other ) {
@@ -54,17 +52,17 @@ public class SpliceUDAVariance<K extends Double> implements Aggregator<K,K,Splic
         if (n == 0) {
             variance = other.variance;
             count = other.count;
-            sum = other.sum;
+            mean = other.mean;
         }
 
         if (m != 0 && n != 0) {
             // Merge the two partials
-            double a = sum;
-            double b = other.sum;
+            double a = mean * n;
+            double b = other.mean * m;
             count += other.count;
-            sum += other.sum;
-            double t = (m/(double)n)*a - b;
-            variance += other.variance + ((n/(double)m)/((double)n+m)) * t * t;
+            mean = (a + b) / count;
+            double t = (m / (double) n) * a - b;
+            variance += other.variance + ((n / (double)m) / ((double)n + m)) * t * t;
         }
     }
 

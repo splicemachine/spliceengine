@@ -20,9 +20,13 @@ public class SpliceStddevSamp<K extends Double> extends SpliceUDAVariance<K>
 
     @Override
     public K terminate() {
-       if (result == null && count > 1) {
-            result = new Double(Math.sqrt(variance/(count-1)));
-        }
+       if (result == null) {
+           if (count > 1) {
+               result = new Double(Math.sqrt(variance/(count-1)));
+           } else {
+               result = new Double(0);
+           }
+       }
         return (K) result;
     }
 
