@@ -43,7 +43,7 @@ if [[ -z "${PROFILE}" ]]; then
     PROFILE="cloudera-cdh4.3.0"
 fi
 
-SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)')
+SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)' | tr -d [[:space:]])
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
