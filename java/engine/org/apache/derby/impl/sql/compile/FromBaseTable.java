@@ -1695,6 +1695,15 @@ public class FromBaseTable extends FromTable
 								tableNumber, 0, 0.0, costEstimate);
 			}
 
+         /*
+          * Splice: for covering indices, adjust cost down
+          * to prefer them wrt table scans
+          */
+         if (cd.isIndex() && isCoveringIndex(cd)){
+            costEstimate.setEstimatedCost(
+                  costEstimate.getEstimatedCost() * .9);
+         }
+
 			/* Factor in the extra qualifier selectivity (see comment above).
 			 * NOTE: In this case we want to apply the selectivity to both
 			 * the row count and singleScanRowCount.
