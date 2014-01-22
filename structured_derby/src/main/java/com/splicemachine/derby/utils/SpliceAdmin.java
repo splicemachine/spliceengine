@@ -30,6 +30,10 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
+
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -341,6 +345,26 @@ public class SpliceAdmin {
         });
     }
 
+    public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
+        try {
+            HTransactorFactory.getTransactorControl().fail(new TransactionId(Long.toString(transactionId)));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
+        try {
+            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
+            for (TransactionId txnId : active) {
+                transactor.fail(txnId);
+            }
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
     static String escape(String first) {
         // escape single quotes | compress multiple whitespace chars into one, (replacing tab, newline, etc)
         return first.replaceAll("\\'", "\\'\\'").replaceAll("\\s+", " ");
@@ -574,10 +598,9 @@ public class SpliceAdmin {
         try {
             admin = SpliceUtils.getAdmin();
             // sys query for table conglomerate for in schema
-            long[] conglomIDs = getConglomids(getDefaultConn(), schemaName, tableName);
-            for (long conglomID : conglomIDs) {
+            for (long conglomID : getConglomids(getDefaultConn(), schemaName, tableName)) {
                 try {
-                    admin.majorCompact(Bytes.toBytes(conglomID));
+                    admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
                 } catch (IOException e) {
                     throw new SQLException(e);
                 } catch (InterruptedException e) {
@@ -596,24 +619,25 @@ public class SpliceAdmin {
     }
 
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException {
-        ResultSet allSchema = getDefaultConn().prepareStatement("select s.schemaname, t.tablename, c.isindex, " +
-                "c.conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
-                "where c.tableid = t.tableid and t.schemaid = s.schemaid and s.schemaname not like 'SYS%'").executeQuery();
+        ResultSet allTablesInSchema = getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, C.ISINDEX, " +
+                "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLENAME NOT LIKE 'SYS%' " +
+                "ORDER BY S.SCHEMANAME").executeQuery();
         StringBuilder sb = new StringBuilder("select * from (values ");
 
         int i = 0;
-        int nCols = allSchema.getMetaData().getColumnCount();
+        int nCols = allTablesInSchema.getMetaData().getColumnCount();
         Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
         HBaseAdmin admin = null;
         try {
             admin = SpliceUtils.getAdmin();
             StringBuilder regionBuilder = new StringBuilder();
-            while (allSchema.next()) {
+            while (allTablesInSchema.next()) {
                 for (int j=1; j<nCols; j++) {
                     if (i != 0) {
                         sb.append(", ");
                     }
-                    String conglom = allSchema.getObject("CONGLOMERATENUMBER").toString();
+                    String conglom = allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
                     regionBuilder.setLength(0);
                     for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
                         String regionName = Bytes.toString(ri.getRegionName());
@@ -623,9 +647,9 @@ public class SpliceAdmin {
                         }
                     }
                     sb.append(String.format("('%s','%s','%s','%s')",
-                            allSchema.getObject("SCHEMANAME"),
-                            allSchema.getObject("TABLENAME"),
-                            allSchema.getObject("ISINDEX"),
+                            allTablesInSchema.getObject("SCHEMANAME"),
+                            allTablesInSchema.getObject("TABLENAME"),
+                            allTablesInSchema.getObject("ISINDEX"),
                             regionBuilder.toString()));
                     i++;
                 }
@@ -640,9 +664,9 @@ public class SpliceAdmin {
                     // ignore
                 }
             }
-            if (allSchema != null) {
+            if (allTablesInSchema != null) {
                 try {
-                    allSchema.close();
+                    allTablesInSchema.close();
                 } catch (SQLException e) {
                     // ignore
                 }
@@ -677,15 +701,15 @@ public class SpliceAdmin {
             // default schema
             schemaName = "APP";
 
-        String allTablesInSchema =  "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
-                "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?";
+        String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
 
-        String query =  "select conglomeratenumber from sys.sysconglomerates c, sys.systables t, sys.sysschemas s " +
-                "where t.tableid = c.tableid and t.schemaid = s.schemaid and s.schemaname = ? and t.tablename = ?";
+        String query =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
 
         if (tableName == null)
             // all tables in schema
-        query = allTablesInSchema;
+            query = allTablesInSchema;
 
         ResultSet rs = null;
         PreparedStatement s = null;
@@ -696,9 +720,10 @@ public class SpliceAdmin {
                 s.setString(2, tableName.toUpperCase());
             }
             rs = s.executeQuery();
-            if (rs.next()) {
+            while (rs.next()) {
                 conglomIDs.add(rs.getLong(1));
-            } else {
+            }
+            if (conglomIDs.isEmpty()) {
                 throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
             }
         } finally {

@@ -40,6 +40,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Properties;
 import java.util.TreeMap;
 
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
@@ -566,5 +567,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(KVPair.class,EXTERNALIZABLE_SERIALIZER,143);
         instance.register(SpliceStddevPop.class,144);
         instance.register(SpliceStddevSamp.class,145);
+        instance.register(Properties.class,EXTERNALIZABLE_SERIALIZER,146);
+
     }
 }
