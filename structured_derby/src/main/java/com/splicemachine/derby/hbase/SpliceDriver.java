@@ -77,8 +77,9 @@ public class SpliceDriver extends SIConstants {
     private final List<Service> services = new CopyOnWriteArrayList<Service>();
     protected SpliceCache cache;
     private JmxReporter metricsReporter;
+		private Connection connection;
 
-    public static enum State{
+		public static enum State{
         NOT_STARTED,
         INITIALIZING,
         RUNNING,
@@ -118,7 +119,7 @@ public class SpliceDriver extends SIConstants {
     private final MetricsRegistry spliceMetricsRegistry = new MetricsRegistry();
 		//-sf- when we need to, replace this with a list
 		private final TempTable tempTable;
-		private final StatementManager statementManager;
+		private StatementManager statementManager;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -155,7 +156,6 @@ public class SpliceDriver extends SIConstants {
             jobScheduler = new DistributedJobScheduler(ZkUtils.getZkManager(),SpliceUtils.config);
             taskMonitor = new ZkTaskMonitor(SpliceConstants.zkSpliceTaskPath,ZkUtils.getRecoverableZooKeeper());
 						tempTable = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
-						this.statementManager = new StatementManager();
         } catch (Exception e) {
             throw new RuntimeException("Unable to boot Splice Driver",e);
         }
@@ -188,10 +188,6 @@ public class SpliceDriver extends SIConstants {
     public <J extends CoprocessorJob> JobScheduler<J> getJobScheduler(){
         return (JobScheduler<J>)jobScheduler;
     }
-
-//    public JobSchedulerManagement getJobSchedulerManagement() {
-//        return (JobSchedulerManagement)jobScheduler;
-//    }
 
     public void registerService(Service service){
         this.services.add(service);
@@ -243,6 +239,7 @@ public class SpliceDriver extends SIConstants {
 												ZkUtils.safeInitializeZooKeeper();
                         //table is set up
                         snowflake = snowLoader.load();
+												statementManager = new StatementManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
                         //register JMX items --have to wait for the db to boot first
@@ -313,7 +310,7 @@ public class SpliceDriver extends SIConstants {
 
     private boolean bootDatabase() throws Exception {
     	HBaseAdmin admin = null;
-    	Connection connection = null;
+    	connection = null;
         try{
         	admin = SpliceAccessManager.getAdmin(config);
         	HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
@@ -329,8 +326,8 @@ public class SpliceDriver extends SIConstants {
 			connection = maker.createNew();
 			return true;
         } finally{
-        	if (connection != null)
-        		connection.close();
+//        	if (connection != null)
+//        		connection.close();
         	Closeables.close(admin,true);
         }
     }
@@ -468,6 +465,9 @@ public class SpliceDriver extends SIConstants {
         return spliceMetricsRegistry;
     }
 
+		public Connection getInternalConnection(){
+				return connection;
+		}
     
     public static void setOptimizerTrace(boolean onOrOff) {
     	SpliceLogUtils.trace(LOG, "setOptimizerTrace %s", onOrOff);

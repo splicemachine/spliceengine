@@ -772,7 +772,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             }
             throw Exceptions.parseException(e);
         }finally {
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+						boolean explain = xplainSchema !=null &&
+										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
             if (future!=null) {
                 try {
                     future.cleanup();
@@ -843,7 +846,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         } catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         }finally {
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+						boolean explain = xplainSchema !=null &&
+										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
             try {
                 transactor.commit(indexTransaction);
             } catch (IOException e) {

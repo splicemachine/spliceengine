@@ -90,6 +90,7 @@ public class JobInfo implements JobFuture.StatusHook {
 						//we are finished! whoo!
 						jobFuture=null;
 						jobFinishMs = System.currentTimeMillis();
+						jobState=JobState.COMPLETED;
 				}
 		}
 

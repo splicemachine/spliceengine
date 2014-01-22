@@ -146,6 +146,8 @@ public class StatementInfo {
 
 		public String status() {
 				if(isCancelled) return "CANCELLED";
+				if(completedJobIds==null) return "SUCCESS";
+
 				for(JobInfo completeInfo:completedJobIds){
 						switch(completeInfo.getJobState()){
 								case CANCELLED:
@@ -160,18 +162,22 @@ public class StatementInfo {
 
 		public int numCancelledJobs() {
 				int numCancelled=0;
-				for(JobInfo info:completedJobIds){
-						if(info.getJobState()== JobInfo.JobState.CANCELLED)
-								numCancelled++;
+				if(completedJobIds!=null){
+						for(JobInfo info:completedJobIds){
+								if(info.getJobState()== JobInfo.JobState.CANCELLED)
+										numCancelled++;
+						}
 				}
 				return numCancelled;
 		}
 
 		public int numFailedJobs() {
 				int numFailed=0;
-				for(JobInfo info:completedJobIds){
-					if(info.getJobState()== JobInfo.JobState.FAILED)
-							numFailed++;
+				if(completedJobIds!=null){
+						for(JobInfo info:completedJobIds){
+								if(info.getJobState()== JobInfo.JobState.FAILED)
+										numFailed++;
+						}
 				}
 				return numFailed;
 		}
@@ -184,5 +190,17 @@ public class StatementInfo {
             }
         };
     }
+
+		public int numSuccessfulJobs() {
+				int numSuccess=0;
+				if(completedJobIds!=null){
+						numSuccess = completedJobIds.size();
+						for(JobInfo info:completedJobIds){
+								if(info.getJobState()!= JobInfo.JobState.COMPLETED)
+										numSuccess--;
+						}
+				}
+				return numSuccess;
+		}
 }
 

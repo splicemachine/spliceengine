@@ -28,6 +28,7 @@ public class SpliceXplainUtils {
 		@SuppressWarnings("UnusedDeclaration")
 		public static void SYSCS_SET_XPLAIN_SCHEMA(String schemaName)
 																					throws SQLException, StandardException {
+				//TODO -sf- deploy this out to all nodes in the cluster--JMX?
 				LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
 
 				if (schemaName == null || schemaName.trim().length() == 0) {
