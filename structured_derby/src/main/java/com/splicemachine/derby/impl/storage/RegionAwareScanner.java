@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -229,6 +230,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
         }
         Scan localScan = boundary.buildScan(transactionId,localStart,localFinish);
         localScan.setFilter(scan.getFilter());
+        localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         localScanner = new BufferedRegionScanner(region,region.getScanner(localScan),localScan.getCaching());
         if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
