@@ -86,10 +86,11 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
             topOperation.open();
 
-						List<OperationInfo> operationInfo = getOperationInfo();
 						statementInfo = new StatementInfo(sql,user,txnId,
 										operationTree.getNumSinks(topOperation),
-										SpliceDriver.driver().getUUIDGenerator(),operationInfo);
+										SpliceDriver.driver().getUUIDGenerator());
+						List<OperationInfo> operationInfo = getOperationInfo(statementInfo.getStatementUuid());
+						statementInfo.setOperationInfo(operationInfo);
 						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -110,20 +111,20 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
-		private List<OperationInfo> getOperationInfo() {
+		private List<OperationInfo> getOperationInfo(long statementId) {
 				List<OperationInfo> info = Lists.newArrayList();
-				populateOpInfo(-1,false,topOperation,info);
+				populateOpInfo(statementId,-1,false,topOperation,info);
 				return info;
 		}
 
-		private void populateOpInfo(long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
+		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
 				if(operation==null) return;
 				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-				OperationInfo opInfo = new OperationInfo(operationUuid,
+				OperationInfo opInfo = new OperationInfo(statementId,operationUuid,
 								operation.getClass().getSimpleName().replace("Operation",""),parentOperationId);
 				infos.add(opInfo);
-				populateOpInfo(operationUuid, false, operation.getLeftOperation(), infos);
-				populateOpInfo(operationUuid,true,operation.getRightOperation(),infos);
+				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
+				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
 		}
 
 		@Override

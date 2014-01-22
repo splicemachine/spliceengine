@@ -75,22 +75,28 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
 		public void flushBuffer() throws Exception {
 				if(closed) return;
 				if(!flushing.compareAndSet(false,true)) return; //someone else is already flushing, so don't bother
+				try{
 
-				int size = queue.size();
-				if(size<=0) return; //nothing to do if we don't have anything to flush
-				ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstanceWithCapacity(size);
-				for(int i=0;i<size;i++){
-						KVPair next = queue.poll();
-						if(next==null) break;
-						pairs.add(next);
-				}
+						int size = queue.size();
+						if(size<=0) return; //nothing to do if we don't have anything to flush
 
-				synchronized (delegateBuffer){
-						delegateBuffer.addAll(pairs);
-						delegateBuffer.flushBuffer();
+						ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstanceWithCapacity(size);
+						for(int i=0;i<size;i++){
+								KVPair next = queue.poll();
+								if(next==null) break;
+								pairs.add(next);
+						}
+
+						if(pairs.size()<=0) return; //nothing to do now if there's nothing to flush
+
+						synchronized (delegateBuffer){
+								delegateBuffer.addAll(pairs);
+								delegateBuffer.flushBuffer();
+						}
+				}finally{
+						//allow other flushes to proceed.
+						flushing.set(false);
 				}
-				//allow other flushes to proceed.
-				flushing.set(false);
 		}
 
 		@Override

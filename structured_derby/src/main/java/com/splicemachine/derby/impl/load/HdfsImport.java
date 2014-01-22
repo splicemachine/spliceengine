@@ -252,7 +252,9 @@ public class HdfsImport extends ParallelVTI {
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
 								user,transactionId,
-								1,SpliceDriver.driver().getUUIDGenerator(),Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",-1l)));
+								1,SpliceDriver.driver().getUUIDGenerator());
+				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",-1l)));
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
 					LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();

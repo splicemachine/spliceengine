@@ -3,6 +3,7 @@ package com.splicemachine.derby.management;
 import com.splicemachine.derby.impl.job.JobInfo;
 
 import java.beans.ConstructorProperties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Scott Fines
@@ -12,45 +13,45 @@ public class OperationInfo {
 		private final long operationUuid;
 		private final String operationTypeName;
 		private final long parentOperationUuid; //-1 for no parent
-		private volatile int numJobs;
-		private volatile int numTasks;
+		private AtomicInteger numJobs = new AtomicInteger(0);
+		private AtomicInteger numTasks = new AtomicInteger(0);
 		private volatile int numServers; //TODO -sf- get this metric somehow
+		private long statementId;
 
 		public OperationInfo(long operationUuid,
+												 long statementId,
 												 String operationTypeName,
 												 long parentOperationUuid) {
 				this.operationUuid = operationUuid;
 				this.operationTypeName = operationTypeName;
 				this.parentOperationUuid = parentOperationUuid;
-				this.numJobs=0;
-				this.numTasks=0;
 				this.numServers=0;
 		}
 
-		@ConstructorProperties({"numServers","numTasks","numJobs","parentOperationUuid","operationTypeName","operationUuid"})
+		@ConstructorProperties({"numServers","numTasks","numJobs","parentOperationUuid","operationTypeName","operationUuid","statementId"})
 		public OperationInfo(int numServers, int numTasks, int numJobs,
-												 long parentOperationUuid, String operationTypeName, long operationUuid) {
+												 long parentOperationUuid, String operationTypeName, long operationUuid,
+												 long statementUuid) {
 				this.numServers = numServers;
-				this.numTasks = numTasks;
-				this.numJobs = numJobs;
+				this.numJobs.set(numJobs);
+				this.numTasks.set(numTasks);
 				this.parentOperationUuid = parentOperationUuid;
 				this.operationTypeName = operationTypeName;
 				this.operationUuid = operationUuid;
+				this.statementId = statementUuid;
 		}
 
 		public long getOperationUuid() { return operationUuid; }
 		public String getOperationTypeName() { return operationTypeName; }
 		public long getParentOperationUuid() { return parentOperationUuid; }
-		public int getNumJobs() { return numJobs; }
-		public void setNumJobs(int numJobs) { this.numJobs = numJobs; }
-		public int getNumTasks() { return numTasks; }
-		public void setNumTasks(int numTasks) { this.numTasks = numTasks; }
+		public int getNumJobs() { return numJobs.get(); }
+		public int getNumTasks() { return numTasks.get(); }
 		public int getNumServers() { return numServers; }
 		public void setNumServers(int numServers) { this.numServers = numServers; }
 
 		public void addJob(JobInfo jobInfo){
-				this.numJobs++;
-				this.numTasks+=jobInfo.totalTaskCount();
+				this.numJobs.incrementAndGet();
+				this.numTasks.addAndGet(jobInfo.totalTaskCount());
 		}
 
 
@@ -66,5 +67,9 @@ public class OperationInfo {
 		@Override
 		public int hashCode() {
 				return (int) (operationUuid ^ (operationUuid >>> 32));
+		}
+
+		public long getStatementId() {
+				return statementId;
 		}
 }

@@ -135,7 +135,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 if(regions.size()>0) break;
                 numTries--;
             }
-            if(regions.size()<0)
+            if(regions.size()<=0)
                 throw new IOException("Unable to get region information for table "+ Bytes.toString(tableName));
         }
 
