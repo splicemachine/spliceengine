@@ -18,7 +18,7 @@ import java.io.IOException;
  * Interface for SpliceOperations that need to sink rows from their children
  * before computing result rows.
  */
-public interface SinkingOperation {
+public interface SinkingOperation extends SpliceOperation {
 
     /**
      * Get next ExecRow to sink to an intermediate table as prep for computing result rows
@@ -27,13 +27,13 @@ public interface SinkingOperation {
 
     String getTransactionID();
 
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+//		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+//		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
 		CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException;
 
-		void close() throws IOException,StandardException;
+//		void close() throws IOException,StandardException;
 
 		byte[] getUniqueSequenceId();
 }

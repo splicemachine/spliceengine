@@ -12,6 +12,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;

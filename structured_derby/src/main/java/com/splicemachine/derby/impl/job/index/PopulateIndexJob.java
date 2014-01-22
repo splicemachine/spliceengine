@@ -27,19 +27,28 @@ public class PopulateIndexJob implements CoprocessorJob{
     private final BitSet indexedColumns;
     private final boolean isUnique;
     private final BitSet descColumns;
+		private final long statementId;
+		private final long operationId;
+		private final String xplainSchema;
 
-    public PopulateIndexJob(HTableInterface table,
+		public PopulateIndexJob(HTableInterface table,
                           String transactionId,
                           long indexConglomId,
                           long baseConglomId,
                           int[] indexColToMainColPosMap,
                           boolean unique,
-                          boolean[] descColumns) {
+                          boolean[] descColumns,
+													long statementId,
+													long operationId,
+													String xplainSchema) {
         this.table = table;
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
         this.baseConglomId = baseConglomId;
         isUnique = unique;
+				this.statementId = statementId;
+				this.operationId = operationId;
+				this.xplainSchema = xplainSchema;
 
 
         this.indexedColumns = new BitSet();
@@ -61,7 +70,7 @@ public class PopulateIndexJob implements CoprocessorJob{
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         PopulateIndexTask task = new PopulateIndexTask(transactionId,indexConglomId,
-                baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId(),descColumns);
+                baseConglomId, mainColToIndexPosMap, indexedColumns,isUnique,getJobId(),descColumns,xplainSchema,statementId,operationId);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 

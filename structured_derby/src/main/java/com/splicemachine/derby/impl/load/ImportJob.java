@@ -14,11 +14,16 @@ public abstract class ImportJob implements CoprocessorJob {
     protected ImportContext context;
     protected final HTableInterface table;
     private final String jobId;
+		protected final long statementId;
+		protected final long operationId;
 
-    protected ImportJob(HTableInterface table, ImportContext context) {
+    protected ImportJob(HTableInterface table, ImportContext context,
+												long statementId,long operationId) {
         this.table = table;
         this.context = context;
         this.jobId = "import-"+context.getTableName()+"-"+context.getFilePath().getName();
+				this.statementId = statementId;
+				this.operationId = operationId;
     }
 
     @Override

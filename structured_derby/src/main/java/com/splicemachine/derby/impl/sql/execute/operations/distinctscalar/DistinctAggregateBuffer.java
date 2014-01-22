@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
@@ -25,8 +26,9 @@ public class DistinctAggregateBuffer extends AbstractAggregateBuffer {
     public DistinctAggregateBuffer(int maxSize,
                            SpliceGenericAggregator[] aggregators,
                            StandardSupplier<ExecRow> emptyRowSupplier,
-                           WarningCollector warningCollector, STEP step){
-    	super(maxSize,aggregators);
+                           WarningCollector warningCollector, STEP step,
+													 MetricFactory metricFactory){
+    	super(maxSize,aggregators,metricFactory);
         this.emptyRowSupplier = emptyRowSupplier;
         this.warningCollector = warningCollector;
         this.step = step;

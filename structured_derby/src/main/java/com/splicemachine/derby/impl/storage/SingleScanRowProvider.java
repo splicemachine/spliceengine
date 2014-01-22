@@ -8,6 +8,8 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;

@@ -830,7 +830,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
 						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
-										conglomId, tableConglomId, baseColumnPositions, unique, descColumns);
+										conglomId, tableConglomId, baseColumnPositions, unique, descColumns,
+										statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
 						long start = System.currentTimeMillis();
 						future = SpliceDriver.driver().getJobScheduler().submit(job);
 						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);

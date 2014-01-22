@@ -27,11 +27,12 @@ import java.util.Random;
  */
 public class FileImportJob extends ImportJob{
 
-    protected FileImportJob(HTableInterface table, ImportContext context) {
-        super(table, context);
-    }
 
-    @Override
+		protected FileImportJob(HTableInterface table, ImportContext context, long statementId, long operationId) {
+				super(table, context, statementId, operationId);
+		}
+
+		@Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         Path filePath = context.getFilePath();
         FileSystem fs = FileSystem.get(SpliceUtils.config);
@@ -40,7 +41,7 @@ public class FileImportJob extends ImportJob{
 
         ImportReader reader = new FileImportReader();
         ImportTask task = new ImportTask(getJobId(), context,reader,
-                SpliceConstants.importTaskPriority, context.getTransactionId());
+                SpliceConstants.importTaskPriority, context.getTransactionId(),statementId,operationId);
         return Collections.singletonMap(task, getTaskBoundary());
     }
 

@@ -61,10 +61,13 @@ public class ClientResultScanner implements SpliceResultScanner{
             scanner = DistributedScanner.create(table,scan,keyDistributor);
     }
 
-		@Override public Timer getRemoteReadTime() { return remoteReadTimer; }
-		@Override public Counter getRemoteBytesRead() { return remoteBytesRead; }
-		@Override public Timer getLocalReadTime() { return Timers.noOpTimer(); }
-		@Override public Counter getLocalBytesRead() { return Counters.noOpCounter(); }
+		@Override public TimeView getRemoteReadTime() { return remoteReadTimer.getTime(); }
+		@Override public long getRemoteBytesRead() { return remoteBytesRead.getTotal(); }
+		@Override public long getRemoteRowsRead() { return remoteReadTimer.getNumEvents(); }
+
+		@Override public TimeView getLocalReadTime() { return Timers.noOpTimeView(); }
+		@Override public long getLocalBytesRead() { return 0l; }
+		@Override public long getLocalRowsRead() { return 0; }
 
 		@Override public Result next() throws IOException {
 				remoteReadTimer.startTiming();

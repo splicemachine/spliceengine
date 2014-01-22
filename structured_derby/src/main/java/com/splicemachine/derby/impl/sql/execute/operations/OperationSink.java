@@ -5,7 +5,11 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.management.XplainTaskReporter;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
@@ -13,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.stats.Timers;
 import com.splicemachine.utils.Snowflake;
@@ -21,6 +26,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.List;
 
 /**
@@ -41,21 +47,27 @@ public class OperationSink {
     private final String transactionId;
 
 		private final Timer totalTimer;
+		private final long waitTimeNs;
+		private long statementId;
 
 		public OperationSink(byte[] taskId,
 												 SinkingOperation operation,
 												 CallBufferFactory<KVPair> tableWriter,
-												 String transactionId) {
+												 String transactionId,
+												 long statementId,
+												 long waitTimeNs) {
         this.tableWriter = tableWriter;
         this.taskId = taskId;
         this.operation = operation;
         this.transactionId = transactionId;
 				//we always record this time information, because it's cheap relative to the per-row timing
 				this.totalTimer = Timers.newTimer();
+				this.statementId = statementId;
+				this.waitTimeNs = waitTimeNs;
     }
 
-    public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId) throws IOException {
-        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId);
+    public static OperationSink create(SinkingOperation operation, byte[] taskId, String transactionId,long statementId,long waitTimeNs) throws IOException {
+        return new OperationSink(taskId,operation,SpliceDriver.driver().getTableWriter(), transactionId,statementId,waitTimeNs);
     }
 
     public TaskStats sink(byte[] destinationTable, SpliceRuntimeContext spliceRuntimeContext) throws Exception {
@@ -66,10 +78,12 @@ public class OperationSink {
 						taskChain.set(bytes);
 				}
 				bytes.add(taskId);
-        CallBuffer<KVPair> writeBuffer;
+        CallBuffer<KVPair> writeBuffer = null;
 				PairEncoder encoder;
 				long rowsRead = 0;
 				long rowsWritten = 0;
+				long totalBytes = 0l;
+				Timer writeTimer = spliceRuntimeContext.newTimer();
         try{
 						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
 						DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
@@ -89,13 +103,19 @@ public class OperationSink {
                 if(row==null) continue;
 
 								rowsRead++;
-								writeBuffer.add(encoder.encode(row));
+								writeTimer.startTiming();
+								KVPair encode = encoder.encode(row);
+								totalBytes += encode.getSize();
+								writeBuffer.add(encode);
+								writeTimer.stopTiming();
 								rowsWritten++;
 
             }while(row!=null);
 
+						writeTimer.startTiming();
             writeBuffer.flushBuffer();
             writeBuffer.close();
+						writeTimer.stopTiming();
 
 						//stop timing events. We do this inside of the try block because we don't care
 						//if the task fails for some reason
@@ -115,13 +135,63 @@ public class OperationSink {
 						}
 						operation.close();
 
+						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+								long taskIdLong = Bytes.toLong(taskId);
+								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+								List<OperationRuntimeStats> operationStats = getOperationStats(operation, taskIdLong,
+												statementId, spliceRuntimeContext,rowsWritten,totalBytes,writeTimer.getTime());
+								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+								for(OperationRuntimeStats operationStat:operationStats){
+										TimeView view = totalTimer.getTime();
+										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
+										operationStat.setHostName(hostName);
+
+										reporter.report(spliceRuntimeContext.getXplainSchema(),operationStat);
+								}
+						}
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));
 						}
         }
-				return new TaskStats(totalTimer.getWallClockTime(),rowsRead,rowsWritten);
+				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
     }
+
+		private List<OperationRuntimeStats> getOperationStats(SpliceOperation operation,
+																													long taskId,
+																													long statementId,
+																													SpliceRuntimeContext spliceRuntimeContext,
+																													long rowsWritten,
+																													long bytesWritten,
+																													TimeView writeTimer){
+
+				List<OperationRuntimeStats> stats = Lists.newArrayList();
+				OperationRuntimeStats metrics = operation.getMetrics(statementId,taskId);
+				if(metrics==null)
+						metrics = new OperationRuntimeStats(statementId,Bytes.toLong(operation.getUniqueSequenceID()),taskId,5);
+
+				metrics.addMetric(OperationMetric.WRITE_ROWS, rowsWritten);
+				metrics.addMetric(OperationMetric.WRITE_BYTES, bytesWritten);
+				metrics.addMetric(OperationMetric.WRITE_CPU_TIME,writeTimer.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
+				metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
+				stats.add(metrics);
+
+				SpliceOperation child = spliceRuntimeContext.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
+				if(child!=null)
+						populateStats(spliceRuntimeContext,child,statementId,taskId,stats);
+				return stats;
+		}
+
+		private void populateStats(SpliceRuntimeContext context,SpliceOperation operation, long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
+				if(operation==null) return;
+				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
+				if(metrics!=null)
+						stats.add(metrics);
+				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
+				if(child!=null)
+						populateStats(context,child,statementId,taskIdLong,stats);
+		}
 
 		private String getTransactionId(byte[] destinationTable) {
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();

@@ -2,12 +2,13 @@ package com.splicemachine.stats;
 
 /**
  * @author Scott Fines
- *         Date: 1/17/14
+ * Date: 1/17/14
  */
 public abstract class BaseTimeMeasure implements TimeMeasure{
 		private long totalTime;
 
-		private long  start;
+		protected long start;
+		protected long stop;
 
 		@Override
 		public void startTime() {
@@ -18,11 +19,11 @@ public abstract class BaseTimeMeasure implements TimeMeasure{
 
 		@Override
 		public void stopTime() {
-			this.totalTime+=(getTimestamp()-start);
+				this.stop = getTimestamp();
+				this.totalTime+=(stop-start);
 		}
 
-		@Override
-		public long getElapsedTime() {
-				return totalTime;
-		}
+		@Override public long getElapsedTime() { return totalTime; }
+		@Override public long getStopTimestamp() { return stop; }
+		@Override public long getStartTimestamp() { return start; }
 }

@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;
 
+import com.splicemachine.stats.Stats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -75,9 +76,9 @@ public class SinkGroupedAggregatorTest {
         SpliceGenericAggregator nonDistinctAggregate = getCountAggregator(4,1,3,false);
         SpliceGenericAggregator distinctAggregate = getCountAggregator(6,2,5,true);
         GroupedAggregateBuffer nonDistinctBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector);
+                new SpliceGenericAggregator[]{nonDistinctAggregate},false,emptyRowSupplier,collector, Stats.noOpMetricFactory());
         GroupedAggregateBuffer distinctBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{distinctAggregate},false,emptyRowSupplier,collector);
+                new SpliceGenericAggregator[]{distinctAggregate},false,emptyRowSupplier,collector,Stats.noOpMetricFactory());
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};
@@ -117,7 +118,7 @@ public class SinkGroupedAggregatorTest {
         }));
 
         GroupedAggregateBuffer scanBuffer = new GroupedAggregateBuffer(10,
-                new SpliceGenericAggregator[]{nonDistinctAggregate,distinctAggregate},false,emptyRowSupplier,collector,true);
+                new SpliceGenericAggregator[]{nonDistinctAggregate,distinctAggregate},false,emptyRowSupplier,collector,true,Stats.noOpMetricFactory());
 
         ScanGroupedAggregateIterator scanAggregator = new ScanGroupedAggregateIterator(scanBuffer,scanSource,groupColumns,groupSortOrder,false);
 

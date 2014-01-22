@@ -16,6 +16,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.management.StatementManager;
+import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
@@ -78,6 +79,11 @@ public class SpliceDriver extends SIConstants {
     protected SpliceCache cache;
     private JmxReporter metricsReporter;
 		private Connection connection;
+
+		private XplainTaskReporter taskReporter;
+		public XplainTaskReporter getTaskReporter() {
+				return taskReporter;
+		}
 
 		public static enum State{
         NOT_STARTED,
@@ -240,6 +246,8 @@ public class SpliceDriver extends SIConstants {
                         //table is set up
                         snowflake = snowLoader.load();
 												statementManager = new StatementManager();
+												taskReporter = new XplainTaskReporter(1);
+												taskReporter.start(1);
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
                         //register JMX items --have to wait for the db to boot first

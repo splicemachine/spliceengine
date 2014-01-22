@@ -12,6 +12,7 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.si.coprocessors.SIFilter;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -119,11 +120,13 @@ public class RegionAwareScanner implements SpliceResultScanner {
 //        this.transactionId = transactionId;
     }
 
-		@Override public Timer getRemoteReadTime() { return remoteReadTimer; }
-		@Override public Counter getRemoteBytesRead() { return remoteBytesRead; }
+		@Override public TimeView getRemoteReadTime() { return remoteReadTimer.getTime(); }
+		@Override public long getRemoteBytesRead() { return remoteBytesRead.getTotal(); }
+		@Override public long getRemoteRowsRead() { return remoteReadTimer.getNumEvents(); }
 
-		@Override public Timer getLocalReadTime() { return localScanner.getReadTime(); }
-		@Override public Counter getLocalBytesRead() { return localScanner.getBytesRead(); }
+		@Override public TimeView getLocalReadTime() { return localScanner.getReadTime(); }
+		@Override public long getLocalBytesRead() { return localScanner.getBytesRead(); }
+		@Override public long getLocalRowsRead() { return localScanner.getRowsRead(); }
 
 		/**
      * @return the new RowResult in the scan, or {@code null} if no more rows are to be returned.

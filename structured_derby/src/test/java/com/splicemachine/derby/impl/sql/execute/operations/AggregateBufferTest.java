@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Grou
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 
+import com.splicemachine.stats.Stats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -53,7 +54,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        });
+        }, Stats.noOpMetricFactory());
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -129,7 +130,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        });
+        },Stats.noOpMetricFactory());
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -195,7 +196,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        });
+        },Stats.noOpMetricFactory());
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -242,7 +243,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        });
+        },Stats.noOpMetricFactory());
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{
@@ -290,7 +291,7 @@ public class AggregateBufferTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        });
+        },Stats.noOpMetricFactory());
 
         ExecRow row = new ValueRow(3);
         row.setRowArray(new DataValueDescriptor[]{

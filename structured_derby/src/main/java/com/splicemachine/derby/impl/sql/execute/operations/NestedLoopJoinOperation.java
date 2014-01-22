@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -20,115 +21,119 @@ import java.util.Iterator;
 import java.util.List;
 
 public class NestedLoopJoinOperation extends JoinOperation {
-	private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
-	protected ExecRow rightTemplate;
-	protected NestedLoopIterator nestedLoopIterator;
-	protected boolean isHash;
-	protected static List<NodeType> nodeTypes;
-	
-	static {
-		nodeTypes = new ArrayList<NodeType>();
-		nodeTypes.add(NodeType.MAP);
-		nodeTypes.add(NodeType.SCROLL);
-	}
-	
-	public NestedLoopJoinOperation() {
-		super();
-	}
-	
-	public NestedLoopJoinOperation(SpliceOperation leftResultSet,
-			   int leftNumCols,
-			   SpliceOperation rightResultSet,
-			   int rightNumCols,
-			   Activation activation,
-			   GeneratedMethod restriction,
-			   int resultSetNumber,
-			   boolean oneRowRightSide,
-			   boolean notExistsRightSide,
-			   double optimizerEstimatedRowCount,
-			   double optimizerEstimatedCost,
-			   String userSuppliedOptimizerOverrides) throws StandardException {
-		super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
-				resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
-				   optimizerEstimatedCost,userSuppliedOptimizerOverrides);	
-		this.isHash = false;
-        init(SpliceOperationContext.newContext(activation));
-        recordConstructorTime(); 
-	}
-	
-	@Override
-	public List<NodeType> getNodeTypes() {
-		return nodeTypes;
-	}
-	
-	@Override
-	public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-		super.readExternal(in);
-		isHash = in.readBoolean();
-	}
+		private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
+		protected ExecRow rightTemplate;
+		protected NestedLoopIterator nestedLoopIterator;
+		protected boolean isHash;
+		protected static List<NodeType> nodeTypes;
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeBoolean(isHash);
-	}
+		static {
+				nodeTypes = new ArrayList<NodeType>();
+				nodeTypes.add(NodeType.MAP);
+				nodeTypes.add(NodeType.SCROLL);
+		}
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		super.init(context);
-		rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
-	}
+		public NestedLoopJoinOperation() {
+				super();
+		}
+
+		public NestedLoopJoinOperation(SpliceOperation leftResultSet,
+																	 int leftNumCols,
+																	 SpliceOperation rightResultSet,
+																	 int rightNumCols,
+																	 Activation activation,
+																	 GeneratedMethod restriction,
+																	 int resultSetNumber,
+																	 boolean oneRowRightSide,
+																	 boolean notExistsRightSide,
+																	 double optimizerEstimatedRowCount,
+																	 double optimizerEstimatedCost,
+																	 String userSuppliedOptimizerOverrides) throws StandardException {
+				super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
+								resultSetNumber,oneRowRightSide,notExistsRightSide,optimizerEstimatedRowCount,
+								optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+				this.isHash = false;
+				init(SpliceOperationContext.newContext(activation));
+				recordConstructorTime();
+		}
+
+		@Override
+		public List<NodeType> getNodeTypes() {
+				return nodeTypes;
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+				super.readExternal(in);
+				isHash = in.readBoolean();
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				out.writeBoolean(isHash);
+		}
+
+		@Override
+		public void init(SpliceOperationContext context) throws StandardException{
+				super.init(context);
+				rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
+				startExecutionTime = System.currentTimeMillis();
+		}
 
 		@Override
 		public String toString() {
 				return "NestedLoop"+super.toString();
 		}
 
-	@Override
-	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return next(false, spliceRuntimeContext);
-	}
+		@Override
+		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				return next(false, spliceRuntimeContext);
+		}
 
-    protected ExecRow leftNext(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return leftResultSet.nextRow(spliceRuntimeContext);
-    }
+		protected ExecRow leftNext(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				return leftResultSet.nextRow(spliceRuntimeContext);
+		}
 
-    protected ExecRow next(boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        beginTime = getCurrentTimeMillis();
-        // loop until NL iterator produces result, or until left side exhausted
-        while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext()) && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
-            if (nestedLoopIterator != null){
-                nestedLoopIterator.close();
-            }
-            leftResultSet.setCurrentRow(leftRow);
-            rowsSeenLeft++;
-            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
-            nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
-        }
-        if (leftRow == null){
-            mergedRow = null;
-            setCurrentRow(mergedRow);
-            return mergedRow;
-        } else {
-            ExecRow next = nestedLoopIterator.next();
-            SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: ",(next != null ? next : "NULL Next Row"));
-            setCurrentRow(next);
-            nextTime += getElapsedMillis(beginTime);
-            rowsReturned++;
-            return next;
-        }
-    }
-	
-	@Override
-	public void	close() throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG, "close in NestdLoopJoin");
-		beginTime = getCurrentTimeMillis();
-		clearCurrentRow();
-		super.close();
-		closeTime += getElapsedMillis(beginTime);
-	}
+		protected ExecRow next(boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
+				timer.startTiming();
+				// loop until NL iterator produces result, or until left side exhausted
+				while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext()) && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
+						if (nestedLoopIterator != null){
+								nestedLoopIterator.close();
+						}
+						leftResultSet.setCurrentRow(leftRow);
+						rowsSeenLeft++;
+						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
+						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
+				}
+				if (leftRow == null){
+						mergedRow = null;
+						timer.tick(0);
+						stopExecutionTime = System.currentTimeMillis();
+						setCurrentRow(mergedRow);
+						return mergedRow;
+				} else {
+						ExecRow next = nestedLoopIterator.next();
+						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: Next: ",(next != null ? next : "NULL Next Row"));
+						setCurrentRow(next);
+						timer.tick(1);
+						return next;
+				}
+		}
 
-    @Override
+		@Override
+		public void	close() throws StandardException, IOException {
+				SpliceLogUtils.trace(LOG, "close in NestdLoopJoin");
+				beginTime = getCurrentTimeMillis();
+				clearCurrentRow();
+				super.close();
+				closeTime += getElapsedMillis(beginTime);
+		}
+
+		@Override
 		public String prettyPrint(int indentLevel) {
 				return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
 		}
@@ -233,38 +238,25 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						return null;  //for inner loops, return null here
 				}
 
-        @Override
-		public ExecRow next() {
-			SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
-			populated=false;
-			return mergedRow;
-		}
+				@Override
+				public ExecRow next() {
+						SpliceLogUtils.trace(LOG, "next row=%s",mergedRow);
+						populated=false;
+						return mergedRow;
+				}
 
-		@Override
-		public void remove() {
-			SpliceLogUtils.trace(LOG, "remove");
+				@Override
+				public void remove() {
+						SpliceLogUtils.trace(LOG, "remove");
+				}
+				public void close() throws StandardException {
+						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing ",(isOpen? "": "closed "),(outerJoin?"Outer ":""),"join.");
+						beginTime = getCurrentTimeMillis();
+						if (!isOpen)
+								return;
+						probeResultSet.close();
+						isOpen = false;
+						closeTime += getElapsedMillis(beginTime);
+				}
 		}
-		public void close() throws StandardException {
-            SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing ",(isOpen? "": "closed "),(outerJoin?"Outer ":""),"join.");
-			beginTime = getCurrentTimeMillis();
-			if (!isOpen)
-				return;
-			probeResultSet.close();
-			isOpen = false;
-			closeTime += getElapsedMillis(beginTime);
-		}
-	}
-	
-//	@Override
-//	public long getTimeSpent(int type)
-//	{
-//		long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//			return	totTime - leftResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE)
-//							- rightResultSet.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//		else
-//			return totTime;
-//	}
-	
 }

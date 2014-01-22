@@ -2,9 +2,16 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
+import com.splicemachine.stats.Timers;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
@@ -15,6 +22,7 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -27,113 +35,143 @@ import java.util.concurrent.ExecutionException;
  * Created on: 8/26/13
  */
 public class ImportTask extends ZkTask{
-    private static final long serialVersionUID = 2l;
-    private static final Logger LOG = Logger.getLogger(ImportTask.class);
+		private static final long serialVersionUID = 2l;
+		private static final Logger LOG = Logger.getLogger(ImportTask.class);
 
-    protected ImportContext importContext;
-    protected FileSystem fileSystem;
-    protected ImportReader reader;
+		protected ImportContext importContext;
+		protected FileSystem fileSystem;
+		protected ImportReader reader;
 
-    private Importer importer;
+		private Importer importer;
+		private long statementId;
+		private long operationId;
 
-    /**
-     * @deprecated only available for a a no-args constructor
-     */
-    @Deprecated
-    @SuppressWarnings("UnusedDeclaration")
-    public ImportTask() { }
+		/**
+		 * @deprecated only available for a a no-args constructor
+		 */
+		@Deprecated
+		@SuppressWarnings("UnusedDeclaration")
+		public ImportTask() { }
 
-    public ImportTask(String jobId,
-                      ImportContext importContext,
-                      ImportReader reader,
-                      int priority,
-                      String parentTxnId){
-        super(jobId,priority,parentTxnId,false);
-        this.importContext = importContext;
-        this.reader = reader;
-    }
+		public ImportTask(String jobId,
+											ImportContext importContext,
+											ImportReader reader,
+											int priority,
+											String parentTxnId,
+											long statementId,
+											long operationId){
+				super(jobId,priority,parentTxnId,false);
+				this.importContext = importContext;
+				this.reader = reader;
+				this.statementId = statementId;
+				this.operationId = operationId;
+		}
 
-    public ImportTask(String jobId,
-                      ImportContext importContext,
-                      ImportReader reader,
-                      Importer importer,
-                      int priority,
-                      String parentTxnId){
-        super(jobId,priority,parentTxnId,false);
-        this.importContext = importContext;
-        this.reader = reader;
-        this.importer = importer;
-    }
+		public ImportTask(String jobId,
+											ImportContext importContext,
+											ImportReader reader,
+											Importer importer,
+											int priority,
+											String parentTxnId){
+				super(jobId,priority,parentTxnId,false);
+				this.importContext = importContext;
+				this.reader = reader;
+				this.importer = importer;
+		}
 
-    @Override
-    public void doExecute() throws ExecutionException, InterruptedException {
-        try{
-            ExecRow row = getExecRow(importContext);
-            if(importer==null)
-                importer = new ParallelImporter(importContext,
-                    row, getTaskStatus().getTransactionId());
+		@Override
+		public void doExecute() throws ExecutionException, InterruptedException {
+				try{
+						ExecRow row = getExecRow(importContext);
+						if(importer==null)
+								importer = new ParallelImporter(importContext,
+												row, getTaskStatus().getTransactionId());
 
-            try{
-                reader.setup(fileSystem,importContext);
-                long numRead=0;
-                long totalReadTime=0l;
-                try{
-                    String[] nextRow;
-                    do{
-            			SpliceBaseOperation.checkInterrupt(numRead,SpliceConstants.interruptLoopCheck);
-						SpliceBaseOperation.checkInterrupt();
-                        long start = System.nanoTime();
-                        nextRow = reader.nextRow();
-                        long stop = System.nanoTime();
-                        totalReadTime+=(stop-start);
-                        numRead++;
+						long rowsRead = 0l;
+						long bytesRead = 0l;
+						long startTime = System.currentTimeMillis();
+						long stopTime;
+						try{
+								reader.setup(fileSystem,importContext);
+								try{
+										String[] nextRow;
+										do{
+												SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
+												nextRow = reader.nextRow();
+												rowsRead++;
 
-                        if(nextRow!=null)
-                            importer.process(nextRow);
-                    }while(nextRow!=null);
-                } catch (Exception e) {
-                    throw new ExecutionException(e);
-                } finally{
-                    Closeables.closeQuietly(reader);
+												if(nextRow!=null)
+														importer.process(nextRow);
+										}while(nextRow!=null);
+								} catch (Exception e) {
+										throw new ExecutionException(e);
+								} finally{
+										Closeables.closeQuietly(reader);
                     /*
                      * We don't call closeQuietly(importer) here, because
                      * we need to make sure that we get out any IOExceptions
                      * that get thrown
                      */
-                    importer.close();
-                    if(LOG.isDebugEnabled()){
-                        SpliceLogUtils.debug(LOG,"Total time taken to read %d records: %d ns",numRead,totalReadTime);
-                        SpliceLogUtils.debug(LOG,"Average time taken to read 1 record: %f ns",(double)totalReadTime/numRead);
-                    }
-                }
-            }catch(Exception e){
-                if(e instanceof ExecutionException)
-                    throw (ExecutionException)e;
-                throw new ExecutionException(e);
-            }
-        } catch (StandardException e) {
-            throw new ExecutionException(e);
-        }
-    }
+										importer.close();
+										stopTime = System.currentTimeMillis();
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        importContext = (ImportContext)in.readObject();
-        reader = (ImportReader)in.readObject();
-    }
+										if(importContext.shouldRecordStats()){
+												OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
+																Bytes.toLong(getTaskId()),12);
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(importContext);
-        out.writeObject(reader);
-    }
+												runtimeStats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
+												runtimeStats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTime);
+												IOStats readStats = reader.getStats();
+												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.getBytes());
+												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.getRows());
+												TimeView readView = readStats.getTime();
+												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,readView.getWallClockTime());
+												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,readView.getCpuTime());
+												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,readView.getUserTime());
 
-    @Override
-    public boolean invalidateOnClose() {
-        return false;
-    }
+												IOStats writeStats = importer.getStats();
+												runtimeStats.addMetric(OperationMetric.WRITE_BYTES,writeStats.getBytes());
+												runtimeStats.addMetric(OperationMetric.WRITE_ROWS,writeStats.getRows());
+												TimeView writeView = writeStats.getTime();
+												runtimeStats.addMetric(OperationMetric.WRITE_WALL_TIME,writeView.getWallClockTime());
+												runtimeStats.addMetric(OperationMetric.WRITE_CPU_TIME,writeView.getCpuTime());
+												runtimeStats.addMetric(OperationMetric.WRITE_USER_TIME,writeView.getUserTime());
+
+												SpliceDriver.driver().getTaskReporter().report(importContext.getXplainSchema(),runtimeStats);
+										}
+								}
+						}catch(Exception e){
+								if(e instanceof ExecutionException)
+										throw (ExecutionException)e;
+								throw new ExecutionException(e);
+						}
+				} catch (StandardException e) {
+						throw new ExecutionException(e);
+				}
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				super.readExternal(in);
+				importContext = (ImportContext)in.readObject();
+				reader = (ImportReader)in.readObject();
+				statementId = in.readLong();
+				operationId = in.readLong();
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				out.writeObject(importContext);
+				out.writeObject(reader);
+				out.writeLong(statementId);
+				out.writeLong(operationId);
+		}
+
+		@Override
+		public boolean invalidateOnClose() {
+				return false;
+		}
 
 		@Override
 		public int getPriority() {
@@ -141,37 +179,32 @@ public class ImportTask extends ZkTask{
 		}
 
 		@Override
-    protected String getTaskType() {
-        return "importTask";
-    }
+		protected String getTaskType() {
+				return "importTask";
+		}
 
-    @Override
-    public void prepareTask(RegionCoprocessorEnvironment rce,
-                            SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-        fileSystem = rce.getRegion().getFilesystem();
-        super.prepareTask(rce, zooKeeper);
-    }
+		@Override
+		public void prepareTask(RegionCoprocessorEnvironment rce,
+														SpliceZooKeeperManager zooKeeper) throws ExecutionException {
+				fileSystem = rce.getRegion().getFilesystem();
+				super.prepareTask(rce, zooKeeper);
+		}
 
-    //exposed to make testing possible without having to mock an entire ZooKeeper setup
-    void setFileSystem(FileSystem fileSystem){
-        this.fileSystem = fileSystem;
-    }
+		protected ExecRow getExecRow(ImportContext context) throws StandardException {
+				ColumnContext[] cols = context.getColumnInformation();
+				int size = cols[cols.length-1].getColumnNumber()+1;
+				ExecRow row = new ValueRow(size);
+				for(ColumnContext col:cols){
+						DataValueDescriptor dataValueDescriptor = getDataValueDescriptor(col);
+						row.setColumn(col.getColumnNumber()+1, dataValueDescriptor);
+				}
+				return row;
+		}
 
-    protected ExecRow getExecRow(ImportContext context) throws StandardException {
-        ColumnContext[] cols = context.getColumnInformation();
-        int size = cols[cols.length-1].getColumnNumber()+1;
-        ExecRow row = new ValueRow(size);
-        for(ColumnContext col:cols){
-            DataValueDescriptor dataValueDescriptor = getDataValueDescriptor(col);
-            row.setColumn(col.getColumnNumber()+1, dataValueDescriptor);
-        }
-        return row;
-    }
-
-    private DataValueDescriptor getDataValueDescriptor(ColumnContext columnContext) throws StandardException {
-        DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnContext.getColumnType());
-        if(!columnContext.isNullable())
-            td = td.getNullabilityType(false);
-        return td.getNull();
-    }
+		private DataValueDescriptor getDataValueDescriptor(ColumnContext columnContext) throws StandardException {
+				DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnContext.getColumnType());
+				if(!columnContext.isNullable())
+						td = td.getNullabilityType(false);
+				return td.getNull();
+		}
 }

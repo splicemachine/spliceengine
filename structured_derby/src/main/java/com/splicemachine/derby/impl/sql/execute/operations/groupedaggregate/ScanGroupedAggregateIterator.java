@@ -11,45 +11,41 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.encoding.MultiFieldEncoder;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
  * Created on: 11/1/13
  */
-public class ScanGroupedAggregateIterator extends AbstractStandardIterator {
+public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     private final GroupedAggregateBuffer buffer;
-    private final int[] groupColumns;
     private final boolean[] groupSortByColumns;
-    private final boolean isRollup;
-    private ExecRow[] rollupRows;
     private MultiFieldEncoder groupKeyEncoder;
     private KeyMarshall groupKeyHasher;
-    private boolean completed = false;
-    private List<GroupedRow> evictedRows;
-    private long rowsRead;
 
     public ScanGroupedAggregateIterator(GroupedAggregateBuffer buffer,
                                  StandardIterator<ExecRow> source,
                                  int[] groupColumns,
                                  boolean[] groupSortByColumns,
                                  boolean isRollup) {
-    	super(source);
+				super(source,isRollup,groupColumns);
         this.buffer = buffer;
-        this.groupColumns = groupColumns;
         this.groupSortByColumns = groupSortByColumns;
-        this.isRollup= isRollup;
         groupKeyHasher = KeyType.BARE;
         int maxEvicted = isRollup? groupColumns.length+1: 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvicted);
     }
     @Override
+    public void open() throws StandardException, IOException {
+        source.open();
+    }
+
+		@Override
+    public GroupedRow next() throws StandardException, IOException {
     public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //return any previously evicted rows first
         if(evictedRows.size()>0)
@@ -90,7 +86,17 @@ public class ScanGroupedAggregateIterator extends AbstractStandardIterator {
         return null;
     }
 
-    protected GroupedRow buffer(ExecRow nextRow) throws StandardException {
+		@Override
+		public long getRowsMerged() {
+				return buffer.getRowsMerged();
+		}
+
+		@Override
+		public double getMaxFillRatio() {
+				return buffer.getMaxFillRatio();
+		}
+
+		protected GroupedRow buffer(ExecRow nextRow) throws StandardException {
         if(!isRollup){
             return buffer.add(getGroupingKey(nextRow),nextRow.getClone());
         }else{

@@ -82,13 +82,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						String sql = operationContext.getPreparedStatement().getSource();
 						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 						String txnId = activation.getTransactionController().getActiveStateTxIdString();
+						statementInfo = new StatementInfo(sql,user,txnId,
+										operationTree.getNumSinks(topOperation),
+										SpliceDriver.driver().getUUIDGenerator());
+
 						topOperation.init(operationContext);
 
             topOperation.open();
 
-						statementInfo = new StatementInfo(sql,user,txnId,
-										operationTree.getNumSinks(topOperation),
-										SpliceDriver.driver().getUUIDGenerator());
 						List<OperationInfo> operationInfo = getOperationInfo(statementInfo.getStatementUuid());
 						statementInfo.setOperationInfo(operationInfo);
 						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);

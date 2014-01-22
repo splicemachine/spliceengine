@@ -39,6 +39,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		 * When set to true, the operation should record relevant information for its operation.
 		 */
 		private boolean recordTraceMetrics;
+		private String xplainSchema;
 
 		public SpliceRuntimeContext() {
 				this.hashBucket = SpliceDriver.driver().getTempTable().getCurrentSpread().bucket((int) System.currentTimeMillis());
@@ -162,6 +163,18 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		}
 
 		@Override
+		public Gauge newMaxGauge() {
+				if(!recordTraceMetrics) return Gauges.noOpGauge();
+				return Gauges.maxGauge();
+		}
+
+		@Override
+		public Gauge newMinGauge() {
+				if(!recordTraceMetrics) return Gauges.noOpGauge();
+				return Gauges.minGauge();
+		}
+
+		@Override
 		public Counter newCounter(){
 				if(!recordTraceMetrics) return Counters.noOpCounter();
 				return Counters.basicCounter();
@@ -207,6 +220,11 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public StatementInfo getStatementInfo() {
 				return statementInfo;
+		}
+		public boolean shouldRecordTraceMetrics() { return recordTraceMetrics; }
+		public String getXplainSchema() { return xplainSchema; }
+		public void setXplainSchema(String xplainSchema) {
+				this.xplainSchema = xplainSchema;
 		}
 
 		public static enum Side {

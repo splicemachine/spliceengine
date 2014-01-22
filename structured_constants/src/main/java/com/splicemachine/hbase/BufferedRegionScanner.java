@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.google.common.collect.Lists;
 import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.ConcurrentRingBuffer;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -177,6 +178,8 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				}
 		}
 
-		@Override public Timer getReadTime() { return readTimer; }
-		@Override public Counter getBytesRead() { return bytesReadCounter; }
+		@Override public TimeView getReadTime() { return readTimer.getTime(); }
+		@Override public long getBytesRead() { return bytesReadCounter.getTotal(); }
+
+		@Override public long getRowsRead() { return readTimer.getNumEvents(); }
 }

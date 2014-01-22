@@ -55,6 +55,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		private TaskWatcher taskWatcher;
 
 		private volatile Thread executionThread;
+		private long prepareTimestamp;
+		protected long waitTimeNs;
 
 		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -142,6 +144,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             }
         }
 
+				waitTimeNs = System.nanoTime()-prepareTimestamp;
 				try{
 						doExecute();
 				}finally{
@@ -178,6 +181,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 
         //attach a listener to the job node
         checkNotCancelled();
+
+				prepareTimestamp = System.nanoTime();
     }
 
 
