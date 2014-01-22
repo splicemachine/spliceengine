@@ -6,6 +6,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -14,6 +17,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 /**
  * @author Jeff Cunningham
@@ -24,6 +28,17 @@ public class SpliceAdminIT {
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    static class MyWatcher extends SpliceTableWatcher {
+
+        public MyWatcher(String tableName, String schemaName, String createString) {
+            super(tableName, schemaName, createString);
+        }
+
+        public void create(Description desc) {
+            super.starting(desc);
+        }
+    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
@@ -71,14 +86,79 @@ public class SpliceAdminIT {
         String escaped = SpliceAdmin.escape(SQL);
         StringBuilder sb = new StringBuilder(String.format("select * from (values ('%s')) foo (sqlstatement)",escaped));
 //        System.out.println(sb.toString());
-        Assert.assertFalse("SQL contained double spaces.",sb.toString().contains("  "));
+        Assert.assertFalse("SQL contained double spaces.", sb.toString().contains("  "));
         Assert.assertFalse("SQL contained tab chars.",sb.toString().contains("\\t"));
         Assert.assertFalse("SQL contained newline chars.",sb.toString().contains("\\n"));
         Assert.assertFalse("SQL contained carriage return chars.",sb.toString().contains("\\r"));
     }
 
     @Test
+    public void testGetConglomerateIDs() throws Exception {
+        String TABLE_NAME = "ZONING";
+        MyWatcher tableWatcher =
+                new MyWatcher(TABLE_NAME,CLASS_NAME,
+                        "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
+        List<Map> tableCluster = TestUtils.tableLookupByNumber(methodWatcher);
+
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
+        ResultSet rs = cs.executeQuery();
+        DbUtils.closeQuietly(rs);
+
+        List<Long> actualConglomIDs = new ArrayList<Long>();
+        long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,TABLE_NAME);
+        Assert.assertTrue(conglomids.length > 0);
+        for (long conglomID : conglomids) {
+            actualConglomIDs.add(conglomID);
+        }
+        List<Long> expectedConglomIDs = new ArrayList<Long>();
+        for( Map m : tableCluster){
+            if (m.get("TABLENAME").equals(TABLE_NAME)) {
+                expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
+            }
+        }
+        Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
+                expectedConglomIDs.containsAll(actualConglomIDs));
+    }
+
+    @Test
+    public void testGetConglomerateIDsAllInSchema() throws Exception {
+        String TABLE_NAME = "ZONING1";
+        MyWatcher tableWatcher =
+                new MyWatcher(TABLE_NAME,CLASS_NAME,
+                        "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
+        List<Map> tableCluster = TestUtils.tableLookupByNumber(methodWatcher);
+
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
+        ResultSet rs = cs.executeQuery();
+        DbUtils.closeQuietly(rs);
+
+        List<Long> actualConglomIDs = new ArrayList<Long>();
+        long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,null);
+        Assert.assertTrue(conglomids.length > 0);
+        for (long conglomID : conglomids) {
+            actualConglomIDs.add(conglomID);
+        }
+        List<Long> expectedConglomIDs = new ArrayList<Long>();
+        for( Map m : tableCluster){
+            expectedConglomIDs.add((Long) m.get("CONGLOMERATENUMBER"));
+        }
+        Assert.assertTrue("Expected: " + expectedConglomIDs + " got: " + actualConglomIDs,
+                expectedConglomIDs.containsAll(actualConglomIDs));
+    }
+
+    @Test
     public void testGetSchemaInfo() throws Exception {
+        String TABLE_NAME = "ZONING2";
+        MyWatcher tableWatcher =
+                new MyWatcher(TABLE_NAME,CLASS_NAME,
+                        "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
+
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
         ResultSet rs = cs.executeQuery();
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()", rs);
