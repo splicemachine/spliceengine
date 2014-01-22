@@ -122,7 +122,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				OperationInfo opInfo = new OperationInfo(operationUuid,
 								operation.getClass().getSimpleName().replace("Operation",""),parentOperationId);
 				infos.add(opInfo);
-				populateOpInfo(operationUuid,false,operation.getLeftOperation(),infos);
+				populateOpInfo(operationUuid, false, operation.getLeftOperation(), infos);
 				populateOpInfo(operationUuid,true,operation.getRightOperation(),infos);
 		}
 
@@ -306,7 +306,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public void close() throws StandardException {
 				if(statementInfo!=null){
 						statementInfo.markCompleted();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+						boolean explain = xplainSchema !=null &&
+										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,
+										explain? xplainSchema: null);
+						statementInfo = null; //remove the field in case we call close twice
 				}
         if(delegate!=null)delegate.close();
         closed=true;

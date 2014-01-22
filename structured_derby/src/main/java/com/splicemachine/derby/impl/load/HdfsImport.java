@@ -143,7 +143,7 @@ public class HdfsImport extends ParallelVTI {
 										throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
 								importData(transactionId, user,conn, schemaName.toUpperCase(), tableName.toUpperCase(),
 												insertColumnList, fileName, columnDelimiter,
-												characterDelimiter, timestampFormat,dateFormat,timeFormat);
+												characterDelimiter, timestampFormat,dateFormat,timeFormat,lcc);
 						} catch (SQLException se) {
 								try {
 										conn.rollback();
@@ -221,7 +221,8 @@ public class HdfsImport extends ParallelVTI {
 																			 String schemaName,String tableName,
 																			 String insertColumnList,String inputFileName,
 																			 String delimiter,String charDelimiter,String timestampFormat,
-																			 String dateFormat,String timeFormat) throws SQLException{
+																			 String dateFormat,String timeFormat,
+																			 LanguageConnectionContext lcc) throws SQLException{
 				if(connection ==null)
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
 				if(tableName==null)
@@ -284,7 +285,10 @@ public class HdfsImport extends ParallelVTI {
 				}catch(CancellationException ce){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ce));
 				}finally{
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo);
+						String xplainSchema = lcc.getXplainSchema();
+						boolean explain = xplainSchema !=null &&
+										lcc.getRunTimeStatisticsMode();
+						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
 				}
 
 				return importer;

@@ -24,18 +24,24 @@ public class StatementManager implements StatementManagement{
 		private final AtomicReferenceArray<StatementInfo> completedStatements;
 		private final AtomicInteger statementInfoPointer = new AtomicInteger(0);
 
+		private final StatementXplainReporter reporter;
+
 		public StatementManager() {
 				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
+				this.reporter = new BasicStatementXplainReporter();
 		}
 
 		public void addStatementInfo(StatementInfo statementInfo){
 				executingStatements.add(statementInfo);
 		}
 
-		public void completedStatement(StatementInfo statementInfo){
+		public void completedStatement(StatementInfo statementInfo,String xplainSchema){
+				statementInfo.markCompleted(); //make sure the stop time is set
 				int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
 				completedStatements.set(position,statementInfo);
 				executingStatements.remove(statementInfo);
+				if(xplainSchema!=null)
+						reporter.reportStatement(xplainSchema,statementInfo);
 		}
 
 		@Override

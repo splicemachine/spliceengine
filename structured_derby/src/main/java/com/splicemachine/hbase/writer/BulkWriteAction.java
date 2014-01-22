@@ -186,7 +186,9 @@ final class BulkWriteAction implements Callable<Void> {
         IntHashMap<WriteResult> failedRows = response.getFailedRows();
         List<Throwable> errors = Lists.newArrayList();
         for(Integer failedRow:failedRows.keySet()){
-            errors.add(Exceptions.fromString(failedRows.get(failedRow)));
+						Throwable e = Exceptions.fromString(failedRows.get(failedRow));
+						e.printStackTrace();
+						errors.add(e);
         }
         return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
     }

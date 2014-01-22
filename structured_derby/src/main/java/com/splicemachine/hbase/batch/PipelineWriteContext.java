@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.batch;
 
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.writer.*;
@@ -242,8 +243,19 @@ public class PipelineWriteContext implements WriteContext{
 
 		@Override
 		public long getTransactionTimestamp() {
-				if(timestamp<=0)
-					timestamp = Long.parseLong(txnId);
+				if(timestamp<=0){
+						/*
+						 * It's cheaper to try parsing (succeeding 99.9999999% of the time) and
+						 * fail when NA_TRANSACTION_ID is passed than it is to do the comparison every time.
+						 */
+						try{
+								timestamp = Long.parseLong(txnId);
+						}catch(NumberFormatException nfe){
+							if(SpliceConstants.NA_TRANSACTION_ID.equals(txnId)){
+									timestamp=0;
+							}
+						}
+				}
 
 				return timestamp;
 		}
