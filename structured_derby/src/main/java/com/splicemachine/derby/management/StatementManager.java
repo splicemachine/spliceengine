@@ -24,12 +24,15 @@ public class StatementManager implements StatementManagement{
 		private final AtomicReferenceArray<StatementInfo> completedStatements;
 		private final AtomicInteger statementInfoPointer = new AtomicInteger(0);
 
-		private final XplainStatementReporter reporter;
+		private final XplainStatementReporter statementReporter;
+		private final XplainReporter<OperationInfo> operationReporter;
 
 		public StatementManager() {
 				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
-				this.reporter = new XplainStatementReporter(2);
-				this.reporter.start(2);
+				this.statementReporter = new XplainStatementReporter(1);
+				this.statementReporter.start(1);
+				this.operationReporter = new XplainOperationReporter(2);
+				this.operationReporter.start(2);
 		}
 
 		public void addStatementInfo(StatementInfo statementInfo){
@@ -41,8 +44,13 @@ public class StatementManager implements StatementManagement{
 				int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
 				completedStatements.set(position, statementInfo);
 				executingStatements.remove(statementInfo);
-				if(xplainSchema!=null)
-						reporter.report(xplainSchema,statementInfo);
+				if(xplainSchema!=null){
+						statementReporter.report(xplainSchema, statementInfo);
+						Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
+						for(OperationInfo info:operationInfo){
+								operationReporter.report(xplainSchema,info);
+						}
+				}
 		}
 
 		@Override

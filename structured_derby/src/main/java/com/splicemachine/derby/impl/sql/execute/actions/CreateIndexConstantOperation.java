@@ -748,7 +748,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
 
 				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",-1l)));
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",false,-1l)));
         try {
 						long start = System.currentTimeMillis();
 						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
@@ -825,7 +825,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
 							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
 			OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
-							SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", -1l);
+							SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", false,-1l);
 			statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
 			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
