@@ -182,6 +182,25 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 procedures.add(killStatement);
 
                 /*
+                 * Procedures to kill stale transactions
+                 */
+                Procedure killTransaction = Procedure.newBuilder().name("SYSCS_KILL_TRANSACTION")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .bigint("transactionId")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(killTransaction);
+
+                Procedure killStaleTransactions = Procedure.newBuilder().name("SYSCS_KILL_STALE_TRANSACTIONS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .bigint("maximumTransactionId")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(killStaleTransactions);
+
+                /*
                  * Procedure set the max task workers
                  */
                 Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
