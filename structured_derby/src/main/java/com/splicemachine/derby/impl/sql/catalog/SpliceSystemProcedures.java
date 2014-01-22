@@ -182,6 +182,25 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 procedures.add(killStatement);
 
                 /*
+                 * Procedures to kill stale transactions
+                 */
+                Procedure killTransaction = Procedure.newBuilder().name("SYSCS_KILL_TRANSACTION")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .bigint("transactionId")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(killTransaction);
+
+                Procedure killStaleTransactions = Procedure.newBuilder().name("SYSCS_KILL_STALE_TRANSACTIONS")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .bigint("maximumTransactionId")
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(killStaleTransactions);
+
+                /*
                  * Procedure set the max task workers
                  */
                 Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
@@ -246,21 +265,23 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                  * Procedure to perform major compaction on all tables in a schema
                  */
                 Procedure majorComactionOnSchema = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA")
+                        .varchar("schemaName", 128)
                         .numOutputParams(0)
                         .numResultSets(0)
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
-                        .catalog("schemaName").build();
+                        .build();
                 procedures.add(majorComactionOnSchema);
 
                 /*
                  * Procedure to perform major compaction on a table in a schema
                  */
                 Procedure majorComactionOnTable = Procedure.newBuilder().name("SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE")
+                        .varchar("schemaName", 128)
+                        .varchar("tableName", 128)
                         .numOutputParams(0)
                         .numResultSets(0)
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
-                        .catalog("schemaName")
-                        .catalog("tableName").build();
+                        .build();
                 procedures.add(majorComactionOnTable);
             }
         }

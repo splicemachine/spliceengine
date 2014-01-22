@@ -1,7 +1,9 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.hbase.BufferedRegionScanner;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
@@ -10,6 +12,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 
 
@@ -107,8 +110,8 @@ public class SpliceOperationContext {
             }
             int caching = scan.getCaching();
             if(caching<0)
-                caching=100;
-            scanner = new BufferedRegionScanner(region,scanner,100);
+                caching=SpliceConstants.DEFAULT_CACHE_SIZE;
+            scanner = new BufferedRegionScanner(region,scanner,caching);
         }
         return scanner;
     }
