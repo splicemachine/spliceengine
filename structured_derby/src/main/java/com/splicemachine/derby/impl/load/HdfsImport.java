@@ -254,7 +254,7 @@ public class HdfsImport extends ParallelVTI {
 								user,transactionId,
 								1,SpliceDriver.driver().getUUIDGenerator());
 				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",-1l)));
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",false,-1l)));
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
 					LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();

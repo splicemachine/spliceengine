@@ -120,8 +120,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
 				if(operation==null) return;
 				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-				OperationInfo opInfo = new OperationInfo(statementId,operationUuid,
-								operation.getClass().getSimpleName().replace("Operation",""),parentOperationId);
+				OperationInfo opInfo = new OperationInfo(operationUuid,statementId,
+								operation.getClass().getSimpleName().replace("Operation",""),isRight,parentOperationId);
 				infos.add(opInfo);
 				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
 				populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);

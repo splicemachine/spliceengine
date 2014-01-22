@@ -12,27 +12,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class OperationInfo {
 		private final long operationUuid;
 		private final String operationTypeName;
+		private final boolean isRight;
 		private final long parentOperationUuid; //-1 for no parent
 		private AtomicInteger numJobs = new AtomicInteger(0);
 		private AtomicInteger numTasks = new AtomicInteger(0);
-		private volatile int numServers; //TODO -sf- get this metric somehow
 		private long statementId;
 
 		public OperationInfo(long operationUuid,
 												 long statementId,
 												 String operationTypeName,
+												 boolean isRight,
 												 long parentOperationUuid) {
 				this.operationUuid = operationUuid;
+				this.isRight = isRight;
 				this.operationTypeName = operationTypeName;
 				this.parentOperationUuid = parentOperationUuid;
-				this.numServers=0;
+				this.statementId = statementId;
 		}
 
-		@ConstructorProperties({"numServers","numTasks","numJobs","parentOperationUuid","operationTypeName","operationUuid","statementId"})
-		public OperationInfo(int numServers, int numTasks, int numJobs,
+		@ConstructorProperties({"isRight","numTasks","numJobs","parentOperationUuid","operationTypeName","operationUuid","statementId"})
+		public OperationInfo(boolean isRight,int numTasks, int numJobs,
 												 long parentOperationUuid, String operationTypeName, long operationUuid,
 												 long statementUuid) {
-				this.numServers = numServers;
+				this.isRight = isRight;
 				this.numJobs.set(numJobs);
 				this.numTasks.set(numTasks);
 				this.parentOperationUuid = parentOperationUuid;
@@ -46,14 +48,12 @@ public class OperationInfo {
 		public long getParentOperationUuid() { return parentOperationUuid; }
 		public int getNumJobs() { return numJobs.get(); }
 		public int getNumTasks() { return numTasks.get(); }
-		public int getNumServers() { return numServers; }
-		public void setNumServers(int numServers) { this.numServers = numServers; }
+		public boolean isRight() { return isRight; }
 
 		public void addJob(JobInfo jobInfo){
 				this.numJobs.incrementAndGet();
 				this.numTasks.addAndGet(jobInfo.totalTaskCount());
 		}
-
 
 		@Override
 		public boolean equals(Object o) {

@@ -2,18 +2,12 @@ package com.splicemachine.derby.management;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryEncoder;
-import org.apache.derby.iapi.error.PublicAPI;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * @author Scott Fines
@@ -22,7 +16,7 @@ import java.sql.SQLException;
 public class XplainStatementReporter extends XplainReporter<StatementInfo> {
 
 		public XplainStatementReporter(int numWorkers) {
-				super(numWorkers);
+				super("SYSXPLAIN_STATEMENTHISTORY",numWorkers);
 		}
 
 		@Override
@@ -87,30 +81,4 @@ public class XplainStatementReporter extends XplainReporter<StatementInfo> {
 				};
 		}
 
-		@Override
-		protected long getConglomerateId(String schemaName) throws SQLException {
-				Connection dbConn = SpliceDriver.driver().getInternalConnection();
-
-				PreparedStatement s = null;
-				ResultSet resultSet = null;
-				try{
-						s = dbConn.prepareStatement("select conglomeratenumber from " +
-										"sys.systables t, sys.sysschemas s,sys.sysconglomerates c " +
-										"where " +
-										"        t.schemaid = s.schemaid and s.schemaname = ?" +
-										"        and t.tableid = c.tableid" +
-										"        and t.tablename = 'SYSXPLAIN_STATEMENTHISTORY'");
-						s.setString(1,schemaName);
-						resultSet = s.executeQuery();
-						if(resultSet.next()){
-								return resultSet.getLong(1);
-						}
-						throw PublicAPI.wrapStandardException(ErrorState.TABLE_NOT_FOUND.newException());
-				}finally{
-						if(resultSet!=null)
-								resultSet.close();
-						if(s!=null)
-								s.close();
-				}
-		}
 }

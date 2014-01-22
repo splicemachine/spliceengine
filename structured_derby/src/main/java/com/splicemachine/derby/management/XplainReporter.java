@@ -3,6 +3,7 @@ package com.splicemachine.derby.management;
 import com.google.common.cache.*;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -11,12 +12,16 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryEncoder;
+import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.*;
 
@@ -25,12 +30,13 @@ import java.util.concurrent.*;
  * Date: 1/22/14
  */
 public abstract class XplainReporter<T> {
-		private static final Logger LOG = Logger.getLogger(XplainReporter.class);
+		private final Logger LOG;
 		private final ExecutorService writers;
 		private final LinkedBlockingQueue<Pair<String,T>> taskQueue;
 		private final LoadingCache<String,CallBuffer<KVPair>> bufferCache;
 
-		public XplainReporter(int numWorkers) {
+		public XplainReporter(final String tableName,int numWorkers) {
+				this.LOG = Logger.getLogger(this.getClass());
 				ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
 				this.writers = Executors.newFixedThreadPool(numWorkers,factory);
 				this.taskQueue = new LinkedBlockingQueue<Pair<String, T>>();
@@ -67,7 +73,7 @@ public abstract class XplainReporter<T> {
 										@Override
 										public CallBuffer<KVPair> load(String schema) throws Exception {
 												//TODO -sf- deal with transactions correctly
-												long conglomId = getConglomerateId(schema);
+												long conglomId = getConglomerateId(schema,tableName);
 												CallBufferFactory<KVPair> nonThreadSafeBufferFactory = SpliceDriver.driver().getTableWriter();
 												return new ConcurrentWriteBuffer(10, nonThreadSafeBufferFactory.writeBuffer(
 																Bytes.toBytes(Long.toString(conglomId)),
@@ -91,7 +97,32 @@ public abstract class XplainReporter<T> {
 
 		protected abstract DataHash<T> getKeyHash();
 
-		protected abstract long getConglomerateId(String schemaName) throws SQLException;
+		protected long getConglomerateId(String schemaName,String tableName) throws SQLException{
+				Connection dbConn = SpliceDriver.driver().getInternalConnection();
+
+				PreparedStatement s = null;
+				ResultSet resultSet = null;
+				try{
+						s = dbConn.prepareStatement("select conglomeratenumber from " +
+										"sys.systables t, sys.sysschemas s,sys.sysconglomerates c " +
+										"where " +
+										"        t.schemaid = s.schemaid and s.schemaname = ?" +
+										"        and t.tableid = c.tableid" +
+										"        and t.tablename = ?");
+						s.setString(1,schemaName);
+						s.setString(2,tableName);
+						resultSet = s.executeQuery();
+						if(resultSet.next()){
+								return resultSet.getLong(1);
+						}
+						throw PublicAPI.wrapStandardException(ErrorState.TABLE_NOT_FOUND.newException(tableName));
+				}finally{
+						if(resultSet!=null)
+								resultSet.close();
+						if(s!=null)
+								s.close();
+				}
+		}
 
 		protected static abstract class WriteableHash<T> implements DataHash<T>{
 				protected T element;
@@ -112,11 +143,9 @@ public abstract class XplainReporter<T> {
 
 						MultiFieldEncoder fieldEncoder = entryEncoder.getEntryEncoder();
 						fieldEncoder.reset();
-						doEncode(fieldEncoder,element);
+						doEncode(fieldEncoder, element);
 						return entryEncoder.encode();
 				}
-
-				protected abstract void doEncode(MultiFieldEncoder encoder, StatementInfo statementInfo);
 
 				protected abstract EntryEncoder buildEncoder();
 		}
