@@ -745,8 +745,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
 				JobInfo info = null;
 				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator(),
-								Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",-1l)));
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+
+				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",-1l)));
         try {
 						long start = System.currentTimeMillis();
 						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
@@ -821,8 +823,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
          */
 			//TODO -sf- replace this name with the actual SQL being issued
 			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator(),
-							Arrays.asList(new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),"PopulateIndex",-1l)));
+							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+			OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
+							SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", -1l);
+			statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
 			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
 						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
@@ -831,7 +835,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 						future = SpliceDriver.driver().getJobScheduler().submit(job);
 						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
 						info.setJobFuture(future);
-						statementInfo.addRunningJob(info);
+						statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
 						try{
 								future.completeAll(info); //TODO -sf- add status information
 						}catch(ExecutionException e){

@@ -48,8 +48,7 @@ public class StatementInfo {
 												 String user,
 												 String txnId,
 												 int numSinks,
-												 Snowflake snowflake,
-												 Collection<OperationInfo> operationInfos) {
+												 Snowflake snowflake) {
 				this.numSinks = numSinks;
 				this.user = user;
 				this.sql = sql;
@@ -62,7 +61,6 @@ public class StatementInfo {
 						runningJobIds = completedJobIds = null;
 				}
 				this.operationInfo = Collections.newSetFromMap(new ConcurrentHashMap<OperationInfo, Boolean>());
-				operationInfo.addAll(operationInfos);
 
 				this.statementUuid = snowflake.nextUUID();
 				this.startTimeMs = System.currentTimeMillis();
@@ -89,11 +87,16 @@ public class StatementInfo {
 				this.operationInfo = operationInfo;
 		}
 
-		public void addRunningJob(JobInfo jobInfo) throws ExecutionException {
+		public void addRunningJob(long operationId,JobInfo jobInfo) throws ExecutionException {
 				if(isCancelled)
 						jobInfo.cancel();
 
 				runningJobIds.add(jobInfo);
+				for(OperationInfo info:operationInfo){
+						if(info.getOperationUuid()==operationId){
+								info.addJob(jobInfo);
+						}
+				}
 		}
 
 		public void completeJob(JobInfo jobInfo){
@@ -201,6 +204,10 @@ public class StatementInfo {
 						}
 				}
 				return numSuccess;
+		}
+
+		public void setOperationInfo(List<OperationInfo> operationInfo) {
+				this.operationInfo.addAll(operationInfo);
 		}
 }
 
