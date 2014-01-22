@@ -31,16 +31,13 @@ import java.util.*;
 public class BlockImportJob extends FileImportJob{
     private final FileSystem fs;
 
-    protected BlockImportJob(HTableInterface table, ImportContext context) throws IOException {
-        this(table, context, FileSystem.get(SpliceConstants.config));
-    }
+		public BlockImportJob(HTableInterface table, ImportContext context,
+													long statementId, long operationId, FileSystem fs) {
+				super(table, context, statementId, operationId);
+				this.fs = fs;
+		}
 
-    protected BlockImportJob(HTableInterface table, ImportContext context, FileSystem fs){
-        super(table,context);
-        this.fs = fs;
-    }
-
-    @Override
+		@Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
         Path path = context.getFilePath();
         if(!fs.exists(path))
@@ -136,8 +133,8 @@ public class BlockImportJob extends FileImportJob{
     }
 
     private void putTask(Map<RegionTask, Pair<byte[], byte[]>> taskMap, String parentTxnString, String jobId, BlockLocation location, HRegionInfo next) {
-        ImportReader reader = new BlockImportReader(location);
-        ImportTask task = new ImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,parentTxnString);
+        ImportReader reader = new BlockImportReader(location,context.shouldRecordStats());
+        ImportTask task = new ImportTask(jobId,context,reader,SpliceConstants.importTaskPriority,parentTxnString,statementId,operationId);
         Pair<byte[], byte[]> regionBounds = getTaskBoundary(next);
         taskMap.put(task,regionBounds);
     }

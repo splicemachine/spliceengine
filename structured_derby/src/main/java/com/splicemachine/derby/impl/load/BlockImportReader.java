@@ -2,8 +2,8 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVParser;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.stats.*;
 import org.apache.hadoop.fs.BlockLocation;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -24,26 +24,36 @@ public class BlockImportReader implements ImportReader {
     private BlockLocation location;
 
     private CSVParser parser;
-    private FSDataInputStream is;
 
-    private Text text;
+		private Text text;
 		private LongWritable pos; //unused by the app
 		private LineRecordReader lineRecordReader;
+
+		private Timer timer;
+		private long initialPos;
+		private long finalPos;
 
 		@Deprecated
     public BlockImportReader() { }
 
-    public BlockImportReader(BlockLocation location) {
+    public BlockImportReader(BlockLocation location, boolean shouldRecordStats) {
         this.location = location;
-    }
+				timer = shouldRecordStats? Timers.newTimer(): Timers.noOpTimer();
+		}
 
     @Override
     public String[] nextRow() throws IOException {
+				timer.startTiming();
 				if(lineRecordReader.next(pos,text)){
 						String line = text.toString();
-						if(line==null||line.length()==0) return null; //may have reached the end of the file without finding a record
+						if(line==null||line.length()==0){
+								timer.stopTiming();
+								return null; //may have reached the end of the file without finding a record
+						}
+						timer.tick(1);
 						return parser.parseLine(line);
 				}else{
+						timer.stopTiming();
 						return null;
 				}
     }
@@ -61,10 +71,18 @@ public class BlockImportReader implements ImportReader {
 				pos = new LongWritable(location.getOffset());
 
         parser = getCsvParser(importContext);
+				initialPos = lineRecordReader.getPos();
     }
 
-    @Override
+		@Override
+		public IOStats getStats() {
+				if(timer.getNumEvents()<=0) return Stats.noOpIOStats();
+				return new BaseIOStats(timer.getTime(),(finalPos-initialPos),timer.getNumEvents());
+		}
+
+		@Override
     public void close() throws IOException {
+				finalPos = lineRecordReader.getPos();
 				lineRecordReader.close();
     }
 

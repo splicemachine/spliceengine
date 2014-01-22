@@ -35,10 +35,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -46,15 +43,15 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -90,12 +87,6 @@ public class HdfsImport extends ParallelVTI {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
 		private static final int COLTYPE_POSITION = 5;
 		private static final int COLNAME_POSITION = 4;
-		private static final PathFilter hiddenFileFilter = new PathFilter(){
-				public boolean accept(Path p){
-						String name = p.getName();
-						return !name.startsWith("_") && !name.startsWith(".");
-				}
-		};
 		private final ImportContext context;
 		private static final int COLNULLABLE_POSITION = 11;
 		private static final int COLSIZE_POSITION = 7;
@@ -104,23 +95,14 @@ public class HdfsImport extends ParallelVTI {
 		private static final int COLUMNDEFAULT_POSIITON = 13;
 		private static final int ISAUTOINCREMENT_POSIITON = 23;
 		private static final String AUTOINCREMENT_PREFIX = "AUTOINCREMENT: start ";
+		private final long statementId;
+		private final long operationId;
 		private HBaseAdmin admin;
 
-		public HdfsImport(ImportContext context){
+		public HdfsImport(ImportContext context,long statementId, long operationId){
 				this.context = context;
-		}
-
-		/**
-		 * Allows for multiple input paths separated by commas
-		 * @param input the input path pattern
-		 */
-		public static Path[] getInputPaths(String input) {
-				String [] list = StringUtils.split(input);
-				Path[] result = new Path[list.length];
-				for (int i = 0; i < list.length; i++) {
-						result[i] = new Path(StringUtils.unEscapeString(list[i]));
-				}
-				return result;
+				this.statementId = statementId;
+				this.operationId = operationId;
 		}
 
 		public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
@@ -165,57 +147,6 @@ public class HdfsImport extends ParallelVTI {
 				}
 		}
 
-		public static ResultSet importData(String transactionId, Connection connection,
-																			 String schemaName,String tableName,
-																			 String insertColumnList,String inputFileName,
-																			 String delimiter,String charDelimiter) throws SQLException{
-				if(connection ==null)
-						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
-				if(tableName==null)
-						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ENTITY_NAME_MISSING));
-
-				ImportContext.Builder builder = new ImportContext.Builder()
-								.path(inputFileName)
-								.stripCharacters(charDelimiter)
-								.colDelimiter(delimiter)
-								.transactionId(transactionId);
-
-				buildColumnInformation(connection,schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,builder);
-
-				long conglomId = SpliceAdmin.getConglomid(connection, schemaName.toUpperCase(), tableName.toUpperCase());
-				builder = builder.destinationTable(conglomId);
-				HdfsImport importer;
-				try {
-					    LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
-					    DataDictionary dd = lcc.getDataDictionary();
-					    TransactionController tc = lcc.getTransactionExecute();
-					    SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName.toUpperCase(), tc, true);
-					    TableDescriptor td = dd.getTableDescriptor(tableName.toUpperCase(), sd, tc);
-					    RowLocation[] rls = dd.computeAutoincRowLocations(tc,td);
-					    ImportContext ic = builder.build();
-					    if(rls != null) {
-					    	AutoIncrementColumnContext[] autoincContext = new AutoIncrementColumnContext[rls.length];
-					    	
-					    	for (int i = 0; i < rls.length; i++) {
-					    		if(td.getColumnDescriptorList().elementAt(i).isAutoincrement()) {
-					    		    autoincContext[i] = new AutoIncrementColumnContext(td.getColumnDescriptorList().elementAt(i).getAutoincStart(), 
-					    		    												   td.getColumnDescriptorList().elementAt(i).getAutoincInc(), 
-					    		    												   ((HBaseRowLocation)rls[i]).getBytes());
-					    		}
-					    	}
-					    	ic.setAutoIncrementColumnContext(autoincContext);
-					    }
-					    
-						importer = new HdfsImport(ic);
-						importer.open();
-						importer.executeShuffle(new SpliceRuntimeContext());
-				} catch (StandardException e) {
-						throw PublicAPI.wrapStandardException(e);
-				}
-
-				return importer;
-		}
-
 		public static ResultSet importData(String transactionId, String user,
 																			 Connection connection,
 																			 String schemaName,String tableName,
@@ -238,6 +169,11 @@ public class HdfsImport extends ParallelVTI {
 										.timeFormat(timeFormat)
 										.transactionId(transactionId);
 
+						if(lcc.getRunTimeStatisticsMode()){
+								String xplainSchema = lcc.getXplainSchema();
+								if(xplainSchema!=null)
+										builder = builder.recordStats().xplainSchema(xplainSchema);
+						}
 
 						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
 				}catch(AssertionError ae){
@@ -253,33 +189,15 @@ public class HdfsImport extends ParallelVTI {
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
 								user,transactionId,
 								1,SpliceDriver.driver().getUUIDGenerator());
-				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"Import",false,-1l)));
+				OperationInfo opInfo = new OperationInfo(
+								SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Import", false, -1l);
+				statementInfo.setOperationInfo(Arrays.asList(opInfo));
+
 				SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
 				try {
-					LanguageConnectionContext lcc = connection.unwrap(EmbedConnection.class).getLanguageConnection();
-				    DataDictionary dd = lcc.getDataDictionary();
-				    TransactionController tc = lcc.getTransactionExecute();
-				    SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName.toUpperCase(), tc, true);
-				    TableDescriptor td = dd.getTableDescriptor(tableName.toUpperCase(), sd, tc);
-				    RowLocation[] rls = dd.computeAutoincRowLocations(tc,td);
-				    ImportContext ic = builder.build();
-				    AutoIncrementColumnContext[] autoincContext = null;
-				    if(rls != null) {
-				    	autoincContext = new AutoIncrementColumnContext[rls.length];
-                        for (int i = 0; i < rls.length; i++) {
-				    		if(td.getColumnDescriptorList().elementAt(i).isAutoincrement()) {
-				    		    autoincContext[i] = new AutoIncrementColumnContext(td.getColumnDescriptorList().elementAt(i).getAutoincStart(), 
-				    		    												   td.getColumnDescriptorList().elementAt(i).getAutoincInc(), 
-				    		    												   ((HBaseRowLocation)rls[i]).getBytes());
-				    		}
-				    	}
-				    }
-				    if(autoincContext != null)
-				    	ic.setAutoIncrementColumnContext(autoincContext);
-					importer = new HdfsImport(ic);
-					importer.open();
-					importer.executeShuffle(new SpliceRuntimeContext());
+						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
+						importer.open();
+						importer.executeShuffle(new SpliceRuntimeContext());
 				} catch(AssertionError ae){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
@@ -491,7 +409,7 @@ public class HdfsImport extends ParallelVTI {
 	/*private helper functions*/
 
 		private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,Path file) throws StandardException {
-				CompressionCodec codec = codecFactory.getCodec(file);
+//				CompressionCodec codec = codecFactory.getCodec(file);
 				ImportJob importJob;
 				/*
 				 * (December, 2013) We are disabling BlockImports for the time being because
@@ -510,7 +428,7 @@ public class HdfsImport extends ParallelVTI {
 //                throw Exceptions.parseException(ioe);
 //            }
 //        }else
-				importJob = new FileImportJob(table,context);
+				importJob = new FileImportJob(table,context,statementId,operationId);
 				return importJob;
 		}
 		private static void buildColumnInformation(Connection connection, String schemaName, String tableName,

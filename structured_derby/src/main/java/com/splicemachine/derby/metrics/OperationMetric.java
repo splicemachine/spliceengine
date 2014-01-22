@@ -38,10 +38,9 @@ public enum OperationMetric {
 
 		/*General measured values*/
 		FILTERED_ROWS(23),  					//number of rows which were filtered or removed
-		BUFFER_FILL_RATIO(24), 				//ratio of filled entries to capacity for buffers
-		TASK_QUEUE_WAIT_WALL_TIME(25), //amount of time spent waiting for a task executor thread, or 0 if no tasks involved
-		START_TIMESTAMP(26),					//the timestamp at which EXECUTION begins (does not include QUEUE_WAIT_TIME)
-		STOP_TIMESTAMP(27);						//the timestamp at which EXECUTION stops (i.e. the last row is written/read. Does NOT include time to transmit task information)
+		TASK_QUEUE_WAIT_WALL_TIME(24), //amount of time spent waiting for a task executor thread, or 0 if no tasks involved
+		START_TIMESTAMP(25),					//the timestamp at which EXECUTION begins (does not include QUEUE_WAIT_TIME)
+		STOP_TIMESTAMP(26);						//the timestamp at which EXECUTION stops (i.e. the last row is written/read. Does NOT include time to transmit task information)
 
 		private final int indexPosition;
 		private final int shift;

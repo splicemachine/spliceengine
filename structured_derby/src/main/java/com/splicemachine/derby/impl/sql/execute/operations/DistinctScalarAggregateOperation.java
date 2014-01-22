@@ -202,8 +202,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		
 	private ExecRow getStep1Row(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		if (step1Aggregator == null) {   
-            DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.ONE);
-            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(source),keyColumns);
+            DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,
+										aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.ONE,spliceRuntimeContext);
+            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(spliceRuntimeContext,source),keyColumns);
             step1Aggregator.open();
         }   
         GroupedRow row = step1Aggregator.next(spliceRuntimeContext);
@@ -221,7 +222,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 	
 	private ExecRow getStep2Row(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		 if(step2Aggregator==null) {
-			 DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.TWO);
+			 DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,aggregates,
+							 new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.TWO,spliceRuntimeContext);
 		     SpliceResultScanner scanner = getResultScanner(keyColumns,spliceRuntimeContext,uniqueSequenceID);
 		     StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
 		     step2Aggregator = new DistinctScalarAggregateIterator(buffer,sourceIterator,keyColumns);

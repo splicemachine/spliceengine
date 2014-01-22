@@ -31,11 +31,20 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
     private HTableInterface table;
     private int taskPriority;
     private boolean readOnly;
+		private boolean recordStats;
+		private long statementId;
+		private String xplainSchema;
     private String jobId;
 
     public OperationJob(){}
 
-    public OperationJob(Scan scan, SpliceObserverInstructions instructions, HTableInterface table,boolean readOnly) {
+    public OperationJob(Scan scan,
+												SpliceObserverInstructions instructions,
+												HTableInterface table,
+												boolean readOnly,
+												boolean recordStats,
+												long statementId,
+												String xplainSchema) {
         this.scan = scan;
         this.instructions = instructions;
         this.table = table;
@@ -43,6 +52,9 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         this.readOnly = readOnly;
         this.jobId = String.format("%s-%s", operationString(instructions.getTopOperation()),
                                     SpliceUtils.getUniqueKeyString());
+				this.recordStats = recordStats;
+				this.statementId = statementId;
+				this.xplainSchema = xplainSchema;
     }
 
     private static String operationString(SpliceOperation op){
@@ -64,7 +76,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions.getTransactionId(), readOnly, taskPriority),
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions.getTransactionId(), readOnly, taskPriority,statementId,recordStats,xplainSchema),
                 Pair.newPair(scan.getStartRow(),scan.getStopRow()));
     }
 

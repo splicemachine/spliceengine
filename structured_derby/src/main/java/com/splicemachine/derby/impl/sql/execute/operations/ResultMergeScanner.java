@@ -16,6 +16,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -48,17 +49,20 @@ public class ResultMergeScanner implements StandardIterator<JoinSideExecRow> {
         this.rightDecoder = rightDecoder;
     }
 
-    @Override
-    public void open() throws StandardException, IOException {
-        scanner.open();
-    }
+    @Override public void open() throws StandardException, IOException { scanner.open(); }
 
-    @Override
-    public void close() throws StandardException, IOException {
-        scanner.close();
-    }
+    @Override public void close() throws StandardException, IOException { scanner.close(); }
 
-    @Override
+
+		public long getLocalRowsRead() { return scanner.getLocalRowsRead(); }
+		public long getLocalBytesRead() { return scanner.getLocalBytesRead(); }
+		public TimeView getLocalReadTime() { return scanner.getLocalReadTime(); }
+
+		public long getRemoteRowsRead() { return scanner.getRemoteRowsRead(); }
+		public long getRemoteBytesRead() { return scanner.getRemoteBytesRead(); }
+		public TimeView getRemoteReadTime() { return scanner.getRemoteReadTime(); }
+
+		@Override
     public JoinSideExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         Result result = scanner.next();
         if(result==null) return null;

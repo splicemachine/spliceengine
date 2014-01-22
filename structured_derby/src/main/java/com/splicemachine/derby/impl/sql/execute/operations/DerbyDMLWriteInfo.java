@@ -1,16 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.impl.sql.execute.WriteCursorConstantAction;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -50,12 +47,7 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
         return ((WriteCursorConstantOperation)getConstantAction()).getConglomerateId();
     }
 
-    @Override
-    public OperationSink getOperationSink(SinkingOperation op, byte[] taskId, String txnId) throws IOException {
-        return OperationSink.create(op,taskId,txnId);
-    }
-
-    @Override
+		@Override
     public SpliceObserverInstructions buildInstructions(SpliceOperation operation) {
         return SpliceObserverInstructions.create(activation,operation,new SpliceRuntimeContext());
     }

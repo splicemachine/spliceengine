@@ -30,7 +30,5 @@ interface DMLWriteInfo extends Externalizable {
 
     long getConglomerateId();
 
-    OperationSink getOperationSink(SinkingOperation op,byte[] taskId,String txnId) throws IOException;
-
-    SpliceObserverInstructions buildInstructions(SpliceOperation operation);
+		SpliceObserverInstructions buildInstructions(SpliceOperation operation);
 }

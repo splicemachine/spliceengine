@@ -295,7 +295,7 @@ public class InsertOperationTest {
 
                 SpliceOperation op = observerInstructions.getTopOperation();
 
-                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN");
+                OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
 
                 TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext());
                 JobStats stats = mock(JobStats.class);

@@ -13,6 +13,7 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 
+import com.splicemachine.stats.Stats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecAggregator;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -70,7 +71,7 @@ public class ScanGroupedAggregatorTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        },false );
+        },false, Stats.noOpMetricFactory());
 
         int[] groupColumns = new int[]{0,1};
         boolean[] groupSortOrder = new boolean[]{true,true};
@@ -148,7 +149,7 @@ public class ScanGroupedAggregatorTest {
             public void addWarning(String warningState) throws StandardException {
                 Assert.fail("No warnings should be added!");
             }
-        } );
+        },Stats.noOpMetricFactory() );
 
         int[] groupColumns = new int[]{0};
         boolean[] groupSortOrder = new boolean[]{true};

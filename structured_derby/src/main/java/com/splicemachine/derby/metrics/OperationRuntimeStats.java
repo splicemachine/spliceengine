@@ -6,6 +6,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * @author Scott Fines
@@ -21,6 +22,8 @@ public class OperationRuntimeStats {
 
 		private final ArrayList<OperationMetric> setMetrics;
 		private final LongArrayList measuredValues;
+		private String hostName;
+		private double bufferFillRatio = 0d;
 
 		public OperationRuntimeStats(long statementId, long operationId, long taskId,int initialSize) {
 				this.statementId = statementId;
@@ -37,21 +40,32 @@ public class OperationRuntimeStats {
 				for(int i=0;i<setMetrics.size();i++){
 						if(setMetrics.get(i)==metric){
 								measuredValues.set(i,measuredValues.get(i)+value);
+								return;
 						}else if(setMetrics.get(i).getPosition()>position){
 								//we've reached a value that's higher than us, push it out an
 								//entry
 								setMetrics.add(i,metric);
 								measuredValues.insert(i,value);
+								return;
 						}
 				}
+				setMetrics.add(metric);
+				measuredValues.add(value);
 		}
 
 		public void encode(MultiFieldEncoder fieldEncoder) {
 				fieldEncoder.encodeNext(statementId)
 								.encodeNext(operationId)
-								.encodeNext(taskId);
+								.encodeNext(taskId)
+								.encodeNext(hostName);
 
 				OperationMetric[] allMetrics = OperationMetric.values();
+				Arrays.sort(allMetrics,new Comparator<OperationMetric>() {
+						@Override
+						public int compare(OperationMetric o1, OperationMetric o2) {
+								return o1.getPosition()-o2.getPosition();
+						}
+				});
 				int metricIndex=0;
 				for(int storedMetricPos=0;storedMetricPos<setMetrics.size();storedMetricPos++){
 						OperationMetric metric = setMetrics.get(storedMetricPos);
@@ -60,10 +74,24 @@ public class OperationRuntimeStats {
 								fieldEncoder.encodeNext(0l); //assume that these fields are zero
 						}
 						fieldEncoder.encodeNext(measuredValues.get(storedMetricPos));
+						metricIndex++;
 				}
+				while(metricIndex<allMetrics.length){
+					fieldEncoder.encodeNext(0l);
+						metricIndex++;
+				}
+				fieldEncoder.encodeNext(bufferFillRatio);
 		}
 
 		public long getStatementId() { return statementId; }
 		public long getOperationId() { return operationId; }
 		public long getTaskId() { return taskId; }
+
+		public void setHostName(String hostName) {
+				this.hostName = hostName;
+		}
+
+		public void setBufferFillRatio(double maxFillRatio) {
+			this.bufferFillRatio = maxFillRatio;
+		}
 }

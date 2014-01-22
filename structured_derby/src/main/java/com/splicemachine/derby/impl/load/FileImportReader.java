@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.stats.*;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -18,7 +19,12 @@ public class FileImportReader implements ImportReader{
     private CSVReader csvReader;
     private InputStream stream;
 
-    @Override
+		private Timer timer;
+		private long bytesRead = 0l;
+		private long rowsRead = 0l;
+		private MeasuredReader reader;
+
+		@Override
     public void setup(FileSystem fileSystem, ImportContext ctx) throws IOException {
         Path path = ctx.getFilePath();
         CompressionCodecFactory cdF = new CompressionCodecFactory(SpliceUtils.config);
@@ -26,21 +32,35 @@ public class FileImportReader implements ImportReader{
 
         stream = codec!=null? codec.createInputStream(fileSystem.open(path)):fileSystem.open(path);
 
-        InputStreamReader reader = new InputStreamReader(stream);
+        reader = new MeasuredReader(new InputStreamReader(stream));
+				timer = ctx.shouldRecordStats() ? Timers.newTimer() : Timers.noOpTimer();
         csvReader = getCsvReader(reader,ctx);
-    }
+		}
 
     @Override
     public String[] nextRow() throws IOException {
         String[] next;
+				timer.startTiming();
         do{
             next =  csvReader.readNext();
-            if(next==null) return null; //if reader returns null, we're done
+            if(next==null) {
+								timer.stopTiming();
+								return null; //if reader returns null, we're done
+						}
         }while(next.length==0||(next.length==1&&(next[0]==null||next[0].length()==0)));
+				timer.tick(1);
         return next;
     }
 
-    @Override
+		@Override
+		public IOStats getStats() {
+				//if we didn't read any rows, then we probably didn't record any metrics
+				if(timer.getNumEvents()==0) return Stats.noOpIOStats();
+
+				return new BaseIOStats(timer.getTime(),reader.getCharsRead(),timer.getNumEvents());
+		}
+
+		@Override
     public void close() throws IOException {
         Closeables.closeQuietly(stream);
         Closeables.closeQuietly(csvReader);
@@ -56,7 +76,7 @@ public class FileImportReader implements ImportReader{
         //nothing to write
     }
 
-    private CSVReader getCsvReader(InputStreamReader reader, ImportContext importContext) {
+    private CSVReader getCsvReader(Reader reader, ImportContext importContext) {
         return new CSVReader(reader,importContext.getColumnDelimiter().charAt(0),importContext.getQuoteChar().charAt(0));
     }
 }

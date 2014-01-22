@@ -13,7 +13,9 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -132,6 +134,7 @@ public class TableScanOperation extends ScanOperation {
 				keyValues = new ArrayList<KeyValue>(1);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
 				this.slice = new ByteArraySlice();
+				this.startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -196,31 +199,25 @@ public class TableScanOperation extends ScanOperation {
 				return "Table"+super.prettyPrint(indentLevel);
 		}
 
+		@Override protected int getNumMetrics() { return 5; }
+
 		@Override
-		public OperationRuntimeStats getMetrics(long statementId,long taskId) {
-				/*
-				 * recording:
-				 * statementId
-				 * operationId
-				 * taskId
-				 * localRowsRead
-				 * localReadTime
-				 * localBytesRead
-				 */
-				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,Bytes.toLong(uniqueSequenceID),taskId,5);
-				com.splicemachine.stats.Timer readTimer = regionScanner.getReadTime();
-				Counter bytesRead = regionScanner.getBytesRead();
-				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,readTimer.getNumEvents());
-				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead.getTotal());
+		protected void updateStats(OperationRuntimeStats stats) {
+				TimeView readTimer = regionScanner.getReadTime();
+				long bytesRead = regionScanner.getBytesRead();
+				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead);
 				stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 				stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 				stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
-				return stats;
 		}
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException {
-				beginTime = getCurrentTimeMillis();
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
+
+				timer.startTiming();
 				keyValues.clear();
 				regionScanner.next(keyValues);
 				if (keyValues.isEmpty()) {
@@ -253,7 +250,13 @@ public class TableScanOperation extends ScanOperation {
 						}
 				}
 				setCurrentRow(currentRow);
-				nextTime += getElapsedMillis(beginTime);
+
+				//measure time
+				if(currentRow==null){
+						timer.tick(0);
+						stopExecutionTime = System.currentTimeMillis();
+				}else
+						timer.tick(1);
 				return currentRow;
 		}
 

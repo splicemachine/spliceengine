@@ -21,6 +21,7 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -173,34 +174,50 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(sinkAggregator==null){
 						sinkAggregator = new ScalarAggregator(new OperationScalarAggregateSource(source,sourceExecIndexRow,false),aggregates,false,true);
+						timer = spliceRuntimeContext.newTimer();
 				}
 
+				timer.startTiming();
 				ExecRow aggregate = sinkAggregator.aggregate(spliceRuntimeContext);
-				if(aggregate!=null)
-						return finish(aggregate,sinkAggregator);
+				if(aggregate!=null){
+						ExecRow finish = finish(aggregate, sinkAggregator);
+						timer.tick(1);
+						return finish;
+				}
+				stopExecutionTime = System.currentTimeMillis();
+				timer.tick(0);
 				return null;
 		}
 
 		@Override
 		public OperationRuntimeStats getMetrics(long statementId, long taskId) {
+				OperationRuntimeStats stats = super.getMetrics(statementId,taskId);
+
+
+				return stats;
+		}
+
+		@Override protected int getNumMetrics() {
+				if(sinkAggregator!=null)
+						return 5; //1 field here, plus the writing fields
+				else return 6;
+		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
 				if(sinkAggregator!=null){
-						OperationRuntimeStats stats = new OperationRuntimeStats(statementId, Bytes.toLong(uniqueSequenceID),taskId,1);
 						stats.addMetric(OperationMetric.FILTERED_ROWS,sinkAggregator.getRowsRead());
-						return stats;
-				}
-				else if(scanAggregator!=null){
-						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,Bytes.toLong(uniqueSequenceID),taskId,6);
+				} else if(scanAggregator!=null){
 						stats.addMetric(OperationMetric.FILTERED_ROWS,scanAggregator.getRowsRead());
 
-						Timer readTime = regionScanner.getReadTime();
-						Counter readBytes = regionScanner.getBytesRead();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, readTime.getNumEvents());
+						TimeView readTime = regionScanner.getReadTime();
+						long readBytes = regionScanner.getBytesRead();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsRead());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTime.getWallClockTime());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,readBytes.getTotal());
-						return stats;
-				}else return null; //we haven't anything to collect
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,readBytes);
+				}
 		}
 
 		private ExecRow finish(ExecRow row,ScalarAggregator aggregator) throws StandardException {

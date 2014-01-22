@@ -11,12 +11,16 @@ import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.HashFunctions;
@@ -62,8 +66,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     private StandardIteratorIterator<JoinSideExecRow> bridgeIterator;
     private Joiner joiner;
+		private ResultMergeScanner scanner;
 
-    public MergeSortJoinOperation() {
+		public MergeSortJoinOperation() {
         super();
     }
 
@@ -127,13 +132,26 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         } else {
             reduceScan = context.getScan();
         }
+				startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
+				timer.startTiming();
+				ExecRow next;
         if (spliceRuntimeContext.isLeft(resultSetNumber))
-            return leftResultSet.nextRow(spliceRuntimeContext);
-        return rightResultSet.nextRow(spliceRuntimeContext);
+            next = leftResultSet.nextRow(spliceRuntimeContext);
+				else
+						next = rightResultSet.nextRow(spliceRuntimeContext);
+				if(next==null){
+						timer.tick(0);
+						stopExecutionTime = System.currentTimeMillis();
+				}else
+						timer.tick(1);
+
+				return next;
     }
 
     @Override
@@ -157,9 +175,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 								init(SpliceOperationContext.newContext(activation));
 						joiner = createMergeJoiner(outer, spliceRuntimeContext);
 						isOpen = true;
+						timer = spliceRuntimeContext.newTimer();
 				}
         beginTime = getCurrentTimeMillis();
         boolean shouldClose = true;
+				timer.startTiming();
         try {
             ExecRow joinedRow = joiner.nextRow();
             if (joinedRow != null) {
@@ -172,17 +192,48 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             return joinedRow;
         } finally {
             if (shouldClose) {
+								timer.tick(0);
+								stopExecutionTime = System.currentTimeMillis();
                 if (LOG.isDebugEnabled() && joiner != null) {
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
                             rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
                 isOpen = false;
                 bridgeIterator.close();
-            }
+            }else
+								timer.tick(1);
         }
     }
 
-    @Override
+
+		@Override
+		protected int getNumMetrics() {
+				if(scanner==null)
+						return 5;
+				else
+						return 10;
+		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				if(scanner!=null){
+						TimeView localTime = scanner.getLocalReadTime();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,scanner.getLocalRowsRead());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,scanner.getLocalBytesRead());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localTime.getWallClockTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localTime.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,localTime.getUserTime());
+
+						TimeView remoteTime = scanner.getRemoteReadTime();
+						stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,scanner.getRemoteRowsRead());
+						stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
+						stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteTime.getWallClockTime());
+						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteTime.getCpuTime());
+						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteTime.getUserTime());
+				}
+		}
+
+		@Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] start = uniqueSequenceID;
         byte[] finish = BytesUtil.unsignedCopyAndIncrement(start);
@@ -333,7 +384,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
      */
     /*private helper methods*/
     private Joiner createMergeJoiner(boolean outer, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        StandardIterator<JoinSideExecRow> scanner = getMergeScanner(spliceRuntimeContext);
+        scanner = getMergeScanner(spliceRuntimeContext);
         scanner.open();
         bridgeIterator = StandardIterators.asIter(scanner);
         MergeSortJoinRows joinRows = new MergeSortJoinRows(bridgeIterator);
@@ -368,7 +419,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
     }
 
-    private StandardIterator<JoinSideExecRow> getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private ResultMergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         byte[] currentTaskId = spliceRuntimeContext.getCurrentTaskId();
         KeyDecoder leftKeyDecoder = getKeyEncoder(JoinSide.LEFT, leftHashKeys, currentTaskId).getDecoder();
         KeyHashDecoder leftRowDecoder = BareKeyHash.encoder(IntArrays.complement(leftHashKeys, leftNumCols), null).getDecoder();
@@ -378,7 +429,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         KeyHashDecoder rightRowDecoder = BareKeyHash.encoder(IntArrays.complement(rightHashKeys, rightNumCols), null).getDecoder();
         PairDecoder rightDecoder = new PairDecoder(rightKeyDecoder, rightRowDecoder, rightRow);
 
-        StandardIterator<JoinSideExecRow> scanner;
+        ResultMergeScanner scanner;
         if (spliceRuntimeContext.isSink()) {
             scanner = ResultMergeScanner.regionAwareScanner(reduceScan, transactionID, leftDecoder, rightDecoder, region,spliceRuntimeContext);
         } else {

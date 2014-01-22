@@ -10,8 +10,8 @@ import java.lang.management.ThreadMXBean;
 public class Timers {
 
 		private Timers(){}
-		private static final ThreadMXBean threadMXBean;
-		private static final boolean supportsCPUTime;
+		static final ThreadMXBean threadMXBean;
+		static final boolean supportsCPUTime;
 
 		static{
 				threadMXBean = ManagementFactory.getThreadMXBean();
@@ -20,15 +20,16 @@ public class Timers {
 
 		public static Timer newTimer(){
 				if(!supportsCPUTime)
-						return new CompositeTimer(new NanoTimeMeasure(),new NoOpTimeMeasure(),new NoOpTimeMeasure());
+						return new CompositeTimer(new NanoTimeMeasure(),NoOpTimeMeasure.INSTANCE,NoOpTimeMeasure.INSTANCE);
 				else
 						return new CompositeTimer(new NanoTimeMeasure(),new CpuTimeMeasure(),new UserTimeMeasure());
 		}
 
 		public static Timer noOpTimer(){ return NoOpTimer.INSTANCE;}
+		static TimeMeasure noOpTimeMeasure(){ return NoOpTimeMeasure.INSTANCE;}
+		public static TimeView noOpTimeView() { return NoOpTimer.INSTANCE; }
 
-
-		private static class NoOpTimer implements Timer{
+		private static class NoOpTimer implements Timer,TimeView{
 				private static final NoOpTimer INSTANCE = new NoOpTimer();
 				@Override public void startTiming() {  }
 				@Override public void stopTiming() {  }
@@ -37,6 +38,9 @@ public class Timers {
 				@Override public long getWallClockTime() { return 0; }
 				@Override public long getCpuTime() { return 0; }
 				@Override public long getUserTime() { return 0; }
+				@Override public long getStopWallTimestamp() { return 0; }
+				@Override public long getStartWallTimestamp() { return 0; }
+				@Override public TimeView getTime() { return this; }
 		}
 
 		private static class NoOpTimeMeasure implements TimeMeasure{
@@ -44,6 +48,8 @@ public class Timers {
 				@Override public void startTime() {  }
 				@Override public void stopTime() {  }
 				@Override public long getElapsedTime() { return 0; }
+				@Override public long getStopTimestamp() { return 0; }
+				@Override public long getStartTimestamp() { return 0; }
 		}
 
 		private static class CpuTimeMeasure extends BaseTimeMeasure{

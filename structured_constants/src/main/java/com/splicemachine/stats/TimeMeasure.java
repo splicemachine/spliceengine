@@ -11,4 +11,8 @@ public interface TimeMeasure {
 		void stopTime();
 
 		long getElapsedTime();
+
+		long getStopTimestamp();
+
+		long getStartTimestamp();
 }

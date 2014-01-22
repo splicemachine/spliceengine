@@ -9,4 +9,10 @@ public interface MetricFactory {
 		Counter newCounter();
 
 		Timer newTimer();
+
+		//TODO -sf- clean this up?
+		Gauge newMaxGauge();
+
+		Gauge newMinGauge();
+
 }

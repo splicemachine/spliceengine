@@ -7,15 +7,15 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.stats.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -57,9 +58,9 @@ class IndexRowReader {
     private HTableInterface table;
     private boolean populated = false;
 
-    private static final MetricName fetchTimerName = new MetricName("com.splicemachine.operations","indexLookup","fetchTime");
-    private final Timer fetchTimer = SpliceDriver.driver().getRegistry().newTimer(fetchTimerName,TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private EntryDecoder entryDecoder;
+		private MetricFactory metricFactory;
+		private SpliceRuntimeContext runtimeContext;
 
     IndexRowReader(ExecutorService lookupService,
                    HTableInterface table,
@@ -71,7 +72,8 @@ class IndexRowReader {
                    int[] indexCols,
                    long mainTableConglomId,
                    int[] adjustedBaseColumnMap,
-                   byte[] predicateFilterBytes) {
+                   byte[] predicateFilterBytes,
+									 SpliceRuntimeContext runtimeContext) {
         this.lookupService = lookupService;
         this.sourceOperation = sourceOperation;
         this.batchSize = batchSize;
@@ -83,8 +85,13 @@ class IndexRowReader {
         this.adjustedBaseColumnMap = adjustedBaseColumnMap;
         this.resultFutures = Lists.newArrayListWithExpectedSize(numBlocks);
         this.table = table;
+				this.runtimeContext = runtimeContext;
 
         this.predicateFilterBytes = predicateFilterBytes;
+				if(runtimeContext.shouldRecordTraceMetrics()){
+						metricFactory = Stats.atomicTimer();
+				}else
+						metricFactory = Stats.noOpMetricFactory();
     }
 
     IndexRowReader(ExecutorService lookupService,
@@ -96,9 +103,10 @@ class IndexRowReader {
                           int[] indexCols,
                           long mainTableConglomId,
                           int[] adjustedBaseColumnMap,
-                          byte[] predicateFilterBytes) {
+                          byte[] predicateFilterBytes,
+													SpliceRuntimeContext runtimeContext) {
         this(lookupService,null,sourceOperation,batchSize,numBlocks,template,
-                txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,predicateFilterBytes);
+                txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,predicateFilterBytes,runtimeContext);
     }
 
     public static IndexRowReader create(SpliceOperation sourceOperation,
@@ -107,7 +115,8 @@ class IndexRowReader {
                                         String txnId,
                                         int[] indexCols,
                                         int[] adjustedBaseColumnMap,
-                                        FormatableBitSet heapOnlyCols){
+                                        FormatableBitSet heapOnlyCols,
+																				SpliceRuntimeContext runtimeContext){
         int numBlocks = SpliceConstants.indexLookupBlocks;
         int batchSize = SpliceConstants.indexBatchSize;
 
@@ -127,7 +136,8 @@ class IndexRowReader {
                 batchSize,numBlocks,
                 template,txnId,
                 indexCols,mainTableConglomId,
-                adjustedBaseColumnMap,predicateFilterBytes);
+                adjustedBaseColumnMap,predicateFilterBytes,
+								runtimeContext);
     }
 
     public void close() throws IOException {
@@ -161,11 +171,39 @@ class IndexRowReader {
         return nextScannedRow;
     }
 
+		public long getTotalRows(){
+				/*
+				 * We do the type checking like this (even though it's ugly), so that
+				 * we can easily swap between a NoOpMetricFactory and an AtomicTimer without
+				 * paying a significant penalty in if-branches (lots of if(recordStats) blocks)
+				 *
+				 * In general, this will only be called if record stats is true, but we put
+				 * in the instanceof check just to be safe
+				 */
+				if(metricFactory instanceof AtomicTimer)
+						return ((AtomicTimer)metricFactory).getTotalEvents();
+				return 0;
+		}
+
+		public TimeView getTimeInfo(){
+				if(metricFactory instanceof AtomicTimer)
+						return ((AtomicTimer)metricFactory).getTimeView();
+				return Timers.noOpTimeView();
+		}
+
+		public long getBytesFetched(){
+				if(metricFactory instanceof AtomicTimer)
+						return ((AtomicTimer)metricFactory).getTotalCountedValues();
+				return 0;
+		}
+
+/**********************************************************************************************************************************/
+		/*private helper methods*/
     private void getMoreData() throws StandardException, IOException {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
         List<RowAndLocation> sourceRows = Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
-            ExecRow next = sourceOperation.nextRow(null);
+            ExecRow next = sourceOperation.nextRow(runtimeContext);
             if(next==null) break; //we are done
 
             if(!populated){
@@ -242,36 +280,37 @@ class IndexRowReader {
 
     private class Lookup implements Callable<List<Pair<RowAndLocation,Result>>> {
         private final List<RowAndLocation> sourceRows;
+				private final Timer timer;
+				private final Counter bytesCounter;
 
         public Lookup(List<RowAndLocation> sourceRows) {
             this.sourceRows = sourceRows;
+						this.timer = metricFactory.newTimer();
+						this.bytesCounter = metricFactory.newCounter();
         }
 
         @Override
         public List<Pair<RowAndLocation,Result>> call() throws Exception {
-            long start = System.nanoTime();
-            try{
-                List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
-                for(RowAndLocation sourceRow:sourceRows){
-                    byte[] row = sourceRow.rowLocation;
-                    Get get = SpliceUtils.createGet(txnId, row);
-                    get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
-                    gets.add(get);
-                }
+						List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
+						for(RowAndLocation sourceRow:sourceRows){
+								byte[] row = sourceRow.rowLocation;
+								Get get = SpliceUtils.createGet(txnId, row);
+								get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
+								gets.add(get);
+						}
 
-                Result[] results = table.get(gets);
+						timer.startTiming();
+						Result[] results = table.get(gets);
+						timer.tick(results.length);
+						StatUtils.countBytes(bytesCounter,results);
 
-                int i=0;
-                List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
-                for(RowAndLocation sourceRow:sourceRows){
-                    locations.add(Pair.newPair(sourceRow,results[i]));
-                    i++;
-                }
-                return locations;
-            }finally{
-                if(SpliceConstants.collectStats)
-                    fetchTimer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
-            }
-        }
+						int i=0;
+						List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
+						for(RowAndLocation sourceRow:sourceRows){
+								locations.add(Pair.newPair(sourceRow,results[i]));
+								i++;
+						}
+						return locations;
+				}
     }
 }

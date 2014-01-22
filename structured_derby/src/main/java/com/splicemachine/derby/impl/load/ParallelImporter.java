@@ -1,15 +1,15 @@
 package com.splicemachine.derby.impl.load;
 
-import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.stats.*;
+import com.splicemachine.stats.util.FolderUtils;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -19,6 +19,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -32,11 +33,13 @@ public class ParallelImporter implements Importer{
     private final BlockingQueue<String[]> processingQueue;
     private volatile boolean closed;
     private final ImportContext importContext;
-    private final List<Future<Void>> futures;
+    private final List<Future<IOStats>> futures;
     private volatile Exception error;
+		private final MetricFactory metricFactory;
+		private ArrayList<IOStats> stats;
 
 
-    public ParallelImporter(ImportContext importContext,ExecRow template,String txnId) {
+		public ParallelImporter(ImportContext importContext,ExecRow template,String txnId) {
         this(importContext,
                 template,
                 txnId,
@@ -65,9 +68,14 @@ public class ParallelImporter implements Importer{
         String tableName = importContext.getTableName();
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
-            CallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId);
-            futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest,importCtx)));
+            RecordingCallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId);
+            futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest)));
         }
+
+				if(importCtx.shouldRecordStats()){
+						metricFactory = Stats.basicMetricFactory();
+				}else
+						metricFactory = Stats.noOpMetricFactory();
     }
     
     @Override
@@ -93,9 +101,10 @@ public class ParallelImporter implements Importer{
     public void close() throws IOException {
         closed = true;
         try{
-            for(Future<Void> future:futures){
+						stats = Lists.newArrayListWithCapacity(futures.size());
+            for(Future<IOStats> future:futures){
                 try {
-                    future.get();
+                    stats.add(future.get());
                 } catch (InterruptedException e) {
                     throw new IOException(e);
                 } catch (ExecutionException e) {
@@ -112,13 +121,21 @@ public class ParallelImporter implements Importer{
         return closed;
     }
 
-    void markFailed(Exception e){
-        this.error = e;
-    }
+		public IOStats getStats(){
+				if(stats==null) return Stats.noOpIOStats();
 
-    boolean isFailed(){
-        return error!=null;
-    }
+				MultiTimeView timeView = new MultiTimeView(
+								FolderUtils.maxLongFolder(),FolderUtils.sumFolder(),FolderUtils.sumFolder(),
+								FolderUtils.minLongFolder(), FolderUtils.maxLongFolder());
+				MultiStatsView view = new MultiStatsView(timeView);
+				for(IOStats ioStats:stats){
+					view.merge(ioStats);
+				}
+				return view;
+		}
+
+    void markFailed(Exception e){ this.error = e; }
+    boolean isFailed(){ return error!=null; }
 
     public PairEncoder newEntryEncoder(ExecRow row) {
         int[] pkCols = importContext.getPrimaryKeys();
@@ -138,21 +155,18 @@ public class ParallelImporter implements Importer{
 				return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
 		}
 
-    private class Processor implements Callable<Void>{
+    private class Processor implements Callable<IOStats>{
         private final BlockingQueue<String[]> queue;
-        private final CallBuffer<KVPair> writeDestination;
+        private final RecordingCallBuffer<KVPair> writeDestination;
         private final PairEncoder entryEncoder;
 
         private RowParser importProcessor;
-        private int numProcessed;
-        private long totalPopulateTime;
-        private long totalWriteTime;
-        private ImportContext importContext;
+
+				private Timer writeTimer;
 
         private Processor(ExecRow row,
                           BlockingQueue<String[]> queue,
-                          CallBuffer<KVPair> writeDestination,
-                          ImportContext importContext){
+                          RecordingCallBuffer<KVPair> writeDestination ){
             this.queue = queue;
             this.writeDestination = writeDestination;
             this.entryEncoder = newEntryEncoder(row);
@@ -160,12 +174,12 @@ public class ParallelImporter implements Importer{
             this.importProcessor = new RowParser(row,
                     importContext.getDateFormat(),
                     importContext.getTimeFormat(),
-                    importContext.getTimestampFormat(),
-                    importContext);
+                    importContext.getTimestampFormat());
+						this.writeTimer = metricFactory.newTimer();
         }
 
         @Override
-        public Void call() throws Exception {
+        public IOStats call() throws Exception {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "Processor#call");
             /*
@@ -186,14 +200,12 @@ public class ParallelImporter implements Importer{
                 while(!isClosed()&&!isFailed()){
                     String[] elements = queue.poll(200,TimeUnit.MILLISECONDS);
                     if(elements==null)continue; //try again
-                    numProcessed++;
                     doImportRow(elements);
                 }
                 if(!isFailed()){
                     //source is closed, poll until the queue is empty
                     String[] next;
                     while((next = queue.poll())!=null){
-                        numProcessed++;
                         doImportRow(next);
                     }
                 }
@@ -205,26 +217,17 @@ public class ParallelImporter implements Importer{
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "Closing Call Buffer");
                 writeDestination.close(); //ensure your writes happen
-                if(LOG.isDebugEnabled()){
-                    SpliceLogUtils.debug(LOG,"total time taken to populate %d rows: %d ns",numProcessed,totalPopulateTime);
-                    SpliceLogUtils.debug(LOG,"average time taken to populate 1 row: %f ns",(double)totalPopulateTime/numProcessed);
-                    SpliceLogUtils.debug(LOG,"total time taken to write %d rows: %d ns",numProcessed,totalWriteTime);
-                    SpliceLogUtils.debug(LOG,"average time taken to write 1 row: %f ns",(double)totalWriteTime/numProcessed);
-                }
             }
-            return null;
+						long bytesWritten = writeDestination.getTotalBytesAdded();
+						return new BaseIOStats(writeTimer.getTime(),bytesWritten,writeTimer.getNumEvents());
         }
 
         protected void doImportRow(String[] line) throws Exception {
-            long start = System.nanoTime();
-            ExecRow newRow = importProcessor.process(line,importContext.getColumnInformation());
-            long stop = System.nanoTime();
-            totalPopulateTime += (stop-start);
+						writeTimer.startTiming();
+						ExecRow newRow = importProcessor.process(line, importContext.getColumnInformation());
 
-            start = System.nanoTime();
 						writeDestination.add(entryEncoder.encode(newRow));
-            stop = System.nanoTime();
-            totalWriteTime += (stop-start);
+						writeTimer.tick(1);
         }
     }
 }

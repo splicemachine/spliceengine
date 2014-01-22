@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -121,6 +122,10 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "nextRow");
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
+
+				timer.startTiming();
         if (rightSideMap == null)
             rightSideMap = retrieveRightSideCache(spliceRuntimeContext);
 
@@ -133,7 +138,13 @@ public class BroadcastJoinOperation extends JoinOperation {
                 broadcastIterator = new BroadcastNextRowIterator(leftRow);
             }
         }
-        return broadcastIterator.next();
+				ExecRow next = broadcastIterator.next();
+				if(next==null){
+						timer.stopTiming();
+						stopExecutionTime = System.currentTimeMillis();
+				}else
+					timer.tick(1);
+				return next;
     }
 
     @Override
@@ -156,6 +167,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
         rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
         rightResultSet.init(context);
+				startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
@@ -181,7 +193,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         SpliceLogUtils.trace(LOG, "getExecRowDefinition");
-        JoinUtils.getMergedRow(((SpliceOperation) this.leftResultSet).getExecRowDefinition(), ((SpliceOperation) this.rightResultSet).getExecRowDefinition(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+        JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
         return mergedRow;
     }
 

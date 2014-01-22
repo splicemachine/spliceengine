@@ -30,7 +30,7 @@ public class XPLAINTaskDescriptor {
 		 * of the primary keys for the table.
 		 */
 		protected String[] getPrimaryKeys(){
-			return new String[]{STATEMENTID_NAME,OPERATIONID_NAME,JOBID_NAME,TASKID_NAME};
+			return new String[]{STATEMENTID_NAME,OPERATIONID_NAME,TASKID_NAME};
 		}
 
 		public final String getTableDDL(String schemaName){
@@ -76,15 +76,16 @@ public class XPLAINTaskDescriptor {
 								return o1.getPosition()-o2.getPosition();
 						}
 				});
-				SystemColumn[] columns = new SystemColumn[metrics.length+4];
+				SystemColumn[] columns = new SystemColumn[metrics.length+5];
 				columns[0] = SystemColumnImpl.getColumn("STATEMENTID",Types.BIGINT,false);
 				columns[1] = SystemColumnImpl.getColumn("OPERATIONID",Types.BIGINT,false);
-				columns[2] = SystemColumnImpl.getColumn("JOBID",Types.BIGINT,false);
-				columns[3] = SystemColumnImpl.getColumn("TASKID",Types.BIGINT,false);
+				columns[2] = SystemColumnImpl.getColumn("TASKID",Types.BIGINT,false);
+				columns[3] = SystemColumnImpl.getColumn("HOST",Types.VARCHAR,false,32642);
 				for(int i=0;i<metrics.length;i++){
 						String name = metrics[i].name().replaceAll("_", "");
 						columns[i+4] = SystemColumnImpl.getColumn(name, Types.BIGINT,true);
 				}
+				columns[metrics.length+4] = SystemColumnImpl.getColumn("BUFFER_FILLRATIO",Types.DOUBLE,true);
 				return columns;
 		}
 

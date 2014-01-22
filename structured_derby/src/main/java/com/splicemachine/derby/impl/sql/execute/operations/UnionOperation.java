@@ -9,6 +9,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.derby.utils.marshall.RowDecoder;
+import com.splicemachine.tools.splice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -117,7 +118,7 @@ public class UnionOperation extends SpliceBaseOperation {
         super.init(context);
         firstResultSet.init(context);
         secondResultSet.init(context);
-
+				startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
@@ -131,9 +132,13 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-    	ExecRow row;
-        SpliceRuntimeContext.Side side = spliceRuntimeContext.getPathSide(resultSetNumber);
+		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				ExecRow row;
+				SpliceRuntimeContext.Side side = spliceRuntimeContext.getPathSide(resultSetNumber);
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
+
+				timer.startTiming();
         switch (side) {
             case LEFT:
                 row = firstResultSet.nextRow(spliceRuntimeContext);
@@ -154,8 +159,13 @@ public class UnionOperation extends SpliceBaseOperation {
                 throw new IllegalStateException("Unknown side state "+ side);
         }
         setCurrentRow(row);
-        if(row!=null)
+        if(row!=null){
+						timer.tick(1);
             rowsReturned++;
+				}else{
+						timer.stopTiming();
+						stopExecutionTime = System.currentTimeMillis();
+				}
         return row;
     }
 

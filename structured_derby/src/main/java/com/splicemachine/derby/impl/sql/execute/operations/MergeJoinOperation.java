@@ -87,6 +87,7 @@ public class MergeJoinOperation extends JoinOperation {
             throw new RuntimeException(
                     "MergeJoin cannot currently be used with a non-covering index on its right side.");
         }
+				startExecutionTime = System.currentTimeMillis();
     }
 
     @Override
@@ -108,10 +109,16 @@ public class MergeJoinOperation extends JoinOperation {
         if (joiner == null) {
             // Upon first call, init up the joined rows source
             joiner = initJoiner(spliceRuntimeContext);
+						timer = spliceRuntimeContext.newTimer();
         }
 
         ExecRow next = joiner.nextRow();
         setCurrentRow(next);
+				if(next==null){
+						timer.stopTiming();
+						stopExecutionTime = System.currentTimeMillis();
+				}else
+					timer.tick(1);
         return next;
     }
 

@@ -5,6 +5,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAgg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.utils.StandardSupplier;
+
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 /**
@@ -21,16 +23,18 @@ public class GroupedAggregateBuffer extends AbstractAggregateBuffer {
                            SpliceGenericAggregator[] aggregators,
                            boolean eliminateDuplicates,
                            StandardSupplier<ExecRow> emptyRowSupplier,
-                           WarningCollector warningCollector){
-        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false);
+                           WarningCollector warningCollector,
+													 MetricFactory metricFactory){
+        this(maxSize, aggregators, eliminateDuplicates, emptyRowSupplier, warningCollector,false,metricFactory);
     }
 		public GroupedAggregateBuffer(int maxSize,
 								SpliceGenericAggregator[] aggregators,
 								boolean eliminateDuplicates,
 							    StandardSupplier<ExecRow> emptyRowSupplier,
 								WarningCollector warningCollector,
-								boolean shouldMerge) {
-		super(maxSize,aggregators);
+								boolean shouldMerge,
+								MetricFactory metricFactory) {
+		super(maxSize,aggregators,metricFactory);
         this.emptyRowSupplier = emptyRowSupplier;
         this.warningCollector = warningCollector;
         this.shouldMerge = shouldMerge;

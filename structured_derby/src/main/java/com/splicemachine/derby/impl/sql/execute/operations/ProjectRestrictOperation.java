@@ -10,6 +10,8 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.tools.splice;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -149,6 +151,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						restriction = new SpliceMethod<DataValueDescriptor>(restrictionMethodName,activation);
 				if (projectionMethodName != null)
 						projection = new SpliceMethod<ExecRow>(projectionMethodName,activation);
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 
@@ -219,17 +222,18 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
 				if(alwaysFalse){
 						return null;
 				}
+				if(timer==null)
+						timer = spliceRuntimeContext.newTimer();
 
 				candidateRow = null;
 				result = null;
 				restrict = false;
 				restrictBoolean = null;
 
-				beginTime = getCurrentTimeMillis();
+				timer.startTiming();
 				do {
 						candidateRow = source.nextRow(spliceRuntimeContext);
 						if (LOG.isDebugEnabled())
@@ -267,7 +271,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				setCurrentRow(currentRow);
 				if (statisticsTimingOn) {
 						if (! isTopResultSet) {
-				/* This is simply for RunTimeStats */
+								/* This is simply for RunTimeStats */
 								//TODO: need to getStatementContext() from somewhere
 								if (activation.getLanguageConnectionContext().getStatementContext() == null)
 										SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
@@ -276,6 +280,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						}
 						nextTime += getElapsedMillis(beginTime);
 				}
+				if(result==null){
+						timer.tick(1);
+						stopExecutionTime = System.currentTimeMillis();
+				}else timer.tick(0);
 				return result;
 		}
 
@@ -320,11 +328,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return this.source;
 		}
 
+		@Override protected int getNumMetrics() { return 1; }
+
 		@Override
-		public OperationRuntimeStats getMetrics(long statementId, long taskId) {
-				OperationRuntimeStats stats = new OperationRuntimeStats(statementId, Bytes.toLong(uniqueSequenceID),taskId,1);
+		protected void updateStats(OperationRuntimeStats stats) {
 				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
-				return stats;
 		}
 
 		@Override

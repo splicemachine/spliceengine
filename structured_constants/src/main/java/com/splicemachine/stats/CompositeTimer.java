@@ -9,7 +9,7 @@ package com.splicemachine.stats;
  * @author Scott Fines
  * Date: 1/17/14
  */
-public class CompositeTimer implements Timer{
+public class CompositeTimer implements Timer,TimeView{
 		private final TimeMeasure wallClockTime;
 		private final TimeMeasure userTime;
 		private final TimeMeasure cpuTime;
@@ -42,9 +42,12 @@ public class CompositeTimer implements Timer{
 				this.numEvents+=numEvents;
 		}
 
+		@Override public TimeView getTime() { return this; }
 		@Override public long getNumEvents() { return numEvents; }
 		@Override public long getWallClockTime() { return wallClockTime.getElapsedTime(); }
 		@Override public long getCpuTime() { return cpuTime.getElapsedTime(); }
 		@Override public long getUserTime() { return userTime.getElapsedTime(); }
+		@Override public long getStopWallTimestamp() { return wallClockTime.getStopTimestamp(); }
+		@Override public long getStartWallTimestamp() { return wallClockTime.getStartTimestamp(); }
 }
 

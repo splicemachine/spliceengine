@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -15,10 +16,12 @@ public interface SpliceResultScanner extends ResultScanner {
 
     void open() throws IOException, StandardException;
 
-		Timer getRemoteReadTime();
-		Counter getRemoteBytesRead();
+		TimeView getRemoteReadTime();
+		long getRemoteBytesRead();
+		long getRemoteRowsRead();
 
-		Timer getLocalReadTime();
-		Counter getLocalBytesRead();
+		TimeView getLocalReadTime();
+		long getLocalBytesRead();
+		long getLocalRowsRead();
 
 }

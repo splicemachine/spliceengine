@@ -1,6 +1,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
@@ -10,7 +11,9 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
  */
 public interface MeasuredRegionScanner extends RegionScanner {
 
-		Timer getReadTime();
+		TimeView getReadTime();
 
-		Counter getBytesRead();
+		long getBytesRead();
+
+		long getRowsRead();
 }

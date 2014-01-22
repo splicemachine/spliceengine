@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.stats.IOStats;
+
 import java.io.Closeable;
 
 /**
@@ -13,4 +15,6 @@ public interface Importer extends Closeable {
     void process(String[] parsedRow) throws Exception;
 
     boolean isClosed();
+
+		IOStats getStats();
 }

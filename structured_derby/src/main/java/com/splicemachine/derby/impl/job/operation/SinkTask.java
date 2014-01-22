@@ -17,6 +17,7 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -55,7 +56,12 @@ public class SinkTask extends ZkTask {
 		 */
 		private byte hashBucket;
 
-    /**
+		/*Stats stuff*/
+		private boolean recordStats;
+		private String xplainSchema;
+		private long statementId;
+
+		/**
      * Serialization Constructor.
      */
     @SuppressWarnings("UnusedDeclaration")
@@ -65,9 +71,15 @@ public class SinkTask extends ZkTask {
                     Scan scan,
                     String transactionId,
                     boolean readOnly,
-                    int priority) {
+                    int priority,
+										long statementId,
+										boolean recordStats,
+										String xplainSchema) {
         super(jobId,priority,transactionId,readOnly);
         this.scan = scan;
+				this.statementId = statementId;
+				this.xplainSchema = xplainSchema;
+				this.recordStats = recordStats;
 
 				List<byte[]> taskChain = OperationSink.taskChain.get();
 				if(taskChain!=null){
@@ -105,13 +117,18 @@ public class SinkTask extends ZkTask {
             SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
             spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());
+						if(recordStats){
+								spliceRuntimeContext.recordTraceMetrics();
+								spliceRuntimeContext.setXplainSchema(xplainSchema);
+						}
+
             opContext = new SpliceOperationContext(region,
                     scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
             //init the operation stack
 
             SpliceOperation op = instructions.getTopOperation();
             op.init(opContext);
-            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId());
+            OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId(), statementId,waitTimeNs);
 
             
             TaskStats stats;
@@ -190,6 +207,10 @@ public class SinkTask extends ZkTask {
         super.writeExternal(out);
         scan.write(out);
 				out.writeByte(hashBucket);
+				out.writeLong(statementId);
+				out.writeBoolean(recordStats);
+				if(recordStats)
+						out.writeUTF(xplainSchema);
     }
 
     @Override
@@ -198,6 +219,10 @@ public class SinkTask extends ZkTask {
         scan  = new Scan();
         scan.readFields(in);
 				hashBucket = in.readByte();
+				statementId = in.readLong();
+				recordStats = in.readBoolean();
+				if(recordStats)
+					xplainSchema = in.readUTF();
     }
 
     @Override
