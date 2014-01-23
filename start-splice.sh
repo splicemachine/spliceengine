@@ -43,15 +43,21 @@ if [[ -z "${PROFILE}" ]]; then
     PROFILE="cloudera-cdh4.3.0"
 fi
 
-SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|Download)' | tr -d [[:space:]])
+SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
+if [[ ! -e ${TARBALL} ]]; then
+    # maven assembly is required for server dependencies and executable start/stop scripts
+    # it's not present. Attempt to build assembly (only if it's not already built).
+    echo "Required assembly, ${TARBALL}, not found. Running maven assembly."
+    mvn assembly:assembly -DskipTests &>/dev/null
+fi
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
     usage "Cannot find ${TARBALL}. An unexpected profile was provided \\"${PROFILE}\\" or the project needs to be built."
     exit 1
 fi
 
-# Extract package libs for classpath and bin scripts to call
+# Extract package libs for classpath and bin scripts to call for start/stop
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/bin &>/dev/null
 
@@ -75,8 +81,7 @@ fi
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
 echo "=== Running profile ${PROFILE} at $currentDateTime === " > ${SPLICELOG}
 
-export SPLICE_SYS_ARGS="-Xdebug \
-   -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
+export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
 SPLICE_MAIN_CLASS="com.splicemachine.test.SpliceTestPlatform"
 # Start server with retry logic

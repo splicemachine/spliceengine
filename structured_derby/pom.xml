@@ -179,29 +179,35 @@
 
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
 				<configuration>
 					<source>6</source>
-					<descriptors>
-						<descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
-						<descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
-					</descriptors>
 					<archive>
 						<manifestEntries>
 							<Implementation-Version>${buildNumber}</Implementation-Version>
-							<Release>0.5</Release>
+							<Release>${project.version}</Release>
                             <Build-Time>${maven.build.timestamp}</Build-Time>
 							<URL>http://www.splicemachine.com</URL>
 						</manifestEntries>
 					</archive>
-				</configuration>
+                    <descriptors>
+                        <descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
+                        <descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
 				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
+                    <execution>
+                        <id>simple</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>complete</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
 				</executions>
 			</plugin>
 
