@@ -274,6 +274,7 @@ public class HdfsImport extends ParallelVTI {
 				    if(autoincContext != null)
 				    	ic.setAutoIncrementColumnContext(autoincContext);
 					importer = new HdfsImport(ic);
+					importer.open();
 					importer.executeShuffle(new SpliceRuntimeContext());
 				} catch(AssertionError ae){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
