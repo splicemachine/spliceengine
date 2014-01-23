@@ -1,21 +1,12 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.storage.MultiScanExecRowProvider;
-import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.storage.MultiProbeClientScanProvider;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayUtil;
 import org.apache.derby.iapi.services.sanity.SanityManager;
@@ -24,6 +15,7 @@ import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.compile.RowOrdering;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.util.Bytes;
 // These are for javadoc "@see" tags.
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -173,12 +165,12 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 stopSearchOperator,
                 probingVals
         );
-//        this.probeValues = probingVals;
         recordConstructorTime();
     }
 
     private void sortProbeValues() {
-        if(sortRequired==RowOrdering.ASCENDING)
+
+    	if(sortRequired==RowOrdering.ASCENDING)
             Arrays.sort(probeValues);
         else
             Arrays.sort(probeValues,Collections.reverseOrder());
@@ -202,77 +194,22 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         ArrayUtil.writeArray(out,probeValues);
     }
 
-//    @Override
-//    protected Scan buildScan() {
-//        return scanInformation.getScan(getTransactionID());
-//        /*
-//         * We must build the proper scan here in pieces
-//         */
-//        BitSet colsToReturn = new BitSet();
-//        FormatableBitSet accessedCols = scanInformation.getAccessedColumns();
-//        if(accessedCols!=null){
-//            for(int i=accessedCols.anySetBit();i>=0;i=accessedCols.anySetBit(i)){
-//                colsToReturn.set(i);
-//            }
-//        }
-//        MultiRangeFilter.Builder builder= new MultiRangeFilter.Builder();
-//        List<Predicate> allScanPredicates = Lists.newArrayListWithExpectedSize(probeValues.length);
-//        for(DataValueDescriptor probeValue:probeValues){
-//            try{
-//
-//                populateStartAndStopPositions();
-//                if(startPosition!=null)
-//                    startPosition.getRowArray()[0] = probeValue; //TODO -sf- is this needed?
-//                if(sameStartStopPosition||stopPosition.nColumns()>1){
-//                    stopPosition.getRowArray()[0] = probeValue;
-//                }
-//                populateQualifiers();
-//                List<Predicate> scanPredicates;
-//                if(scanQualifiers!=null){
-//                    scanPredicates = Scans.getQualifierPredicates(scanQualifiers);
-//                    if(accessedCols!=null){
-//                        for(Qualifier[] qualifierList:scanQualifiers){
-//                            for(Qualifier qualifier:qualifierList){
-//                                colsToReturn.set(qualifier.getColumnId());
-//                            }
-//                        }
-//                    }
-//                }else{
-//                    scanPredicates = Lists.newArrayListWithExpectedSize(0);
-//                }
-//
-//                //get the start and stop keys for the scan
-//                Pair<byte[],byte[]> startAndStopKeys =
-//                        Scans.getStartAndStopKeys(startPosition.getRowArray(),startSearchOperator,stopPosition.getRowArray(),stopSearchOperator,conglomerate.getAscDescInfo());
-//                builder.addRange(startAndStopKeys.getFirst(),startAndStopKeys.getSecond());
-//                if(startPosition!=null && startSearchOperator != ScanController.GT){
-//                    Predicate indexPredicate = Scans.generateIndexPredicate(startPosition.getRowArray(),startSearchOperator);
-//                    if(indexPredicate!=null)
-//                        scanPredicates.add(indexPredicate);
-//                }
-//                allScanPredicates.add(new AndPredicate(scanPredicates));
-//            }catch(StandardException e){
-//                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-//            } catch (IOException e) {
-//                SpliceLogUtils.logAndThrowRuntime(LOG, e);
-//            }
-//        }
-//
-//        Predicate finalPredicate  = new OrPredicate(allScanPredicates);
-//        String txnId = getTransactionID();
-//        Scan scan = SpliceUtils.createScan(txnId);
-//        EntryPredicateFilter epf = new EntryPredicateFilter(colsToReturn,Arrays.asList(finalPredicate));
-//        scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,epf.toBytes());
-//        MultiRangeFilter filter = builder.build();
-//        scan.setStartRow(filter.getMinimumStart());
-//        scan.setStopRow(filter.getMaximumStop());
-//        scan.setFilter(filter);
-//
-//        return scan;
-//    }
-
     @Override
     public String toString() {
         return "MultiProbe"+super.toString();
     }
+    
+	@Override
+	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		beginTime = System.currentTimeMillis();
+		MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan",Bytes.toBytes(tableName),scanInformation.getScans(getTransactionID(), null, activation, top, spliceRuntimeContext), decoder,spliceRuntimeContext);
+		nextTime += System.currentTimeMillis() - beginTime;
+		return provider;
+	}
+
+    @Override
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        return getMapRowProvider(top, decoder, spliceRuntimeContext);
+    }
+        
 }
