@@ -1,7 +1,6 @@
 package com.splicemachine.derby.utils;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Comparator;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;

@@ -1,8 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.util.List;
+
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.hadoop.hbase.client.Scan;
@@ -34,4 +40,6 @@ interface ScanInformation<T> {
     public String printStopPosition(int numOpens) throws StandardException;
 
     long getConglomerateId();
+    
+    public List<Scan> getScans(String txnId, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 }
