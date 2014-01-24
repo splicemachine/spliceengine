@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
@@ -28,17 +29,6 @@ public class SpliceAdminIT {
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-
-    static class MyWatcher extends SpliceTableWatcher {
-
-        public MyWatcher(String tableName, String schemaName, String createString) {
-            super(tableName, schemaName, createString);
-        }
-
-        public void create(Description desc) {
-            super.starting(desc);
-        }
-    }
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).
@@ -95,8 +85,8 @@ public class SpliceAdminIT {
     @Test
     public void testGetConglomerateIDs() throws Exception {
         String TABLE_NAME = "ZONING";
-        MyWatcher tableWatcher =
-                new MyWatcher(TABLE_NAME,CLASS_NAME,
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
@@ -125,8 +115,8 @@ public class SpliceAdminIT {
     @Test
     public void testGetConglomerateIDsAllInSchema() throws Exception {
         String TABLE_NAME = "ZONING1";
-        MyWatcher tableWatcher =
-                new MyWatcher(TABLE_NAME,CLASS_NAME,
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
@@ -153,8 +143,8 @@ public class SpliceAdminIT {
     @Test
     public void testGetSchemaInfo() throws Exception {
         String TABLE_NAME = "ZONING2";
-        MyWatcher tableWatcher =
-                new MyWatcher(TABLE_NAME,CLASS_NAME,
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));

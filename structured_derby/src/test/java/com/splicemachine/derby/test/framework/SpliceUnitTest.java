@@ -1,8 +1,8 @@
 package com.splicemachine.derby.test.framework;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import org.junit.runner.Description;
 
 public class SpliceUnitTest {
 	public String getSchemaName() {
@@ -46,5 +46,18 @@ public class SpliceUnitTest {
 	public static String getResourceDirectory() {
 		return getBaseDirectory()+"/src/test/resources/";
 	}
+
+
+    public static class MyWatcher extends SpliceTableWatcher {
+
+        public MyWatcher(String tableName, String schemaName, String createString) {
+            super(tableName, schemaName, createString);
+        }
+
+        public void create(Description desc) {
+            super.starting(desc);
+        }
+    }
+
 
 }
