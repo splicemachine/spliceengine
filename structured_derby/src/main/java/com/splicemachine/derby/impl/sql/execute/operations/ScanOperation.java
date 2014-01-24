@@ -166,8 +166,28 @@ public abstract class ScanOperation extends SpliceBaseOperation {
             return null;
         }
     }
-    
-    public String getTableName(){
+
+		@Override
+		public String getName() {
+				/*
+				 * TODO -sf- tableName and indexName are actually conglomerate ids, not
+				 * human-readable table names. Unfortunately, there doesn't appear
+				 * to be any mechanism to get the human readable name short of
+				 * issuing a query to find it (which isn't really an option). For now,
+				 * we'll just set the conglomerate id on here, and then allow people
+				 * to look for them later; at some point the Query Optimizer will
+				 * need to be invoked to ensure that the human readable name gets
+				 * passed through.
+				 */
+				String baseName =  super.getName();
+				if(this.tableName!=null){
+						baseName+="(table="+tableName+")";
+				}else if(this.indexName!=null)
+						baseName+="(index="+indexName+")";
+				return baseName;
+		}
+
+		public String getTableName(){
     	return this.tableName;
     }
     

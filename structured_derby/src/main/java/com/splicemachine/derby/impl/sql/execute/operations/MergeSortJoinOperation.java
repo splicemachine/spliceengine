@@ -67,6 +67,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     private StandardIteratorIterator<JoinSideExecRow> bridgeIterator;
     private Joiner joiner;
 		private ResultMergeScanner scanner;
+		private boolean inReduce;
 
 		public MergeSortJoinOperation() {
         super();
@@ -122,7 +123,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        rightTemplate = activation.getExecutionFactory().getValueRow(rightNumCols);
+        rightTemplate = rightRow.getClone();
         if (uniqueSequenceID != null && regionScanner == null) {
             byte[] start = new byte[uniqueSequenceID.length];
             System.arraycopy(uniqueSequenceID, 0, start, 0, start.length);
@@ -132,6 +133,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         } else {
             reduceScan = context.getScan();
         }
+				JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
 				startExecutionTime = System.currentTimeMillis();
     }
 
@@ -229,7 +231,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 						stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteTime.getWallClockTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteTime.getCpuTime());
-						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteTime.getUserTime());
+						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
 				}
 		}
 
@@ -242,7 +244,13 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             reduceScan.setFilter(new SuccessFilter(failedTasks));
         }
         if (top != this && top instanceof SinkingOperation) {
+						//don't serialize the underlying operations, since we're just reading from TEMP anyway
+						serializeLeftResultSet = false;
+						serializeRightResultSet = false;
             SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
+						//reset the fields just in case
+						serializeLeftResultSet =true;
+						serializeRightResultSet=true;
             return new DistributedClientScanProvider("mergeSortJoin", SpliceOperationCoprocessor.TEMP_TABLE, reduceScan, decoder, spliceRuntimeContext);
         } else {
             //we need to scan the data directly on the client
@@ -342,10 +350,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         SpliceLogUtils.trace(LOG, "getExecRowDefinition");
-        if (mergedRow == null)
-            mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-        JoinUtils.getMergedRow((this.leftResultSet).getExecRowDefinition(), (this.rightResultSet).getExecRowDefinition(),
-                wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+				if (mergedRow == null){
+						leftRow = (this.leftResultSet).getExecRowDefinition();
+						rightRow = (this.rightResultSet).getExecRowDefinition();
+						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+						JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
+				}
         return mergedRow;
     }
 

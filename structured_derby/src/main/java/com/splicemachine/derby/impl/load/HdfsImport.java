@@ -405,6 +405,11 @@ public class HdfsImport extends ParallelVTI {
 		@Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
 		@Override public void setCurrentRowLocation(RowLocation rowLocation) { }
 
+		@Override
+		public String getName() {
+				return "Import("+context.getFilePath().toString()+"->"+context.getTableName()+")";
+		}
+
 		/************************************************************************************************************/
 	/*private helper functions*/
 

@@ -523,6 +523,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				currentRowLocation = rowLocation;
 		}
 
+		@Override
+		public String getName() {
+				return this.getClass().getSimpleName().replaceAll("Operation","");
+		}
+
 		public int getResultSetNumber() {
 				return resultSetNumber;
 		}
