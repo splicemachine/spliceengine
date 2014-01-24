@@ -67,6 +67,12 @@ public class XPLAINTaskDescriptor {
 				return queryBuilder.toString();
 		}
 
+		public static final String getOperationDetailView(String schemaName){
+				//TODO -sf- generalize
+				String opHistoryView = "create view "+schemaName+".SYSXPLAIN_OPERATION_DETAIL as "+ SYSXPLAIN_OPERATION_DETAIL_BASE_SQL+"from "+ schemaName+".SYSXPLAIN_OPERATIONHISTORY oh,"+schemaName+".SYSXPLAIN_TASKHISTORY th "+SYSXPLAIN_OPERATION_DETAIL_POSTFIX;
+				return opHistoryView;
+		}
+
 		protected SystemColumn[] buildColumnList() {
 				OperationMetric[] metrics = OperationMetric.values();
 				Arrays.sort(metrics, new Comparator<OperationMetric>() {
@@ -92,4 +98,60 @@ public class XPLAINTaskDescriptor {
 		public static void main(String... args) throws Exception{
 				System.out.println(new XPLAINTaskDescriptor().getTableDDL("APP"));
 		}
+
+		private static final String SYSXPLAIN_OPERATION_DETAIL_BASE_SQL =
+						"select" +
+										"	oh.statementId," +
+										"	oh.operationId," +
+										"	oh.operation_type," +
+										"	oh.jobcount," +
+										"	oh.taskcount," +
+										"	oh.failedtaskcount," +
+										"	count(distinct th.region) as REGIONCOUNT," +
+										"	count(distinct th.host) as NUM_REGIONSERVERS," +
+										"	sum(th.totalwalltime)/cast(1000000000 as double) as TOTALWALLTIME_S," +
+										"	sum(th.totalcputime)/cast(1000000000 as double) as TOTALCPUTIME_S," +
+										"	sum(th.totalusertime)/cast(1000000000 as double) as TOTALUSERTIME_S," +
+										"	sum(th.localscanrows) as TOTAL_LOCAL_SCAN_ROWS," +
+										"	sum(th.localscanbytes) as TOTAL_LOCAL_SCAN_BYTES," +
+										"	sum(th.localscanwalltime)/cast(1000000000 as double) as LOCAL_SCAN_WALL_TIME_S," +
+										"	sum(th.localscancputime)/cast(1000000000 as double) as LOCAL_SCAN_CPU_TIME_S," +
+										"	sum(th.localscanusertime)/cast(1000000000 as double) as LOCAL_SCAN_USER_TIME_S," +
+										"	sum((th.localscancputime-th.localscanusertime))/cast(1000*1000*1000 as double) as LOCAL_SCAN_SYSTEM_TIME_S," +
+										"	sum(th.remotescanrows) as TOTAL_REMOTE_SCAN_ROWS," +
+										"	sum(th.remotescanbytes) as TOTAL_REMOTE_SCAN_BYTES," +
+										"	sum(th.remotescanwalltime)/cast(1000000000 as double) as REMOTE_SCAN_WALL_TIME_S," +
+										"	sum(th.remotescancputime)/cast(1000000000 as double) as REMOTE_SCAN_CPU_TIME_S," +
+										"	sum(th.remotescanusertime)/cast(1000000000 as double) as REMOTE_SCAN_USER_TIME_S," +
+										"	sum((th.remotescancputime-th.remotescanusertime))/cast(1000*1000*1000 as double) as REMOTE_SCAN_SYSTEM_TIME_S," +
+										"	sum(th.remotegetrows) as TOTAL_REMOTE_GET_ROWS," +
+										"	sum(th.remotegetbytes) as TOTAL_REMOTE_GET_BYTES," +
+										"	sum(th.remotegetwalltime)/cast(1000000000 as double) as REMOTE_GET_WALL_TIME_S," +
+										"	sum(th.remotegetcputime)/cast(1000000000 as double) as REMOTE_GET_CPU_TIME_S," +
+										"	sum(th.remotegetusertime)/cast(1000000000 as double) as REMOTE_GET_USER_TIME_S," +
+										"	sum((th.remotegetcputime-th.remotegetusertime))/cast(1000*1000*1000 as double) as REMOTE_GET_SYSTEM_TIME_S," +
+										"	sum(th.writerows) as TOTAL_ROWS_WRITTEN," +
+										"	sum(th.writebytes) as TOTAL_BYTES_WRITTEN," +
+										"	sum(th.writewalltime)/cast(1000000000 as double) as WRITE_WALL_TIME_S," +
+										"	sum(th.writecputime)/cast(1000000000 as double) as WRITE_CPU_TIME_S," +
+										"	sum(th.writeusertime)/cast(1000000000 as double) as WRITE_USER_TIME_S," +
+										"	sum((th.writecputime-th.writeusertime))/cast(1000*1000*1000 as double) as WRITE_SYSTEM_TIME_S," +
+										"	sum(th.filteredrows) as ROWS_FILTERED," +
+										"	sum(th.taskqueuewaitwalltime)/cast(1000000000 as double) as TOTAL_QUEUE_TIME_S," +
+										"	max(th.buffer_fillratio) as MAX_BUFFER_FILL_RATIO," +
+										"	min(th.buffer_fillratio) as MIN_BUFFER_FILL_RATIO," +
+										"	avg(th.buffer_fillratio) as AVG_BUFFER_FILL_RATIO ";
+//										"from " +
+//										"	?.SYSXPLAIN_OPERATIONHISTORY oh," +
+//										"	?.SYSXPLAIN_TASKHISTORY th " +
+						private static final String SYSXPLAIN_OPERATION_DETAIL_POSTFIX=
+										"where " +
+										"	oh.operationId = th.operationId " +
+										"group by " +
+										"	oh.statementId," +
+										"	oh.operationid," +
+										"	oh.operation_type," +
+										"	oh.jobcount," +
+										"	oh.taskcount," +
+										"	oh.failedtaskcount";
 }
