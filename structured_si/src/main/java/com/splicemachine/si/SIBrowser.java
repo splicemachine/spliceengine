@@ -25,7 +25,16 @@ import java.util.NavigableMap;
 import java.util.Set;
 
 public class SIBrowser extends SIConstants {
+
+    /**
+     * Print a raft of txn shit, possibly filtering certain statuses.
+     * @param args Currently, the only acceptable argument is a txn status filter combo:
+     *             "-f <i>status</i>", where <i>status</i> is one of {@link com.splicemachine.si.api.TransactionStatus#}.
+     *             This is most helpful to filter COMMITTED txns, cause there's a lot.
+     * @throws IOException
+     */
     public static void main(String[] args) throws IOException {
+        String filter = getArg("-f", true, args);
         HTable transactionTable = null;
         try {
             transactionTable = new HTable(HBaseConfiguration.create(), TRANSACTION_TABLE);
@@ -60,6 +69,10 @@ public class SIBrowser extends SIConstants {
                 Set<String> forbidden = new HashSet<String>();
                 readPermissions(r, permissions, forbidden);
 
+                if (filter != null && filter.equalsIgnoreCase(status.name())) {
+                    // filter statuses we don't care about
+                    continue;
+                }
                 x.put(id, new Object[]{beginTimestamp, parent, writes, startTimestamp, status, statusTimestamp,
                         commitTimestamp, globalCommit, keepAliveValue, dependent, additive, readUncommitted, readCommitted, counter,
                         rowKey, setToString(permissions), setToString(forbidden)});
@@ -98,6 +111,22 @@ public class SIBrowser extends SIConstants {
             Closeables.closeQuietly(transactionTable);
 
         }
+    }
+
+    private static String getArg(String s, boolean requiresArg, String[] args) {
+        String arg = null;
+        if (s !=null && ! s.isEmpty() && args != null && args.length > 0) {
+            for (int i=0; i<args.length; i++) {
+                if (s.equalsIgnoreCase(args[i])) {
+                    if (requiresArg && args.length > i) {
+                        arg = args[++i];
+                    } else {
+                        arg = args[i];
+                    }
+                }
+            }
+        }
+        return arg;
     }
 
     private static void readPermissions(Result r, Set<String> permissions, Set<String> forbidden) {
