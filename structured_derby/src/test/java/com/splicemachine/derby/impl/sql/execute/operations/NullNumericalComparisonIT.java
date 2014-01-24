@@ -3,8 +3,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -170,5 +173,50 @@ public class NullNumericalComparisonIT {
                 empHourTable.toString());
         helpTestQuery(query,0);
 
+    }
+
+    /**
+     * Test for bug DB-551 - order by changes the values of null fields for most data types.
+     * Was:
+     *
+     * splice> select * from tbl order by 1,2,3,4,5,6;
+     * I |D |DA |T |TP |VC
+     * -----------------------------------------------------------------------------------------------
+     * 0 |0.0 |1969-12-31|16:00:00|1969-12-31 16:00:00.0 |NULL
+     * 1 row selected
+     *
+     * Where expected behavior is that all returned cols should be NULL
+     * @throws Exception
+     */
+    @Test
+    public void testSelectNullsWithOrderBy() throws Exception {
+        String TABLE_NAME = "tbl";
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
+                        "(i int, d double, da date, t time, tp timestamp, vc varchar(10))");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testSelectNullsWithOrderBy"));
+        Connection connection = methodWatcher.getOrCreateConnection();
+        Statement statement = connection.createStatement();
+
+        // insert nulls
+        statement.execute(String.format("insert into %s.%s values (null,null,null,null,null,null)", CLASS_NAME, TABLE_NAME));
+        connection.commit();
+
+        ResultSet rs = methodWatcher.getOrCreateConnection().createStatement().executeQuery(
+                        String.format("select * from %s.%s", CLASS_NAME, TABLE_NAME));
+        Assert.assertTrue(rs.next());
+        ResultSetMetaData meta = rs.getMetaData();
+        for (int i=1; i<=meta.getColumnCount(); i++) {
+            Assert.assertNull(rs.getObject(i));
+        }
+
+        rs = methodWatcher.getOrCreateConnection().createStatement().executeQuery(
+                        String.format("select * from %s.%s order by 1,2,3,4,5,6", CLASS_NAME, TABLE_NAME));
+        Assert.assertTrue(rs.next());
+        meta = rs.getMetaData();
+        for (int i=1; i<=meta.getColumnCount(); i++) {
+            Assert.assertNull(rs.getObject(i));
+        }
     }
 }
