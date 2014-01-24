@@ -7,10 +7,7 @@ import org.apache.derby.iapi.util.IdUtil;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 /**
  * @author Scott Fines
@@ -44,6 +41,8 @@ public class SpliceXplainUtils {
 								new XPLAINOperationHistoryDescriptor());
 				createXplainTable(schemaName,
 								new XPLAINTaskDescriptor());
+
+				createXplainView(schemaName, "SYSXPLAIN_OPERATION_DETAILS", XPLAINTaskDescriptor.getOperationDetailView(schemaName));
 				lcc.setRunTimeStatisticsMode(statsSave);
 				lcc.setXplainSchema(schemaName);
 		}
@@ -70,6 +69,7 @@ public class SpliceXplainUtils {
 						Statement s = conn.createStatement();
 						s.executeUpdate("CREATE SCHEMA " + escapedSchema);
 						s.close();
+						conn.commit();
 				}
 				conn.close();
 		}
@@ -82,7 +82,27 @@ public class SpliceXplainUtils {
 						Statement s = conn.createStatement();
 						s.executeUpdate(ddl);
 						s.close();
+						conn.commit();
 				}
+				conn.close();
+		}
+
+		private static void createXplainView(String schemaName,String viewName, String viewSQL) throws SQLException{
+				Connection conn = getDefaultConn();
+				if(!hasView(conn, schemaName, viewName)){
+						Statement s = conn.createStatement();
+						s.executeUpdate(viewSQL);
+						s.close();
+						conn.commit();
+				}
+				conn.close();
+		}
+
+		private static boolean hasView(Connection conn, String schemaName, String viewName) throws SQLException{
+				ResultSet rs = conn.getMetaData().getTables(null, schemaName, viewName,  new String[] {"VIEW"});
+				boolean tableFound = rs.next();
+				rs.close();
+				return tableFound;
 		}
 
 		/**
@@ -103,4 +123,6 @@ public class SpliceXplainUtils {
 				}
 				throw Util.noCurrentConnection();
 		}
+
+
 }
