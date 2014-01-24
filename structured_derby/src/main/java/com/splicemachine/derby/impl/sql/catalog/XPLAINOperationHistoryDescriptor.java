@@ -30,8 +30,9 @@ public class XPLAINOperationHistoryDescriptor extends XPLAINTaskDescriptor{
 								SystemColumnImpl.getColumn("PARENT_OPERATION_ID",Types.BIGINT,true),
 								SystemColumnImpl.getColumn("IS_RIGHT_CHILD_OP",Types.BOOLEAN,false),
 								SystemColumnImpl.getColumn("IS_SINK",Types.BOOLEAN,false),
-								SystemColumnImpl.getColumn("TOTALJOBCOUNT",Types.INTEGER,true),
-								SystemColumnImpl.getColumn("TOTALREGIONS",Types.INTEGER,true),
+								SystemColumnImpl.getColumn("JOBCOUNT",Types.INTEGER,true),
+								SystemColumnImpl.getColumn("TASKCOUNT",Types.INTEGER,true),
+								SystemColumnImpl.getColumn("FAILEDTASKCOUNT",Types.INTEGER,true),
 				};
 		}
 

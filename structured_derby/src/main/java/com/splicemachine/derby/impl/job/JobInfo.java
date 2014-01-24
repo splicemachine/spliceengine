@@ -106,7 +106,7 @@ public class JobInfo implements JobFuture.StatusHook {
 
 		@Override
 		public void invalidated(byte[] taskId) {
-			//no-op
+				tasksFailed.incrementAndGet();
 		}
 
 		public void failJob(){

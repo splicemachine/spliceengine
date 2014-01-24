@@ -32,12 +32,12 @@ public class XplainTaskReporter extends XplainReporter<OperationRuntimeStats>{
 												return o1.getPosition()-o2.getPosition();
 										}
 								});
-								int totalLength = metrics.length + 5;
+								int totalLength = metrics.length + 6;
 								BitSet fields = new BitSet(totalLength);
 								fields.set(0, totalLength);
 								BitSet scalarFields = new BitSet(totalLength);
 								scalarFields.set(0, 3);
-								scalarFields.set(4, totalLength-1);
+								scalarFields.set(5, totalLength-1);
 								BitSet floatFields = new BitSet(0);
 								BitSet doubleFields = new BitSet(totalLength);
 								doubleFields.set(totalLength-1);

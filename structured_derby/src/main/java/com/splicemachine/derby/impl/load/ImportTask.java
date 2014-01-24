@@ -75,6 +75,7 @@ public class ImportTask extends ZkTask{
 				this.importer = importer;
 		}
 
+
 		@Override
 		public void doExecute() throws ExecutionException, InterruptedException {
 				try{
@@ -113,7 +114,7 @@ public class ImportTask extends ZkTask{
 
 										if(importContext.shouldRecordStats()){
 												OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
-																Bytes.toLong(getTaskId()),12);
+																Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
 
 												runtimeStats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
 												runtimeStats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTime);
