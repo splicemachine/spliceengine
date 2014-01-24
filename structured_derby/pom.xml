@@ -243,7 +243,8 @@
                                         <exec executable="${run.command}" dir="${basedir}" spawn="false">
                                             <arg value="${basedir}/../${splice.start.script}" />
                                             <arg value="${failTasksRandomly}" />
-                                            <arg value="${envClassifier}" />
+                                            <arg value="-p ${envClassifier}" />
+                                            <arg value="-b ${build.tag}" />
                                         </exec>
                                     </target>
                                 </configuration>
