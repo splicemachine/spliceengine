@@ -24,9 +24,8 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  *         Date: 6/10/13
  */
-@Ignore
-public class ConstraintConstantOperationTest {
-    private static final String CLASS_NAME = ConstraintConstantOperationTest.class.getSimpleName().toUpperCase();
+public class ConstraintConstantOperationIT {
+    private static final String CLASS_NAME = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
