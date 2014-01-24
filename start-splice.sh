@@ -10,46 +10,59 @@ usage() {
     if [[ -n "${1}" ]]; then
         echo "Error: ${1}"
     fi
-    echo "Usage: $0 [true|false] [<hbase_profile>] -h[elp]"
+    echo "Usage: $0 -c -p [<hbase_profile>] -h[elp]"
     echo "Where: "
-    echo "  true|false is an optional flag determining random task failures. Default is false."
-    echo "  <hbase_profile> is the optional splice hbase platform to run.  One of:"
+    echo "  -c is an optional flag determining random task failures. Default is that the chaos"
+    echo "    monkey NOT run. To see if you have the chaos monkey running, execute: "
+    echo "        grep 'task fail' structured_derby/splice.log"
+    echo "  -p <hbase_profile> is the optional splice hbase platform to run.  One of:"
     echo "    cloudera-cdh4.3.0, hdp1.3, apache-hbase-0.94.5, mapr-0.94.5. Default is cloudera-cdh4.3.0."
+    echo "  -b Used by Jenkins when starting server; ${env.BUILD_TAG}, eg \"jenkins-Splice-Continuous-Build-325\""
     echo "  -h => print this message"
 }
 
-if [[ ${1} == -h* ]]; then
-    usage
-    exit 0 # This is not an error, User asked help. Don't do "exit 1"
-fi
+CHAOS="FALSE"
+PROFILE="cloudera-cdh4.3.0"
+BUILD_TAG=""
+
+while getopts ":chp:b:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        c)
+        # start server with the chaos monkey (random task failures)
+            CHAOS="TRUE"
+        ;;
+        p)
+        # the hbase profile
+            PROFILE=$(echo "$OPTARG" | tr -d [[:space:]])
+        ;;
+        b)
+        # Jenkins build tag
+            BUILD_TAG=$(echo "$OPTARG" | tr -d [[:space:]])
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
+
+echo "Runing with profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
 ROOT_DIR="$( pwd )"
 
-CHAOS=${1}
-shopt -s nocasematch
-if [[ -z "${CHAOS}" || "${CHAOS}" != "true" ]]; then
-    # default is NOT to run chaos monkey
-    CHAOS="FALSE"
-else
-    CHAOS="TRUE"
-fi
-shopt -u nocasematch
-
-PROFILE=${2}
-if [[ -z "${PROFILE}" ]]; then
-    # default profile
-    PROFILE="cloudera-cdh4.3.0"
-fi
-
 SPLICE_VERSION=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep -Ev '(^\[|INFO|Download)' | tr -d [[:space:]])
 TARBALL="${ROOT_DIR}"/target/splice_machine-${SPLICE_VERSION}-${PROFILE}_simple.tar.gz
 if [[ ! -e ${TARBALL} ]]; then
-    # maven assembly is required for server dependencies and executable start/stop scripts
-    # it's not present. Attempt to build assembly (only if it's not already built).
+    # Maven assembly is required for server dependencies and executable start/stop scripts.
+    # It's not present. Attempt to build assembly (only if it's not already built).
     echo "Required assembly, ${TARBALL}, not found. Running maven assembly."
-    mvn assembly:assembly -DskipTests &>/dev/null
+    mvn assembly:assembly -DskipTests -P${PROFILE} &>/dev/null
 fi
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
@@ -57,7 +70,7 @@ if [[ ! -e ${TARBALL} ]]; then
     exit 1
 fi
 
-# Extract package libs for classpath and bin scripts to call for start/stop
+# Extract package libs for sever classpath and bin scripts to call for start/stop
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/lib &>/dev/null
 tar xvf ${TARBALL} -C "${ROOT_DIR}"/target splicemachine/bin &>/dev/null
 
@@ -79,7 +92,7 @@ if [[ -n ${S} || -n ${Z} ]]; then
 fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
-echo "=== Running profile ${PROFILE} at $currentDateTime === " > ${SPLICELOG}
+echo "=== Running profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
 
 export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
