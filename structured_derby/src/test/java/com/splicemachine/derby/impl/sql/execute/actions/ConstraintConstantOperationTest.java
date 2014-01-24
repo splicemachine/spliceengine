@@ -2,15 +2,21 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-
+import com.splicemachine.homeless.TestUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 /**
  * Test constraints.
@@ -199,6 +205,34 @@ public class ConstraintConstantOperationTest {
         Assert.assertTrue("Connection should see its own writes",resultSet.next());
 
         connection.commit();
+    }
+
+    /**
+     * Bug DB-966 - creating table with unique constraint gives java.util.UnknownFormatConversionException
+     * @throws Exception
+     */
+    @Test
+    public void testCreateTableUniqueConstraint() throws Exception {
+        String TABLE_NAME = "t1";
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
+                        "(id int not null, name varchar(128) not null, constraint uq_t1 unique(id))");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateTableUniqueConstraint"));
+        Connection connection = methodWatcher.getOrCreateConnection();
+        Statement statement = connection.createStatement();
+
+        // insert good data
+        for (int i=1; i<20; i++) {
+        statement.execute(String.format("insert into %s.%s values (%d,'%s')", CLASS_NAME, TABLE_NAME, i, "jeff"));
+        }
+        connection.commit();
+
+        ResultSet rs =
+                methodWatcher.getOrCreateConnection().createStatement().executeQuery(
+                        String.format("select * from %s.%s", CLASS_NAME, TABLE_NAME));
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        System.out.println(fr.toString());
     }
 
     /**
