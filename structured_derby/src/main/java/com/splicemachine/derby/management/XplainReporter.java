@@ -23,6 +23,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.concurrent.*;
 
 /**
@@ -50,7 +51,7 @@ public abstract class XplainReporter<T> {
 						throw new RuntimeException(e); //TODO -sf- do something about this
 				}
 				bufferCache = CacheBuilder.newBuilder()
-								.expireAfterAccess(120l, TimeUnit.SECONDS)
+								.expireAfterWrite(120l, TimeUnit.SECONDS)
 								.maximumSize(100)
 								.removalListener(new RemovalListener<String, CallBuffer<KVPair>>() {
 										@Override
@@ -185,13 +186,28 @@ public abstract class XplainReporter<T> {
 										if(next==null){
 												cleanUpCache();
 										}else{
-												try {
-														CallBuffer<KVPair> buffer = bufferCache.get(next.getFirst());
+												CallBuffer<KVPair> buffer = null;
+												for(int i=0;i<5;i++){
+														try {
+																buffer = bufferCache.get(next.getFirst());
+														}catch (Exception e) {
+																if(LOG.isDebugEnabled())
+																		LOG.debug("Error reporting data", e);
+																bufferCache.invalidate(next.getFirst());
+														}
+												}
+												if(buffer==null){
+														LOG.warn("Unable to obtain a buffer for "+XplainReporter.this.getClass().getSimpleName()+":"+next.getFirst()+", will not be able to report metrics");
+														continue;
+												}
+
+												try{
 														keyHash.setRow(next.getSecond());
 														dataHash.setRow(next.getSecond());
 														buffer.add(new KVPair(keyHash.encode(),dataHash.encode()));
 												}catch (Exception e) {
-														LOG.info("Error reporting data", e);
+														LOG.info("Unable to report information ");
+														bufferCache.invalidate(next.getFirst());
 												}
 										}
 								} catch (InterruptedException e) {
@@ -204,12 +220,13 @@ public abstract class XplainReporter<T> {
 				protected void cleanUpCache() {
 						//nothing happened in the last few seconds, so cleanup the cache
 						bufferCache.cleanUp();
-						for(CallBuffer<KVPair> buffer:bufferCache.asMap().values()){
+						for(Map.Entry<String,CallBuffer<KVPair>> bufferEntry: bufferCache.asMap().entrySet()){
 								try{
 										//TODO -sf- remove buffers that have been inactive for too long
-										buffer.flushBuffer();
+										bufferEntry.getValue().flushBuffer();
 								}catch(Exception e){
 										LOG.info("Error attempting to report data",e);
+										bufferCache.invalidate(bufferEntry.getKey());
 								}
 						}
 				}
