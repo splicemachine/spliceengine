@@ -9,7 +9,6 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -31,12 +30,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class RowOperation extends SpliceBaseOperation {
     private static final long serialVersionUID = 2l;
-	private static Logger LOG = Logger.getLogger(RowOperation.class);
-	protected int rowsReturned;
-	protected boolean canCacheRow;
-	protected boolean next = false;
-	protected SpliceMethod<ExecRow> row;
-	protected ExecRow		cachedRow;
+    private static Logger LOG = Logger.getLogger(RowOperation.class);
+    protected int rowsReturned;
+    protected boolean canCacheRow;
+    protected boolean next = false;
+    protected SpliceMethod<ExecRow> row;
+    protected ExecRow cachedRow;
+    private ExecRow rowDefinition;
     private String rowMethodName; //name of the row method for
 
 	/**
@@ -79,9 +79,9 @@ public class RowOperation extends SpliceBaseOperation {
     public void init(SpliceOperationContext context) throws StandardException {
         super.init(context);
         next = false;
-        if(row==null && rowMethodName!=null){
-            if(rowMethodName!=null)
-                    this.row = new SpliceMethod<ExecRow>(rowMethodName,activation);
+        if (row == null && rowMethodName != null) {
+            if (rowMethodName != null)
+                this.row = new SpliceMethod<ExecRow>(rowMethodName, activation);
         }
     }
 
@@ -128,6 +128,7 @@ public class RowOperation extends SpliceBaseOperation {
 			rowsReturned++;
 		}
 		setCurrentRow(currentRow);
+        LOG.error(String.format("Row returned for RSN %s: %s", resultSetNumber, currentRow));
 		return currentRow;
 	}
 
@@ -216,9 +217,11 @@ public class RowOperation extends SpliceBaseOperation {
 
 	@Override
     public ExecRow getExecRowDefinition() throws StandardException {
-        ExecRow row = getRow();
-        SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
-        return row;
+        if (rowDefinition == null){
+            rowDefinition = getRow().getClone();
+            SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
+        }
+        return rowDefinition;
 	}
 	
 	public int getRowsReturned() {
