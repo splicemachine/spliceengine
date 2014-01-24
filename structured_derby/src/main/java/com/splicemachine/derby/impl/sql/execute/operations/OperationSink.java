@@ -17,9 +17,9 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
-import com.splicemachine.stats.Timers;
 import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -61,7 +61,7 @@ public class OperationSink {
         this.operation = operation;
         this.transactionId = transactionId;
 				//we always record this time information, because it's cheap relative to the per-row timing
-				this.totalTimer = Timers.newTimer();
+				this.totalTimer = Metrics.newTimer();
 				this.statementId = statementId;
 				this.waitTimeNs = waitTimeNs;
     }

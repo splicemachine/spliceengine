@@ -65,7 +65,7 @@ public class ClientResultScanner implements SpliceResultScanner{
 		@Override public long getRemoteBytesRead() { return remoteBytesRead.getTotal(); }
 		@Override public long getRemoteRowsRead() { return remoteReadTimer.getNumEvents(); }
 
-		@Override public TimeView getLocalReadTime() { return Timers.noOpTimeView(); }
+		@Override public TimeView getLocalReadTime() { return Metrics.noOpTimeView(); }
 		@Override public long getLocalBytesRead() { return 0l; }
 		@Override public long getLocalRowsRead() { return 0; }
 

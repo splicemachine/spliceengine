@@ -89,9 +89,9 @@ class IndexRowReader {
 
         this.predicateFilterBytes = predicateFilterBytes;
 				if(runtimeContext.shouldRecordTraceMetrics()){
-						metricFactory = Stats.atomicTimer();
+						metricFactory = Metrics.atomicTimer();
 				}else
-						metricFactory = Stats.noOpMetricFactory();
+						metricFactory = Metrics.noOpMetricFactory();
     }
 
     IndexRowReader(ExecutorService lookupService,
@@ -188,7 +188,7 @@ class IndexRowReader {
 		public TimeView getTimeInfo(){
 				if(metricFactory instanceof AtomicTimer)
 						return ((AtomicTimer)metricFactory).getTimeView();
-				return Timers.noOpTimeView();
+				return Metrics.noOpTimeView();
 		}
 
 		public long getBytesFetched(){

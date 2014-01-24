@@ -99,7 +99,7 @@ public class BlockImportJobTest {
         when(fs.getFileStatus(context.getFilePath())).thenReturn(testStatus);
         when(fs.getFileBlockLocations(any(FileStatus.class),any(Long.class),any(Long.class))).thenReturn(blocks);
 
-        BlockImportJob job = new BlockImportJob(table,context,fs);
+        BlockImportJob job = new BlockImportJob(table,context,-1l,-1l,fs);
 
         Map<? extends RegionTask,Pair<byte[],byte[]>> tasks = job.getTasks();
         /*

@@ -4,7 +4,7 @@ import com.splicemachine.stats.util.LongLongFolder;
 
 /**
  * @author Scott Fines
- *         Date: 1/24/14
+ * Date: 1/24/14
  */
 public class MultiTimeView implements TimeView {
 		private long totalWallTime;

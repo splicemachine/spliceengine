@@ -19,7 +19,7 @@ public class BlockImportReaderTest {
 				long offset = 123456l;
 				long length = 123454l;
 				BlockLocation location = new BlockLocation(names, hosts, offset, length);
-				BlockImportReader reader = new BlockImportReader(location);
+				BlockImportReader reader = new BlockImportReader(location,false);
 
 				ByteDataOutput bdo = new ByteDataOutput();
 				reader.writeExternal(bdo);

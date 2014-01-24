@@ -31,7 +31,7 @@ public class AtomicTimer implements MetricFactory{
 				this.totalWallTime = new AtomicLong(0l);
 				this.totalEvents = new AtomicLong(0l);
 				this.totalCountEvents = new AtomicLong(0l);
-				if(Timers.supportsCPUTime){
+				if(Metrics.supportsCPUTime){
 						totalCpuTime = new AtomicLong(0l);
 						totalUserTime = new AtomicLong(0l);
 						view = new TimeView() {
@@ -57,17 +57,17 @@ public class AtomicTimer implements MetricFactory{
 		public Timer newTimer(){
 				TimeMeasure wallMeasure = new UpdatingWallTimeMeasure();
 				TimeMeasure cpuMeasure,userMeasure;
-				if(Timers.supportsCPUTime){
+				if(Metrics.supportsCPUTime){
 						cpuMeasure = new UpdatingCpuTimeMeasure();
 						userMeasure = new UpdatingUserTimeMeasure();
 				}else{
-						cpuMeasure = userMeasure = Timers.noOpTimeMeasure();
+						cpuMeasure = userMeasure = Metrics.noOpTimeMeasure();
 				}
 				return new UpdatingTimer(wallMeasure,cpuMeasure,userMeasure);
 		}
 
-		@Override public Gauge newMaxGauge() { return Gauges.noOpGauge(); }
-		@Override public Gauge newMinGauge() { return Gauges.noOpGauge(); }
+		@Override public Gauge newMaxGauge() { return Metrics.noOpGauge(); }
+		@Override public Gauge newMinGauge() { return Metrics.noOpGauge(); }
 
 		public long getTotalEvents(){ return totalEvents.get();}
 		public TimeView getTimeView(){ return view; }
@@ -92,11 +92,11 @@ public class AtomicTimer implements MetricFactory{
 				@Override protected void update(long time) { totalWallTime.addAndGet(time); }
 		}
 		private class UpdatingCpuTimeMeasure extends BaseUpdatingTimeMeasure{
-				@Override protected long getTimestamp() { return Timers.threadMXBean.getCurrentThreadCpuTime(); }
+				@Override protected long getTimestamp() { return Metrics.threadMXBean.getCurrentThreadCpuTime(); }
 				@Override protected void update(long time) { totalCpuTime.addAndGet(time); }
 		}
 		private class UpdatingUserTimeMeasure extends BaseUpdatingTimeMeasure{
-				@Override protected long getTimestamp() { return Timers.threadMXBean.getCurrentThreadUserTime(); }
+				@Override protected long getTimestamp() { return Metrics.threadMXBean.getCurrentThreadUserTime(); }
 				@Override protected void update(long time) { totalUserTime.addAndGet(time); }
 		}
 

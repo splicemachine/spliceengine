@@ -65,6 +65,11 @@ public class ParallelImporter implements Importer{
 
         processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxImportReadBufferSize);
 
+				if(importCtx.shouldRecordStats()){
+						metricFactory = Metrics.basicMetricFactory();
+				}else
+						metricFactory = Metrics.noOpMetricFactory();
+
         String tableName = importContext.getTableName();
         futures = Lists.newArrayList();
         for(int i=0;i<numProcessingThreads;i++){
@@ -72,10 +77,6 @@ public class ParallelImporter implements Importer{
             futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest)));
         }
 
-				if(importCtx.shouldRecordStats()){
-						metricFactory = Stats.basicMetricFactory();
-				}else
-						metricFactory = Stats.noOpMetricFactory();
     }
     
     @Override
@@ -122,7 +123,7 @@ public class ParallelImporter implements Importer{
     }
 
 		public IOStats getStats(){
-				if(stats==null) return Stats.noOpIOStats();
+				if(stats==null) return Metrics.noOpIOStats();
 
 				MultiTimeView timeView = new MultiTimeView(
 								FolderUtils.maxLongFolder(),FolderUtils.sumFolder(),FolderUtils.sumFolder(),

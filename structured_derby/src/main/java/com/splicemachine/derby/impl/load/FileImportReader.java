@@ -33,7 +33,7 @@ public class FileImportReader implements ImportReader{
         stream = codec!=null? codec.createInputStream(fileSystem.open(path)):fileSystem.open(path);
 
         reader = new MeasuredReader(new InputStreamReader(stream));
-				timer = ctx.shouldRecordStats() ? Timers.newTimer() : Timers.noOpTimer();
+				timer = ctx.shouldRecordStats() ? Metrics.newTimer() : Metrics.noOpTimer();
         csvReader = getCsvReader(reader,ctx);
 		}
 
@@ -55,7 +55,7 @@ public class FileImportReader implements ImportReader{
 		@Override
 		public IOStats getStats() {
 				//if we didn't read any rows, then we probably didn't record any metrics
-				if(timer.getNumEvents()==0) return Stats.noOpIOStats();
+				if(timer.getNumEvents()==0) return Metrics.noOpIOStats();
 
 				return new BaseIOStats(timer.getTime(),reader.getCharsRead(),timer.getNumEvents());
 		}

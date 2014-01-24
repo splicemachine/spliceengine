@@ -158,26 +158,26 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		@Override
 		public Timer newTimer(){
-				if(!recordTraceMetrics) return Timers.noOpTimer();
-				return Timers.newTimer();
+				if(!recordTraceMetrics) return Metrics.noOpTimer();
+				return Metrics.newTimer();
 		}
 
 		@Override
 		public Gauge newMaxGauge() {
-				if(!recordTraceMetrics) return Gauges.noOpGauge();
-				return Gauges.maxGauge();
+				if(!recordTraceMetrics) return Metrics.noOpGauge();
+				return Metrics.maxGauge();
 		}
 
 		@Override
 		public Gauge newMinGauge() {
-				if(!recordTraceMetrics) return Gauges.noOpGauge();
-				return Gauges.minGauge();
+				if(!recordTraceMetrics) return Metrics.noOpGauge();
+				return Metrics.minGauge();
 		}
 
 		@Override
 		public Counter newCounter(){
-				if(!recordTraceMetrics) return Counters.noOpCounter();
-				return Counters.basicCounter();
+				if(!recordTraceMetrics) return Metrics.noOpCounter();
+				return Metrics.basicCounter();
 		}
 
 		public void addScanStartOverride(Row startKey){
