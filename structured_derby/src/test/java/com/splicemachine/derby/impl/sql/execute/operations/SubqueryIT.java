@@ -100,7 +100,13 @@ public class SubqueryIT {
             .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
                     "create table s (a int, b int, c int, d int, e int, f int);" +
                     "insert into s values (0,1,2,3,4,5);" +
-                    "insert into s values (10,11,12,13,14,15);", CLASS_NAME));
+                    "insert into s values (10,11,12,13,14,15);", CLASS_NAME))
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table tWithNulls1 (c1 int, c2 int); \n" +
+                    "create table tWithNulls2 (c1 int, c2 int); \n" +
+                    "insert into tWithNulls1 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); \n" +
+                    "insert into tWithNulls2 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); "
+                    , CLASS_NAME));
 
     @Rule public SpliceWatcher methodWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
 
@@ -341,6 +347,20 @@ public class SubqueryIT {
 
         Assert.assertArrayEquals(expected.toArray(),
                 TestUtils.resultSetToArrays(rs).toArray());
+    }
+
+    @Test
+    // test for JIRA 960
+    public void testMaterializationOfSubquery() throws Exception {
+        List<Object[]> expected = Arrays.asList(o(3), o(10));
+
+        ResultSet rs = methodWatcher.executeQuery(
+                "select c1 from tWithNulls1 where c1 in (select max(c1) from tWithNulls2 group by c2)" +
+                        " order by c1");
+
+        List<Object[]> actual = TestUtils.resultSetToArrays(rs);
+
+        Assert.assertArrayEquals(expected.toArray(), actual.toArray());
     }
 
 
