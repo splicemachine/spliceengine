@@ -27,7 +27,12 @@ public interface SpliceOperation  {
 
     void setCurrentRowLocation(RowLocation rowLocation);
 
-    /**
+		/**
+		 * @return a descriptive name for this operation. Used for reporting information.
+		 */
+		String getName();
+
+		/**
 	 * 
 	 * Enumeration with the following types:
 	 * 

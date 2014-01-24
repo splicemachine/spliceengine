@@ -446,4 +446,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 								.append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
 								.toString();
 		}
+
+		@Override
+		public String getName() {
+				return super.getName()+"(baseTable="+indexName+")";
+		}
 }
