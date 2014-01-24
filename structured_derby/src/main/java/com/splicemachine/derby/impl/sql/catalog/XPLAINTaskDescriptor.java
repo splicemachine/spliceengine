@@ -19,7 +19,6 @@ public class XPLAINTaskDescriptor {
 		private static final String TASKID_NAME = "TASKID";
 		private static final String OPERATIONID_NAME = "OPERATIONID";
 		private static final String STATEMENTID_NAME = "STATEMENTID";
-		private static final String JOBID_NAME = "JOBID" ;
 
 		public String getTableName() {
 				return TABLE_NAME;
@@ -76,16 +75,17 @@ public class XPLAINTaskDescriptor {
 								return o1.getPosition()-o2.getPosition();
 						}
 				});
-				SystemColumn[] columns = new SystemColumn[metrics.length+5];
+				SystemColumn[] columns = new SystemColumn[metrics.length+6];
 				columns[0] = SystemColumnImpl.getColumn("STATEMENTID",Types.BIGINT,false);
 				columns[1] = SystemColumnImpl.getColumn("OPERATIONID",Types.BIGINT,false);
 				columns[2] = SystemColumnImpl.getColumn("TASKID",Types.BIGINT,false);
 				columns[3] = SystemColumnImpl.getColumn("HOST",Types.VARCHAR,false,32642);
+				columns[4] = SystemColumnImpl.getColumn("REGION",Types.VARCHAR,true,32462);
 				for(int i=0;i<metrics.length;i++){
 						String name = metrics[i].name().replaceAll("_", "");
-						columns[i+4] = SystemColumnImpl.getColumn(name, Types.BIGINT,true);
+						columns[i+5] = SystemColumnImpl.getColumn(name, Types.BIGINT,true);
 				}
-				columns[metrics.length+4] = SystemColumnImpl.getColumn("BUFFER_FILLRATIO",Types.DOUBLE,true);
+				columns[metrics.length+5] = SystemColumnImpl.getColumn("BUFFER_FILLRATIO",Types.DOUBLE,true);
 				return columns;
 		}
 

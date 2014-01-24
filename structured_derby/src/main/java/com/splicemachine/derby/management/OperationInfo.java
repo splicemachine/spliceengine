@@ -3,6 +3,9 @@ package com.splicemachine.derby.management;
 import com.splicemachine.derby.impl.job.JobInfo;
 
 import java.beans.ConstructorProperties;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -17,6 +20,8 @@ public class OperationInfo {
 		private AtomicInteger numJobs = new AtomicInteger(0);
 		private AtomicInteger numTasks = new AtomicInteger(0);
 		private long statementId;
+		private volatile int numFailedTasks = -1;
+		private Set<JobInfo> jobs = Collections.newSetFromMap(new ConcurrentHashMap<JobInfo, Boolean>());
 
 		public OperationInfo(long operationUuid,
 												 long statementId,
@@ -30,10 +35,13 @@ public class OperationInfo {
 				this.statementId = statementId;
 		}
 
-		@ConstructorProperties({"isRight","numTasks","numJobs","parentOperationUuid","operationTypeName","operationUuid","statementId"})
+		@ConstructorProperties({"isRight",
+						"numTasks","numJobs",
+						"parentOperationUuid","operationTypeName",
+						"operationUuid","statementId","numFailedTasks"})
 		public OperationInfo(boolean isRight,int numTasks, int numJobs,
 												 long parentOperationUuid, String operationTypeName, long operationUuid,
-												 long statementUuid) {
+												 long statementUuid,int numFailedTasks) {
 				this.isRight = isRight;
 				this.numJobs.set(numJobs);
 				this.numTasks.set(numTasks);
@@ -41,8 +49,20 @@ public class OperationInfo {
 				this.operationTypeName = operationTypeName;
 				this.operationUuid = operationUuid;
 				this.statementId = statementUuid;
+				this.numFailedTasks = numFailedTasks;
 		}
 
+		public int getNumFailedTasks() {
+				synchronized (this){
+						if(numFailedTasks<0){
+								numFailedTasks=0;
+								for(JobInfo job:jobs){
+										numFailedTasks+=job.getTasksFailed();
+								}
+						}
+				}
+				return numFailedTasks;
+		}
 		public long getOperationUuid() { return operationUuid; }
 		public String getOperationTypeName() { return operationTypeName; }
 		public long getParentOperationUuid() { return parentOperationUuid; }
@@ -53,6 +73,8 @@ public class OperationInfo {
 		public void addJob(JobInfo jobInfo){
 				this.numJobs.incrementAndGet();
 				this.numTasks.addAndGet(jobInfo.totalTaskCount());
+				numFailedTasks=0;
+				this.jobs.add(jobInfo);
 		}
 
 		@Override

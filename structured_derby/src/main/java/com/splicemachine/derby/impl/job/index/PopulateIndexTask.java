@@ -191,7 +191,7 @@ public class PopulateIndexTask extends ZkTask {
 
 										if(xplainSchema!=null){
 												//record some stats
-												OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,Bytes.toLong(taskId),12);
+												OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,Bytes.toLong(taskId),region.getRegionNameAsString(),12);
 												stats.addMetric(OperationMetric.STOP_TIMESTAMP,System.currentTimeMillis());
 												stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
 

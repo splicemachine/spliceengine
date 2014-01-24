@@ -20,6 +20,7 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -167,8 +168,8 @@ public class OperationSink {
 
 				List<OperationRuntimeStats> stats = Lists.newArrayList();
 				OperationRuntimeStats metrics = operation.getMetrics(statementId,taskId);
-				if(metrics==null)
-						metrics = new OperationRuntimeStats(statementId,Bytes.toLong(operation.getUniqueSequenceID()),taskId,5);
+//				if(metrics==null)
+//						metrics = new OperationRuntimeStats(statementId,Bytes.toLong(operation.getUniqueSequenceID()), taskId,null,5);
 
 				metrics.addMetric(OperationMetric.WRITE_ROWS, rowsWritten);
 				metrics.addMetric(OperationMetric.WRITE_BYTES, bytesWritten);

@@ -21,16 +21,17 @@ public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 				return new EntryWriteableHash<OperationInfo>() {
 						@Override
 						protected EntryEncoder buildEncoder() {
-								BitSet fields  = new BitSet(8);
-								fields.set(0,8);
-								BitSet scalarFields = new BitSet(8);
+								int totalLength = 9;
+								BitSet fields  = new BitSet(totalLength);
+								fields.set(0,totalLength);
+								BitSet scalarFields = new BitSet(totalLength);
 								scalarFields.set(0, 2);
 								scalarFields.set(3);
-								scalarFields.set(6,8);
+								scalarFields.set(6,totalLength);
 								BitSet floatFields = new BitSet(0);
 								BitSet doubleFields = new BitSet(0);
 
-								return EntryEncoder.create(SpliceDriver.getKryoPool(),8,fields,scalarFields,floatFields,doubleFields);
+								return EntryEncoder.create(SpliceDriver.getKryoPool(),totalLength,fields,scalarFields,floatFields,doubleFields);
 						}
 
 						@Override
@@ -47,7 +48,8 @@ public class XplainOperationReporter extends XplainReporter<OperationInfo> {
 								encoder.encodeNext(element.isRight())
 												.encodeNext(element.getNumJobs() > 0)
 												.encodeNext(element.getNumJobs())
-												.encodeNext(element.getNumTasks());
+												.encodeNext(element.getNumTasks())
+												.encodeNext(element.getNumFailedTasks());
 						}
 				};
 		}

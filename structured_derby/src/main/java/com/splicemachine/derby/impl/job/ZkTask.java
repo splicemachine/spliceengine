@@ -16,6 +16,7 @@ import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -57,6 +58,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 		private volatile Thread executionThread;
 		private long prepareTimestamp;
 		protected long waitTimeNs;
+		protected HRegion region;
 
 		protected ZkTask() {
         this.LOG = Logger.getLogger(this.getClass());
@@ -160,6 +162,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
         taskId = SpliceUtils.getUniqueKey();
         taskPath = jobId+"_"+ getTaskType()+"-"+ BytesUtil.toHex(taskId);
         this.zkManager = zooKeeper;
+				this.region = rce.getRegion();
         try {
             //create a status node
             final byte[] statusData = statusToBytes();

@@ -16,6 +16,7 @@ public class OperationRuntimeStats {
 		private final long statementId;
 		private final long operationId;
 		private final long taskId;
+		private final String regionName; //can be null if there is no region
 
 		//cached for performance
 		private static final int maxSize = OperationMetric.values().length;
@@ -25,10 +26,13 @@ public class OperationRuntimeStats {
 		private String hostName;
 		private double bufferFillRatio = 0d;
 
-		public OperationRuntimeStats(long statementId, long operationId, long taskId,int initialSize) {
+		public OperationRuntimeStats(long statementId,
+																 long operationId,
+																 long taskId,String regionName,int initialSize) {
 				this.statementId = statementId;
 				this.operationId = operationId;
 				this.taskId = taskId;
+				this.regionName = regionName;
 
 				this.setMetrics = Lists.newArrayListWithExpectedSize(initialSize);
 				this.measuredValues = new LongArrayList(initialSize);
@@ -58,6 +62,10 @@ public class OperationRuntimeStats {
 								.encodeNext(operationId)
 								.encodeNext(taskId)
 								.encodeNext(hostName);
+				if(regionName!=null)
+						fieldEncoder.encodeNext(regionName);
+				else
+					fieldEncoder.encodeEmpty();
 
 				OperationMetric[] allMetrics = OperationMetric.values();
 				Arrays.sort(allMetrics,new Comparator<OperationMetric>() {
