@@ -128,7 +128,6 @@ public class RowOperation extends SpliceBaseOperation {
 			rowsReturned++;
 		}
 		setCurrentRow(currentRow);
-        LOG.error(String.format("Row returned for RSN %s: %s", resultSetNumber, currentRow));
 		return currentRow;
 	}
 
@@ -217,7 +216,7 @@ public class RowOperation extends SpliceBaseOperation {
 
 	@Override
     public ExecRow getExecRowDefinition() throws StandardException {
-        if (rowDefinition == null){
+        if (rowDefinition == null && getRow() != null){
             rowDefinition = getRow().getClone();
             SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
         }
