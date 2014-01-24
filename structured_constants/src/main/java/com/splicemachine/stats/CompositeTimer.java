@@ -9,7 +9,7 @@ package com.splicemachine.stats;
  * @author Scott Fines
  * Date: 1/17/14
  */
-public class CompositeTimer implements Timer,TimeView{
+class CompositeTimer implements Timer,TimeView{
 		private final TimeMeasure wallClockTime;
 		private final TimeMeasure userTime;
 		private final TimeMeasure cpuTime;

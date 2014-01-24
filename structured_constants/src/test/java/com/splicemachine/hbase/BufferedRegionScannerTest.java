@@ -2,7 +2,7 @@ package com.splicemachine.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Stats;
+import com.splicemachine.stats.Metrics;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -11,7 +11,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,7 +47,7 @@ public class BufferedRegionScannerTest {
 								}else return false;
 						}
 				});
-				MetricFactory factory = Stats.noOpMetricFactory();
+				MetricFactory factory = Metrics.noOpMetricFactory();
 				BufferedRegionScanner scanner = new BufferedRegionScanner(region,fromListScanner,2,1024,factory);
 
 				int count =0;

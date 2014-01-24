@@ -38,7 +38,7 @@ public class BlockImportReader implements ImportReader {
 
     public BlockImportReader(BlockLocation location, boolean shouldRecordStats) {
         this.location = location;
-				timer = shouldRecordStats? Timers.newTimer(): Timers.noOpTimer();
+				timer = shouldRecordStats? Metrics.newTimer(): Metrics.noOpTimer();
 		}
 
     @Override
@@ -76,7 +76,7 @@ public class BlockImportReader implements ImportReader {
 
 		@Override
 		public IOStats getStats() {
-				if(timer.getNumEvents()<=0) return Stats.noOpIOStats();
+				if(timer.getNumEvents()<=0) return Metrics.noOpIOStats();
 				return new BaseIOStats(timer.getTime(),(finalPos-initialPos),timer.getNumEvents());
 		}
 

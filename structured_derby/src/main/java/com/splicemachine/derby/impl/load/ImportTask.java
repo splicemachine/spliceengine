@@ -10,11 +10,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
-import com.splicemachine.stats.Timers;
-import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataTypeDescriptor;

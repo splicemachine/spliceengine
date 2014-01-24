@@ -21,7 +21,7 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Stats;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -158,7 +158,7 @@ public class PopulateIndexTask extends ZkTask {
         regionScan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
 
 				//TODO -sf- disable when stats tracking is disabled
-				MetricFactory metricFactory = xplainSchema!=null? Stats.basicMetricFactory(): Stats.noOpMetricFactory();
+				MetricFactory metricFactory = xplainSchema!=null? Metrics.basicMetricFactory(): Metrics.noOpMetricFactory();
 				long numRecordsRead = 0l;
 				long startTime = System.currentTimeMillis();
 
