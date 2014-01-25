@@ -330,7 +330,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 *	@exception StandardException	Thrown if the module fails to start
 	 */
-	public final void boot(boolean create, Properties startParams) throws StandardException {
+	public void boot(boolean create, Properties startParams) throws StandardException {
 		softwareVersion = new DD_Version(this, DataDictionary.DD_VERSION_DERBY_10_9);
 		startupParameters = startParams;
 		uuidFactory = Monitor.getMonitor().getUUIDFactory();
