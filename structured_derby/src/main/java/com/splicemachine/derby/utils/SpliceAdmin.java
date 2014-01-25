@@ -10,6 +10,9 @@ import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.impl.TransactionId;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,10 +33,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
-
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.impl.jdbc.Util;
 import org.apache.derby.jdbc.InternalDriver;
@@ -627,6 +626,7 @@ public class SpliceAdmin {
 
         int i = 0;
         int nCols = allTablesInSchema.getMetaData().getColumnCount();
+        // Map<regionNameAsString,HServerLoad.RegionLoad>
         Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
         HBaseAdmin admin = null;
         try {
@@ -642,8 +642,18 @@ public class SpliceAdmin {
                     for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
                         String regionName = Bytes.toString(ri.getRegionName());
                         if (regionName != null && ! regionName.isEmpty()) {
-                            int regionSize = regionLoadMap.get(regionName).getStorefileSizeMB();
-                            regionBuilder.append('(').append(regionName).append(' ').append(regionSize).append(" MB)");
+                            HServerLoad.RegionLoad regionLoad = regionLoadMap.get(regionName);
+                            if (regionLoad != null) {
+                                int storefileSizeMB = regionLoad.getStorefileSizeMB();
+                                int memStoreSizeMB = regionLoad.getMemStoreSizeMB();
+                                int storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
+                                regionBuilder.append('(')
+                                        .append(ri.getRegionNameAsString()).append(' ')
+                                        .append(storefileSizeMB).append(' ')
+                                        .append(memStoreSizeMB).append(' ')
+                                        .append(storefileIndexSizeMB)
+                                        .append(" MB)");
+                            }
                         }
                     }
                     sb.append(String.format("('%s','%s','%s','%s')",
@@ -672,7 +682,7 @@ public class SpliceAdmin {
                 }
             }
         }
-        sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)");
+        sb.append(") foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS_STORESIZE_MEMSTORESIZE_STOREINDEXSIZE)");
         resultSet[0] = executeStatement(sb);
     }
 
