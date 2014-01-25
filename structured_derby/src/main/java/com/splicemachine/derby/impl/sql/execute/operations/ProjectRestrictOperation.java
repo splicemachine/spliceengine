@@ -236,14 +236,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				timer.startTiming();
 				do {
 						candidateRow = source.nextRow(spliceRuntimeContext);
-						if (LOG.isDebugEnabled())
-								SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp: Candidate: ",candidateRow);
+						if (LOG.isTraceEnabled())
+								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Candidate: ",candidateRow);
 						if (candidateRow != null) {
-				/* If restriction is null, then all rows qualify */
+								/* If restriction is null, then all rows qualify */
 								if (restriction == null) {
 										restrict = true;
-								}
-								else {
+								} else {
 										setCurrentRow(candidateRow);
 										restrictBoolean = restriction.invoke();
 										// if the result is null, we make it false --
@@ -262,9 +261,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						result = doProjection(candidateRow);
 						if (LOG.isTraceEnabled())
 								SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp Result: ",result);
-				}
-		/* Clear the current row, if null */
-				else {
+				} else {
+					/* Clear the current row, if null */
 						clearCurrentRow();
 				}
 				currentRow = result;
@@ -346,7 +344,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@Override
 		public void	close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
-		/* Nothing to do if open was short circuited by false constant expression */
+				/* Nothing to do if open was short circuited by false constant expression */
 				if (LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG,">>>   ProjectRestrictOp: Closing ",(source != null ? source.getClass().getSimpleName() : "null source"));
 				super.close();

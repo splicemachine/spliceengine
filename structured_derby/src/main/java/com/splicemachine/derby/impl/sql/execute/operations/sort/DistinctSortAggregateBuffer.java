@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
@@ -14,8 +15,10 @@ public class DistinctSortAggregateBuffer extends AbstractAggregateBuffer {
     protected final StandardSupplier<ExecRow> emptyRowSupplier;
     
     public DistinctSortAggregateBuffer(int maxSize,
-                           SpliceGenericAggregator[] aggregators, StandardSupplier<ExecRow> emptyRowSupplier){
-    	super(maxSize,aggregators);
+                           SpliceGenericAggregator[] aggregators,
+													 StandardSupplier<ExecRow> emptyRowSupplier,
+													 MetricFactory metricFactory){
+    	super(maxSize,aggregators,metricFactory);
     	this.emptyRowSupplier = emptyRowSupplier;
     }
         

@@ -80,7 +80,14 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 				}
 				this.maxBufferSize = s;
 				if(initialBufferSize>maxBufferSize)
-						initialBufferSize = maxBufferSize; //don't create more entries than we allow in the entire buffer
+						initialBufferSize = this.maxBufferSize; //don't create more entries than we allow in the entire buffer
+				else{
+						s = 1;
+						while(s<initialBufferSize){
+								s<<=1;
+						}
+						initialBufferSize = s;
+				}
 				//noinspection unchecked
 				this.buffer = (List<KeyValue>[])new List[initialBufferSize];
 				this.readTimer = metricFactory.newTimer();

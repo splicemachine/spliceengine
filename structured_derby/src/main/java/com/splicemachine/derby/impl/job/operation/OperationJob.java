@@ -50,11 +50,11 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
         this.table = table;
         this.taskPriority = operationTaskPriority;
         this.readOnly = readOnly;
-        this.jobId = String.format("%s-%s", operationString(instructions.getTopOperation()),
-                                    SpliceUtils.getUniqueKeyString());
 				this.recordStats = recordStats;
 				this.statementId = statementId;
 				this.xplainSchema = xplainSchema;
+        this.jobId = String.format("%s-%s", operationString(instructions.getTopOperation()),
+                                    SpliceDriver.driver().getUUIDGenerator().nextUUID());
     }
 
     private static String operationString(SpliceOperation op){

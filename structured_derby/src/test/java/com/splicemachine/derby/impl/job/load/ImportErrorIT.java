@@ -44,17 +44,21 @@ public class ImportErrorIT {
      *
      * File not found X
      * No such table
+     * cannot modify an auto-increment column
      */
     private static final String TABLE = "errorTable";
 
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date,g time, h timestamp)");
     private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
+		private static final SpliceTableWatcher incrementTable = new SpliceTableWatcher("INCREMENT", schema.schemaName, "(a int generated always as identity, b int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schema)
-            .around(tableWatcher)
-            .around(decimalTable);
+						.around(tableWatcher)
+						.around(decimalTable)
+						.around(incrementTable);
+
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -221,14 +225,28 @@ public class ImportErrorIT {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22003",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!",ErrorState.LANG_OUTSIDE_RANGE_FOR_DATATYPE.getSqlState(),se.getSQLState());
 
                 String correctErrorMessage = "The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
-
     }
+
+		@Test(expected = SQLException.class)
+		public void testNonNullIntoIncrement() throws Exception {
+				runImportTest("INCREMENT","simple_column.txt",new ErrorCheck() {
+						@Override
+						public void check(String table, String location, SQLException se) {
+								//make sure the error code is correct
+								Assert.assertEquals("Incorrect sql state!",ErrorState.LANG_AI_CANNOT_MODIFY_AI.getSqlState(),se.getSQLState());
+
+								String correctErrorMessage = "Attempt to modify an identity column 'A'.";
+								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage().trim());
+						}
+				});
+		}
+
     private interface ErrorCheck{
         void check(String table, String location, SQLException se);
     }

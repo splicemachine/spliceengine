@@ -222,7 +222,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             updateStatus(false);
 
         if (executionThread != null) {
-            LOG.info("Task " + Bytes.toString(taskId) + " has been cancelled, interrupting worker thread");
+            LOG.info("Task " + Bytes.toLong(taskId) + " has been cancelled, interrupting worker thread");
             executionThread.interrupt();
         }
     }
@@ -264,7 +264,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     }
 
     private void setStatus(Status newStatus, boolean cancelOnError) throws ExecutionException{
-        SpliceLogUtils.trace(LOG,"Marking task %s %s",taskId,newStatus);
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,"Marking task %s %s",Bytes.toLong(getTaskId()),newStatus);
         status.setStatus(newStatus);
         updateStatus(cancelOnError);
     }
@@ -281,7 +282,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             case INVALID:
             case FAILED:
             case COMPLETED:
-                SpliceLogUtils.warn(LOG,"Received task error after entering " + status.getStatus()+" state, ignoring",error);
+                SpliceLogUtils.warn(LOG,"["+Bytes.toLong(getTaskId())+"]:Received task error after entering " + status.getStatus()+" state, ignoring",error);
                 return;
         }
         status.setError(error);
@@ -362,6 +363,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             if (event.getType() != Event.EventType.NodeDeleted)
                 return;
 
+						if(task.LOG.isTraceEnabled())
+								task.LOG.trace("Received node deleted notice from ZooKeeper, attempting cancellation");
 						/*
                          * If the watch was triggered after
 						 * dereferencing us, then we don't care about it
@@ -372,6 +375,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                 case FAILED:
                 case COMPLETED:
                 case CANCELLED:
+										if(task.LOG.isTraceEnabled())
+												task.LOG.trace("Node is already in a finalize state, ignoring cancellation attempt");
                     task = null;
                     return;
             }
@@ -379,7 +384,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             try {
                 task.markCancelled(false);
             } catch (ExecutionException ee) {
-                SpliceLogUtils.error(task.LOG, "Unable to cancel task with id " + Bytes.toString(task.getTaskId()), ee.getCause());
+                SpliceLogUtils.error(task.LOG, "Unable to cancel task with id " + Bytes.toLong(task.getTaskId()), ee.getCause());
             } finally {
                 task = null;
             }

@@ -24,10 +24,13 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -115,29 +118,30 @@ public class RowProviders {
 
         long start = System.nanoTime();
 
-        for (Pair<JobFuture, JobInfo> job : jobs) {
-            try {
-                job.getFirst().completeAll(job.getSecond());
-                stats.add(job.getFirst().getJobStats());
-
+        for (Pair<JobFuture, JobInfo> jobPair : jobs) {
+						JobFuture job = jobPair.getFirst();
+						JobInfo jobInfo = jobPair.getSecond();
+						try {
+                job.completeAll(jobInfo);
+                stats.add(job.getJobStats());
             } catch (ExecutionException ee) {
                 SpliceLogUtils.error(LOG, ee);
-                if (job.getSecond() != null) {
-                    job.getSecond().failJob();
+                if (jobInfo != null) {
+                    jobInfo.failJob();
                 }
                 baseError = Exceptions.parseException(ee.getCause());
                 throw baseError;
             } catch (InterruptedException e) {
                 SpliceLogUtils.error(LOG, e);
-                if (job.getSecond() != null) {
-                    job.getSecond().failJob();
+                if (jobInfo != null) {
+                    jobInfo.failJob();
                 }
                 baseError = Exceptions.parseException(e);
                 throw baseError;
             } finally {
-                if (job.getFirst() != null) {
+                if (job != null) {
                     try {
-                        job.getFirst().cleanup();
+                        job.cleanup();
                     } catch (ExecutionException e) {
                         if (baseError == null)
                             baseError = Exceptions.parseException(e.getCause());
@@ -193,7 +197,7 @@ public class RowProviders {
             info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
             info.setJobFuture(jobFuture);
             info.tasksRunning(jobFuture.getAllTaskIds());
-            stmtInfo.addRunningJob(info);
+            stmtInfo.addRunningJob(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()),info);
             jobFuture.addCleanupTask(table);
             jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
             return Pair.newPair(jobFuture, info);
@@ -218,7 +222,10 @@ public class RowProviders {
         if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
             SpliceUtils.setInstructions(scan, instructions);
         boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-        return new OperationJob(scan, instructions, table, readOnly);
+				long statementId = instructions.getSpliceRuntimeContext().getStatementInfo().getStatementUuid();
+				Activation activation = instructions.getTopOperation().getActivation();
+				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
     }
 
     public static abstract class DelegatingRowProvider implements RowProvider{
@@ -345,7 +352,8 @@ public class RowProviders {
             SpliceOperation op = instructions.getTopOperation();
             op.init(SpliceOperationContext.newContext(op.getActivation()));
             try {
-                OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTransactionId());
+                OperationSink opSink = OperationSink.create((SinkingOperation) op, null, instructions.getTransactionId(),
+												spliceRuntimeContext.getStatementInfo().getStatementUuid(),0l);
 
                 JobStats stats;
                 if (op instanceof DMLWriteOperation)

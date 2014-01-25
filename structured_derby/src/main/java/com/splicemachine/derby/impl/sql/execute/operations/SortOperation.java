@@ -28,6 +28,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -167,7 +168,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         	};
         	        	
         	aggregator = new SinkSortIterator(distinct?new DistinctSortAggregateBuffer(SpliceConstants.ringBufferSize,
-        			null,supplier):null,new SourceIterator(source),keyColumns,descColumns);
+        			null,supplier, spliceRuntimeContext):null,new SourceIterator(source),keyColumns,descColumns);
         }
         groupedRow = aggregator.next(spliceRuntimeContext);	
         if (LOG.isTraceEnabled())

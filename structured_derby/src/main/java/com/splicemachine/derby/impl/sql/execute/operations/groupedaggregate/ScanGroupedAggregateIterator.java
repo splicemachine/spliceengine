@@ -45,7 +45,6 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     }
 
 		@Override
-    public GroupedRow next() throws StandardException, IOException {
     public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         //return any previously evicted rows first
         if(evictedRows.size()>0)

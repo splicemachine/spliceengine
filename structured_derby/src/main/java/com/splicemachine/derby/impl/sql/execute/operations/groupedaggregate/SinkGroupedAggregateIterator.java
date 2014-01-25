@@ -58,7 +58,7 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 		@Override public void open() throws StandardException, IOException { source.open(); }
 
 		@Override
-		public GroupedRow next() throws StandardException, IOException {
+		public GroupedRow next(SpliceRuntimeContext context) throws StandardException, IOException {
 				if(evictedRows.size()>0)
 						return evictedRows.remove(0);
 				if(completed){
@@ -72,7 +72,7 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 				GroupedRow toReturn = null;
 				do{
 						SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-						ExecRow nextRow = source.next();
+						ExecRow nextRow = source.next(context);
 						shouldContinue = nextRow!=null;
 						if(!shouldContinue)
 								continue; //iterator exhausted, break from the loop

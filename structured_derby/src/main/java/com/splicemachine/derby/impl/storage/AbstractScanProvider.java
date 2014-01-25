@@ -112,7 +112,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
             TaskStats finish = accumulator.finish();
             JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here
         }
-        super.close();
     }
 
 }

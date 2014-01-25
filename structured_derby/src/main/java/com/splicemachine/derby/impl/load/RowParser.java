@@ -1,19 +1,24 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLDate;
+import org.apache.derby.iapi.types.SQLTime;
+import org.apache.derby.iapi.types.SQLTimestamp;
+
 import java.sql.Timestamp;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
 
 /**
  * @author Scott Fines
@@ -31,7 +36,7 @@ public class RowParser {
     private final HashMap<String,String> columnTimestampFormats;
     private final ImportContext importContext;
     private Sequence[] sequences;
-    
+
     public RowParser(ExecRow template,
                      String dateFormat,
                      String timeFormat,
@@ -79,22 +84,21 @@ public class RowParser {
     			columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
     		}
     	}
-    	this.importContext = importContext;
-        if (importContext.getAutoIncrementColumnContext() != null) {
-        	 this.sequences = new Sequence[importContext.getAutoIncrementColumnContext().length];
-        	 for(int i = 0; i < importContext.getAutoIncrementColumnContext().length; i++) {
-        		 if(importContext.getAutoIncrementColumnContext()[i] != null) {
-        		 sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
-        				             50*importContext.getAutoIncrementColumnContext()[i].getAutoincInc(), 
-        				             importContext.getAutoIncrementColumnContext()[i].getSequenceRowLocation(),
-        				             importContext.getAutoIncrementColumnContext()[i].getAutoincStart(),
-        				             importContext.getAutoIncrementColumnContext()[i].getAutoincInc());
-        		 } else {
-        			 sequences[i] = null;
-        		 }
-        	 }
-        }
-}
+				this.importContext = importContext;
+				ColumnContext[] columnInformation = importContext.getColumnInformation();
+				this.sequences = new Sequence[columnInformation.length];
+				for(int i=0;i< columnInformation.length;i++){
+						ColumnContext cc = columnInformation[i];
+					if(columnInformation[i].isAutoIncrement()){
+							sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+											50*cc.getAutoIncrementIncrement(),
+											cc.getSequenceRowLocation(),
+											cc.getAutoIncrementStart(),
+											cc.getAutoIncrementIncrement());
+					}
+				}
+		}
+
     public ExecRow process(String[] line, ColumnContext[] columnContexts) throws StandardException {
         template.resetRowArray();
         
@@ -119,16 +123,18 @@ public class RowParser {
         if(elem==null||elem.length()==0)
             elem=null;
         DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
-        if(elem==null){
-        	if(importContext != null && importContext.getAutoIncrementColumnContext() != null && importContext.getAutoIncrementColumnContext()[columnContext.getColumnNumber()] != null) {
-        		elem = "";  //set it as empty string
-        	} else {
-        		elem = columnContext.getColumnDefault();
-        		column.setValue(elem);
-            	columnContext.validate(column);
-            	return;
-        	}
-        }
+				if(elem==null){
+						if(columnContext.isAutoIncrement())
+								column.setValue(sequences[columnContext.getColumnNumber()].getNext());
+						else{
+								elem = columnContext.getColumnDefault();
+								column.setValue(elem);
+						}
+						columnContext.validate(column);
+						return;
+				}else if(columnContext.isAutoIncrement()){
+						throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
+				}
         switch(column.getTypeFormatId()){
             case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
             case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
@@ -142,9 +148,6 @@ public class RowParser {
                 elem = elem.trim();
                 if(elem.length()==0) {
                 	elem = columnContext.getColumnDefault();
-                }
-                if(importContext != null && importContext.getAutoIncrementColumnContext() != null && importContext.getAutoIncrementColumnContext()[columnContext.getColumnNumber()] != null) {
-                	elem = String.valueOf(sequences[columnContext.getColumnNumber()].getNext());
                 }
             case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
@@ -179,12 +182,6 @@ public class RowParser {
                     if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}[-,+]\\d{2}")) {
                     	timestampFormatStr2 = "yyyy-MM-dd HH:mm:ss.SSSZ";
                     }
-                }
-                if(column instanceof SQLDate) {
-                	String yesSQLDate = "y";
-                }
-                if(column instanceof SQLTime) {
-                	String yesSQLTime = "y";
                 }
                 SimpleDateFormat format = getDateFormat(columnContext, column, timestampFormatStr2);
                 try{                   	
