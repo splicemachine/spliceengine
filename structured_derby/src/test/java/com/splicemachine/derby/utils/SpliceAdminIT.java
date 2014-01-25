@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,8 +79,21 @@ public class SpliceAdminIT {
 //        System.out.println(sb.toString());
         Assert.assertFalse("SQL contained double spaces.", sb.toString().contains("  "));
         Assert.assertFalse("SQL contained tab chars.",sb.toString().contains("\\t"));
-        Assert.assertFalse("SQL contained newline chars.",sb.toString().contains("\\n"));
-        Assert.assertFalse("SQL contained carriage return chars.",sb.toString().contains("\\r"));
+        Assert.assertFalse("SQL contained newline chars.", sb.toString().contains("\\n"));
+        Assert.assertFalse("SQL contained carriage return chars.", sb.toString().contains("\\r"));
+    }
+
+    @Test
+    public void testCreateResultSetNonPrintableChars() throws Exception {
+        String sql= "select * from (values ('ROWCOUNTOPERATIONIT','A','false','(1328,,1390605409509.0e0464ea3aae5b6eb559fd45e98d4ced. 0 MB)(1328,'ï¿½<hï¿½�,1390605409509.96302cceac907a55f22d48da10ca3392. 0 MB)')) foo (SCHEMANAME, TABLENAME, ISINDEX, HBASEREGIONS)";
+
+        try {
+            PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement(sql);
+        } catch (Exception e) {
+            Assert.assertTrue(e.getMessage().contains("Lexical error at line 1, column 127"));
+            return;
+        }
+        Assert.fail("Expected exception");
     }
 
     @Test
@@ -90,11 +104,7 @@ public class SpliceAdminIT {
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDs"));
-        List<Map> tableCluster = TestUtils.tableLookupByNumber(methodWatcher);
-
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
-        ResultSet rs = cs.executeQuery();
-        DbUtils.closeQuietly(rs);
+        List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
         long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,TABLE_NAME);
@@ -120,11 +130,7 @@ public class SpliceAdminIT {
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
-        List<Map> tableCluster = TestUtils.tableLookupByNumber(methodWatcher);
-
-        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
-        ResultSet rs = cs.executeQuery();
-        DbUtils.closeQuietly(rs);
+        List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
         long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,null);
@@ -147,7 +153,36 @@ public class SpliceAdminIT {
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetConglomerateIDsAllInSchema"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfo"));
+
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
+        ResultSet rs = cs.executeQuery();
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()", rs);
+        System.out.println(fr.toString());
+        DbUtils.closeQuietly(rs);
+    }
+
+    @Test
+    public void testGetSchemaInfoSplit() throws Exception {
+        int size = 100;
+        String TABLE_NAME = "SPLIT";
+        SpliceUnitTest.MyWatcher tableWatcher =
+                new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,"(username varchar(40) unique not null,i int)");
+        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testGetSchemaInfoSplit"));
+        try {
+            PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?,?)", CLASS_NAME, TABLE_NAME));
+            for(int i=0;i<size;i++){
+                ps.setInt(1, i);
+                ps.setString(2,Integer.toString(i+1));
+                ps.executeUpdate();
+            }
+            spliceClassWatcher.splitTable(TABLE_NAME,CLASS_NAME,size/3);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            spliceClassWatcher.closeAll();
+        }
 
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_SCHEMA_INFO()");
         ResultSet rs = cs.executeQuery();
