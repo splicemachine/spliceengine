@@ -27,6 +27,7 @@ import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.hash.ByteHash32;
@@ -305,7 +306,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public ExecRow getNextSinkRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(aggregator==null){
-						StandardIterator<ExecRow> sourceIterator = new SourceIterator(spliceRuntimeContext,source);
+						StandardIterator<ExecRow> sourceIterator = new SourceIterator(source);
 						StandardSupplier<ExecRow> emptyRowSupplier = new EmptyRowSupplier(aggregateContext);
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
@@ -321,7 +322,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				}
 
 				timer.startTiming();
-				GroupedRow row = aggregator.next();
+				GroupedRow row = aggregator.next(spliceRuntimeContext);
 				if(row==null){
 						currentKey=null;
 						clearCurrentRow();
@@ -365,7 +366,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 				boolean shouldClose = true;
 				timer.startTiming();
 				try{
-						GroupedRow row = aggregator.next();
+						GroupedRow row = aggregator.next(spliceRuntimeContext);
 						if(row==null){
 								clearCurrentRow();
 								timer.tick(0);

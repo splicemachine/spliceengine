@@ -27,6 +27,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
@@ -48,10 +49,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -175,7 +173,7 @@ public class HdfsImport extends ParallelVTI {
 										builder = builder.recordStats().xplainSchema(xplainSchema);
 						}
 
-						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder);
+						buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,lcc);
 				}catch(AssertionError ae){
 						//the input data is bad in some way
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
@@ -437,9 +435,31 @@ public class HdfsImport extends ParallelVTI {
 				return importJob;
 		}
 		private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
-																							 String insertColumnList, ImportContext.Builder builder) throws SQLException {
+																							 String insertColumnList, ImportContext.Builder builder,
+																							 LanguageConnectionContext lcc) throws SQLException {
 				DatabaseMetaData dmd = connection.getMetaData();
 				Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
+
+				//TODO -sf- this invokes an additional scan--is there any way that we can avoid this?
+				DataDictionary dataDictionary = lcc.getDataDictionary();
+				TransactionController tc = lcc.getTransactionExecute();
+				try {
+						SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(schemaName, tc,true);
+						if(sd==null)
+								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(schemaName));
+						TableDescriptor td = dataDictionary.getTableDescriptor(tableName,sd, tc);
+						if(td==null)
+								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
+						RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
+
+						for(ColumnContext.Builder cb:columns.values()){
+							if(cb.isAutoIncrement()){
+									cb.sequenceRowLocation(rowLocations[cb.getColumnNumber()].getBytes());
+							}
+						}
+				} catch (StandardException e) {
+						throw PublicAPI.wrapStandardException(e);
+				}
 
 				Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd);
 				int[] pkKeyMap = new int[columns.size()];
@@ -509,12 +529,24 @@ public class HdfsImport extends ParallelVTI {
 						int decimalDigits = rs.getInt(DECIMALDIGITS_POSIITON);
 						colBuilder.decimalDigits(decimalDigits);
 				}
-				// The default column value is NOT valid if autoincrement is true and and result default column value
-				// is something like "AUTOINCREMENT: start x increment y"
+				/*
+				 * The COLUMNDEFAULT position contains two separate entities: a default value (if the column
+				 * has a default) or a String that looks like AUTOINCREMENT: start x increment y. We need to
+				 * deal with each case separately
+				 */
 				String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
 				String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
-				if (isAutoIncrement.compareTo("YES") != 0 || !colDefault.startsWith(AUTOINCREMENT_PREFIX)) {
+				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
+				if (isAutoIncrement.compareTo("YES") != 0 || !hasIncrementPrefix) {
 						colBuilder.columnDefault(colDefault);
+				}else if (hasIncrementPrefix){
+						//colDefault looks like "AUTOINCREMENT: start x increment y
+						colDefault = colDefault.substring(colDefault.indexOf('s'));
+						int endIndex = colDefault.indexOf(' ', 6);
+						long startVal = Long.parseLong(colDefault.substring(6, endIndex).trim());
+						colDefault = colDefault.substring(endIndex);
+						long incVal = Long.parseLong(colDefault.substring(10).trim());
+						colBuilder.autoIncrementStart(startVal).autoIncrementIncrement(incVal);
 				}
 				return colBuilder;
 		}

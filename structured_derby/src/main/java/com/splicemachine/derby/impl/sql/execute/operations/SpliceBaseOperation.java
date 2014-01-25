@@ -150,7 +150,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				out.writeBoolean(isTopResultSet);
 				out.writeInt(uniqueSequenceID.length);
 				out.write(uniqueSequenceID);				
-				out.writeObject(failedTasks);
+//				out.writeObject(failedTasks);
 		}
 
 		@Override

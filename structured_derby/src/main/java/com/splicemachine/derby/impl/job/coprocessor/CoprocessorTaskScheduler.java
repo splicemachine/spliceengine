@@ -53,7 +53,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                     task.markInvalid();
             } catch (ExecutionException e) {
                 SpliceLogUtils.error(LOG,"Unexpected error invalidating task "+
-                        Bytes.toString(task.getTaskId())+", corresponding job may fail",e.getCause());
+                        Bytes.toLong(task.getTaskId())+", corresponding job may fail",e.getCause());
             }
         }
         runningTasks.clear();
@@ -91,7 +91,7 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
                         case COMPLETED:
                         case CANCELLED:
 														if(LOG.isTraceEnabled())
-																LOG.trace("Removing task "+Bytes.toString(task.getTaskId())+" from running task list");
+																LOG.trace("Removing task "+Bytes.toLong(task.getTaskId())+" from running task list");
 
 														runningTasks.remove(task);
 														status.detachListener(this);

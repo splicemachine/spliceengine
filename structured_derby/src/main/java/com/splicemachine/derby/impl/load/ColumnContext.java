@@ -30,6 +30,11 @@ public class ColumnContext implements Externalizable {
     private String columnDefault;
     private String formatStr;
     private boolean isFormatStrSet;
+		//autoincrement stuff
+		private byte[] sequenceRowLocation; //can be null
+		private long autoIncrementStart;
+		private long autoIncrementIncrement;
+
     @Deprecated
     public ColumnContext(){}
 
@@ -40,7 +45,10 @@ public class ColumnContext implements Externalizable {
                           String colName,
                           int length,
                           int decimalDigits,
-                          String columnDefault) {
+                          String columnDefault,
+													long autoIncrementStart,
+													long autoIncrementIncrement,
+													byte[] sequenceRowLocation) {
         this.colNumber = colNumber;
         this.columnType = colType;
         this.isNullable = isNullable;
@@ -49,7 +57,10 @@ public class ColumnContext implements Externalizable {
         this.length = length;
         this.decimalDigits = decimalDigits;
         this.columnDefault = columnDefault;
-        this.isFormatStrSet = false;
+				this.autoIncrementIncrement = autoIncrementIncrement;
+				this.autoIncrementStart = autoIncrementStart;
+				this.sequenceRowLocation = sequenceRowLocation;
+				this.isFormatStrSet = false;
     }
 
     @Override
@@ -68,6 +79,13 @@ public class ColumnContext implements Externalizable {
         out.writeBoolean(columnDefault!=null);
         if (columnDefault != null) 
         	out.writeUTF(columnDefault);
+				out.writeBoolean(sequenceRowLocation!=null);
+				if(sequenceRowLocation!=null){
+						out.writeInt(sequenceRowLocation.length);
+						out.write(sequenceRowLocation);
+						out.writeLong(autoIncrementStart);
+						out.writeLong(autoIncrementIncrement);
+				}
     }
 
     @Override
@@ -83,6 +101,12 @@ public class ColumnContext implements Externalizable {
         	decimalDigits = in.readInt();
         if (in.readBoolean())
         	columnDefault = in.readUTF();
+				if(in.readBoolean()){
+						sequenceRowLocation = new byte[in.readInt()];
+						in.readFully(sequenceRowLocation);
+						autoIncrementStart = in.readLong();
+						autoIncrementIncrement = in.readLong();
+				}
         	
     }
 
@@ -117,16 +141,33 @@ public class ColumnContext implements Externalizable {
     public String getFormatStr() {
     	return formatStr;
     }
-    public void setFormatStr(String fmst) {
+
+		public byte[] getSequenceRowLocation() {
+				return sequenceRowLocation;
+		}
+
+		public long getAutoIncrementStart() {
+				return autoIncrementStart;
+		}
+
+		public long getAutoIncrementIncrement() {
+				return autoIncrementIncrement;
+		}
+
+		public boolean isAutoIncrement(){
+				return sequenceRowLocation!=null;
+		}
+
+		public void setFormatStr(String fmst) {
     	this.formatStr = fmst;
     	this.isFormatStrSet = true;
     }
     public boolean isFormatStrSet () {
     	return isFormatStrSet;
     }
-    public String getColumnDefault() {
-    	return columnDefault;
-    }
+		public String getColumnDefault() {
+				return columnDefault;
+		}
     
     public void validate(DataValueDescriptor column) throws StandardException {
         if(!isNullable && column.isNull())
@@ -136,12 +177,10 @@ public class ColumnContext implements Externalizable {
             StringDataValue sdv = (StringDataValue)column;
             if(sdv.getLength()>length)
                 throw ErrorState.LANG_STRING_TRUNCATION.newException(column.getTypeName(),column.getString(),length);
-        }
-        else if (columnType == Types.DECIMAL) {
+        } else if (columnType == Types.DECIMAL) {
         	SQLDecimal d = (SQLDecimal)column;
         	d.setWidth(length, decimalDigits, true);
         }
-        	
     }
 
     public static class Builder{
@@ -153,7 +192,28 @@ public class ColumnContext implements Externalizable {
         private int length = -1;
         private int decimalDigits;
         private String columnDefault;
-        
+				private long autoincStart = -1l;
+				private long autoincIncrement = -1l;
+				private byte[] sequenceRowLocation;
+
+				public Builder autoIncrementStart(long autoincStart){
+						this.autoincStart = autoincStart;
+						return this;
+				}
+				public Builder autoIncrementIncrement(long autoincIncrement){
+						this.autoincIncrement = autoincIncrement;
+						return this;
+				}
+
+				public boolean isAutoIncrement(){
+						return autoincStart>=0;
+				}
+
+				public Builder sequenceRowLocation(byte[] sequenceRowLocation){
+						this.sequenceRowLocation = sequenceRowLocation;
+						return this;
+				}
+
         public Builder length(int length){
             this.length = length;
             return this;
@@ -198,7 +258,9 @@ public class ColumnContext implements Externalizable {
         	return this;
         }
         public ColumnContext build(){
-            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, columnDefault);
+            return new ColumnContext(colNumber, columnType,pkPos,isNullable,colName,length, decimalDigits, columnDefault,autoincStart,autoincIncrement,sequenceRowLocation);
         }
-    }
+
+				public int getColumnNumber() { return colNumber; }
+		}
 }

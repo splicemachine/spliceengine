@@ -7,13 +7,16 @@ import com.esotericsoftware.kryo.io.Output;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 
+import javax.management.relation.RoleUnresolved;
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * @author Scott Fines
  * Created on: 10/10/13
  */
-public class ValueRowSerializer extends Serializer<ValueRow> {
+public abstract class ValueRowSerializer<T extends ValueRow> extends Serializer<T> {
     @Override
-    public void write(Kryo kryo, Output output, ValueRow object) {
+    public void write(Kryo kryo, Output output, T object) {
         output.writeInt(object.nColumns());
         DataValueDescriptor[] dvds = object.getRowArray();
         for(DataValueDescriptor dvd:dvds){
@@ -22,16 +25,19 @@ public class ValueRowSerializer extends Serializer<ValueRow> {
     }
 
     @Override
-    public ValueRow read(Kryo kryo, Input input, Class<ValueRow> type) {
+    public T read(Kryo kryo, Input input, Class<T> type) {
         int size = input.readInt();
+
+				T instance = newType(size);
 
         DataValueDescriptor[] dvds = new DataValueDescriptor[size];
         for(int i=0;i<dvds.length;i++){
             dvds[i] = (DataValueDescriptor)kryo.readClassAndObject(input);
         }
+				instance.setRowArray(dvds);
 
-        ValueRow valueRow = new ValueRow(size);
-        valueRow.setRowArray(dvds);
-        return valueRow;
+				return instance;
     }
+
+		protected abstract T newType(int size);
 }

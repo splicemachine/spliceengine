@@ -171,11 +171,11 @@ public class ParallelImporter implements Importer{
             this.queue = queue;
             this.writeDestination = writeDestination;
             this.entryEncoder = newEntryEncoder(row);
-            this.importContext = importContext;
             this.importProcessor = new RowParser(row,
                     importContext.getDateFormat(),
                     importContext.getTimeFormat(),
-                    importContext.getTimestampFormat());
+                    importContext.getTimestampFormat(),
+										importContext);
 						this.writeTimer = metricFactory.newTimer();
         }
 

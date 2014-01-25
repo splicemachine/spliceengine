@@ -14,8 +14,8 @@ import java.sql.*;
 import java.util.List;
 import java.util.Map;
 
-public class HdfsImportIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+public class HdfsImportIT extends SpliceUnitTest {
+		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = HdfsImportIT.class.getSimpleName().toUpperCase();
 	protected static String TABLE_1 = "A";
 	protected static String TABLE_2 = "B";
@@ -28,7 +28,8 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_9 = "I";
 	protected static String TABLE_10 = "J";
 	protected static String TABLE_11 = "K";
-	
+	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
+
 	
 	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
@@ -43,6 +44,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_9,spliceSchemaWatcher.schemaName,"(order_date TIMESTAMP)");
 	protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_10,spliceSchemaWatcher.schemaName,"(i int, j float, k varchar(20), l TIMESTAMP)");
 	protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_11,spliceSchemaWatcher.schemaName,"(i int default 10, j int)");
+		protected static SpliceTableWatcher autoIncTableWatcher = new SpliceTableWatcher(AUTO_INCREMENT_TABLE,spliceSchemaWatcher.schemaName,"(i int generated always as identity, j int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -56,8 +58,9 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
-            .around(spliceTableWatcher10)
-            .around(spliceTableWatcher11);
+						.around(spliceTableWatcher10)
+						.around(spliceTableWatcher11)
+						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -327,6 +330,22 @@ public class HdfsImportIT extends SpliceUnitTest {
             Assert.assertEquals(i, 10);
         }
     }
+
+		@Test
+    public void testImportTableWithAutoIncrementColumn() throws Exception{
+        String location = getResourceDirectory()+"default_column.txt";
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null," +
+                "'%s',',',null,null,null,null)",spliceSchemaWatcher.schemaName,AUTO_INCREMENT_TABLE,location));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",spliceSchemaWatcher.schemaName,AUTO_INCREMENT_TABLE));
+        while(rs.next()){
+            int i = rs.getInt(1);
+            System.out.println("i = " + i);
+            Assert.assertEquals(i, 1);
+        }
+    }
+
     
 	
 }

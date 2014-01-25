@@ -204,7 +204,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		if (step1Aggregator == null) {   
             DistinctAggregateBuffer buffer = new DistinctAggregateBuffer(SpliceConstants.ringBufferSize,
 										aggregates,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),DistinctAggregateBuffer.STEP.ONE,spliceRuntimeContext);
-            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(spliceRuntimeContext,source),keyColumns);
+            step1Aggregator = new DistinctScalarAggregateIterator(buffer,new SourceIterator(source),keyColumns);
             step1Aggregator.open();
         }   
         GroupedRow row = step1Aggregator.next(spliceRuntimeContext);

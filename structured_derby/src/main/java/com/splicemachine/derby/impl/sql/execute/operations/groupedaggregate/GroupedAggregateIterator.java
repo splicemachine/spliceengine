@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.utils.StandardIterator;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -26,6 +28,9 @@ public abstract class GroupedAggregateIterator implements StandardIterator<Group
 				this.isRollup = isRollup;
 				this.groupColumns = groupColumns;
 		}
+
+		@Override public void open() throws StandardException, IOException { source.open();	 }
+		@Override public void close() throws StandardException, IOException { source.close();	 }
 
 		public abstract long getRowsMerged();
 		public abstract double getMaxFillRatio();
