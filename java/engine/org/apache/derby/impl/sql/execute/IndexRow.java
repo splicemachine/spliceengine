@@ -53,8 +53,16 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 	///////////////////////////////////////////////////////////////////////
 
 	IndexRow(int ncols) {
-		 super(ncols);
-		 orderedNulls = new boolean[ncols];	/* Initializes elements to false */
+					this(ncols,new boolean[ncols]);
+	}
+
+	public static IndexRow createRaw(int ncols){
+					return new IndexRow(ncols,null);
+	}
+
+	private IndexRow(int ncols, boolean[] orderedNulls){
+					super(ncols);
+					this.orderedNulls = orderedNulls;
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -70,6 +78,14 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 
 	public boolean areNullsOrdered(int columnPosition) {
 		return orderedNulls[columnPosition];
+	}
+
+	public boolean[] getOrderedNulls(){
+					return orderedNulls;
+	}
+
+	public void setOrderedNulls(boolean[] orderedNulls){
+					this.orderedNulls = orderedNulls;
 	}
 
 	/**
