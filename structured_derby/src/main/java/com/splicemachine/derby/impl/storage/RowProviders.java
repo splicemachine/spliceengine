@@ -346,9 +346,9 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(String xplainSchema) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
-										source,SpliceDriver.driver().getUUIDGenerator().nextUUID(),source.getStatementId(),-1l,-1l, Metrics.noOpTimeView(),spliceRuntimeContext);
+										source, operationId, statementId, -1l, -1l, Metrics.noOpTimeView(), spliceRuntimeContext);
 						XplainTaskReporter taskReporter = SpliceDriver.driver().getTaskReporter();
 						String hostName;
 						try {
@@ -459,9 +459,9 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(String xplainSchema) {
-						firstRowProvider.reportStats(xplainSchema);
-						secondRowProvider.reportStats(xplainSchema);
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+					firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema);
+					secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema);
 				}
 		}
 

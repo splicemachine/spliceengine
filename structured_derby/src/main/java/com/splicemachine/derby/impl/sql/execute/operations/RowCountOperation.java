@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.hbase.SpliceOperationRegionScanner;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
@@ -18,12 +18,14 @@ import com.splicemachine.derby.impl.storage.AbstractScanProvider;
 import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
+import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -35,15 +37,14 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.Nullable;
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -171,7 +172,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				if(fetchFirstMethod!=null && rowsFetched >=fetchFirst){
-						row =null;
+						setCurrentRow(null);
+						return null;
 				}else{
 						do{
 								row = source.nextRow(spliceRuntimeContext);
@@ -196,9 +198,10 @@ public class RowCountOperation extends SpliceBaseOperation{
 										spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL,Bytes.toBytes(rowsSkipped));
 								}
 						}while(row!=null);
+
+						setCurrentRow(null);
+						return null;
 				}
-				setCurrentRow(null);
-				return null;
 		}
 
 		private long getTotalOffset() throws StandardException {
@@ -224,7 +227,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				return new SpliceNoPutResultSet(activation,this,getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext));
 		}
 
@@ -232,12 +235,10 @@ public class RowCountOperation extends SpliceBaseOperation{
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-				return new StringBuilder("RowCount:")
-								.append(indent).append("resultSetNumber:").append(resultSetNumber)
-								.append(indent).append("offsetMethodName:").append(offsetMethodName)
-								.append(indent).append("fetchFirstMethodName:").append(fetchFirstMethodName)
-								.append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
-								.toString();
+				return "RowCount:" + indent + "resultSetNumber:" + resultSetNumber
+								+ indent + "offsetMethodName:" + offsetMethodName
+								+ indent + "fetchFirstMethodName:" + fetchFirstMethodName
+								+ indent + "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
 		@Override
@@ -249,18 +250,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 				if(offset>0){
 						if(provider instanceof AbstractScanProvider){
 								AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
-								provider = OffsetScanRowProvider.create(scanProvider.getRowTemplate(),
-												top,
-												scanProvider.toScan(),
-												offset,
-												decoder,
-												operationInformation.getBaseColumnMap(),
-												scanProvider.getTableName(),
-												spliceRuntimeContext);
+								provider = new OffsetScanRowProvider(top,decoder,scanProvider.toScan(),offset,scanProvider.getTableName(),spliceRuntimeContext);
 						}
 				}else if(provider instanceof AbstractScanProvider){
 						final AbstractScanProvider scanProvider = (AbstractScanProvider)provider;
-						AbstractScanProvider newWrap = new AbstractScanProvider(scanProvider){
+						provider = new AbstractScanProvider(scanProvider){
 								@Override
 								public Result getResult() throws StandardException, IOException {
 										Result result = scanProvider.getResult();
@@ -286,8 +280,12 @@ public class RowCountOperation extends SpliceBaseOperation{
 										// TODO Auto-generated method stub
 										return null;
 								}
+
+								@Override
+								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+									scanProvider.reportStats(statementId,operationId,taskId,xplainSchema);
+								}
 						};
-						provider = newWrap;
 				}
 
 				if(fetchLimit > 0 &&fetchLimit < (long)Integer.MAX_VALUE){
@@ -349,36 +347,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				this.rowsSkipped = rowsSkipped;
 		}
 
-		public static class OffsetFilter extends FilterBase {
-				private long offset;
-				private long numSkipped =0;
-
-				public OffsetFilter(){}
-
-				public OffsetFilter(long offset){
-						this.offset = offset;
-				}
-
-				@Override
-				public void write(DataOutput out) throws IOException {
-						out.writeLong(offset);
-				}
-
-				@Override
-				public void readFields(DataInput in) throws IOException {
-						offset = in.readLong();
-				}
-
-				@Override
-				public boolean filterRowKey(byte[] buffer, int offset, int length) {
-						boolean skip= numSkipped < this.offset;
-						if(skip)
-								numSkipped++;
-						return skip;
-				}
-		}
-
-		private static class OffsetScanRowProvider extends AbstractScanProvider {
+		private class OffsetScanRowProvider extends AbstractScanProvider {
 				private final Scan fullScan;
 				private Queue<Scan> offsetScans;
 				private ResultScanner currentScan = null;
@@ -388,30 +357,17 @@ public class RowCountOperation extends SpliceBaseOperation{
 				private HTableInterface table;
 				private SpliceOperation operation;
 
-				private OffsetScanRowProvider(String type,
-																			SpliceOperation operation,
+				private OffsetScanRowProvider( SpliceOperation operation,
 																			PairDecoder rowDecoder,
 																			Scan fullScan,
 																			long totalOffset,
 																			byte[] tableName,
 																			SpliceRuntimeContext spliceRuntimeContext) {
-						super(rowDecoder, type,spliceRuntimeContext);
+						super(rowDecoder, "offsetScan",spliceRuntimeContext);
 						this.fullScan = fullScan;
 						this.totalOffset = totalOffset;
 						this.tableName = tableName;
 						this.operation = operation;
-				}
-
-				public static OffsetScanRowProvider create(ExecRow rowTemplate,
-																									 SpliceOperation operation,
-																									 Scan fullScan,
-																									 long totalOffset,
-																									 PairDecoder rowDecoder,
-																									 int[] baseColumnMap,
-																									 byte[] tableName,
-																									 SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-
-						return new OffsetScanRowProvider("offsetScan",operation,rowDecoder,fullScan,totalOffset,tableName, spliceRuntimeContext);
 				}
 
 				@Override
@@ -496,12 +452,6 @@ public class RowCountOperation extends SpliceBaseOperation{
 						}
 				}
 
-				private static final Function<HRegionLocation,HRegionInfo> infoFunction = new Function<HRegionLocation, HRegionInfo>() {
-						@Override
-						public HRegionInfo apply(@Nullable HRegionLocation input) {
-								return input.getRegionInfo();
-						}
-				};
 				private void splitScansAroundRegionBarriers() throws ExecutionException,IOException{
 						//get the region set for this table
 						List<HRegionInfo> regionInfos;
@@ -511,34 +461,6 @@ public class RowCountOperation extends SpliceBaseOperation{
 						} else {
 								throw new ExecutionException(new UnsupportedOperationException("Unknown Table type, unable to get Region information. Table type is "+table.getClass()));
 						}
-
-//            final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
-//                @Override
-//                public boolean processRow(Result rowResult) throws IOException {
-//                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-//                    if(bytes==null){
-//                        //TODO -sf- log a message here
-//                        return true;
-//                    }
-//                    HRegionInfo info = Writables.getHRegionInfo(bytes);
-//                    Integer tableKey = Bytes.mapKey(info.getTableName());
-//                    if(tableNameKey.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
-//                        regionInfos.add(info);
-//                    }
-//                    return true;
-//                }
-//
-//                @Override
-//                public void close() throws IOException {
-//                    //no-op
-//                }
-//            };
-//
-//            try {
-//                MetaScanner.metaScan(SpliceUtils.config,visitor);
-//            } catch (IOException e) {
-//                SpliceLogUtils.error(LOG, "Unable to update region cache", e);
-//            }
 
 						List<Pair<byte[],byte[]>> ranges = Lists.newArrayListWithCapacity(regionInfos.size());
 						byte[] scanStart = fullScan.getStartRow();
@@ -595,6 +517,13 @@ public class RowCountOperation extends SpliceBaseOperation{
 						// TODO Auto-generated method stub
 						return null;
 				}
+
+				@Override
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId);
+						metrics.setHostName(SpliceUtils.getHostName());
+						SpliceDriver.driver().getTaskReporter().report(xplainSchema,metrics);
+				}
 		}
 
 		private class LimitedRowProvider implements RowProvider {
@@ -645,6 +574,11 @@ public class RowCountOperation extends SpliceBaseOperation{
 				public SpliceRuntimeContext getSpliceRuntimeContext() {
 						// TODO Auto-generated method stub
 						return null;
+				}
+
+				@Override
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+					provider.reportStats(statementId,operationId,taskId,xplainSchema);
 				}
 		}
 }

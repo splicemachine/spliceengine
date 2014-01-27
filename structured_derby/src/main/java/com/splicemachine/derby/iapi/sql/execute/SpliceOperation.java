@@ -125,7 +125,7 @@ public interface SpliceOperation  {
 	 * 
 	 * @return
 	 */
-	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException;
+	public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException;
 
 	/**
 	 * 

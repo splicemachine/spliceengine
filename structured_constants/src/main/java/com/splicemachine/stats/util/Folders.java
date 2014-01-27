@@ -4,7 +4,7 @@ package com.splicemachine.stats.util;
  * @author Scott Fines
  * Date: 1/24/14
  */
-public class FolderUtils {
+public class Folders {
 
 		private static final LongLongFolder MAX_FOLDER = new LongLongFolder() {
 				@Override
@@ -39,7 +39,7 @@ public class FolderUtils {
 				}
 		};
 
-		private FolderUtils(){}
+		private Folders(){}
 
 		public static LongLongFolder maxLongFolder(){
 				return MAX_FOLDER;

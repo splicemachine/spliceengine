@@ -254,7 +254,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 	}
 
     @Override
-    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }

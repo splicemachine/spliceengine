@@ -136,7 +136,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		}
 
 		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG,"executeScan");
 		/*
 		 * Write the data from the source sequentially. 
@@ -252,7 +252,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 
 				//no-op
-				@Override public void reportStats(String xplainSchema) {  }
+				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {  }
 
 				@Override
 				public void open()  {

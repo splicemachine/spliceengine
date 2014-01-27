@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
@@ -45,7 +46,7 @@ public class OperationTree {
         return new OperationTree(executor);
     }
 
-    public NoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
+    public SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())

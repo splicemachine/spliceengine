@@ -25,16 +25,16 @@ import java.util.List;
  * Created on: 5/21/13
  */
 public class ScalarAggregateRowProvider implements RowProvider {
-    private boolean defaultReturned = false;
-    private final ExecAggregator[] execAggregators;
-    private final SpliceGenericAggregator[] genericAggregators;
-    private final int[] colPosMap;
+		private boolean defaultReturned = false;
+		private final ExecAggregator[] execAggregators;
+		private final SpliceGenericAggregator[] genericAggregators;
+		private final int[] colPosMap;
 		private final RowProvider delegate;
 		private ExecRow templateRow;
 		private boolean populated = false;
 
 		public ScalarAggregateRowProvider(ExecRow templateRow,
-                                      SpliceGenericAggregator[] aggregates,
+																			SpliceGenericAggregator[] aggregates,
 																			RowProvider delegate) throws StandardException {
 				this.delegate = delegate;
 				this.templateRow =templateRow;
@@ -43,16 +43,16 @@ public class ScalarAggregateRowProvider implements RowProvider {
 				int []columnMap = new int[execAggregators.length];
 				int maxPos = 0;
 				for(int i=0;i<genericAggregators.length;i++){
-					execAggregators[i] = genericAggregators[i].getAggregatorInstance();
-					columnMap[i] = genericAggregators[i].getResultColumnId();
-					if(columnMap[i]>maxPos){
-						maxPos = columnMap[i];
-					}
+						execAggregators[i] = genericAggregators[i].getAggregatorInstance();
+						columnMap[i] = genericAggregators[i].getResultColumnId();
+						if(columnMap[i]>maxPos){
+								maxPos = columnMap[i];
+						}
 				}
 				this.colPosMap = new int[maxPos+1];
 				Arrays.fill(colPosMap,-1);
 				for(int i=0;i<columnMap.length;i++){
-					colPosMap[columnMap[i]] = i;
+						colPosMap[columnMap[i]] = i;
 				}
 		}
 
@@ -62,15 +62,26 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
 		@Override public byte[] getTableName() { return delegate.getTableName(); }
 		@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
-		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            return delegate.shuffleRows(instructions);}
-         @Override public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions)
-                 throws StandardException {
-             return delegate.asyncShuffleRows(instructions); }
-        @Override public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
-            return delegate.finishShuffle(jobFuture); }
 
-        @Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
+		@Override public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+				return delegate.shuffleRows(instructions);
+		}
+
+		@Override public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions)
+						throws StandardException {
+				return delegate.asyncShuffleRows(instructions);
+		}
+
+		@Override public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFuture) throws StandardException {
+				return delegate.finishShuffle(jobFuture);
+		}
+
+		@Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
+
+		@Override
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+			delegate.reportStats(statementId,operationId,taskId,xplainSchema);
+		}
 
 		@Override
 		public ExecRow next() throws StandardException, IOException {
@@ -79,45 +90,45 @@ public class ScalarAggregateRowProvider implements RowProvider {
 						return templateRow;
 				}
 
-        ExecRow finalRow = null;
-        while(hasNext()){
-            ExecRow row = delegate.next();
-            if(finalRow==null)
-                finalRow = row.getClone();
-            for(int i=0;i<genericAggregators.length;i++){
-                ExecAggregator aggregate = execAggregators[i];
-                SpliceGenericAggregator genericAgg = genericAggregators[i];
-                DataValueDescriptor column = row.getColumn(colPosMap[genericAgg.getResultColumnId()] + 1);
+				ExecRow finalRow = null;
+				while(hasNext()){
+						ExecRow row = delegate.next();
+						if(finalRow==null)
+								finalRow = row.getClone();
+						for(int i=0;i<genericAggregators.length;i++){
+								ExecAggregator aggregate = execAggregators[i];
+								SpliceGenericAggregator genericAgg = genericAggregators[i];
+								DataValueDescriptor column = row.getColumn(colPosMap[genericAgg.getResultColumnId()] + 1);
                 /*
                  * For some reason, sometimes we get aggregators that aren't reflected
                  * in the final answer. These should be ignored.
                  */
-                if(column!=null)
-                    aggregate.add(column);
-            }
-        }
+								if(column!=null)
+										aggregate.add(column);
+						}
+				}
 
-        if(finalRow!=null){
-            for(int i=0;i<genericAggregators.length;i++){
-                ExecAggregator aggregate = execAggregators[i];
-                SpliceGenericAggregator genericAgg = genericAggregators[i];
-                finalRow.setColumn(colPosMap[genericAgg.getResultColumnId()] + 1, aggregate.getResult());
-            }
-        }
+				if(finalRow!=null){
+						for(int i=0;i<genericAggregators.length;i++){
+								ExecAggregator aggregate = execAggregators[i];
+								SpliceGenericAggregator genericAgg = genericAggregators[i];
+								finalRow.setColumn(colPosMap[genericAgg.getResultColumnId()] + 1, aggregate.getResult());
+						}
+				}
 
-        return finalRow;
-    }
+				return finalRow;
+		}
 
-    @Override
-    public boolean hasNext() throws StandardException, IOException {
-        boolean hasNext = delegate.hasNext();
-        if(hasNext){
-            defaultReturned =true;
-            return hasNext;
-        }else if(!defaultReturned){
-            defaultReturned = true;
-            populated = true;
-            return true;
-        }else return false;
-    }
+		@Override
+		public boolean hasNext() throws StandardException, IOException {
+				boolean hasNext = delegate.hasNext();
+				if(hasNext){
+						defaultReturned =true;
+						return hasNext;
+				}else if(!defaultReturned){
+						defaultReturned = true;
+						populated = true;
+						return true;
+				}else return false;
+		}
 }

@@ -226,7 +226,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG,"executeScan");
 				final List<SpliceOperation> operationStack = getOperationStack();
 				SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);

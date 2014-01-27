@@ -5,34 +5,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
+import com.splicemachine.stats.*;
+import com.splicemachine.stats.util.Folders;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
 /**
  * Distributed Client Scanner
  */
-public class ProbeDistributedScanner implements ResultScanner {
-    private final ResultScanner[] scanners;
+public class ProbeDistributedScanner implements SpliceResultScanner {
+    private final SpliceResultScanner[] scanners;
     private final List<Result>[] nextOfScanners;
     private Result next = null;
 
     @SuppressWarnings("unchecked")
-    public ProbeDistributedScanner(ResultScanner[] scanners) throws IOException {
+    public ProbeDistributedScanner(SpliceResultScanner[] scanners) throws IOException {
         this.scanners = scanners;
         this.nextOfScanners = new List[scanners.length];
         for (int i = 0; i < this.nextOfScanners.length; i++) {
             this.nextOfScanners[i] = new ArrayList<Result>();
         }
-    }
-
-    private boolean hasNext(int nbRows) throws IOException {
-        if (next != null) {
-            return true;
-        }
-        next = nextInternal(nbRows);
-        return next != null;
     }
 
     @Override
@@ -46,7 +41,64 @@ public class ProbeDistributedScanner implements ResultScanner {
         return null;
     }
 
-    @Override
+		//no-op
+		@Override public void open() throws IOException, StandardException {  }
+
+		@Override
+		public TimeView getRemoteReadTime() {
+				MultiTimeView remoteView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				for(SpliceResultScanner scanner:scanners){
+						remoteView.update(scanner.getRemoteReadTime());
+				}
+				return remoteView;
+		}
+
+		@Override
+		public long getRemoteBytesRead() {
+				long totalBytes  = 0l;
+				for(SpliceResultScanner resultScanner:scanners){
+						totalBytes+=resultScanner.getRemoteBytesRead();
+				}
+				return totalBytes;
+		}
+
+		@Override
+		public long getRemoteRowsRead() {
+				long totalRows  = 0l;
+				for(SpliceResultScanner resultScanner:scanners){
+						totalRows+=resultScanner.getRemoteRowsRead();
+				}
+				return totalRows;
+		}
+
+		@Override
+		public TimeView getLocalReadTime() {
+				MultiTimeView remoteView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				for(SpliceResultScanner scanner:scanners){
+						remoteView.update(scanner.getLocalReadTime());
+				}
+				return remoteView;
+		}
+
+		@Override
+		public long getLocalBytesRead() {
+				long totalBytes  = 0l;
+				for(SpliceResultScanner resultScanner:scanners){
+						totalBytes+=resultScanner.getLocalBytesRead();
+				}
+				return totalBytes;
+		}
+
+		@Override
+		public long getLocalRowsRead() {
+				long totalRows  = 0l;
+				for(SpliceResultScanner resultScanner:scanners){
+						totalRows+=resultScanner.getLocalRowsRead();
+				}
+				return totalRows;
+		}
+
+		@Override
     public Result[] next(int nbRows) throws IOException {
         // Identical to HTable.ClientScanner implementation
         // Collect values to be returned here
@@ -69,10 +121,10 @@ public class ProbeDistributedScanner implements ResultScanner {
         }
     }
 
-    public static ProbeDistributedScanner create(HTableInterface hTable, List<Scan> scans) throws IOException {
-        ResultScanner[] rss = new ResultScanner[scans.size()];
+    public static ProbeDistributedScanner create(HTableInterface hTable, List<Scan> scans,MetricFactory metricFactory) throws IOException {
+        SpliceResultScanner[] rss = new SpliceResultScanner[scans.size()];
         for (int i = 0; i < scans.size(); i++) {
-            rss[i] = hTable.getScanner(scans.get(i));
+            rss[i] = new MeasuredResultScanner(hTable.getScanner(scans.get(i)),metricFactory);
         }
         return new ProbeDistributedScanner(rss);
     }
@@ -164,4 +216,13 @@ public class ProbeDistributedScanner implements ResultScanner {
             }
         };
     }
+
+		private boolean hasNext(int nbRows) throws IOException {
+				if (next != null) {
+						return true;
+				}
+				next = nextInternal(nbRows);
+				return next != null;
+		}
+
 }

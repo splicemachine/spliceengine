@@ -171,7 +171,7 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
         final List<SpliceOperation> opStack = new ArrayList<SpliceOperation>();
         this.generateLeftOperationStack(opStack);

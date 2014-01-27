@@ -77,7 +77,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     private PairDecoder rowDecoder;
 
     private HashBufferSource hbs;
-  
+
 
     public DistinctScanOperation(long conglomId,
                                  StaticCompiledOpenConglomInfo scoci, Activation activation,
@@ -247,7 +247,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
     	
         RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
