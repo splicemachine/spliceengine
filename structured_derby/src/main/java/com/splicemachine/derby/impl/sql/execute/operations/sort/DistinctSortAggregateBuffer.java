@@ -24,7 +24,7 @@ public class DistinctSortAggregateBuffer extends AbstractAggregateBuffer {
         
 	@Override
 	public BufferedAggregator createBufferedAggregator() {
-		return new DistinctSortBufferedAggregator(emptyRowSupplier);
+		return new DistinctSortBufferedAggregator(emptyRowSupplier,mergeCounter);
 	}
 
 	@Override

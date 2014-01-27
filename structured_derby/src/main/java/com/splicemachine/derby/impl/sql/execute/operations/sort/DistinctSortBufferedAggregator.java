@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.sort;
 
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
@@ -17,10 +19,13 @@ public class DistinctSortBufferedAggregator implements BufferedAggregator {
     private static Logger LOG = Logger.getLogger(DistinctSortBufferedAggregator.class);
     protected ExecRow currentRow;
     protected final StandardSupplier<ExecRow> emptyRowSupplier;
-    
-    public DistinctSortBufferedAggregator(StandardSupplier<ExecRow> emptyRowSupplier) {
-    	this.emptyRowSupplier = emptyRowSupplier;
-    }
+		private Counter mergeCounter;
+
+		public DistinctSortBufferedAggregator(StandardSupplier<ExecRow> emptyRowSupplier,Counter mergeCounter) {
+				this.emptyRowSupplier = emptyRowSupplier;
+				this.mergeCounter = mergeCounter;
+		}
+
     /**
      * Clones the row when going into the buffer.
      * 
@@ -38,6 +43,7 @@ public class DistinctSortBufferedAggregator implements BufferedAggregator {
     		SpliceLogUtils.trace(LOG, "discarding row ",newRow);
     	}
     	// throw away row
+				mergeCounter.add(1l);
     }
 
     public boolean isInitialized() {
