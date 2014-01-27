@@ -68,6 +68,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 		private PairDecoder rowDecoder;
 		private DistinctSortAggregateBuffer buffer;
+		private byte[] groupingKey;
 
 
 		/*
@@ -180,6 +181,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				}
 				timer.tick(1);
 				setCurrentRow(groupedRow.getRow());
+				groupingKey = groupedRow.getGroupingKey();
 				return groupedRow.getRow();
 		}
 
@@ -296,8 +298,20 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		     * a unique postfix is appended
 				 */
 				HashPrefix prefix = new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(),new FixedPrefix(uniqueSequenceID));
-				DataHash hash = BareKeyHash.encoder(keyColumns,descColumns);
-				KeyPostfix postfix = distinct? NoOpPostfix.INSTANCE : new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
+				DataHash hash;
+				KeyPostfix postfix;
+				if(distinct){
+					hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
+							@Override
+							public byte[] get() throws StandardException {
+									return groupingKey;
+							}
+					});
+						postfix = NoOpPostfix.INSTANCE;
+				}else{
+						hash = BareKeyHash.encoder(keyColumns,descColumns);
+						postfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId());
+				}
 
 				return new KeyEncoder(prefix,hash,postfix);
 		}
