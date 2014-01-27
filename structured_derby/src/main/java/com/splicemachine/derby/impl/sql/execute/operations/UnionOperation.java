@@ -91,7 +91,7 @@ public class UnionOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
     	SpliceRuntimeContext spliceLeftRuntimeContext = runtimeContext.copy();
     	spliceLeftRuntimeContext.addLeftRuntimeContext(resultSetNumber);
     	SpliceRuntimeContext spliceRightRuntimeContext = runtimeContext.copy();

@@ -49,7 +49,7 @@ public class MiscOperation extends NoRowsOperation
 		}
 
 		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG,"executeScan");
 				return new SpliceNoPutResultSet(activation,this,miscRowProvider,false);
 		}
@@ -128,8 +128,8 @@ public class MiscOperation extends NoRowsOperation
 				}
 
 				@Override
-				public void reportStats(String xplainSchema) {
-						//no-op TODO -sf- is this correct?
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+					//TODO -sf- is a no-op correct here?
 				}
 		};
 

@@ -123,7 +123,7 @@ public class HashJoinOperation extends NestedLoopJoinOperation {
 			SpliceLogUtils.trace(LOG, "final mergedRow %s",mergedRow);
 	}
 	@Override
-	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+	public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
 		SpliceLogUtils.trace(LOG, "executeScan");
 		final List<SpliceOperation> operationStack = new ArrayList<SpliceOperation>();
 		this.generateLeftOperationStack(operationStack);

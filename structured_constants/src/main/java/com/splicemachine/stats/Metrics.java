@@ -1,7 +1,7 @@
 package com.splicemachine.stats;
 
 import com.splicemachine.stats.util.DoubleFolder;
-import com.splicemachine.stats.util.FolderUtils;
+import com.splicemachine.stats.util.Folders;
 import com.splicemachine.utils.ThreadSafe;
 
 import java.lang.management.ManagementFactory;
@@ -108,9 +108,9 @@ public class Metrics {
 		@ThreadSafe
 		public static TimeView noOpTimeView() { return NOOP_TIME_VIEW; }
 
-		public static Gauge maxGauge() { return new FoldGauge(FolderUtils.maxDoubleFolder()); }
+		public static Gauge maxGauge() { return new FoldGauge(Folders.maxDoubleFolder()); }
 
-		public static Gauge minGauge() { return new FoldGauge(FolderUtils.minDoubleFolder()); }
+		public static Gauge minGauge() { return new FoldGauge(Folders.minDoubleFolder()); }
 
 		@ThreadSafe
 		public static Gauge noOpGauge() { return NOOP_GAUGE; }

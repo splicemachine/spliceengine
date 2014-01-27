@@ -71,5 +71,5 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
 		 */
 		SpliceRuntimeContext getSpliceRuntimeContext();
 
-		void reportStats(String xplainSchema);
+		void reportStats(long statementId, long operationId, long taskId,String xplainSchema);
 }

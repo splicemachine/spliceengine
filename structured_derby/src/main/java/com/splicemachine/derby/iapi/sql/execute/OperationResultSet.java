@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationTree;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.management.OperationInfo;
@@ -16,6 +17,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.ResultSet;
 import org.apache.derby.iapi.sql.execute.*;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -49,9 +51,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private final Activation activation;
     private final OperationTree operationTree;
     private SpliceOperation topOperation;
-    private NoPutResultSet delegate;
+    private SpliceNoPutResultSet delegate;
     private boolean closed = false;
 		private StatementInfo statementInfo;
+		private long scrollUuid;
 
 		public OperationResultSet(Activation activation,
                               OperationTree operationTree,
@@ -101,7 +104,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 				try{
 						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
 						runtimeContext.setStatementInfo(statementInfo);
+						if(activation.getLanguageConnectionContext().getStatisticsTiming()){
+								runtimeContext.recordTraceMetrics();
+								String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+								runtimeContext.setXplainSchema(xplainSchema);
+						}
+
 						delegate = operationTree.executeTree(topOperation,runtimeContext);
+						delegate.setScrollId(scrollUuid);
 						//open the delegate
 						delegate.openCore();
 				}catch(RuntimeException e){
@@ -115,7 +125,19 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
 		private List<OperationInfo> getOperationInfo(long statementId) {
 				List<OperationInfo> info = Lists.newArrayList();
-				populateOpInfo(statementId,-1,false,topOperation,info);
+				if(!(topOperation instanceof DMLWriteOperation)){
+					/*
+					 * We add an extra OperationInfo on the top here to indicate that there is
+					 * a "Scroll Insensitive" which returns the final output.
+					 */
+						scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",false,-1l);
+						info.add(opInfo);
+				}else{
+						scrollUuid = -1l;
+				}
+
+				populateOpInfo(statementId,scrollUuid,false,topOperation,info);
 				return info;
 		}
 

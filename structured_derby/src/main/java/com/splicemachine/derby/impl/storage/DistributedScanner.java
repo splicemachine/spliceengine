@@ -1,32 +1,36 @@
 package com.splicemachine.derby.impl.storage;
 
+import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.MultiTimeView;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.util.Folders;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
-
 /**
  * Interface for client-side scanning the data written with keys distribution
  * 
  * @author Alex Baranau
  */
-public class DistributedScanner implements ResultScanner {
+public class DistributedScanner implements SpliceResultScanner {
     private final AbstractRowKeyDistributor keyDistributor;
-    private final ResultScanner[] scanners;
+    private final SpliceResultScanner[] scanners;
     private final List<Result>[] nextOfScanners;
     private Result next = null;
 
     @SuppressWarnings("unchecked")
-    public DistributedScanner(AbstractRowKeyDistributor keyDistributor, ResultScanner[] scanners) throws IOException {
+    public DistributedScanner(AbstractRowKeyDistributor keyDistributor, SpliceResultScanner[] scanners) throws IOException {
         this.keyDistributor = keyDistributor;
         this.scanners = scanners;
         this.nextOfScanners = new List[scanners.length];
@@ -35,17 +39,40 @@ public class DistributedScanner implements ResultScanner {
         }
     }
 
-    private boolean hasNext(int nbRows) throws IOException {
-        if (next != null) {
-            return true;
-        }
+		@Override public void open() throws IOException, StandardException {  }
 
-        next = nextInternal(nbRows);
+		@Override
+		public TimeView getRemoteReadTime() {
+				MultiTimeView tView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				for(SpliceResultScanner scanner:scanners){
+						tView.update(scanner.getRemoteReadTime());
+				}
+				return tView;
+		}
 
-        return next != null;
-    }
+		@Override
+		public long getRemoteBytesRead() {
+				long totalBytes =0l;
+				for(SpliceResultScanner scanner:scanners){
+						totalBytes+=scanner.getRemoteBytesRead();
+				}
+				return totalBytes;
+		}
 
-    @Override
+		@Override
+		public long getRemoteRowsRead() {
+				long totalRows =0l;
+				for(SpliceResultScanner scanner:scanners){
+						totalRows+=scanner.getRemoteRowsRead();
+				}
+				return totalRows;
+		}
+
+		@Override public TimeView getLocalReadTime() { return Metrics.noOpTimeView(); }
+		@Override public long getLocalBytesRead() { return 0; }
+		@Override public long getLocalRowsRead() { return 0; }
+
+		@Override
     public Result next() throws IOException {
         if (hasNext(1)) {
             Result toReturn = next;
@@ -80,12 +107,12 @@ public class DistributedScanner implements ResultScanner {
     }
 
     public static DistributedScanner create(HTableInterface hTable, Scan originalScan,
-            AbstractRowKeyDistributor keyDistributor) throws IOException {
+            AbstractRowKeyDistributor keyDistributor,MetricFactory metricFactory) throws IOException {
         Scan[] scans = keyDistributor.getDistributedScans(originalScan);
 
-        ResultScanner[] rss = new ResultScanner[scans.length];
+        SpliceResultScanner[] rss = new SpliceResultScanner[scans.length];
         for (int i = 0; i < scans.length; i++) {
-            rss[i] = hTable.getScanner(scans[i]);
+            rss[i] = new MeasuredResultScanner(hTable.getScanner(scans[i]),metricFactory);
         }
 
         return new DistributedScanner(keyDistributor, rss);
@@ -180,4 +207,14 @@ public class DistributedScanner implements ResultScanner {
             }
         };
     }
+
+		private boolean hasNext(int nbRows) throws IOException {
+				if (next != null) {
+						return true;
+				}
+
+				next = nextInternal(nbRows);
+
+				return next != null;
+		}
 }

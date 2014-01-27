@@ -35,199 +35,199 @@ import java.util.Collections;
 import java.util.List;
 
 public class OnceOperation extends SpliceBaseOperation {
-	private static final long serialversionUID = 1l;
-	private static Logger LOG = Logger.getLogger(OnceOperation.class);
-	public static final int DO_CARDINALITY_CHECK		= 1;
-	public static final int NO_CARDINALITY_CHECK		= 2;
-	public static final int UNIQUE_CARDINALITY_CHECK	= 3;
-	private ExecRow rowWithNulls;
+		private static final long serialversionUID = 1l;
+		private static Logger LOG = Logger.getLogger(OnceOperation.class);
+		public static final int DO_CARDINALITY_CHECK		= 1;
+		public static final int NO_CARDINALITY_CHECK		= 2;
+		public static final int UNIQUE_CARDINALITY_CHECK	= 3;
+		private ExecRow rowWithNulls;
 
-	/* Used to cache the StatementContext */
-	private StatementContext statementContext;
+		/* Used to cache the StatementContext */
+		private StatementContext statementContext;
 
-    // set in constructor and not altered during
-    // life of object.
-    public SpliceOperation source;
-	protected SpliceMethod<ExecRow> emptyRowFun;
-	protected String emptyRowFunMethodName;	
-	private int cardinalityCheck;
-	public int subqueryNumber;
-	public int pointOfAttachment;
+		// set in constructor and not altered during
+		// life of object.
+		public SpliceOperation source;
+		protected SpliceMethod<ExecRow> emptyRowFun;
+		protected String emptyRowFunMethodName;
+		private int cardinalityCheck;
+		public int subqueryNumber;
+		public int pointOfAttachment;
 
-	private RowProvider dataProvider; // used for local calls to nextRow()
+		private RowProvider dataProvider; // used for local calls to nextRow()
 
-    @Deprecated
-    public OnceOperation(){}
+		@Deprecated
+		public OnceOperation(){}
 
-	   public OnceOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
-				 int cardinalityCheck, int resultSetNumber,
-				 int subqueryNumber, int pointOfAttachment,
-				 double optimizerEstimatedRowCount,
-				 double optimizerEstimatedCost) throws StandardException {
-		   super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-			SpliceLogUtils.trace(LOG, "instantiated");
-		   this.source = s;
-		   this.emptyRowFunMethodName = (emptyRowFun != null)?emptyRowFun.getMethodName():null;
-		   this.cardinalityCheck = cardinalityCheck;
-		   this.subqueryNumber = subqueryNumber;
-		   this.pointOfAttachment = pointOfAttachment;
-           init(SpliceOperationContext.newContext(a));
-		   recordConstructorTime(); 
-	   }
-	   
+		public OnceOperation(SpliceOperation s, Activation a, GeneratedMethod emptyRowFun,
+												 int cardinalityCheck, int resultSetNumber,
+												 int subqueryNumber, int pointOfAttachment,
+												 double optimizerEstimatedRowCount,
+												 double optimizerEstimatedCost) throws StandardException {
+				super(a, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+				SpliceLogUtils.trace(LOG, "instantiated");
+				this.source = s;
+				this.emptyRowFunMethodName = (emptyRowFun != null)?emptyRowFun.getMethodName():null;
+				this.cardinalityCheck = cardinalityCheck;
+				this.subqueryNumber = subqueryNumber;
+				this.pointOfAttachment = pointOfAttachment;
+				init(SpliceOperationContext.newContext(a));
+				recordConstructorTime();
+		}
+
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-			SpliceLogUtils.trace(LOG, "readExternal");
-			super.readExternal(in);
-			source = (SpliceOperation) in.readObject();
-			emptyRowFunMethodName = readNullableString(in);
-			cardinalityCheck = in.readInt();
-			subqueryNumber = in.readInt();
-			pointOfAttachment = in.readInt();
+				SpliceLogUtils.trace(LOG, "readExternal");
+				super.readExternal(in);
+				source = (SpliceOperation) in.readObject();
+				emptyRowFunMethodName = readNullableString(in);
+				cardinalityCheck = in.readInt();
+				subqueryNumber = in.readInt();
+				pointOfAttachment = in.readInt();
 		}
 
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
-			SpliceLogUtils.trace(LOG, "writeExternal");
-			super.writeExternal(out);
-			out.writeObject(source);
-			writeNullableString(emptyRowFunMethodName, out);
-			out.writeInt(cardinalityCheck);
-			out.writeInt(subqueryNumber);
-			out.writeInt(pointOfAttachment);
+				SpliceLogUtils.trace(LOG, "writeExternal");
+				super.writeExternal(out);
+				out.writeObject(source);
+				writeNullableString(emptyRowFunMethodName, out);
+				out.writeInt(cardinalityCheck);
+				out.writeInt(subqueryNumber);
+				out.writeInt(pointOfAttachment);
 		}
-		
+
 		@Override
 		public SpliceOperation getLeftOperation() {
-			SpliceLogUtils.trace(LOG,"getLeftOperation");
-			return source;
+				SpliceLogUtils.trace(LOG,"getLeftOperation");
+				return source;
 		}
 
-    @Override
-    public void init(SpliceOperationContext context) throws StandardException {
-        super.init(context);
-        source.init(context);
+		@Override
+		public void init(SpliceOperationContext context) throws StandardException {
+				super.init(context);
+				source.init(context);
 
-        if(emptyRowFun == null) {
-            emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
-        }
-    }
+				if(emptyRowFun == null) {
+						emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
+				}
+		}
 
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        //do our cardinality checking
-        ExecRow rowToReturn = null;
+		@Override
+		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+				//do our cardinality checking
+				ExecRow rowToReturn = null;
 
-        ExecRow nextRow = source.nextRow(spliceRuntimeContext);
-        if(nextRow!=null){
-            switch (cardinalityCheck) {
-                case DO_CARDINALITY_CHECK:
-                case NO_CARDINALITY_CHECK:
-                    nextRow = nextRow.getClone();
-                    if (cardinalityCheck == DO_CARDINALITY_CHECK) {
+				ExecRow nextRow = source.nextRow(spliceRuntimeContext);
+				if(nextRow!=null){
+						switch (cardinalityCheck) {
+								case DO_CARDINALITY_CHECK:
+								case NO_CARDINALITY_CHECK:
+										nextRow = nextRow.getClone();
+										if (cardinalityCheck == DO_CARDINALITY_CHECK) {
                     /* Raise an error if the subquery returns > 1 row
                      * We need to make a copy of the current candidateRow since
                      * the getNextRow() for this check will wipe out the underlying
                      * row.
                      */
-                        ExecRow secondRow = source.nextRow(spliceRuntimeContext);
-                        if(secondRow!=null){
-                            close();
-                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-                        }
-                    }
-                    rowToReturn = nextRow;
-                    break;
-                case UNIQUE_CARDINALITY_CHECK:
-                    //TODO -sf- I don't think that this will work unless there's a sort order on the first column..
-                    nextRow = nextRow.getClone();
-                    DataValueDescriptor orderable1 = nextRow.getColumn(1);
-                    ExecRow secondRow = source.nextRow(spliceRuntimeContext);
-                    while(secondRow!=null){
-                        DataValueDescriptor orderable2 = secondRow.getColumn(1);
-                        if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
-                            close();
-                            throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
-                        }
-                        secondRow = source.nextRow(spliceRuntimeContext);
-                    }
-                    rowToReturn = nextRow;
-                    break;
-                default:
-                    if (SanityManager.DEBUG) {
-                        SanityManager.THROWASSERT(
-                                "cardinalityCheck not unexpected to be " +
-                                        cardinalityCheck);
-                    }
-                    break;
-            }
-        }
-        //do null-filling on the other side of the serialization barrier
-        setCurrentRow(rowToReturn);
-        return rowToReturn;
-	}
+												ExecRow secondRow = source.nextRow(spliceRuntimeContext);
+												if(secondRow!=null){
+														close();
+														throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+												}
+										}
+										rowToReturn = nextRow;
+										break;
+								case UNIQUE_CARDINALITY_CHECK:
+										//TODO -sf- I don't think that this will work unless there's a sort order on the first column..
+										nextRow = nextRow.getClone();
+										DataValueDescriptor orderable1 = nextRow.getColumn(1);
+										ExecRow secondRow = source.nextRow(spliceRuntimeContext);
+										while(secondRow!=null){
+												DataValueDescriptor orderable2 = secondRow.getColumn(1);
+												if (! (orderable1.compare(DataValueDescriptor.ORDER_OP_EQUALS, orderable2, true, true))) {
+														close();
+														throw StandardException.newException(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION);
+												}
+												secondRow = source.nextRow(spliceRuntimeContext);
+										}
+										rowToReturn = nextRow;
+										break;
+								default:
+										if (SanityManager.DEBUG) {
+												SanityManager.THROWASSERT(
+																"cardinalityCheck not unexpected to be " +
+																				cardinalityCheck);
+										}
+										break;
+						}
+				}
+				//do null-filling on the other side of the serialization barrier
+				setCurrentRow(rowToReturn);
+				return rowToReturn;
+		}
 
-    @Override
-    public void close() throws StandardException, IOException {
-        if(dataProvider!=null)
-            dataProvider.close();
-        dataProvider = null;
+		@Override
+		public void close() throws StandardException, IOException {
+				if(dataProvider!=null)
+						dataProvider.close();
+				dataProvider = null;
 				source.close();
 				super.close();
-    }
+		}
 
-	@Override
-	public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-		SpliceLogUtils.trace(LOG, "executeScan");
-		final List<SpliceOperation> operationStack =getOperationStack();
-		SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
-		SpliceOperation regionOperation = operationStack.get(0);
-		SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-		RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
-		return new SpliceNoPutResultSet(activation,this, provider);
-	}
+		@Override
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+				SpliceLogUtils.trace(LOG, "executeScan");
+				final List<SpliceOperation> operationStack =getOperationStack();
+				SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
+				SpliceOperation regionOperation = operationStack.get(0);
+				SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
+				RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
+				return new SpliceNoPutResultSet(activation,this, provider);
+		}
 
-	@Override
-	public ExecRow getExecRowDefinition() throws StandardException {
-		return source.getExecRowDefinition();
-	}
+		@Override
+		public ExecRow getExecRowDefinition() throws StandardException {
+				return source.getExecRowDefinition();
+		}
 
-    @Override
-    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        return source.getRootAccessedCols(tableNumber);
-    }
+		@Override
+		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+				return source.getRootAccessedCols(tableNumber);
+		}
 
-    @Override
-    public boolean isReferencingTable(long tableNumber) {
-        return source.isReferencingTable(tableNumber);
-    }
+		@Override
+		public boolean isReferencingTable(long tableNumber) {
+				return source.isReferencingTable(tableNumber);
+		}
 
-    @Override
-	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
-		SpliceLogUtils.trace(LOG, "getMapRowProvider");
-        return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
-	}
-	
-	@Override
-	public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
-		SpliceLogUtils.trace(LOG, "getReduceRowProvider");
-        return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext));
-	}
+		@Override
+		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+				SpliceLogUtils.trace(LOG, "getMapRowProvider");
+				return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
+		}
 
-    @Override
-	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
-		return Collections.singletonList(NodeType.SCAN);
-	}
+		@Override
+		public RowProvider getReduceRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException{
+				SpliceLogUtils.trace(LOG, "getReduceRowProvider");
+				return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext));
+		}
 
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		SpliceLogUtils.trace(LOG, "getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add(source);
-		return operations;
-	}
-	
+		@Override
+		public List<NodeType> getNodeTypes() {
+				SpliceLogUtils.trace(LOG, "getNodeTypes");
+				return Collections.singletonList(NodeType.SCAN);
+		}
+
+		@Override
+		public List<SpliceOperation> getSubOperations() {
+				SpliceLogUtils.trace(LOG, "getSubOperations");
+				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+				operations.add(source);
+				return operations;
+		}
+
 //	@Override
 //	public long getTimeSpent(int type)
 //	{
@@ -240,79 +240,84 @@ public class OnceOperation extends SpliceBaseOperation {
 //	}
 
 
-    @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-        if(source!=null)source.open();
-    }
-
-    private class OnceRowProvider implements RowProvider {
-        private final RowProvider delegate;
-        private ExecRow rowToReturn;
-
-        public OnceRowProvider(RowProvider delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override public void open() throws StandardException { 
-        	delegate.open(); 
-        }
-        @Override public void close() throws StandardException { delegate.close(); }
-        @Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
-        @Override public byte[] getTableName() { return delegate.getTableName(); }
-        @Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
-
-        @Override
-        public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            return delegate.shuffleRows(instructions);
-        }
-
-        @Override
-        public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
-            return delegate.asyncShuffleRows(instructions);
-        }
-
-        @Override
-        public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
-            return delegate.finishShuffle(jobFutures);
-        }
-
-        @Override
-        public boolean hasNext() throws StandardException, IOException {
-            rowToReturn = delegate.hasNext() ? delegate.next() : getRowWithNulls();
-            // OnceOp always has another row…
-            return true;
-        }
-
-        @Override
-        public ExecRow next() throws StandardException {
-            return rowToReturn;
-        }
-
 		@Override
-		public SpliceRuntimeContext getSpliceRuntimeContext() {
-			return delegate.getSpliceRuntimeContext();
+		public void open() throws StandardException, IOException {
+				super.open();
+				if(source!=null)source.open();
 		}
 
-        public ExecRow getRowWithNulls() throws StandardException {
-            if (rowWithNulls == null){
-                rowWithNulls = emptyRowFun.invoke();
-            }
-            return rowWithNulls;
-        }
-    }
+		private class OnceRowProvider implements RowProvider {
+				private final RowProvider delegate;
+				private ExecRow rowToReturn;
 
-    @Override
-    public String prettyPrint(int indentLevel) {
-        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+				public OnceRowProvider(RowProvider delegate) {
+						this.delegate = delegate;
+				}
 
-        return new StringBuilder("Once:")
-                .append(indent).append("resultSetNumber:").append(resultSetNumber)
-                .append(indent).append("emptyRowFunName:").append(emptyRowFunMethodName)
-                .append(indent).append("cardinalityCheck:").append(cardinalityCheck)
-                .append(indent).append("subqueryNumber:").append(subqueryNumber)
-                .append(indent).append("pointOfAttachment:").append(pointOfAttachment)
-                .append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
-                .toString();
-    }
+				@Override public void open() throws StandardException {
+						delegate.open();
+				}
+				@Override public void close() throws StandardException { delegate.close(); }
+				@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
+				@Override public byte[] getTableName() { return delegate.getTableName(); }
+				@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
+
+				@Override
+				public JobResults shuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+						return delegate.shuffleRows(instructions);
+				}
+
+				@Override
+				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException {
+						return delegate.asyncShuffleRows(instructions);
+				}
+
+				@Override
+				public JobResults finishShuffle(List<Pair<JobFuture,JobInfo>> jobFutures) throws StandardException {
+						return delegate.finishShuffle(jobFutures);
+				}
+
+				@Override
+				public boolean hasNext() throws StandardException, IOException {
+						rowToReturn = delegate.hasNext() ? delegate.next() : getRowWithNulls();
+						// OnceOp always has another row…
+						return true;
+				}
+
+				@Override
+				public ExecRow next() throws StandardException {
+						return rowToReturn;
+				}
+
+				@Override
+				public SpliceRuntimeContext getSpliceRuntimeContext() {
+						return delegate.getSpliceRuntimeContext();
+				}
+
+				public ExecRow getRowWithNulls() throws StandardException {
+						if (rowWithNulls == null){
+								rowWithNulls = emptyRowFun.invoke();
+						}
+						return rowWithNulls;
+				}
+
+				@Override
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+					delegate.reportStats(statementId,operationId,taskId,xplainSchema);
+				}
+		}
+
+		@Override
+		public String prettyPrint(int indentLevel) {
+				String indent = "\n"+ Strings.repeat("\t",indentLevel);
+
+				return new StringBuilder("Once:")
+								.append(indent).append("resultSetNumber:").append(resultSetNumber)
+								.append(indent).append("emptyRowFunName:").append(emptyRowFunMethodName)
+								.append(indent).append("cardinalityCheck:").append(cardinalityCheck)
+								.append(indent).append("subqueryNumber:").append(subqueryNumber)
+								.append(indent).append("pointOfAttachment:").append(pointOfAttachment)
+								.append(indent).append("source:").append(source.prettyPrint(indentLevel+1))
+								.toString();
+		}
 }

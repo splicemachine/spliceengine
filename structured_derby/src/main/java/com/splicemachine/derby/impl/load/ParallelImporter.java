@@ -9,7 +9,7 @@ import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.*;
-import com.splicemachine.stats.util.FolderUtils;
+import com.splicemachine.stats.util.Folders;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -126,8 +126,8 @@ public class ParallelImporter implements Importer{
 				if(stats==null) return Metrics.noOpIOStats();
 
 				MultiTimeView timeView = new MultiTimeView(
-								FolderUtils.maxLongFolder(),FolderUtils.sumFolder(),FolderUtils.sumFolder(),
-								FolderUtils.minLongFolder(), FolderUtils.maxLongFolder());
+								Folders.maxLongFolder(), Folders.sumFolder(), Folders.sumFolder(),
+								Folders.minLongFolder(), Folders.maxLongFolder());
 				MultiStatsView view = new MultiStatsView(timeView);
 				for(IOStats ioStats:stats){
 					view.merge(ioStats);

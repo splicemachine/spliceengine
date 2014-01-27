@@ -248,7 +248,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 	@Override
-	public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+	public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 			RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this,spliceRuntimeContext),spliceRuntimeContext);
 			SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this,provider);
 			nextTime += getCurrentTimeMillis() - beginTime;

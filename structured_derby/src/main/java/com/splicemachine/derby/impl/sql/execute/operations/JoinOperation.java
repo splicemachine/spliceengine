@@ -293,7 +293,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public NoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				SpliceLogUtils.trace(LOG, "executeScan");
 				return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext));
 		}

@@ -27,6 +27,7 @@ public class ClientResultScanner implements SpliceResultScanner{
     private final byte[] tableName;
     private final Scan scan;
     private final RowKeyDistributorByHashPrefix keyDistributor;
+		private final MetricFactory metricFactory;
 
     private HTableInterface table;
 
@@ -37,6 +38,7 @@ public class ClientResultScanner implements SpliceResultScanner{
 															 Scan scan,
 															 boolean bucketed,
 															 MetricFactory metricFactory) {
+				this.metricFactory = metricFactory;
         this.tableName = tableName;
         this.scan = scan;
         if(bucketed){
@@ -58,7 +60,7 @@ public class ClientResultScanner implements SpliceResultScanner{
         if(keyDistributor==null)
             scanner = table.getScanner(scan);
         else
-            scanner = DistributedScanner.create(table,scan,keyDistributor);
+            scanner = DistributedScanner.create(table,scan,keyDistributor,metricFactory);
     }
 
 		@Override public TimeView getRemoteReadTime() { return remoteReadTimer.getTime(); }

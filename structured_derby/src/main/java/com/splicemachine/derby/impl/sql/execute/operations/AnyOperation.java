@@ -130,7 +130,7 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         RowProvider provider = getReduceRowProvider(source,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
         return new SpliceNoPutResultSet(activation,this,provider);
     }
@@ -146,32 +146,37 @@ public class AnyOperation extends SpliceBaseOperation {
                 .toString();
     }
 
-    @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return source.getMapRowProvider(top,decoder,spliceRuntimeContext);
-    }
+		@Override
+		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return source.getMapRowProvider(top,decoder,spliceRuntimeContext);
+		}
 
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext)) {
-            @Override
-            public boolean hasNext() throws StandardException {
-                // AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())
-                return true;
-            }
+		@Override
+		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+				return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext)) {
+						@Override
+						public boolean hasNext() throws StandardException {
+								// AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())
+								return true;
+						}
 
-            @Override
-            public ExecRow next() throws StandardException, IOException {
-                ExecRow result = provider.hasNext() ? provider.next() : getRowWithNulls();
-                setCurrentRow(result);
-                return result;
-            }
+						@Override
+						public ExecRow next() throws StandardException, IOException {
+								ExecRow result = provider.hasNext() ? provider.next() : getRowWithNulls();
+								setCurrentRow(result);
+								return result;
+						}
 
-			@Override
-			public SpliceRuntimeContext getSpliceRuntimeContext() {
-				return provider.getSpliceRuntimeContext();
-			}
-        };
+						@Override
+						public SpliceRuntimeContext getSpliceRuntimeContext() {
+								return provider.getSpliceRuntimeContext();
+						}
+
+						@Override
+						public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+							provider.reportStats(statementId,operationId,taskId,xplainSchema);
+						}
+				};
     }
 
     @Override
