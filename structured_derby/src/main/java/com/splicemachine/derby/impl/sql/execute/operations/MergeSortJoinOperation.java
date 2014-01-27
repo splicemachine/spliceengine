@@ -185,7 +185,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         try {
             ExecRow joinedRow = joiner.nextRow();
             if (joinedRow != null) {
-                rowsSeen++;
+                inputRows++;
                 shouldClose = false;
                 setCurrentRow(joinedRow);
             } else {
@@ -198,7 +198,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 								stopExecutionTime = System.currentTimeMillis();
                 if (LOG.isDebugEnabled() && joiner != null) {
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
-														rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
+														inputRows, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
                 isOpen = false;
                 bridgeIterator.close();
@@ -237,8 +237,13 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
 //						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
 				}else{
-						//the number of input rows is the same as the number of output rows
-//						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+						/*
+						 * When there is no scanner, then we are a sink, which means that
+						 * we are taking whatever rows are given to us and immediately
+						 * writing them to TEMP. Thus, the number of output rows is the
+						 * same as the number of input rows.
+						 */
+						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 				}
 		}
 
