@@ -401,12 +401,26 @@ public class HdfsImport extends ParallelVTI {
 		@Override public SpliceOperation getRightOperation() { return null; } //noop
 		@Override public void generateRightOperationStack(boolean initial, List<SpliceOperation> operations) {  }
 		@Override public String prettyPrint(int indentLevel) { return "HdfsImport"; }
+
+		@Override
+		public long getStatementId() {
+				return statementId;
+		}
+
+		//no-op
+		@Override public void setStatementId(long statementId) {
+			throw new UnsupportedOperationException("HdfsImport does not support mutating statment ids");
+		}
+
 		@Override public void setCurrentRowLocation(RowLocation rowLocation) { }
 
 		@Override
 		public String getName() {
 				return "Import("+context.getFilePath().toString()+"->"+context.getTableName()+")";
 		}
+
+		@Override public boolean shouldRecordStats() { return false; }
+		@Override public String getXplainSchema() { return null; }
 
 		/************************************************************************************************************/
 	/*private helper functions*/

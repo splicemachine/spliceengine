@@ -329,7 +329,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealProjectRestrictStatistics(
 											prrs.numOpens,
-											prrs.rowsSeen,
+											prrs.inputRows,
 											prrs.rowsFiltered,
 											prrs.constructorTime,
 											prrs.openTime,
@@ -352,7 +352,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealRowCountStatistics(
 				rcrs.numOpens,
-				rcrs.rowsSeen,
+				rcrs.inputRows,
 				rcrs.rowsFiltered,
 				rcrs.constructorTime,
 				rcrs.openTime,
@@ -369,7 +369,7 @@ public class SpliceRealResultSetStatisticsFactory
 			
 			return new RealSortStatistics(
 											srs.numOpens,
-											srs.rowsSeen,
+											srs.inputRows,
 											srs.rowsFiltered,
 											srs.constructorTime,
 											srs.openTime,
@@ -392,7 +392,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealDistinctScalarAggregateStatistics(
 											dsars.numOpens,
-											dsars.rowsSeen,
+											dsars.inputRows,
 											dsars.rowsFiltered,
 											dsars.constructorTime,
 											dsars.openTime,
@@ -411,7 +411,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealScalarAggregateStatistics(
 											sars.numOpens,
-											sars.rowsSeen,
+											sars.inputRows,
 											sars.rowsFiltered,
 											sars.constructorTime,
 											sars.openTime,
@@ -431,7 +431,7 @@ public class SpliceRealResultSetStatisticsFactory
 			
 			return new RealGroupedAggregateStatistics(
 											gars.numOpens,
-											gars.rowsSeen,
+											gars.inputRows,
 											gars.rowsFiltered,
 											gars.constructorTime,
 											gars.openTime,
@@ -539,7 +539,7 @@ public class SpliceRealResultSetStatisticsFactory
 			return new 
                 RealTableScanStatistics(
                     tsrs.numOpens,
-                    tsrs.rowsSeen,
+                    tsrs.inputRows,
                     tsrs.rowsFiltered,
                     tsrs.constructorTime,
                     tsrs.openTime,
@@ -627,7 +627,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealHashLeftOuterJoinStatistics(
 											hlojrs.numOpens,
-											hlojrs.rowsSeen,
+											hlojrs.inputRows,
 											hlojrs.rowsFiltered,
 											hlojrs.constructorTime,
 											hlojrs.openTime,
@@ -652,7 +652,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealNestedLoopLeftOuterJoinStatistics(
 											nllojrs.numOpens,
-											nllojrs.rowsSeen,
+											nllojrs.inputRows,
 											nllojrs.rowsFiltered,
 											nllojrs.constructorTime,
 											nllojrs.openTime,
@@ -676,7 +676,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealHashJoinStatistics(
 											hjrs.numOpens,
-											hjrs.rowsSeen,
+											hjrs.inputRows,
 											hjrs.rowsFiltered,
 											hjrs.constructorTime,
 											hjrs.openTime,
@@ -701,7 +701,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealNestedLoopJoinStatistics(
 											nljrs.numOpens,
-											nljrs.rowsSeen,
+											nljrs.inputRows,
 											nljrs.rowsFiltered,
 											nljrs.constructorTime,
 											nljrs.openTime,
@@ -726,7 +726,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealMergeSortJoinStatistics(
 					msjrs.numOpens,
-					msjrs.rowsSeen,
+					msjrs.inputRows,
 					msjrs.rowsFiltered,
 					msjrs.constructorTime,
 					msjrs.openTime,
@@ -751,7 +751,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealMergeSortLeftOuterJoinStatistics(
 					mslojrs.numOpens,
-					mslojrs.rowsSeen,
+					mslojrs.inputRows,
 					mslojrs.rowsFiltered,
 					mslojrs.constructorTime,
 					mslojrs.openTime,
@@ -775,7 +775,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealIndexRowToBaseRowStatistics(
 											irtbrrs.numOpens,
-											irtbrrs.rowsSeen,
+											irtbrrs.inputRows,
 											irtbrrs.rowsFiltered,
 											irtbrrs.constructorTime,
 											irtbrrs.openTime,
@@ -795,7 +795,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealRowResultSetStatistics(
 											rrs.numOpens,
-											rrs.rowsSeen,
+											rrs.inputRows,
 											rrs.rowsFiltered,
 											rrs.constructorTime,
 											rrs.openTime,
@@ -812,7 +812,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealWindowResultSetStatistics(
 											wrs.numOpens,
-											wrs.rowsSeen,
+											wrs.inputRows,
 											wrs.rowsFiltered,
 											wrs.constructorTime,
 											wrs.openTime,
@@ -831,7 +831,7 @@ public class SpliceRealResultSetStatisticsFactory
 			return new RealSetOpResultSetStatistics(
 											srs.getOpType(),
 											srs.numOpens,
-											srs.rowsSeen,
+											srs.inputRows,
 											srs.rowsFiltered,
 											srs.constructorTime,
 											srs.openTime,
@@ -853,7 +853,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealUnionResultSetStatistics(
 											urs.numOpens,
-											urs.rowsSeen,
+											urs.inputRows,
 											urs.rowsFiltered,
 											urs.constructorTime,
 											urs.openTime,
@@ -875,7 +875,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealAnyResultSetStatistics(
 											ars.numOpens,
-											ars.rowsSeen,
+											ars.inputRows,
 											ars.rowsFiltered,
 											ars.constructorTime,
 											ars.openTime,
@@ -895,7 +895,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealOnceResultSetStatistics(
 											ors.numOpens,
-											ors.rowsSeen,
+											ors.inputRows,
 											ors.rowsFiltered,
 											ors.constructorTime,
 											ors.openTime,
@@ -915,7 +915,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealNormalizeResultSetStatistics(
 											nrs.numOpens,
-											nrs.rowsSeen,
+											nrs.inputRows,
 											nrs.rowsFiltered,
 											nrs.constructorTime,
 											nrs.openTime,
@@ -933,7 +933,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealMaterializedResultSetStatistics(
 											mrs.numOpens,
-											mrs.rowsSeen,
+											mrs.inputRows,
 											mrs.rowsFiltered,
 											mrs.constructorTime,
 											mrs.openTime,
@@ -953,7 +953,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealScrollInsensitiveResultSetStatistics(
 											sirs.numOpens,
-											sirs.rowsSeen,
+											sirs.inputRows,
 											sirs.rowsFiltered,
 											sirs.constructorTime,
 											sirs.openTime,
@@ -973,7 +973,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealCurrentOfStatistics(
 											cors.numOpens,
-											cors.rowsSeen,
+											cors.inputRows,
 											cors.rowsFiltered,
 											cors.constructorTime,
 											cors.openTime,
@@ -1071,7 +1071,7 @@ public class SpliceRealResultSetStatisticsFactory
 			{
 				return new RealDistinctScanStatistics(
 											hsrs.numOpens,
-											hsrs.rowsSeen,
+											hsrs.inputRows,
 											hsrs.rowsFiltered,
 											hsrs.constructorTime,
 											hsrs.openTime,
@@ -1098,7 +1098,7 @@ public class SpliceRealResultSetStatisticsFactory
 			{
 				return new RealHashScanStatistics(
 											hsrs.numOpens,
-											hsrs.rowsSeen,
+											hsrs.inputRows,
 											hsrs.rowsFiltered,
 											hsrs.constructorTime,
 											hsrs.openTime,
@@ -1149,7 +1149,7 @@ public class SpliceRealResultSetStatisticsFactory
 			return new 
                 RealHashTableStatistics(
                     htrs.numOpens,
-                    htrs.rowsSeen,
+                    htrs.inputRows,
                     htrs.rowsFiltered,
                     htrs.constructorTime,
                     htrs.openTime,
@@ -1173,7 +1173,7 @@ public class SpliceRealResultSetStatisticsFactory
 
 			return new RealVTIStatistics(
 										vtirs.numOpens,
-										vtirs.rowsSeen,
+										vtirs.inputRows,
 										vtirs.rowsFiltered,
 										vtirs.constructorTime,
 										vtirs.openTime,
@@ -1283,7 +1283,7 @@ public class SpliceRealResultSetStatisticsFactory
 			return new 
                 RealTableScanStatistics(
                     dsrs.numOpens,
-                    dsrs.rowsSeen,
+                    dsrs.inputRows,
                     dsrs.rowsFiltered,
                     dsrs.constructorTime,
                     dsrs.openTime,

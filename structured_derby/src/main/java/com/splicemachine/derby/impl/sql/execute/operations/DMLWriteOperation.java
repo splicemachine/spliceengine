@@ -244,13 +244,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 
 				@Override public boolean hasNext() { return false; }
-
 				@Override public ExecRow next() { return null; }
 
 				public void setRowsModified(long rowsModified){
 						this.isOpen = true;
 						this.rowsModified = rowsModified;
 				}
+
+				//no-op
+				@Override public void reportStats(String xplainSchema) {  }
 
 				@Override
 				public void open()  {

@@ -104,15 +104,9 @@ public class SinkGroupedAggregateIterator extends GroupedAggregateIterator {
 		}
 
 		/*stats stuff*/
-		@Override
-		public long getRowsMerged() {
-				return buffer.getRowsMerged();
-		}
-
-		@Override
-		public double getMaxFillRatio() {
-				return buffer.getMaxFillRatio();
-		}
+		@Override public long getRowsMerged() { return buffer.getRowsMerged(); }
+		@Override public double getMaxFillRatio() { return buffer.getMaxFillRatio(); }
+		@Override public long getRowsRead() { return rowsRead; }
 
 		/********************************************************************************************/
 		/*private helper methods*/

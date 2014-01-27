@@ -33,6 +33,16 @@ public interface SpliceOperation  {
 		String getName();
 
 		/**
+		 * @return true if statistics recording is enabled.
+		 */
+		boolean shouldRecordStats();
+
+		/**
+		 * @return the xplain schema to use, or {@code null} if no schema is known(or {@link #shouldRecordStats()} returns {@code false}.
+		 */
+		String getXplainSchema();
+
+		/**
 	 * 
 	 * Enumeration with the following types:
 	 * 
@@ -200,4 +210,12 @@ public interface SpliceOperation  {
 		 * metrics have been collected.
 		 */
 		OperationRuntimeStats getMetrics(long statementId,long taskId);
+
+		/**
+		 * @return -1l if no statementId has been set on this operation, or the statement
+		 * id if one has. Generally, a statementId is only set on the top operation
+		 */
+		long getStatementId();
+
+		void setStatementId(long statementId);
 }

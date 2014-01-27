@@ -59,16 +59,17 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      */
     byte[] getTableName();
 
-	/**
-	 * @return the number of rows which are being modified, or 0 if no rows are being modified by this (e.g.
-	 * if it's a scan).
-	 */
-	int getModifiedRowCount();
-	
-	/**
-	 * Retrieve the runtime context.
-	 * @return
-	 */
-	SpliceRuntimeContext getSpliceRuntimeContext();
+		/**
+		 * @return the number of rows which are being modified, or 0 if no rows are being modified by this (e.g.
+		 * if it's a scan).
+		 */
+		int getModifiedRowCount();
 
+		/**
+		 * Retrieve the runtime context.
+		 * @return
+		 */
+		SpliceRuntimeContext getSpliceRuntimeContext();
+
+		void reportStats(String xplainSchema);
 }

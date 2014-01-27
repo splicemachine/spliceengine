@@ -418,6 +418,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteReadTime.getCpuTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteReadTime.getUserTime());
 
+						stats.addMetric(OperationMetric.INPUT_ROWS,aggregator.getRowsRead());
 				}
 		}
 
