@@ -2,11 +2,16 @@ package com.splicemachine.derby.metrics;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.stats.TimeView;
+import org.apache.derby.iapi.tools.run;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -101,5 +106,40 @@ public class OperationRuntimeStats {
 
 		public void setBufferFillRatio(double maxFillRatio) {
 			this.bufferFillRatio = maxFillRatio;
+		}
+
+		public static List<OperationRuntimeStats> getOperationStats(SpliceOperation topOperation,
+																																long taskId,
+																																long statementId,
+																																long rowsWritten,
+																																long bytesWritten,
+																																TimeView writeTimer,
+																																SpliceRuntimeContext runtimeContext){
+				List<OperationRuntimeStats> stats = Lists.newArrayList();
+				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
+
+				if(rowsWritten>=0){
+						metrics.addMetric(OperationMetric.WRITE_ROWS, rowsWritten);
+						metrics.addMetric(OperationMetric.WRITE_BYTES, bytesWritten);
+						metrics.addMetric(OperationMetric.WRITE_CPU_TIME,writeTimer.getCpuTime());
+						metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
+						metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
+				}
+				stats.add(metrics);
+
+				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
+								topOperation.getLeftOperation(): topOperation.getRightOperation();
+				if(child!=null)
+						populateStats(runtimeContext,child,statementId,taskId,stats);
+				return stats;
+		}
+		private static void populateStats(SpliceRuntimeContext context,SpliceOperation operation, long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
+				if(operation==null) return;
+				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
+				if(metrics!=null)
+						stats.add(metrics);
+				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
+				if(child!=null)
+						populateStats(context,child,statementId,taskIdLong,stats);
 		}
 }

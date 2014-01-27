@@ -93,6 +93,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 						List<OperationInfo> operationInfo = getOperationInfo(statementInfo.getStatementUuid());
 						statementInfo.setOperationInfo(operationInfo);
 						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+						topOperation.setStatementId(statementInfo.getStatementUuid());
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

@@ -139,8 +139,8 @@ public class OperationSink {
 						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
 								long taskIdLong = Bytes.toLong(taskId);
 								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
-								List<OperationRuntimeStats> operationStats = getOperationStats(operation, taskIdLong,
-												statementId, spliceRuntimeContext,rowsWritten,totalBytes,writeTimer.getTime());
+								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
+												taskIdLong,statementId,rowsWritten,totalBytes,writeTimer.getTime(),spliceRuntimeContext);
 								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
 								for(OperationRuntimeStats operationStat:operationStats){
 										TimeView view = totalTimer.getTime();
@@ -157,42 +157,6 @@ public class OperationSink {
         }
 				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
     }
-
-		private List<OperationRuntimeStats> getOperationStats(SpliceOperation operation,
-																													long taskId,
-																													long statementId,
-																													SpliceRuntimeContext spliceRuntimeContext,
-																													long rowsWritten,
-																													long bytesWritten,
-																													TimeView writeTimer){
-
-				List<OperationRuntimeStats> stats = Lists.newArrayList();
-				OperationRuntimeStats metrics = operation.getMetrics(statementId,taskId);
-//				if(metrics==null)
-//						metrics = new OperationRuntimeStats(statementId,Bytes.toLong(operation.getUniqueSequenceID()), taskId,null,5);
-
-				metrics.addMetric(OperationMetric.WRITE_ROWS, rowsWritten);
-				metrics.addMetric(OperationMetric.WRITE_BYTES, bytesWritten);
-				metrics.addMetric(OperationMetric.WRITE_CPU_TIME,writeTimer.getCpuTime());
-				metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
-				metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
-				stats.add(metrics);
-
-				SpliceOperation child = spliceRuntimeContext.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
-				if(child!=null)
-						populateStats(spliceRuntimeContext,child,statementId,taskId,stats);
-				return stats;
-		}
-
-		private void populateStats(SpliceRuntimeContext context,SpliceOperation operation, long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
-				if(operation==null) return;
-				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
-				if(metrics!=null)
-						stats.add(metrics);
-				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
-				if(child!=null)
-						populateStats(context,child,statementId,taskIdLong,stats);
-		}
 
 		private String getTransactionId(byte[] destinationTable) {
 				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();

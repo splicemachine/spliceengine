@@ -10,8 +10,6 @@ import com.google.common.base.Strings;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.stats.TimeView;
-import com.splicemachine.tools.splice;
 import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -87,7 +85,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.doesProjection = doesProjection;
 				this.source = source;
 				init(SpliceOperationContext.newContext(activation));
-				SpliceLogUtils.trace(LOG, "statisticsTimingOn=%s, isTopResultSet=%s",statisticsTimingOn,isTopResultSet);
 				recordConstructorTime();
 		}
 
@@ -101,7 +98,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				SpliceLogUtils.trace(LOG, "readExternal");
 				super.readExternal(in);
 				restrictionMethodName = readNullableString(in);
 				projectionMethodName = readNullableString(in);
@@ -115,7 +111,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG, "writeExternal");
 				super.writeExternal(out);
 				writeNullableString(restrictionMethodName, out);
 				writeNullableString(projectionMethodName, out);
@@ -129,7 +124,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException{
-				SpliceLogUtils.trace(LOG, "init");
 				super.init(context);
 				source.init(context);
 
@@ -157,20 +151,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {
-				SpliceLogUtils.trace(LOG, "getSubOperations");
 				return Arrays.asList(source);
 		}
 
 
 		@Override
 		public SpliceOperation getLeftOperation() {
-				SpliceLogUtils.trace(LOG, "getLeftOperation %s",source);
 				return source;
 		}
 
 		@Override
 		public List<NodeType> getNodeTypes() {
-				SpliceLogUtils.trace(LOG, "getNodeTypes");
 				return nodeTypes;
 		}
 
@@ -202,7 +193,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		@Override
 		public NoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				ExecRow fromResults = getExecRowDefinition();
 				RowProvider provider = getReduceRowProvider(this,OperationUtils.getPairDecoder(this,runtimeContext),runtimeContext);
 				SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
 				nextTime += getCurrentTimeMillis() - beginTime;
@@ -237,8 +227,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				do {
 						candidateRow = source.nextRow(spliceRuntimeContext);
 						if (LOG.isTraceEnabled())
-								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Candidate: ",candidateRow);
+								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate: %s", Bytes.toLong(uniqueSequenceID), candidateRow);
 						if (candidateRow != null) {
+								inputRows++;
 								/* If restriction is null, then all rows qualify */
 								if (restriction == null) {
 										restrict = true;
@@ -250,17 +241,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 										restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
 										if (! restrict) {
 												if (LOG.isTraceEnabled())
-														SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp: Candidate Filtered: ",candidateRow);
+														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID),candidateRow);
 												rowsFiltered++;
 										}
 								}
-								rowsSeen++;
 						}
 				} while ( (candidateRow != null) && (! restrict ) );
 				if (candidateRow != null)  {
 						result = doProjection(candidateRow);
 						if (LOG.isTraceEnabled())
-								SpliceLogUtils.debug(LOG, ">>>   ProjectRestrictOp Result: ",result);
+								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d] Result: %s",Bytes.toLong(uniqueSequenceID), result);
 				} else {
 					/* Clear the current row, if null */
 						clearCurrentRow();
@@ -288,11 +278,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				ExecRow def = source.getExecRowDefinition();
-				try {
-						if (def != null) SpliceUtils.populateDefaultValues(def.getRowArray(),1);
-				} catch (StandardException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,e);
-				}
+				if (def != null) SpliceUtils.populateDefaultValues(def.getRowArray(),1);
 				source.setCurrentRow(def);
 				return doProjection(def);
 		}
@@ -331,13 +317,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
 				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
+				stats.addMetric(OperationMetric.INPUT_ROWS,inputRows);
 		}
 
 		@Override
 		public void open() throws StandardException, IOException {
 				super.open();
-				if (LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG,">>>   ProjectRestrictOp: Opening ",(source != null ? source.getClass().getSimpleName() : "null source"));
+				if (LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,">>>   ProjectRestrictOp: Opening ",(source != null ? source.getClass().getSimpleName() : "null source"));
 				if(source!=null)source.open();
 		}
 
@@ -345,8 +332,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public void	close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
 				/* Nothing to do if open was short circuited by false constant expression */
-				if (LOG.isDebugEnabled())
-						SpliceLogUtils.debug(LOG,">>>   ProjectRestrictOp: Closing ",(source != null ? source.getClass().getSimpleName() : "null source"));
+				if (LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Closing ", (source != null ? source.getClass().getSimpleName() : "null source"));
 				super.close();
 				source.close();
 				closeTime += getElapsedMillis(beginTime);

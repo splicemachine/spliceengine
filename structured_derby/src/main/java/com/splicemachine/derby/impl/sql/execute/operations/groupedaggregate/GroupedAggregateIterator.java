@@ -34,4 +34,6 @@ public abstract class GroupedAggregateIterator implements StandardIterator<Group
 
 		public abstract long getRowsMerged();
 		public abstract double getMaxFillRatio();
+
+		public abstract long getRowsRead();
 }

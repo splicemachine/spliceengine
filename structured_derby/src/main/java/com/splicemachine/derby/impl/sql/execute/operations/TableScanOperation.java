@@ -210,6 +210,7 @@ public class TableScanOperation extends ScanOperation {
 				stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 				stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 				stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
+				stats.addMetric(OperationMetric.INPUT_ROWS,regionScanner.getRowsRead());
 		}
 
 		@Override

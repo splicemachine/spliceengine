@@ -55,27 +55,27 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
             else return null;
         }
 
-        boolean shouldContinue;
-        GroupedRow toReturn = null;
-        do{
-			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
-            ExecRow nextRow = source.next(spliceRuntimeContext);
-            shouldContinue = nextRow!=null;
-            if(!shouldContinue)
-                continue; //iterator exhausted, break from the loop
+				boolean shouldContinue;
+				GroupedRow toReturn = null;
+				do{
+						SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
+						ExecRow nextRow = source.next(spliceRuntimeContext);
+						shouldContinue = nextRow!=null;
+						if(!shouldContinue)
+								continue; //iterator exhausted, break from the loop
 
-            toReturn = buffer(nextRow);
-            shouldContinue = toReturn==null;
-            rowsRead++;
-        }while(shouldContinue);
+						toReturn = buffer(nextRow);
+						shouldContinue = toReturn==null;
+						rowsRead++;
+				}while(shouldContinue);
 
-        if(toReturn!=null)
-            return toReturn;
+				if(toReturn!=null)
+						return toReturn;
         /*
          * We can only get here if we exhaust the iterator without evicting a record, which
          * means that we have completed our steps.
          */
-        completed=true;
+				completed=true;
 
         //we've exhausted the iterator, so return an entry from the buffer
         if(buffer.size()>0)
@@ -85,15 +85,9 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
         return null;
     }
 
-		@Override
-		public long getRowsMerged() {
-				return buffer.getRowsMerged();
-		}
-
-		@Override
-		public double getMaxFillRatio() {
-				return buffer.getMaxFillRatio();
-		}
+		@Override public long getRowsRead() { return rowsRead; }
+		@Override public long getRowsMerged() { return buffer.getRowsMerged(); }
+		@Override public double getMaxFillRatio() { return buffer.getMaxFillRatio(); }
 
 		protected GroupedRow buffer(ExecRow nextRow) throws StandardException {
         if(!isRollup){

@@ -49,9 +49,10 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
+		private String xplainSchema;
 		/* Run time statistics variables */
 		public int numOpens;
-		public int rowsSeen;
+		public int inputRows;
 		public int rowsFiltered;
 		protected long startExecutionTime;
 		protected long endExecutionTime;
@@ -99,6 +100,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected int resultSetNumber;
 		protected OperationInformation operationInformation;
 		private JobResults jobResults;
+		private long statementId = -1l; //default value if the statementId isn't set
 
 		public SpliceBaseOperation() {
 				super();
@@ -111,22 +113,23 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				sequence[0] = information.getSequenceField(uniqueSequenceID);
 		}
 
-	public SpliceBaseOperation(Activation activation,
-                               int resultSetNumber,
-                               double optimizerEstimatedRowCount,
-                               double optimizerEstimatedCost) throws StandardException {
-		if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming())
-		    beginTime = startExecutionTime = getCurrentTimeMillis();
-        this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
-		this.activation = activation;
-        this.resultSetNumber = resultSetNumber;
-		sequence = new DataValueDescriptor[1];
-		sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
-		if (activation.getLanguageConnectionContext().getStatementContext() == null) {
-			SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
-			return;
+		public SpliceBaseOperation(Activation activation,
+															 int resultSetNumber,
+															 double optimizerEstimatedRowCount,
+															 double optimizerEstimatedCost) throws StandardException {
+				if (statisticsTimingOn = activation.getLanguageConnectionContext().getStatisticsTiming()){
+						beginTime = startExecutionTime = getCurrentTimeMillis();
+						xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+				}
+				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
+				this.activation = activation;
+				this.resultSetNumber = resultSetNumber;
+				sequence = new DataValueDescriptor[1];
+				sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
+				if (activation.getLanguageConnectionContext().getStatementContext() == null) {
+						SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
+				}
 		}
-	}
 
 		public ExecutionFactory getExecutionFactory(){
 				return activation.getExecutionFactory();
@@ -139,7 +142,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				isTopResultSet = in.readBoolean();
 				uniqueSequenceID = new byte[in.readInt()];
 				in.readFully(uniqueSequenceID);
-
+				statisticsTimingOn = in.readBoolean();
+				if(statisticsTimingOn)
+						xplainSchema = in.readUTF();
+				statementId = in.readLong();
 		}
 		
 		@Override
@@ -149,9 +155,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				writeNullableString(getTransactionID(), out);
 				out.writeBoolean(isTopResultSet);
 				out.writeInt(uniqueSequenceID.length);
-				out.write(uniqueSequenceID);				
-//				out.writeObject(failedTasks);
+				out.write(uniqueSequenceID);
+				out.writeBoolean(statisticsTimingOn);
+				if(statisticsTimingOn)
+						out.writeUTF(xplainSchema);
+				out.writeLong(statementId);
 		}
+
+		@Override public long getStatementId() { return statementId; }
+		@Override public void setStatementId(long statementId) { this.statementId = statementId; }
+		@Override public String getXplainSchema() { return xplainSchema; }
+		@Override public boolean shouldRecordStats() { return statisticsTimingOn; }
 
 		@Override
 		public SpliceOperation getLeftOperation() {
@@ -544,6 +558,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
+						stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 				}
 
 				return stats;

@@ -7,6 +7,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.management.XplainTaskReporter;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stats.TimeUtils;
 import com.splicemachine.derby.utils.ErrorReporter;
@@ -14,6 +17,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -27,9 +32,11 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -85,6 +92,10 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	        impl.marshallTransaction(soi);
 	        activation = soi.getActivation(impl.getLcc());
 	        spliceRuntimeContext = soi.getSpliceRuntimeContext();
+						if(topOperation.shouldRecordStats()){
+								spliceRuntimeContext.recordTraceMetrics();
+								spliceRuntimeContext.setXplainSchema(topOperation.getXplainSchema());
+						}
 	        context = new SpliceOperationContext(regionScanner,region,scan, activation, statement, impl.getLcc(),false,topOperation,spliceRuntimeContext);
             context.setSpliceRegionScanner(this);
 
@@ -170,6 +181,20 @@ public class SpliceOperationRegionScanner implements RegionScanner {
                         addColIter.remove();
                     }
                 }
+							//record statistics info
+							if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+									String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+									List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
+													topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+													topOperation.getStatementId(),-1l,-1l,
+													Metrics.noOpTimeView(),spliceRuntimeContext);
+									XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+									for(OperationRuntimeStats opStats:stats){
+											opStats.setHostName(hostName);
+
+											reporter.report(spliceRuntimeContext.getXplainSchema(),opStats);
+									}
+							}
             }
             return !results.isEmpty();
         }catch(Exception e){

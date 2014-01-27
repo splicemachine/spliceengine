@@ -76,7 +76,7 @@ public class OperationJob extends SpliceConstants implements CoprocessorJob,Exte
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() {
-        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions.getTransactionId(), readOnly, taskPriority,statementId,recordStats,xplainSchema),
+        return Collections.singletonMap(new SinkTask(getJobId(),scan,instructions.getTransactionId(), readOnly, taskPriority),
                 Pair.newPair(scan.getStartRow(),scan.getStopRow()));
     }
 

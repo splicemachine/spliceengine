@@ -25,7 +25,6 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStats;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
@@ -182,7 +181,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 												continue;
 										}
 										rowsFetched++;
-										rowsSeen++;
+										inputRows++;
 										if(runTimeStatsOn){
 												if(!isTopResultSet){
 														StatementContext sc = activation.getLanguageConnectionContext().getStatementContext();
@@ -270,10 +269,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 										return result;
 								}
 
-								@Override
-								public Scan toScan() {
-										return scanProvider.toScan();
-								}
+								@Override public Scan toScan() { return scanProvider.toScan(); }
 
 								@Override
 								public void open() throws StandardException {
