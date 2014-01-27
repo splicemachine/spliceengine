@@ -17,7 +17,9 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.ConnectionContext;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -102,10 +104,17 @@ public class CallStatementOperation extends NoRowsOperation {
 						SpliceLogUtils.trace(LOG, "open");
 						try {
 								setup();
+								if(timer==null)
+									timer = Metrics.newTimer();
+
+								timer.startTiming();
+								startExecutionTime = System.currentTimeMillis();
 								Object invoked = methodCall.invoke();
 								ResultSet[][] dynamicResults = activation.getDynamicResults();
 								if(dynamicResults==null) {
 										dynamicStatementInfo = Collections.emptyList();
+										timer.stopTiming();
+										stopExecutionTime = System.currentTimeMillis();
 										return;
 								}
 
@@ -125,6 +134,8 @@ public class CallStatementOperation extends NoRowsOperation {
 												}
 										}
 								}
+								timer.stopTiming();
+								stopExecutionTime = System.currentTimeMillis();
 						} catch (StandardException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG, e);
 						}
@@ -177,13 +188,6 @@ public class CallStatementOperation extends NoRowsOperation {
 								}
 						}
 
-//				//close any Statements that aren't already closed
-//				for(StatementInfo info:dynamicStatementInfo){
-//					if(!info.isComplete()){
-//							info.markCompleted();
-//							SpliceDriver.driver().getStatementManager().completedStatement(info);
-//					}
-//				}
 						try {
 								int staLength = (subqueryTrackingArray == null) ? 0 : subqueryTrackingArray.length;
 
@@ -227,7 +231,7 @@ public class CallStatementOperation extends NoRowsOperation {
 				@Override
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
-										Bytes.toLong(uniqueSequenceID),taskId,"FinalRegion",getNumMetrics()+5);
+										operationId,taskId,"FinalRegion",getNumMetrics()+5);
 						updateStats(stats);
 						stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
 						stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
@@ -236,7 +240,6 @@ public class CallStatementOperation extends NoRowsOperation {
 								stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
 								stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
 								stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-								stats.addMetric(OperationMetric.OUTPUT_ROWS,timer.getNumEvents());
 						}
 
 						stats.setHostName(SpliceUtils.getHostName());

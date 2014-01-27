@@ -549,8 +549,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		@Override
 		public OperationRuntimeStats getMetrics(long statementId,long taskId) {
+				String regionName = region!=null?region.getRegionNameAsString():"Local";
 				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
-								Bytes.toLong(uniqueSequenceID),taskId,region.getRegionNameAsString(),getNumMetrics()+5);
+								Bytes.toLong(uniqueSequenceID),taskId,regionName,getNumMetrics()+5);
 				updateStats(stats);
 				stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
 				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);

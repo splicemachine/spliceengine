@@ -227,7 +227,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG,"executeScan");
+				SpliceLogUtils.trace(LOG, "executeScan");
 				final List<SpliceOperation> operationStack = getOperationStack();
 				SpliceLogUtils.trace(LOG,"operationStack=%s",operationStack);
 				SpliceOperation regionOperation = operationStack.get(0);
@@ -414,6 +414,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				stats.addMetric(OperationMetric.REMOTE_GET_CPU_TIME,timing.getCpuTime());
 				stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,timing.getUserTime());
 				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
+				//for Index lookups, same number of input rows as output rows
+				stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 		}
 
 		@Override protected int getNumMetrics() { return 6; }

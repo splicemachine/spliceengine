@@ -6,6 +6,8 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -13,6 +15,7 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.stats.Counter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -201,8 +204,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		}
 
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+				}
 
 				timer.startTiming();
 				ExecRow row = source.nextRow(spliceRuntimeContext);
@@ -219,6 +223,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				throw new UnsupportedOperationException("Write Operations do not produce rows.");
+		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				//inputs rows are the same as output rows by default (although Update may be different)
+				stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 		}
 
 		private class ModifiedRowProvider extends SingleScanRowProvider{
@@ -262,7 +272,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 								if (rowProvider != null)
 										rowProvider.open();
 								else
-										source.open();
 										/* Cache query plan text for source, before it gets blown away */
 								if(operationInformation.isRuntimeStatisticsEnabled()) {
 										/* savedSource nulled after run time statistics generation */
@@ -270,8 +279,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 								}
 						} catch (StandardException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG, e);
-						} catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,e);
 						}
 						if(!getNodeTypes().contains(NodeType.REDUCE)){
                 /*
@@ -310,7 +317,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 										JobResults stats = rowProvider.shuffleRows(spliceObserverInstructions);
 										long i = 0;
 										for (TaskStats stat: stats.getJobStats().getTaskStats()) {
-												i = i + stat.getTotalRowsWritten(); // Do I have to check for failures? XXX - TODO JLEACH
+												i = i + stat.getTotalRowsWritten();
 										}
 										//modifiedProvider.setRowsModified(stats.get.getTotalRecords());
 										modifiedProvider.setRowsModified(i);

@@ -137,13 +137,12 @@ public class OperationSink {
 						operation.close();
 
 						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
-								long taskIdLong = Bytes.toLong(taskId);
+								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
 								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
 												taskIdLong,statementId,rowsWritten,totalBytes,writeTimer.getTime(),spliceRuntimeContext);
 								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
 								for(OperationRuntimeStats operationStat:operationStats){
-										TimeView view = totalTimer.getTime();
 										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
 										operationStat.setHostName(hostName);
 
