@@ -185,7 +185,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         try {
             ExecRow joinedRow = joiner.nextRow();
             if (joinedRow != null) {
-                inputRows++;
+                rowsSeen++;
                 shouldClose = false;
                 setCurrentRow(joinedRow);
             } else {
@@ -198,7 +198,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 								stopExecutionTime = System.currentTimeMillis();
                 if (LOG.isDebugEnabled() && joiner != null) {
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
-														inputRows, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
+														rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
                 isOpen = false;
                 bridgeIterator.close();
@@ -235,10 +235,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteTime.getCpuTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
 
-						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
+//						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
 				}else{
 						//the number of input rows is the same as the number of output rows
-						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+//						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 				}
 		}
 
