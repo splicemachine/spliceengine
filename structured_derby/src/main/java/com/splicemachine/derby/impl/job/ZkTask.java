@@ -363,20 +363,22 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             if (event.getType() != Event.EventType.NodeDeleted)
                 return;
 
-						if(task.LOG.isTraceEnabled())
-								task.LOG.trace("Received node deleted notice from ZooKeeper, attempting cancellation");
+
 						/*
                          * If the watch was triggered after
 						 * dereferencing us, then we don't care about it
 						 */
             if (task == null) return;
 
+            if (task.LOG.isTraceEnabled())
+                task.LOG.trace("Received node deleted notice from ZooKeeper, attempting cancellation");
+
             switch (task.status.getStatus()) {
                 case FAILED:
                 case COMPLETED:
                 case CANCELLED:
-										if(task.LOG.isTraceEnabled())
-												task.LOG.trace("Node is already in a finalize state, ignoring cancellation attempt");
+                    if (task.LOG.isTraceEnabled())
+                        task.LOG.trace("Node is already in a finalize state, ignoring cancellation attempt");
                     task = null;
                     return;
             }
