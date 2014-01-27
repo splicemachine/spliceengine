@@ -13,7 +13,6 @@ import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.Encoding;
@@ -165,10 +164,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     public void open() throws StandardException, IOException {
         SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Opening: joiner ", (joiner != null ? "not " : ""), "null");
         super.open();
-        if (joiner != null) {
-            isOpen = false;
-        }
-    }
+				if(scanner!=null)
+						scanner.close();
+				joiner = null;
+				isOpen = false;
+		}
 
     protected ExecRow next(boolean outer, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "next");
@@ -185,7 +185,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         try {
             ExecRow joinedRow = joiner.nextRow();
             if (joinedRow != null) {
-                rowsSeen++;
+                inputRows++;
                 shouldClose = false;
                 setCurrentRow(joinedRow);
             } else {
@@ -198,7 +198,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 								stopExecutionTime = System.currentTimeMillis();
                 if (LOG.isDebugEnabled() && joiner != null) {
                     LOG.debug(String.format("Saw %s records (%s left, %s right)",
-                            rowsSeen, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
+														inputRows, joiner.getLeftRowsSeen(), joiner.getRightRowsSeen()));
                 }
                 isOpen = false;
                 bridgeIterator.close();
@@ -220,18 +220,25 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(scanner!=null){
 						TimeView localTime = scanner.getLocalReadTime();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,scanner.getLocalRowsRead());
+						long localRowsRead = scanner.getLocalRowsRead();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, localRowsRead);
 						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,scanner.getLocalBytesRead());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localTime.getWallClockTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localTime.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,localTime.getUserTime());
 
 						TimeView remoteTime = scanner.getRemoteReadTime();
-						stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,scanner.getRemoteRowsRead());
+						long remoteRowsRead = scanner.getRemoteRowsRead();
+						stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS, remoteRowsRead);
 						stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteTime.getWallClockTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteTime.getCpuTime());
 						stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME, remoteTime.getUserTime());
+
+						stats.addMetric(OperationMetric.INPUT_ROWS,remoteRowsRead+localRowsRead);
+				}else{
+						//the number of input rows is the same as the number of output rows
+						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 				}
 		}
 
