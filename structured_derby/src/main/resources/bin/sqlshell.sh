@@ -3,15 +3,23 @@
 # Splice Machine SQL Shell
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
-LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
-CLASSPATH="${ROOT_DIR}/lib/*"
-
-CYGWIN=`uname -s`
-if [[ ${CYGWIN} == CYGWIN* ]]; then
-    CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
-    LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
+if [[ -n "${LOG4J_PROP_PATH}" ]]; then
+    LOG4J_PATH="${1}"
+else
+    LOG4J_PATH="file:${ROOT_DIR}/lib/info-log4j.properties"
 fi
-export CLASSPATH
+
+if [[ -z "${CLASSPATH}" ]]; then
+    CLASSPATH="${ROOT_DIR}/lib/*"
+
+    CYGWIN=`uname -s`
+    if [[ ${CYGWIN} == CYGWIN* ]]; then
+        CLASSPATH=`cygpath --path --windows "${ROOT_DIR}/lib/*"`
+        LOG4J_PATH="file:///`cygpath --path --windows ${ROOT_DIR}/lib/info-log4j.properties`"
+    fi
+    export CLASSPATH
+fi
+
 LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
 GEN_SYS_ARGS="-Djava.awt.headless=true ${LOG4J_CONFIG}"

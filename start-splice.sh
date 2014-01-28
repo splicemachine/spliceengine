@@ -22,7 +22,7 @@ usage() {
 }
 
 CHAOS="FALSE"
-PROFILE="cloudera-cdh4.3.0"
+PROFILE="cloudera-cdh4.3.0"  # default hbase platform profile
 BUILD_TAG=""
 
 while getopts ":chp:b:" flag ; do
@@ -62,7 +62,7 @@ if [[ ! -e ${TARBALL} ]]; then
     # Maven assembly is required for server dependencies and executable start/stop scripts.
     # It's not present. Attempt to build assembly (only if it's not already built).
     echo "Required assembly, ${TARBALL}, not found. Running maven assembly."
-    mvn assembly:assembly -DskipTests -P${PROFILE} &>/dev/null
+    mvn package -P${PROFILE},assemble -DskipTests  &>/dev/null
 fi
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
