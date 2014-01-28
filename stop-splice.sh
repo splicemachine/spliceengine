@@ -13,14 +13,30 @@ usage() {
     echo "Usage: $0 [-h[elp]]"
     echo "Where: "
     echo "  -h => print this message"
+    echo "  -n Given by Jenkins when stoping server; env var BUILD_NUMVER, eg \"225\"."
+    echo "      Used to stamp log files."
     echo "Stop Zookeeper and Splice. Log files get timestamped and copied to the"
     echo "structured_derby/logs directory."
 }
 
-if [[ ${1} == -h* ]]; then
-    usage
-    exit 0 # This is not an error, User asked help. Don't do "exit 1"
-fi
+BUILD_NUMBER=""
+
+while getopts ":hn:" flag ; do
+    case $flag in
+        h* | \?)
+            usage
+            exit 0 # This is not an error, User asked help. Don't do "exit 1"
+        ;;
+        n)
+        # Jenkins build number to stamp logs
+            BUILD_NUMBER=$(echo "${OPTARG}-" | tr -d [[:space:]])
+        ;;
+        ?)
+            usage "Unknown option (ignored): ${OPTARG}"
+            exit 1
+        ;;
+    esac
+done
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
@@ -56,9 +72,12 @@ Z=`jps | grep ZooKeeperServerMain | grep -v grep  | awk '{print $1}'`
 if [ ! -d "logs" ]; then
   mkdir logs
 fi
-currentDateTime=$(date +'%m-%d-%Y-%H_%M_%S')
-cp ${SPLICELOG} logs/${currentDateTime}.$( basename "${SPLICELOG}")
-cp ${ZOOLOG} logs/${currentDateTime}.$( basename "${ZOOLOG}")
-cp ${DERBYLOG} logs/${currentDateTime}.$( basename "${DERBYLOG}")
+
+if [[ -z ${BUILD_NUMBER} ]]; then
+    BUILD_NUMBER="${currentDateTime}-"
+fi
+cp ${SPLICELOG} logs/${BUILD_NUMBER}$( basename "${SPLICELOG}")
+cp ${ZOOLOG} logs/${BUILD_NUMBER}$( basename "${ZOOLOG}")
+cp ${DERBYLOG} logs/${BUILD_NUMBER}$( basename "${DERBYLOG}")
 
 popd &>/dev/null

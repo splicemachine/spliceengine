@@ -177,44 +177,58 @@
 				</configuration>
 			</plugin>
 
-			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
-				<configuration>
-					<source>6</source>
-					<archive>
-						<manifestEntries>
-							<Implementation-Version>${buildNumber}</Implementation-Version>
-							<Release>${project.version}</Release>
-                            <Build-Time>${maven.build.timestamp}</Build-Time>
-							<URL>http://www.splicemachine.com</URL>
-						</manifestEntries>
-					</archive>
-                    <descriptors>
-                        <descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
-                        <descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
-                    </descriptors>
-                </configuration>
-				<executions>
-                    <execution>
-                        <id>simple</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>complete</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-				</executions>
-			</plugin>
 
 		</plugins>
 	</build>
 
 	<profiles>
+        <profile>
+            <id>assembly</id>
+            <activation>
+                <property>
+                    <name>assemble</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>2.4</version>
+                        <configuration>
+                            <source>6</source>
+                            <archive>
+                                <manifestEntries>
+                                    <Implementation-Version>${buildNumber}</Implementation-Version>
+                                    <Release>${project.version}</Release>
+                                    <Build-Time>${maven.build.timestamp}</Build-Time>
+                                    <URL>http://www.splicemachine.com</URL>
+                                </manifestEntries>
+                            </archive>
+                            <descriptors>
+                                <descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
+                                <descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <id>simple</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <phase>package</phase>
+                                <id>complete</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>integration-tests</id>
             <properties>
@@ -240,12 +254,26 @@
                                 <phase>pre-integration-test</phase>
                                 <configuration>
                                     <target name="StartSpliceServer" unless="${server.start.skip}">
-                                        <exec executable="${run.command}" dir="${basedir}" spawn="false">
-                                            <arg value="${basedir}/../${splice.start.script}" />
-                                            <arg value="${failTasksRandomly}" />
-                                            <arg value="-p ${envClassifier}" />
-                                            <arg value="-b ${build.tag}" />
-                                        </exec>
+                                        <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath"/>
+                                        <if> <istrue value="${failTasksRandomly}"/>
+                                            <!-- run with chaos monkey (default) -->
+                                            <then>
+                                                <exec executable="${run.command}" dir="${basedir}" spawn="false">
+                                                    <arg value="${basedir}/../${splice.start.script}" />
+                                                    <arg value="-c" />
+                                                    <arg value="-p ${envClassifier}" />
+                                                    <arg value="-b ${build.tag}" />
+                                                </exec>
+                                            </then>
+                                            <else>
+                                                <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
+                                                <exec executable="${run.command}" dir="${basedir}" spawn="false">
+                                                    <arg value="${basedir}/../${splice.start.script}" />
+                                                    <arg value="-p ${envClassifier}" />
+                                                    <arg value="-b ${build.tag}" />
+                                                </exec>
+                                            </else>
+                                        </if>
                                     </target>
                                 </configuration>
                                 <goals>
@@ -259,6 +287,7 @@
                                     <target name="StopSpliceServer" unless="${server.start.skip}">
                                         <exec executable="${run.command}" dir="${basedir}" spawn="false">
                                             <arg value="${basedir}/../${splice.stop.script}" />
+                                            <arg value="-n ${build.number}" />
                                         </exec>
                                     </target>
                                 </configuration>
@@ -267,6 +296,24 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>ant-contrib</groupId>
+                                <artifactId>ant-contrib</artifactId>
+                                <version>1.0b3</version>
+                                <exclusions>
+                                    <exclusion>
+                                        <groupId>ant</groupId>
+                                        <artifactId>ant</artifactId>
+                                    </exclusion>
+                                </exclusions>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.apache.ant</groupId>
+                                <artifactId>ant-nodeps</artifactId>
+                                <version>1.8.1</version>
+                            </dependency>
+                        </dependencies>
                     </plugin>
                 </plugins>
             </build>
