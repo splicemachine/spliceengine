@@ -96,7 +96,7 @@ public class Metrics {
 				if (!supportsCPUTime)
 						return new CompositeTimer(new NanoTimeMeasure(), NOOP_TIME_MEASURE, NOOP_TIME_MEASURE);
 				else
-						return new CompositeTimer(new NanoTimeMeasure(), new CpuTimeMeasure(), new UserTimeMeasure());
+						return new CompositeTimer(new NanoTimeMeasure(), new UserTimeMeasure(), new CpuTimeMeasure());
 		}
 
 		@ThreadSafe
