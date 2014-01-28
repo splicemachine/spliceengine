@@ -197,7 +197,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         if(keyValues.isEmpty()) return null;
 
         if(rowDecoder==null){
-						rowDecoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
+						rowDecoder = getTempDecoder();
 				}
         return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
     }
@@ -216,15 +216,42 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				try{
 						reduceScan = Scans.buildPrefixRangeScan(uniqueSequenceID,SpliceUtils.NA_TRANSACTION_ID);
+						/*
+						 * We do a bit of an optimization here. If top == this, then we would be doing the following:
+						 * 1. scan data out of Region as KeyValue (locally)
+						 * 2. decode it into row
+						 * 3. encode it into KeyValue
+						 * 4. send it over the network.
+						 *
+						 * So there's no point in actually sending all this information over to the server, since it won't be doing anything
+						 * anyway.
+						 *
+						 * However, this means that the serialization format is different, so we have to deal with that
+						 */
 						if(top != this)
 								SpliceUtils.setInstructions(reduceScan,activation,top,spliceRuntimeContext);
+						else{
+								decoder = getTempDecoder();
+						}
 						return new DistributedClientScanProvider("distinctScanReduce", SpliceOperationCoprocessor.TEMP_TABLE,reduceScan,decoder, spliceRuntimeContext);
 				} catch (IOException e) {
             throw Exceptions.parseException(e);
         }
     }
 
-    @Override
+		/**
+		 * @return the decoder to use when reading data out of TEMP
+		 * @throws StandardException
+		 */
+		protected PairDecoder getTempDecoder() throws StandardException {
+				PairDecoder decoder;KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, null),9);
+				ExecRow templateRow = getExecRowDefinition();
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				decoder = new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
+				return decoder;
+		}
+
+		@Override
     public void close() throws StandardException, IOException {
         super.close();
     }

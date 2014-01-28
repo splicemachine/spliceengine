@@ -1,10 +1,7 @@
 package org.apache.derby.impl.sql.execute.operations;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Timestamp;
-import java.util.Set;
-
+import com.google.common.collect.Sets;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -14,12 +11,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.google.common.collect.Sets;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.util.Set;
 
 /**
  * This tests basic table scans with and without projection/restriction
@@ -69,20 +64,20 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
                         ps.execute();
                     }
                     ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher3.toString() + " values (?,?)");
-			        for(int i=0;i<10;i++){
-					    ps.setInt(1,i);
-					    ps.setDouble(2, i);
-					    for(int j=0;j<100;j++){
-							ps.addBatch();
-					    }
-					    ps.executeBatch();
-			        }
+										for(int i=0;i<10;i++){
+												ps.setInt(1,i);
+												ps.setDouble(2, i);
+												for(int j=0;j<100;j++){
+														ps.addBatch();
+												}
+												ps.executeBatch();
+										}
 
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    spliceClassWatcher.closeAll();
-                }
+								} catch (Exception e) {
+										throw new RuntimeException(e);
+								} finally {
+										spliceClassWatcher.closeAll();
+								}
             }
 
         });
@@ -139,44 +134,111 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
         Assert.assertEquals(size,timestampSet.size());
 
     }
-    @Test
-    public void testDistinctSequence() throws Exception {
 
-    	ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString());
-        int i = 0;
-        while(rs.next()){
-        	System.out.println(rs.getInt(1));
-        	i++;
-        }
-        Assert.assertEquals(i, 10);
-        rs.close();
+		@Test
+		public void testSelectDistinctWorks() throws Exception {
+				ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString());
+				int i = 0;
+				while(rs.next()){
+						int val = rs.getInt(1);
+						Assert.assertFalse("Value ["+i+"] was unexpectedly null!",rs.wasNull());
+						Assert.assertEquals("Incorrect column value!", i, val);
+						i++;
+				}
+				Assert.assertEquals("Incorrect row count!",i, 10);
+		}
 
-        rs = methodWatcher.executeQuery("select distinct i,d from " + spliceTableWatcher3.toString());
+		private static final double ERROR = Math.pow(1, -12);
+		@Test
+		public void testSelectDistinctWorksForAllFields() throws Exception {
+				ResultSet rs = methodWatcher.executeQuery("select distinct i,d from " + spliceTableWatcher3.toString());
 
-        i = 0;
-        while(rs.next()){
-        	System.out.println("" + rs.getInt(1) + " " + rs.getDouble(2));
-        	i++;
-        }
-        Assert.assertEquals(i, 10);
-        rs.close();
-        rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString());
+				int i = 0;
+				while(rs.next()){
+						int val1 = rs.getInt(1);
+						Assert.assertFalse("Value i=["+i+"] was unexpectedly null",rs.wasNull());
+						Assert.assertEquals(i, val1);
 
-        i = 0;
-        while(rs.next()){
-        	System.out.println("" + rs.getDouble(1) + " " + rs.getInt(2));
-        	i++;
-        }
-        Assert.assertEquals(i, 10);
-        rs.close();
-        rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString() + " order by i asc");
+						double val2 = rs.getDouble(2);
+						Assert.assertFalse("Value d=["+i+"] was unexpectedly null",rs.wasNull());
+						Assert.assertEquals((double) i, val2, ERROR);
+						i++;
+				}
+				Assert.assertEquals("Incorrect row count!",i, 10);
+		}
 
-        i = 0;
-        while(rs.next()){
-        	System.out.println("" + rs.getDouble(1) + " " + rs.getInt(2));
-        	Assert.assertEquals((int)rs.getDouble(1), i);
-        	i++;
-        }
-        rs.close();
+		@Test
+		public void testSelectDistinctOutOrOrder() throws Exception {
+				ResultSet rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString());
+
+				int i = 0;
+				while(rs.next()){
+						int val1 = rs.getInt(2);
+						Assert.assertFalse("Value i=["+i+"] was unexpectedly null",rs.wasNull());
+
+						double val2 = rs.getDouble(1);
+						Assert.assertFalse("Value d=[" + i + "] was unexpectedly null", rs.wasNull());
+						Assert.assertEquals((double) val1, val2, ERROR);
+						i++;
+				}
+				Assert.assertEquals("Incorrect row count!",i, 10);
+		}
+
+		/*
+		 * These are actually tests of the SortOperation, not of DistinctScan, but since
+		 * they refer to a table schema here, I left them alone (-SF-)
+		 */
+		@Test
+    public void testDistinctWithSortAsc() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString() + " order by i asc");
+
+				int[] correct = new int[size];
+				for(int i=0;i<size;i++){
+						correct[i] = i;
+				}
+
+				int[] actual = new int[size];
+				int i = 0;
+				while(rs.next()){
+						int val1 = rs.getInt(2);
+						Assert.assertFalse("Value i=[" + i + "] was unexpectedly null", rs.wasNull());
+						Assert.assertEquals(i, val1);
+						actual[i] = val1;
+
+						double val2 = rs.getDouble(1);
+						Assert.assertFalse("Value d=[" + i + "] was unexpectedly null", rs.wasNull());
+						Assert.assertEquals((double) i, val2, ERROR);
+						i++;
+				}
+				Assert.assertEquals("Incorrect row count!", i, size);
+
+				Assert.assertArrayEquals("Incorrect sort order!",correct,actual);
     }
+
+		@Test
+		public void testDistinctWithSortDesc() throws Exception {
+				ResultSet rs = methodWatcher.executeQuery("select distinct d,i from " + spliceTableWatcher3.toString() + " order by i desc");
+
+				int[] correct = new int[size];
+				for(int i=size-1,p=0;i>=0;i--,p++){
+						correct[p] = i;
+				}
+
+				int[] actual = new int[size];
+				int i = 0;
+				while(rs.next()){
+						int val1 = rs.getInt(2);
+						Assert.assertFalse("Value i=["+i+"] was unexpectedly null",rs.wasNull());
+						Assert.assertEquals(correct[i], val1);
+						actual[i] = val1;
+
+						double val2 = rs.getDouble(1);
+						Assert.assertFalse("Value d=[" + i + "] was unexpectedly null", rs.wasNull());
+						Assert.assertEquals((double) correct[i], val2, ERROR);
+						i++;
+				}
+				Assert.assertEquals("Incorrect row count!",i, size);
+
+				Assert.assertArrayEquals("Incorrect sort order!", correct, actual);
+		}
 }
