@@ -162,39 +162,61 @@ public class ImmutableTransaction {
     }
 
     /**
-     * @param t2
-     * @return indicator of whether the writes from t2 should be visible from this transaction (based on transaction
+		 * Checks if we can see an item which is associated with {@code otherTxn}.
+		 *
+     * @param otherTxn the transaction to check.
+     * @return indicator of whether the writes from otherTxn should be visible from this transaction (based on transaction
      *         status, isolation levels, & timestamps.
      * @throws IOException
      */
-    public VisibleResult canSee(Transaction t2, TransactionSource transactionSource) throws IOException {
+    public VisibleResult canSee(Transaction otherTxn, TransactionSource transactionSource) throws IOException {
         final ImmutableTransaction t1 = this;
-        final ImmutableTransaction[] intersections = intersect(true, t1, t2);
-        final ImmutableTransaction et1 = intersections[1];
-        final ImmutableTransaction et2 = intersections[2];
-        final Transaction met2 = transactionSource.getTransaction(et2.getTransactionId().getId());
-        final boolean readCommitted1 = getEffectiveReadCommitted();
-        final boolean readUncommitted1 = getEffectiveReadUncommitted();
+        final ImmutableTransaction[] intersections = intersect(true, t1, otherTxn);
+        final ImmutableTransaction myTransaction = intersections[1];
+        final ImmutableTransaction otherTransaction = intersections[2];
         boolean visible = false;
-        final TransactionStatus effectiveStatus2 = t2.getEffectiveStatus(et2);
-        if (et1.sameTransaction(et2)) {
-            visible = true;
-        } else {
-            if (!readCommitted1 && !readUncommitted1 && effectiveStatus2.isCommitted()) {
-                visible = (met2.getEffectiveCommitTimestamp(met2.getParent()) < et1.getBeginTimestamp())
-                        || et1.isAncestorOf(et2);
-            }
-            if (effectiveStatus2.isActive() && et1.immutableParent.sameTransaction(et2)) {
-                visible = true;
-            }
-            if (readCommitted1 && effectiveStatus2.isCommitted()) {
-                visible = true;
-            }
-            if (readUncommitted1 && effectiveStatus2.isActive()) {
-                visible = true;
-            }
-        }
-        return new VisibleResult(visible, effectiveStatus2);
+        final TransactionStatus otherTxnEffectiveStatus = otherTxn.getEffectiveStatus(otherTransaction);
+
+				if(myTransaction.sameTransaction(otherTransaction)){
+						//we can always see our own writes
+						visible=true;
+				}else if (otherTxnEffectiveStatus.isActive() && myTransaction.immutableParent.sameTransaction(otherTransaction)) {
+						//if the other transaction is active, and I am a child, then it is visible
+						visible=true;
+				}else{
+						boolean isReadCommitted = getEffectiveReadCommitted();
+						boolean readUncommitted1 = getEffectiveReadUncommitted();
+						Transaction met2 = transactionSource.getTransaction(otherTransaction.getTransactionId().getId());
+						if (isReadCommitted && otherTxnEffectiveStatus.isCommitted()) {
+								//if I can read committed rows, and this transaction has a known committed state, I can see it
+								visible = true;
+						} else if (readUncommitted1 && otherTxnEffectiveStatus.isActive()) {
+								//if I can read committed rows, and this transaction is active, then I can see it
+								visible = true;
+						}else if (!isReadCommitted && !readUncommitted1 && otherTxnEffectiveStatus.isCommitted()) {
+								/*
+								 * We are neither readCommitted (where we could see anything that's been committed by
+								 * a child transaction, even if the commit timestamp is higher than ours), nor
+								 * readUncommitted (where we could see anything). Thus, we must see data ONLY if
+								 * the txn is committed AND it was committed before we started.
+								 */
+								Long effectiveCommitTimestamp = met2.getEffectiveCommitTimestamp(met2.getParent());
+								if(effectiveCommitTimestamp==null){
+										/*
+										 * It is possible that a transaction may have been committed, but whose
+										 * parent has not yet committed, which would mean the global commit timestamp
+										 * is not yet present. In that case, the effectiveCommitTimestamp is null,
+										 * and so we must assume that the row is not committed
+										 */
+										visible = false;
+								}else{
+										long et1BeginTimestamp = myTransaction.getBeginTimestamp();
+										visible = (effectiveCommitTimestamp < et1BeginTimestamp)
+														|| myTransaction.isAncestorOf(otherTransaction);
+								}
+						}
+				}
+        return new VisibleResult(visible, otherTxnEffectiveStatus);
     }
 
     /**
