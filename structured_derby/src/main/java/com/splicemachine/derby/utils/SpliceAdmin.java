@@ -643,8 +643,20 @@ public class SpliceAdmin {
                             int memStoreSizeMB = regionLoad.getMemStoreSizeMB();
                             int storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
 
+                            byte[][] parsedRegionName = HRegionInfo.parseRegionName(ri.getRegionName());
+                            String tableName = "Unknown";
+                            String regionID = "Unknown";
+                            if (parsedRegionName != null) {
+                                if (parsedRegionName.length >= 1) {
+                                    tableName = Bytes.toString(parsedRegionName[0]);
+                                }
+                                if (parsedRegionName.length >= 3) {
+                                    regionID = Bytes.toString(parsedRegionName[2]);
+                                }
+                            }
                             regionBuilder.append('(')
-                                    .append(ri.getRegionNameAsString()).append(' ')
+                                    .append(tableName).append(',')
+                                    .append(regionID).append(' ')
                                     .append(storefileSizeMB).append(' ')
                                     .append(memStoreSizeMB).append(' ')
                                     .append(storefileIndexSizeMB)
