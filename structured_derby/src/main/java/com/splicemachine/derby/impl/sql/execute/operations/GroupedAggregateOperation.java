@@ -397,7 +397,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				if(aggregator==null) return;
+				if(aggregator==null) return; //no data has yet been processed
 
 				stats.addMetric(OperationMetric.FILTERED_ROWS, aggregator.getRowsMerged());
 				stats.setBufferFillRatio(aggregator.getMaxFillRatio());

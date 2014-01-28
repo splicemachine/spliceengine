@@ -2,12 +2,12 @@ package com.splicemachine.derby.metrics;
 
 import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.stats.TimeView;
-import org.apache.derby.iapi.tools.run;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,6 +118,17 @@ public class OperationRuntimeStats {
 																																TimeView writeTimer,
 																																SpliceRuntimeContext runtimeContext){
 				List<OperationRuntimeStats> stats = Lists.newArrayList();
+				OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, rowsWritten, bytesWritten, writeTimer);
+				stats.add(metrics);
+
+				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
+								topOperation.getLeftOperation(): topOperation.getRightOperation();
+				if(child!=null)
+						populateStats(runtimeContext,child,statementId,taskId,stats);
+				return stats;
+		}
+
+		protected static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId, long rowsWritten, long bytesWritten, TimeView writeTimer) {
 				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
 
 				if(rowsWritten>=0){
@@ -127,19 +138,18 @@ public class OperationRuntimeStats {
 						metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
 						metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
 				}
-				stats.add(metrics);
-
-				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
-								topOperation.getLeftOperation(): topOperation.getRightOperation();
-				if(child!=null)
-						populateStats(runtimeContext,child,statementId,taskId,stats);
-				return stats;
+				return metrics;
 		}
-		private static void populateStats(SpliceRuntimeContext context,SpliceOperation operation, long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
+
+		private static void populateStats(SpliceRuntimeContext context, SpliceOperation operation,
+																			long statementId, long taskIdLong, List<OperationRuntimeStats> stats) {
 				if(operation==null) return;
 				OperationRuntimeStats metrics = operation.getMetrics(statementId, taskIdLong);
 				if(metrics!=null)
 						stats.add(metrics);
+				if(operation instanceof SinkingOperation)
+						return; //found the first sink, so return
+
 				SpliceOperation child = context.isLeft(operation.resultSetNumber())? operation.getLeftOperation(): operation.getRightOperation();
 				if(child!=null)
 						populateStats(context,child,statementId,taskIdLong,stats);

@@ -54,11 +54,13 @@ public class OperationTree {
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
+				long statementUuid = runtimeContext.getStatementInfo().getStatementUuid();
         for(Integer level:levelMap.descendingKeySet()){
             List<SpliceOperation> levelOps = levelMap.get(level);
             if(levelOps.size()>1){
                 List<Future<Void>> shuffleFutures = Lists.newArrayListWithCapacity(levelOps.size());
                 for(final SpliceOperation opToShuffle:levelOps){
+										opToShuffle.setStatementId(statementUuid);
                     shuffleFutures.add(levelExecutor.submit(new Callable<Void>() {
                         @Override
                         public Void call() throws Exception {
@@ -81,6 +83,7 @@ public class OperationTree {
                 }
             }else{
                 for(SpliceOperation op:levelOps){
+										op.setStatementId(statementUuid);
                     op.executeShuffle(runtimeContext);
                 }
             }
