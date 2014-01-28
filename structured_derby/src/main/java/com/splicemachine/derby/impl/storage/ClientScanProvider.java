@@ -31,6 +31,8 @@ public class ClientScanProvider extends AbstractScanProvider {
 		private HTableInterface htable;
 		private final Scan scan;
 		private SpliceResultScanner scanner;
+		private long stopExecutionTime;
+		private long startExecutionTime;
 
 		public ClientScanProvider(String type,
 															byte[] tableName, Scan scan,
@@ -56,6 +58,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 				} catch (IOException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,"unable to open table "+ Bytes.toString(tableName),e);
 				}
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -69,6 +72,7 @@ public class ClientScanProvider extends AbstractScanProvider {
 						} catch (IOException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG,"unable to close htable for "+ Bytes.toString(tableName),e);
 						}
+				stopExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -95,8 +99,9 @@ public class ClientScanProvider extends AbstractScanProvider {
 				stats.addMetric(OperationMetric.TOTAL_USER_TIME,remoteView.getUserTime());
 				stats.addMetric(OperationMetric.OUTPUT_ROWS,scanner.getRemoteRowsRead());
 				stats.addMetric(OperationMetric.INPUT_ROWS,scanner.getRemoteRowsRead());
+				stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
+				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
 
-				stats.setHostName(SpliceUtils.getHostName());
 				SpliceDriver.driver().getTaskReporter().report(xplainSchema,stats);
 		}
 

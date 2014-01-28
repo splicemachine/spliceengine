@@ -35,7 +35,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
     protected int called = 0;
     protected PairDecoder decoder;
 
-    protected TaskStats.SinkAccumulator accumulator;
     private final String type;
 
     protected AbstractScanProvider(PairDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
@@ -66,11 +65,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
     public boolean hasNext() throws StandardException,IOException {
         if(populated)return true;
         called++;
-        if(accumulator==null){
-            accumulator = TaskStats.uniformAccumulator();
-            accumulator.start();
-        }
-        long start = System.nanoTime();
 
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
@@ -78,12 +72,6 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
             SpliceLogUtils.trace(LOG, "after populate, currentRow=%s", currentRow);
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
-
-            if(accumulator.readAccumulator().shouldCollectStats()){
-                accumulator.readAccumulator().tick(System.nanoTime()-start);
-            }else{
-                accumulator.readAccumulator().tickRecords();
-            }
 
             return true;
         }
@@ -105,13 +93,5 @@ public abstract class AbstractScanProvider extends SingleScanRowProvider {
 		populated =false;
 		return currentRow;
 	}
-
-    @Override
-    public void close() throws StandardException {
-        if(accumulator!=null){
-            TaskStats finish = accumulator.finish();
-            JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here
-        }
-    }
 
 }

@@ -127,6 +127,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,e);
 				}
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -150,6 +151,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						PairDecoder decoder = OperationUtils.getPairDecoder(this,spliceRuntimeContext);
 						scanAggregator = new ScalarAggregator(new ScalarAggregateScan(decoder,regionScanner),
 										aggregates,true,false);
+						timer = spliceRuntimeContext.newTimer();
 				}
 
         /*
@@ -157,16 +159,23 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
           * then use nextRaw() internally to the scan. This way, we read everything within our
           * region even if the region closes during read.
          */
+				timer.startTiming();
 				if(region!=null)
 						region.startRegionOperation();
 				try{
 						ExecRow aggregate = scanAggregator.aggregate(spliceRuntimeContext);
-						if(aggregate!=null)
-								return finish(aggregate, scanAggregator);
+						if(aggregate!=null){
+								ExecRow finish = finish(aggregate, scanAggregator);
+								timer.tick(1);
+								stopExecutionTime = System.currentTimeMillis();
+								return finish;
+						}
 				}finally{
 						if(region!=null)
 								region.closeRegionOperation();
 				}
+				timer.stopTiming();
+				stopExecutionTime = System.currentTimeMillis();
 				return null;
 		}
 
@@ -187,14 +196,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				stopExecutionTime = System.currentTimeMillis();
 				timer.tick(0);
 				return null;
-		}
-
-		@Override
-		public OperationRuntimeStats getMetrics(long statementId, long taskId) {
-				OperationRuntimeStats stats = super.getMetrics(statementId,taskId);
-
-
-				return stats;
 		}
 
 		@Override protected int getNumMetrics() {
