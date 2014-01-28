@@ -183,12 +183,7 @@
 
 	<profiles>
         <profile>
-            <id>assembly</id>
-            <activation>
-                <property>
-                    <name>assemble</name>
-                </property>
-            </activation>
+            <id>assemble</id>
             <build>
                 <plugins>
                     <plugin>
@@ -217,18 +212,12 @@
                                     <goal>single</goal>
                                 </goals>
                             </execution>
-                            <execution>
-                                <phase>package</phase>
-                                <id>complete</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
         </profile>
+
         <profile>
             <id>integration-tests</id>
             <properties>
