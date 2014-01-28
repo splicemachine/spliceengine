@@ -23,7 +23,7 @@ public class Folders {
 		private static final LongLongFolder SUM_FOLDER = new LongLongFolder() {
 				@Override
 				public long fold(long previous, long next) {
-						return previous <= next ? previous : next;
+						return previous+next;
 				}
 		};
 		private static final DoubleFolder DOUBLE_MIN_FOLDER = new DoubleFolder() {

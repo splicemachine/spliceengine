@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.stats.TimeView;
 import org.apache.derby.iapi.tools.run;
@@ -41,6 +42,7 @@ public class OperationRuntimeStats {
 
 				this.setMetrics = Lists.newArrayListWithExpectedSize(initialSize);
 				this.measuredValues = new LongArrayList(initialSize);
+				this.hostName = SpliceUtils.getHostName();
 		}
 
 		public void addMetric(OperationMetric metric, long value){

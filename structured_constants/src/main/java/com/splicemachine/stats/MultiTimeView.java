@@ -10,7 +10,7 @@ public class MultiTimeView implements TimeView {
 		private long totalWallTime;
 		private long totalCpuTime;
 		private long totalUserTime;
-		private long startTimestamp;
+		private long startTimestamp = Long.MAX_VALUE;
 		private long stopTimestamp;
 
 		private final LongLongFolder wallTimeFolder;
@@ -35,7 +35,10 @@ public class MultiTimeView implements TimeView {
 		@Override public long getCpuTime() { return totalCpuTime; }
 		@Override public long getUserTime() { return totalUserTime; }
 		@Override public long getStopWallTimestamp() { return stopTimestamp; }
-		@Override public long getStartWallTimestamp() { return startTimestamp; }
+		@Override public long getStartWallTimestamp() {
+				if(startTimestamp==Long.MAX_VALUE) return 0l;
+				return startTimestamp;
+		}
 
 		public void update(TimeView timeView){
 				totalWallTime = wallTimeFolder.fold(totalWallTime,timeView.getWallClockTime());

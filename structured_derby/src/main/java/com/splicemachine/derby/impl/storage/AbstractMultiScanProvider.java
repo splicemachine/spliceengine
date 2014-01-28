@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobStatsUtils;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -31,10 +32,12 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
     protected int called = 0;
     protected PairDecoder decoder;
 
-    protected TaskStats.SinkAccumulator accumulator;
     private final String type;
+		protected Timer timer;
+		protected long startExecutionTime;
+		protected long stopExecutionTime;
 
-    protected AbstractMultiScanProvider(PairDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
+		protected AbstractMultiScanProvider(PairDecoder decoder,String type, SpliceRuntimeContext spliceRuntimeContext){
         this.decoder = decoder;
         this.type = type;
         this.spliceRuntimeContext = spliceRuntimeContext;
@@ -56,12 +59,12 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
 
         if(populated)return true;
         called++;
-        if(accumulator==null){
-            accumulator = TaskStats.uniformAccumulator();
-            accumulator.start();
-        }
-        long start = System.nanoTime();
+				if(timer==null){
+						timer = spliceRuntimeContext.newTimer();
+						startExecutionTime = System.currentTimeMillis();
+				}
 
+				timer.startTiming();
         Result result = getResult();
         if(result!=null && !result.isEmpty()){
             currentRow = decoder.decode(KeyValueUtils.matchDataColumn(result.raw()));
@@ -69,14 +72,11 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
             currentRowLocation = new HBaseRowLocation(result.getRow());
             populated = true;
 
-            if(accumulator.readAccumulator().shouldCollectStats()){
-                accumulator.readAccumulator().tick(System.nanoTime()-start);
-            }else{
-                accumulator.readAccumulator().tickRecords();
-            }
-
+						timer.tick(1);
             return true;
         }
+				timer.stopTiming();
+				stopExecutionTime = System.currentTimeMillis();
         SpliceLogUtils.trace(LOG,"no result returned");
         return false;
 	}
@@ -97,10 +97,6 @@ public abstract class AbstractMultiScanProvider extends MultiScanRowProvider {
 
     @Override
     public void close() {
-        if(accumulator!=null){
-            TaskStats finish = accumulator.finish();
-            JobStatsUtils.logTaskStats(type,finish); //TODO -sf- come up with a better label here
-        }
         super.close();
     }
 
