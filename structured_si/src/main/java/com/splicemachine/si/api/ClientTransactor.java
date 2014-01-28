@@ -16,7 +16,7 @@ public interface ClientTransactor<Put, Get, Scan, Mutation, Data> extends Transa
     void initializeGet(String transactionId, Get get) throws IOException;
     void initializeScan(String transactionId, Scan scan, boolean includeSIColumn);
     void initializePut(String transactionId, Put put);
-
+    void initializePut(String transactionId, Put put, boolean addPlaceHolderColumnToEmptyPut);
     Put createDeletePut(TransactionId transactionId, Data rowKey);
     boolean isDeletePut(Mutation put);
 }

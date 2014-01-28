@@ -298,8 +298,14 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
     @Override
     public void initializePut(String transactionId, Put put) {
+        initializePut(transactionId,put,true);
+    }
+
+    @Override
+    public void initializePut(String transactionId, Put put, boolean addPlaceHolderColumnToEmptyPut) {
         initializeOperation(transactionId, put);
-        dataStore.addPlaceHolderColumnToEmptyPut(put);
+        if (addPlaceHolderColumnToEmptyPut)
+        	dataStore.addPlaceHolderColumnToEmptyPut(put);
     }
 
     private void initializeOperation(String transactionId, OperationWithAttributes operation) {

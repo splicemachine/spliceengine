@@ -143,9 +143,14 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createPut(byte[] newRowKey, String transactionID) throws IOException {
+        return createPut(newRowKey, transactionID, true);
+    }
+
+    public static Put createPut(byte[] newRowKey, String transactionID, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
         return attachTransaction(new Put(newRowKey), transactionID);
     }
 
+    
     /**
      * Attach transactional information to the specified operation.
      *
@@ -153,12 +158,17 @@ public class SpliceUtils extends SpliceUtilities {
      * @param transactionId the transaction id to attach.
      */
     public static Put attachTransaction(Put op, String transactionId) throws IOException {
+    	return attachTransaction(op,transactionId,true);
+    }
+
+    public static Put attachTransaction(Put op, String transactionId, boolean addPlaceHolderColumnToEmptyPut) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
-            getTransactor().initializePut(transactionId, op);
+            getTransactor().initializePut(transactionId, op, addPlaceHolderColumnToEmptyPut);
         }
         return op;
     }
 
+    
     public static Get attachTransaction(Get op, String transactionId) throws IOException {
         if (!attachTransactionNA(op, transactionId)) {
             getTransactor().initializeGet(transactionId, op);
