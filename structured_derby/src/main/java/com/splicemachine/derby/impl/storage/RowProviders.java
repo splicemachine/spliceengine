@@ -347,8 +347,9 @@ public class RowProviders {
 
 				@Override
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
-										source, operationId, statementId, -1l, -1l, Metrics.noOpTimeView(), spliceRuntimeContext);
+										source, taskId, statementId, -1l, -1l, Metrics.noOpTimeView(), spliceRuntimeContext);
 						XplainTaskReporter taskReporter = SpliceDriver.driver().getTaskReporter();
 						String hostName;
 						try {
