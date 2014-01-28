@@ -19,11 +19,9 @@ public class DistinctSortBufferedAggregator implements BufferedAggregator {
     private static Logger LOG = Logger.getLogger(DistinctSortBufferedAggregator.class);
     protected ExecRow currentRow;
     protected final StandardSupplier<ExecRow> emptyRowSupplier;
-		private Counter mergeCounter;
 
-		public DistinctSortBufferedAggregator(StandardSupplier<ExecRow> emptyRowSupplier,Counter mergeCounter) {
+		public DistinctSortBufferedAggregator(StandardSupplier<ExecRow> emptyRowSupplier) {
 				this.emptyRowSupplier = emptyRowSupplier;
-				this.mergeCounter = mergeCounter;
 		}
 
     /**
@@ -42,8 +40,6 @@ public class DistinctSortBufferedAggregator implements BufferedAggregator {
     	if (LOG.isTraceEnabled()) {
     		SpliceLogUtils.trace(LOG, "discarding row ",newRow);
     	}
-    	// throw away row
-				mergeCounter.add(1l);
     }
 
     public boolean isInitialized() {
