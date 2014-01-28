@@ -624,7 +624,6 @@ public class SpliceAdmin {
                 "ORDER BY S.SCHEMANAME").executeQuery();
         StringBuilder sb = new StringBuilder("select * from (values ");
 
-        int i = 0;
         int nCols = allTablesInSchema.getMetaData().getColumnCount();
         // Map<regionNameAsString,HServerLoad.RegionLoad>
         Map<String, HServerLoad.RegionLoad> regionLoadMap = getRegionLoad();
@@ -633,36 +632,36 @@ public class SpliceAdmin {
             admin = SpliceUtils.getAdmin();
             StringBuilder regionBuilder = new StringBuilder();
             while (allTablesInSchema.next()) {
-                for (int j=1; j<nCols; j++) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    String conglom = allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
-                    regionBuilder.setLength(0);
-                    for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
-                        String regionName = Bytes.toString(ri.getRegionName());
-                        if (regionName != null && ! regionName.isEmpty()) {
-                            HServerLoad.RegionLoad regionLoad = regionLoadMap.get(regionName);
-                            if (regionLoad != null) {
-                                int storefileSizeMB = regionLoad.getStorefileSizeMB();
-                                int memStoreSizeMB = regionLoad.getMemStoreSizeMB();
-                                int storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
-                                regionBuilder.append('(')
-                                        .append(ri.getRegionNameAsString()).append(' ')
-                                        .append(storefileSizeMB).append(' ')
-                                        .append(memStoreSizeMB).append(' ')
-                                        .append(storefileIndexSizeMB)
-                                        .append(" MB)");
-                            }
+                String conglom = allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
+                regionBuilder.setLength(0);
+                for (HRegionInfo ri : admin.getTableRegions(Bytes.toBytes(conglom))) {
+                    String regionName = Bytes.toString(ri.getRegionName());
+                    if (regionName != null && ! regionName.isEmpty()) {
+                        HServerLoad.RegionLoad regionLoad = regionLoadMap.get(regionName);
+                        if (regionLoad != null) {
+                            int storefileSizeMB = regionLoad.getStorefileSizeMB();
+                            int memStoreSizeMB = regionLoad.getMemStoreSizeMB();
+                            int storefileIndexSizeMB = regionLoad.getStorefileIndexSizeMB();
+
+                            regionBuilder.append('(')
+                                    .append(ri.getRegionNameAsString()).append(' ')
+                                    .append(storefileSizeMB).append(' ')
+                                    .append(memStoreSizeMB).append(' ')
+                                    .append(storefileIndexSizeMB)
+                                    .append(" MB) ");
                         }
                     }
-                    sb.append(String.format("('%s','%s','%s','%s')",
-                            allTablesInSchema.getObject("SCHEMANAME"),
-                            allTablesInSchema.getObject("TABLENAME"),
-                            allTablesInSchema.getObject("ISINDEX"),
-                            regionBuilder.toString()));
-                    i++;
                 }
+
+                sb.append(String.format("('%s','%s','%s','%s'), ",
+                        allTablesInSchema.getObject("SCHEMANAME"),
+                        allTablesInSchema.getObject("TABLENAME"),
+                        allTablesInSchema.getObject("ISINDEX"),
+                        regionBuilder.toString()));
+            }
+            if (sb.length() > 2) {
+                // trim last ', '
+                sb.setLength(sb.length()-2);
             }
         } catch (IOException e) {
             throw new SQLException(e);
