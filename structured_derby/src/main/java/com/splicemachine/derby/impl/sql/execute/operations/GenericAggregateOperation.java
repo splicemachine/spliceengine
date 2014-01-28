@@ -25,101 +25,106 @@ import java.util.Arrays;
 import java.util.List;
 
 public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
-    private static final long serialVersionUID = 1l;
-	private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
-	protected SpliceOperation source;
-    protected AggregateContext aggregateContext;
-	protected SpliceGenericAggregator[] aggregates;
-	protected SpliceMethod<ExecRow> rowAllocator;
-    protected ExecIndexRow sourceExecIndexRow;
-	protected ExecIndexRow sortTemplateRow;
-	protected static List<NodeType> nodeTypes; 
-	protected Scan reduceScan;
+		private static final long serialVersionUID = 1l;
+		private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
+		protected SpliceOperation source;
+		protected AggregateContext aggregateContext;
+		protected SpliceGenericAggregator[] aggregates;
+		protected SpliceMethod<ExecRow> rowAllocator;
+		protected ExecIndexRow sourceExecIndexRow;
+		protected ExecIndexRow sortTemplateRow;
+		protected static List<NodeType> nodeTypes;
+		protected Scan reduceScan;
+		protected boolean serializeSource = true;
 
-	protected long rowsInput;
-	
-	static {
-		nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SINK);
-	}
-    public GenericAggregateOperation () {
-    	super();
-    	SpliceLogUtils.trace(LOG, "instantiated");
-    }
+		protected long rowsInput;
 
-    public GenericAggregateOperation(SpliceOperation source,
-                                     OperationInformation baseOpInformation,
-                                     AggregateContext aggregateContext) throws StandardException{
-        super(baseOpInformation);
-        this.source = source;
-        this.aggregateContext = aggregateContext;
-    }
+		static {
+				nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SINK);
+		}
+		public GenericAggregateOperation () {
+				super();
+				SpliceLogUtils.trace(LOG, "instantiated");
+		}
 
-    public GenericAggregateOperation (SpliceOperation source,
-		int	aggregateItem,
-		Activation activation,
-		GeneratedMethod	ra,
-		int resultSetNumber,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost) throws StandardException {
-    	super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-    	this.source = source;
-        this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
-	}
+		public GenericAggregateOperation(SpliceOperation source,
+																		 OperationInformation baseOpInformation,
+																		 AggregateContext aggregateContext) throws StandardException{
+				super(baseOpInformation);
+				this.source = source;
+				this.aggregateContext = aggregateContext;
+		}
 
-    public GenericAggregateOperation (SpliceOperation source,
-                                      Activation activation,
-                                      int resultSetNumber,
-                                      double optimizerEstimatedRowCount,
-                                      double optimizerEstimatedCost,
-                                      AggregateContext context) throws StandardException {
-        super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
-        this.source = source;
-        this.aggregateContext = context;
-    }
+		public GenericAggregateOperation (SpliceOperation source,
+																			int	aggregateItem,
+																			Activation activation,
+																			GeneratedMethod	ra,
+																			int resultSetNumber,
+																			double optimizerEstimatedRowCount,
+																			double optimizerEstimatedCost) throws StandardException {
+				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+				this.source = source;
+				this.aggregateContext = new DerbyAggregateContext(ra==null? null:ra.getMethodName(),aggregateItem);
+		}
 
-	@Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		SpliceLogUtils.trace(LOG,"readExternal");
-		super.readExternal(in);
-        this.aggregateContext = (AggregateContext)in.readObject();
-		source = (SpliceOperation)in.readObject();
-	}
+		public GenericAggregateOperation (SpliceOperation source,
+																			Activation activation,
+																			int resultSetNumber,
+																			double optimizerEstimatedRowCount,
+																			double optimizerEstimatedCost,
+																			AggregateContext context) throws StandardException {
+				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+				this.source = source;
+				this.aggregateContext = context;
+		}
 
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		SpliceLogUtils.trace(LOG,"writeExternal");
-		super.writeExternal(out);
-        out.writeObject(aggregateContext);
-		out.writeObject(source);
-	}
-	@Override
-	public List<NodeType> getNodeTypes() {
-		SpliceLogUtils.trace(LOG, "getNodeTypes");
-		return nodeTypes;
-	}
-	
-	@Override
-	public List<SpliceOperation> getSubOperations() {
-		SpliceLogUtils.trace(LOG, "getSubOperations");
-		List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
-		operations.add(source);
-		return operations;
-	}
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				SpliceLogUtils.trace(LOG,"readExternal");
+				super.readExternal(in);
+				this.aggregateContext = (AggregateContext)in.readObject();
+				if(in.readBoolean())
+						source = (SpliceOperation)in.readObject();
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				SpliceLogUtils.trace(LOG,"writeExternal");
+				super.writeExternal(out);
+				out.writeObject(aggregateContext);
+				out.writeBoolean(serializeSource);
+				if(serializeSource)
+						out.writeObject(source);
+		}
+		@Override
+		public List<NodeType> getNodeTypes() {
+				SpliceLogUtils.trace(LOG, "getNodeTypes");
+				return nodeTypes;
+		}
+
+		@Override
+		public List<SpliceOperation> getSubOperations() {
+				SpliceLogUtils.trace(LOG, "getSubOperations");
+				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
+				operations.add(source);
+				return operations;
+		}
 
 
-	@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG, "init called");
-		super.init(context);
-		source.init(context);
-        aggregateContext.init(context);
-        aggregates = aggregateContext.getAggregators();
-        sortTemplateRow = aggregateContext.getSortTemplateRow();
-        sourceExecIndexRow = aggregateContext.getSourceIndexRow();
-	}
+		@Override
+		public void init(SpliceOperationContext context) throws StandardException{
+				SpliceLogUtils.trace(LOG, "init called");
+				super.init(context);
+				if(source!=null)
+						source.init(context);
+				aggregateContext.init(context);
+				aggregates = aggregateContext.getAggregators();
+				sortTemplateRow = aggregateContext.getSortTemplateRow();
+				sourceExecIndexRow = aggregateContext.getSourceIndexRow();
+		}
 
-    protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
-		SpliceLogUtils.trace(LOG, "finishAggregation");
+		protected final ExecRow finishAggregation(ExecRow row) throws StandardException {
+				SpliceLogUtils.trace(LOG, "finishAggregation");
 
 		/*
 		** If the row in which we are to place the aggregate
@@ -127,77 +132,77 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		** So we'll have to create our own row and set it
 		** up.  Note: we needn't initialize in this case,
 		** finish() will take care of it for us.
-		*/ 
-		if (row == null) {
-			row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
-		}
-		setCurrentRow(row);
-		boolean eliminatedNulls = false;
-        for (SpliceGenericAggregator currAggregate : aggregates) {
-            if (currAggregate.finish(row))
-                eliminatedNulls = true;
-        }
+		*/
+				if (row == null) {
+						row = this.getActivation().getExecutionFactory().getIndexableRow(rowAllocator.invoke());
+				}
+				setCurrentRow(row);
+				boolean eliminatedNulls = false;
+				for (SpliceGenericAggregator currAggregate : aggregates) {
+						if (currAggregate.finish(row))
+								eliminatedNulls = true;
+				}
 
         /*
 		if (eliminatedNulls)
 			addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
 	    */
-	
-		return row;
-	}
 
-	@Override
-	public SpliceOperation getLeftOperation() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("getLeftOperation");
-		return this.source;
-	}
+				return row;
+		}
 
-//	@Override
-	public void cleanup() {
-		if (LOG.isTraceEnabled())
-			LOG.trace("cleanup");
-	}
+		@Override
+		public SpliceOperation getLeftOperation() {
+				if (LOG.isTraceEnabled())
+						LOG.trace("getLeftOperation");
+				return this.source;
+		}
 
-	public SpliceOperation getSource() {
-		return this.source;
-	}
-	
-	public long getRowsInput() {
-		return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
-	}
-	
-	public long getRowsOutput() {
-		return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
-	}
+		//	@Override
+		public void cleanup() {
+				if (LOG.isTraceEnabled())
+						LOG.trace("cleanup");
+		}
 
-    @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-        if(source!=null)source.open();
-    }
+		public SpliceOperation getSource() {
+				return this.source;
+		}
 
-    @Override
-    public String prettyPrint(int indentLevel) {
-        String indent = "\n"+ Strings.repeat("\t",indentLevel);
+		public long getRowsInput() {
+				return getRegionStats() == null ? 0l : getRegionStats().getTotalProcessedRecords();
+		}
 
-        return "Aggregate:" + indent +
-                "resultSetNumber:" + operationInformation.getResultSetNumber() + indent +
-                "source:" + source.prettyPrint(indentLevel + 1);
-    }
+		public long getRowsOutput() {
+				return getRegionStats() == null ? 0l : getRegionStats().getTotalSunkRecords();
+		}
 
-    @Override
-    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        if(source.isReferencingTable(tableNumber))
-            return source.getRootAccessedCols(tableNumber);
+		@Override
+		public void open() throws StandardException, IOException {
+				super.open();
+				if(source!=null)source.open();
+		}
 
-        return null;
-    }
+		@Override
+		public String prettyPrint(int indentLevel) {
+				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
-    @Override
-    public boolean isReferencingTable(long tableNumber) {
-        return source.isReferencingTable(tableNumber);
-    }
+				return "Aggregate:" + indent +
+								"resultSetNumber:" + operationInformation.getResultSetNumber() + indent +
+								"source:" + source.prettyPrint(indentLevel + 1);
+		}
+
+		@Override
+		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+				if(source.isReferencingTable(tableNumber))
+						return source.getRootAccessedCols(tableNumber);
+
+				return null;
+		}
+
+		@Override
+		public boolean isReferencingTable(long tableNumber) {
+				return source.isReferencingTable(tableNumber);
+		}
 
 		@Override
 		public byte[] getUniqueSequenceId() {
