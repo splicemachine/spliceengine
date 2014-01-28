@@ -220,7 +220,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				regionScanner.next(keyValues);
 				if(keyValues.isEmpty()) return null;
 				if(rowDecoder==null)
-						rowDecoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
+						rowDecoder =getTempDecoder();
 				return rowDecoder.decode(KeyValueUtils.matchDataColumn(keyValues));
 		}
 
@@ -262,11 +262,18 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
+				/*
+				 * We have an optimization here. When top == this, then we aren't actually doing anything (the
+				 * sort action has already happened), so there's no need to serialize us over and work locally.
+				 *
+				 * The downside is that we have a different encoding scheme when that happens.
+				 */
 				if(top!=this) {
 						SpliceUtils.setInstructions(reduceScan,getActivation(),top,spliceRuntimeContext);
 						KeyDecoder kd = new KeyDecoder(NoOpKeyHashDecoder.INSTANCE,0);
-						PairDecoder barrierDecoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
-						return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, barrierDecoder, spliceRuntimeContext);
+						decoder = new PairDecoder(kd,BareKeyHash.decoder(IntArrays.count(top.getExecRowDefinition().nColumns()),null),top.getExecRowDefinition());
+				}else{
+						decoder = getTempDecoder();
 				}
 				return new ClientScanProvider("sort",SpliceOperationCoprocessor.TEMP_TABLE,reduceScan, decoder, spliceRuntimeContext);
 		}
@@ -314,6 +321,17 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 				}
 
 				return new KeyEncoder(prefix,hash,postfix);
+		}
+
+		/**
+		 * @return the decoder to use when reading data out of TEMP
+		 * @throws StandardException
+		 */
+		protected PairDecoder getTempDecoder() throws StandardException {
+				KeyDecoder actualKeyDecoder = new KeyDecoder(BareKeyHash.decoder(keyColumns, descColumns),9);
+				ExecRow templateRow = getExecRowDefinition();
+				KeyHashDecoder actualRowDecoder =  BareKeyHash.decoder(IntArrays.complement(keyColumns, templateRow.nColumns()),null);
+				return new PairDecoder(actualKeyDecoder,actualRowDecoder,templateRow);
 		}
 
 		@Override
