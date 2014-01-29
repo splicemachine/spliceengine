@@ -42,6 +42,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
     private static Gson gson = new Gson();
     private Map<String, String> currentDDLChanges = new HashMap<String, String>();
+    private Set<String> seenDDLChanges = new HashSet<String>();
     private Map<String, Long> changesTimeouts = new HashMap<String, Long>();
     private List<LanguageConnectionContext> contexts = new ArrayList<LanguageConnectionContext>();
     private String id;
@@ -127,16 +128,17 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         Set<String> newChanges = new HashSet<String>();
 
         // remove finished ddl changes
-        for (Iterator<Entry<String, String>> iterator = currentDDLChanges.entrySet().iterator(); iterator.hasNext();) {
-            Entry<String, String> entry = iterator.next();
-            if (!children.contains(entry.getKey())) {
-                changesTimeouts.remove(entry.getKey());
+        for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext();) {
+            String entry = iterator.next();
+            if (!children.contains(entry)) {
+                changesTimeouts.remove(entry);
+                currentDDLChanges.remove(entry);
                 iterator.remove();
             }
         }
         for (Iterator<String> iterator = children.iterator(); iterator.hasNext();) {
             String changeId = iterator.next();
-            if (!currentDDLChanges.containsKey(changeId)) {
+            if (!seenDDLChanges.contains(changeId)) {
                 byte[] data;
                 try {
                     data = ZkUtils.getData(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + changeId);
@@ -147,6 +149,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
                 ddlChange.setIdentifier(changeId);
                 newChanges.add(changeId);
+                seenDDLChanges.add(changeId);
                 if (ddlChange.isTentative()) {
                     processTentativeDDLChange(ddlChange);
                 } else {
