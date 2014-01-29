@@ -342,6 +342,46 @@
             </dependencies>
         </profile>
 
+        <profile>
+            <id>mapr-0.94.9</id>
+
+            <properties>
+                <zookeeper.version>3.4.5</zookeeper.version>
+                <hbase.version>0.94.9-mapr</hbase.version>
+                <hadoop.version>1.0.3-mapr-2.1.2.1</hadoop.version>
+                <envClassifier>mapr-0.94.9</envClassifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase</artifactId>
+                    <version>${hbase.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase</artifactId>
+                    <version>${hbase.version}</version>
+                    <classifier>tests</classifier>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-core</artifactId>
+                    <version>${hadoop.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <artifactId>junit</artifactId>
+                            <groupId>junit</groupId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>com.mapr.hadoop</groupId>
+                    <artifactId>maprfs</artifactId>
+                    <version>${hadoop.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
 
     </profiles>
 </project>

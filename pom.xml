@@ -232,6 +232,16 @@
                 <envClassifier>mapr-0.94.5</envClassifier>
             </properties>
         </profile>
+
+        <profile>
+            <id>mapr-0.94.9</id>
+
+            <properties>
+                <envClassifier>mapr-0.94.9</envClassifier>
+            </properties>
+        </profile>
+
+        
         <profile>
             <id>downloadSources</id>
             <activation>
