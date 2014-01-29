@@ -79,7 +79,8 @@ public class SITransactorTest extends SIConstants {
     TransactorSetup transactorSetup;
     Transactor transactor;
 
-    void baseSetUp() {
+    @SuppressWarnings("unchecked")
+		void baseSetUp() {
         transactor = transactorSetup.transactor;
         transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
                 storeSetup.getHasher(),

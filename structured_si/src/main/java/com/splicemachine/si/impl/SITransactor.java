@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -917,4 +918,94 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return transactionStore.forbidPermission(tableName, transactionId);
     }
 
+		public static class Builder<Data,
+						Result,KeyValue,OperationWithAttributes,Mutation extends OperationWithAttributes,
+						Put extends Mutation,Delete extends OperationWithAttributes,Get extends OperationWithAttributes,Scan extends OperationWithAttributes,
+						Lock,OperationStatus,Table,Hashable extends Comparable<Hashable>,Scanner>{
+				private TimestampSource timestampSource;
+				private SDataLib<Data,
+								Result,  KeyValue,  OperationWithAttributes,
+								Put,  Delete,  Get,  Scan,
+								Lock,  OperationStatus> dataLib;
+				private STableWriter<Table, Mutation, Put, Delete, Data, Lock, org.apache.hadoop.hbase.regionserver.OperationStatus> dataWriter;
+				private DataStore<Data,
+								Hashable,
+								Result, KeyValue, OperationWithAttributes,
+								Mutation, Put, Delete, Get, Scan,
+								Table, Lock, OperationStatus, Scanner> dataStore;
+				private TransactionStore transactionStore;
+				private Clock clock;
+				private int transactionTimeoutMS;
+				private Hasher<Data, Hashable> hasher;
+				private TransactorListener listener;
+				private TransactionSource transactionSource;
+
+				public Builder timestampSource(TimestampSource timestampSource) {
+						this.timestampSource = timestampSource;
+						return this;
+				}
+
+				public Builder dataLib(SDataLib<Data,
+								Result, KeyValue, OperationWithAttributes,
+								Put, Delete, Get, Scan, Lock, OperationStatus> dataLib) {
+						this.dataLib = dataLib;
+						return this;
+				}
+
+				public Builder dataWriter(
+								STableWriter<Table, Mutation, Put, Delete, Data, Lock,
+												org.apache.hadoop.hbase.regionserver.OperationStatus> dataWriter) {
+						this.dataWriter = dataWriter;
+						return this;
+				}
+
+				public Builder dataStore(DataStore<Data, Hashable,
+								Result, KeyValue, OperationWithAttributes,
+								Mutation, Put, Delete, Get, Scan, Table, Lock, OperationStatus, Scanner> dataStore) {
+						this.dataStore = dataStore;
+						return this;
+				}
+
+				public Builder transactionStore(TransactionStore transactionStore) {
+						this.transactionStore = transactionStore;
+						return this;
+				}
+
+				public Builder clock(Clock clock) {
+						this.clock = clock;
+						return this;
+				}
+
+				public Builder transactionTimeout(int transactionTimeoutMS) {
+						this.transactionTimeoutMS = transactionTimeoutMS;
+						return this;
+				}
+
+				public Builder hasher(Hasher<Data, Hashable> hasher) {
+						this.hasher = hasher;
+						return this;
+				}
+
+				public Builder transactionListener(TransactorListener listener) {
+						this.listener = listener;
+						return this;
+				}
+
+				public Builder transactionSource(TransactionSource transactionSource) {
+						this.transactionSource = transactionSource;
+						return this;
+				}
+
+				public SITransactor<Table,
+								OperationWithAttributes,Mutation, Put,Get,
+								Scan,Result,KeyValue,Data,Hashable,Delete,
+								Lock,OperationStatus,Scanner> build(){
+						return new SITransactor<Table,
+										OperationWithAttributes,Mutation, Put,Get,Scan,
+										Result,KeyValue,Data,Hashable,
+										Delete,Lock,OperationStatus,Scanner>(timestampSource,dataLib,dataWriter,
+										dataStore,transactionStore,clock,transactionTimeoutMS,hasher,listener);
+				}
+
+		}
 }

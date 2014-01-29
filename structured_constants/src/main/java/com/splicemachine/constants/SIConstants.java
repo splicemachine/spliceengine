@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.splicemachine.encoding.Encoding;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 
 /**
@@ -55,13 +56,31 @@ public class SIConstants extends SpliceConstants {
     public static final short SI_NEEDED_VALUE = (short) 0;
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;
 
-    public static final int TRANSACTION_KEEP_ALIVE_INTERVAL = 1 * 60 * 1000;
-    public static final int TRANSACTION_TIMEOUT = 10000 * TRANSACTION_KEEP_ALIVE_INTERVAL;
-    
-    
+		@Parameter public static final String TRANSACTION_KEEP_ALIVE_INTERVAL = "splice.txn.keepAliveIntervalMs";
+		@DefaultValue(TRANSACTION_KEEP_ALIVE_INTERVAL) public static final int DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=60000;
+    public static int transactionKeepAliveInterval;
+
+		@Parameter public static final String TRANSACTION_TIMEOUT = "splice.txn.timeout";
+		@DefaultValue(TRANSACTION_TIMEOUT) public static final int DEFAULT_TRANSACTION_TIMEOUT = 100 * DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL; //100 minutes
+    public static int transactionTimeout;
+
     public static final String SI_TRANSACTION_ID_KEY = "A";
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
 
     public static final String SI_ANTI_TOMBSTONE_VALUE = "Z";
+		/*
+		 * The time, in ms, to wait between attempts at resolving a transaction which
+		 * is in the COMMITTING state (e.g. the amount of time to wait for a transaction
+		 * to move from COMMITTING to COMMITTED).
+		 */
+		@SpliceConstants.Parameter public static final String COMMITTING_PAUSE="splice.txn.committing.pauseTimeMs";
+		@SpliceConstants.DefaultValue(COMMITTING_PAUSE) public static final int DEFAULT_COMMITTING_PAUSE=1000;
+		public static int committingPause;
+
+		public static void setParameters(Configuration config){
+				committingPause = config.getInt(COMMITTING_PAUSE,DEFAULT_COMMITTING_PAUSE);
+				transactionTimeout = config.getInt(TRANSACTION_TIMEOUT,DEFAULT_TRANSACTION_TIMEOUT);
+				transactionKeepAliveInterval = config.getInt(TRANSACTION_KEEP_ALIVE_INTERVAL,DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
+		}
 }

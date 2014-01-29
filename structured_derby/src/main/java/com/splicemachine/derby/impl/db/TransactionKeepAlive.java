@@ -21,7 +21,7 @@ public class TransactionKeepAlive {
     private static final Logger LOG = Logger.getLogger(TransactionKeepAlive.class);
 
     private static boolean running = false;
-    private static final int intervalMS = SIConstants.TRANSACTION_KEEP_ALIVE_INTERVAL;
+    private static final int intervalMS = SIConstants.transactionKeepAliveInterval;
     private static final TimerTask keepAliveTask = new TimerTask() {
         @Override
         public void run() {

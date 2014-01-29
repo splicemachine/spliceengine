@@ -116,7 +116,7 @@ public class HTransactorFactory extends SIConstants {
             );
             ManagedTransactor builderTransactor = new ManagedTransactor();
             final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
-                    immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, 1000, builderTransactor);
+                    immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, builderTransactor);
 
             final DataStore rowStore = new DataStore(dataLib, reader, writer, SI_NEEDED, SI_NEEDED_VALUE,
                     ONLY_SI_FAMILY_NEEDED_VALUE, SI_TRANSACTION_ID_KEY,
@@ -124,7 +124,7 @@ public class HTransactorFactory extends SIConstants {
                     SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, EMPTY_BYTE_ARRAY, SI_ANTI_TOMBSTONE_VALUE,
                     SNAPSHOT_ISOLATION_FAILED_TIMESTAMP, DEFAULT_FAMILY);
             final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
-                    (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), TRANSACTION_TIMEOUT,
+                    (timestampSource, dataLib, writer, rowStore, transactionStore, new SystemClock(), transactionTimeout,
                             new HHasher(), builderTransactor);
             builderTransactor.setTransactor(transactor);
             managedTransactor = builderTransactor;

@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.api.SDataLib;
@@ -320,40 +321,62 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return immutableCachedTransaction;
     }
 
-    private Transaction getImmutableTransactionDirect(long transactionId) throws IOException {
-        return getTransactionDirect(transactionId, true);
-    }
+		private Transaction getImmutableTransactionDirect(long transactionId) throws IOException {
+				return getTransactionDirect(transactionId, true);
+		}
 
-    private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
-        // If the transaction is completed then we will use the cached value, otherwise load it from the transaction table.
-        final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
-        if (cachedTransaction != null) {
-            //LOG.warn("cache HIT " + transactionId.getTransactionIdString());
-            return cachedTransaction;
-        }
-        return loadTransaction(transactionId, immutableOnly);
-    }
+		private Transaction getTransactionDirect(long transactionId, boolean immutableOnly) throws IOException {
+				// If the transaction is completed then we will use the cached value, otherwise load it from the transaction table.
+				final Transaction cachedTransaction = completedTransactionCache.get(transactionId);
+				if (cachedTransaction != null) {
+						//LOG.warn("cache HIT " + transactionId.getTransactionIdString());
+						return cachedTransaction;
+				}
+				return loadTransaction(transactionId, immutableOnly);
+		}
 
-    private Transaction loadTransaction(long transactionId, boolean immutableOnly) throws IOException {
-        if (immutableOnly) {
-            return loadTransactionDirect(transactionId);
-        } else {
-            Transaction transaction = loadTransactionDirect(transactionId);
-            if (transaction.status.isCommitting()) {
-                // It is important to avoid exposing the application to transactions that are in the intermediate
-                // COMMITTING state. So wait here for the commit to complete.
-                try {
-                    Tracer.traceWaiting(transactionId);
-                    Thread.sleep(waitForCommittingMS);
-                } catch (InterruptedException e) {
-                    // Ignore this
-                }
-                transaction = loadTransactionDirect(transactionId);
-                if (transaction.status.isCommitting()) {
-                    throw new DoNotRetryIOException("Transaction is committing: " + transactionId);
-                }
-            }
-            return transaction;
+		private Transaction loadTransaction(long transactionId, boolean immutableOnly) throws IOException {
+				if (immutableOnly) {
+						return loadTransactionDirect(transactionId);
+				} else {
+						Transaction transaction = loadTransactionDirect(transactionId);
+						if(!transaction.status.isCommitting())
+								return transaction;
+
+						/*
+						 * The transaction is in the COMMITTING state, so we have
+						 * to spin-wait for the transaction to move to it's latest state.
+						 * Each time we
+						 */
+						int maxRetries = SpliceConstants.numRetries;
+						int commitTry=0;
+						boolean isInterrupted=false;
+						try{
+								while(commitTry<maxRetries){
+										commitTry++;
+										Tracer.traceWaiting(transactionId);
+										try {
+												Thread.sleep(SpliceHTableUtil.getWaitTime(commitTry, waitForCommittingMS));
+										} catch (InterruptedException e) {
+												isInterrupted=true;
+												Thread.interrupted(); //clear interrupted status so that we can continue
+										}
+										transaction = loadTransactionDirect(transactionId);
+										if(!transaction.status.isCommitting())
+												return transaction;
+								}
+								/*
+								 * If we reach this point, it means that we were unable to wait long
+								 * enough for the transaction to be moved out of COMMITTING and into
+								 * COMMITTED within our specified SLA, so we have to bail.
+								 */
+								throw new TransactionCommittingException(transactionId);
+						}finally{
+								if(isInterrupted){
+										//restore interrupted status
+										Thread.currentThread().interrupt();
+								}
+						}
         }
     }
 
