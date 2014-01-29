@@ -278,9 +278,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeShuffle");
         long start = System.currentTimeMillis();
-        SpliceRuntimeContext spliceLRuntimeContext = SpliceRuntimeContext.generateLeftRuntimeContext(resultSetNumber);
+        SpliceRuntimeContext spliceLRuntimeContext = runtimeContext.copy();
+        spliceLRuntimeContext.addLeftRuntimeContext(resultSetNumber);
         spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
-        SpliceRuntimeContext spliceRRuntimeContext = SpliceRuntimeContext.generateRightRuntimeContext(resultSetNumber);
+        SpliceRuntimeContext spliceRRuntimeContext = runtimeContext.copy();
+        spliceRRuntimeContext.addRightRuntimeContext(resultSetNumber);
         spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
         RowProvider leftProvider = leftResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceLRuntimeContext), spliceLRuntimeContext);
         RowProvider rightProvider = rightResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRRuntimeContext), spliceRRuntimeContext);
