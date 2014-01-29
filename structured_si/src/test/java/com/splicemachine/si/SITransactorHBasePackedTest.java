@@ -1,5 +1,7 @@
 package com.splicemachine.si;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.After;
@@ -37,6 +39,8 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
 
     @BeforeClass
     public static void setUpClass() {
+				SpliceConstants.numRetries = 2;
+				SIConstants.transactionTimeout = 500;
         classStoreSetup = new HStoreSetup(true);
         classTransactorSetup = new TransactorSetup(classStoreSetup, false);
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);

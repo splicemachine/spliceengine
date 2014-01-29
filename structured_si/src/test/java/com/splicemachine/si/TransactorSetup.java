@@ -19,7 +19,11 @@ import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionSchema;
 import com.splicemachine.si.impl.TransactionStore;
 import com.splicemachine.si.jmx.ManagedTransactor;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
+import javax.ws.rs.DELETE;
 import java.util.Map;
 
 public class TransactorSetup extends SIConstants {
@@ -58,19 +62,29 @@ public class TransactorSetup extends SIConstants {
         final Map<PermissionArgs, Byte> permissionCache = CacheMap.makeCache(true);
         final ManagedTransactor listener = new ManagedTransactor();
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
-                cache, committedCache, failedCache, permissionCache, 1000, listener);
+                cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, listener);
 
         final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
         final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
-        dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
+				//noinspection unchecked
+				dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
                 "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
                 commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
         timestampSource = new SimpleTimestampSource();
-        transactor = new SITransactor(timestampSource, dataLib, writer,
-                dataStore,
-                transactionStore, storeSetup.getClock(), 1500, storeSetup.getHasher(), listener);
+				SITransactor.Builder builder = new SITransactor.Builder();
+				//noinspection unchecked
+				builder = builder.timestampSource(timestampSource)
+								.dataLib(dataLib)
+								.dataWriter(writer)
+								.dataStore(dataStore)
+								.transactionStore(transactionStore)
+								.clock(storeSetup.getClock())
+								.transactionTimeout(SIConstants.transactionTimeout)
+								.hasher(storeSetup.getHasher())
+								.transactionListener(listener);
+				transactor = builder.build();
         if (!simple) {
             listener.setTransactor(transactor);
             hTransactor = listener;
