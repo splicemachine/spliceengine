@@ -219,7 +219,7 @@
         </profile>
 
         <profile>
-            <id>integration-tests</id>
+            <id>ITs</id>
             <properties>
                 <!-- enable failsafe integration tests -->
                 <skip.integration.tests>false</skip.integration.tests>
