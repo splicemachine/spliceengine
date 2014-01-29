@@ -262,7 +262,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 
 				//no-op
-				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {  }
+				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {  }
 
 				@Override
 				public void open()  {

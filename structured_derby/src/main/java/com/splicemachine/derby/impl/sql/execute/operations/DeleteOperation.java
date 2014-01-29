@@ -46,11 +46,6 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
-
-		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
 						private ExecRow currentRow;

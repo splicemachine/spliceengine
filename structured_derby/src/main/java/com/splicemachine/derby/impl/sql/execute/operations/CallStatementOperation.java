@@ -229,9 +229,11 @@ public class CallStatementOperation extends NoRowsOperation {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+						if(regionName==null)
+							regionName = "ControlRegion";
 						OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
-										operationId,taskId,"FinalRegion",getNumMetrics()+5);
+										operationId,taskId,regionName,getNumMetrics()+5);
 						updateStats(stats);
 						stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
 						stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);

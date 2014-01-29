@@ -244,6 +244,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 						 */
 						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
 				}
+				if(joiner!=null){
+						stats.addMetric(OperationMetric.FILTERED_ROWS,joiner.getLeftRowsSeen()*joiner.getRightRowsSeen()-timer.getNumEvents());
+				}
 		}
 
 		@Override
@@ -304,11 +307,6 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
         return new SpliceNoPutResultSet(activation, this, provider);
-    }
-
-    @Override
-    public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-        return bufferToTransform;
     }
 
     @Override

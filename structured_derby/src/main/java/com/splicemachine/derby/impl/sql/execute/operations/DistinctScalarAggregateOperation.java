@@ -314,10 +314,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 				return getStep3Row(spliceRuntimeContext);
 		}
 
-		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
 
 		@Override
 		public KeyEncoder getKeyEncoder(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {

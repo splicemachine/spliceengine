@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.si.impl.PushBackIterator;
 import org.apache.derby.iapi.error.StandardException;
@@ -112,6 +114,7 @@ public class MergeJoinOperation extends JoinOperation {
 						timer = spliceRuntimeContext.newTimer();
         }
 
+				timer.startTiming();
         ExecRow next = joiner.nextRow();
         setCurrentRow(next);
 				if(next==null){
@@ -144,7 +147,17 @@ public class MergeJoinOperation extends JoinOperation {
                 leftNumCols, rightNumCols, oneRowRightSide, notExistsRightSide, null);
     }
 
-    private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				int leftRowsSeen = joiner.getLeftRowsSeen();
+				int rightRowsSeen = joiner.getRightRowsSeen();
+				stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen + rightRowsSeen);
+				//filtered = left*right -output
+				stats.addMetric(OperationMetric.FILTERED_ROWS,leftRowsSeen*rightRowsSeen-timer.getNumEvents());
+				super.updateStats(stats);
+		}
+
+		private ExecRow getKeyRow(ExecRow row, int keyIdx) throws StandardException {
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(1);
         keyRow.setColumn(1, row.getColumn(keyIdx + 1));
         return keyRow;

@@ -97,6 +97,7 @@ public class MergeJoinRows implements IJoinRowsIterator<ExecRow> {
                 currentRights.add(right.getClone());
             // if is greater than left, push back & stop
             } else if (comparison == -1) {
+								rightRowsSeen--;
                 rightRS.pushBack(right);
                 break;
             }

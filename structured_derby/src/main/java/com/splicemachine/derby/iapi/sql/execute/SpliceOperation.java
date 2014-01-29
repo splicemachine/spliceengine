@@ -133,7 +133,7 @@ public interface SpliceOperation  {
 	 * 
 	 * @return
 	 */
-	public NoPutResultSet executeProbeScan() throws StandardException;
+	public SpliceNoPutResultSet executeProbeScan() throws StandardException;
 	/**
 	 * 
 	 * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  

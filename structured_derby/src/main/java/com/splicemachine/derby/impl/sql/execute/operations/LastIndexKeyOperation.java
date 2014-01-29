@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.stats.TimeView;
 import org.apache.log4j.Logger;
 
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
@@ -92,6 +95,7 @@ public class LastIndexKeyOperation extends ScanOperation{
 				super.init(context);
 				keyValues = new ArrayList<KeyValue>(1);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -115,17 +119,21 @@ public class LastIndexKeyOperation extends ScanOperation{
 				if (returnedRow) {
 						currentRow = null;
 						currentRowLocation = null;
+						stopExecutionTime = System.currentTimeMillis();
 				} else {
 						timer.startTiming();
 						keyValues.clear();
 						regionScanner.next(keyValues);
 
 						if (keyValues.isEmpty()) {
+								timer.stopTiming();
+								stopExecutionTime = System.currentTimeMillis();
 								return null;
 						}
 						while (!keyValues.isEmpty()) {
 								keyValues.toArray(prev);
 								keyValues.clear();
+								rowsFiltered++;
 								regionScanner.next(keyValues);
 						}
 
@@ -156,9 +164,10 @@ public class LastIndexKeyOperation extends ScanOperation{
 						setCurrentRow(currentRow);
 						if(currentRow==null){
 								timer.stopTiming();
-								stopExecutionTime = System.currentTimeMillis();
 						}else
 								timer.tick(1);
+
+						stopExecutionTime = System.currentTimeMillis();
 				}
 				return currentRow;
 		}
@@ -216,6 +225,22 @@ public class LastIndexKeyOperation extends ScanOperation{
 				out.writeBoolean(indexName!=null);
 				if(indexName!=null)
 						out.writeUTF(indexName);
+		}
+
+		@Override
+		protected int getNumMetrics() {
+				return super.getNumMetrics() + 5;
+		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesRead());
+				TimeView localScanTime = regionScanner.getReadTime();
+				stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localScanTime.getWallClockTime());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localScanTime.getCpuTime());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,localScanTime.getUserTime());
+				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
 		}
 
 		@Override

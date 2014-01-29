@@ -287,11 +287,6 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 		}
 
 		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
-
-		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 
 				/*

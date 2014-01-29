@@ -86,8 +86,10 @@ public class ClientScanProvider extends AbstractScanProvider {
 		}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,"FinalRegion",8);
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				if(regionName==null)
+						regionName="ControlRegion";
+				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,8);
 				stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
 				stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,scanner.getRemoteRowsRead());
 				TimeView remoteView = scanner.getRemoteReadTime();

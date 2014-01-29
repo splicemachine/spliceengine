@@ -119,8 +119,9 @@ public class OperationRuntimeStats {
 																																SpliceRuntimeContext runtimeContext){
 				List<OperationRuntimeStats> stats = Lists.newArrayList();
 				OperationRuntimeStats metrics = getTopMetrics(topOperation, taskId, statementId, rowsWritten, bytesWritten, writeTimer);
-				stats.add(metrics);
-
+				if(metrics!=null){
+						stats.add(metrics);
+				}
 				SpliceOperation child = runtimeContext.isLeft(topOperation.resultSetNumber())?
 								topOperation.getLeftOperation(): topOperation.getRightOperation();
 				if(child!=null)
@@ -131,7 +132,7 @@ public class OperationRuntimeStats {
 		protected static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId, long rowsWritten, long bytesWritten, TimeView writeTimer) {
 				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
 
-				if(rowsWritten>=0){
+				if(metrics!=null && rowsWritten>=0){
 						metrics.addMetric(OperationMetric.WRITE_ROWS, rowsWritten);
 						metrics.addMetric(OperationMetric.WRITE_BYTES, bytesWritten);
 						metrics.addMetric(OperationMetric.WRITE_CPU_TIME,writeTimer.getCpuTime());

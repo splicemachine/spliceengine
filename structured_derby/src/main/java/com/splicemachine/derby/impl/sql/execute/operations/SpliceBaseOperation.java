@@ -15,6 +15,9 @@ import com.splicemachine.derby.stats.RegionStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStatsUtils;
 import com.splicemachine.stats.TimeView;
@@ -50,7 +53,7 @@ import java.util.List;
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperation.class);
-		private String xplainSchema;
+		protected String xplainSchema;
 		/* Run time statistics variables */
 		public int numOpens;
 		public int inputRows;
@@ -92,6 +95,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		RegionStats regionStats;
 
 		/*
+		 * held locally to ensure that Task statistics reporting doesn't
+		 * attempt to write the same data from the same operation multiple
+		 * times with the same taskid;
+		 */
+		private transient long reportedTaskId = -1l;
+
+		/*
 		 * Used to indicate rows which should be excluded from TEMP because their backing operation task
 		 * failed and was retried for some reasons. will be null for tasks which do not make use of the TEMP
 		 * table.
@@ -101,7 +111,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected int resultSetNumber;
 		protected OperationInformation operationInformation;
 		private JobResults jobResults;
-		private long statementId = -1l; //default value if the statementId isn't set
+		protected long statementId = -1l; //default value if the statementId isn't set
 
 		public SpliceBaseOperation() {
 				super();
@@ -164,7 +174,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override public long getStatementId() { return statementId; }
-		@Override public void setStatementId(long statementId) { this.statementId = statementId; }
+		@Override public void setStatementId(long statementId) {
+				this.statementId = statementId;
+				SpliceOperation sub = getLeftOperation();
+				if(sub!=null) sub.setStatementId(statementId);
+				sub = getRightOperation();
+				if(sub!=null) sub.setStatementId(statementId);
+		}
+
+
 		@Override public String getXplainSchema() { return xplainSchema; }
 		@Override public boolean shouldRecordStats() { return statisticsTimingOn; }
 
@@ -299,6 +317,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null);
 		}
 
+		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
+				return bufferToTransform;
+		}
+
 		/**
 		 * Called during the executeShuffle() phase, for the execution of parallel operations.
 		 *
@@ -367,7 +389,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public NoPutResultSet executeProbeScan() {
+		public SpliceNoPutResultSet executeProbeScan() {
 				throw new RuntimeException("Execute Probe Scan Not Implemented for this node " + this.getClass());
 		}
 
@@ -548,7 +570,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public OperationRuntimeStats getMetrics(long statementId,long taskId) {
+		public final OperationRuntimeStats getMetrics(long statementId,long taskId) {
+				if(reportedTaskId==taskId) return null;
+				else reportedTaskId = taskId;
+
 				String regionName = region!=null?region.getRegionNameAsString():"Local";
 				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
 								Bytes.toLong(uniqueSequenceID),taskId,regionName,getNumMetrics()+5);

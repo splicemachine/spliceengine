@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -40,14 +42,14 @@ public class Joiner {
     }
 
     public Joiner(IJoinRowsIterator<ExecRow> joinRowsSource,
-                  ExecRow mergedRowTemplate,
-                  Restriction mergeRestriction,
-                  boolean wasRightOuterJoin,
-                  int leftNumCols,
-                  int rightNumCols,
-                  boolean oneRowRightSide,
-                  boolean antiJoin,
-                  StandardSupplier<ExecRow> emptyRowSupplier) {
+									ExecRow mergedRowTemplate,
+									Restriction mergeRestriction,
+									boolean wasRightOuterJoin,
+									int leftNumCols,
+									int rightNumCols,
+									boolean oneRowRightSide,
+									boolean antiJoin,
+									StandardSupplier<ExecRow> emptyRowSupplier) {
         this.wasRightOuterJoin = wasRightOuterJoin;
         this.leftNumCols = leftNumCols;
         this.rightNumCols = rightNumCols;

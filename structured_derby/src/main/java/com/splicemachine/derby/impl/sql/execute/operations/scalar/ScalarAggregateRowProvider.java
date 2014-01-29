@@ -79,8 +79,8 @@ public class ScalarAggregateRowProvider implements RowProvider {
 		@Override public SpliceRuntimeContext getSpliceRuntimeContext() {return delegate.getSpliceRuntimeContext();}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-			delegate.reportStats(statementId,operationId,taskId,xplainSchema);
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+			delegate.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 		}
 
 		@Override

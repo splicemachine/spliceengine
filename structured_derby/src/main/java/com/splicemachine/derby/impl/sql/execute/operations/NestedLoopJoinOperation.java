@@ -1,8 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -11,6 +15,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -32,6 +37,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				nodeTypes.add(NodeType.MAP);
 				nodeTypes.add(NodeType.SCROLL);
 		}
+
+		private long taskId;
 
 		public NestedLoopJoinOperation() {
 				super();
@@ -96,8 +103,17 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		}
 
 		protected ExecRow next(boolean outerJoin, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+								byte[] task = spliceRuntimeContext.getCurrentTaskId();
+								if(task!=null){
+										taskId = Bytes.toLong(task);
+								}else{
+										taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+								}
+						}
+				}
 				timer.startTiming();
 				// loop until NL iterator produces result, or until left side exhausted
 				while ((nestedLoopIterator == null || !nestedLoopIterator.hasNext()) && ( (leftRow = leftNext(spliceRuntimeContext)) != null) ){
@@ -107,11 +123,16 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						leftResultSet.setCurrentRow(leftRow);
 						rowsSeenLeft++;
 						SpliceLogUtils.debug(LOG, ">>>  NestdLoopJoin: new NLIterator");
-						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin);
+						nestedLoopIterator = new NestedLoopIterator(leftRow, isHash, outerJoin,spliceRuntimeContext);
 				}
 				if (leftRow == null){
+						if(nestedLoopIterator!=null){
+								nestedLoopIterator.close();
+								nestedLoopIterator=null;
+						}
+
 						mergedRow = null;
-						timer.tick(0);
+						timer.stopTiming();
 						stopExecutionTime = System.currentTimeMillis();
 						setCurrentRow(mergedRow);
 						return mergedRow;
@@ -128,6 +149,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		public void	close() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "close in NestdLoopJoin");
 				beginTime = getCurrentTimeMillis();
+				if(nestedLoopIterator!=null){
+						nestedLoopIterator.close();
+						nestedLoopIterator=null;
+				}
 				clearCurrentRow();
 				super.close();
 				closeTime += getElapsedMillis(beginTime);
@@ -138,14 +163,20 @@ public class NestedLoopJoinOperation extends JoinOperation {
 				return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
 		}
 
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				stats.addMetric(OperationMetric.INPUT_ROWS,rowsSeenLeft);
+				super.updateStats(stats);
+		}
+
 		protected class NestedLoopIterator implements Iterator<ExecRow> {
 				protected ExecRow leftRow;
-				protected NoPutResultSet probeResultSet;
+				protected SpliceNoPutResultSet probeResultSet;
 				private boolean populated;
 				private boolean returnedRight=false;
 				private boolean outerJoin = false;
 
-				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin) throws StandardException {
+				NestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin,SpliceRuntimeContext context) throws StandardException {
 						SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s",leftRow);
 						this.leftRow = leftRow;
 						if (hash) {
@@ -154,7 +185,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						}
 						else {
 								SpliceLogUtils.trace(LOG, "Iterator - executeScan on %s",getRightResultSet());
-								probeResultSet = (getRightResultSet()).executeScan(new SpliceRuntimeContext());
+								probeResultSet = (getRightResultSet()).executeScan(context);
 						}
 						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Opening ",(outerJoin?"Outer ":""),"join. Left: ",(leftRow != null ? leftRow : "NULL Left Row"));
 						probeResultSet.openCore();
@@ -250,12 +281,17 @@ public class NestedLoopJoinOperation extends JoinOperation {
 						SpliceLogUtils.trace(LOG, "remove");
 				}
 				public void close() throws StandardException {
-						SpliceLogUtils.debug(LOG, ">>> NestdLoopJoin: Closing ",(isOpen? "": "closed "),(outerJoin?"Outer ":""),"join.");
 						beginTime = getCurrentTimeMillis();
-						if (!isOpen)
-								return;
+						if(xplainSchema!=null){
+								//have to set a unique Task id each time to ensure all the rows are written
+								probeResultSet.setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
+								probeResultSet.setScrollId(Bytes.toLong(uniqueSequenceID));
+								if(region!=null)
+										probeResultSet.setRegionName(region.getRegionNameAsString());
+								activation.getLanguageConnectionContext().setStatisticsTiming(true);
+								activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
+						}
 						probeResultSet.close();
-						isOpen = false;
 						closeTime += getElapsedMillis(beginTime);
 				}
 		}

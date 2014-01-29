@@ -302,8 +302,8 @@ public class OnceOperation extends SpliceBaseOperation {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-					delegate.reportStats(statementId,operationId,taskId,xplainSchema);
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+					delegate.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 		}
 

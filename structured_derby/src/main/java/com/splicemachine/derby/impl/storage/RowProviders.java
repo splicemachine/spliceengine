@@ -231,16 +231,14 @@ public class RowProviders {
 						return provider.finishShuffle(jobFuture);
 				}
 
-				@Override
-				public RowLocation getCurrentRowLocation() {
-						return provider.getCurrentRowLocation();
-				}
+				@Override public RowLocation getCurrentRowLocation() { return provider.getCurrentRowLocation(); }
+
+				@Override public String toString() { return String.format("DelegatingRowProvider { provider=%s } ",provider); }
 
 				@Override
-				public String toString() {
-						return String.format("DelegatingRowProvider { provider=%s } ",provider);
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) {
+					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
-
 		}
 
 		public static class SourceRowProvider extends SingleScanRowProvider{
@@ -346,17 +344,12 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
 										source, taskId, statementId, -1l, -1l, Metrics.noOpTimeView(), spliceRuntimeContext);
 						XplainTaskReporter taskReporter = SpliceDriver.driver().getTaskReporter();
-						String hostName;
-						try {
-								hostName = InetAddress.getLocalHost().getHostName();
-						} catch (UnknownHostException e) {
-								throw new RuntimeException(e);
-						}
+						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){
 								opStat.setHostName(hostName);
 								taskReporter.report(xplainSchema,opStat);
@@ -460,9 +453,9 @@ public class RowProviders {
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-					firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema);
-					secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema);
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+						firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
+						secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 		}
 
