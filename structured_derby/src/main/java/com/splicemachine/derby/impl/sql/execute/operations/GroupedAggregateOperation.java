@@ -294,11 +294,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 		}
 
 		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
-
-		@Override
 		public void cleanup() {
 
 		}

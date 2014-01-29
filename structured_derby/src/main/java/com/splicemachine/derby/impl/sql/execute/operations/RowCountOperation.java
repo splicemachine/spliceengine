@@ -282,8 +282,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 								}
 
 								@Override
-								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-									scanProvider.reportStats(statementId,operationId,taskId,xplainSchema);
+								public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+									scanProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 								}
 						};
 				}
@@ -519,7 +519,7 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 						OperationRuntimeStats metrics = RowCountOperation.this.getMetrics(statementId, operationId);
 						metrics.setHostName(SpliceUtils.getHostName());
 						SpliceDriver.driver().getTaskReporter().report(xplainSchema,metrics);
@@ -577,8 +577,8 @@ public class RowCountOperation extends SpliceBaseOperation{
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-					provider.reportStats(statementId,operationId,taskId,xplainSchema);
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+					provider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
 				}
 		}
 }

@@ -87,6 +87,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				copy.isSink = isSink;
 				copy.currentTaskId = currentTaskId;
 				copy.statementInfo = statementInfo;
+				copy.xplainSchema = xplainSchema;
+				copy.recordTraceMetrics = recordTraceMetrics;
 				return copy;
 		}
 

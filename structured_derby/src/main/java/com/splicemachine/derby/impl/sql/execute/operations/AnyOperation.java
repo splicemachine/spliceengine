@@ -172,10 +172,6 @@ public class AnyOperation extends SpliceBaseOperation {
 								return provider.getSpliceRuntimeContext();
 						}
 
-						@Override
-						public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-							provider.reportStats(statementId,operationId,taskId,xplainSchema);
-						}
 				};
     }
 

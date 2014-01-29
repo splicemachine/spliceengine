@@ -128,7 +128,7 @@ public class MiscOperation extends NoRowsOperation
 				}
 
 				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
+				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 					//TODO -sf- is a no-op correct here?
 				}
 		};

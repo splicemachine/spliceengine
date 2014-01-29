@@ -158,7 +158,7 @@ public abstract class ParallelVTI extends VTITemplate implements SpliceOperation
 		}
 
 		@Override
-		public NoPutResultSet executeProbeScan() throws StandardException {
+		public SpliceNoPutResultSet executeProbeScan() throws StandardException {
 				throw new UnsupportedOperationException("Scans are not supported in Fully parallel mode");
 		}
 

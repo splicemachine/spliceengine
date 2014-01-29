@@ -269,9 +269,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						nextTime += getElapsedMillis(beginTime);
 				}
 				if(result==null){
-						timer.tick(1);
+						timer.stopTiming();
 						stopExecutionTime = System.currentTimeMillis();
-				}else timer.tick(0);
+				}else timer.tick(1);
 				return result;
 		}
 

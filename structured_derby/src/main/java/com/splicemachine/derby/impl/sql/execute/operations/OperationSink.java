@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
@@ -79,11 +80,10 @@ public class OperationSink {
 						taskChain.set(bytes);
 				}
 				bytes.add(taskId);
-        CallBuffer<KVPair> writeBuffer = null;
+        RecordingCallBuffer<KVPair> writeBuffer;
 				PairEncoder encoder;
 				long rowsRead = 0;
 				long rowsWritten = 0;
-				long totalBytes = 0l;
 				Timer writeTimer = spliceRuntimeContext.newTimer();
         try{
 						KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
@@ -106,7 +106,6 @@ public class OperationSink {
 								rowsRead++;
 								writeTimer.startTiming();
 								KVPair encode = encoder.encode(row);
-								totalBytes += encode.getSize();
 								writeBuffer.add(encode);
 								writeTimer.stopTiming();
 								rowsWritten++;
@@ -121,6 +120,19 @@ public class OperationSink {
 						//stop timing events. We do this inside of the try block because we don't care
 						//if the task fails for some reason
 						totalTimer.stopTiming();
+						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
+								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
+								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
+								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
+												taskIdLong,statementId,writeBuffer.getTotalElementsAdded(), writeBuffer.getTotalBytesAdded(),writeTimer.getTime(),spliceRuntimeContext);
+								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
+								for(OperationRuntimeStats operationStat:operationStats){
+										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
+										operationStat.setHostName(hostName);
+
+										reporter.report(spliceRuntimeContext.getXplainSchema(),operationStat);
+								}
+						}
         } catch (Exception e) {
 						//unwrap interruptedExceptions
 						@SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
@@ -136,19 +148,6 @@ public class OperationSink {
 						}
 						operation.close();
 
-						if(spliceRuntimeContext.shouldRecordTraceMetrics()){
-								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
-								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
-								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
-												taskIdLong,statementId,rowsWritten,totalBytes,writeTimer.getTime(),spliceRuntimeContext);
-								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
-								for(OperationRuntimeStats operationStat:operationStats){
-										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
-										operationStat.setHostName(hostName);
-
-										reporter.report(spliceRuntimeContext.getXplainSchema(),operationStat);
-								}
-						}
 						if(LOG.isDebugEnabled()){
 								LOG.debug(String.format("Read %d rows from operation %s",rowsRead,operation.getClass().getSimpleName()));
 								LOG.debug(String.format("Wrote %d rows from operation %s",rowsWritten,operation.getClass().getSimpleName()));

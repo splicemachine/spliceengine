@@ -71,11 +71,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
-				return bufferToTransform;
-		}
-
-		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext){
 				HashPrefix prefix;
 				DataHash dataHash;

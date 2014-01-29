@@ -42,7 +42,10 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		protected boolean returnsRows;
 		private StatementContext statementContext;
 		private NoPutResultSet[] subqueryTrackingArray;
+		/*Information for reporting statistics correctly*/
 		private long scrollId;
+		private long taskId = -1;
+		private String regionName;
 
 		public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
 				this(activation,topOperation,rowProvider,true);
@@ -181,10 +184,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
 						long statementId = topOperation.getStatementId();
 						if(scrollId==-1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
-						long taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema);
+						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+						rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
 				}
-
 				closed =true;
 		}
 
@@ -416,5 +418,12 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 		public void setScrollId(long scrollId) {
 				this.scrollId = scrollId;
+		}
+
+		public void setTaskId(long taskId){
+				this.taskId = taskId;
+		}
+		public void setRegionName(String regionName){
+				this.regionName = regionName;
 		}
 }

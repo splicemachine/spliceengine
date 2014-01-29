@@ -78,8 +78,10 @@ public class DistributedClientScanProvider extends AbstractMultiScanProvider {
 		}
 
 		@Override
-		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema) {
-				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,"FinalRegion",5);
+		public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
+				if(regionName==null)
+						regionName = "ControlRegion";
+				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,5);
 
 				stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
 				stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,scanner.getRemoteRowsRead());

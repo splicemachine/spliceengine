@@ -39,7 +39,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private final RegionCache regionCache;
 
     private long totalElementsAdded = 0l;
-    private long totalBytesAddes = 0l;
+    private long totalBytesAdded = 0l;
     private long totalFlushes = 0l;
 
     /*
@@ -77,6 +77,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
     @Override
     public void add(KVPair element) throws Exception {
+				totalElementsAdded++;
+				totalBytesAdded +=(element.getSize());
         rebuildIfNecessary();
         Map.Entry<byte[],PreMappedBuffer> entry = regionToBufferMap.floorEntry(element.getRow());
         if(entry==null) entry = regionToBufferMap.firstEntry();
@@ -195,10 +197,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     }
 
     @Override public long getTotalElementsAdded() { return totalElementsAdded; }
-    @Override public long getTotalBytesAdded() { return totalBytesAddes; }
+    @Override public long getTotalBytesAdded() { return totalBytesAdded; }
     @Override public long getTotalFlushes() { return totalFlushes; }
     @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/totalFlushes; }
-    @Override public double getAverageSizePerFlush() { return ((double)totalBytesAddes)/totalFlushes; }
+    @Override public double getAverageSizePerFlush() { return ((double) totalBytesAdded)/totalFlushes; }
     @Override public CallBuffer<KVPair> unwrap() { return this; }
 
     // For testing purpose

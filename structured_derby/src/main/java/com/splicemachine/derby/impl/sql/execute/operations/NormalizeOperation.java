@@ -10,6 +10,8 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.IntArrays;
@@ -93,6 +95,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				normalizedRow = activation.getExecutionFactory().getValueRow(numCols);
 				cachedDestinations = new DataValueDescriptor[numCols];
 				startCol = computeStartColumn(forUpdate,resultDescription);
+				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -199,6 +202,14 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				}
 				return result;
 		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				if(timer!=null)
+						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+		}
+
+		@Override protected int getNumMetrics() { return super.getNumMetrics()+1; }
 
 		private ExecRow normalizeRow(ExecRow sourceRow,boolean requireNotNull) throws StandardException {
 				int colCount = resultDescription.getColumnCount();

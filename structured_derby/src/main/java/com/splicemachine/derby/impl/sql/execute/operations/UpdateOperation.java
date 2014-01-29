@@ -10,14 +10,18 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.ForwardingCallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.*;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -46,7 +50,7 @@ import java.util.Collections;
  * @author Scott Fines
  */
 public class UpdateOperation extends DMLWriteOperation{
-	private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
+		private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
 
 		private ResultSupplier resultSupplier;
 
@@ -55,15 +59,15 @@ public class UpdateOperation extends DMLWriteOperation{
 				super();
 		}
 
-    int[] pkCols;
-    FormatableBitSet pkColumns;
-	public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
-												 GeneratedMethod checkGM, Activation activation)
-			throws StandardException {
-		super(source, generationClauses, checkGM, activation);
-		init(SpliceOperationContext.newContext(activation));
-		recordConstructorTime(); 
-	}
+		int[] pkCols;
+		FormatableBitSet pkColumns;
+		public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
+													 GeneratedMethod checkGM, Activation activation)
+						throws StandardException {
+				super(source, generationClauses, checkGM, activation);
+				init(SpliceOperationContext.newContext(activation));
+				recordConstructorTime();
+		}
 
 		@Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -74,14 +78,16 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
 		@Override
-	public void init(SpliceOperationContext context) throws StandardException{
-		SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
-		super.init(context);
-        heapConglom = writeInfo.getConglomerateId();
+		public void init(SpliceOperationContext context) throws StandardException{
+				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
+				super.init(context);
+				heapConglom = writeInfo.getConglomerateId();
 
-        pkCols = writeInfo.getPkColumnMap();
-        pkColumns = writeInfo.getPkColumns();
-	}
+				pkCols = writeInfo.getPkColumnMap();
+				pkColumns = writeInfo.getPkColumns();
+
+				startExecutionTime = System.currentTimeMillis();
+		}
 
 		private int[] getColumnPositionMap(FormatableBitSet heapList) {
 				final int[] colPositionMap = new int[heapList.size()];
@@ -159,7 +165,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				int[] finalPkColumns = getFinalPkColumns(colPositionMap);
 
-				resultSupplier = new ResultSupplier(new BitSet());
+				resultSupplier = new ResultSupplier(new BitSet(),spliceRuntimeContext);
 				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier);
 		}
 
@@ -204,9 +210,9 @@ public class UpdateOperation extends DMLWriteOperation{
 
 
 		@Override
-		public CallBuffer<KVPair> transformWriteBuffer(CallBuffer<KVPair> bufferToTransform) throws StandardException {
+		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
 				if(modifiedPrimaryKeys(getHeapList())){
-						return new ForwardingCallBuffer<KVPair>(bufferToTransform){
+						return new ForwardRecordingCallBuffer<KVPair>(bufferToTransform){
 								@Override
 								public void add(KVPair element) throws Exception {
 										byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
@@ -215,6 +221,24 @@ public class UpdateOperation extends DMLWriteOperation{
 								}
 						};
 				} else return bufferToTransform;
+		}
+
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				if(resultSupplier!=null){
+						//add supplier metrics
+						Timer timer = resultSupplier.getTimer;
+						stats.addMetric(OperationMetric.REMOTE_GET_ROWS,timer.getNumEvents());
+						stats.addMetric(OperationMetric.REMOTE_GET_BYTES, resultSupplier.getBytes.getTotal());
+						TimeView getView = timer.getTime();
+						stats.addMetric(OperationMetric.REMOTE_GET_WALL_TIME,getView.getWallClockTime());
+						stats.addMetric(OperationMetric.REMOTE_GET_CPU_TIME,getView.getCpuTime());
+						stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,getView.getUserTime());
+				}
+				if(timer!=null){
+						//same number of inputs as outputs
+						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
+				}
 		}
 
 		@Override
@@ -230,10 +254,15 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				private HTableInterface htable;
 
-				private ResultSupplier(BitSet interestedFields) {
+				private Timer getTimer;
+				public Counter getBytes;
+
+				private ResultSupplier(BitSet interestedFields,MetricFactory metricFactory) {
 						//we need the index so that we can transform data without the information necessary to decode it
 						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
 						this.filterBytes = predicateFilter.toBytes();
+						this.getTimer = metricFactory.newTimer();
+						this.getBytes = metricFactory.newCounter();
 				}
 
 				public void setLocation(byte[] location){
@@ -244,9 +273,11 @@ public class UpdateOperation extends DMLWriteOperation{
 				public void setResult(EntryDecoder decoder) throws IOException {
 						if(result==null) {
 								//need to fetch the latest results
-								if(htable==null)
+								if(htable==null){
 										htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
+								}
 
+								getTimer.startTiming();
 								Get remoteGet = SpliceUtils.createGet(getTransactionID(),location);
 								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY);
 								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
@@ -255,12 +286,14 @@ public class UpdateOperation extends DMLWriteOperation{
 								//we assume that r !=null, because otherwise, what are we updating?
 								KeyValue[] rawKvs = r.raw();
 								for(KeyValue kv:rawKvs){
+										getBytes.add(kv.getLength());
 										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY)){
 												result = kv;
 												break;
 										}
 								}
 								//we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
+								getTimer.tick(1);
 						}
 						decoder.set(result.getBuffer(),result.getValueOffset(),result.getValueLength());
 				}

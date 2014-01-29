@@ -12,11 +12,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.metrics.OperationMetric;
+import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyMarshall;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.stats.Counter;
 import com.splicemachine.tools.splice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -25,6 +28,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.store.access.Qualifier;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.SQLInteger;
 import org.apache.derby.shared.common.reference.MessageId;
 import org.apache.hadoop.hbase.client.Scan;
@@ -76,7 +80,10 @@ public class BroadcastJoinOperation extends JoinOperation {
         }).build();
     }
 
-    public BroadcastJoinOperation() {
+		private Counter rightCounter;
+		private Counter leftCounter;
+
+		public BroadcastJoinOperation() {
         super();
     }
 
@@ -122,8 +129,11 @@ public class BroadcastJoinOperation extends JoinOperation {
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "nextRow");
-				if(timer==null)
+				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
+						rightCounter = spliceRuntimeContext.newCounter();
+						leftCounter = spliceRuntimeContext.newCounter();
+				}
 
 				timer.startTiming();
         if (rightSideMap == null)
@@ -133,8 +143,11 @@ public class BroadcastJoinOperation extends JoinOperation {
             if ((leftRow = leftResultSet.nextRow(spliceRuntimeContext)) == null) {
                 mergedRow = null;
                 this.setCurrentRow(mergedRow);
+								timer.stopTiming();
+								stopExecutionTime = System.currentTimeMillis();
                 return mergedRow;
             } else {
+								leftCounter.add(1l);
                 broadcastIterator = new BroadcastNextRowIterator(leftRow);
             }
         }
@@ -190,7 +203,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         return new SpliceNoPutResultSet(activation, this, provider);
     }
 
-    @Override
+		@Override
+		protected void updateStats(OperationRuntimeStats stats) {
+				if(timer==null) return;
+				long left = leftCounter.getTotal();
+				long right = rightCounter.getTotal();
+				stats.addMetric(OperationMetric.FILTERED_ROWS,left*right-timer.getNumEvents());
+				stats.addMetric(OperationMetric.INPUT_ROWS,left+right);
+		}
+
+		@Override
     public ExecRow getExecRowDefinition() throws StandardException {
         SpliceLogUtils.trace(LOG, "getExecRowDefinition");
         JoinUtils.getMergedRow(this.leftResultSet.getExecRowDefinition(), this.rightResultSet.getExecRowDefinition(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
@@ -235,7 +257,6 @@ public class BroadcastJoinOperation extends JoinOperation {
             if (rightSideIterator != null && rightSideIterator.hasNext()) {
                 mergedRow = JoinUtils.getMergedRow(leftRow, rightSideIterator.next(), wasRightOuterJoin, rightNumCols, leftNumCols, mergedRow);
                 setCurrentRow(mergedRow);
-//                currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
                 SpliceLogUtils.trace(LOG, "current row returned %s", currentRow);
                 return true;
             }
@@ -280,13 +301,25 @@ public class BroadcastJoinOperation extends JoinOperation {
         List<ExecRow> rows;
         Map<ByteBuffer, List<ExecRow>> cache = new HashMap<ByteBuffer, List<ExecRow>>();
         KeyMarshall hasher = KeyType.BARE;
-        NoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
+        SpliceNoPutResultSet resultSet = rightResultSet.executeScan(runtimeContext);
+				if(runtimeContext.shouldRecordTraceMetrics()){
+						byte[] currentTaskId = runtimeContext.getCurrentTaskId();
+						if(currentTaskId!=null)
+							resultSet.setTaskId(Bytes.toLong(currentTaskId));
+						else
+								resultSet.setTaskId(SpliceDriver.driver().getUUIDGenerator().nextUUID());
+						resultSet.setRegionName(region.getRegionNameAsString());
+						resultSet.setScrollId(Bytes.toLong(uniqueSequenceID));
+						activation.getLanguageConnectionContext().setStatisticsTiming(true);
+						activation.getLanguageConnectionContext().setXplainSchema(xplainSchema);
+				}
         resultSet.openCore();
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),rightNumCols);
-        try{
-        keyEncoder.mark();
+				try{
+						keyEncoder.mark();
 
             while ((rightRow = resultSet.getNextRowCore()) != null) {
+								rightCounter.add(1l);
                 keyEncoder.reset();
                 hasher.encodeKey(rightRow.getRowArray(),rightHashKeys,null,null,keyEncoder);
                 hashKey = ByteBuffer.wrap(keyEncoder.build());
