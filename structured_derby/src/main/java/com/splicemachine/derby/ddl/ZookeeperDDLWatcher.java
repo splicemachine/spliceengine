@@ -9,10 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -48,7 +45,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     private String id;
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, 
             new ThreadFactoryBuilder().setNameFormat("ZookeeperDDLWatcherRefresh").build());
-    private Set<DDLChange> tentativeIndexes = new CopyOnWriteArraySet<DDLChange>();
+    private Map<String, DDLChange> tentativeIndexes = new ConcurrentHashMap<String, DDLChange>();
     
     @Override
     public synchronized void registerLanguageConnectionContext(LanguageConnectionContext lcc) {
@@ -133,6 +130,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             if (!children.contains(entry)) {
                 changesTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
+                tentativeIndexes.remove(entry);
                 iterator.remove();
             }
         }
@@ -151,7 +149,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                 newChanges.add(changeId);
                 seenDDLChanges.add(changeId);
                 if (ddlChange.isTentative()) {
-                    processTentativeDDLChange(ddlChange);
+                    processTentativeDDLChange(changeId, ddlChange);
                 } else {
                     currentDDLChanges.put(changeId, ddlChange.getTransactionId());
                     changesTimeouts.put(changeId, System.currentTimeMillis());
@@ -199,10 +197,10 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         }
     }
 
-    private void processTentativeDDLChange(DDLChange ddlChange) throws StandardException {
+    private void processTentativeDDLChange(String changeId, DDLChange ddlChange) throws StandardException {
         switch (ddlChange.getType()) {
             case CREATE_INDEX:
-                tentativeIndexes.add(ddlChange);
+                tentativeIndexes.put(changeId, ddlChange);
                 break;
             default:
                 throw StandardException.newException(SQLState.UNSUPPORTED_TYPE);
@@ -227,6 +225,6 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
     }
 
     public Set<DDLChange> getTentativeIndexes() {
-        return tentativeIndexes;
+        return new HashSet<DDLChange>(tentativeIndexes.values());
     }
 }
