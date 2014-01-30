@@ -35,7 +35,7 @@ public class OperationInfo {
 				this.statementId = statementId;
 		}
 
-		@ConstructorProperties({"isRight",
+		@ConstructorProperties({"right",
 						"numTasks","numJobs",
 						"parentOperationUuid","operationTypeName",
 						"operationUuid","statementId","numFailedTasks"})
@@ -68,6 +68,7 @@ public class OperationInfo {
 		public long getParentOperationUuid() { return parentOperationUuid; }
 		public int getNumJobs() { return numJobs.get(); }
 		public int getNumTasks() { return numTasks.get(); }
+
 		public boolean isRight() { return isRight; }
 
 		public void addJob(JobInfo jobInfo){
