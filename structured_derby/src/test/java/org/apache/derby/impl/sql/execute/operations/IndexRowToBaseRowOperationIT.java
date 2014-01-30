@@ -87,8 +87,6 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		s.execute("CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE (null,'T','myfile.del',null,null,null)");
 	}
 
-
-    @Ignore("Bug #209")
 	@Test
 	public void testScanWithNullQualifier() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement("select s.schemaname from sys.sysschemas s where schemaname is null");
