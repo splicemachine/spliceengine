@@ -2,8 +2,11 @@ package com.splicemachine.derby.impl.load;
 
 import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.stats.*;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -20,8 +23,6 @@ public class FileImportReader implements ImportReader{
     private InputStream stream;
 
 		private Timer timer;
-		private long bytesRead = 0l;
-		private long rowsRead = 0l;
 		private MeasuredReader reader;
 
 		@Override
@@ -58,6 +59,13 @@ public class FileImportReader implements ImportReader{
 				if(timer.getNumEvents()==0) return Metrics.noOpIOStats();
 
 				return new BaseIOStats(timer.getTime(),reader.getCharsRead(),timer.getNumEvents());
+		}
+
+		@Override
+		public boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException {
+				Path filePath = ctx.getFilePath();
+				FileStatus fileStatus = fs.getFileStatus(filePath);
+				return fileStatus.getLen() > SpliceConstants.sequentialImportThreashold;
 		}
 
 		@Override

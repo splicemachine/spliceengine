@@ -17,6 +17,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -69,7 +70,7 @@ public class ImportTask extends ZkTask{
 											Importer importer,
 											int priority,
 											String parentTxnId){
-				super(jobId,priority,parentTxnId,false);
+				super(jobId, priority, parentTxnId, false);
 				this.importContext = importContext;
 				this.reader = reader;
 				this.importer = importer;
@@ -80,12 +81,11 @@ public class ImportTask extends ZkTask{
 		public void doExecute() throws ExecutionException, InterruptedException {
 				try{
 						ExecRow row = getExecRow(importContext);
-						if(importer==null)
-								importer = new ParallelImporter(importContext,
-												row, getTaskStatus().getTransactionId());
+						if(importer==null){
+								importer = getImporter(row);
+						}
 
 						long rowsRead = 0l;
-						long bytesRead = 0l;
 						long startTime = System.currentTimeMillis();
 						long stopTime;
 						try{
@@ -145,6 +145,19 @@ public class ImportTask extends ZkTask{
 				} catch (StandardException e) {
 						throw new ExecutionException(e);
 				}
+		}
+
+		protected Importer getImporter(ExecRow row) throws ExecutionException {
+				boolean shouldParallelize;
+				try {
+						shouldParallelize = reader.shouldParallelize(fileSystem, importContext);
+				} catch (IOException e) {
+						throw new ExecutionException(e);
+				}
+				if(shouldParallelize)
+						return  new ParallelImporter(importContext,row,getTaskStatus().getTransactionId());
+				else
+						return new SequentialImporter(importContext,row,getTaskStatus().getTransactionId());
 		}
 
 		@Override

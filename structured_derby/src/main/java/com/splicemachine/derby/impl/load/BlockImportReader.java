@@ -123,6 +123,11 @@ public class BlockImportReader implements ImportReader {
         location.setLength(in.readLong());
     }
 
+		@Override
+		public boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException {
+				return false;
+		}
+
 		BlockLocation getLocation(){
 				//exposed for testing purposes
 				return location;

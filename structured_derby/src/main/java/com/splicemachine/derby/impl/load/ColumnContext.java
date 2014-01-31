@@ -162,6 +162,7 @@ public class ColumnContext implements Externalizable {
     	this.formatStr = fmst;
     	this.isFormatStrSet = true;
     }
+
     public boolean isFormatStrSet () {
     	return isFormatStrSet;
     }

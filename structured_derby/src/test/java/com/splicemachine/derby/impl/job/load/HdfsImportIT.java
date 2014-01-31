@@ -183,8 +183,47 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertTrue("import failed!",results.size()==1);
 	}
-	
-	@Test
+
+		@Test
+		public void testImportCustomTimeFormatMillisWithTz() throws Exception{
+				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
+
+				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
+								",',','\"','yyyy-MM-dd hh:mm:ss.SSZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				ps.setString(1,getResourceDirectory()+"tz_ms_order_date.csv");
+				ps.execute();
+
+				ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_9));
+				List<String> results = Lists.newArrayList();
+				while(rs.next()){
+						Timestamp order_date = rs.getTimestamp(1);
+						Assert.assertNotNull("order_date incorrect",order_date);
+						Assert.assertEquals(order_date.toString(),"2013-04-21 09:21:24.098");
+						results.add(String.format("order_date:%s",order_date));
+				}
+				Assert.assertTrue("import failed!",results.size()==1);
+		}
+		@Test
+		public void testImportCustomTimeFormat() throws Exception{
+				methodWatcher.executeUpdate("delete from "+spliceTableWatcher9);
+
+				PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
+								",',','\"','yyyy-MM-dd hh:mm:ssZ',null,null)",spliceSchemaWatcher.schemaName,TABLE_9));
+				ps.setString(1,getResourceDirectory()+"tz_order_date.cs");
+				ps.execute();
+
+				ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName, TABLE_9));
+				List<String> results = Lists.newArrayList();
+				while(rs.next()){
+						Timestamp order_date = rs.getTimestamp(1);
+						Assert.assertNotNull("order_date incorrect",order_date);
+						Assert.assertEquals(order_date.toString(),"2013-06-06 15:02:48.0");
+						results.add(String.format("order_date:%s",order_date));
+				}
+				Assert.assertTrue("import failed!",results.size()==1);
+		}
+
+		@Test
 	public void testImportNullFields() throws Exception{
 		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA ('%s','%s',null,null,?" +
 				",',','\"',null,null,null)",spliceSchemaWatcher.schemaName,TABLE_10));

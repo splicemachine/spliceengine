@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
@@ -30,72 +29,55 @@ public class RowParser {
     private SimpleDateFormat timestampFormat;
     private SimpleDateFormat dateFormat;
     private SimpleDateFormat timeFormat;
-    private final String timestampFormatStr;
-    private final String dateFormatStr;
-    private final String timeFormatStr;
+    private String timestampFormatStr;
+    private String dateFormatStr;
+    private String timeFormatStr;
     private final HashMap<String,String> columnTimestampFormats;
-    private final ImportContext importContext;
-    private Sequence[] sequences;
+		private Sequence[] sequences;
 
     public RowParser(ExecRow template,
                      String dateFormat,
                      String timeFormat,
                      String timestampFormat) {
-        this.template = template;
-        if(dateFormat==null)
-            dateFormat = "yyyy-MM-dd";
-        this.dateFormatStr = dateFormat;
-        if(timeFormat==null)
-            timeFormat = "HH:mm:ss";
-        this.timeFormatStr = timeFormat;
-        
-        this.timestampFormatStr = timestampFormat;   
+				this.template = template;
+				String ctxDateFormat = dateFormat;
+				if(ctxDateFormat ==null)
+						ctxDateFormat = "yyyy-MM-dd";
+				this.dateFormatStr = ctxDateFormat;
+				String ctxTimeFormat = timeFormat;
+				if(ctxTimeFormat ==null)
+						ctxTimeFormat = "HH:mm:ss";
+				this.timeFormatStr = ctxTimeFormat;
+				String ctxTimestampFormat = timestampFormat;
+				if(ctxTimestampFormat ==null)
+						ctxTimestampFormat = "yyy-MM-dd HH:mm:ss";
+				this.timestampFormatStr = ctxTimestampFormat;
         columnTimestampFormats = new HashMap<String,String>();
         if(timestampFormat != null && timestampFormat.contains("@")) {
         	String[] tmp = timestampFormat.split("\\|");
-        	for (int i = 0; i < tmp.length; i++) {
-        		int indexOfAt = tmp[i].indexOf("@");
-        		columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
-        	}
+						for (String aTmp : tmp) {
+								int indexOfAt = aTmp.indexOf("@");
+								columnTimestampFormats.put(aTmp.substring(indexOfAt + 1).trim(), aTmp.substring(0, indexOfAt).trim());
+						}
         }
-        this.importContext = null;
-            
-    }
-    
-    public RowParser(ExecRow template,
-            String dateFormat,
-            String timeFormat,
-            String timestampFormat,
-            ImportContext importContext) {
-    	this.template = template;
-    	if(dateFormat==null)
-    		dateFormat = "yyyy-MM-dd";
-    	this.dateFormatStr = dateFormat;
-    	if(timeFormat==null)
-    		timeFormat = "HH:mm:ss";
-    	this.timeFormatStr = timeFormat;
+		}
 
-    	this.timestampFormatStr = timestampFormat;   
-    	columnTimestampFormats = new HashMap<String,String>();
-    	if(timestampFormat != null && timestampFormat.contains("@")) {
-    		String[] tmp = timestampFormat.split("\\|");
-    		for (int i = 0; i < tmp.length; i++) {
-    			int indexOfAt = tmp[i].indexOf("@");
-    			columnTimestampFormats.put(tmp[i].substring(indexOfAt + 1).trim(), tmp[i].substring(0, indexOfAt).trim());
-    		}
-    	}
-				this.importContext = importContext;
+
+    public RowParser(ExecRow template,
+            ImportContext importContext) {
+				this(template,importContext.getDateFormat(),importContext.getTimeFormat(),importContext.getTimestampFormat());
+
 				ColumnContext[] columnInformation = importContext.getColumnInformation();
 				this.sequences = new Sequence[columnInformation.length];
 				for(int i=0;i< columnInformation.length;i++){
 						ColumnContext cc = columnInformation[i];
-					if(columnInformation[i].isAutoIncrement()){
-							sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
-											50*cc.getAutoIncrementIncrement(),
-											cc.getSequenceRowLocation(),
-											cc.getAutoIncrementStart(),
-											cc.getAutoIncrementIncrement());
-					}
+						if(columnInformation[i].isAutoIncrement()){
+								sequences[i] = new Sequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+												50*cc.getAutoIncrementIncrement(),
+												cc.getSequenceRowLocation(),
+												cc.getAutoIncrementStart(),
+												cc.getAutoIncrementIncrement());
+						}
 				}
 		}
 
@@ -119,10 +101,10 @@ public class RowParser {
         return template;
     }
 
-    private void setColumn(ColumnContext columnContext, String elem) throws StandardException {
-        if(elem==null||elem.length()==0)
-            elem=null;
-        DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
+		private void setColumn(ColumnContext columnContext, String elem) throws StandardException {
+				if(elem==null||elem.length()==0)
+						elem=null;
+				DataValueDescriptor column = template.getColumn(columnContext.getColumnNumber() + 1);
 				if(elem==null){
 						if(columnContext.isAutoIncrement())
 								column.setValue(sequences[columnContext.getColumnNumber()].getNext());
@@ -135,61 +117,53 @@ public class RowParser {
 				}else if(columnContext.isAutoIncrement()){
 						throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
 				}
-        switch(column.getTypeFormatId()){
-            case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
-            case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
-            case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
-            case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
-            case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
-            case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
-            case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
-            case StoredFormatIds.SQL_DECIMAL_ID:
-                //treat empty strings as null
-                elem = elem.trim();
-                if(elem.length()==0) {
-                	elem = columnContext.getColumnDefault();
-                }
-            case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
-            case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
-            case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
-            case StoredFormatIds.XML_ID: //return new XML();
-            case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
-            case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
-            case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
-            case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
-            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
-            case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
-                column.setValue(elem);
-                break;
-            case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
-            case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
-            case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-                elem = elem.trim();
-                if(elem.length()<=0){
-                    column.setToNull();
-                    break;
-                }
-                //default formats supported, can be expanded on demand later
-                String timestampFormatStr2 = "yyyy-MM-dd hh:mm:ss";
-                
-                if(column instanceof SQLTimestamp){
-                	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}[-,+]\\d{2}")) {
-                		timestampFormatStr2 = "yyyy-MM-dd HH:mm:ssZ";      		
-                    }
-                	if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{2}[-,+]\\d{2}")) {
-                		timestampFormatStr2 = "yyyy-MM-dd HH:mm:ss.SSZ";
-                    }
-                    if (elem.matches("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}[-,+]\\d{2}")) {
-                    	timestampFormatStr2 = "yyyy-MM-dd HH:mm:ss.SSSZ";
-                    }
-                }
-                SimpleDateFormat format = getDateFormat(columnContext, column, timestampFormatStr2);
-                try{                   	
-                	if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X"))
-                		//if not append 00, cannot parse correctly
-                		elem = elem + "00";
-                    Date value = format.parse(elem);
-                    column.setValue(new Timestamp(value.getTime()));
+				switch(column.getTypeFormatId()){
+						case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
+						case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
+						case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
+						case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
+						case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
+						case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
+						case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
+						case StoredFormatIds.SQL_DECIMAL_ID:
+								//treat empty strings as null
+								elem = elem.trim();
+								if(elem.length()==0) {
+										elem = columnContext.getColumnDefault();
+								}
+						case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
+						case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
+						case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
+						case StoredFormatIds.XML_ID: //return new XML();
+						case StoredFormatIds.SQL_CHAR_ID: //return new SQLChar();
+						case StoredFormatIds.SQL_VARBIT_ID: //return new SQLVarbit();
+						case StoredFormatIds.SQL_LONGVARBIT_ID: //return new SQLLongVarbit();
+						case StoredFormatIds.SQL_BLOB_ID: //return new SQLBlob();
+						case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+						case StoredFormatIds.SQL_BIT_ID: //return new SQLBit();
+								column.setValue(elem);
+								break;
+						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
+						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
+						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+								elem = elem.trim();
+								if(elem.length()<=0){
+										column.setToNull();
+										break;
+								}
+								SimpleDateFormat format = getDateFormat(column);
+								try{
+										if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X")){
+												//if not append 00, cannot parse correctly
+												//TODO -sf- this only works for timezones which are even hours away from GMT.
+												//There are places (like India and Sri lanka, which are on Indian StandardTime,
+												//and Afganistan) which are offset by half an hour.
+												//This logic needs to be replaced with a proper TZ lookup to get the correct
+												//format.
+												elem = elem + "00";
+										}
+										Date value = format.parse(elem);
+										column.setValue(new Timestamp(value.getTime()));
                 }catch (ParseException p){
                     throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
                 }
@@ -200,36 +174,27 @@ public class RowParser {
         columnContext.validate(column);
     }
 
-    private SimpleDateFormat getDateFormat(ColumnContext columnContext, DataValueDescriptor dvd, String tsfm) throws StandardException {
-        SimpleDateFormat format;
-        if(dvd instanceof SQLTimestamp){
-        	if(timestampFormatStr == null) {
-        		timestampFormat = new SimpleDateFormat(tsfm);
-        	} else {
-        		if(columnContext.isFormatStrSet()) {
-        			if(columnContext.getFormatStr() != null)
-        			    timestampFormat = new SimpleDateFormat(columnContext.getFormatStr());
-        			else 
-        				timestampFormat = new SimpleDateFormat(tsfm);
-        		} else {
-                    timestampFormat = new SimpleDateFormat(timestampFormatStr);
-        		}
-        	}
-            format = timestampFormat;
-        }else if(dvd instanceof SQLDate){
-            if(dateFormat==null){
-                dateFormat = new SimpleDateFormat(dateFormatStr);
-            }
-            format = dateFormat;
-        }else if(dvd instanceof SQLTime){
-            if(timeFormat==null){
-                timeFormat = new SimpleDateFormat(timeFormatStr);
-            }
-            format = timeFormat;
-        }else{
-            throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
-        }
-        
-        return format;
-    }
+		private SimpleDateFormat getDateFormat(DataValueDescriptor dvd) throws StandardException {
+				SimpleDateFormat format;
+				if(dvd instanceof SQLTimestamp){
+						if(timestampFormat==null){
+								timestampFormat = new SimpleDateFormat(timestampFormatStr);
+						}
+						format = timestampFormat;
+				}else if(dvd instanceof SQLDate){
+						if(dateFormat==null){
+								dateFormat = new SimpleDateFormat(dateFormatStr);
+						}
+						format = dateFormat;
+				}else if(dvd instanceof SQLTime){
+						if(timeFormat==null){
+								timeFormat = new SimpleDateFormat(timeFormatStr);
+						}
+						format = timeFormat;
+				}else{
+						throw Exceptions.parseException(new IllegalStateException("Unable to determine date format for type " + dvd.getClass()));
+				}
+
+				return format;
+		}
 }
