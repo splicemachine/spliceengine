@@ -737,7 +737,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
         String notificationId = notifyMetadataChange(ddlChange);
 
-			String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+		String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 
         // Add the indexes to the exisiting regions
         JobFuture future = null;
