@@ -90,15 +90,16 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
     }
 
     private void addIndexInformation(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+        String transactionId = context.getTransactionId();
         switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d " +
                         "has not completed, attempting to start now", congomId);
-                start();
+                start(transactionId);
                 break;
             case STARTING:
                 SpliceLogUtils.trace(LOG,"Index management is starting up");
-                start();
+                start(transactionId);
                 break;
             case FAILED_SETUP:
                 //since we haven't done any writes yet, it's safe to just explore
@@ -205,7 +206,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         NOT_MANAGED
     }
 
-    private void start() throws IOException,InterruptedException{
+    private void start(String transactionId) throws IOException,InterruptedException{
         /*
          * Ready to Start => switch to STARTING
          * STARTING => continue through to block on the lock
@@ -224,8 +225,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             throw new IndexNotSetUpException("Unable to initialize index management for table "+ congomId
                     +" within a sufficient time frame. Please wait a bit and try again");
         }
-        TransactorControl transactor = null;
-        TransactionId txnId = null;
         boolean success = false;
         ContextManager currentCm = ContextService.getFactory().getCurrentContextManager();
         SpliceTransactionResourceImpl transactionResource = null;
@@ -233,9 +232,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
             transactionResource = new SpliceTransactionResourceImpl();
             transactionResource.prepareContextManager();
             try{
-                transactor = HTransactorFactory.getTransactorControl();
-                txnId = transactor.beginTransaction(false);
-                transactionResource.marshallTransaction(txnId.getTransactionIdString());
+                transactionResource.marshallTransaction(transactionId);
 
                 DataDictionary dataDictionary= transactionResource.getLcc().getDataDictionary();
                 ConglomerateDescriptor conglomerateDescriptor = dataDictionary.getConglomerateDescriptor(congomId);
@@ -249,7 +246,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                         startDirect(dataDictionary,td,conglomerateDescriptor);
                     }
                 }
-                transactor.commit(txnId);
                 state.set(State.RUNNING);
                 success=true;
             } catch (SQLException e) {
@@ -267,8 +263,6 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 initializationLock.unlock();
 
                 transactionResource.resetContextManager();
-                if(!success&&(transactor!=null && txnId !=null))
-                    transactor.rollback(txnId);
             }
         } catch (SQLException e) {
             SpliceLogUtils.error(LOG,"Unable to acquire a database connection, aborting write, but backing" +
