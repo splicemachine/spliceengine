@@ -10,7 +10,13 @@ import com.splicemachine.derby.cache.SpliceCache;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.*;
+import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -21,7 +27,12 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.writer.WriteCoordinator;
-import com.splicemachine.job.*;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.TaskSchedulerManagement;
+import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
@@ -32,9 +43,10 @@ import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 import com.splicemachine.utils.kryo.KryoPool;
+import com.splicemachine.utils.logging.LogManager;
+import com.splicemachine.utils.logging.Logging;
 import com.yammer.metrics.core.MetricsRegistry;
 import com.yammer.metrics.reporting.JmxReporter;
-
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -50,7 +62,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -58,9 +69,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-
 import net.sf.ehcache.Cache;
-
 import org.apache.derby.drda.NetworkServerControl;
 import org.apache.derby.iapi.db.OptimizerTrace;
 import org.apache.derby.iapi.error.StandardException;
@@ -126,6 +135,7 @@ public class SpliceDriver extends SIConstants {
 		//-sf- when we need to, replace this with a list
 		private final TempTable tempTable;
 		private StatementManager statementManager;
+    private Logging logging;
 
     private ResourcePool<Sequence,Sequence.Key> sequences = CachedResourcePool.
             Builder.<Sequence,Sequence.Key>newBuilder().expireAfterAccess(1l,TimeUnit.MINUTES).generator(new ResourcePool.Generator<Sequence,Sequence.Key>() {
@@ -248,6 +258,7 @@ public class SpliceDriver extends SIConstants {
 												statementManager = new StatementManager();
 												taskReporter = new XplainTaskReporter(1);
 												taskReporter.start(1);
+                        logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");
 
                         //register JMX items --have to wait for the db to boot first
@@ -378,6 +389,8 @@ public class SpliceDriver extends SIConstants {
 
 						ObjectName statementInfoName = new ObjectName("com.splicemachine.statement:type=StatementManagement");
 						mbs.registerMBean(statementManager,statementInfoName);
+            ObjectName loggingInfoName = new ObjectName("com.splicemachine.utils.logging:type=LogManager");
+            mbs.registerMBean(logging,loggingInfoName);
 
             writerPool.registerJMX(mbs);
 
