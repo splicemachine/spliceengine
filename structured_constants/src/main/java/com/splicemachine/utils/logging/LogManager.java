@@ -1,6 +1,7 @@
 package com.splicemachine.utils.logging;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import org.apache.log4j.Appender;
@@ -14,6 +15,7 @@ import org.apache.log4j.Logger;
 public class LogManager implements Logging {
 
     private static final Logger LOGGER = Logger.getRootLogger();
+    private static final List<String> LOG4JLEVELS = Arrays.asList("ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF", "TRACE");
 
     @Override
     public List<String> getLoggerNames() {
@@ -28,8 +30,7 @@ public class LogManager implements Logging {
 
     @Override
     public List<String> getAvailableLevels() {
-        Level.ALL;
-        return null;
+        return LOG4JLEVELS;
     }
 
     @Override
@@ -49,6 +50,6 @@ public class LogManager implements Logging {
 
     @Override
     public void setLoggerLevel(String loggerName, String levelName) {
-
+        // TODO: impl
     }
 }

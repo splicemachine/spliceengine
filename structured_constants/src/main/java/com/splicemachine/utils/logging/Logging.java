@@ -3,6 +3,9 @@ package com.splicemachine.utils.logging;
 import javax.management.MXBean;
 
 /**
+ * JMX Adaptor for Log4J logging control.  It's made to resemble the same
+ * control for java.util.logging.Logging.
+ *
  * @author Jeff Cunningham
  *         Date: 1/31/14
  */
