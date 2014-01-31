@@ -2789,7 +2789,7 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    @Test
+    @Ignore
     public void committingRaceNested() throws IOException {
         try {
             final CountDownLatch latch = new CountDownLatch(1);
