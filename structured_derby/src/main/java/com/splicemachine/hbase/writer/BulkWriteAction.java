@@ -1,28 +1,22 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.hbase.BatchProtocol;
-import com.splicemachine.hbase.NoRetryExecRPCInvoker;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Row;
-import org.apache.hadoop.hbase.ipc.CoprocessorProtocol;
 import org.apache.log4j.Logger;
-import org.jruby.util.collections.IntHashMap;
 
 import java.io.IOException;
-import java.lang.reflect.Proxy;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -36,21 +30,20 @@ import java.util.concurrent.atomic.AtomicLong;
  * Created on: 8/8/13
  */
 final class BulkWriteAction implements Callable<Void> {
-    private static final Class<BatchProtocol> batchProtocolClass = BatchProtocol.class;
-    @SuppressWarnings("unchecked")
-    private static final Class<? extends CoprocessorProtocol>[] protoClassArray = new Class[]{batchProtocolClass};
 
-    private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
+		private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
     private static final AtomicLong idGen = new AtomicLong(0l);
 
     private BulkWrite bulkWrite;
     private final List<Throwable> errors = new CopyOnWriteArrayList<Throwable>();
     private final Writer.WriteConfiguration writeConfiguration;
     private final RegionCache regionCache;
-    private final HConnection connection;
-    private final ActionStatusReporter statusReporter;
+		private final ActionStatusReporter statusReporter;
     private final byte[] tableName;
     private final long id = idGen.incrementAndGet();
+
+		private final BulkWriteInvoker.Factory invokerFactory;
+		private final Sleeper sleeper;
 
     public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
@@ -58,13 +51,37 @@ final class BulkWriteAction implements Callable<Void> {
                            Writer.WriteConfiguration writeConfiguration,
                            HConnection connection,
                            ActionStatusReporter statusReporter) {
-        this.tableName = tableName;
-        this.bulkWrite = bulkWrite;
-        this.regionCache = regionCache;
-        this.writeConfiguration = writeConfiguration;
-        this.connection = connection;
-        this.statusReporter = statusReporter;
+				this(tableName,bulkWrite,regionCache,
+								writeConfiguration,statusReporter,
+								new BulkWriteRPCInvoker.Factory(connection,tableName),Sleeper.THREAD_SLEEPER);
     }
+
+		BulkWriteAction(byte[] tableName,
+										BulkWrite write,
+										RegionCache regionCache,
+										Writer.WriteConfiguration writeConfiguration,
+										ActionStatusReporter statusReporter,
+										BulkWriteInvoker.Factory invokerFactory){
+				this(tableName,write,regionCache,
+								writeConfiguration,statusReporter,
+								invokerFactory,Sleeper.THREAD_SLEEPER);
+		}
+
+		BulkWriteAction(byte[] tableName,
+										BulkWrite write,
+										RegionCache regionCache,
+										Writer.WriteConfiguration writeConfiguration,
+										ActionStatusReporter statusReporter,
+										BulkWriteInvoker.Factory invokerFactory,
+										Sleeper sleeper){
+				this.tableName = tableName;
+				this.bulkWrite = write;
+				this.regionCache = regionCache;
+				this.writeConfiguration = writeConfiguration;
+				this.statusReporter = statusReporter;
+				this.invokerFactory = invokerFactory;
+				this.sleeper = sleeper;
+		}
 
     @Override
     public Void call() throws Exception {
@@ -134,18 +151,18 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void doRetry(int tries, BulkWrite bulkWrite,boolean refreshCache) throws Exception{
-        Configuration configuration = SpliceConstants.config;
-        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
-        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-                protoClassArray, invoker);
+//        Configuration configuration = SpliceConstants.config;
+//        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
+//                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
+//        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
+//                protoClassArray, invoker);
         boolean thrown=false;
         try{
+						BulkWriteInvoker invoker = invokerFactory.newInstance();
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
-						byte[] bytes = instance.bulkWrite(bulkWrite.toBytes());
-						BulkWriteResult response = BulkWriteResult.fromBytes(bytes);
+						BulkWriteResult response = invoker.invoke(bulkWrite,refreshCache);
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
-            IntHashMap<WriteResult> failedRows = response.getFailedRows();
+            IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
                 switch (writeResponse) {
@@ -164,6 +181,14 @@ final class BulkWriteAction implements Callable<Void> {
             if(thrown)
                 throw e;
 
+						if (e instanceof RegionTooBusyException) {
+								if(LOG.isTraceEnabled())
+										LOG.trace("Retrying write after receiving a RegionTooBusyException");
+								sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1,writeConfiguration.getPause()));
+								doRetry(tries,bulkWrite,false);
+								return;
+						}
+
             Writer.WriteResponse writeResponse = writeConfiguration.globalError(e);
             switch(writeResponse){
                 case THROW_ERROR:
@@ -172,51 +197,53 @@ final class BulkWriteAction implements Callable<Void> {
                     errors.add(e);
                     if(LOG.isDebugEnabled())
                         LOG.debug("Retrying write after receiving global error",e);
-                    if (e instanceof RegionTooBusyException) {
-                        Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1, writeConfiguration.getPause()));
-                        doRetry(tries,bulkWrite,false);
-                    } else {
                     	retry(tries, bulkWrite);
-                    }
+										break;
+								default:
+										if(LOG.isInfoEnabled())
+												LOG.info("Ignoring error ", e);
             }
         }
     }
 
     private Exception parseIntoException(BulkWriteResult response) {
-        IntHashMap<WriteResult> failedRows = response.getFailedRows();
+        IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
         List<Throwable> errors = Lists.newArrayList();
-        for(Integer failedRow:failedRows.keySet()){
-						Throwable e = Exceptions.fromString(failedRows.get(failedRow));
-						e.printStackTrace();
-						errors.add(e);
-        }
+				WriteResult[] result = failedRows.values;
+				for (WriteResult aResult : result) {
+						if (aResult != null) {
+								Throwable e = Exceptions.fromString(aResult);
+								errors.add(e);
+						}
+				}
         return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
     }
 
     private void doPartialRetry(int tries, BulkWrite bulkWrite, BulkWriteResult response) throws Exception {
-
         IntArrayList notRunRows = response.getNotRunRows();
-        IntHashMap<WriteResult> failedRows = response.getFailedRows();
-        Set<Integer> rowsToRetry = Sets.newHashSet(failedRows.keySet());
+        IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
 
-				int size = notRunRows.size();
-				for(int i=0;i<size;i++){
-					rowsToRetry.add(notRunRows.buffer[i]);
-				}
+				IntOpenHashSet rowsToRetry = IntOpenHashSet.from(notRunRows);
 
-        Collection<WriteResult> results = failedRows.values();
-        List<String> errorMsgs = Lists.newArrayListWithCapacity(results.size());
-        for(WriteResult result:results){
-            errorMsgs.add(result.getErrorMessage());
+        List<String> errorMsgs = Lists.newArrayListWithCapacity(failedRows.size());
+
+				for(IntObjectCursor<WriteResult> cursor:failedRows){
+						errorMsgs.add(cursor.value.getErrorMessage());
         }
 
         errors.add(new WriteFailedException(errorMsgs));
 
         ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
         ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
-				for(int rowToRetry:rowsToRetry){
-            failedWrites.add(allWrites.get(rowToRetry));
-        }
+				Object[] allWritesBuffer = allWrites.buffer;
+				for(int i=0;i<rowsToRetry.size();i++){
+						KVPair e1 = (KVPair) allWritesBuffer[i];
+						failedWrites.add(e1);
+				}
+				for(IntObjectCursor<WriteResult> cursor: failedRows){
+						if(cursor.value.canRetry())
+								failedWrites.add((KVPair) allWritesBuffer[cursor.key]);
+				}
 
         if(failedWrites.size()>0){
             retryFailedWrites(tries, bulkWrite.getTxnId(), failedWrites);
@@ -227,7 +254,7 @@ final class BulkWriteAction implements Callable<Void> {
         if(tries<0)
             throw new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
         Set<HRegionInfo> regionInfo = getRegionsFromCache(writeConfiguration.getMaximumRetries());
-        List<BulkWrite> newBuckets = getWriteBuckets(txnId,regionInfo);
+        List<BulkWrite> newBuckets = getWriteBuckets(txnId, regionInfo);
         if(WriteUtils.bucketWrites(failedWrites, newBuckets)){
             tryWrite(tries-1,newBuckets,true);
         }else{
@@ -251,7 +278,7 @@ final class BulkWriteAction implements Callable<Void> {
         Set<HRegionInfo> values;
         do{
             numTries--;
-            Thread.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-numTries+1, writeConfiguration.getPause()));
+						sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-numTries+1,writeConfiguration.getPause()));
             regionCache.invalidate(tableName);
             values = regionCache.getRegions(tableName);
         }while(numTries>=0 && (values==null||values.size()<=0));

@@ -5,9 +5,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.*;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.util.Folders;
 import com.splicemachine.utils.IntArrays;
@@ -72,11 +70,33 @@ public class ParallelImporter implements Importer{
 
         String tableName = importContext.getTableName();
         futures = Lists.newArrayList();
+				/*
+				 * We need a write configuration that will not attempt to retry any writes if the task
+				 * itself has failed.
+				 */
+				Writer.WriteConfiguration writeConfiguration = new ForwardingWriteConfiguration(factory.defaultWriteConfiguration()){
+						@Override
+						public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+								if(LOG.isTraceEnabled())
+										SpliceLogUtils.trace(LOG,"Received a global write error: ",t);
+								if(isFailed())
+										return Writer.WriteResponse.IGNORE; //we're already dead, so stop writing
+								else
+										return super.globalError(t);
+						}
+
+						@Override
+						public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
+								if(isFailed())
+										return Writer.WriteResponse.IGNORE; //we're already dead, so stop writing
+								else
+										return super.partialFailure(result, request);
+						}
+				};
         for(int i=0;i<numProcessingThreads;i++){
-            RecordingCallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId);
+						RecordingCallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId,writeConfiguration);
             futures.add(processingPool.submit(new Processor(template.getClone(), processingQueue, writeDest)));
         }
-
     }
     
     @Override
@@ -107,11 +127,14 @@ public class ParallelImporter implements Importer{
                 try {
                     stats.add(future.get());
                 } catch (InterruptedException e) {
-                    throw new IOException(e);
+										LOG.warn("Interrupted attempting to complete writes",e);
+										Thread.currentThread().interrupt();
                 } catch (ExecutionException e) {
-                    throw new IOException(e.getCause());
+										throw new IOException(e.getCause());
                 }
             }
+						if(isFailed())
+								throw new IOException(error);
         }finally{
             processingPool.shutdownNow();
         }
@@ -202,15 +225,13 @@ public class ParallelImporter implements Importer{
                     String[] elements = queue.poll(200,TimeUnit.MILLISECONDS);
                     if(elements==null)continue; //try again
                     doImportRow(elements);
-                }
-                if(!isFailed()){
-                    //source is closed, poll until the queue is empty
-                    String[] next;
-                    while((next = queue.poll())!=null){
-                        doImportRow(next);
-                    }
-                }
-            }
+								}
+								//source is closed, poll until the queue is empty
+								String[] next;
+								while(!isFailed() && (next = queue.poll())!=null){
+										doImportRow(next);
+								}
+						}
             catch(Exception e){
                 markFailed(e);
                 throw e;

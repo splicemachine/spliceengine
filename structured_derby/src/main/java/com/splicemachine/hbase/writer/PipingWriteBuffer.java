@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.predicates.ObjectPredicate;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
 
@@ -204,21 +205,21 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     @Override public CallBuffer<KVPair> unwrap() { return this; }
 
     // For testing purpose
-    public void setBuildBuffer() {rebuildBuffer = true;}
-    public TreeMap<Integer, Integer> getRegionToBufferCount() {
-
-        TreeMap map = new TreeMap<Integer, Integer>();
+    void setBuildBuffer() {rebuildBuffer = true;}
+    TreeMap<Integer, Integer> getRegionToBufferCount() {
+        TreeMap<Integer,Integer> map = new TreeMap<Integer, Integer>();
         for(Map.Entry<byte[],PreMappedBuffer> entry: regionToBufferMap.entrySet()) {
             Integer key = Bytes.mapKey(entry.getKey());
             PreMappedBuffer buffer = entry.getValue();
             int size = buffer.getBufferSize();
-            map.put(key, new Integer(size));
+            map.put(key, size);
         }
         return map;
     }
+
     private class PreMappedBuffer implements CallBuffer<KVPair> {
         private final Writer writer;
-        private final ObjectArrayList<KVPair> buffer;
+        private ObjectArrayList<KVPair> buffer;
         private int heapSize;
         private final byte[] regionStartKey;
         private final List<Future<Void>> outstandingRequests = Lists.newArrayList();
@@ -261,33 +262,31 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
 
         @Override
-        public void flushBuffer() throws Exception {
+				public void flushBuffer() throws Exception {
 						if(buffer.size()<=0) return; //don't do anything if we don't need to flush
 
-            //check previously finished flushes for errors, and explode if any of them have failed
-            Iterator<Future<Void>> futureIterator = outstandingRequests.iterator();
-            while(futureIterator.hasNext()){
-                Future<Void> future = futureIterator.next();
-                if(future.isDone()){
-                    future.get(); //check for errors
-                    //if it gets this far, it succeeded--strip the reference
-                    futureIterator.remove();
-                }
-            }
-            if(buffer.size()>0){
-                ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer); // XXX-TODO is this copy necessary?
-                buffer.clear();
-                //update heap size metrics
-                if(LOG.isTraceEnabled())
-                    LOG.trace("flushing "+ copy.size()+" entries");
-                PipingWriteBuffer.this.currentHeapSize-=heapSize;
-                heapSize=0;
+						//check previously finished flushes for errors, and explode if any of them have failed
+						Iterator<Future<Void>> futureIterator = outstandingRequests.iterator();
+						while(futureIterator.hasNext()){
+								Future<Void> future = futureIterator.next();
+								if(future.isDone()){
+										future.get(); //check for errors
+										//if it gets this far, it succeeded--strip the reference
+										futureIterator.remove();
+								}
+						}
+						ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer);
+						buffer.clear();
+						//update heap size metrics
+						if(LOG.isTraceEnabled())
+								LOG.trace("flushing "+ copy.size()+" entries");
+						PipingWriteBuffer.this.currentHeapSize-=heapSize;
+						heapSize=0;
 
-                copy = preFlushHook.transform(copy);
-                BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
-                outstandingRequests.add(writer.write(tableName,write, writeConfiguration));
-            }
-        }
+						copy = preFlushHook.transform(copy);
+						BulkWrite write = new BulkWrite(copy,txnId,regionStartKey);
+						outstandingRequests.add(writer.write(tableName,write, writeConfiguration));
+				}
 
         @Override
         public void close() throws Exception {
@@ -313,21 +312,20 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
                 }
             }
             if (needsCompact) {
-                compactBuffer(buffer, array, size);
+                compactBuffer(size);
             }
             return removed;
         }
 
-        private void compactBuffer(ObjectArrayList<KVPair> buffer, Object[] array, int size) {
-
+        private void compactBuffer(int size) {
             ObjectArrayList<KVPair> newBuffer = ObjectArrayList.newInstance();
+						Object[] bValues = buffer.buffer;
             for (int i = 0; i < size; ++i) {
-                if (array[i] != null) {
-                    newBuffer.add((KVPair) array[i]);
+                if (bValues[i] != null) {
+                    newBuffer.add((KVPair) bValues[i]);
                 }
             }
-            buffer.buffer = newBuffer.buffer;
-            buffer.elementsCount = newBuffer.elementsCount;
+						buffer = newBuffer;
         }
 
         public int getHeapSize() {
@@ -338,47 +336,34 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
             return writer;
         }
 
-        public int getBufferSize() {
-            return buffer.size();
-        }
+        public int getBufferSize() { return buffer.size(); }
     }
 
-    private class UpdatingWriteConfiguration implements Writer.WriteConfiguration {
-        private final Writer.WriteConfiguration delegate;
-
-        private UpdatingWriteConfiguration(Writer.WriteConfiguration delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override public long getPause() { return delegate.getPause(); }
-        @Override public int getMaximumRetries() { return delegate.getMaximumRetries(); }
-
-        @Override
-        public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-            if(t instanceof NotServingRegionException || t instanceof WrongRegionException){
-               PipingWriteBuffer.this.rebuildBuffer = true;
-            }
-            return delegate.globalError(t);
-        }
-
-        @Override
-        public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-            for(WriteResult writeResult:result.getFailedRows().values()){
-                switch (writeResult.getCode()) {
-                    case NOT_SERVING_REGION:
-                    case WRONG_REGION:
-                        PipingWriteBuffer.this.rebuildBuffer=true;
-                        break;
-                }
-            }
-            return delegate.partialFailure(result,request);
-        }
+		private class UpdatingWriteConfiguration extends ForwardingWriteConfiguration{
+				protected UpdatingWriteConfiguration(Writer.WriteConfiguration delegate) { super(delegate); }
 
 				@Override
-				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
-						delegate.writeComplete(timeTakenMs, numRecordsWritten);
+				public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
+						if(t instanceof NotServingRegionException || t instanceof WrongRegionException){
+								PipingWriteBuffer.this.rebuildBuffer = true;
+						}
+						return super.globalError(t);
 				}
-    }
+
+				@Override
+				public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
+						for(WriteResult writeResult:result.getFailedRows().values){
+								if(writeResult==null) continue;
+								switch (writeResult.getCode()) {
+										case NOT_SERVING_REGION:
+										case WRONG_REGION:
+												PipingWriteBuffer.this.rebuildBuffer=true;
+												break;
+								}
+						}
+						return super.partialFailure(result,request);
+				}
+		}
 
     private class CountingHandler implements RegulatedWriter.WriteRejectedHandler{
         private final RegulatedWriter.WriteRejectedHandler otherWriterHandler;

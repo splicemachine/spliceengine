@@ -258,6 +258,7 @@ public class HdfsImport extends ParallelVTI {
 				List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
 				try {
 						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
+						LOG.info("Importing files "+ file.getPaths());
 						for (Path path:file.getPaths()) {
 								context.setFilePath(path);
 								long start = System.currentTimeMillis();

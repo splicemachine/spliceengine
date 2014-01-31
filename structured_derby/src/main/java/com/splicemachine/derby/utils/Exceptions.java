@@ -16,7 +16,10 @@ import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.NotServingRegionException;
+import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -147,11 +150,28 @@ public class Exceptions {
         WriteResult.Code writeErrorCode = result.getCode();
 
         if(writeErrorCode!=null){
-            if(writeErrorCode== WriteResult.Code.WRITE_CONFLICT)
-                return new WriteConflict(result.getErrorMessage());
-            else if(writeErrorCode==WriteResult.Code.FAILED)
-                return new DoNotRetryIOException(result.getErrorMessage());
-            else return Constraints.constraintViolation(writeErrorCode, result.getConstraintContext());
+						switch(writeErrorCode){
+								case FAILED:
+										return new IOException(result.getErrorMessage());
+								case WRITE_CONFLICT:
+										return new WriteConflict(result.getErrorMessage());
+								case SUCCESS:
+										return null; //won't happen
+								case PRIMARY_KEY_VIOLATION:
+								case UNIQUE_VIOLATION:
+								case FOREIGN_KEY_VIOLATION:
+								case CHECK_VIOLATION:
+										return Constraints.constraintViolation(writeErrorCode,result.getConstraintContext());
+								case NOT_SERVING_REGION:
+										return new NotServingRegionException();
+								case WRONG_REGION:
+										return new WrongRegionException();
+								case REGION_TOO_BUSY:
+										return new RegionTooBusyException();
+								case NOT_RUN:
+										//won't happen
+										return new IOException("Unexpected NotRun code for an error");
+						}
         }
         return new DoNotRetryIOException(result.getErrorMessage());
     }

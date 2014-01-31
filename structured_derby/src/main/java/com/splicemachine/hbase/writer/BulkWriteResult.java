@@ -1,14 +1,15 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.procedures.IntObjectProcedure;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.encoding.Encoding;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.jruby.util.collections.IntHashMap;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * @author Scott Fines
@@ -16,19 +17,19 @@ import java.io.*;
  */
 public class BulkWriteResult implements Externalizable {
     private IntArrayList notRunRows;
-		private IntHashMap<WriteResult> failedRows;
+		private IntObjectOpenHashMap<WriteResult> failedRows;
 
     public BulkWriteResult() {
         notRunRows = new IntArrayList();
-        failedRows = new IntHashMap<WriteResult>();
+        failedRows = new IntObjectOpenHashMap<WriteResult>();
     }
 
-		public BulkWriteResult(IntArrayList notRunRows,IntHashMap<WriteResult> failedRows){
+		public BulkWriteResult(IntArrayList notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
 				this.notRunRows = notRunRows;
 				this.failedRows = failedRows;
 		}
 
-    public IntHashMap<WriteResult> getFailedRows() {
+    public IntObjectOpenHashMap<WriteResult> getFailedRows() {
         return failedRows;
     }
 
@@ -66,7 +67,7 @@ public class BulkWriteResult implements Externalizable {
     }
 
 		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
+		public void writeExternal(final ObjectOutput out) throws IOException {
 				out.writeInt(notRunRows.size());
 
 				int size = notRunRows.size();
@@ -77,13 +78,19 @@ public class BulkWriteResult implements Externalizable {
 				}
 
 				out.writeInt(failedRows.size());
-				for(Integer row:failedRows.keySet()){
-						out.writeInt(row);
-						WriteResult result = failedRows.get(row);
-						out.writeBoolean(result!=null);
-						if(result!=null)
-								out.writeObject(result);
-				}
+				failedRows.forEach(new IntObjectProcedure<WriteResult>() {
+						@Override
+						public void apply(int key, WriteResult value) {
+								try {
+										out.writeInt(key);
+										out.writeBoolean(value!=null);
+										if(value!=null)
+												out.writeObject(value);
+								} catch (IOException e) {
+										throw new RuntimeException(e); //shouldn't happen, because we only go to byte[]
+								}
+						}
+				});
 		}
 
 		@Override
@@ -95,7 +102,7 @@ public class BulkWriteResult implements Externalizable {
 				}
 
 				int failedSize = in.readInt();
-				failedRows = new IntHashMap<WriteResult>(failedSize);
+				failedRows = new IntObjectOpenHashMap<WriteResult>(failedSize);
 				for(int i=0;i<failedSize;i++){
 						int rowNum = in.readInt();
 						if(in.readBoolean()){
@@ -112,7 +119,7 @@ public class BulkWriteResult implements Externalizable {
 //				baos.write(Encoding.encode(codec!=null));
 //
 //				OutputStream os = codec==null?baos:codec.createOutputStream(baos);
-				Output out = new Output(1024,-1);
+				final Output out = new Output(1024,-1);
 //				out.setOutputStream(os);
 				int size = notRunRows.size();
 				int[] notRunBuffer = notRunRows.buffer;
@@ -122,11 +129,19 @@ public class BulkWriteResult implements Externalizable {
 						out.writeInt(row);
 				}
 				out.writeInt(failedRows.size());
-				for(int row:failedRows.keySet()){
-						out.writeInt(row);
-						WriteResult result = failedRows.get(row);
-						result.write(out);
-				}
+
+				failedRows.forEach(new IntObjectProcedure<WriteResult>() {
+						@Override
+						public void apply(int key, WriteResult value) {
+								try {
+										out.writeInt(key);
+										if(value!=null)
+												value.write(out);
+								} catch (IOException e) {
+										throw new RuntimeException(e); //shouldn't happen, because we only go to byte[]
+								}
+						}
+				});
 				out.flush();
 				return out.toBytes();
 		}
@@ -144,7 +159,7 @@ public class BulkWriteResult implements Externalizable {
 				}
 
 				int failedSize = input.readInt();
-				IntHashMap<WriteResult> failedRows = new IntHashMap<WriteResult>(failedSize);
+				IntObjectOpenHashMap<WriteResult> failedRows = new IntObjectOpenHashMap<WriteResult>(failedSize);
 				for(int i=0;i<failedSize;i++){
 						failedRows.put(input.readInt(), WriteResult.fromBytes(input));
 				}

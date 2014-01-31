@@ -1,6 +1,8 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.encoding.Encoding;
 import org.jruby.util.collections.IntHashMap;
 import org.junit.Assert;
@@ -21,7 +23,7 @@ public class BulkWriteTest {
 
 				BulkWriteResult decoded = BulkWriteResult.fromBytes(bytes);
 
-				IntHashMap<WriteResult> failedRows = result.getFailedRows();
+				IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
 				Assert.assertNotNull("Incorrect failed rows list!", failedRows.get(1));
 				WriteResult writeResult = failedRows.get(1);
 				Assert.assertEquals("Incorrect write result!","Testing failure", writeResult.getErrorMessage());

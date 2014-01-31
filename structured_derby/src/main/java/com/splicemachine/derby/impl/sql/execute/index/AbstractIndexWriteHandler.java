@@ -1,8 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
@@ -160,10 +162,11 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
 
             @Override
             public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-                IntHashMap<WriteResult> failedRows = result.getFailedRows();
+                IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
                 boolean canRetry = true;
                 boolean regionTooBusy = false;
-                for(WriteResult writeResult: failedRows.values()){
+                for(WriteResult writeResult: failedRows.values){
+										if(writeResult==null) continue;
                     if(!writeResult.canRetry()){
                         canRetry=false;
                         break;
@@ -182,9 +185,12 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 if(canRetry) return Writer.WriteResponse.RETRY;
                 else{
                     ObjectArrayList<KVPair> indexMutations = request.getMutations();
-                    for(Integer row:failedRows.keySet()){
+                    for(IntObjectCursor<WriteResult> cursor:failedRows){
+												int row = cursor.key;
                         KVPair kvPair = indexMutations.get(row);
-                        ctx.failed(indexToMainMutationMap.get(kvPair),failedRows.get(row));
+												KVPair put = indexToMainMutationMap.get(kvPair);
+												WriteResult mutationResult = cursor.value;
+												ctx.failed(put, mutationResult);
                     }
                     return Writer.WriteResponse.IGNORE;
                 }

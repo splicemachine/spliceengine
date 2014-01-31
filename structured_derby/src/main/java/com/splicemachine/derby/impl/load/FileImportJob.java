@@ -7,19 +7,19 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Task;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -27,6 +27,7 @@ import java.util.Random;
  */
 public class FileImportJob extends ImportJob{
 
+		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
 
 		protected FileImportJob(HTableInterface table, ImportContext context, long statementId, long operationId) {
 				super(table, context, statementId, operationId);
@@ -42,7 +43,11 @@ public class FileImportJob extends ImportJob{
         ImportReader reader = new FileImportReader();
         ImportTask task = new ImportTask(getJobId(), context,reader,
                 SpliceConstants.importTaskPriority, context.getTransactionId(),statementId,operationId);
-        return Collections.singletonMap(task, getTaskBoundary());
+				Pair<byte[], byte[]> taskBoundary = getTaskBoundary();
+				Map<ImportTask, Pair<byte[], byte[]>> importTaskPairMap = Collections.singletonMap(task, taskBoundary);
+
+				SpliceLogUtils.info(LOG,"Importing file %s with boundaries [%s,%s)",filePath,Bytes.toStringBinary(taskBoundary.getFirst()),Bytes.toStringBinary(taskBoundary.getSecond()));
+				return importTaskPairMap;
     }
 
     @Override
@@ -60,20 +65,21 @@ public class FileImportJob extends ImportJob{
         } finally {
         	Closeables.close(admin, false);
         }
-        HRegionInfo regionToSubmit = null;
-        if(regions!=null&&regions.size()>0) {
-        	Random random = new Random(); // Assign random regions for submission (spray)
-            regionToSubmit = regions.get(random.nextInt(regions.size()));            
-        }
 
-        byte[] start = regionToSubmit!=null?regionToSubmit.getStartKey(): new byte[]{};
-        byte[] end = regionToSubmit!=null?regionToSubmit.getEndKey(): new byte[]{};
-        if(end.length>0){
-            byte[] endRow = new byte[end.length];
-            System.arraycopy(end,0,endRow,0,end.length);
-            BytesUtil.unsignedDecrement(endRow,endRow.length-1);
-            end = endRow;
-        }
-        return Pair.newPair(start,end);
+        HRegionInfo regionToSubmit = null;
+				if(regions!=null&&regions.size()>0) {
+						Random random = new Random(); // Assign random regions for submission (spray)
+						regionToSubmit = regions.get(random.nextInt(regions.size()));
+				}
+
+        byte[] start = regionToSubmit!=null?regionToSubmit.getStartKey(): HConstants.EMPTY_START_ROW;
+				if(start==null || start.length==0){
+						byte[] end = regionToSubmit!=null? regionToSubmit.getEndKey(): HConstants.EMPTY_END_ROW;
+						if(end!=null){
+								start = Arrays.copyOf(end,end.length);
+								BytesUtil.unsignedDecrement(start,start.length-1);
+						}
+				}
+        return Pair.newPair(start,start);
     }
 }
