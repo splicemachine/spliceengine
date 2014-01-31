@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
@@ -93,7 +94,8 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         asynchronousWriter.stopWrites();
     }
 
-		public Writer.WriteConfiguration getDefaultConfiguration() {
+		@Override
+		public Writer.WriteConfiguration defaultWriteConfiguration() {
 				return defaultWriteConfiguration;
 		}
 
@@ -109,6 +111,12 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
             }
         };
     }
+
+		@Override
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
+																									 Writer.WriteConfiguration writeConfiguration){
+				return writeBuffer(tableName,txnId,noOpFlushHook,writeConfiguration);
+		}
 
     @Override
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
@@ -228,10 +236,13 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
         @Override
         public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
-            if(t instanceof RegionTooBusyException){
-                return Writer.WriteResponse.RETRY;
-            }
-            if(t instanceof ConnectException
+						if(t instanceof RegionTooBusyException){
+								return Writer.WriteResponse.RETRY;
+						}
+						else if(t instanceof InterruptedException){
+								Thread.currentThread().interrupt();
+								return Writer.WriteResponse.IGNORE; //
+						}else if(t instanceof ConnectException
                     || t instanceof WrongRegionException
                     || t instanceof IndexNotSetUpException
                     || t instanceof NotServingRegionException )
@@ -242,8 +253,9 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
 
         @Override
         public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-            IntHashMap<WriteResult> failedRows = result.getFailedRows();
-            for(WriteResult writeResult:failedRows.values()){
+            IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
+            for(WriteResult writeResult:failedRows.values){
+								if(writeResult==null)continue;
                 if(!writeResult.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
             }

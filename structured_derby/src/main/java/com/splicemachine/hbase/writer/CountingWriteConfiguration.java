@@ -44,7 +44,8 @@ class CountingWriteConfiguration implements Writer.WriteConfiguration {
         boolean wrongRegion = false;
         boolean failed = false;
         boolean writeConflict = false;
-        for(WriteResult writeResult:result.getFailedRows().values()){
+        for(WriteResult writeResult:result.getFailedRows().values){
+						if(writeResult==null)continue;
             WriteResult.Code code = writeResult.getCode();
             switch (code) {
                 case FAILED:

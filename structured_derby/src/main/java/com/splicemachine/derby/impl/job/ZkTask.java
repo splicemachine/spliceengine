@@ -228,6 +228,8 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     }
 
     private void updateStatus(final boolean cancelOnError) throws ExecutionException{
+				boolean interrupted = Thread.currentThread().isInterrupted();
+				Thread.interrupted(); //clear the interrupt status so that this will complete
         try{
             final byte[] status = statusToBytes();
             zkManager.executeUnlessExpired(new SpliceZooKeeperManager.Command<Void>() {
@@ -247,7 +249,10 @@ public abstract class ZkTask implements RegionTask,Externalizable {
                 throw new CancellationException();
             }
             throw new ExecutionException(e);
-        }
+        }finally{
+						if(interrupted)
+								Thread.currentThread().interrupt();
+				}
     }
 
     private byte[] statusToBytes() throws IOException {

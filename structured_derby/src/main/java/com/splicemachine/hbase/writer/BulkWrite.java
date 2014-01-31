@@ -119,16 +119,7 @@ public class BulkWrite implements Externalizable {
 		}
 
 		public byte[] toBytes() throws IOException {
-//				ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-//				CompressionCodec snappy = SpliceUtils.getSnappyCodec();
-//				byteArrayOutputStream.write(Encoding.encode(snappy!=null));
-//				OutputStream stream;
-//				if(snappy!=null)
-//						stream = snappy.createOutputStream(byteArrayOutputStream);
-//				else
-//					stream = byteArrayOutputStream;
 				Output output = new Output(1024,-1);
-//				output.setOutputStream(stream);
 				output.writeString(txnId);
 
 				List<KVPair> inserts = Lists.newArrayList();
@@ -164,7 +155,6 @@ public class BulkWrite implements Externalizable {
 				}
 				output.flush();
 				return output.toBytes();
-//				return byteArrayOutputStream.toByteArray();
 		}
 
 		private void writeKvs(Output output, List<KVPair> kvs) {
@@ -180,11 +170,6 @@ public class BulkWrite implements Externalizable {
 		}
 
 		public static BulkWrite fromBytes(byte[] bulkWriteBytes) throws IOException {
-//				boolean compressed = Encoding.decodeBoolean(bulkWriteBytes);
-//				InputStream stream = new ByteArrayInputStream(bulkWriteBytes,1,bulkWriteBytes.length);
-//				if(compressed){
-//					stream = SpliceUtils.getSnappyCodec().createInputStream(stream);
-//				}
 				Input input = new Input(bulkWriteBytes);
 
 				String txnId = input.readString();

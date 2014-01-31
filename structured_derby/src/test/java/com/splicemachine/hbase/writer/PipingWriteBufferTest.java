@@ -1,7 +1,12 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.ObjectArrayList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.RegionCache;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -10,37 +15,305 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.management.*;
-import java.util.Iterator;
-import java.util.SortedSet;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.Set;
+
 import org.junit.Assert;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
  * @author Scott Fines
  *         Created on: 9/24/13
  */
 public class PipingWriteBufferTest{
 
-    private PipingWriteBuffer  buffer;
-    private byte[] tableName;
-    FakedHBaseRegionCache regionCache;
-
     @Before
     public void setUp() throws Exception {
 
     }
 
-    @Test
-    public void testRebuildingRegionToBufferMap() throws Exception
-    {
-        tableName = Bytes.toBytes("testTable");
-        regionCache = new FakedHBaseRegionCache();
+
+		@Test
+		public void testAddDataFlushThenAddMoreDataSameRegion() throws Exception {
+				byte[] tableName = Bytes.toBytes("test");
+				RegionCache regionCache = mock(RegionCache.class);
+
+				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
+				SortedSet<HRegionInfo> regions = getFakeRegions(tableName,5,5);
+				when(regionCache.getRegions(tableName)).thenReturn(regions);
+
+				final NavigableMap<byte[],List<BulkWrite>> outputs = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				Writer fakedWriter = getFakeWriter(outputs);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				BufferConfiguration bufferConfig = new BufferConfiguration() {
+						@Override public long getMaxHeapSize() { return 100; }
+						@Override public int getMaxEntries() { return 100; }
+						@Override public int getMaxFlushesPerRegion() { return 2; }
+						@Override public void writeRejected() {  } };
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+								WriteCoordinator.noOpFlushHook,config,bufferConfig);
+
+				byte[] column = Encoding.encode("value");
+				ObjectArrayList<KVPair> added = ObjectArrayList.newInstanceWithCapacity(3);
+				for(int i=2;i<4;i++){
+						byte[] key = Encoding.encode(i);
+						KVPair pair = new KVPair(key, column);
+						buffer.add(pair);
+						Assert.assertEquals("Buffer flushed prematurely!",0,outputs.size());
+						added.add(pair);
+				}
+				//flush data, and make sure it all went to a single buffer, and that the BulkWrite is correct
+				buffer.flushBuffer();
+
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+				List<BulkWrite> writes = outputs.get(Encoding.encode(2));
+				Assert.assertEquals("Incorrect number of flushes!",1,writes.size());
+				BulkWrite write = writes.get(0);
+				Assert.assertEquals("Incorrect number of rows in the buffer",added.size(),write.getSize());
+				Assert.assertEquals("Incorrect rows added to buffer!",added,write.getMutations());
+
+				outputs.clear();
+				added.clear();
+				for(int i=4;i<7;i++){
+						byte[] key = Encoding.encode(i);
+						KVPair pair = new KVPair(key, column);
+						buffer.add(pair);
+						Assert.assertEquals("Buffer flushed prematurely!",0,outputs.size());
+						added.add(pair);
+				}
+				buffer.flushBuffer();
+
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+				writes = outputs.get(Encoding.encode(2));
+				Assert.assertEquals("Incorrect number of flushes!",1,writes.size());
+				write = writes.get(0);
+				Assert.assertEquals("Incorrect number of rows in the buffer",added.size(),write.getSize());
+				Assert.assertEquals("Incorrect rows added to buffer!",added,write.getMutations());
+		}
+
+		@Test
+		public void testAddDataFlushThenAddMoreDataDifferentRegions() throws Exception {
+				byte[] tableName = Bytes.toBytes("test");
+				RegionCache regionCache = mock(RegionCache.class);
+
+				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
+				SortedSet<HRegionInfo> regions = getFakeRegions(tableName,5,5);
+				when(regionCache.getRegions(tableName)).thenReturn(regions);
+
+				final NavigableMap<byte[],List<BulkWrite>> outputs = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				Writer fakedWriter = getFakeWriter(outputs);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				BufferConfiguration bufferConfig = new BufferConfiguration() {
+						@Override public long getMaxHeapSize() { return 100; }
+						@Override public int getMaxEntries() { return 100; }
+						@Override public int getMaxFlushesPerRegion() { return 2; }
+						@Override public void writeRejected() {  } };
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+								WriteCoordinator.noOpFlushHook,config,bufferConfig);
+
+				byte[] column = Encoding.encode("value");
+				ObjectArrayList<KVPair> added = ObjectArrayList.newInstanceWithCapacity(3);
+				for(int i=2;i<5;i++){
+						byte[] key = Encoding.encode(i);
+						KVPair pair = new KVPair(key, column);
+						buffer.add(pair);
+						Assert.assertEquals("Buffer flushed prematurely!",0,outputs.size());
+						added.add(pair);
+				}
+				//flush data, and make sure it all went to a single buffer, and that the BulkWrite is correct
+				buffer.flushBuffer();
+
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+				List<BulkWrite> writes = outputs.get(Encoding.encode(2));
+				Assert.assertEquals("Incorrect number of flushes!",1,writes.size());
+				BulkWrite write = writes.get(0);
+				Assert.assertEquals("Incorrect number of rows in the buffer",added.size(),write.getSize());
+				Assert.assertEquals("Incorrect rows added to buffer!",added,write.getMutations());
+
+				outputs.clear();
+				added.clear();
+				for(int i=7;i<9;i++){
+						byte[] key = Encoding.encode(i);
+						KVPair pair = new KVPair(key, column);
+						buffer.add(pair);
+						Assert.assertEquals("Buffer flushed prematurely!",0,outputs.size());
+						added.add(pair);
+				}
+				buffer.flushBuffer();
+
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+				writes = outputs.get(Encoding.encode(7));
+				Assert.assertEquals("Incorrect number of flushes!",1,writes.size());
+				write = writes.get(0);
+				Assert.assertEquals("Incorrect number of rows in the buffer",added.size(),write.getSize());
+				Assert.assertEquals("Incorrect rows added to buffer!",added,write.getMutations());
+		}
+
+		@Test
+		public void testAddingUntilEntryLimitForcesFlush() throws Exception {
+				byte[] tableName = Bytes.toBytes("test");
+				RegionCache regionCache = mock(RegionCache.class);
+
+				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
+				SortedSet<HRegionInfo> regions = getFakeRegions(tableName,5,1);
+				when(regionCache.getRegions(tableName)).thenReturn(regions);
+
+				final NavigableMap<byte[],List<BulkWrite>> outputs = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				Writer fakedWriter = getFakeWriter(outputs);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				BufferConfiguration bufferConfig = new BufferConfiguration() {
+						@Override public long getMaxHeapSize() { return 100; }
+						@Override public int getMaxEntries() { return 0; }
+						@Override public int getMaxFlushesPerRegion() { return 2; }
+						@Override public void writeRejected() {  } };
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+								WriteCoordinator.noOpFlushHook,config,bufferConfig);
+
+				//add an entry at the middle of the region
+				byte[] key = Encoding.encode(1);
+				KVPair pair = new KVPair(key,Encoding.encode("value"));
+				buffer.add(pair);
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+
+				Assert.assertArrayEquals("Incorrect buffer flush location!",HConstants.EMPTY_START_ROW, outputs.floorKey(key));
+				outputs.clear();
+				buffer.flushBuffer();
+				Assert.assertEquals("Buffer flushed more entries than it should!", 0, outputs.size());
+		}
+
+		protected SortedSet<HRegionInfo> getFakeRegions(byte[] tableName, int numRegions,final int regionSpace) {
+				SortedSet<HRegionInfo> regions = new TreeSet<HRegionInfo>();
+				HRegionInfo info = new HRegionInfo(tableName, HConstants.EMPTY_START_ROW, Encoding.encode(2));
+				regions.add(info);
+				for(int i=0,regionStart = 2;i<numRegions;i++,regionStart+=regionSpace){
+						info = new HRegionInfo(tableName,Encoding.encode(regionStart),Encoding.encode(regionStart+regionSpace));
+						regions.add(info);
+				}
+				return regions;
+		}
+
+		@Test
+		public void testAddingUntilHeapSizeForcesFlush() throws Exception {
+				byte[] tableName = Bytes.toBytes("test");
+				RegionCache regionCache = mock(RegionCache.class);
+
+				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
+				SortedSet<HRegionInfo> regions = getFakeRegions(tableName,5,1);
+				when(regionCache.getRegions(tableName)).thenReturn(regions);
+
+				final NavigableMap<byte[],List<BulkWrite>> outputs = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				Writer fakedWriter = getFakeWriter(outputs);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				BufferConfiguration bufferConfig = new BufferConfiguration() {
+						@Override public long getMaxHeapSize() { return 5; }
+						@Override public int getMaxEntries() { return 10; }
+						@Override public int getMaxFlushesPerRegion() { return 2; }
+						@Override public void writeRejected() {  } };
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+								WriteCoordinator.noOpFlushHook,config,bufferConfig);
+
+				//add some entries at the borders of the region
+				byte[] key = Encoding.encode(2);
+				KVPair pair = new KVPair(key,Encoding.encode("value"));
+				buffer.add(pair);
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed too many regions!",1,outputs.size());
+
+				Assert.assertArrayEquals("Incorrect buffer flush region", key, outputs.floorKey(key));
+				outputs.clear();
+				buffer.flushBuffer();
+				Assert.assertEquals("Buffer flushed more entries than it should!", 0, outputs.size());
+		}
+
+		@Test
+		public void testAddingRowOnBoundaryOnlyAddedToOneRegion() throws Exception {
+				byte[] tableName = Bytes.toBytes("test");
+				RegionCache regionCache = mock(RegionCache.class);
+
+				//is BYTES_COMPARATOR correct here? it might put start in the incorrect location
+				SortedSet<HRegionInfo> regions = new TreeSet<HRegionInfo>();
+				for(int i=0;i<5;i++){
+						HRegionInfo info = new HRegionInfo(tableName,Encoding.encode(i),Encoding.encode(i+1));
+						regions.add(info);
+				}
+				when(regionCache.getRegions(tableName)).thenReturn(regions);
+
+				final NavigableMap<byte[],List<BulkWrite>> outputs = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				Writer fakedWriter = getFakeWriter(outputs);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				BufferConfiguration bufferConfig = new BufferConfiguration() {
+						@Override public long getMaxHeapSize() { return 100; }
+						@Override public int getMaxEntries() { return 10; }
+						@Override public int getMaxFlushesPerRegion() { return 2; }
+						@Override public void writeRejected() {  } };
+				PipingWriteBuffer buffer = new PipingWriteBuffer(tableName,"txnId",fakedWriter,fakedWriter,regionCache,
+								WriteCoordinator.noOpFlushHook,config,bufferConfig);
+
+				//add some entries at the borders of the region
+				byte[] key = Encoding.encode(1);
+				KVPair pair = new KVPair(key,Encoding.encode("value"));
+				buffer.add(pair);
+				//assert that the buffer didn't flush yet
+				Assert.assertEquals("Buffer flushed prematurely!", 0, outputs.size());
+
+				//now forcibly flush it
+				buffer.flushBuffer();
+
+				Assert.assertEquals("Buffer flushed too many regions!", 1, outputs.size());
+				Assert.assertArrayEquals("Incorrect buffer flush region", key, outputs.floorKey(key));
+
+				outputs.clear();
+				buffer.flushBuffer();
+				Assert.assertEquals("Buffer flushed more entries than it should!", 0, outputs.size());
+		}
+
+		protected Writer getFakeWriter(final SortedMap<byte[], List<BulkWrite>> outputs) throws ExecutionException {
+				Writer fakedWriter = mock(Writer.class);
+				when(fakedWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
+								.thenAnswer(new Answer<Future<Void>>() {
+										@Override
+										public Future<Void> answer(InvocationOnMock invocationOnMock) throws Throwable {
+												Object[] arguments = invocationOnMock.getArguments();
+												BulkWrite write = (BulkWrite) arguments[1];
+												byte[] region = write.getRegionKey();
+												List<BulkWrite> writes = outputs.get(region);
+												if(writes==null){
+														writes = Lists.newArrayList();
+														outputs.put(region,writes);
+												}
+												writes.add(write);
+												Future<Void> future = mock(Future.class);
+												when(future.get()).thenReturn(null);
+												return future;
+										}
+								});
+				return fakedWriter;
+		}
+
+		@Test
+    public void testRebuildingRegionToBufferMap() throws Exception {
+        byte[] tableName = Bytes.toBytes("testTable");
+        FakedHBaseRegionCache regionCache = new FakedHBaseRegionCache(tableName);
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,SpliceConstants.maxBufferEntries,SpliceConstants.numRetries,SpliceConstants.pause,SpliceConstants.maxFlushesPerRegion);
-        buffer = new PipingWriteBuffer(tableName, "100", null, null, regionCache, null, null, monitor);
+        PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, "100", null, null, regionCache, null, null, monitor);
 
         KVPair kv = new KVPair(Bytes.toBytes("aaaa"), Bytes.toBytes("1"));
         buffer.add(kv);
@@ -90,11 +363,12 @@ public class PipingWriteBufferTest{
     }
 
     public class FakedHBaseRegionCache implements RegionCache {
-
+				private final byte[] tableName;
         private final ConcurrentHashMap<Integer,SortedSet<HRegionInfo>> regionCache;
 
-        public  FakedHBaseRegionCache () {
+        public  FakedHBaseRegionCache (byte[] tableName) {
             this.regionCache = new  ConcurrentHashMap<Integer,SortedSet<HRegionInfo>>();
+						this.tableName = tableName;
             //populate the cache with HRegionInfo
             populateCache();
         }

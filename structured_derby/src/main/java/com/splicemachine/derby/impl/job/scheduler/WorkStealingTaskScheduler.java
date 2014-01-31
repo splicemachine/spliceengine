@@ -101,9 +101,9 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 
 				stats.submittedCount.incrementAndGet();
 				pendingTasks.offer(task);
-            TaskFuture taskFuture = new ListeningTaskFuture<T>(task,0);
-            jobMetrics.updateTask(taskFuture.getTaskId(), task.getJobId(), taskFuture.getStatus().name());
-            return taskFuture;
+				TaskFuture taskFuture = new ListeningTaskFuture<T>(task,0);
+				jobMetrics.updateTask(taskFuture.getTaskId(), task.getJobId(), taskFuture.getStatus().name());
+				return taskFuture;
 		}
 
 		@Override

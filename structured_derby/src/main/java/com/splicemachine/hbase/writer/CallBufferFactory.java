@@ -11,6 +11,8 @@ public interface CallBufferFactory<T> {
     RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,
                                             WriteCoordinator.PreFlushHook flushHook, Writer.WriteConfiguration writeConfiguration);
 
+		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId,Writer.WriteConfiguration writeConfiguration);
+
 		RecordingCallBuffer<T> writeBuffer(byte[] tableName, String txnId, int maxEntries);
 
     RecordingCallBuffer<T> synchronousWriteBuffer(byte[] tableName,
@@ -22,4 +24,6 @@ public interface CallBufferFactory<T> {
                                                        WriteCoordinator.PreFlushHook flushHook,
                                                        Writer.WriteConfiguration writeConfiguration,
                                                        int maxEntries);
+
+		Writer.WriteConfiguration defaultWriteConfiguration();
 }
