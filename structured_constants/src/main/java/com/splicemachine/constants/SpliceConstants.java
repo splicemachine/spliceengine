@@ -14,6 +14,10 @@ import java.util.List;
 
 public class SpliceConstants {
 
+		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
+		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
+		public static long sequentialImportThreashold;
+
 		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
 
@@ -805,6 +809,8 @@ public class SpliceConstants {
 				maxPriority = config.getInt(MAX_PRIORITY,DEFAULT_MAX_PRIORITY);
 
 				pastStatementBufferSize = config.getInt(PAST_STATEMENT_BUFFER_SIZE,DEFAULT_PAST_STATEMENT_BUFFER_SIZE);
+
+				sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
 		}
 
 		public static void reloadConfiguration(Configuration configuration) {

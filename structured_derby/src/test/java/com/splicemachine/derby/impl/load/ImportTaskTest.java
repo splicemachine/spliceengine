@@ -500,17 +500,23 @@ public class ImportTaskTest {
         when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(testingBuffer);
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
-        Importer importer = new ParallelImporter(ctx,
-                template,
-                "TEST_TXN",
-                1,
-                100,
-                fakeBufferFactory){
+				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory){
 						@Override
 						protected Snowflake.Generator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
-        };
+				};
+//        Importer importer = new ParallelImporter(ctx,
+//                template,
+//                "TEST_TXN",
+//                1,
+//                100,
+//                fakeBufferFactory){
+//						@Override
+//						protected Snowflake.Generator getRandomGenerator() {
+//								return snowflake.newGenerator(lines.size());
+//						}
+//        };
 
         ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN");
         importTask.doExecute();

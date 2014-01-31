@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
@@ -38,7 +39,7 @@ public class FileImportJob extends ImportJob{
         Path filePath = context.getFilePath();
         FileSystem fs = FileSystem.get(SpliceUtils.config);
         if(!fs.exists(filePath))
-            throw new IOException("File "+ filePath+" does not exist");
+            throw new FileNotFoundException("File "+ filePath+" does not exist");
 
         ImportReader reader = new FileImportReader();
         ImportTask task = new ImportTask(getJobId(), context,reader,
@@ -75,7 +76,7 @@ public class FileImportJob extends ImportJob{
         byte[] start = regionToSubmit!=null?regionToSubmit.getStartKey(): HConstants.EMPTY_START_ROW;
 				if(start==null || start.length==0){
 						byte[] end = regionToSubmit!=null? regionToSubmit.getEndKey(): HConstants.EMPTY_END_ROW;
-						if(end!=null){
+						if(end!=null && end.length>0){
 								start = Arrays.copyOf(end,end.length);
 								BytesUtil.unsignedDecrement(start,start.length-1);
 						}
