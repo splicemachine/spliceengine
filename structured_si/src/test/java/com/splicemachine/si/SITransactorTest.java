@@ -2389,7 +2389,7 @@ public class SITransactorTest extends SIConstants {
         dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
     }
 
-    @Test
+    @Ignore
     public void transactionTimeout() throws IOException, InterruptedException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe63", 20);
@@ -2417,7 +2417,7 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    @Test
+    @Ignore
     public void transactionTimeoutAfterKeepAlive() throws IOException, InterruptedException {
         TransactionId t1 = transactor.beginTransaction();
         insertAge(t1, "joe65", 20);
