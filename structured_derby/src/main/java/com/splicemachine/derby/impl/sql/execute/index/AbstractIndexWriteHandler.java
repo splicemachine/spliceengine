@@ -165,12 +165,11 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
                 boolean canRetry = true;
                 boolean regionTooBusy = false;
-                for(WriteResult writeResult: failedRows.values){
-										if(writeResult==null) continue;
-                    if(!writeResult.canRetry()){
+                for(IntObjectCursor<WriteResult> cursor:failedRows){
+                    if(!cursor.value.canRetry()){
                         canRetry=false;
                         break;
-                    }if(writeResult.getCode()== WriteResult.Code.REGION_TOO_BUSY)
+                    }if(cursor.value.getCode()== WriteResult.Code.REGION_TOO_BUSY)
                         regionTooBusy = true;
                 }
 

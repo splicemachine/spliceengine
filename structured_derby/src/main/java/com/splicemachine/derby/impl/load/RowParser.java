@@ -151,15 +151,10 @@ public class RowParser {
 										column.setToNull();
 										break;
 								}
-								SimpleDateFormat format = getDateFormat(column);
+								SimpleDateFormat format = getDateFormat(column, elem);
 								try{
 										if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X")){
 												//if not append 00, cannot parse correctly
-												//TODO -sf- this only works for timezones which are even hours away from GMT.
-												//There are places (like India and Sri lanka, which are on Indian StandardTime,
-												//and Afganistan) which are offset by half an hour.
-												//This logic needs to be replaced with a proper TZ lookup to get the correct
-												//format.
 												elem = elem + "00";
 										}
 										Date value = format.parse(elem);
@@ -174,7 +169,7 @@ public class RowParser {
         columnContext.validate(column);
     }
 
-		private SimpleDateFormat getDateFormat(DataValueDescriptor dvd) throws StandardException {
+		private SimpleDateFormat getDateFormat(DataValueDescriptor dvd, String elem) throws StandardException {
 				SimpleDateFormat format;
 				if(dvd instanceof SQLTimestamp){
 						if(timestampFormat==null){
