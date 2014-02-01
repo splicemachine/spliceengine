@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.predicates.ObjectPredicate;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
@@ -352,9 +353,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 
 				@Override
 				public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
-						for(WriteResult writeResult:result.getFailedRows().values){
-								if(writeResult==null) continue;
-								switch (writeResult.getCode()) {
+						for(IntObjectCursor<WriteResult> cursor:result.getFailedRows()){
+								switch (cursor.value.getCode()) {
 										case NOT_SERVING_REGION:
 										case WRONG_REGION:
 												PipingWriteBuffer.this.rebuildBuffer=true;

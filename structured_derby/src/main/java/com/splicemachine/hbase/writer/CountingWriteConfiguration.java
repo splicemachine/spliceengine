@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.writer;
 
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -44,9 +45,8 @@ class CountingWriteConfiguration implements Writer.WriteConfiguration {
         boolean wrongRegion = false;
         boolean failed = false;
         boolean writeConflict = false;
-        for(WriteResult writeResult:result.getFailedRows().values){
-						if(writeResult==null)continue;
-            WriteResult.Code code = writeResult.getCode();
+        for(IntObjectCursor<WriteResult> cursor:result.getFailedRows()){
+            WriteResult.Code code = cursor.value.getCode();
             switch (code) {
                 case FAILED:
                     failed=true;

@@ -2,6 +2,7 @@ package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.HBaseRegionCache;
@@ -254,9 +255,8 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         @Override
         public Writer.WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException {
             IntObjectOpenHashMap<WriteResult> failedRows = result.getFailedRows();
-            for(WriteResult writeResult:failedRows.values){
-								if(writeResult==null)continue;
-                if(!writeResult.canRetry())
+            for(IntObjectCursor<WriteResult> cursor:failedRows){
+                if(!cursor.value.canRetry())
                     return Writer.WriteResponse.THROW_ERROR;
             }
             return Writer.WriteResponse.RETRY;

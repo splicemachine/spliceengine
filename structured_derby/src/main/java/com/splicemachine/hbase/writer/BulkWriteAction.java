@@ -209,12 +209,9 @@ final class BulkWriteAction implements Callable<Void> {
     private Exception parseIntoException(BulkWriteResult response) {
         IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
         List<Throwable> errors = Lists.newArrayList();
-				WriteResult[] result = failedRows.values;
-				for (WriteResult aResult : result) {
-						if (aResult != null) {
-								Throwable e = Exceptions.fromString(aResult);
+				for (IntObjectCursor<WriteResult> cursor:failedRows) {
+								Throwable e = Exceptions.fromString(cursor.value);
 								errors.add(e);
-						}
 				}
         return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
     }
