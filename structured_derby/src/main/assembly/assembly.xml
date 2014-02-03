@@ -27,13 +27,13 @@
     </dependencySet>
   </dependencySets>
     <fileSets>
-    <fileSet>
-      <directory>lib/native</directory>   
-      <includes>
-        <include>*/**</include>
-      </includes>
-      <outputDirectory>/lib/native</outputDirectory>
-    </fileSet>
+      <fileSet>
+        <directory>lib/native</directory>
+        <includes>
+          <include>*/**</include>
+        </includes>
+        <outputDirectory>/lib/native</outputDirectory>
+      </fileSet>
   </fileSets>
 </assembly>
 
