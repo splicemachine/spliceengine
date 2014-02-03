@@ -181,6 +181,7 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 						}
 				}finally{
 						region.closeRegionOperation();
+						HRegionUtil.updateReadRequests(region, bufferPos);
 						readTimer.tick(bufferPos); //the number of records read during this time
 				}
 		}
