@@ -13,6 +13,7 @@ import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -20,7 +21,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -51,6 +54,58 @@ import org.apache.hadoop.hbase.util.Pair;
  *         Date: 12/9/13
  */
 public class SpliceAdmin {
+
+    public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName, final String logLevel) throws SQLException {
+        operate(new JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                for (Logging logger : JMXUtils.getLoggingManagement(connections)) {
+                    logger.setLoggerLevel(loggerName, logLevel);
+                }
+            }
+        });
+    }
+
+    public static void SYSCS_GET_LOGGER_LEVEL(final String loggerName, final ResultSet[] resultSet) throws SQLException {
+        operate(new JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                StringBuilder sb = new StringBuilder("select * from (values ");
+                for (Logging logger : JMXUtils.getLoggingManagement(connections)) {
+                    logger.getLoggerLevel(loggerName);
+                    sb.append(String.format("('%s')",
+                            logger.getLoggerLevel(loggerName)));
+                }
+                sb.append(") foo (logLevel)");
+                resultSet[0] = executeStatement(sb);
+            }
+        });
+    }
+
+    public static void SYSCS_GET_LOGGERS(final ResultSet[] resultSet) throws SQLException {
+        operate(new JMXServerOperation() {
+            @Override
+            public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                Set<String> uniqueLoggerNames = new HashSet<String>();
+                for (Logging logger : JMXUtils.getLoggingManagement(connections)) {
+                    uniqueLoggerNames.addAll(logger.getLoggerNames());
+                }
+                StringBuilder sb = new StringBuilder("select * from (values ");
+                List<String> loggerNames = new ArrayList<String>(uniqueLoggerNames);
+                Collections.sort(loggerNames);
+                for (String logger : loggerNames) {
+                    sb.append(String.format("('%s')", logger));
+                    sb.append(", ");
+                }
+                if (sb.charAt(sb.length()-2) == ',') {
+                    sb.setLength(sb.length()-2);
+                }
+                sb.append(") foo (spliceLogger)");
+                resultSet[0] = executeStatement(sb);
+            }
+        });
+    }
+
     /**
      * @return
      * @throws SQLException
