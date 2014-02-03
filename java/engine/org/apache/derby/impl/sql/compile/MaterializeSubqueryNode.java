@@ -48,9 +48,7 @@ class MaterializeSubqueryNode extends ResultSetNode
 						 MethodBuilder mb)
 		throws StandardException
 	{
-		acb.pushThisAsActivation(mb);
 		mb.getField(lf);
-		mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "materializeResultSetIfPossible", ClassName.NoPutResultSet, 1);
 	}
 
 	void decrementLevel(int decrement)

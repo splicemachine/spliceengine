@@ -1998,8 +1998,6 @@ public class SubqueryNode extends ValueNode
 				}
 				subNode = ((ProjectRestrictNode) resultSet).getChildResult();
 				LocalField subRS = acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.NoPutResultSet);
-				mb.getField(subRS);
-				mb.conditionalIfNull();
 
 				ResultSetNode materialSubNode = new MaterializeSubqueryNode(subRS);
 
@@ -2008,18 +2006,13 @@ public class SubqueryNode extends ValueNode
 
 				((ProjectRestrictNode) resultSet).setChildResult(materialSubNode);
 
-				/* Evaluate subquery resultset here first.  Next time when we come to
-				 * this subquery it may be replaced by a bunch of unions of rows.
-				 */
-				subNode.generate(acb, mb);
-				mb.startElseCode();
-				mb.getField(subRS);
-				mb.completeConditional();
-		
-				mb.setField(subRS);
+            subNode.generate(acb, executeMB);
+            executeMB.setField(subRS);
 
-                executeMB.pushNull( ClassName.NoPutResultSet);
-                executeMB.setField(subRS);
+            acb.pushThisAsActivation(executeMB);
+            executeMB.getField(subRS);
+            executeMB.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "materializeResultSetIfPossible", ClassName.NoPutResultSet, 1);
+            executeMB.setField(subRS);
 			}
 
             executeMB.pushNull( ClassName.NoPutResultSet);
