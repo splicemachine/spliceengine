@@ -3487,6 +3487,19 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
+    public void oldestActiveTransactionsIgnoreEffectiveStatus() throws IOException {
+        final TransactionId t0 = transactor.beginTransaction();
+        transactorSetup.timestampSource.rememberTimestamp(t0.getId());
+        final TransactionId t1 = transactor.beginChildTransaction(t0, true);
+        transactor.commit(t1);
+        final TransactionId t2 = transactor.beginChildTransaction(t0, true);
+        List<TransactionId> active = transactor.getActiveTransactionIds(t2);
+        Assert.assertEquals(2, active.size());
+        Assert.assertTrue(active.contains(t0));
+        Assert.assertTrue(active.contains(t2));
+    }
+
+    @Test
     public void oldestActiveTransactionsFillMissing() throws IOException {
         final TransactionId t0 = transactor.beginTransaction();
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
