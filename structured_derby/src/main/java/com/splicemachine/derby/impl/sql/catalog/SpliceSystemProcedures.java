@@ -211,22 +211,55 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 procedures.add(killStaleTransactions);
 
                 /*
+                 * Procedure to get the log level for the given logger
+                 */
+                Procedure getLoggerLevel = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .varchar("loggerName", 128)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getLoggerLevel);
+
+                /*
+                 * Procedure to set the log level for the given logger
+                 */
+                Procedure setLoggerLevel = Procedure.newBuilder().name("SYSCS_SET_LOGGER_LEVEL")
+                        .numOutputParams(0)
+                        .numResultSets(0)
+                        .varchar("loggerName", 128)
+                        .varchar("loggerLevel", 128)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(setLoggerLevel);
+
+                /*
+                 * Procedure to get all the splice logger names in the system
+                 */
+                Procedure getLoggers = Procedure.newBuilder().name("SYSCS_GET_LOGGERS")
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
+                procedures.add(getLoggers);
+
+                /*
                  * Procedure set the max task workers
                  */
                 Procedure setMaxTasks = Procedure.newBuilder().name("SYSCS_SET_MAX_TASKS")
                         .numOutputParams(0)
                         .numResultSets(0)
-												.integer("workerTier")
+						.integer("workerTier")
                         .integer("maxWorkers")
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
                 procedures.add(setMaxTasks);
 
                 Procedure getMaxTasks = Procedure.newBuilder().name("SYSCS_GET_GLOBAL_MAX_TASKS")
-                                .numOutputParams(0)
-                                .numResultSets(1)
-                                .ownerClass(SpliceAdmin.class.getCanonicalName())
-                                .build();
+                        .numOutputParams(0)
+                        .numResultSets(1)
+                        .ownerClass(SpliceAdmin.class.getCanonicalName())
+                        .build();
                 procedures.add(getMaxTasks);
 
                 /*
@@ -235,7 +268,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                 Procedure getTieredMaxTasks = Procedure.newBuilder().name("SYSCS_GET_MAX_TASKS")
                         .numOutputParams(0)
                         .numResultSets(1)
-												.integer("workerTier")
+                        .integer("workerTier")
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
                 procedures.add(getTieredMaxTasks);

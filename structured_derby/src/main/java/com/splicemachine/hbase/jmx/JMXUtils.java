@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.job.JobSchedulerManagement;
+import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,10 +21,11 @@ import javax.management.remote.JMXServiceURL;
 import org.apache.hadoop.hbase.util.Pair;
 
 public class JMXUtils {
+    public static final String LOGGING_MANAGEMENT = "com.splicemachine.utils.logging:type=LogManager";
     public static final String MONITORED_THREAD_POOL = "com.splicemachine.writer.async:type=ThreadPoolStatus";
     public static final String GLOBAL_TASK_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=TieredSchedulerManagement";
     public static final String TIER_TASK_SCHEDULER_MANAGEMENT_BASE = "com.splicemachine.job.tasks.tier-";
-		public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
+	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String REGION_SERVER_STATISTICS = "hadoop:service=RegionServer,name=RegionServerStatistics";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.dery.hbase:type=ActiveWriteHandlers";
     public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
@@ -37,6 +39,14 @@ public class JMXUtils {
 		}
 		return mbscArray;
 	}
+
+    public static List<Logging> getLoggingManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<Logging> activeWrites = new ArrayList<Logging>();
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+            activeWrites.add(getNewMXBeanProxy(mbsc.getSecond(),LOGGING_MANAGEMENT,Logging.class));
+        }
+        return activeWrites;
+    }
 
 	public static ObjectName getRegionServerStatistics() throws MalformedObjectNameException {
 		return getDynamicMBean(REGION_SERVER_STATISTICS);
