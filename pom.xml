@@ -88,6 +88,10 @@
                                 <URL>http://www.splicemachine.com</URL>
                             </manifestEntries>
                         </archive>
+                      <excludes>
+                        <exclude>**/*log4j.properties</exclude>
+                      </excludes>
+
                     </configuration>
                     <executions>
                         <execution>
