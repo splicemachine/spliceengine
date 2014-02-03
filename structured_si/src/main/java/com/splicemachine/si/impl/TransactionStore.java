@@ -629,7 +629,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                     final Result next = contiguousIterator.next();
                     transactionId = decoder.getID(next);
                     final Transaction transaction = decodeResults(transactionId, next);
-                    if (transaction.getStatus().isActive()) {
+                    if (transaction.getStatus().isActive() && transaction.getEffectiveStatus().isActive()) {
                         results.add(transaction);
                     }
                 }
