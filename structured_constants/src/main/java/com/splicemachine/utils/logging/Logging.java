@@ -1,5 +1,7 @@
 package com.splicemachine.utils.logging;
 
+import com.splicemachine.utils.annotation.Description;
+import com.splicemachine.utils.annotation.PName;
 import javax.management.MXBean;
 
 /**
@@ -17,6 +19,7 @@ public interface Logging {
      * @return A list of <tt>String</tt> each of which is a
      *         currently registered <tt>Logger</tt> name.
      */
+    @Description(value="Get the list of SpliceMachine logger names.")
     public java.util.List<String> getLoggerNames();
 
     /**
@@ -24,6 +27,7 @@ public interface Logging {
      * @return A list of <tt>String</tt> each of which is an
      *          available log level.
      */
+    @Description(value="Get the list of available logging levels.")
     public java.util.List<String> getAvailableLevels();
 
     /**
@@ -50,7 +54,8 @@ public interface Logging {
      *
      * @see java.util.logging.Logger#getLevel
      */
-    public String getLoggerLevel( String loggerName );
+    @Description(value="Get the current logging level for the given logger.")
+    public String getLoggerLevel(@PName("loggerName") String loggerName );
 
     /**
      * Sets the specified logger to the specified new level.
@@ -76,6 +81,7 @@ public interface Logging {
      *
      * @see java.util.logging.Logger#setLevel
      */
-    public void setLoggerLevel( String loggerName, String levelName );
+    @Description(value="Set the logging level for the given logger.")
+    public void setLoggerLevel(@PName("loggerName") String loggerName, @PName("levelName") String levelName );
 
 }
