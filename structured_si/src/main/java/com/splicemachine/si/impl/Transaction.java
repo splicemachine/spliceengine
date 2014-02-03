@@ -63,6 +63,14 @@ public class Transaction extends ImmutableTransaction {
         return behavior.needsGlobalCommitTimestamp();
     }
 
+    /**
+     *
+     * @return status of this transaction or subtransaction, independently from its parent's status
+     */
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
     // effective functions - these functions walk the transaction ancestry to produce their answer. So they are based
     // not just on the given transaction's state, but also on its ancestors' state.
 
