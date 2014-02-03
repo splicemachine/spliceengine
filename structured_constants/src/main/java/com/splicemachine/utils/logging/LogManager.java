@@ -2,9 +2,9 @@ package com.splicemachine.utils.logging;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -15,17 +15,21 @@ import org.apache.log4j.Logger;
 public class LogManager implements Logging {
 
     private static final Logger LOGGER = Logger.getRootLogger();
-    private static final List<String> LOG4JLEVELS = Arrays.asList("ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF", "TRACE");
+    private static final List<String> LOG4JLEVELS =
+            Arrays.asList("ALL", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF", "TRACE");
 
     @Override
     public List<String> getLoggerNames() {
-        List<String> appenders = new ArrayList<String>();
-        Enumeration loggers = LOGGER.getAllAppenders();
+        List<String> loggerNames = new ArrayList<String>();
+        Enumeration loggers = LOGGER.getLoggerRepository().getCurrentLoggers();
         while (loggers.hasMoreElements()) {
-            appenders.add(((Appender) loggers.nextElement()).getName());
+            String loggerName = ((Logger) loggers.nextElement()).getName();
+            if (loggerName.startsWith("com.splicemachine")) {
+                loggerNames.add(loggerName);
+            }
         }
-
-        return appenders;
+        Collections.sort(loggerNames);
+        return loggerNames;
     }
 
     @Override
@@ -38,8 +42,8 @@ public class LogManager implements Logging {
 
         Logger logger = Logger.getLogger(loggerName);
         if (logger == null) {
-            throw new IllegalArgumentException("Logger " + loggerName +
-                    "does not exist");
+            throw new IllegalArgumentException("Logger \"" + loggerName +
+                    "\" does not exist");
         }
         Level level = logger.getEffectiveLevel();
         if (level == null) {
@@ -50,6 +54,22 @@ public class LogManager implements Logging {
 
     @Override
     public void setLoggerLevel(String loggerName, String levelName) {
-        // TODO: impl
+        String prospectiveLevel = null;
+        if (levelName != null) {
+            prospectiveLevel = levelName.trim();
+        }
+        if (prospectiveLevel == null ||
+                prospectiveLevel.isEmpty() ||
+                ! LOG4JLEVELS.contains(prospectiveLevel.toUpperCase())) {
+            throw new IllegalArgumentException("Log level \"" + levelName +
+                    "\" is not valid.");
+        }
+        Logger logger = Logger.getLogger(loggerName);
+        if (logger == null) {
+            throw new IllegalArgumentException("Logger \"" + loggerName +
+                    "\" does not exist");
+        }
+        Level newLevel = Level.toLevel(levelName);
+        logger.setLevel(newLevel);
     }
 }
