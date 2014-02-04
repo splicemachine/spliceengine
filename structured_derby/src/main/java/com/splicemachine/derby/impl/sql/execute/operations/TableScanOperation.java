@@ -203,13 +203,15 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				TimeView readTimer = regionScanner.getReadTime();
-				long bytesRead = regionScanner.getBytesRead();
-				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
-				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead);
-				stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
-				stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
-				stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
+				if(regionScanner!=null){
+						TimeView readTimer = regionScanner.getReadTime();
+						long bytesRead = regionScanner.getBytesRead();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead);
+						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
+				}
 		}
 
 		@Override
