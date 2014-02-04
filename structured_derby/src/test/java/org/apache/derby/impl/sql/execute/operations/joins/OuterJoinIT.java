@@ -33,6 +33,9 @@ public class OuterJoinIT extends SpliceUnitTest {
     public static final String TABLE_NAME_5 = "E";
     public static final String TABLE_NAME_6 = "F";
     public static final String TABLE_NAME_7 = "G";
+    public static final String TABLE_NAME_8 = "t1";
+    public static final String TABLE_NAME_9 = "t2";
+    public static final String TABLE_NAME_10 = "dupes";
 
 
     protected static DefaultedSpliceWatcher spliceClassWatcher = new DefaultedSpliceWatcher(CLASS_NAME);
@@ -44,7 +47,15 @@ public class OuterJoinIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6, CLASS_NAME, "(a varchar(20), b varchar(20), c varchar(10), d decimal, e varchar(15))");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7, CLASS_NAME, "(a varchar(20), b varchar(20), w decimal(4),e varchar(15))");
+    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
+    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10, CLASS_NAME, "(i int, s smallint, d double precision, r real, c10 char(10), c30 char(30), vc10 varchar(10), vc30 varchar(30))");
 
+    /*
+
+     
+     */
+    
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -55,6 +66,9 @@ public class OuterJoinIT extends SpliceUnitTest {
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
             .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9)
+            .around(spliceTableWatcher10)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -68,6 +82,18 @@ public class OuterJoinIT extends SpliceUnitTest {
                             ps.setFloat(5, 10.0f * i);
                             ps.executeUpdate();
                         }
+                        String insertT1 = "insert into %s values (null, null, null, null, null, null, null, null),"
+                        		+ "(1, 1, 1e1, 1e1, '11111', '11111 11', '11111', '11111 11')," +
+                        		"(2, 2, 2e1, 2e1, '22222', '22222 22', '22222', '22222 22')";                        
+                        String insertT2 = "insert into %s values (null, null, null, null, null, null, null, null),"
+                        		+ "(3, 3, 3e1, 3e1, '33333', '33333 33', '33333', '33333 33')," +
+                        		"(4, 4, 4e1, 4e1, '44444', '44444 44','44444', '44444 44')";                        
+                        String insertDupes = "insert into %s select * from t1 union all select * from t2";
+                        Statement statement = spliceClassWatcher.getStatement();
+                        statement.executeUpdate(format(insertT1,TABLE_NAME_8));
+                        statement.executeUpdate(format(insertT2,TABLE_NAME_9));
+                        statement.executeUpdate(format(insertDupes,TABLE_NAME_10));
+                    
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -327,6 +353,16 @@ public class OuterJoinIT extends SpliceUnitTest {
             System.out.println(i);
             testLeftOuterWithLessThan();
         }
+    }
+    
+    @Test
+    public void testUnionLeftJoinedToTable() throws Exception {
+    	ResultSet rs = methodWatcher.executeQuery("select * from (select * from t1 union select * from t2) x2 left join t2 on x2.i = t2.i");
+    	int count = 0;
+    	while (rs.next()) {
+    		count++;
+    	}
+    	Assert.assertEquals("Returned the wrong number of rows", 5,count);
     }
 }
 
