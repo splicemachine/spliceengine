@@ -11,7 +11,6 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.sun.xml.internal.bind.api.impl.NameConverter;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionTooBusyException;
