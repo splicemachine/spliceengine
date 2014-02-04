@@ -1,10 +1,13 @@
 package com.splicemachine.derby.utils;
 
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
+import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.hbase.ThreadPoolStatus;
@@ -15,10 +18,7 @@ import com.splicemachine.si.api.TransactorControl;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,7 +37,16 @@ import javax.management.ObjectName;
 import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.*;
+import org.apache.derby.impl.jdbc.EmbedConnection;
+import org.apache.derby.impl.jdbc.EmbedResultSet;
+import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.jdbc.Util;
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.jdbc.InternalDriver;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -274,7 +283,14 @@ public class SpliceAdmin {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
 
                 StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
+								ExecRow dataTemplate = new ValueRow(16);
+								dataTemplate.setRowArray(new DataValueDescriptor[]{
+												new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
+												new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
+												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
+								});
+								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
+								int i = 0;
                 for (Pair<String, StatementManagement> managementPair : statementManagers) {
                     if (i != 0) sb.append(", ");
 
@@ -317,28 +333,82 @@ public class SpliceAdmin {
                         int successfulJobs = numJobs - numFailedJobs - numCancelledJobs;
                         long startTimeMs = completedStatement.getStartTimeMs();
                         long stopTimeMs = completedStatement.getStopTimeMs();
-                        sb.append(String.format("(%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%f)",
-                                completedStatement.getStatementUuid(),
-                                managementPair.getFirst(),
-                                escape(completedStatement.getUser()),
-                                escape(completedStatement.getTxnId()),
-                                numFailedJobs > 0 ? "FAILED" : numCancelledJobs > 0 ? "CANCELLED" : "SUCCESS",
-                                escape(completedStatement.getSql()),
-                                numJobs,
-                                successfulJobs,
-                                numFailedJobs,
-                                numCancelledJobs,
-                                startTimeMs,
-                                stopTimeMs,
-                                stopTimeMs - startTimeMs,
-                                minJobTime,
-                                maxJobTime,
-                                avgJobTime
-                        ));
+												dataTemplate.resetRowArray();
+												DataValueDescriptor[] dvds = dataTemplate.getRowArray();
+												try {
+														dvds[0].setValue(completedStatement.getStatementUuid());
+														dvds[1].setValue(managementPair.getFirst());
+														dvds[2].setValue(completedStatement.getUser());
+														dvds[3].setValue(completedStatement.getTxnId());
+														dvds[4].setValue(numFailedJobs>0?"FAILED" : numCancelledJobs>0? "CANCELLED":"SUCCESS");
+														dvds[5].setValue(completedStatement.getSql());
+														dvds[6].setValue(numJobs);
+														dvds[7].setValue(successfulJobs);
+														dvds[8].setValue(numFailedJobs);
+														dvds[9].setValue(numCancelledJobs);
+														dvds[10].setValue(startTimeMs);
+														dvds[11].setValue(stopTimeMs);
+														dvds[12].setValue(stopTimeMs-startTimeMs);
+														dvds[13].setValue(minJobTime);
+														dvds[14].setValue(maxJobTime);
+														dvds[15].setValue(avgJobTime);
+
+														rows.add(dataTemplate.getClone());
+												} catch (StandardException e) {
+														throw PublicAPI.wrapStandardException(e);
+												}
+
+//												sb.append(String.format("(%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%f)",
+//																completedStatement.getStatementUuid(),
+//																managementPair.getFirst(),
+//																escape(completedStatement.getUser()),
+//																escape(completedStatement.getTxnId()),
+//																numFailedJobs > 0 ? "FAILED" : numCancelledJobs > 0 ? "CANCELLED" : "SUCCESS",
+//																escape(completedStatement.getSql()),
+//																numJobs,
+//																successfulJobs,
+//																numFailedJobs,
+//																numCancelledJobs,
+//																startTimeMs,
+//																stopTimeMs,
+//																stopTimeMs - startTimeMs,
+//																minJobTime,
+//																maxJobTime,
+//																avgJobTime
+//												));
                     }
                 }
-                sb.append(") foo (statementUuid,host, userName,transactionID,status, statementSql,numJobs,successfulJobs,failedJobs,cancelledJobs,startTimeMs,stopTimeMs,elapsedTimeMs,minJobTimeMs,maxJobTimeMs,avgJobTimeMs)");
-                resultSets[0] = executeStatement(sb);
+
+
+								//TODO -sf- make static
+								ResultColumnDescriptor[] columns = new ResultColumnDescriptor[16];
+								columns[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columns[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columns[3] = new GenericColumnDescriptor("transactionId",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columns[4] = new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columns[5] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columns[6] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columns[7] = new GenericColumnDescriptor("successfulJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columns[8] = new GenericColumnDescriptor("numFailedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columns[9] = new GenericColumnDescriptor("numCancelledJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columns[10] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[11] = new GenericColumnDescriptor("stopTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[12] = new GenericColumnDescriptor("elapsedTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[13] = new GenericColumnDescriptor("maxJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[14] = new GenericColumnDescriptor("minJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columns[15] = new GenericColumnDescriptor("avgJobTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE));
+								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columns,lastActivation);
+								try {
+										resultsToWrap.openCore();
+								} catch (StandardException e) {
+										throw PublicAPI.wrapStandardException(e);
+								}
+								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+								resultSets[0] = ers;
             }
         });
     }

@@ -21,6 +21,7 @@ import java.util.Collection;
  * @author Scott Fines
  * Created on: 9/30/13
  */
+@SuppressWarnings("deprecation")
 @RunWith(Parameterized.class)
 public class RowParserDateTimeTest {
 
