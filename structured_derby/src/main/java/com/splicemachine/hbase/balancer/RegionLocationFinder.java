@@ -53,7 +53,7 @@ import com.google.common.cache.LoadingCache;
  * given region.
  *
  */
-class RegionLocationFinder {
+public class RegionLocationFinder {
 
     private static Log LOG = LogFactory.getLog(RegionLocationFinder.class);
 
@@ -103,7 +103,7 @@ class RegionLocationFinder {
         this.status = status;
     }
 
-    protected List<ServerName> getTopBlockLocations(HRegionInfo region) {
+    public List<ServerName> getTopBlockLocations(HRegionInfo region) {
         List<ServerName> servers = null;
         try {
             servers = cache.get(region);
