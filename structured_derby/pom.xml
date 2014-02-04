@@ -97,6 +97,11 @@
 			<artifactId>ehcache-core</artifactId>
 			<version>2.6.6</version>
 		</dependency>
+		<dependency>
+			<groupId>org.uncommons.watchmaker</groupId>
+			<artifactId>watchmaker-framework</artifactId>
+			<version>0.7.1</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<resources>
