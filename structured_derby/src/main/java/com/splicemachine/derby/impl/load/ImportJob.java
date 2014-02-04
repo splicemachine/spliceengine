@@ -13,7 +13,7 @@ public abstract class ImportJob implements CoprocessorJob {
 
     protected ImportContext context;
     protected final HTableInterface table;
-    private final String jobId;
+    protected final String jobId;
 		protected final long statementId;
 		protected final long operationId;
 

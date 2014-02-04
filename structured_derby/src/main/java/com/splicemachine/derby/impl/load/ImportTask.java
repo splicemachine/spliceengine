@@ -10,6 +10,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -19,6 +20,7 @@ import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -81,15 +83,15 @@ public class ImportTask extends ZkTask{
 		public void doExecute() throws ExecutionException, InterruptedException {
 				try{
 						ExecRow row = getExecRow(importContext);
-						if(importer==null){
-								importer = getImporter(row);
-						}
 
 						long rowsRead = 0l;
 						long startTime = System.currentTimeMillis();
 						long stopTime;
 						try{
 								reader.setup(fileSystem,importContext);
+								if(importer==null){
+										importer = getImporter(row);
+								}
 								try{
 										String[] nextRow;
 										do{
@@ -154,10 +156,14 @@ public class ImportTask extends ZkTask{
 				} catch (IOException e) {
 						throw new ExecutionException(e);
 				}
-				if(shouldParallelize)
-						return  new ParallelImporter(importContext,row,getTaskStatus().getTransactionId());
-				else
-						return new SequentialImporter(importContext,row,getTaskStatus().getTransactionId());
+				String transactionId = getTaskStatus().getTransactionId();
+				if(LOG.isInfoEnabled())
+						SpliceLogUtils.info(LOG,"Importing %s using transaction %s, which is a child of transaction %s",
+										reader.toString(),transactionId,parentTxnId);
+				if(shouldParallelize) {
+						return  new ParallelImporter(importContext,row, transactionId);
+				} else
+						return new ParallelImporter(importContext,row,1,SpliceConstants.maxImportReadBufferSize,transactionId);
 		}
 
 		@Override
@@ -196,7 +202,15 @@ public class ImportTask extends ZkTask{
 		@Override
 		public void prepareTask(RegionCoprocessorEnvironment rce,
 														SpliceZooKeeperManager zooKeeper) throws ExecutionException {
-				fileSystem = rce.getRegion().getFilesystem();
+				HRegion rceRegion = rce.getRegion();
+				if(LOG.isDebugEnabled()){
+						byte[] startKey = rceRegion.getStartKey();
+						byte[] endKey = rceRegion.getEndKey();
+						SpliceLogUtils.debug(LOG,
+										"Preparing import for file %s on region with bounds [%s,%s)",
+										importContext.getFilePath(),Bytes.toStringBinary(startKey),Bytes.toStringBinary(endKey));
+				}
+				fileSystem = rceRegion.getFilesystem();
 				super.prepareTask(rce, zooKeeper);
 		}
 
@@ -216,5 +230,9 @@ public class ImportTask extends ZkTask{
 				if(!columnContext.isNullable())
 						td = td.getNullabilityType(false);
 				return td.getNull();
+		}
+
+		public ImportContext getContext() {
+			return importContext;
 		}
 }

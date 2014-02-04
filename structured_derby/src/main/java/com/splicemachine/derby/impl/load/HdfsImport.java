@@ -259,23 +259,18 @@ public class HdfsImport extends ParallelVTI {
 				try {
 						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 						LOG.info("Importing files "+ file.getPaths());
-						for (Path path:file.getPaths()) {
-								context.setFilePath(path);
-								long start = System.currentTimeMillis();
-								ImportJob importJob = getImportJob(table, codecFactory, path);
-								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
-								info.tasksRunning(jobFuture.getAllTaskIds());
-								jobFutures.add(Pair.newPair(jobFuture,info));
-						}
+						ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId);
+						long start = System.currentTimeMillis();
+						JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+						JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+						info.tasksRunning(jobFuture.getAllTaskIds());
+						jobFutures.add(Pair.newPair(jobFuture,info));
 
-						for (Pair<JobFuture,JobInfo> jobFuture: jobFutures) {
-								try{
-										jobFuture.getFirst().completeAll(jobFuture.getSecond());
-								}catch(ExecutionException e){
-										jobFuture.getSecond().failJob();
-										throw e;
-								}
+						try{
+								jobFuture.completeAll(info);
+						}catch(ExecutionException e){
+								info.failJob();
+								throw e;
 						}
 				} catch (InterruptedException e) {
 						throw Exceptions.parseException(e);
@@ -426,29 +421,30 @@ public class HdfsImport extends ParallelVTI {
 		/************************************************************************************************************/
 	/*private helper functions*/
 
-		private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,Path file) throws StandardException {
-//				CompressionCodec codec = codecFactory.getCodec(file);
-				ImportJob importJob;
-				/*
-				 * (December, 2013) We are disabling BlockImports for the time being because
-				 * they are error-prone and difficult to test at scale, and you can get nearly
-				 * as good of parallelism and performance from just dumping a bunch of files into
-				 * a single directory and running the import against the entire directory.
-				 *
-				 * In a couple of months, when we have a clearer need for that import
-				 * process as opposed to the more stable File import process, then we
-				 * can reopen this issue.
-				 */
-//        if(codec==null ||codec instanceof SplittableCompressionCodec){
-//            try{
-//                importJob = new BlockImportJob(table, context);
-//            }catch(IOException ioe){
-//                throw Exceptions.parseException(ioe);
-//            }
-//        }else
-				importJob = new FileImportJob(table,context,statementId,operationId);
-				return importJob;
-		}
+//		private ImportJob getImportJob(HTableInterface table,CompressionCodecFactory codecFactory,Path file) throws StandardException {
+////				CompressionCodec codec = codecFactory.getCodec(file);
+//				ImportJob importJob;
+//				/*
+//				 * (December, 2013) We are disabling BlockImports for the time being because
+//				 * they are error-prone and difficult to test at scale, and you can get nearly
+//				 * as good of parallelism and performance from just dumping a bunch of files into
+//				 * a single directory and running the import against the entire directory.
+//				 *
+//				 * In a couple of months, when we have a clearer need for that import
+//				 * process as opposed to the more stable File import process, then we
+//				 * can reopen this issue.
+//				 */
+////        if(codec==null ||codec instanceof SplittableCompressionCodec){
+////            try{
+////                importJob = new BlockImportJob(table, context);
+////            }catch(IOException ioe){
+////                throw Exceptions.parseException(ioe);
+////            }
+////        }else
+//				importJob = new FileImportJob(table,context,statementId,operationId);
+//				return importJob;
+//		}
+
 		private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
 																							 String insertColumnList, ImportContext.Builder builder,
 																							 LanguageConnectionContext lcc) throws SQLException {

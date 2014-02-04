@@ -198,6 +198,12 @@ public class ImportContext implements Externalizable{
 				return xplainSchema;
 		}
 
+		public ImportContext getCopy() {
+				return new ImportContext(transactionId,filePath,tableId,columnDelimiter,stripString,
+								columnInformation,timestampFormat,
+								dateFormat,timeFormat,byteOffset,bytesToRead,recordStats,xplainSchema);
+		}
+
 
 		public static class Builder{
 				private Path filePath;

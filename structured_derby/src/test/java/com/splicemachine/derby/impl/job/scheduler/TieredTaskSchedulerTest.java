@@ -280,7 +280,7 @@ public class TieredTaskSchedulerTest {
 						final Task testSubtask = mock(Task.class);
 						when(testSubtask.getParentTaskId()).thenReturn(testTaskId);
 						when(testSubtask.getPriority()).thenReturn(0);
-						when(testSubtask.getTaskId()).thenReturn(Bytes.toBytes("subtask"));
+						when(testSubtask.getTaskId()).thenReturn(Bytes.toBytes(2l));
 						when(testSubtask.getTaskStatus()).thenReturn(mockSubStatus);
 						doAnswer(new Answer<Void>() {
 
@@ -298,7 +298,7 @@ public class TieredTaskSchedulerTest {
 						Task testTask = mock(Task.class);
 						when(testTask.getTaskId()).thenReturn(testTaskId);
 						when(testTask.getTaskStatus()).thenReturn(taskStatus);
-						when(testTask.getTaskId()).thenReturn(Bytes.toBytes("parentTask"));
+						when(testTask.getTaskId()).thenReturn(Bytes.toBytes(1l));
 						when(testTask.getPriority()).thenReturn(0);
 
 						final CountDownLatch latch = new CountDownLatch(1);
@@ -345,6 +345,7 @@ public class TieredTaskSchedulerTest {
 						Task testTask = mock(Task.class);
 						when(testTask.getTaskStatus()).thenReturn(mockStatus);
                         when(testTask.getTaskId()).thenReturn(new byte[] {0x1, 0x2, 0x3});
+						when(testTask.getTaskId()).thenReturn(Bytes.toBytes(1l));
 						doAnswer(new Answer<Void>() {
 
 								@Override

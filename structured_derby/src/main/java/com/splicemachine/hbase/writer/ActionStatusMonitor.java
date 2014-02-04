@@ -41,7 +41,9 @@ public class ActionStatusMonitor implements WriterStatus {
         statusMonitor.reset();
     }
 
-    @Override public double getAvgFlushedBufferSize() {
+		@Override public long getTotalRejectedFlushes() { return statusMonitor.rejectedCount.get(); }
+
+		@Override public double getAvgFlushedBufferSize() {
         return statusMonitor.totalFlushSizeBytes.get()/(double)statusMonitor.totalFlushesSubmitted.get();
     }
 

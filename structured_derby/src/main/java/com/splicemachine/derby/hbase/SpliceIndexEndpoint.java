@@ -1,6 +1,5 @@
 package com.splicemachine.derby.hbase;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.scheduler.SimpleThreadedTaskScheduler;
@@ -22,7 +21,6 @@ import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -38,6 +36,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
+
+import javax.management.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -45,13 +45,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MXBean;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -63,10 +56,10 @@ import javax.management.ObjectName;
 public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements BatchProtocol{
     private static final Logger LOG = Logger.getLogger(SpliceIndexEndpoint.class);
     protected static AtomicInteger activeWriteThreads = new AtomicInteger(0); 
-    public static int ipcReserved = 10;
-    private static int maxWorkers = 10;
-    private static int flushQueueSizeBlock = 10;
-    private static int compactionQueueSizeBlock = 10;
+    public static volatile int ipcReserved = 10;
+    private static volatile int maxWorkers = 10;
+    private static volatile int flushQueueSizeBlock = 10;
+    private static volatile int compactionQueueSizeBlock = 10;
     private RegionServerMetrics metrics;
 
     
@@ -139,36 +132,44 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         }
     }
 
-    @Override
-    public byte[] bulkWrite(byte[] bulkWriteBytes) throws IOException {
-        assert bulkWriteBytes!=null;
+		@Override
+		public byte[] bulkWrite(byte[] bulkWriteBytes) throws IOException {
+				assert bulkWriteBytes!=null;
+				if(!shouldAllowWrite()){
+						rejectedMeter.mark();
+						BulkWriteResult result = new BulkWriteResult(new WriteResult(WriteResult.Code.REGION_TOO_BUSY));
+						return result.toBytes();
+				}
+
 				BulkWrite bulkWrite = BulkWrite.fromBytes(bulkWriteBytes);
-        assert bulkWrite.getTxnId()!=null;
-        
-        SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
-        RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
-        HRegion region = rce.getRegion();
-    	if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) {// Too Busy For Splice... 
-    		activeWriteThreads.decrementAndGet();
-    		rejectedMeter.mark();
-    		throw new RegionTooBusyException("Too many active ipc threads, backing off on " + region.getRegionNameAsString());
-    	}
-        long start = System.nanoTime();
-        try {
-        	region.startRegionOperation();
-        } catch (IOException ioe) {
-        	activeWriteThreads.decrementAndGet();
-        	throw ioe;
-        }
-        
-        try{
-        	WriteContext context;
-            if(queue==null)
-                queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
-            try {
-                context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
-            } catch (InterruptedException e) {
-                //was interrupted while trying to create a write context.
+				assert bulkWrite.getTxnId()!=null;
+
+				SpliceLogUtils.trace(LOG,"batchMutate %s",bulkWrite);
+				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
+				HRegion region = rce.getRegion();
+
+//				if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) {// Too Busy For Splice...
+//						activeWriteThreads.decrementAndGet();
+//						rejectedMeter.mark();
+//						BulkWriteResult result = new BulkWriteResult(new WriteResult(WriteResult.Code.REGION_TOO_BUSY));
+//						return result.toBytes();
+//				}
+				long start = System.nanoTime();
+				try {
+						region.startRegionOperation();
+				} catch (IOException ioe) {
+						activeWriteThreads.decrementAndGet();
+						throw ioe;
+				}
+
+				try{
+						WriteContext context;
+						if(queue==null)
+								queue = RollForwardQueueMap.lookupRollForwardQueue(((RegionCoprocessorEnvironment) this.getEnvironment()).getRegion().getTableDesc().getNameAsString());
+						try {
+								context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
+						} catch (InterruptedException e) {
+								//was interrupted while trying to create a write context.
                 //we're done, someone else will have to write this batch
                 throw new IOException(e);
             }
@@ -182,13 +183,11 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
             Map<KVPair,WriteResult> resultMap = context.finish();
 
             BulkWriteResult response = new BulkWriteResult();
-            ObjectArrayList<KVPair> mutations = bulkWrite.getMutations();
             int pos=0;
             int failed=0;
-            bufferArray = bulkWrite.getBuffer();
             size = bulkWrite.getSize();
             for (int i = 0; i<size; i++) {
-                WriteResult result = resultMap.get((KVPair)bufferArray[i]);
+                @SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
                 if(result.getCode()== WriteResult.Code.FAILED){
                     failed++;
                 }
@@ -196,7 +195,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
                 pos++;
             }
 
-            int numSuccessWrites = bulkWrite.getMutations().size()-failed;
+            int numSuccessWrites = size-failed;
             throughputMeter.mark(numSuccessWrites);
             failedMeter.mark(failed);
             return response.toBytes();
@@ -207,8 +206,22 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         }
     }
 
+		private boolean shouldAllowWrite() {
+				if(metrics.compactionQueueSize.get()> compactionQueueSizeBlock || metrics.flushQueueSize.get()> flushQueueSizeBlock){
+						return false;
+				}
+				boolean allowed;
+				do{
+						int currentActive = activeWriteThreads.get();
+						if(currentActive>=(SpliceConstants.ipcThreads-maxWorkers-ipcReserved))
+								return false;
+						allowed = activeWriteThreads.compareAndSet(currentActive,currentActive+1);
+				}while(!allowed);
+				return true;
+		}
 
-    private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue,int writeSize) throws IOException, InterruptedException {
+
+		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue,int writeSize) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
         return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
     }
@@ -295,63 +308,31 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
         ObjectName coordinatorName = new ObjectName("com.splicemachine.dery.hbase:type=ActiveWriteHandlers");
         mbs.registerMBean(ActiveWriteHandlers.get(),coordinatorName);
     }
-    
-    public static class ActiveWriteHandlers implements ActiveWriteHandlersIface {
-        private static final ActiveWriteHandlers INSTANCE = new ActiveWriteHandlers();
 
-    	private  ActiveWriteHandlers () {}
-    	
-        public static ActiveWriteHandlers get(){
-            return INSTANCE;
-        }
-    	
-		@Override
-		public int getActiveWriteThreads() {
-			return activeWriteThreads.get();
+		public static class ActiveWriteHandlers implements ActiveWriteHandlersIface {
+				private static final ActiveWriteHandlers INSTANCE = new ActiveWriteHandlers();
+				private  ActiveWriteHandlers () {}
+
+				public static ActiveWriteHandlers get(){ return INSTANCE; }
+				@Override public int getActiveWriteThreads() { return activeWriteThreads.get(); }
+				@Override public int getIpcReservedPool() { return ipcReserved; }
+				@Override public void setIpcReservedPool(int ipcReservedPool) { ipcReserved = ipcReservedPool; }
+				@Override public int getFlushQueueSizeLimit() { return flushQueueSizeBlock; }
+				@Override public void setFlushQueueSizeLimit(int flushQueueSizeLimit) { flushQueueSizeBlock = flushQueueSizeLimit; }
+				@Override public int getCompactionQueueSizeLimit(){ return compactionQueueSizeBlock; }
+				@Override public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit) { compactionQueueSizeBlock = compactionQueueSizeLimit; }
 		}
 
-		@Override
-		public int getIpcReservedPool() {
-			return ipcReserved;
+		@MXBean
+		@SuppressWarnings("UnusedDeclaration")
+		public interface ActiveWriteHandlersIface {
+				public int getActiveWriteThreads();
+				public int getIpcReservedPool();
+				public void setIpcReservedPool(int rpcReservedPool);
+				public int getFlushQueueSizeLimit();
+				public void setFlushQueueSizeLimit(int flushQueueSizeLimit);
+				public int getCompactionQueueSizeLimit();
+				public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit);
 		}
 
-		@Override
-		public void setIpcReservedPool(int ipcReservedPool) {
-			ipcReserved = ipcReservedPool;
-		}
-
-		@Override
-		public int getFlushQueueSizeLimit() {
-			return flushQueueSizeBlock;
-		}
-
-		@Override
-		public void setFlushQueueSizeLimit(int flushQueueSizeLimit) {
-			flushQueueSizeBlock = flushQueueSizeLimit;			
-		}
-
-		@Override
-		public int getCompactionQueueSizeLimit() {
-			return compactionQueueSizeBlock;
-		}
-
-		@Override
-		public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit) {
-			compactionQueueSizeBlock = compactionQueueSizeLimit;
-		}
-    	
-    }
-   
-    @MXBean
-    public interface ActiveWriteHandlersIface {
-        public int getActiveWriteThreads();
-        public int getIpcReservedPool();
-        public void setIpcReservedPool(int rpcReservedPool);
-        public int getFlushQueueSizeLimit();
-        public void setFlushQueueSizeLimit(int flushQueueSizeLimit);
-        public int getCompactionQueueSizeLimit();
-        public void setCompactionQueueSizeLimit(int compactionQueueSizeLimit);
-
-    }
-    
 }

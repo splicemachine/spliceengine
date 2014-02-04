@@ -15,19 +15,6 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -37,6 +24,14 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.ZooKeeper;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
@@ -102,7 +97,7 @@ class JobControl implements JobFuture {
         boolean found;
         while (futuresRemaining > 0) {
             changedFuture = changedTasks.take();
-            if (cancelled == true)
+            if (cancelled)
                 throw new CancellationException();
             found = !completedTasks.contains(changedFuture) &&
                     !failedTasks.contains(changedFuture) &&
@@ -166,6 +161,7 @@ class JobControl implements JobFuture {
                     if (statusHook != null)
                         statusHook.cancelled(changedFuture.getTaskId());
                     changedFuture.cleanup();
+										changedFuture.rollback(maxResubmissionAttempts);
                     cancelledTasks.add(changedFuture);
                     throw new CancellationException();
                 default:
@@ -344,8 +340,8 @@ class JobControl implements JobFuture {
                         Pair<byte[], byte[]> range,
                         HTableInterface table,
                         final int tryCount) throws ExecutionException {
-        byte[] start = range.getFirst();
-        byte[] stop = range.getSecond();
+        final byte[] start = range.getFirst();
+        final byte[] stop = range.getSecond();
 
         try{
             table.coprocessorExec(SpliceSchedulerProtocol.class,start,stop,

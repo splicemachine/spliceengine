@@ -14,11 +14,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.*;
 
 /**
@@ -45,6 +47,19 @@ public class ParallelImporter implements Importer{
                 SpliceConstants.maxImportReadBufferSize,
                 SpliceDriver.driver().getTableWriter());
     }
+
+		public ParallelImporter(ImportContext importContext,
+														ExecRow template,
+														int numProcessingThread,
+														int maxImportReadBufferSize,
+														String txnId) {
+				this(importContext,
+								template,
+								txnId,
+								numProcessingThread,
+								maxImportReadBufferSize,
+								SpliceDriver.driver().getTableWriter());
+		}
 
     public ParallelImporter(ImportContext importCtx,
                             ExecRow template,
