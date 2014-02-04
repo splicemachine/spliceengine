@@ -179,7 +179,8 @@ public class WorkStealingTaskScheduler<T extends Task> implements StealableTaskS
 				@Override public long getTotalCancelledTasks() { return cancelledCount.get(); }
 				@Override public long getTotalInvalidatedTasks() { return invalidatedCount.get(); }
 				@Override public int getNumExecutingTasks() { return numExecuting.get(); }
-				@Override public int getNumPendingTasks() { return numPending.get(); }
+				@Override public int getNumPendingTasks() {  return pendingTasks.size(); }
+
 				@Override public long getTotalStolenTasks() { return stolenCount.get(); }
 				@Override public long getTotalSubmitFailures() { return executeFailureCount.get(); }
 				@Override public long getTotalSubmittedTasks() { return submittedCount.get(); }

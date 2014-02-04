@@ -152,7 +152,7 @@ public class RegionWriteHandler implements WriteHandler {
                 LOG.trace("Writing "+ filteredMutations.size()+" rows to table " + region.getTableDesc().getNameAsString());
             doWrite(ctx,filteredMutations);
         } catch (WriteConflict wce) {
-            WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getClass().getSimpleName() + ":" + wce.getMessage());
+            WriteResult result = new WriteResult(WriteResult.Code.WRITE_CONFLICT, wce.getMessage());
             for (KVPair mutation : filteredMutations) {
                 ctx.result(mutation, result);
             }
@@ -195,13 +195,12 @@ public class RegionWriteHandler implements WriteHandler {
                 case NOT_RUN:
                     ctx.notRun(mutation);
                     break;
-                case BAD_FAMILY:
-                case FAILURE:
+								case SUCCESS:
+										ctx.success(mutation);
+										break;
+								default:
                     failed++;
                     ctx.failed(mutation,WriteResult.failed(stat.getExceptionMsg()));
-                    break;
-                default:
-                    ctx.success(mutation);
                     break;
             }
             i++;

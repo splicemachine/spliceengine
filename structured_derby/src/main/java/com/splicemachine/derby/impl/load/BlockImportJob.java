@@ -33,7 +33,11 @@ public class BlockImportJob extends FileImportJob{
 
 		public BlockImportJob(HTableInterface table, ImportContext context,
 													long statementId, long operationId, FileSystem fs) {
-				super(table, context, statementId, operationId);
+			this(table,context,Collections.singletonList(context.getFilePath()),statementId,operationId,fs);
+		}
+		public BlockImportJob(HTableInterface table, ImportContext context,List<Path> files,
+													long statementId, long operationId, FileSystem fs) {
+				super(table, context, statementId,files, operationId);
 				this.fs = fs;
 		}
 

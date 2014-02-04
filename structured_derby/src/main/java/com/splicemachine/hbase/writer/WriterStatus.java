@@ -53,5 +53,7 @@ public interface WriterStatus {
 
     void reset();
 
+		long getTotalRejectedFlushes();
+
 
 }

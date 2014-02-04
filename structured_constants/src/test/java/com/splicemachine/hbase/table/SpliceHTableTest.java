@@ -74,7 +74,7 @@ public class SpliceHTableTest {
         byte[] testStart = HConstants.EMPTY_START_ROW;
         byte[] testEnd = testStart;
 
-        List<Pair<byte[],byte[]>> pairs = table.getKeys(testStart,testEnd);
+        List<Pair<byte[],byte[]>> pairs = table.getKeysDealWithSameStartStopKey(testStart, testEnd,0);
         Assert.assertEquals("Incorrect number of regions returned!",11,pairs.size());
     }
 
@@ -122,7 +122,7 @@ public class SpliceHTableTest {
         byte[] testStart = Encoding.encode(1);
         byte[] testEnd = testStart;
 
-        List<Pair<byte[],byte[]>> pairs = table.getKeys(testStart,testEnd);
+        List<Pair<byte[],byte[]>> pairs = table.getKeysDealWithSameStartStopKey(testStart, testEnd,0);
         Assert.assertEquals("Incorrect number of regions returned!",1,pairs.size());
     }
 
@@ -152,7 +152,7 @@ public class SpliceHTableTest {
         byte[] testStart = Encoding.encode(1);
         byte[] testEnd = Encoding.encode(3);
 
-        List<Pair<byte[],byte[]>> pairs = table.getKeys(testStart,testEnd);
+        List<Pair<byte[],byte[]>> pairs = table.getKeysDealWithSameStartStopKey(testStart, testEnd,0);
         Assert.assertEquals("Incorrect number of regions returned!",2,pairs.size());
     }
 }

@@ -9,6 +9,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.MetaScanner;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -52,7 +53,7 @@ public class HBaseRegionCache implements RegionCache {
     public static RegionCache create(long cacheExpirationPeriod,long cacheUpdatePeriod){
         LoadingCache<Integer,SortedSet<HRegionInfo>> regionCache =
                 CacheBuilder.newBuilder()
-                        .expireAfterAccess(cacheExpirationPeriod,TimeUnit.SECONDS)
+                        .expireAfterWrite(cacheExpirationPeriod,TimeUnit.SECONDS)
                         .build(new RegionLoader(SpliceConstants.config));
 
         ThreadFactory cacheFactory = new ThreadFactoryBuilder()
@@ -111,24 +112,24 @@ public class HBaseRegionCache implements RegionCache {
                 private SortedSet<HRegionInfo> regionInfos = new ConcurrentSkipListSet<HRegionInfo>();            	
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-                    if(bytes==null){
-                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
-                        return true;
-                    }
-                    HRegionInfo info = Writables.getHRegionInfo(bytes);
+//                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
+//                    if(bytes==null){
+//                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
+//                        return true;
+//                    }
+                    HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
                     if (lastByte==null) {
                     	lastByte = info.getTableName();
                     	regionInfos.add(info);
                     }	
                     else if (Arrays.equals(lastByte,info.getTableName())) {
-                        if(!(info.isOffline()||info.isSplit()))
+												if(!info.isOffline() &&!info.isSplitParent() &&!info.isSplit())
                         	regionInfos.add(info);
                     } else {
                     	regionCache.put(Bytes.mapKey(lastByte), regionInfos);
                     	lastByte = info.getTableName();
                     	regionInfos = new ConcurrentSkipListSet<HRegionInfo>();
-                        if(!(info.isOffline()||info.isSplit()))
+												if(!info.isOffline() &&!info.isSplitParent() &&!info.isSplit())
                         	regionInfos.add(info);
                     }
                     return true;
@@ -163,14 +164,18 @@ public class HBaseRegionCache implements RegionCache {
             final MetaScanner.MetaScannerVisitor visitor = new MetaScanner.MetaScannerVisitor() {
                 @Override
                 public boolean processRow(Result rowResult) throws IOException {
-                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
-                    if(bytes==null){
-                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
-                        return true;
-                    }
-                    HRegionInfo info = Writables.getHRegionInfo(bytes);
+										HRegionInfo info = MetaReader.parseHRegionInfoFromCatalogResult(rowResult,HConstants.REGIONINFO_QUALIFIER);
+//                    byte[] bytes = rowResult.getValue(HConstants.CATALOG_FAMILY,HConstants.REGIONINFO_QUALIFIER);
+//                    if(bytes==null){
+//                    	SpliceLogUtils.error(CACHE_LOG, "Error processing row with null bytes row={%s}", rowResult);
+//                        return true;
+//                    }
+//                    HRegionInfo info = Writables.getHRegionInfo(bytes);
                     Integer tableKey = Bytes.mapKey(info.getTableName());
-                    if(key.equals(tableKey)&& !(info.isOffline()||info.isSplit())){
+                    if(key.equals(tableKey)
+														&& !info.isOffline()
+														&&!info.isSplit()
+														&&!info.isSplitParent()){
                         regionInfos.add(info);
                     }
                     return true;

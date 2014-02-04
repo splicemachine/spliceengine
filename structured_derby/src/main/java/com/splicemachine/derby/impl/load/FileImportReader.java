@@ -24,10 +24,11 @@ public class FileImportReader implements ImportReader{
 
 		private Timer timer;
 		private MeasuredReader reader;
+		private Path path;
 
 		@Override
     public void setup(FileSystem fileSystem, ImportContext ctx) throws IOException {
-        Path path = ctx.getFilePath();
+        path = ctx.getFilePath();
         CompressionCodecFactory cdF = new CompressionCodecFactory(SpliceUtils.config);
         CompressionCodec codec = cdF.getCodec(path);
 
@@ -87,4 +88,11 @@ public class FileImportReader implements ImportReader{
     private CSVReader getCsvReader(Reader reader, ImportContext importContext) {
         return new CSVReader(reader,importContext.getColumnDelimiter().charAt(0),importContext.getQuoteChar().charAt(0));
     }
+
+		@Override
+		public String toString() {
+				if(path!=null)
+						return path.toString();
+				return "FileImport";
+		}
 }

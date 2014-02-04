@@ -220,6 +220,10 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
     //deal with an error state. Retry if possible, otherwise, bomb out with a wrapper around a StandardException
     void dealWithError() throws ExecutionException{
+				if(!rollback(5)){
+						fail(taskStatus.getError());
+						throw new ExecutionException(taskStatus.getError());
+				}
         if(taskStatus.shouldRetry()) {
             resubmit();
         } else {
@@ -248,6 +252,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
             //no need to roll back a nontransactional task
             return true;
         }
+
         String tId = taskStatus.getTransactionId();
         if(tId==null){
             //emit a warning in case
@@ -255,12 +260,19 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
             return true;
         }
 
+				if(LOG.isDebugEnabled())
+						SpliceLogUtils.debug(LOG,"Attempting to roll back transaction id %s on task %d",tId,Bytes.toLong(getTaskId()));
         try {
-            return TransactionUtils.rollback(HTransactorFactory.getTransactorControl(),tId,maxTries); //TODO -sf- make 5 configurable
+						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactorControl(), tId, maxTries);
+						if(LOG.isDebugEnabled())
+								SpliceLogUtils.debug(LOG,"Rollback of transaction %s on task %d complete with return state %b",tId,Bytes.toLong(getTaskId()),rollback);
+						return rollback; //TODO -sf- make 5 configurable
         } catch (AttemptsExhaustedException e) {
+						SpliceLogUtils.error(LOG,"Unable to roll back transaction id %s for task %d",tId,Bytes.toLong(getTaskId()));
             fail(e);
             return false;
-        }
+        }finally{
+				}
     }
 
 
@@ -274,9 +286,16 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 
         TransactorControl txnControl = HTransactorFactory.getTransactorControl();
 
+				if(LOG.isDebugEnabled())
+						SpliceLogUtils.debug(LOG,"Committing transaction %s for task %d",tId,Bytes.toLong(getTaskId()));
         try {
-            return TransactionUtils.commit(txnControl,tId,maxTries);//TODO -sf- make 5 configurable
+						boolean commit = TransactionUtils.commit(txnControl, tId, maxTries);//TODO -sf- make 5 configurable
+						if(LOG.isDebugEnabled())
+								SpliceLogUtils.debug(LOG,"transaction %s committed for task %d with return state %b",tId,Bytes.toLong(getTaskId()),commit);
+						return commit;
         } catch (AttemptsExhaustedException e) {
+						if(LOG.isDebugEnabled())
+								SpliceLogUtils.debug(LOG,"Unable to commit transaction "+tId,e);
             fail(e);
             return false;
         }
@@ -291,13 +310,13 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
      */
     private void resubmit() throws ExecutionException{
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"resubmitting task %s",task.getTaskNode());
+            SpliceLogUtils.debug(LOG,"resubmitting task %s",Bytes.toLong(getTaskId()));
         trashed=true;
 
-        if(rollback(5)) //TODO -sf- make this configurable
+//        if(rollback(5)) //TODO -sf- make this configurable
             jobControl.resubmit(this,tryNum);
-        else
-            throw new ExecutionException(taskStatus.getError());
+//        else
+//            throw new ExecutionException(taskStatus.getError());
     }
 
     public Throwable getError() {

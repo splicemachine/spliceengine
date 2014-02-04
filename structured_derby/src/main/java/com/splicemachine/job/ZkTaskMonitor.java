@@ -29,13 +29,11 @@ import org.apache.zookeeper.data.Stat;
 public class ZkTaskMonitor implements TaskMonitor{
     private static final Logger LOG = Logger.getLogger(ZkTaskMonitor.class);
     private final RecoverableZooKeeper zooKeeper;
-    private final String baseQueueNode;
-    private final Map<String,Set<? extends Task>> runningTaskMap = new ConcurrentHashMap<String, Set<? extends Task>>();
+		private final Map<String,Set<? extends Task>> runningTaskMap = new ConcurrentHashMap<String, Set<? extends Task>>();
 
     public ZkTaskMonitor(String baseQueueNode,RecoverableZooKeeper zooKeeper) {
         this.zooKeeper = zooKeeper;
-        this.baseQueueNode = baseQueueNode;
-    }
+		}
 
     public <T extends Task> Set<T> registerRegion(String region){
         Set<T> taskSet = Collections.newSetFromMap(new ConcurrentHashMap<T, Boolean>());
@@ -50,14 +48,16 @@ public class ZkTaskMonitor implements TaskMonitor{
     private static final Predicate<Task> executingFilter = new Predicate<Task>() {
         @Override
         public boolean apply(@Nullable Task input) {
-            return input.getTaskStatus().getStatus() == Status.EXECUTING;
+						assert input != null;
+						return input.getTaskStatus().getStatus() == Status.EXECUTING;
         }
     };
 
     private static final Function<Task,String> taskIdMapper = new Function<Task, String>() {
         @Override
         public String apply(@Nullable Task input) {
-            return Bytes.toStringBinary(input.getTaskId());
+						assert input != null;
+						return Long.toString(Bytes.toLong(input.getTaskId()));
         }
     };
     @Override
@@ -66,7 +66,7 @@ public class ZkTaskMonitor implements TaskMonitor{
         for(String region:runningTaskMap.keySet()){
             runningTasks.addAll(Collections2.transform(Collections2.filter(runningTaskMap.get(region),executingFilter),taskIdMapper));
         }
-        return runningTasks.toArray(new String[]{});
+        return runningTasks.toArray(new String[runningTasks.size()]);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class ZkTaskMonitor implements TaskMonitor{
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return runningJobs.toArray(new String[]{});
+        return runningJobs.toArray(new String[runningJobs.size()]);
     }
 
     @Override

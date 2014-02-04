@@ -29,9 +29,7 @@ import java.util.*;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
-    private List<KeyValue> keyValues = new ArrayList<KeyValue>();
-    private final ConstraintContext constraintContext;
-    private static final Logger LOG = Logger.getLogger(UniqueConstraint.class);
+		private final ConstraintContext constraintContext;
 
     public UniqueConstraint(ConstraintContext constraintContext){
         this.constraintContext = constraintContext;
@@ -40,7 +38,8 @@ public class UniqueConstraint implements Constraint {
     private static final Predicate<? super KVPair> stripDeletes = new Predicate<KVPair>() {
         @Override
         public boolean apply(@Nullable KVPair input) {
-            return input.getType()==KVPair.Type.INSERT;
+						//noinspection ConstantConditions
+						return input.getType()==KVPair.Type.INSERT;
         }
     };
 

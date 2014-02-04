@@ -48,7 +48,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     protected String jobId;
     protected SpliceZooKeeperManager zkManager;
     private int priority;
-    private String parentTxnId;
+    protected String parentTxnId;
     private boolean readOnly;
     private String taskPath;
 
@@ -160,7 +160,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)
                                                                 throws ExecutionException {
         taskId = SpliceUtils.getUniqueKey();
-        taskPath = jobId+"_"+ getTaskType()+"-"+ BytesUtil.toHex(taskId);
+        taskPath = jobId+"_"+ getTaskType()+"-"+ Bytes.toLong(taskId);
         this.zkManager = zooKeeper;
 				this.region = rce.getRegion();
         try {

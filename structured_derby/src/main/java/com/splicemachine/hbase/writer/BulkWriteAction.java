@@ -6,9 +6,13 @@ import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.sun.xml.internal.bind.api.impl.NameConverter;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -151,16 +156,34 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void doRetry(int tries, BulkWrite bulkWrite,boolean refreshCache) throws Exception{
-//        Configuration configuration = SpliceConstants.config;
-//        NoRetryExecRPCInvoker invoker = new NoRetryExecRPCInvoker(configuration,connection,
-//                batchProtocolClass,tableName,bulkWrite.getRegionKey(),refreshCache);
-//        BatchProtocol instance = (BatchProtocol) Proxy.newProxyInstance(configuration.getClassLoader(),
-//                protoClassArray, invoker);
         boolean thrown=false;
         try{
 						BulkWriteInvoker invoker = invokerFactory.newInstance();
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
 						BulkWriteResult response = invoker.invoke(bulkWrite,refreshCache);
+						WriteResult globalResult = response.getGlobalResult();
+						if(globalResult!=null){
+							switch(globalResult.getCode()){
+									case FAILED:
+									case WRITE_CONFLICT:
+									case PRIMARY_KEY_VIOLATION:
+									case UNIQUE_VIOLATION:
+									case FOREIGN_KEY_VIOLATION:
+									case CHECK_VIOLATION:
+									case NOT_SERVING_REGION:
+									case WRONG_REGION:
+											throw Exceptions.fromString(globalResult);
+									case REGION_TOO_BUSY:
+											/*
+											 * The Region is noted as too busy, so just retry after a brief sleep
+											 */
+											statusReporter.rejectedCount.incrementAndGet();
+											sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1,writeConfiguration.getPause()));
+											doRetry(tries,bulkWrite,false);
+											return;
+							}
+						}
+
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
             IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
@@ -177,9 +200,9 @@ final class BulkWriteAction implements Callable<Void> {
                         //return
                 }
             }
-        }catch(Exception e){
+        }catch(Throwable e){
             if(thrown)
-                throw e;
+                throw new ExecutionException(e);
 
 						if (e instanceof RegionTooBusyException) {
 								if(LOG.isTraceEnabled())
@@ -192,7 +215,7 @@ final class BulkWriteAction implements Callable<Void> {
             Writer.WriteResponse writeResponse = writeConfiguration.globalError(e);
             switch(writeResponse){
                 case THROW_ERROR:
-                    throw e;
+                    throw new ExecutionException(e);
                 case RETRY:
                     errors.add(e);
                     if(LOG.isDebugEnabled())
@@ -208,12 +231,15 @@ final class BulkWriteAction implements Callable<Void> {
 
     private Exception parseIntoException(BulkWriteResult response) {
         IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
-        List<Throwable> errors = Lists.newArrayList();
+        Set<Throwable> errors = Sets.newHashSet();
 				for (IntObjectCursor<WriteResult> cursor:failedRows) {
 								Throwable e = Exceptions.fromString(cursor.value);
+								if(e instanceof StandardException|| e instanceof WriteConflict)
+										e.printStackTrace();
+
 								errors.add(e);
 				}
-        return new RetriesExhaustedWithDetailsException(errors,Collections.<Row>emptyList(),Collections.<String>emptyList());
+        return new RetriesExhaustedWithDetailsException(Lists.newArrayList(errors),Collections.<Row>emptyList(),Collections.<String>emptyList());
     }
 
     private void doPartialRetry(int tries, BulkWrite bulkWrite, BulkWriteResult response) throws Exception {
@@ -310,8 +336,9 @@ final class BulkWriteAction implements Callable<Void> {
 
         final AtomicLong totalFlushEntries = new AtomicLong(0l);
         final AtomicLong totalFlushTime = new AtomicLong(0l);
+				final AtomicLong rejectedCount = new AtomicLong(0l);
 
-        public void reset(){
+				public void reset(){
             totalFlushesSubmitted.set(0);
             failedBufferFlushes.set(0);
             writeConflictBufferFlushes.set(0);

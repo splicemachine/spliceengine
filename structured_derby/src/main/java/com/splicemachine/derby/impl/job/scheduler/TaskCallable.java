@@ -27,36 +27,36 @@ public class TaskCallable<T extends Task> implements Callable<Void> {
 				switch (task.getTaskStatus().getStatus()) {
 						case INVALID:
 								if(WORKER_LOG.isTraceEnabled())
-										SpliceLogUtils.trace(WORKER_LOG, "Task %s has been invalidated, cleaning up and skipping", Bytes.toString(task.getTaskId()));
+										SpliceLogUtils.trace(WORKER_LOG, "Task %d has been invalidated, cleaning up and skipping", Bytes.toLong(task.getTaskId()));
 								return null;
 						case FAILED:
 								if(WORKER_LOG.isTraceEnabled())
-										SpliceLogUtils.trace(WORKER_LOG, "Task %s has failed, but was not removed from the queue, removing now and skipping", Bytes.toString(task.getTaskId()));
+										SpliceLogUtils.trace(WORKER_LOG, "Task %d has failed, but was not removed from the queue, removing now and skipping", Bytes.toLong(task.getTaskId()));
 								return null;
 						case COMPLETED:
 								if(WORKER_LOG.isTraceEnabled())
-										SpliceLogUtils.trace(WORKER_LOG, "Task %s has completed, but was not removed from the queue, removing now and skipping", Bytes.toString(task.getTaskId()));
+										SpliceLogUtils.trace(WORKER_LOG, "Task %d has completed, but was not removed from the queue, removing now and skipping", Bytes.toLong(task.getTaskId()));
 								return null;
 						case CANCELLED:
 								if(WORKER_LOG.isTraceEnabled())
-										SpliceLogUtils.trace(WORKER_LOG,"task %s has been cancelled, not executing",Bytes.toString(task.getTaskId()));
+										SpliceLogUtils.trace(WORKER_LOG,"task %d has been cancelled, not executing",Bytes.toLong(task.getTaskId()));
 								return null;
 				}
 
 				try{
 						SchedulerTracer.traceTaskStart();
 						if(WORKER_LOG.isTraceEnabled())
-								SpliceLogUtils.trace(WORKER_LOG,"executing task %s",Bytes.toString(task.getTaskId()));
+								SpliceLogUtils.trace(WORKER_LOG,"executing task %d",Bytes.toLong(task.getTaskId()));
 						try{
 								task.markStarted();
 						}catch(CancellationException ce){
 								if(WORKER_LOG.isTraceEnabled())
-										SpliceLogUtils.trace(WORKER_LOG,"task %s was cancelled",Bytes.toString(task.getTaskId()));
+										SpliceLogUtils.trace(WORKER_LOG,"task %d was cancelled",Bytes.toLong(task.getTaskId()));
 								return null;
 						}
 						task.execute();
 						if(WORKER_LOG.isTraceEnabled())
-								SpliceLogUtils.trace(WORKER_LOG, "task %s finished executing, marking completed", Bytes.toLong(task.getTaskId()));
+								SpliceLogUtils.trace(WORKER_LOG, "task %d finished executing, marking completed", Bytes.toLong(task.getTaskId()));
 						SchedulerTracer.traceTaskEnd();
 						completeTask();
 				}catch(ExecutionException ee){

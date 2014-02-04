@@ -16,10 +16,11 @@ import java.io.ObjectOutput;
  * Created on: 8/8/13
  */
 public class BulkWriteResult implements Externalizable {
+		private WriteResult globalStatus;
     private IntArrayList notRunRows;
 		private IntObjectOpenHashMap<WriteResult> failedRows;
 
-    public BulkWriteResult() {
+		public BulkWriteResult() {
         notRunRows = new IntArrayList();
         failedRows = new IntObjectOpenHashMap<WriteResult>();
     }
@@ -27,6 +28,10 @@ public class BulkWriteResult implements Externalizable {
 		public BulkWriteResult(IntArrayList notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
 				this.notRunRows = notRunRows;
 				this.failedRows = failedRows;
+		}
+
+		public BulkWriteResult(WriteResult globalStatus){
+				this.globalStatus = globalStatus;
 		}
 
     public IntObjectOpenHashMap<WriteResult> getFailedRows() {
@@ -114,44 +119,44 @@ public class BulkWriteResult implements Externalizable {
 		}
 
 		public byte[] toBytes() throws IOException {
-//				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//				CompressionCodec codec = SpliceUtils.getSnappyCodec();
-//				baos.write(Encoding.encode(codec!=null));
-//
-//				OutputStream os = codec==null?baos:codec.createOutputStream(baos);
 				final Output out = new Output(1024,-1);
-//				out.setOutputStream(os);
-				int size = notRunRows.size();
-				int[] notRunBuffer = notRunRows.buffer;
-				out.writeInt(size);
-				for(int i=0;i<size;i++){
-						int row = notRunBuffer[i];
-						out.writeInt(row);
-				}
-				out.writeInt(failedRows.size());
-
-				failedRows.forEach(new IntObjectProcedure<WriteResult>() {
-						@Override
-						public void apply(int key, WriteResult value) {
-								try {
-										out.writeInt(key);
-										if(value!=null)
-												value.write(out);
-								} catch (IOException e) {
-										throw new RuntimeException(e); //shouldn't happen, because we only go to byte[]
-								}
+				out.writeBoolean(globalStatus!=null);
+				if(globalStatus!=null){
+						globalStatus.write(out);
+				}else{
+						int size = notRunRows.size();
+						int[] notRunBuffer = notRunRows.buffer;
+						out.writeInt(size);
+						for(int i=0;i<size;i++){
+								int row = notRunBuffer[i];
+								out.writeInt(row);
 						}
-				});
+						out.writeInt(failedRows.size());
+
+						failedRows.forEach(new IntObjectProcedure<WriteResult>() {
+								@Override
+								public void apply(int key, WriteResult value) {
+										try {
+												out.writeInt(key);
+												if(value!=null)
+														value.write(out);
+										} catch (IOException e) {
+												throw new RuntimeException(e); //shouldn't happen, because we only go to byte[]
+										}
+								}
+						});
+				}
 				out.flush();
 				return out.toBytes();
 		}
 
 		public static BulkWriteResult fromBytes(byte[] bytes) throws IOException {
-//				boolean encoded = Encoding.decodeBoolean(bytes);
-//				InputStream is = new ByteArrayInputStream(bytes,1,bytes.length);
-//				is = encoded?SpliceUtils.getSnappyCodec().createInputStream(is):is;
-
 				Input input = new Input(bytes);
+				if(input.readBoolean()){
+						WriteResult globalResult = WriteResult.fromBytes(input);
+						return new BulkWriteResult(globalResult);
+				}
+
 				int notRunSize = input.readInt();
 				IntArrayList notRunRows = IntArrayList.newInstanceWithCapacity(notRunSize);
 				for(int i=0;i<notRunSize;i++){
@@ -164,5 +169,9 @@ public class BulkWriteResult implements Externalizable {
 						failedRows.put(input.readInt(), WriteResult.fromBytes(input));
 				}
 				return new BulkWriteResult(notRunRows,failedRows);
+		}
+
+		public WriteResult getGlobalResult() {
+				return globalStatus;
 		}
 }
