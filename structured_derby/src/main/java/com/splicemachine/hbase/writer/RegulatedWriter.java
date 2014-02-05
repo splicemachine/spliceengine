@@ -1,7 +1,5 @@
 package com.splicemachine.hbase.writer;
 
-import com.splicemachine.tools.MovingThreshold;
-import com.splicemachine.tools.OptimizingValve;
 import com.splicemachine.tools.SemaphoreValve;
 import com.splicemachine.tools.Valve;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -36,16 +34,16 @@ public class RegulatedWriter implements Writer{
 
 
     @Override
-    public Future<Void> write(byte[] tableName,
-                              BulkWrite action,
-                              WriteConfiguration writeConfiguration) throws ExecutionException {
+    public Future<WriteStats> write(byte[] tableName,
+																		BulkWrite action,
+																		WriteConfiguration writeConfiguration) throws ExecutionException {
         int version = valve.tryAllow();
         if(version<0){
             //The valve is full, so reject the write
             return writeRejectedHandler.writeRejected(tableName, action, writeConfiguration);
         }
         //The valve has allowed us through
-        return delegate.write(tableName,action,new ClosingWriteConfiguration(writeConfiguration,version));
+        return delegate.write(tableName,action,new ClosingWriteConfiguration(writeConfiguration));
     }
 
     @Override
@@ -68,7 +66,7 @@ public class RegulatedWriter implements Writer{
 
     public static interface WriteRejectedHandler{
 
-        public Future<Void> writeRejected(byte[] tableName,BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
+        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
     }
 
     /**
@@ -86,21 +84,17 @@ public class RegulatedWriter implements Writer{
         private final Writer otherWriter;
 
         @Override
-        public Future<Void> writeRejected(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException {
+        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException {
             return otherWriter.write(tableName,action,writeConfiguration);
         }
     }
 
-    private class ClosingWriteConfiguration implements WriteConfiguration {
-        private WriteConfiguration writeConfiguration;
-        private final int version;
+    private class ClosingWriteConfiguration extends ForwardingWriteConfiguration {
 
-        public ClosingWriteConfiguration(WriteConfiguration writeConfiguration,int version) {
-            this.writeConfiguration = writeConfiguration;
-            this.version = version;
+        public ClosingWriteConfiguration(WriteConfiguration writeConfiguration) {
+						super(writeConfiguration);
         }
 
-        @Override public int getMaximumRetries() { return writeConfiguration.getMaximumRetries(); }
         @Override
         public WriteResponse globalError(Throwable t) throws ExecutionException {
             /*
@@ -113,18 +107,13 @@ public class RegulatedWriter implements Writer{
             if(t instanceof RegionTooBusyException)
                 valve.adjustValve(Valve.SizeSuggestion.HALVE);
 
-            return writeConfiguration.globalError(t);
+            return super.globalError(t);
         }
-
-        @Override public WriteResponse partialFailure(BulkWriteResult result, BulkWrite request) throws ExecutionException { return writeConfiguration.partialFailure(result, request); }
-        @Override public long getPause() { return writeConfiguration.getPause(); }
 
 				@Override
 				public void writeComplete(long timeTakenMs, long numRecordsWritten) {
 						valve.release();
-						//update the valve to take latency and throughput into account
-//						valve.update(timeTakenMs,(double)numRecordsWritten/timeTakenMs);
-						writeConfiguration.writeComplete(timeTakenMs,numRecordsWritten);
+						super.writeComplete(timeTakenMs, numRecordsWritten);
 				}
     }
 }

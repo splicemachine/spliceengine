@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -14,14 +13,11 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
-import com.splicemachine.tools.splice;
 import com.splicemachine.utils.Snowflake;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -93,7 +89,7 @@ public class OperationSink {
 						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
 						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
             String txnId = getTransactionId(destinationTable);
-						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId));
+						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
 
             ExecRow row;
 
@@ -124,7 +120,7 @@ public class OperationSink {
 								long taskIdLong = taskId!=null? Bytes.toLong(taskId): SpliceDriver.driver().getUUIDGenerator().nextUUID();
 								String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 								List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
-												taskIdLong,statementId,writeBuffer.getTotalElementsAdded(), writeBuffer.getTotalBytesAdded(),writeTimer.getTime(),spliceRuntimeContext);
+												taskIdLong,statementId,writeBuffer.getWriteStats(),writeTimer.getTime(),spliceRuntimeContext);
 								XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
 								for(OperationRuntimeStats operationStat:operationStats){
 										operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);

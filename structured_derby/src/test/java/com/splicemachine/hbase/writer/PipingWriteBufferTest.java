@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.stats.Metrics;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -54,6 +55,7 @@ public class PipingWriteBufferTest{
 				Writer fakedWriter = getFakeWriter(outputs);
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
 				BufferConfiguration bufferConfig = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return 100; }
 						@Override public int getMaxEntries() { return 100; }
@@ -115,6 +117,7 @@ public class PipingWriteBufferTest{
 				Writer fakedWriter = getFakeWriter(outputs);
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
 				BufferConfiguration bufferConfig = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return 100; }
 						@Override public int getMaxEntries() { return 100; }
@@ -176,6 +179,7 @@ public class PipingWriteBufferTest{
 				Writer fakedWriter = getFakeWriter(outputs);
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
 				BufferConfiguration bufferConfig = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return 100; }
 						@Override public int getMaxEntries() { return 0; }
@@ -221,6 +225,7 @@ public class PipingWriteBufferTest{
 				Writer fakedWriter = getFakeWriter(outputs);
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
 				BufferConfiguration bufferConfig = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return 5; }
 						@Override public int getMaxEntries() { return 10; }
@@ -259,6 +264,7 @@ public class PipingWriteBufferTest{
 				Writer fakedWriter = getFakeWriter(outputs);
 
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
 				BufferConfiguration bufferConfig = new BufferConfiguration() {
 						@Override public long getMaxHeapSize() { return 100; }
 						@Override public int getMaxEntries() { return 10; }
@@ -313,7 +319,10 @@ public class PipingWriteBufferTest{
         byte[] tableName = Bytes.toBytes("testTable");
         FakedHBaseRegionCache regionCache = new FakedHBaseRegionCache(tableName);
         Monitor monitor = new Monitor(SpliceConstants.writeBufferSize,SpliceConstants.maxBufferEntries,SpliceConstants.numRetries,SpliceConstants.pause,SpliceConstants.maxFlushesPerRegion);
-        PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, "100", null, null, regionCache, null, null, monitor);
+
+				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
+        PipingWriteBuffer buffer = new PipingWriteBuffer(tableName, "100", null, null, regionCache, null, config, monitor);
 
         KVPair kv = new KVPair(Bytes.toBytes("aaaa"), Bytes.toBytes("1"));
         buffer.add(kv);

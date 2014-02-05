@@ -11,16 +11,13 @@ import com.splicemachine.stats.util.Folders;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.ipc.HBaseClient;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.*;
 
 /**
@@ -33,10 +30,10 @@ public class ParallelImporter implements Importer{
     private final BlockingQueue<String[]> processingQueue;
     private volatile boolean closed;
     private final ImportContext importContext;
-    private final List<Future<IOStats>> futures;
+    private final List<Future<Pair<WriteStats,TimeView>>> futures;
     private volatile Exception error;
 		private final MetricFactory metricFactory;
-		private ArrayList<IOStats> stats;
+		private List<Pair<WriteStats,TimeView>> stats;
 
 
 		public ParallelImporter(ImportContext importContext,ExecRow template,String txnId) {
@@ -107,6 +104,8 @@ public class ParallelImporter implements Importer{
 								else
 										return super.partialFailure(result, request);
 						}
+
+						@Override public MetricFactory getMetricFactory() { return metricFactory; }
 				};
         for(int i=0;i<numProcessingThreads;i++){
 						RecordingCallBuffer<KVPair> writeDest = factory.writeBuffer(tableName.getBytes(),txnId,writeConfiguration);
@@ -138,7 +137,7 @@ public class ParallelImporter implements Importer{
         closed = true;
         try{
 						stats = Lists.newArrayListWithCapacity(futures.size());
-            for(Future<IOStats> future:futures){
+            for(Future<Pair<WriteStats,TimeView>> future:futures){
                 try {
                     stats.add(future.get());
                 } catch (InterruptedException e) {
@@ -160,20 +159,29 @@ public class ParallelImporter implements Importer{
         return closed;
     }
 
-		public IOStats getStats(){
-				if(stats==null) return Metrics.noOpIOStats();
+		public WriteStats getWriteStats(){
+				if(stats==null) return WriteStats.NOOP_WRITE_STATS;
 
-				MultiTimeView timeView = new MultiTimeView(
-								Folders.maxLongFolder(), Folders.sumFolder(), Folders.sumFolder(),
-								Folders.minLongFolder(), Folders.maxLongFolder());
-				MultiStatsView view = new MultiStatsView(timeView);
-				for(IOStats ioStats:stats){
-					view.merge(ioStats);
+				MergingWriteStats view = new MergingWriteStats(metricFactory);
+				for(Pair<WriteStats,TimeView> ioStats:stats){
+					view.merge(ioStats.getFirst());
 				}
 				return view;
 		}
 
-    void markFailed(Exception e){ this.error = e; }
+		@Override
+		public TimeView getTotalTime() {
+				if(stats==null) return Metrics.noOpTimeView();
+
+				MultiTimeView multiTimeView = new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),
+								Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				for(Pair<WriteStats,TimeView> ioStats:stats){
+						multiTimeView.update(ioStats.getSecond());
+				}
+				return multiTimeView;
+		}
+
+		void markFailed(Exception e){ this.error = e; }
     boolean isFailed(){ return error!=null; }
 
     public PairEncoder newEntryEncoder(ExecRow row) {
@@ -194,7 +202,7 @@ public class ParallelImporter implements Importer{
 				return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
 		}
 
-    private class Processor implements Callable<IOStats>{
+    private class Processor implements Callable<Pair<WriteStats,TimeView>>{
         private final BlockingQueue<String[]> queue;
         private final RecordingCallBuffer<KVPair> writeDestination;
         private final PairEncoder entryEncoder;
@@ -214,7 +222,7 @@ public class ParallelImporter implements Importer{
         }
 
         @Override
-        public IOStats call() throws Exception {
+        public Pair<WriteStats,TimeView> call() throws Exception {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "Processor#call");
             /*
@@ -251,8 +259,7 @@ public class ParallelImporter implements Importer{
                     SpliceLogUtils.trace(LOG, "Closing Call Buffer");
                 writeDestination.close(); //ensure your writes happen
             }
-						long bytesWritten = writeDestination.getTotalBytesAdded();
-						return new BaseIOStats(writeTimer.getTime(),bytesWritten,writeTimer.getNumEvents());
+						return Pair.newPair(writeDestination.getWriteStats(), writeTimer.getTime());
         }
 
         protected void doImportRow(String[] line) throws Exception {

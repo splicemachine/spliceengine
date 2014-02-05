@@ -11,18 +11,12 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Created on: 9/6/13
  */
-class CountingWriteConfiguration implements Writer.WriteConfiguration {
-    private final Writer.WriteConfiguration delegate;
+class CountingWriteConfiguration extends ForwardingWriteConfiguration {
     private final BulkWriteAction.ActionStatusReporter statusReporter;
 
     public CountingWriteConfiguration(Writer.WriteConfiguration writeConfiguration, BulkWriteAction.ActionStatusReporter statusMonitor) {
-        this.delegate = writeConfiguration;
+				super(writeConfiguration);
         this.statusReporter = statusMonitor;
-    }
-
-    @Override
-    public int getMaximumRetries() {
-        return delegate.getMaximumRetries();
     }
 
     @Override
@@ -34,7 +28,7 @@ class CountingWriteConfiguration implements Writer.WriteConfiguration {
             statusReporter.notServingRegionFlushes.incrementAndGet();
         else if(t instanceof WrongRegionException)
             statusReporter.wrongRegionFlushes.incrementAndGet();
-        return delegate.globalError(t);
+        return super.globalError(t);
     }
 
     @Override
@@ -70,16 +64,6 @@ class CountingWriteConfiguration implements Writer.WriteConfiguration {
             statusReporter.writeConflictBufferFlushes.incrementAndGet();
         if(failed)
             statusReporter.failedBufferFlushes.incrementAndGet();
-        return delegate.partialFailure(result,request);
-    }
-
-    @Override
-    public long getPause() {
-        return delegate.getPause();
-    }
-
-    @Override
-    public void writeComplete(long timeTakenMs, long numRecordsWritten) {
-        delegate.writeComplete(timeTakenMs,numRecordsWritten);
+        return super.partialFailure(result,request);
     }
 }

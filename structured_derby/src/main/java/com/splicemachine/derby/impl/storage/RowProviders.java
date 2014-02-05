@@ -21,6 +21,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.job.*;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -347,7 +348,7 @@ public class RowProviders {
 				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {
 						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
 						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
-										source, taskId, statementId, -1l, -1l, Metrics.noOpTimeView(), spliceRuntimeContext);
+										source, taskId, statementId, WriteStats.NOOP_WRITE_STATS, Metrics.noOpTimeView(), spliceRuntimeContext);
 						XplainTaskReporter taskReporter = SpliceDriver.driver().getTaskReporter();
 						String hostName = SpliceUtils.getHostName();
 						for(OperationRuntimeStats opStat:opStats){

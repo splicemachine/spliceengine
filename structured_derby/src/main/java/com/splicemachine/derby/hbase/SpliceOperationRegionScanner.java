@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -186,7 +187,7 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 									String hostName = InetAddress.getLocalHost().getHostName(); //TODO -sf- this may not be correct
 									List<OperationRuntimeStats> stats = OperationRuntimeStats.getOperationStats(
 													topOperation,SpliceDriver.driver().getUUIDGenerator().nextUUID(),
-													topOperation.getStatementId(),-1l,-1l,
+													topOperation.getStatementId(), WriteStats.NOOP_WRITE_STATS,
 													Metrics.noOpTimeView(),spliceRuntimeContext);
 									XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
 									for(OperationRuntimeStats opStats:stats){
@@ -216,14 +217,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 	@Override
 	public void close() throws IOException {
         SpliceLogUtils.trace(LOG, "close");
-        boolean success = false;
-        if(rowEncoder!=null)
+			if(rowEncoder!=null)
             rowEncoder.close();
         try {
             try {
                 topOperation.close();
-                success = true;
-            } catch (StandardException e) {
+						} catch (StandardException e) {
                 ErrorReporter.get().reportError(SpliceOperationRegionScanner.class,e);
                 SpliceLogUtils.logAndThrow(LOG, "close direct failed", Exceptions.getIOException(e));
             }finally{
@@ -270,15 +269,12 @@ public class SpliceOperationRegionScanner implements RegionScanner {
 
         if(!logger.isDebugEnabled()) return; //no stats should be printed
 
-        StringBuilder summaryBuilder = new StringBuilder()
-                .append("Scanner Time: ").append(TimeUtils.toSeconds(finalStats.getTotalTime()))
-                .append("\t").append("Region name: ").append(regionScanner.getRegionInfo().getRegionNameAsString())
-                .append("\n")
-                .append("ProcessStats:\n")
-                .append("\t").append("Total Rows Processed: ").append(finalStats.getTotalRowsProcessed())
-								.append("\t").append("Total Rows Written: ").append(finalStats.getTotalRowsWritten())
-								.append("\t").append("Total Time(ns): ").append(finalStats.getTotalTime());
-        logger.debug(summaryBuilder.toString());
+				logger.debug("Scanner Time: " + TimeUtils.toSeconds(finalStats.getTotalTime())
+								+ "\t" + "Region name: " + regionScanner.getRegionInfo().getRegionNameAsString()
+								+ "\n" + "ProcessStats:\n"
+								+ "\t" + "Total Rows Processed: "  + finalStats.getTotalRowsProcessed()
+								+ "\t" + "Total Rows Written: " + finalStats.getTotalRowsWritten()
+								+ "\t" + "Total Time(ns): " + finalStats.getTotalTime());
     }
 
 	@Override

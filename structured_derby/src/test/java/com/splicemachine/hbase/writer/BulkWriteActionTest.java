@@ -9,6 +9,10 @@ import com.google.common.collect.Sets;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.TimeView;
+import com.splicemachine.utils.Sleeper;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -101,6 +105,8 @@ public class BulkWriteActionTest {
 						public void sleep(long wait) throws InterruptedException {
 								Assert.assertTrue("Slept more than once!",throwError.compareAndSet(true, false));
 						}
+
+						@Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
 				});
 				action.call();
 		}
@@ -122,6 +128,9 @@ public class BulkWriteActionTest {
 				when(cache.getRegions(tableName)).thenReturn(regions);
 				Writer.WriteConfiguration config = new Writer.WriteConfiguration() {
 						@Override public int getMaximumRetries() { return 5; }
+						@Override public long getPause() { return 10; }
+						@Override public void writeComplete(long timeTakenMs, long numRecordsWritten) {  }
+						@Override public MetricFactory getMetricFactory() { return Metrics.noOpMetricFactory(); }
 
 						@Override
 						public Writer.WriteResponse globalError(Throwable t) throws ExecutionException {
@@ -140,9 +149,6 @@ public class BulkWriteActionTest {
 								return Writer.WriteResponse.RETRY;
 						}
 
-						@Override public long getPause() { return 10; }
-
-						@Override public void writeComplete(long timeTakenMs, long numRecordsWritten) {  }
 				};
 
 				BulkWriteInvoker invoker = mock(BulkWriteInvoker.class);
@@ -189,6 +195,8 @@ public class BulkWriteActionTest {
 						public void sleep(long wait) throws InterruptedException {
 								Assert.assertTrue("Slept more than once!",throwError.compareAndSet(true, false));
 						}
+
+						@Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
 				});
 				action.call();
 				Assert.assertFalse("did not sleep between retries",throwError.get());

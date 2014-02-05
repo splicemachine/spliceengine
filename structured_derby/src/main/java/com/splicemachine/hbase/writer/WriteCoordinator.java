@@ -8,19 +8,18 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.HBaseRegionCache;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
-import org.apache.log4j.Logger;
-import org.jruby.util.collections.IntHashMap;
 
 import javax.management.*;
 import java.io.IOException;
 import java.net.ConnectException;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -114,6 +113,18 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
     }
 
 		@Override
+		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId, final MetricFactory metricFactory) {
+				Writer.WriteConfiguration config = defaultWriteConfiguration;
+				//if it isn't active, don't bother creating the extra object
+				if(metricFactory.isActive()){
+						config = new ForwardingWriteConfiguration(defaultWriteConfiguration){
+								@Override public MetricFactory getMetricFactory() { return metricFactory; }
+						};
+				}
+				return writeBuffer(tableName,txnId,config);
+		}
+
+		@Override
 		public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, String txnId,
 																									 Writer.WriteConfiguration writeConfiguration){
 				return writeBuffer(tableName,txnId,noOpFlushHook,writeConfiguration);
@@ -161,7 +172,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
                 monitor.outstandingBuffers.decrementAndGet();
                 super.close();
             }
-        };
+				};
     }
 
     @Override
@@ -233,6 +244,7 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
         @Override public int getMaximumRetries() { return monitor.getMaximumRetries(); }
         @Override public long getPause() { return monitor.getPauseTime(); }
 				@Override public void writeComplete(long timeTakenMs, long numRecordsWritten) { } //no-op
+				@Override public MetricFactory getMetricFactory() { return Metrics.noOpMetricFactory(); }
 
 
         @Override
@@ -261,5 +273,6 @@ public class WriteCoordinator implements CallBufferFactory<KVPair> {
             }
             return Writer.WriteResponse.RETRY;
         }
-    };
+
+		};
 }

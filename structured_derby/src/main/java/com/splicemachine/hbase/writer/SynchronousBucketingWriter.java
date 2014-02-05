@@ -24,9 +24,9 @@ public class SynchronousBucketingWriter extends BucketingWriter{
     }
 
     @Override
-    public Future<Void> write(byte[] tableName,
-                              BulkWrite bulkWrite,
-                              WriteConfiguration writeConfiguration) throws ExecutionException {
+    public Future<WriteStats> write(byte[] tableName,
+																		BulkWrite bulkWrite,
+																		WriteConfiguration writeConfiguration) throws ExecutionException {
         WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrite,
@@ -36,12 +36,13 @@ public class SynchronousBucketingWriter extends BucketingWriter{
                 statusMonitor);
         statusMonitor.totalFlushesSubmitted.incrementAndGet();
         Exception e = null;
+				WriteStats stats = null;
         try {
-            action.call();
-        } catch (Exception error) {
+						stats = action.call();
+				} catch (Exception error) {
            e = error;
         }
-        return new FinishedFuture(e);
+        return new FinishedFuture(e,stats);
     }
 
     @Override
@@ -55,22 +56,26 @@ public class SynchronousBucketingWriter extends BucketingWriter{
         mbs.registerMBean(monitor,monitorName);
     }
 
-    private class FinishedFuture implements Future<Void> {
-        private Exception e;
+    private static class FinishedFuture implements Future<WriteStats> {
+				private final WriteStats stats;
+				private Exception e;
 
-        public FinishedFuture(Exception e) { this.e = e; }
+        public FinishedFuture(Exception e,WriteStats stats) {
+						this.e = e;
+						this.stats = stats;
+				}
         @Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
         @Override public boolean isCancelled() { return false; }
         @Override public boolean isDone() { return true; }
 
         @Override
-        public Void get() throws InterruptedException, ExecutionException {
+        public WriteStats get() throws InterruptedException, ExecutionException {
             if(e!=null) throw new ExecutionException(e);
-            return null;
+						return stats;
         }
 
         @Override
-        public Void get(long timeout, TimeUnit unit) throws InterruptedException,
+        public WriteStats get(long timeout, TimeUnit unit) throws InterruptedException,
                 ExecutionException, TimeoutException {
             return get();
         }

@@ -10,6 +10,8 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.stats.*;
+import com.splicemachine.utils.Sleeper;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -33,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  * Created on: 8/8/13
  */
-final class BulkWriteAction implements Callable<Void> {
+final class BulkWriteAction implements Callable<WriteStats> {
 
 		private static final Logger LOG = Logger.getLogger(BulkWriteAction.class);
     private static final AtomicLong idGen = new AtomicLong(0l);
@@ -49,7 +51,14 @@ final class BulkWriteAction implements Callable<Void> {
 		private final BulkWriteInvoker.Factory invokerFactory;
 		private final Sleeper sleeper;
 
-    public BulkWriteAction(byte[] tableName,
+		private final MetricFactory metricFactory;
+		private final Timer writeTimer;
+		private final Counter retryCounter;
+		private final Counter globalErrorCounter;
+		private final Counter rejectedCounter;
+		private final Counter partialFailureCounter;
+
+		public BulkWriteAction(byte[] tableName,
                            BulkWrite bulkWrite,
                            RegionCache regionCache,
                            Writer.WriteConfiguration writeConfiguration,
@@ -84,23 +93,52 @@ final class BulkWriteAction implements Callable<Void> {
 				this.writeConfiguration = writeConfiguration;
 				this.statusReporter = statusReporter;
 				this.invokerFactory = invokerFactory;
-				this.sleeper = sleeper;
+				MetricFactory possibleMetricFactory = writeConfiguration.getMetricFactory();
+				if(possibleMetricFactory!=null)
+						this.metricFactory = possibleMetricFactory;
+				else
+						this.metricFactory = Metrics.noOpMetricFactory();
+
+				if(metricFactory.isActive())
+						this.sleeper = new Sleeper.TimedSleeper(sleeper,metricFactory);
+				else
+						this.sleeper = sleeper;
+
+				this.rejectedCounter = metricFactory.newCounter();
+				this.globalErrorCounter = metricFactory.newCounter();
+				this.partialFailureCounter = metricFactory.newCounter();
+				this.retryCounter = metricFactory.newCounter();
+				this.writeTimer = metricFactory.newTimer();
 		}
 
     @Override
-    public Void call() throws Exception {
+    public WriteStats call() throws Exception {
         statusReporter.numExecutingFlushes.incrementAndGet();
         reportSize();
         long start = System.currentTimeMillis();
         try{
+						Timer totalTimer = metricFactory.newTimer();
+						totalTimer.startTiming();
             tryWrite(writeConfiguration.getMaximumRetries(),Collections.singletonList(bulkWrite),false);
+						totalTimer.stopTiming();
+						if(metricFactory.isActive())
+								return new SimpleWriteStats(bulkWrite.getBufferSize(),bulkWrite.getSize(),
+												retryCounter.getTotal(),
+												globalErrorCounter.getTotal(),
+												partialFailureCounter.getTotal(),
+												rejectedCounter.getTotal(),
+												sleeper.getSleepStats(),
+												writeTimer.getTime(),
+												totalTimer.getTime());
+						else
+								return WriteStats.NOOP_WRITE_STATS;
         }finally{
             //called no matter what
 						long end = System.currentTimeMillis();
 						long timeTakenMs = end - start;
 						int numRecords = bulkWrite.getMutations().size();
             writeConfiguration.writeComplete(timeTakenMs,numRecords);
-						statusReporter.complete(timeTakenMs, numRecords);
+						statusReporter.complete(timeTakenMs);
             /*
              * Because we are a callable, a Future will hold on to a reference to us for the lifetime
              * of the operation. While the Future code will attempt to clean up as much of those futures
@@ -114,7 +152,6 @@ final class BulkWriteAction implements Callable<Void> {
              */
             bulkWrite = null;
         }
-        return null;
     }
 
     private void reportSize() {
@@ -155,11 +192,14 @@ final class BulkWriteAction implements Callable<Void> {
     }
 
     private void doRetry(int tries, BulkWrite bulkWrite,boolean refreshCache) throws Exception{
+				retryCounter.increment();
         boolean thrown=false;
         try{
 						BulkWriteInvoker invoker = invokerFactory.newInstance();
             SpliceLogUtils.trace(LOG,"[%d] %s",id,bulkWrite);
+						writeTimer.startTiming();
 						BulkWriteResult response = invoker.invoke(bulkWrite,refreshCache);
+						writeTimer.stopTiming();
 						WriteResult globalResult = response.getGlobalResult();
 						if(globalResult!=null){
 							switch(globalResult.getCode()){
@@ -176,9 +216,10 @@ final class BulkWriteAction implements Callable<Void> {
 											/*
 											 * The Region is noted as too busy, so just retry after a brief sleep
 											 */
+											rejectedCounter.increment();
 											statusReporter.rejectedCount.incrementAndGet();
-											sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1,writeConfiguration.getPause()));
-											doRetry(tries,bulkWrite,false);
+											sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries() - tries + 1, writeConfiguration.getPause()));
+											doRetry(tries, bulkWrite, false);
 											return;
 							}
 						}
@@ -186,6 +227,7 @@ final class BulkWriteAction implements Callable<Void> {
             SpliceLogUtils.trace(LOG, "[%d] %s", id, response);
             IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
             if(failedRows!=null && failedRows.size()>0){
+								partialFailureCounter.increment();
                 Writer.WriteResponse writeResponse = writeConfiguration.partialFailure(response,bulkWrite);
                 switch (writeResponse) {
                     case THROW_ERROR:
@@ -200,14 +242,15 @@ final class BulkWriteAction implements Callable<Void> {
                 }
             }
         }catch(Throwable e){
+						globalErrorCounter.increment();
             if(thrown)
                 throw new ExecutionException(e);
 
 						if (e instanceof RegionTooBusyException) {
 								if(LOG.isTraceEnabled())
 										LOG.trace("Retrying write after receiving a RegionTooBusyException");
-								sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries()-tries+1,writeConfiguration.getPause()));
-								doRetry(tries,bulkWrite,false);
+								sleeper.sleep(WriteUtils.getWaitTime(writeConfiguration.getMaximumRetries() - tries + 1, writeConfiguration.getPause()));
+								doRetry(tries, bulkWrite, false);
 								return;
 						}
 
@@ -360,7 +403,7 @@ final class BulkWriteAction implements Callable<Void> {
             totalFlushEntries.set(0);
         }
 
-        public void complete(long timeTakenMs,int numRecords) {
+        public void complete(long timeTakenMs) {
             totalFlushTime.addAndGet(timeTakenMs);
             numExecutingFlushes.decrementAndGet();
         }

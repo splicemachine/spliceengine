@@ -15,4 +15,5 @@ public interface MetricFactory {
 
 		Gauge newMinGauge();
 
+		boolean isActive();
 }

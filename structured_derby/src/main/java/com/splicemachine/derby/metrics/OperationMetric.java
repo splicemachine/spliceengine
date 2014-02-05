@@ -36,6 +36,17 @@ public enum OperationMetric {
 		WRITE_CPU_TIME(21),
 		WRITE_USER_TIME(22),
 
+		WRITE_SLEEP_WALL_TIME(29),
+		WRITE_SLEEP_CPU_TIME(30),
+		WRITE_SLEEP_USER_TIME(31),
+		REJECTED_WRITE_ATTEMPTS(32),
+		RETRIED_WRITE_ATTEMPTS(33),
+		FAILED_WRITE_ATTEMPTS(34),
+		PARTIAL_WRITE_FAILURES(35),
+		WRITE_NETWORK_WALL_TIME(29),
+		WRITE_NETWORK_CPU_TIME(30),
+		WRITE_NETWORK_USER_TIME(31),
+
 		/*General measured values*/
 		FILTERED_ROWS(23),  					//number of rows which were filtered or removed
 		TASK_QUEUE_WAIT_WALL_TIME(24), //amount of time spent waiting for a task executor thread, or 0 if no tasks involved
@@ -43,6 +54,7 @@ public enum OperationMetric {
 		STOP_TIMESTAMP(26),						//the timestamp at which EXECUTION stops (i.e. the last row is written/read. Does NOT include time to transmit task information)
 		INPUT_ROWS(27),
 		OUTPUT_ROWS(28);
+
 
 		private final int indexPosition;
 		private final int shift;
