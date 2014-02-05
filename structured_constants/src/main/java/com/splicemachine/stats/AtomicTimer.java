@@ -20,10 +20,11 @@ public class AtomicTimer implements MetricFactory{
 		private AtomicLong totalCountEvents;
 
 		private final Counter counter = new Counter() {
-								@Override public void add(long value) { totalCountEvents.addAndGet(value); }
-								@Override public long getTotal() { return totalCountEvents.get(); }
-								@Override public boolean isActive() { return true; }
-						};
+				@Override public void increment() { add(1l); }
+				@Override public void add(long value) { totalCountEvents.addAndGet(value); }
+				@Override public long getTotal() { return totalCountEvents.get(); }
+				@Override public boolean isActive() { return true; }
+		};
 
 		private final TimeView view;
 
@@ -68,6 +69,8 @@ public class AtomicTimer implements MetricFactory{
 
 		@Override public Gauge newMaxGauge() { return Metrics.noOpGauge(); }
 		@Override public Gauge newMinGauge() { return Metrics.noOpGauge(); }
+
+		@Override public boolean isActive() { return true; }
 
 		public long getTotalEvents(){ return totalEvents.get();}
 		public TimeView getTimeView(){ return view; }

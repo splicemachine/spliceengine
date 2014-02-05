@@ -2,10 +2,10 @@ package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.predicates.ObjectPredicate;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
-
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -44,6 +44,8 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     private long totalBytesAdded = 0l;
     private long totalFlushes = 0l;
 
+		private final MergingWriteStats writeStats;
+
     /*
      * In the event of a Region split, we need a flag to indicate to us that the
      * regionBufferMap needs to be rebuilt. Because this flag may be set from other
@@ -75,6 +77,11 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         this.regionToBufferMap = new TreeMap<byte[], PreMappedBuffer>(Bytes.BYTES_COMPARATOR);
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
+
+				MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
+
+				writeStats = new MergingWriteStats(metricFactory);
+
     }
 
     @Override
@@ -204,8 +211,9 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
     @Override public double getAverageEntriesPerFlush() { return ((double)totalElementsAdded)/totalFlushes; }
     @Override public double getAverageSizePerFlush() { return ((double) totalBytesAdded)/totalFlushes; }
     @Override public CallBuffer<KVPair> unwrap() { return this; }
+		@Override public WriteStats getWriteStats() { return writeStats; }
 
-    // For testing purpose
+		// For testing purpose
     void setBuildBuffer() {rebuildBuffer = true;}
     TreeMap<Integer, Integer> getRegionToBufferCount() {
         TreeMap<Integer,Integer> map = new TreeMap<Integer, Integer>();
@@ -223,7 +231,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         private ObjectArrayList<KVPair> buffer;
         private int heapSize;
         private final byte[] regionStartKey;
-        private final List<Future<Void>> outstandingRequests = Lists.newArrayList();
+        private final List<Future<WriteStats>> outstandingRequests = Lists.newArrayList();
         private final WriteCoordinator.PreFlushHook preFlushHook;
 
         private final int maxEntries;
@@ -267,13 +275,15 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 						if(buffer.size()<=0) return; //don't do anything if we don't need to flush
 
 						//check previously finished flushes for errors, and explode if any of them have failed
-						Iterator<Future<Void>> futureIterator = outstandingRequests.iterator();
+						Iterator<Future<WriteStats>> futureIterator = outstandingRequests.iterator();
 						while(futureIterator.hasNext()){
-								Future<Void> future = futureIterator.next();
+								Future<WriteStats> future = futureIterator.next();
 								if(future.isDone()){
-										future.get(); //check for errors
+										WriteStats retStats = future.get();//check for errors
+
 										//if it gets this far, it succeeded--strip the reference
 										futureIterator.remove();
+										writeStats.merge(retStats);
 								}
 						}
 						ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer);
@@ -293,9 +303,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         public void close() throws Exception {
             flushBuffer();
             //make sure all outstanding buffers complete before returning
-            for(Future<Void> outstandingCall:outstandingRequests){
-                outstandingCall.get(); //wait for errors and/or completion
-            }
+            for(Future<WriteStats> outstandingCall:outstandingRequests){
+								WriteStats retStats = outstandingCall.get();//wait for errors and/or completion
+								writeStats.merge(retStats);
+						}
         }
 
         public ObjectArrayList<KVPair> removeAllAfter(final byte[] startKey) {
@@ -373,7 +384,7 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
         }
 
         @Override
-        public Future<Void> writeRejected(byte[] tableName, BulkWrite action, Writer.WriteConfiguration writeConfiguration) throws ExecutionException {
+        public Future<WriteStats> writeRejected(byte[] tableName, BulkWrite action, Writer.WriteConfiguration writeConfiguration) throws ExecutionException {
             bufferConfiguration.writeRejected();
             return otherWriterHandler.writeRejected(tableName,action,writeConfiguration);
         }

@@ -132,9 +132,19 @@ public class XPLAINTaskDescriptor {
 										"	sum((th.remotegetcputime-th.remotegetusertime))/cast(1000*1000*1000 as double) as REMOTE_GET_SYSTEM_TIME_S," +
 										"	sum(th.writerows) as TOTAL_ROWS_WRITTEN," +
 										"	sum(th.writebytes) as TOTAL_BYTES_WRITTEN," +
+										"	sum(th.retriedwriteattempts) as TOTAL_WRITE_ATTEMPTS," +
+										"	sum(th.rejectedwriteattempts) as TOTAL_REJECTED_WRITES," +
+										"	sum(th.failedwriteattempts) as TOTAL_FAILED_WRITES," +
+										"	sum(th.partialwritefailures) as TOTAL_PARTIAL_WRITE_FAILURES," +
 										"	sum(th.writewalltime)/cast(1000000000 as double) as WRITE_WALL_TIME_S," +
 										"	sum(th.writecputime)/cast(1000000000 as double) as WRITE_CPU_TIME_S," +
 										"	sum(th.writeusertime)/cast(1000000000 as double) as WRITE_USER_TIME_S," +
+										"	sum(th.writesleepwalltime)/cast(1000000000 as double) as WRITE_SLEEP_WALL_TIME_S," +
+										"	sum(th.writesleepcputime)/cast(1000000000 as double) as WRITE_SLEEP_CPU_TIME_S," +
+										"	sum(th.writesleepusertime)/cast(1000000000 as double) as WRITE_SLEEP_USER_TIME_S," +
+										"	sum(th.writenetworkwalltime)/cast(1000000000 as double) as WRITE_NETWORK_WALL_TIME_S," +
+										"	sum(th.writenetworkcputime)/cast(1000000000 as double) as WRITE_NETWORK_CPU_TIME_S," +
+										"	sum(th.writenetworkusertime)/cast(1000000000 as double) as WRITE_NETWORK_USER_TIME_S," +
 										"	sum((th.writecputime-th.writeusertime))/cast(1000*1000*1000 as double) as WRITE_SYSTEM_TIME_S," +
 										"	sum(th.filteredrows) as ROWS_FILTERED," +
 										"	sum(th.taskqueuewaitwalltime)/cast(1000000000 as double) as TOTAL_QUEUE_TIME_S," +

@@ -176,6 +176,8 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 				return Metrics.minGauge();
 		}
 
+		@Override public boolean isActive() { return recordTraceMetrics; }
+
 		@Override
 		public Counter newCounter(){
 				if(!recordTraceMetrics) return Metrics.noOpCounter();

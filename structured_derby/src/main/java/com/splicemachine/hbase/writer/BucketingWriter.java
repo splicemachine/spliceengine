@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.hbase.RegionCache;
 
+import com.splicemachine.stats.IOStats;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
@@ -33,11 +34,11 @@ public abstract class BucketingWriter implements Writer{
     }
 
 //    @Override
-    public final Future<Void> write(byte[] tableName, ObjectArrayList<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
+    public final Future<WriteStats> write(byte[] tableName, ObjectArrayList<KVPair> buffer, String transactionId,WriteConfiguration writeConfiguration) throws ExecutionException {
         try {
             List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
             List<BulkWrite> bulkWrites = bucketWrites(writeConfiguration.getMaximumRetries(),tableName,buffer,transactionId,errors, writeConfiguration);
-            CompositeFuture<Void> compositeFuture = new CompositeFuture<Void>();
+            CompositeFuture<WriteStats> compositeFuture = new CompositeFuture<WriteStats>();
             for(BulkWrite bulkWrite:bulkWrites){
                 errors.clear();
                 compositeFuture.add(write(tableName, bulkWrite, writeConfiguration));

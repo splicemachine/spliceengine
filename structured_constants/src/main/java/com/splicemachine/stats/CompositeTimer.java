@@ -24,9 +24,9 @@ class CompositeTimer implements Timer,TimeView{
 
 		@Override
 		public void startTiming() {
-				userTime.startTime();
-				cpuTime.startTime();
 				wallClockTime.startTime();
+				cpuTime.startTime();
+				userTime.startTime();
 		}
 
 		@Override
@@ -36,9 +36,9 @@ class CompositeTimer implements Timer,TimeView{
 
 		@Override
 		public void tick(long numEvents) {
-				wallClockTime.stopTime();
-				cpuTime.stopTime();
 				userTime.stopTime();
+				cpuTime.stopTime();
+				wallClockTime.stopTime();
 				this.numEvents+=numEvents;
 		}
 

@@ -1,5 +1,7 @@
 package com.splicemachine.hbase.writer;
 
+import com.splicemachine.stats.MetricFactory;
+
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -36,5 +38,10 @@ public  class ForwardingWriteConfiguration implements Writer.WriteConfiguration{
 		@Override
 		public void writeComplete(long timeTakenMs, long numRecordsWritten) {
 				delegate.writeComplete(timeTakenMs, numRecordsWritten);
+		}
+
+		@Override
+		public MetricFactory getMetricFactory() {
+				return delegate.getMetricFactory();
 		}
 }

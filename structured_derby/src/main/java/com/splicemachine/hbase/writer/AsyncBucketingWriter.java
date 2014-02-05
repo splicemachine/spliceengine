@@ -26,7 +26,7 @@ public class AsyncBucketingWriter extends BucketingWriter {
     }
 
     @Override
-    public Future<Void> write(byte[] tableName, BulkWrite bulkWrite,WriteConfiguration writeConfiguration) throws ExecutionException {
+    public Future<WriteStats> write(byte[] tableName, BulkWrite bulkWrite, WriteConfiguration writeConfiguration) throws ExecutionException {
         WriteConfiguration countingWriteConfiguration = new CountingWriteConfiguration(writeConfiguration,statusMonitor);
         BulkWriteAction action = new BulkWriteAction(tableName,
                 bulkWrite,

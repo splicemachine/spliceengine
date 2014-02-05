@@ -1,10 +1,7 @@
 package com.splicemachine.derby.impl.storage;
 
 import com.splicemachine.derby.impl.sql.execute.operations.AbstractRowKeyDistributor;
-import com.splicemachine.stats.MetricFactory;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.stats.MultiTimeView;
-import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.*;
 import com.splicemachine.stats.util.Folders;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -43,7 +40,7 @@ public class DistributedScanner implements SpliceResultScanner {
 
 		@Override
 		public TimeView getRemoteReadTime() {
-				MultiTimeView tView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				MultiTimeView tView = new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
 				for(SpliceResultScanner scanner:scanners){
 						tView.update(scanner.getRemoteReadTime());
 				}

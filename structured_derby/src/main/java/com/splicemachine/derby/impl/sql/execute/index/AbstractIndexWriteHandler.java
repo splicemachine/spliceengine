@@ -9,6 +9,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.writer.*;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -16,7 +18,6 @@ import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.log4j.Logger;
-import org.jruby.util.collections.IntHashMap;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -195,14 +196,13 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
                 }
             }
 
-            @Override
-            public long getPause() {
+            @Override public long getPause() {
                 return SpliceConstants.pause;
             }
+						@Override public void writeComplete(long timeTakenMs, long numRecordsWritten) { }
 
-						@Override
-						public void writeComplete(long timeTakenMs, long numRecordsWritten) {
-						}
+						//TODO -sf- return a metric factory which can contribute to utilization metrics
+						@Override public MetricFactory getMetricFactory() { return Metrics.noOpMetricFactory(); }
 				};
 
         return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize*2+10); //make sure we don't flush before we can

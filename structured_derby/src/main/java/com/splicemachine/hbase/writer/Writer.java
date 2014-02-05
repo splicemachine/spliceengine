@@ -1,5 +1,8 @@
 package com.splicemachine.hbase.writer;
 
+import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.MetricFactory;
+
 import javax.management.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -10,7 +13,7 @@ import java.util.concurrent.Future;
  */
 public interface Writer {
 
-    public Future<Void> write(byte[] tableName,BulkWrite action,WriteConfiguration writeConfiguration) throws ExecutionException;
+    public Future<WriteStats> write(byte[] tableName, BulkWrite action, WriteConfiguration writeConfiguration) throws ExecutionException;
 
     void stopWrites();
 
@@ -33,6 +36,8 @@ public interface Writer {
         long getPause();
 
         void writeComplete(long timeTakenMs,long numRecordsWritten);
+
+				MetricFactory getMetricFactory();
     }
 
 }

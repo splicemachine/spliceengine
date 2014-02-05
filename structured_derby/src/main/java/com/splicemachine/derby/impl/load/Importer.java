@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.TimeView;
 
 import java.io.Closeable;
 
@@ -16,5 +18,7 @@ public interface Importer extends Closeable {
 
     boolean isClosed();
 
-		IOStats getStats();
+		WriteStats getWriteStats();
+
+		TimeView getTotalTime();
 }

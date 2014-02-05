@@ -30,6 +30,7 @@ public class Metrics {
 				@Override public Timer newTimer() { return NOOP_TIMER; }
 				@Override public Gauge newMaxGauge() { return NOOP_GAUGE; }
 				@Override public Gauge newMinGauge() { return NOOP_GAUGE; }
+				@Override public boolean isActive() { return false; }
 		};
 
 		private static final IOStats NOOP_IO = new IOStats() {
@@ -72,6 +73,16 @@ public class Metrics {
 				@Override public void add(long value) { }
 				@Override public long getTotal() { return 0; }
 				@Override public boolean isActive() { return false; }
+				@Override public void increment() {  }
+		};
+
+		private static MultiTimeView NOOP_MULTI_TIME_VIEW = new MultiTimeView() {
+				@Override public void update(TimeView timeView) {  }
+				@Override public long getWallClockTime() { return 0; }
+				@Override public long getCpuTime() { return 0; }
+				@Override public long getUserTime() { return 0; }
+				@Override public long getStopWallTimestamp() { return 0; }
+				@Override public long getStartWallTimestamp() { return 0; }
 		};
 
 		private Metrics() { }
@@ -103,6 +114,9 @@ public class Metrics {
 		public static Timer noOpTimer() { return NOOP_TIMER; }
 
 		@ThreadSafe
+		public static MultiTimeView noOpMultiTimeView(){ return NOOP_MULTI_TIME_VIEW;};
+
+		@ThreadSafe
 		static TimeMeasure noOpTimeMeasure() { return NOOP_TIME_MEASURE; }
 
 		@ThreadSafe
@@ -118,6 +132,8 @@ public class Metrics {
 		/*private helper classes*/
 		private static class BasicCounter implements Counter {
 				private long count;
+
+				@Override public void increment() { add(1l);	 }
 				@Override public void add(long value) { this.count += value; }
 				@Override public long getTotal() { return count; }
 				@Override public boolean isActive() { return true; }
@@ -150,5 +166,17 @@ public class Metrics {
 				@Override public Timer newTimer() { return Metrics.newTimer(); }
 				@Override public Gauge newMaxGauge() { return maxGauge(); }
 				@Override public Gauge newMinGauge() { return minGauge(); }
+				@Override public boolean isActive() { return true; }
+		}
+
+		public static void main(String...args) throws Exception{
+				Timer timer = newTimer();
+				timer.startTiming();
+				Thread.sleep(1000);
+				timer.stopTiming();
+				TimeView time = timer.getTime();
+				System.out.printf("Wall: %d%n" +
+								"Cpu: %d%n" +
+								"User: %d%n",time.getWallClockTime(),time.getCpuTime(),time.getUserTime());
 		}
 }

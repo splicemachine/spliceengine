@@ -25,6 +25,7 @@ import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
+import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -285,6 +286,7 @@ public class InsertOperationTest {
         }).when(outputBuffer).add(any(KVPair.class));
         final CallBufferFactory<KVPair> bufferFactory = mock(CallBufferFactory.class);
         when(bufferFactory.writeBuffer(any(byte[].class), any(String.class))).thenReturn(outputBuffer);
+				when(bufferFactory.writeBuffer(any(byte[].class), any(String.class),any(MetricFactory.class))).thenReturn(outputBuffer);
 
         RowProvider mockProvider = mock(RowProvider.class);
         when(mockProvider.shuffleRows(any(SpliceObserverInstructions.class))).thenAnswer(new Answer<JobResults>(){

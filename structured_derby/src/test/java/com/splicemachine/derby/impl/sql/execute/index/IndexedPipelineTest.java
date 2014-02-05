@@ -12,6 +12,7 @@ import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.hbase.batch.PipelineWriteContext;
 import com.splicemachine.hbase.batch.RegionWriteHandler;
 import com.splicemachine.hbase.writer.*;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -63,6 +64,7 @@ public class IndexedPipelineTest {
         final RegionCache fakeCache = mockRegionCache();
 
         Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
         BitSet indexedColumns = new BitSet(1);
@@ -141,6 +143,7 @@ public class IndexedPipelineTest {
         final RegionCache fakeCache = mockRegionCache();
 
         Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
         BitSet indexedColumns = new BitSet(1);
@@ -234,6 +237,7 @@ public class IndexedPipelineTest {
         final RegionCache fakeCache = mockRegionCache();
 
         Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
         BitSet indexedColumns = new BitSet(1);
@@ -326,6 +330,7 @@ public class IndexedPipelineTest {
         final RegionCache fakeCache = mockRegionCache();
 
         Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
         BitSet indexedColumns = new BitSet(1);
@@ -405,9 +410,10 @@ public class IndexedPipelineTest {
         final RegionCache fakeCache = mockRegionCache();
 
         Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMetricFactory()).thenReturn(Metrics.noOpMetricFactory());
         when(config.getMaximumRetries()).thenReturn(3);
 
-        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), any(Writer.WriteConfiguration.class),any(int.class)))
+        when(testCtx.getWriteBuffer(any(byte[].class), any(WriteCoordinator.PreFlushHook.class), notNull(Writer.WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingWriteBuffer>() {
                     @Override
                     public PipingWriteBuffer answer(InvocationOnMock invocation) throws Throwable {
@@ -475,14 +481,14 @@ public class IndexedPipelineTest {
     private Writer mockSuccessWriter(final ObjectArrayList<KVPair> indexedRows) throws ExecutionException {
         Writer fakeWriter = mock(Writer.class);
         when(fakeWriter.write(any(byte[].class),any(BulkWrite.class),any(Writer.WriteConfiguration.class)))
-                .then(new Answer<Future<Void>>() {
+                .then(new Answer<Future<WriteStats>>() {
                     @Override
-                    public Future<Void> answer(InvocationOnMock invocation) throws Throwable {
+                    public Future<WriteStats> answer(InvocationOnMock invocation) throws Throwable {
                         BulkWrite write = (BulkWrite) invocation.getArguments()[1];
                         indexedRows.addAll(write.getMutations());
 
-                        @SuppressWarnings("unchecked") Future<Void> future = mock(Future.class);
-                        when(future.get()).thenReturn(null);
+                        @SuppressWarnings("unchecked") Future<WriteStats> future = mock(Future.class);
+                        when(future.get()).thenReturn(WriteStats.NOOP_WRITE_STATS);
                         return future;
                     }
                 });

@@ -13,6 +13,8 @@ package com.splicemachine.stats;
  */
 public interface Counter {
 
+		public void increment();
+
 		public void add(long value);
 
 		public long getTotal();

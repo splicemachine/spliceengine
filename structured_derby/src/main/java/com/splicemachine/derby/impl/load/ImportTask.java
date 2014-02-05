@@ -8,17 +8,20 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.IOStats;
+import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -92,19 +95,24 @@ public class ImportTask extends ZkTask{
 								if(importer==null){
 										importer = getImporter(row);
 								}
+
+								Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
 								try{
 										String[] nextRow;
 										do{
+												totalTimer.startTiming();
 												SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
 												nextRow = reader.nextRow();
 												rowsRead++;
 
 												if(nextRow!=null)
 														importer.process(nextRow);
+												totalTimer.tick(1);
 										}while(nextRow!=null);
 								} catch (Exception e) {
 										throw new ExecutionException(e);
 								} finally{
+										totalTimer.startTiming();
 										Closeables.closeQuietly(reader);
                     /*
                      * We don't call closeQuietly(importer) here, because
@@ -113,32 +121,10 @@ public class ImportTask extends ZkTask{
                      */
 										importer.close();
 										stopTime = System.currentTimeMillis();
-
-										if(importContext.shouldRecordStats()){
-												OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
-																Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
-
-												runtimeStats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
-												runtimeStats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTime);
-												IOStats readStats = reader.getStats();
-												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.getBytes());
-												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.getRows());
-												TimeView readView = readStats.getTime();
-												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,readView.getWallClockTime());
-												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,readView.getCpuTime());
-												runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,readView.getUserTime());
-
-												IOStats writeStats = importer.getStats();
-												runtimeStats.addMetric(OperationMetric.WRITE_BYTES,writeStats.getBytes());
-												runtimeStats.addMetric(OperationMetric.WRITE_ROWS,writeStats.getRows());
-												TimeView writeView = writeStats.getTime();
-												runtimeStats.addMetric(OperationMetric.WRITE_WALL_TIME,writeView.getWallClockTime());
-												runtimeStats.addMetric(OperationMetric.WRITE_CPU_TIME,writeView.getCpuTime());
-												runtimeStats.addMetric(OperationMetric.WRITE_USER_TIME,writeView.getUserTime());
-
-												SpliceDriver.driver().getTaskReporter().report(importContext.getXplainSchema(),runtimeStats);
-										}
+										totalTimer.stopTiming();
 								}
+								//don't report stats if there's an error
+								reportStats(startTime, stopTime,totalTimer.getTime());
 						}catch(Exception e){
 								if(e instanceof ExecutionException)
 										throw (ExecutionException)e;
@@ -146,6 +132,53 @@ public class ImportTask extends ZkTask{
 						}
 				} catch (StandardException e) {
 						throw new ExecutionException(e);
+				}
+		}
+
+		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView totalTime) {
+				if(importContext.shouldRecordStats()){
+						OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
+										Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
+
+						runtimeStats.addMetric(OperationMetric.START_TIMESTAMP,startTimeMs);
+						runtimeStats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTimeMs);
+						runtimeStats.addMetric(OperationMetric.TOTAL_WALL_TIME,totalTime.getWallClockTime());
+						runtimeStats.addMetric(OperationMetric.TOTAL_CPU_TIME,totalTime.getCpuTime());
+						runtimeStats.addMetric(OperationMetric.TOTAL_USER_TIME,totalTime.getUserTime());
+						runtimeStats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
+
+						IOStats readStats = reader.getStats();
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.getBytes());
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.getRows());
+						TimeView readView = readStats.getTime();
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,readView.getWallClockTime());
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,readView.getCpuTime());
+						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,readView.getUserTime());
+
+						WriteStats writeStats = importer.getWriteStats();
+						runtimeStats.addMetric(OperationMetric.WRITE_BYTES,writeStats.getBytesWritten());
+						runtimeStats.addMetric(OperationMetric.WRITE_ROWS,writeStats.getRowsWritten());
+						runtimeStats.addMetric(OperationMetric.RETRIED_WRITE_ATTEMPTS,writeStats.getTotalRetries());
+						runtimeStats.addMetric(OperationMetric.REJECTED_WRITE_ATTEMPTS,writeStats.getRejectedCount());
+						runtimeStats.addMetric(OperationMetric.FAILED_WRITE_ATTEMPTS,writeStats.getGlobalErrors());
+						runtimeStats.addMetric(OperationMetric.PARTIAL_WRITE_FAILURES,writeStats.getPartialFailureCount());
+
+						TimeView networkView = writeStats.getNetworkTime();
+						runtimeStats.addMetric(OperationMetric.WRITE_NETWORK_WALL_TIME,networkView.getWallClockTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_NETWORK_CPU_TIME,networkView.getCpuTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_NETWORK_USER_TIME,networkView.getUserTime());
+						TimeView sleepView = writeStats.getSleepTime();
+						runtimeStats.addMetric(OperationMetric.WRITE_SLEEP_WALL_TIME,sleepView.getWallClockTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_SLEEP_CPU_TIME,sleepView.getCpuTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_SLEEP_USER_TIME,sleepView.getUserTime());
+
+						TimeView writeView = writeStats.getTotalTime();
+
+						runtimeStats.addMetric(OperationMetric.WRITE_WALL_TIME,writeView.getWallClockTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_CPU_TIME,writeView.getCpuTime());
+						runtimeStats.addMetric(OperationMetric.WRITE_USER_TIME,writeView.getUserTime());
+
+						SpliceDriver.driver().getTaskReporter().report(importContext.getXplainSchema(),runtimeStats);
 				}
 		}
 

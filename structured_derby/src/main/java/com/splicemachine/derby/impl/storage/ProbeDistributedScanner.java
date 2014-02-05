@@ -46,7 +46,7 @@ public class ProbeDistributedScanner implements SpliceResultScanner {
 
 		@Override
 		public TimeView getRemoteReadTime() {
-				MultiTimeView remoteView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				MultiTimeView remoteView = new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
 				for(SpliceResultScanner scanner:scanners){
 						remoteView.update(scanner.getRemoteReadTime());
 				}
@@ -73,7 +73,7 @@ public class ProbeDistributedScanner implements SpliceResultScanner {
 
 		@Override
 		public TimeView getLocalReadTime() {
-				MultiTimeView remoteView = new MultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
+				MultiTimeView remoteView = new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
 				for(SpliceResultScanner scanner:scanners){
 						remoteView.update(scanner.getLocalReadTime());
 				}

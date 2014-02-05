@@ -33,6 +33,7 @@ import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -195,7 +196,9 @@ public class HdfsImport extends ParallelVTI {
 				try {
 						importer = new HdfsImport(builder.build(),statementInfo.getStatementUuid(),opInfo.getOperationUuid());
 						importer.open();
-						importer.executeShuffle(new SpliceRuntimeContext());
+						SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
+						runtimeContext.setStatementInfo(statementInfo);
+						importer.executeShuffle(runtimeContext);
 				} catch(AssertionError ae){
 						throw PublicAPI.wrapStandardException(Exceptions.parseException(ae));
 				} catch(StandardException e) {
@@ -256,14 +259,23 @@ public class HdfsImport extends ParallelVTI {
 				HTableInterface table = SpliceAccessManager.getHTable(tableName);
 
 				List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
+				StatementInfo statementInfo = runtimeContext.getStatementInfo();
+				Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
+				OperationInfo opInfo = null;
+				//noinspection LoopStatementThatDoesntLoop
+				for(OperationInfo opInfoField:opInfos){
+						opInfo = opInfoField;
+						break;
+				}
 				try {
-						CompressionCodecFactory codecFactory = new CompressionCodecFactory(SpliceUtils.config);
 						LOG.info("Importing files "+ file.getPaths());
 						ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId);
 						long start = System.currentTimeMillis();
 						JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
 						JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
 						info.tasksRunning(jobFuture.getAllTaskIds());
+						if(opInfo!=null)
+								opInfo.addJob(info);
 						jobFutures.add(Pair.newPair(jobFuture,info));
 
 						try{

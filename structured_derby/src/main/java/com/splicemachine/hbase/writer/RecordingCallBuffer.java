@@ -16,4 +16,6 @@ public interface RecordingCallBuffer<E> extends CallBuffer<E>{
     double getAverageSizePerFlush();
 
     CallBuffer<E> unwrap();
+
+		WriteStats getWriteStats();
 }

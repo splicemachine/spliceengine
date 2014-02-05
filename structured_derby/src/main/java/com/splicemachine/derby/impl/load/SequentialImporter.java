@@ -5,6 +5,7 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.writer.CallBufferFactory;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
+import com.splicemachine.hbase.writer.WriteStats;
 import com.splicemachine.stats.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
@@ -68,13 +69,8 @@ public class SequentialImporter implements Importer{
 				return closed;
 		}
 
-		@Override
-		public IOStats getStats() {
-				long bytesWritten = writeBuffer.getTotalBytesAdded();
-				long rowsWritten = writeBuffer.getTotalElementsAdded();
-				TimeView writeTime = writeTimer.getTime();
-				return new BaseIOStats(writeTime,bytesWritten,rowsWritten);
-		}
+		@Override public WriteStats getWriteStats() { return writeBuffer.getWriteStats(); }
+		@Override public TimeView getTotalTime() { return writeTimer.getTime(); }
 
 		@Override
 		public void close() throws IOException {
