@@ -11,8 +11,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class HdfsImportIT extends SpliceUnitTest {
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -198,7 +200,11 @@ public class HdfsImportIT extends SpliceUnitTest {
 				while(rs.next()){
 						Timestamp order_date = rs.getTimestamp(1);
 						Assert.assertNotNull("order_date incorrect",order_date);
-						Assert.assertEquals(order_date.toString(),"2013-04-21 09:21:24.098");
+						//have to deal with differing time zones here
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+						sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
+						String textualFormat = sdf.format(order_date);
+						Assert.assertEquals("2013-04-21 09:21:24.098",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
 				Assert.assertTrue("import failed!",results.size()==1);
@@ -217,7 +223,11 @@ public class HdfsImportIT extends SpliceUnitTest {
 				while(rs.next()){
 						Timestamp order_date = rs.getTimestamp(1);
 						Assert.assertNotNull("order_date incorrect",order_date);
-						Assert.assertEquals(order_date.toString(),"2013-06-06 15:02:48.0");
+						//have to deal with differing time zones here
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+						sdf.setTimeZone(TimeZone.getTimeZone("America/Chicago"));
+						String textualFormat = sdf.format(order_date);
+						Assert.assertEquals("2013-06-06 15:02:48.0",textualFormat);
 						results.add(String.format("order_date:%s",order_date));
 				}
 				Assert.assertTrue("import failed!",results.size()==1);
