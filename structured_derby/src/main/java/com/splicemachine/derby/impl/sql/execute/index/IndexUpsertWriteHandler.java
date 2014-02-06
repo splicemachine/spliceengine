@@ -250,7 +250,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             doDelete(ctx,indexDelete);
 
             //insert the new
-            byte[] newIndexRowKey = transformer.getIndexRowKey(mutation.getRow());
+            byte[] newIndexRowKey = transformer.getIndexRowKey(mutation.getRow(), !transformer.isUnique());
 
             newRowAccumulator.add((int)translatedIndexColumns.length(),ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
             byte[] indexValue = newRowAccumulator.finish();

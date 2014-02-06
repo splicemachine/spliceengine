@@ -144,7 +144,8 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         MyWatcher tableWatcher =
                 new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
 
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraintWithDuplicateNulls"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME,
+                                                               "testAlterTableCreateUniqueConstraintWithDuplicateNulls"));
 
         methodWatcher.getStatement().execute(format("insert into %s values (NULL,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
                                                            this.getTableReference(tableName)));
@@ -170,10 +171,39 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
         System.out.println(fr.toString());
 
-        methodWatcher.getStatement().execute(format("insert into %s values (NULL,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')",
+        methodWatcher.getStatement().execute(format("insert into %s values (NULL,'551 BOLYSTON','COND','M-1','M-8','2000-04-12')",
                                                            this.getTableReference(tableName)));
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')",
-                                                           this.getTableReference(tableName)));
+                                                    this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (2,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')",
+                                                    this.getTableReference(tableName)));
+
+        // Now query result should be 5 rows
+        rs = methodWatcher.getStatement().executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals("Wrong number of rows after insert.", 5, fr.size());
+
+        // try to insert a non-null duplicate
+        try {
+            methodWatcher.getStatement().execute(format("insert into %s values (1,'552 BOLYSTON','COND','M-1','M-8','2000-04-13')",
+                                                        this.getTableReference(tableName)));
+        } catch (Exception e) {
+            Assert.assertTrue(e.getLocalizedMessage(), e instanceof SQLException);
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains("would have caused a duplicate key value in a unique or primary key constraint or unique index identified"));
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains(tableName));
+            // expected
+        }
+
+        // now delete one of the rows with null value in index column and make sure it's gone from index too
+        String delete = format("delete from %s where ADDRESS = '551 BOLYSTON'", this.getTableReference(tableName));
+        boolean success = methodWatcher.getStatement().execute(delete);
+
+        // Now query result should be 4 rows
+        rs = methodWatcher.getStatement().executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+        Assert.assertEquals("Wrong number of rows after delete.", 4, fr.size());
     }
 
     /**
