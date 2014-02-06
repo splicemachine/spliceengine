@@ -103,9 +103,22 @@ public class IndexTransformer {
         //add the row location to the end of the index row
         indexRowAccumulator.add((int) translatedIndexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted
                 (mutation.getRow())));
-        byte[] indexRowKey = getIndexRowKey(mutation.getRow());
+        boolean makeUniqueForDuplicateNulls = false;
+        if (isUniqueWithDuplicateNulls) {
+            // check for null columns in index
+            // -- in this case, we'll have to append a uniqueness value to the row key
+            if (dataValueContainsNulls()) {
+                makeUniqueForDuplicateNulls = true;
+            }
+        }
+        byte[] indexRowKey = getIndexRowKey(mutation.getRow(), (!isUnique || makeUniqueForDuplicateNulls));
         byte[] indexRowData = indexRowAccumulator.finish();
         return new KVPair(indexRowKey, indexRowData, mutation.getType());
+    }
+
+    private boolean dataValueContainsNulls() {
+        // TODO: is this enough?
+        return indexKeyAccumulator.getRemainingFields().cardinality() > 0;
     }
 
     private void accumulate(EntryAccumulator accumulator, BitIndex index, ByteBuffer buffer, int position) {
@@ -119,8 +132,8 @@ public class IndexTransformer {
             accumulator.add(mainColToIndexPosMap[position], buffer);
     }
 
-    public byte[] getIndexRowKey(byte[] rowKey){
-        if(!isUnique)
+    public byte[] getIndexRowKey(byte[] rowKey, boolean makeUniqueRowKey){
+        if(makeUniqueRowKey)
             indexKeyAccumulator.add((int)translatedIndexedColumns.length(),ByteBuffer.wrap(rowKey));
 
         return indexKeyAccumulator.finish();

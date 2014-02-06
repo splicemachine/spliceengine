@@ -496,16 +496,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             // We don't make such a distinction.  Unique is always unique even when
             // uniqueWithDuplicateNulls is true.
             //
-//            if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
-				indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
-//			}
-//			else {
-				// for lower version of DD there is no unique with nulls
-                // index creating a unique index instead.
-//				if (uniqueWithDuplicateNulls) {
-					unique = true;
-//				}
-//			}
+            indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
+            unique = true;
 		}
 		// By convention, the row location column is the last column
 		indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
