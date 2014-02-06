@@ -1,11 +1,13 @@
 package com.splicemachine.storage;
 
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.storage.index.*;
-import com.splicemachine.utils.kryo.KryoPool;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
+
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.kryo.KryoPool;
 
 /**
  * @author Scott Fines
@@ -68,6 +70,19 @@ public class EntryDecoder {
 
     public boolean isSet(int position){
         return bitIndex.isSet(position);
+    }
+
+    public boolean nextIsNull(int position) {
+        if (bitIndex.isFloatType(position)) {
+            if (decoder.nextIsNullFloat()) {
+                return true;
+            }
+        } else if (bitIndex.isDoubleType(position)) {
+            if (decoder.nextIsNullDouble()) {
+                return true;
+            }
+        }
+        return decoder.nextIsNull();
     }
 
     public BitIndex getCurrentIndex(){

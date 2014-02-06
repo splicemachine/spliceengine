@@ -107,10 +107,19 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')",
                                                            this.getTableReference(tableName)));
 
+        String query = format("select * from %s", this.getTableReference(tableName));
+        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+
         // expect exception because there are non-unique rows
         try {
             methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)",
                                                                this.getTableReference(tableName), tableName+"_UC"));
+            // Prints the index (unique constraint) info
+            rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+            fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+            System.out.println(fr.toString());
             Assert.fail("Expected exception - attempt to create a unique constraint on a table with duplicates.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof SQLException);
@@ -121,8 +130,8 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         TestUtils.tableLookupByNumber(methodWatcher);
 
         // Prints the index (unique constraint) info
-        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
-        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+        fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
         System.out.println(fr.toString());
 
         // No exception. We couldn't create the unique constraint so this insert works
