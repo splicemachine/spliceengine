@@ -7,6 +7,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -528,6 +530,30 @@ public class IndexIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(query);
         Assert.assertEquals(1, resultSetSize(rs));
+    }
+
+    @Test
+    public void testIndexAfterInserts() throws Exception {
+        try {
+            methodWatcher.prepareStatement("drop index ia").execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        try {
+            methodWatcher.prepareStatement(String.format("drop table %s.a", SCHEMA_NAME)).execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        methodWatcher.prepareStatement(String.format("create table %s.a (i int)", SCHEMA_NAME)).execute();
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s.a values 1", SCHEMA_NAME));
+        ps.execute();
+        ps.execute();
+        ps.execute();
+        try {
+            methodWatcher.prepareStatement(String.format("create unique index ia on %s.a (i)", SCHEMA_NAME)).execute();
+            Assert.fail("Index should have raised an exception");
+        } catch (SQLException se) {
+        }
     }
 
     private static final String CUST_INSERT2 = "1,1,3002,0.1221,'GC','Jones','Fred',50000.0,-10.0,10.0,1,0,'qmvfraakwixzcrqxt','mamrsdfdsycaxrh','bcsyfdsdkurug','VL','843211111','3185126927164979','2013-08-01 10:33:44.813','OE','tktkdcbjqxbewxllutwigcdmzenarkhiklzfkaybefrppwtvdmecqfqaa'";
