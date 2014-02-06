@@ -317,8 +317,24 @@ public class DerbyBytesUtil {
 								return generateIndexKey(startKeyValue,sortOrder);
 						case ScanController.GT:
 								byte[] indexKey = generateIndexKey(startKeyValue,sortOrder);
-								BytesUtil.unsignedIncrement(indexKey,indexKey.length-1);
-								return indexKey;
+                                /*
+                                 * For a GT operation we want the next row in sorted order, and that's the row plus a
+                                 * trailing 0x0 byte
+                                 * The problem is sometimes we have composed keys such as:
+                                 * 0xFF 0xFF 0xFF 0x00 0xEE 0xEE
+                                 * 0xFF 0xFF 0xFF 0x00 0xEE 0xFF
+                                 *
+                                 * When we search for 0xFF 0xFF 0xFF we want both rows returned.
+                                 *
+                                 * In this case, the first row greater than anything of the form
+                                 * 0xFF 0xFF 0xFF 0x00 0x?? 0x??
+                                 *
+                                 * Is 0xFF 0xFF 0xFF 0x01
+                                 *
+                                 * Here we append a 0x01 byte to the end of the key
+                                 */
+                                byte[] extendedKey = Bytes.add(indexKey, new byte[] {0x01});
+								return extendedKey;
 						default:
 								throw new RuntimeException("Error with Key Generation");
 				}
