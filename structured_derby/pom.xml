@@ -101,6 +101,12 @@
 			<groupId>org.uncommons.watchmaker</groupId>
 			<artifactId>watchmaker-framework</artifactId>
 			<version>0.7.1</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>google-collections</artifactId>
+					<groupId>com.google.collections</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 	<build>
