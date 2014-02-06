@@ -31,7 +31,7 @@ public class TableScanOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME2,CLASS_NAME,"(si varchar(40),sa character varying(40),sc varchar(40),sd1 int, sd2 smallint, sd3 bigint, se1 float, se2 double, se3 decimal(4,2), se4 REAL)");
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("NT",spliceSchemaWatcher.schemaName,("(chartype123a character(3),chartype123b character(3),numeric123_1 numeric(5),numeric123_2 numeric(5))"));
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("T1",CLASS_NAME,"(c1 int, c2 int)");
-    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("CHICKEN",CLASS_NAME,"(c1 timestamp)");
+    protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("CHICKEN",CLASS_NAME,"(c1 timestamp, c2 date, c3 time)");
     
     
 	@ClassRule
@@ -57,7 +57,7 @@ public class TableScanOperationIT extends SpliceUnitTest {
                             ps.executeUpdate();
                         }
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)",CLASS_NAME,"T1"));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'))",CLASS_NAME,"CHICKEN"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN"));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -556,5 +556,26 @@ public class TableScanOperationIT extends SpliceUnitTest {
         }
         Assert.assertEquals("Incorrect count returned!",1,count);
     }
-    
+
+    @Test
+    public void testScanOfDateQualifiedByString() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c2 = '2010-01-01'",spliceTableWatcher5));
+        int count =0;
+        while(rs.next()){
+            count++;
+        }
+        Assert.assertEquals("Incorrect count returned!",1,count);
+    }
+
+    @Test
+    public void testScanOfTimeQualifiedByString() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c3 = '00:00:00'",spliceTableWatcher5));
+        int count =0;
+        while(rs.next()){
+            count++;
+        }
+        Assert.assertEquals("Incorrect count returned!",1,count);
+    }
+
+
 }
