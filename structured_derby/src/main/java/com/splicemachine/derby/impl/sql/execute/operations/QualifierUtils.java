@@ -10,6 +10,8 @@ import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
@@ -36,8 +38,46 @@ class QualifierUtils {
             return convertFloatingPoint(qualifier,columnFormat,dataValueFactory);
         }else if(isScalarType(columnFormat)){
             return convertScalar(qualifier,columnFormat,dataValueFactory);
+        }else if(isTimestamp(columnFormat)){
+            return convertTimestamp(qualifier,columnFormat,dataValueFactory);
+            
         }else return qualifier; //nothing to do
     }
+    
+    private static Qualifier convertTimestamp(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor dvd = qualifier.getOrderable();
+        DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
+        Timestamp value;
+        int currentTypeFormatId = dvd.getTypeFormatId();
+        switch(currentTypeFormatId){
+            case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLDouble();
+                value = dvd.getTimestamp(new GregorianCalendar());
+                break;
+            default:
+                value = dvd.getTimestamp(new GregorianCalendar());
+        }
+       correctType.setValue(value);
+        if(qualifier instanceof ScanQualifier){
+            ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
+                    correctType,
+                    qualifier.getOperator(),
+                    qualifier.negateCompareResult(),
+                    qualifier.getOrderedNulls(),
+                    qualifier.getUnknownRV());
+        }else{
+            //make it an instanceof ScanQualifier
+            ScanQualifier qual = new GenericScanQualifier();
+            qual.setQualifier(qualifier.getColumnId(),
+                    correctType,
+                    qualifier.getOperator(),
+                    qualifier.negateCompareResult(),
+                    qualifier.getOrderedNulls(),
+                    qualifier.getUnknownRV());
+            qualifier = qual;
+        }
+        return qualifier;
+    }
+    
 
     private static Qualifier convertScalar(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
         DataValueDescriptor dvd = qualifier.getOrderable();
@@ -124,6 +164,11 @@ class QualifierUtils {
                 || columnFormat==StoredFormatIds.SQL_DOUBLE_ID);
     }
 
+    private static boolean isTimestamp(int columnFormat){
+        return columnFormat==StoredFormatIds.SQL_TIMESTAMP_ID;
+    }
+
+    
     private static boolean isScalarType(int columnFormat){
         return (columnFormat==StoredFormatIds.SQL_TINYINT_ID
                 || columnFormat==StoredFormatIds.SQL_SMALLINT_ID
