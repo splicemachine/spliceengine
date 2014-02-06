@@ -282,7 +282,6 @@ public class SpliceAdmin {
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
 
-                StringBuilder sb = new StringBuilder("select * from (values ");
 								ExecRow dataTemplate = new ValueRow(16);
 								dataTemplate.setRowArray(new DataValueDescriptor[]{
 												new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),new SQLVarchar(),
@@ -290,17 +289,10 @@ public class SpliceAdmin {
 												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLDouble()
 								});
 								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
-								int i = 0;
                 for (Pair<String, StatementManagement> managementPair : statementManagers) {
-                    if (i != 0) sb.append(", ");
-
                     StatementManagement management = managementPair.getSecond();
                     List<StatementInfo> completedStatements = management.getRecentCompletedStatements();
-                    boolean isStart = true;
                     for (StatementInfo completedStatement : completedStatements) {
-                        if (isStart) isStart = false;
-                        else sb.append(",");
-
                         Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
                         int numFailedJobs = 0;
                         long maxJobTime = 0;
@@ -357,25 +349,6 @@ public class SpliceAdmin {
 												} catch (StandardException e) {
 														throw PublicAPI.wrapStandardException(e);
 												}
-
-//												sb.append(String.format("(%d,'%s','%s','%s','%s','%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%f)",
-//																completedStatement.getStatementUuid(),
-//																managementPair.getFirst(),
-//																escape(completedStatement.getUser()),
-//																escape(completedStatement.getTxnId()),
-//																numFailedJobs > 0 ? "FAILED" : numCancelledJobs > 0 ? "CANCELLED" : "SUCCESS",
-//																escape(completedStatement.getSql()),
-//																numJobs,
-//																successfulJobs,
-//																numFailedJobs,
-//																numCancelledJobs,
-//																startTimeMs,
-//																stopTimeMs,
-//																stopTimeMs - startTimeMs,
-//																minJobTime,
-//																maxJobTime,
-//																avgJobTime
-//												));
                     }
                 }
 
@@ -419,36 +392,62 @@ public class SpliceAdmin {
             public void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException {
                 List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(jmxConnector);
 
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
-                for (Pair<String, StatementManagement> managementPair : statementManagers) {
+								ExecRow template = new ValueRow(9);
+								template.setRowArray(new DataValueDescriptor[]{
+												new SQLLongint(),new SQLVarchar(),new SQLVarchar(),new SQLLongint(),new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint()
+								});
+
+								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(statementManagers.size());
+								for (Pair<String, StatementManagement> managementPair : statementManagers) {
                     StatementManagement management = managementPair.getSecond();
                     Collection<StatementInfo> completedStatements = management.getExecutingStatementInfo();
-                    if (i != 0 && completedStatements != null && completedStatements.size() > 0) sb.append(", ");
 
-                    boolean isStart = true;
                     for (StatementInfo completedStatement : completedStatements) {
-                        if (isStart) isStart = false;
-                        else sb.append(",");
 
                         Set<JobInfo> completedJobs = completedStatement.getCompletedJobs();
                         Set<JobInfo> runningJobs = completedStatement.getRunningJobs();
-                        sb.append(String.format("(%d,'%s','%s','%s',%d,%d,%d,%d,'%s')",
-                                completedStatement.getStatementUuid(),
-                                completedStatement.getUser(),
-                                completedStatement.getTxnId(),
-                                escape(completedStatement.getSql()),
-                                completedStatement.getNumJobs(),
-                                completedJobs != null ? completedJobs.size() : 0,
-                                runningJobs != null ? runningJobs.size() : 0,
-                                completedStatement.getStartTimeMs(),
-                                managementPair.getFirst()
-                        ));
+												template.resetRowArray();
+												DataValueDescriptor[] dvds = template.getRowArray();
+												try{
+														dvds[0].setValue(completedStatement.getStatementUuid());
+														dvds[1].setValue(managementPair.getFirst());
+														dvds[2].setValue(completedStatement.getUser());
+														dvds[3].setValue(completedStatement.getTxnId());
+														dvds[4].setValue(completedStatement.getSql());
+														dvds[5].setValue(completedStatement.getNumJobs());
+														dvds[6].setValue(completedJobs!=null?completedJobs.size():0);
+														dvds[7].setValue(runningJobs!=null?runningJobs.size():0);
+														dvds[8].setValue(completedStatement.getStartTimeMs());
+												}catch(StandardException se){
+														throw PublicAPI.wrapStandardException(se);
+												}
+												rows.add(template.getClone());
                     }
-                    i++;
                 }
-                sb.append(") foo (statementUuid,userName,transactionID,statementSql,numJobs,completedJobs,runningJobs,startTimeMs,host)");
-                resultSets[0] = executeStatement(sb);
+
+								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
+								columnInfo[0] = new GenericColumnDescriptor("statementUuid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[1] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[2] = new GenericColumnDescriptor("userName",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[3] = new GenericColumnDescriptor("transactionid",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[4] = new GenericColumnDescriptor("sql",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[5] = new GenericColumnDescriptor("numJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[6] = new GenericColumnDescriptor("completedJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[7] = new GenericColumnDescriptor("runningJobs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[8] = new GenericColumnDescriptor("startTimeMs",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+
+
+								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+								try {
+										resultsToWrap.openCore();
+								} catch (StandardException e) {
+										throw PublicAPI.wrapStandardException(e);
+								}
+								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+								resultSets[0] = ers;
             }
         });
     }
@@ -580,24 +579,51 @@ public class SpliceAdmin {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<ThreadPoolStatus> threadPools = JMXUtils.getMonitoredThreadPools(connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
-                int i = 0;
+								ExecRow template = new ValueRow(8);
+								template.setRowArray(new DataValueDescriptor[]{
+												new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint()
+								});
+								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(threadPools.size());
+								int i=0;
                 for (ThreadPoolStatus threadPool : threadPools) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d)",
-                            connections.get(i).getFirst(),
-                            threadPool.getActiveThreadCount(),
-                            threadPool.getMaxThreadCount(),
-                            threadPool.getPendingTaskCount(),
-                            threadPool.getTotalSuccessfulTasks(),
-                            threadPool.getTotalFailedTasks(),
-                            threadPool.getTotalRejectedTasks()));
+										template.resetRowArray();
+										DataValueDescriptor[] dvds = template.getRowArray();
+										try{
+												dvds[0].setValue(connections.get(i).getFirst());
+												dvds[1].setValue(threadPool.getMaxThreadCount());
+												dvds[2].setValue(threadPool.getActiveThreadCount());
+												dvds[3].setValue(threadPool.getPendingTaskCount());
+												dvds[4].setValue(threadPool.getTotalSubmittedTasks());
+												dvds[5].setValue(threadPool.getTotalSuccessfulTasks());
+												dvds[6].setValue(threadPool.getTotalFailedTasks());
+												dvds[7].setValue(threadPool.getTotalRejectedTasks());
+										}catch(StandardException se){
+												throw PublicAPI.wrapStandardException(se);
+										}
+										rows.add(template.getClone());
                     i++;
                 }
-                sb.append(") foo (hostname, activeThreadCount, maxThreadCount, pendingTaskCount, totalSuccessfulTasks, totalFailedTasks, totalRejectedTasks)");
-                resultSet[0] = executeStatement(sb);
+								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[8];
+								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[1] = new GenericColumnDescriptor("maxThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[2] = new GenericColumnDescriptor("activeThreads",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[3] = new GenericColumnDescriptor("pendingWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[4] = new GenericColumnDescriptor("totalSubmittedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[5] = new GenericColumnDescriptor("totalSuccessfulWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[6] = new GenericColumnDescriptor("totalFailedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[7] = new GenericColumnDescriptor("totalRejectedWrites",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+
+								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+								try {
+										resultsToWrap.openCore();
+								} catch (StandardException e) {
+										throw PublicAPI.wrapStandardException(e);
+								}
+								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+								resultSet[0] = ers;
             }
         });
     }
