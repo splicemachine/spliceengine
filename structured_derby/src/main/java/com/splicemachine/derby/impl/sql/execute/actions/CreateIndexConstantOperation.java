@@ -7,15 +7,6 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.derby.ddl.DDLChange;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -52,15 +43,25 @@ import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.impl.services.daemon.IndexStatisticsDaemonImpl;
 import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
+import com.splicemachine.derby.ddl.DDLChange;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.index.CreateIndexJob;
+import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateIndexConstantOperation extends IndexConstantOperation {
@@ -480,26 +481,32 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 		// Tell it the conglomerate id of the base table
 		indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
 
-		if (uniqueWithDuplicateNulls) {
-            if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
+        // All indexes are unique because they contain the RowLocation.
+        // The number of uniqueness columns must include the RowLocation
+        // if the user did not specify a unique index.
+        indexProperties.put("nUniqueColumns",
+                                   Integer.toString(unique ? baseColumnPositions.length :
+                                                            baseColumnPositions.length + 1));
+
+        if (uniqueWithDuplicateNulls) {
+            // Derby made the distinction between "unique" and "uniqueWithDuplicateNulls"
+            // with different behavior for each -- IndexDescriptor.isUnique() returned
+            // false when IndexDescriptor.isUniqueWithDuplicateNulls() returned true,
+            // for instance.
+            // We don't make such a distinction.  Unique is always unique even when
+            // uniqueWithDuplicateNulls is true.
+            //
+//            if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
 				indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
-			}
-			else {
+//			}
+//			else {
 				// for lower version of DD there is no unique with nulls
                 // index creating a unique index instead.
-				if (uniqueWithDuplicateNulls) {
+//				if (uniqueWithDuplicateNulls) {
 					unique = true;
-				}
-			}
+//				}
+//			}
 		}
-
-		// All indexes are unique because they contain the RowLocation.
-		// The number of uniqueness columns must include the RowLocation
-		// if the user did not specify a unique index.
-		indexProperties.put("nUniqueColumns",
-					Integer.toString(unique ? baseColumnPositions.length :
-												baseColumnPositions.length + 1)
-							);
 		// By convention, the row location column is the last column
 		indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
 
@@ -729,7 +736,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
-        TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),baseColumnPositions, unique, SpliceUtils.bitSetFromBooleanArray(descColumns));
+        TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),
+                                                                       baseColumnPositions, unique,
+                                                                       uniqueWithDuplicateNulls,
+                                                                       SpliceUtils.bitSetFromBooleanArray(descColumns));
         DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
                 DDLChange.TentativeType.CREATE_INDEX);
         ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
@@ -830,7 +840,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         try{
 						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
-										conglomId, tableConglomId, baseColumnPositions, unique, descColumns,
+										conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
 										statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
 						long start = System.currentTimeMillis();
 						future = SpliceDriver.driver().getJobScheduler().submit(job);

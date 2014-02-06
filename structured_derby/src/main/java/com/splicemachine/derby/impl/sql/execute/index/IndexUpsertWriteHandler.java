@@ -1,7 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -12,13 +19,12 @@ import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.CallBuffer;
 import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -40,6 +46,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                                    BitSet descColumns,
                                    boolean keepState,
                                    boolean unique,
+                                   boolean uniqueWithDuplicateNulls,
                                    int expectedWrites) {
         super(indexedColumns,mainColToIndexPos,indexConglomBytes,descColumns,keepState);
 
@@ -49,7 +56,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         this.transformer = new IndexTransformer(indexedColumns,
                 translatedIndexColumns,
                 nonUniqueIndexColumn,
-                descColumns,mainColToIndexPosMap,unique);
+                descColumns,mainColToIndexPosMap,unique,uniqueWithDuplicateNulls);
     }
 
     @Override

@@ -1,26 +1,31 @@
 package com.splicemachine.derby.ddl;
 
-import com.carrotsearch.hppc.BitSet;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
-import java.io.*;
+import com.carrotsearch.hppc.BitSet;
 
 public class TentativeIndexDesc implements Externalizable {
     long conglomerateNumber;
     long baseConglomerateNumber;
     int[] indexColsToMainColMap;
     boolean unique;
+    boolean uniqueWithDuplicateNulls;
     BitSet descColumns;
 
     /** For serialization, don't use */
     public TentativeIndexDesc() {
     }
 
-    public TentativeIndexDesc(long conglomerateNumber, long baseConglomerateNumber, int[] indexColsToMainColMap, boolean unique, BitSet descColumns) {
+    public TentativeIndexDesc(long conglomerateNumber, long baseConglomerateNumber, int[] indexColsToMainColMap, boolean unique, boolean uniqueWithDuplicateNulls, BitSet descColumns) {
         super();
         this.conglomerateNumber = conglomerateNumber;
         this.baseConglomerateNumber = baseConglomerateNumber;
         this.indexColsToMainColMap = indexColsToMainColMap;
         this.unique = unique;
+        this.uniqueWithDuplicateNulls = uniqueWithDuplicateNulls;
         this.descColumns = descColumns;
     }
 
@@ -32,8 +37,10 @@ public class TentativeIndexDesc implements Externalizable {
         return indexColsToMainColMap;
     }
 
-    public boolean isUnique() {
-        return unique;
+    public boolean isUnique() { return unique; }
+
+    public boolean isUniqueWithDuplicateNulls() {
+        return uniqueWithDuplicateNulls;
     }
 
     public BitSet getDescColumns() {
@@ -50,6 +57,7 @@ public class TentativeIndexDesc implements Externalizable {
         out.writeLong(baseConglomerateNumber);
         out.writeObject(indexColsToMainColMap);
         out.writeBoolean(unique);
+        out.writeBoolean(uniqueWithDuplicateNulls);
         out.writeInt(descColumns.wlen);
         out.writeObject(descColumns.bits);
     }
@@ -60,6 +68,7 @@ public class TentativeIndexDesc implements Externalizable {
         baseConglomerateNumber = in.readLong();
         indexColsToMainColMap = (int[]) in.readObject();
         unique = in.readBoolean();
+        uniqueWithDuplicateNulls = in.readBoolean();
         int length = in.readInt();
         long[] bits = (long[]) in.readObject();
         descColumns = new BitSet(bits, length);
