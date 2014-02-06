@@ -88,8 +88,16 @@ public class IndexTransformer {
 
         BitIndex mutationIndex = mainPutDecoder.getCurrentIndex();
         MultiFieldDecoder mutationDecoder = mainPutDecoder.getEntryDecoder();
+
+        // Check for null columns in data when isUniqueWithDuplicateNulls == true
+        // -- in this case, we'll have to append a uniqueness value to the row key
+        boolean makeUniqueForDuplicateNulls = false;
+
         for (int i = mutationIndex.nextSetBit(0); i >= 0 && i <= indexedColumns.length(); i = mutationIndex.nextSetBit(i + 1)) {
             if (indexedColumns.get(i)) {
+                if (isUniqueWithDuplicateNulls && !makeUniqueForDuplicateNulls) {
+                    makeUniqueForDuplicateNulls = mainPutDecoder.nextIsNull(i);
+                }
                 ByteBuffer entry = mainPutDecoder.nextAsBuffer(mutationDecoder, i);
                 if (descColumns.get(mainColToIndexPosMap[i]))
                     accumulate(indexKeyAccumulator, mutationIndex, getDescendingBuffer(entry), i);
@@ -103,22 +111,12 @@ public class IndexTransformer {
         //add the row location to the end of the index row
         indexRowAccumulator.add((int) translatedIndexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted
                 (mutation.getRow())));
-        boolean makeUniqueForDuplicateNulls = false;
-        if (isUniqueWithDuplicateNulls) {
-            // check for null columns in index
-            // -- in this case, we'll have to append a uniqueness value to the row key
-            if (dataValueContainsNulls()) {
-                makeUniqueForDuplicateNulls = true;
-            }
-        }
+        // only make the call to check the accumulator if we have to -- if we haven't already determined
+        makeUniqueForDuplicateNulls = (isUniqueWithDuplicateNulls &&
+                (makeUniqueForDuplicateNulls || indexKeyAccumulator.getRemainingFields().cardinality() > 0));
         byte[] indexRowKey = getIndexRowKey(mutation.getRow(), (!isUnique || makeUniqueForDuplicateNulls));
         byte[] indexRowData = indexRowAccumulator.finish();
         return new KVPair(indexRowKey, indexRowData, mutation.getType());
-    }
-
-    private boolean dataValueContainsNulls() {
-        // TODO: is this enough?
-        return indexKeyAccumulator.getRemainingFields().cardinality() > 0;
     }
 
     private void accumulate(EntryAccumulator accumulator, BitIndex index, ByteBuffer buffer, int position) {
