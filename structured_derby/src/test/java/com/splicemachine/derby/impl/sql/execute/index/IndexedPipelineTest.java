@@ -1,24 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.notNull;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.MockRegion;
-import com.splicemachine.hbase.RegionCache;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.batch.RegionWriteHandler;
-import com.splicemachine.hbase.writer.*;
-import com.splicemachine.stats.Metrics;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-import com.splicemachine.tools.ResettableCountDownLatch;
-import com.splicemachine.utils.Snowflake;
-
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -30,15 +28,27 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.MockRegion;
+import com.splicemachine.hbase.RegionCache;
+import com.splicemachine.hbase.batch.PipelineWriteContext;
+import com.splicemachine.hbase.batch.RegionWriteHandler;
+import com.splicemachine.hbase.writer.BufferConfiguration;
+import com.splicemachine.hbase.writer.BulkWrite;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.PipingWriteBuffer;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.hbase.writer.WriteResult;
+import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.tools.ResettableCountDownLatch;
+import com.splicemachine.utils.Snowflake;
 
 /**
  * @author Scott Fines
@@ -511,6 +521,7 @@ public class IndexedPipelineTest {
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
         boolean unique = false;
+        boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
 
@@ -522,7 +533,7 @@ public class IndexedPipelineTest {
                 indexConglomBytes,
                 descColumns,
                 keepState,unique,
-                expectedWrites);
+                uniqueWithDuplicateNulls,expectedWrites);
 
         return writeHandler;
     }
