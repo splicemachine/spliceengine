@@ -1,21 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.batch.PipelineWriteContext;
-import com.splicemachine.hbase.writer.*;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.storage.index.BitIndexing;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -26,16 +27,22 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.batch.PipelineWriteContext;
+import com.splicemachine.hbase.writer.BufferConfiguration;
+import com.splicemachine.hbase.writer.CallBuffer;
+import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.writer.UnsafeCallBuffer;
+import com.splicemachine.hbase.writer.WriteCoordinator;
+import com.splicemachine.hbase.writer.Writer;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.BitIndexing;
 
 /**
  * @author Scott Fines
@@ -254,6 +261,7 @@ public class IndexUpsertWriteHandlerTest {
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
         boolean unique = false;
+        boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
 
@@ -262,7 +270,7 @@ public class IndexUpsertWriteHandlerTest {
                 indexConglomBytes,
                 descColumns,
                 keepState,unique,
-                expectedWrites);
+                uniqueWithDuplicateNulls,expectedWrites);
 
         return writeHandler;
     }

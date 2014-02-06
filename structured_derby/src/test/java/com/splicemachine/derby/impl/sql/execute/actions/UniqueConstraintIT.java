@@ -1,18 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 
 /**
  * @author Jeff Cunningham
@@ -25,7 +27,8 @@ public class UniqueConstraintIT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    private static List<String> tableNames = Arrays.asList("ZONING1", "ZONING2", "ZONING3", "ZONING4");
+    private static List<String> tableNames =
+            Arrays.asList("ZONING1", "ZONING2", "ZONING3", "ZONING4", "ZONING5", "ZONING6", "ZONING7");
     @Before
     public void beforeTests() throws Exception {
         for (String tableName : tableNames) {
@@ -39,14 +42,14 @@ public class UniqueConstraintIT extends SpliceUnitTest {
      * @throws Exception
      */
     @Test
-    public void testAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
+    public void testNotNullAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
         // PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE
 
         String tableName = tableNames.get(0);
         MyWatcher tableWatcher =
                 new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
 
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraint"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testNotNullAlterTableCreateUniqueConstraintWithDuplicate"));
 
         methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)",
                 this.getTableReference(tableName), this.getTableReference(tableName)));
@@ -81,6 +84,100 @@ public class UniqueConstraintIT extends SpliceUnitTest {
 
     /**
      * Bug DB-552
+     * Should not be able to alter table to create a unique constraint with non-unique values already in column
+     * The only difference between this test and the one immediately above is that the unique index column
+     * is NOT created with NOT NULL criteria.
+     * @throws Exception
+     */
+    @Test
+    public void testAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
+        // PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE
+
+        String tableName = tableNames.get(0);
+        MyWatcher tableWatcher =
+                new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraintWithDuplicate"));
+
+        methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)",
+                                                           this.getTableReference(tableName), this.getTableReference(tableName)));
+
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
+                                                           this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')",
+                                                           this.getTableReference(tableName)));
+
+        // expect exception because there are non-unique rows
+        try {
+            methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)",
+                                                               this.getTableReference(tableName), tableName+"_UC"));
+            Assert.fail("Expected exception - attempt to create a unique constraint on a table with duplicates.");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            Assert.assertTrue(e.getLocalizedMessage().contains("would have caused a duplicate key value in a unique or primary key constraint or unique index identified"));
+            Assert.assertTrue(e.getLocalizedMessage().contains(tableName));
+        }
+
+        TestUtils.tableLookupByNumber(methodWatcher);
+
+        // Prints the index (unique constraint) info
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        System.out.println(fr.toString());
+
+        // No exception. We couldn't create the unique constraint so this insert works
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'220 BOLYSTON','COND','M-1','M-8','2000-04-12')",
+                                                           this.getTableReference(tableName)));
+    }
+
+    /**
+     * Bug DB-552
+     * Should be able to alter table to create a unique constraint with non-unique NULL values already in column
+     * Table NOT created with NOT NULL criteria.
+     * @throws Exception
+     */
+    @Test
+    public void testAlterTableCreateUniqueConstraintWithDuplicateNulls() throws Exception {
+        // PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE
+
+        String tableName = tableNames.get(6);
+        MyWatcher tableWatcher =
+                new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraintWithDuplicateNulls"));
+
+        methodWatcher.getStatement().execute(format("insert into %s values (NULL,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
+                                                           this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (NULL,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')",
+                                                           this.getTableReference(tableName)));
+
+        TestUtils.tableLookupByNumber(methodWatcher);
+
+        String query = format("select * from %s", this.getTableReference(tableName));
+        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+
+        // expect exception because there are non-unique rows
+        try {
+            methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)",
+                                                               this.getTableReference(tableName), tableName+"_UC"));
+        } catch (Exception e) {
+            Assert.fail("Expected to create unique constraint on table with duplicate null values but got an exception: "+e.getLocalizedMessage());
+        }
+        // Prints the index (unique constraint) info
+        rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+        fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s values (NULL,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')",
+                                                           this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','2000-04-12')",
+                                                           this.getTableReference(tableName)));
+    }
+
+    /**
+     * Bug DB-552
      * Should not be able to insert a record with a duplicate key after unique constraint added
      * @throws Exception
      */
@@ -92,7 +189,7 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         MyWatcher tableWatcher =
                 new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
 
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraint"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraintInsertDupe"));
 
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
                 this.getTableReference(tableName)));
@@ -133,6 +230,106 @@ public class UniqueConstraintIT extends SpliceUnitTest {
     }
 
     /**
+     * Bug DB-552 - This duplicates the reproducing test defined in the bug.
+     * Should not be able to alter table add constraint when non unique rows exist.
+     * The difference between this test and the one above immediately above is that the
+     * alter table column is NOT defined with NOT NULL criteria.
+     * @throws Exception
+     */
+    @Test
+    public void testCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
+        // PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE
+
+        String tableName = tableNames.get(4);
+        MyWatcher tableWatcher =
+                new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateUniqueIndexAlterTableCreateUniqueConstraint"));
+
+        methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)",
+                tableName + "_UI", this.getTableReference(tableName)));
+        TestUtils.tableLookupByNumber(methodWatcher);
+
+        // Prints the index (unique constraint) info
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
+                this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')",
+                                                           this.getTableReference(tableName)));
+
+        String query = format("select * from %s", this.getTableReference(tableName));
+        rs = methodWatcher.getStatement().executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+
+        try {
+            methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)",
+                    this.getTableReference(tableName), tableName + "_UC"));
+        } catch (Exception e) {
+            Assert.assertTrue(e.getLocalizedMessage(), e instanceof SQLException);
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains("would have caused a duplicate key value in a unique or primary key constraint or unique index identified"));
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains(tableName));
+            // expected
+            return;
+        }
+
+        Assert.fail("Expected exception - attempt to create a unique constraint on a table with duplicates.");
+    }
+
+    /**
+     * Bug DB-552
+     * Should not be able to alter table add constraint when non unique rows exist.<br/>
+     * The difference between this test and the one above immediately above is that the
+     * alter table column is defined as NOT NULL.
+     * @throws Exception
+     */
+    @Test
+    public void tesNotNulltCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
+        // PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE
+
+        String tableName = tableNames.get(5);
+        MyWatcher tableWatcher =
+                new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
+
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "tesNotNulltCreateUniqueIndexAlterTableCreateUniqueConstraint"));
+
+        methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)",
+                tableName + "_UI", this.getTableReference(tableName)));
+        TestUtils.tableLookupByNumber(methodWatcher);
+
+        // Prints the index (unique constraint) info
+        ResultSet rs = methodWatcher.getOrCreateConnection().getMetaData().getIndexInfo(null, CLASS_NAME, tableName, false, false);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert("get table metadata", rs);
+        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')",
+                this.getTableReference(tableName)));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')",
+                this.getTableReference(tableName)));
+
+        String query = format("select * from %s", this.getTableReference(tableName));
+        rs = methodWatcher.getStatement().executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println(fr.toString());
+
+        try {
+            methodWatcher.getStatement().execute(format("alter table %s add constraint %s unique(PARCELID)",
+                    this.getTableReference(tableName), tableName + "_UC"));
+        } catch (Exception e) {
+            Assert.assertTrue(e.getLocalizedMessage(), e instanceof SQLException);
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains("would have caused a duplicate key value in a unique or primary key constraint or unique index identified"));
+            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().contains(tableName));
+            // expected
+            return;
+        }
+
+        Assert.fail("Expected exception - attempt to create a unique constraint on a table with duplicates.");
+    }
+
+    /**
      * Bug DB-552
      * Alter table created with unique constraint attempting to add same constraint
      * @throws Exception
@@ -145,7 +342,7 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         MyWatcher tableWatcher =
                 new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
 
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraint"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateTableCreateUniqueConstraintAttemptToAddConstraintAgain"));
         TestUtils.tableLookupByNumber(methodWatcher);
 
         // Prints the index (unique constraint) info
@@ -180,7 +377,7 @@ public class UniqueConstraintIT extends SpliceUnitTest {
         MyWatcher tableWatcher =
                 new MyWatcher(tableName,CLASS_NAME,"(PARCELID INTEGER UNIQUE NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
 
-        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testAlterTableCreateUniqueConstraint"));
+        tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateTableCreateUniqueConstraint"));
         TestUtils.tableLookupByNumber(methodWatcher);
 
         // Prints the index (unique constraint) info

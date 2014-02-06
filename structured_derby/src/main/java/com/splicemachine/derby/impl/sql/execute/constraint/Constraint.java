@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
-import com.splicemachine.hbase.writer.KVPair;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+
+import com.splicemachine.hbase.writer.KVPair;
 
 /**
  * A Constraint on a Table.
@@ -28,6 +30,10 @@ public interface Constraint {
          * a Unique constraint on one or more columns in a row
          */
         UNIQUE,
+        /**
+         * a Unique constraint on one or more columns in a row that allows duplicate null values in those columns
+         */
+        UNIQUE_WITH_DUPLICATE_NULLS,
         /**
          * a Foreign Key constraint, requiring a mapping between one or more columns in a row and a primary key
          * on a separate table

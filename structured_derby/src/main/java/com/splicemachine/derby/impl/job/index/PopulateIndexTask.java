@@ -1,9 +1,23 @@
 package com.splicemachine.derby.impl.job.index;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import org.apache.derby.iapi.services.io.ArrayUtil;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -28,19 +42,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import org.apache.derby.iapi.services.io.ArrayUtil;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -55,6 +56,7 @@ public class PopulateIndexTask extends ZkTask {
     private long baseConglomId;
     private int[] mainColToIndexPosMap;
     private boolean isUnique;
+    private boolean isUniqueWithDuplicateNulls;
     private BitSet indexedColumns;
     private BitSet descColumns;
 
@@ -74,11 +76,12 @@ public class PopulateIndexTask extends ZkTask {
                              int[] mainColToIndexPosMap,
                              BitSet indexedColumns,
                              boolean unique,
+                             boolean uniqueWithDuplicateNulls,
                              String jobId,
                              BitSet descColumns,
-														 String xplainSchema,
-														 long statementId,
-														 long operationId) {
+                             String xplainSchema,
+                             long statementId,
+                             long operationId) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
@@ -86,10 +89,11 @@ public class PopulateIndexTask extends ZkTask {
         this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexedColumns = indexedColumns;
         this.descColumns = descColumns;
-        isUnique = unique;
-				this.xplainSchema = xplainSchema;
-				this.statementId = statementId;
-				this.operationId = operationId;
+        this.isUnique = unique;
+        this.isUniqueWithDuplicateNulls = uniqueWithDuplicateNulls;
+        this.xplainSchema = xplainSchema;
+        this.statementId = statementId;
+        this.operationId = operationId;
     }
 
     @Override
@@ -113,6 +117,7 @@ public class PopulateIndexTask extends ZkTask {
         ArrayUtil.writeLongArray(out, indexedColumns.bits);
         ArrayUtil.writeIntArray(out, mainColToIndexPosMap);
         out.writeBoolean(isUnique);
+        out.writeBoolean(isUniqueWithDuplicateNulls);
         out.writeInt(descColumns.wlen);
         ArrayUtil.writeLongArray(out, descColumns.bits);
 				out.writeBoolean(xplainSchema!=null);
@@ -133,6 +138,7 @@ public class PopulateIndexTask extends ZkTask {
         indexedColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
         mainColToIndexPosMap = ArrayUtil.readIntArray(in);
         isUnique = in.readBoolean();
+        isUniqueWithDuplicateNulls = in.readBoolean();
         numWords = in.readInt();
         descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
 				if(in.readBoolean()){
@@ -172,7 +178,7 @@ public class PopulateIndexTask extends ZkTask {
 						try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique);
+								IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique,isUniqueWithDuplicateNulls);
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								RecordingCallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
 								try{
