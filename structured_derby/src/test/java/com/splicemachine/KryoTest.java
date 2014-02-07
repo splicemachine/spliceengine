@@ -1,14 +1,21 @@
 package com.splicemachine;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.derby.iapi.types.SQLDecimal;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -69,7 +76,7 @@ public class KryoTest  {
         Assert.assertEquals(in, out);
     }
 
-    @Test
+     @Test
     public void testSQLDecimalDecimal() throws Exception {
         SQLDecimal in = new SQLDecimal();
         in.setValue(1234.4567);
@@ -84,6 +91,24 @@ public class KryoTest  {
 
         Input input = new Input(new ByteArrayInputStream(bytes), bytes.length);
         SQLDecimal out = serializer.read(kryo, input, SQLDecimal.class);
+
+        Assert.assertNotNull(out);
+        Assert.assertEquals(in, out);
+    }
+
+    @Test
+    public void testImmutableList() throws Exception {
+        List in = Collections.unmodifiableList(Lists.newArrayList(1, 2));
+        Class<? extends List> clazz = in.getClass();
+
+        Output output = new Output(new byte[20],20);
+        kryo.writeObject(output, in);
+
+        byte[] bytes = output.toBytes();
+        Assert.assertNotNull(bytes);
+
+        Input input = new Input(new ByteArrayInputStream(bytes), bytes.length);
+        List out = kryo.readObject(input, clazz);
 
         Assert.assertNotNull(out);
         Assert.assertEquals(in, out);

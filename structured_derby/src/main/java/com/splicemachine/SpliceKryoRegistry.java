@@ -4,6 +4,10 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
+import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -15,6 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 
+import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.derby.impl.sql.execute.UserDefinedAggregator;
 
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -32,17 +37,12 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.apache.derby.catalog.types.BaseTypeIdImpl;
 import org.apache.derby.catalog.types.DecimalTypeIdImpl;
@@ -126,6 +126,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.Derb
 public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     //ExternalizableSerializers are stateless, no need to create more than we need
     private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER = new ExternalizableSerializer();
+    private static final UnmodifiableCollectionsSerializer UNMODIFIABLE_COLLECTIONS_SERIALIZER = new UnmodifiableCollectionsSerializer();
+
     @Override
     public void register(Kryo instance) {
 				/*
@@ -196,6 +198,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * which will make your deserialization code complicated and difficult,
 			   * but that's the nature of the beast.
 			   *
+			   *
+			   * CURRENT HIGHEST VALUE: 153
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -432,6 +436,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER,49);
         instance.register(ActivationSerializer.ExecRowStorage.class,EXTERNALIZABLE_SERIALIZER,50);
         instance.register(ActivationSerializer.SerializableStorage.class,EXTERNALIZABLE_SERIALIZER,51);
+        instance.register(ActivationSerializer.CachedOpFieldStorage.class,EXTERNALIZABLE_SERIALIZER,151);
 
         instance.register(SpliceObserverInstructions.class,EXTERNALIZABLE_SERIALIZER,52);
         instance.register(SpliceObserverInstructions.ActivationContext.class,EXTERNALIZABLE_SERIALIZER,53);
@@ -467,6 +472,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BroadcastLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,82);
         instance.register(DerbyOperationInformation.class,EXTERNALIZABLE_SERIALIZER,83);
         instance.register(DerbyScanInformation.class,EXTERNALIZABLE_SERIALIZER,89);
+        instance.register(CachedOperation.class,EXTERNALIZABLE_SERIALIZER,150);
 
         instance.register(PC_XenaVersion.class,EXTERNALIZABLE_SERIALIZER,84);
         instance.register(BasicUUID.class,EXTERNALIZABLE_SERIALIZER,85);
@@ -484,6 +490,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(float[].class,98);
         instance.register(long[].class,99);
         instance.register(Collections.emptyList().getClass(),100);
+        instance.register(Collections.unmodifiableList(new LinkedList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER, 152);
+        instance.register(Collections.unmodifiableList(new ArrayList()).getClass(), UNMODIFIABLE_COLLECTIONS_SERIALIZER, 153);
         instance.register(CursorInfo.class,EXTERNALIZABLE_SERIALIZER,101);
         instance.register(GenericResultDescription.class,EXTERNALIZABLE_SERIALIZER,102);
         instance.register(GenericColumnDescriptor.class,EXTERNALIZABLE_SERIALIZER,103);
