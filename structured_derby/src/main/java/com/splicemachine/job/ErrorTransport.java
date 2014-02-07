@@ -45,7 +45,9 @@ public class ErrorTransport implements Externalizable{
         out.writeBoolean(shouldRetry);
         out.writeInt(args.length);
         for(Object o:args){
-            out.writeObject(o);
+						out.writeBoolean(o!=null);
+						if(o!=null)
+								out.writeObject(o);
         }
     }
 
@@ -56,7 +58,7 @@ public class ErrorTransport implements Externalizable{
         shouldRetry = in.readBoolean();
         args = new Object[in.readInt()];
         for(int i=0;i<args.length;i++){
-            args[i] = in.readObject();
+            args[i] = in.readBoolean()? in.readObject():null;
         }
     }
 
