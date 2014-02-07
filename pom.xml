@@ -160,29 +160,6 @@
             </releases>
         </repository>
         <repository>
-            <id>mapr-releases</id>
-            <name>MapR Releases</name>
-            <url>http://repository.mapr.com/maven/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>HDPReleases</id>
-            <name>HDP Releases</name>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <url>http://repo.hortonworks.com/content/repositories/releases</url>
-            <layout>default</layout>
-        </repository>
-        <repository>
             <id>protostuff-repo</id>
             <name>protostuff-repo</name>
             <url>http://protostuff.googlecode.com/svn/repos/maven2</url>
@@ -192,10 +169,6 @@
             <url>http://www.smartclient.com/maven2/</url>
         </repository>
 
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/content/repositories/releases/</url>
-        </repository>
         <repository>
             <id>gson-repo</id>
             <url>http://google-gson.googlecode.com/svn/mavenrepo</url>
@@ -290,6 +263,18 @@
               <version>${hadoop.version}</version>
             </dependency>
           </dependencies>
+          <repositories>
+          <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/content/repositories/releases/</url>
+            <snapshots>
+              <enabled>false</enabled>
+            </snapshots>
+            <releases>
+              <enabled>true</enabled>
+            </releases>
+          </repository>
+          </repositories>
         </profile>
 
         <profile>
@@ -345,6 +330,20 @@
               <version>${hadoop.version}</version>
             </dependency>
           </dependencies>
+          <repositories>
+          <repository>
+            <id>HDPReleases</id>
+            <name>HDP Releases</name>
+            <releases>
+              <enabled>true</enabled>
+            </releases>
+            <snapshots>
+              <enabled>false</enabled>
+            </snapshots>
+            <url>http://repo.hortonworks.com/content/repositories/releases</url>
+            <layout>default</layout>
+          </repository>
+          </repositories>
         </profile>
 
         <profile>
@@ -432,6 +431,19 @@
               <version>${hadoop.version}</version>
             </dependency>
           </dependencies>
+          <repositories>
+          <repository>
+            <id>mapr-releases</id>
+            <name>MapR Releases</name>
+            <url>http://repository.mapr.com/maven/</url>
+            <snapshots>
+              <enabled>false</enabled>
+            </snapshots>
+            <releases>
+              <enabled>true</enabled>
+            </releases>
+          </repository>
+          </repositories>
         </profile>
 
         <profile>
@@ -473,6 +485,19 @@
               <version>${hadoop.version}</version>
             </dependency>
           </dependencies>
+          <repositories>
+          <repository>
+            <id>mapr-releases</id>
+            <name>MapR Releases</name>
+            <url>http://repository.mapr.com/maven/</url>
+            <snapshots>
+              <enabled>false</enabled>
+            </snapshots>
+            <releases>
+              <enabled>true</enabled>
+            </releases>
+          </repository>
+          </repositories>
         </profile>
 
         
