@@ -5,8 +5,6 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.Task;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskStatus;
-import org.apache.hadoop.mapreduce.jobhistory.JobHistoryParser;
-
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
