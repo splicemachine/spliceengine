@@ -40,8 +40,7 @@ public class CachedOperation extends SpliceBaseOperation {
 
     public CachedOperation(Activation activation, List<ExecRow> rows, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
-        //this.rows = Collections.unmodifiableList(Lists.newArrayList(rows));
-        this.rows = Lists.newArrayList(rows);
+        this.rows = Collections.unmodifiableList(Lists.newArrayList(rows));
         size = rows.size();
     }
 
