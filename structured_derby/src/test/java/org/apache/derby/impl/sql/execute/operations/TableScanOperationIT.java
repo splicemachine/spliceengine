@@ -32,7 +32,9 @@ public class TableScanOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("NT",spliceSchemaWatcher.schemaName,("(chartype123a character(3),chartype123b character(3),numeric123_1 numeric(5),numeric123_2 numeric(5))"));
     protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("T1",CLASS_NAME,"(c1 int, c2 int)");
     protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("CHICKEN",CLASS_NAME,"(c1 timestamp, c2 date, c3 time)");
-    
+    protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("CHICKEN1",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c1))");
+    protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("CHICKEN2",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c2))");
+    protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("CHICKEN3",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c3))");
     
 	@ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -42,6 +44,9 @@ public class TableScanOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher3)
             .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)            
+            .around(spliceTableWatcher6)            
+            .around(spliceTableWatcher7)            
+            .around(spliceTableWatcher8)            
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description) {
@@ -58,6 +63,10 @@ public class TableScanOperationIT extends SpliceUnitTest {
                         }
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)",CLASS_NAME,"T1"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN1"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN2"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN3"));
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -570,6 +579,36 @@ public class TableScanOperationIT extends SpliceUnitTest {
     @Test
     public void testScanOfTimeQualifiedByString() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c3 = '00:00:00'",spliceTableWatcher5));
+        int count =0;
+        while(rs.next()){
+            count++;
+        }
+        Assert.assertEquals("Incorrect count returned!",1,count);
+    }
+
+    @Test
+    public void testScanOfTimestampPrimaryKeyQualifiedByString() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c1 = '2012-05-01 00:00:00.0'",spliceTableWatcher6));
+        int count =0;
+        while(rs.next()){
+            count++;
+        }
+        Assert.assertEquals("Incorrect count returned!",1,count);
+    }
+
+    @Test
+    public void testScanOfDatePrimaryKeyQualifiedByString() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c2 = '2010-01-01'",spliceTableWatcher7));
+        int count =0;
+        while(rs.next()){
+            count++;
+        }
+        Assert.assertEquals("Incorrect count returned!",1,count);
+    }
+
+    @Test
+    public void testScanOfTimePrimaryKeyQualifiedByString() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s where c3 = '00:00:00'",spliceTableWatcher8));
         int count =0;
         while(rs.next()){
             count++;

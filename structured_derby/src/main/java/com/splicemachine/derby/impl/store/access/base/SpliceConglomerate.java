@@ -28,6 +28,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	protected ContainerKey id;
 	protected int[]    format_ids;
 	protected int[]   collation_ids;
+	protected int[] columnOrdering; // Primary Key Information
 	protected boolean hasCollatedTypes;
 	protected long nextContainerId = System.currentTimeMillis();
 	protected long containerId;
@@ -51,6 +52,14 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 			if (minimumRecordSize < RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT) {
 				properties.put(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER,Integer.toString(RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT));
 			}
+		}
+		if (columnOrder != null) {
+			columnOrdering = new int[columnOrder.length];
+			for (int i=0;i<columnOrder.length;i++) {
+				columnOrdering[i] = columnOrder[i].getColumnId();
+			}
+		} else {
+			columnOrdering = new int[0];
 		}
 		containerId = input_containerid;
 		id = new ContainerKey(segmentId, containerId);
@@ -126,12 +135,20 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
 	public String toString() {
 		return (id == null) ? "null" : id.toString();
 	}
-
+	
+	public int[] getColumnOrdering() {
+		return columnOrdering;
+	}
+	public void setColumnOrdering(int[] columnOrdering) {
+		this.columnOrdering = columnOrdering;
+	}
 	public abstract int getBaseMemoryUsage();
 	public abstract int getContainerKeyMemoryUsage();
 	public abstract void writeExternal(ObjectOutput out) throws IOException;
 	public abstract void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
 	public abstract int getTypeFormatId();
+	
+	
 
 
 }

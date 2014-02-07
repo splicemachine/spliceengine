@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.derby.catalog.UUID;
@@ -18,8 +20,10 @@ import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.store.access.ColumnOrdering;
 import org.apache.derby.iapi.store.access.TransactionController;
 import org.apache.derby.impl.sql.execute.ColumnInfo;
+import org.apache.derby.impl.sql.execute.IndexColumnOrder;
 import org.apache.derby.impl.sql.execute.RowUtil;
 import org.apache.log4j.Logger;
 
@@ -123,9 +127,27 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         //   o create array of collation id's to tell collation id of each
         //     column in table.
 		template            = RowUtil.getEmptyValueRow(columnInfo.length, lcc);
+
+		
+		
         int[] collation_ids = new int[columnInfo.length];
-		for (int ix = 0; ix < columnInfo.length; ix++) {
+
+		List<String> pkColumnNames = null;
+		ColumnOrdering[] columnOrdering = null;
+		if (constraintActions != null) {
+	        for(CreateConstraintConstantOperation constantAction:constraintActions){
+	            if(constantAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT){
+	            	pkColumnNames = Arrays.asList(constantAction.columnNames);
+	            	columnOrdering = new IndexColumnOrder[pkColumnNames.size()];
+	            }
+	        }
+		}
+        
+        for (int ix = 0; ix < columnInfo.length; ix++) {
             ColumnInfo  col_info = columnInfo[ix];
+            if (pkColumnNames != null && columnOrdering != null && pkColumnNames.contains(col_info.name)) {
+            	columnOrdering[pkColumnNames.indexOf(col_info.name)] = new IndexColumnOrder(ix);
+            }
             // Get a template value for each column
 			if (col_info.defaultValue != null) {
                 /* If there is a default value, use it, otherwise use null */
@@ -138,7 +160,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             collation_ids[ix] = col_info.dataType.getCollationType();
 		}
 
-
 		/* create the conglomerate to hold the table's rows
 		 * RESOLVE - If we ever have a conglomerate creator
 		 * that lets us specify the conglomerate number then
@@ -147,7 +168,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 		long conglomId = tc.createConglomerate(
 				"heap", // we're requesting a heap conglomerate
 				template.getRowArray(), // row template
-				null, //column sort order - not required for heap
+				columnOrdering, //column sort order - not required for heap
                 collation_ids,
 				properties, // properties
 				tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?

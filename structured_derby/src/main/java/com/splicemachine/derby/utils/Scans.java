@@ -2,26 +2,32 @@ package com.splicemachine.derby.utils;
 
 import java.io.IOException;
 import java.util.Comparator;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
+
 import org.apache.hadoop.hbase.util.Pair;
 
 /**
@@ -164,13 +170,14 @@ public class Scans extends SpliceUtils {
 																 Qualifier[][] qualifiers,
 																 boolean[] sortOrder,
 																 FormatableBitSet scanColumnList,
-																 String transactionId,boolean sameStartStopPosition) throws StandardException {
+																 String transactionId,boolean sameStartStopPosition, 
+																 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
 				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,
 										stopKeyValue, stopSearchOperator,
-										qualifiers, scanColumnList, sortOrder,sameStartStopPosition);
+										qualifiers, scanColumnList, sortOrder,sameStartStopPosition, formatIds, columnOrdering, dataValueFactory);
 
 						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
 				}catch(IOException e){
@@ -489,19 +496,37 @@ public class Scans extends SpliceUtils {
 																			 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
 																			 Qualifier[][] qualifiers,
 																			 FormatableBitSet scanColumnList,
-																			 boolean[] sortOrder,boolean sameStartStopPosition) throws IOException {
+																			 boolean[] sortOrder,boolean sameStartStopPosition, 
+																			 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws IOException {
 				if(scanColumnList!=null && (scanColumnList.anySetBit() != -1)) {
 						scan.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY);
 				}
-				try{
+				try{						
+						
+						// Determines whether we can generate a key and also handles type conversion...
+					
 						boolean generateKey = true;
 						if(startKeyValue!=null && stopKeyValue!=null){
-								for(DataValueDescriptor startDesc: startKeyValue){
-										if(startDesc ==null || startDesc.isNull()){
-												generateKey=false;
-												break;
-										}
+							for (int i=0;i<startKeyValue.length;i++) {
+								DataValueDescriptor startDesc = startKeyValue[i];
+								if(startDesc ==null || startDesc.isNull()){
+									generateKey=false;
+									break;
 								}
+								if (columnOrdering != null && columnOrdering.length > 0 && 
+										startDesc.getTypeFormatId() != formatIds[columnOrdering[i]]) {
+									startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc,formatIds[columnOrdering[i]],dataValueFactory);
+								}
+							}
+							
+							for (int i=0;i<stopKeyValue.length;i++) {
+								DataValueDescriptor stopDesc = stopKeyValue[i];
+								if (columnOrdering != null && columnOrdering.length > 0 && 
+										stopDesc.getTypeFormatId() != formatIds[columnOrdering[i]]) {
+									stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc,formatIds[columnOrdering[i]],dataValueFactory);
+								}
+							}
+							
 						}
 
 						if(generateKey){

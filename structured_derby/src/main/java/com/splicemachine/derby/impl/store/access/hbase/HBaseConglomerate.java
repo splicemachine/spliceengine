@@ -388,14 +388,16 @@ public class HBaseConglomerate extends SpliceConglomerate {
      * <p>
      **/
 	public void writeExternal(ObjectOutput out) throws IOException {
-        FormatIdUtil.writeFormatIdInteger(out, this.getTypeFormatId());
+        FormatIdUtil.writeFormatIdInteger(out, conglom_format_id);
 		out.writeInt((int) id.getSegmentId());
         out.writeLong(id.getContainerId());
         out.writeInt(format_ids.length);
         ConglomerateUtil.writeFormatIdArray(format_ids, out); 
         out.writeInt(collation_ids.length);
         ConglomerateUtil.writeFormatIdArray(collation_ids, out); 
-    }
+        out.writeInt(columnOrdering.length);
+        ConglomerateUtil.writeFormatIdArray(columnOrdering, out); 
+	}
 
     /**
      * Restore the in-memory representation from the stream.
@@ -411,7 +413,7 @@ public class HBaseConglomerate extends SpliceConglomerate {
 		throws IOException, ClassNotFoundException {
 //        SpliceLogUtils.trace(LOG,"localReadExternal");
         // read the format id of this conglomerate.
-        FormatIdUtil.readFormatIdInteger(in);
+		conglom_format_id = FormatIdUtil.readFormatIdInteger(in);
 		int segmentid = in.readInt();
         long containerid = in.readLong();
 		id = new ContainerKey(segmentid, containerid);
@@ -422,6 +424,8 @@ public class HBaseConglomerate extends SpliceConglomerate {
         this.conglom_format_id = getTypeFormatId();
         num_columns = in.readInt();
         collation_ids = ConglomerateUtil.readFormatIdArray(num_columns, in);
+        num_columns = in.readInt();
+        columnOrdering = ConglomerateUtil.readFormatIdArray(num_columns, in);
     }
 
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

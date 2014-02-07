@@ -189,7 +189,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 accessedCols,
-                txnId,sameStartStop);
+                txnId,sameStartStop,
+                conglomerate.getFormat_ids(),conglomerate.getColumnOrdering(), activation.getDataValueFactory());
     }
 
     @Override

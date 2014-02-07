@@ -9,16 +9,13 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
  *         Created on: 10/1/13
  */
-class QualifierUtils {
+public class QualifierUtils {
 
     private QualifierUtils(){}
 
@@ -48,6 +45,20 @@ class QualifierUtils {
         }else return qualifier; //nothing to do
     }
     
+    public static DataValueDescriptor adjustDataValueDescriptor(DataValueDescriptor dvd, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+        if(isFloatType(columnFormat)){
+            return convertFloatingPoint(dvd,columnFormat,dataValueFactory);
+        }else if(isScalarType(columnFormat)){
+            return convertScalar(dvd,columnFormat,dataValueFactory);
+        }else if(isTimestamp(columnFormat)){
+            return convertTimestamp(dvd,columnFormat,dataValueFactory);
+        }else if(isDate(columnFormat)){
+            return convertDate(dvd,columnFormat,dataValueFactory);
+        }else if(isTime(columnFormat)){
+            return convertTime(dvd,columnFormat,dataValueFactory);            
+        }else return dvd; //nothing to do
+    }
+    
     private static Qualifier reTypeQualifier(Qualifier qualifier,DataValueDescriptor correctType) {
     	if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
@@ -71,32 +82,39 @@ class QualifierUtils {
     }
     
     private static Qualifier convertTime(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        DataValueDescriptor dvd = qualifier.getOrderable();
-        DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
-        correctType.setValue(dvd.getTime(new GregorianCalendar()));
-        return reTypeQualifier(qualifier,correctType);
+        return reTypeQualifier(qualifier,convertTime(qualifier.getOrderable(),columnFormat,dataValueFactory));
     }
 
+    private static DataValueDescriptor convertTime(DataValueDescriptor dvd, int correctColumnFormat, DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor correctType = dataValueFactory.getNull(correctColumnFormat, -1);
+        correctType.setValue(dvd.getTime(new GregorianCalendar()));
+        return correctType;
+    }
    
     private static Qualifier convertDate(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        DataValueDescriptor dvd = qualifier.getOrderable();
-        DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
-        correctType.setValue(dvd.getDate(new GregorianCalendar()));
-        return reTypeQualifier(qualifier,correctType);
+        return reTypeQualifier(qualifier,convertDate(qualifier.getOrderable(),columnFormat,dataValueFactory));
     }
-    
+
+    private static DataValueDescriptor convertDate(DataValueDescriptor dvd, int correctColumnFormat, DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor correctType = dataValueFactory.getNull(correctColumnFormat, -1);
+        correctType.setValue(dvd.getDate(new GregorianCalendar()));
+        return correctType;
+    }
+
     
     private static Qualifier convertTimestamp(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        DataValueDescriptor dvd = qualifier.getOrderable();
-        DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat, -1);
-        correctType.setValue(dvd.getTimestamp(new GregorianCalendar()));
-        return reTypeQualifier(qualifier,correctType);
+        return reTypeQualifier(qualifier,convertTimestamp(qualifier.getOrderable(),columnFormat,dataValueFactory));
     }
     
+    private static DataValueDescriptor convertTimestamp(DataValueDescriptor dvd, int correctColumnFormat, DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor correctType = dataValueFactory.getNull(correctColumnFormat, -1);
+        correctType.setValue(dvd.getTimestamp(new GregorianCalendar()));
+        return correctType;
+    }
 
-    private static Qualifier convertScalar(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        DataValueDescriptor dvd = qualifier.getOrderable();
-        /*
+
+    private static DataValueDescriptor convertScalar(DataValueDescriptor dvd, int columnFormat, DataValueFactory dataValueFactory) throws StandardException {
+    	 /*
          * Technically, all Scalar types encode the same way. However, that's an implementation
          * detail which may change in the future (particularly with regards to small data types,
          * like TINYINT which can serialize more compactly while retaining order characteristics).
@@ -150,7 +168,11 @@ class QualifierUtils {
         else if(value < minValue)
             value = minValue;
         correctType.setValue(value);
-
+        return correctType;
+    }
+    
+    private static Qualifier convertScalar(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor correctType = convertScalar(qualifier.getOrderable(), columnFormat,dataValueFactory);
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
                     correctType,
@@ -198,14 +220,8 @@ class QualifierUtils {
                 || columnFormat==StoredFormatIds.SQL_LONGINT_ID);
     }
 
-    private static Qualifier convertFloatingPoint(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
-        DataValueDescriptor dvd = qualifier.getOrderable();
-        /*
-         * We must check for overflow amongst decimal types, but we don't need to worry about overflowing
-         * from scalar types.
-         */
+    private static DataValueDescriptor convertFloatingPoint(DataValueDescriptor dvd, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
         DataValueDescriptor correctType = dataValueFactory.getNull(columnFormat,-1);
-
         int currentTypeFormatId= dvd.getTypeFormatId();
         if(isScalarType(currentTypeFormatId)){
             //getLong() runs no risk of overflow from a scalar type, so we can set it and be done
@@ -253,11 +269,21 @@ class QualifierUtils {
                     else
                         value = val.doubleValue();
                 }else{
-                    return qualifier;
+                	value = val.doubleValue(); // hmm this could be wrong
                 }
                 correctType.setValue(value);
             }
         }
+        return correctType;
+    }
+
+    
+    private static Qualifier convertFloatingPoint(Qualifier qualifier, int columnFormat,DataValueFactory dataValueFactory) throws StandardException {
+        DataValueDescriptor correctType = convertFloatingPoint(qualifier.getOrderable(), columnFormat, dataValueFactory);
+        /*
+         * We must check for overflow amongst decimal types, but we don't need to worry about overflowing
+         * from scalar types.
+         */
         if(qualifier instanceof ScanQualifier){
             ((ScanQualifier)qualifier).setQualifier(qualifier.getColumnId(),
                     correctType,

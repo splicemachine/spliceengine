@@ -17,6 +17,7 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.store.access.BackingStoreHashtable;
@@ -26,6 +27,7 @@ import org.apache.derby.iapi.store.access.ScanInfo;
 import org.apache.derby.iapi.store.access.conglomerate.ScanManager;
 import org.apache.derby.iapi.store.raw.Transaction;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.DataValueFactory;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
@@ -157,7 +159,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).getAscDescInfo();
 				boolean sameStartStop = isSameStartStop(startKeyValue,startSearchOperator,stopKeyValue,stopSearchOperator);
             scan = Scans.setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifier,
-                    sortOrder, scanColumnList, transID,sameStartStop);
+                    sortOrder, scanColumnList, transID,sameStartStop,((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).format_ids, ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering, (DataValueFactory) null);
 		} catch (Exception e) {
 			LOG.error("Exception creating start key");
 			throw new RuntimeException(e);
