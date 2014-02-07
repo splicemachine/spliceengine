@@ -2,6 +2,7 @@ package com.splicemachine.derby.management;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import org.apache.log4j.Logger;
 
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  * Date: 1/6/14
  */
 public class StatementManager implements StatementManagement{
+    private static Logger LOG = Logger.getLogger(StatementManager.class);
 		private final Set<StatementInfo> executingStatements =
 						Collections.newSetFromMap(new ConcurrentHashMap<StatementInfo, Boolean>());
 
@@ -37,6 +39,11 @@ public class StatementManager implements StatementManagement{
 
 		public void addStatementInfo(StatementInfo statementInfo){
 				executingStatements.add(statementInfo);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Adding stmt %s to executings, size %s",
+                                               statementInfo.getStatementUuid(),
+                                               executingStatements.size()));
+            }
 		}
 
 		public void completedStatement(StatementInfo statementInfo,String xplainSchema){
@@ -44,6 +51,11 @@ public class StatementManager implements StatementManagement{
 				int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
 				completedStatements.set(position, statementInfo);
 				executingStatements.remove(statementInfo);
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Completing stmt %s, executings size %s",
+                                               statementInfo.getStatementUuid(),
+                                               executingStatements.size()));
+            }
 				if(xplainSchema!=null){
 						statementReporter.report(xplainSchema, statementInfo);
 						Set<OperationInfo> operationInfo = statementInfo.getOperationInfo();
