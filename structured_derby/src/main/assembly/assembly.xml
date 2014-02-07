@@ -29,6 +29,7 @@
         <include>com.esotericsoftware.kryo:kryo</include>
         <include>com.carrotsearch:hppc</include>
         <include>org.apache.lucene:lucene-core</include>
+        <include>de.javakaffee:kryo-serializers</include>
       </includes>
     </dependencySet>
   </dependencySets>
