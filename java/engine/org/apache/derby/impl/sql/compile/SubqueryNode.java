@@ -1985,11 +1985,11 @@ public class SubqueryNode extends ValueNode
 			{
 				/* We try to materialize the subquery if it can fit in the memory.  We
 				 * evaluate the subquery first.  If the result set fits in the memory,
-				 * we replace the resultset with in-memory unions of row result sets.
+				 * we replace the resultset with in-memory cache of row result sets.
 				 * We do this trick by replacing the child result with a new node --
-				 * MaterializeSubqueryNode, which essentially generates the suitable
-				 * code to materialize the subquery if possible.  This may have big
-				 * performance improvement.  See beetle 4373.
+				 * MaterializeSubqueryNode, which refers to the field that holds the
+				 * possibly materialized subquery.  This may have big performance 
+             * improvement.  See beetle 4373.
 				 */
 				if (SanityManager.DEBUG)
 				{
@@ -2006,6 +2006,7 @@ public class SubqueryNode extends ValueNode
 
 				((ProjectRestrictNode) resultSet).setChildResult(materialSubNode);
 
+            // add materialize...() call to execute() method
             subNode.generate(acb, executeMB);
             executeMB.setField(subRS);
 
@@ -2137,6 +2138,7 @@ public class SubqueryNode extends ValueNode
 		/* Generate the declarations */ // PUSHCOMPILE
 		//VariableDeclaration colVar = mb.addVariableDeclaration(subqueryTypeString);
 		//VariableDeclaration rVar   = mb.addVariableDeclaration(ClassName.ExecRow);
+        LocalField colVar = acb.newFieldDeclaration(Modifier.PRIVATE, subqueryTypeString);
 
 		if (!isMaterializable())
 		{
@@ -2168,6 +2170,7 @@ public class SubqueryNode extends ValueNode
 		mb.push(1); // both the Row interface and columnId are 1-based
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn", ClassName.DataValueDescriptor, 1);
 		mb.cast(subqueryTypeString);
+      mb.setField(colVar);
 		//mb.putVariable(colVar);
 		//mb.endStatement();
 
@@ -2175,15 +2178,32 @@ public class SubqueryNode extends ValueNode
 		 * subqueries.  All others will be closed when the
 		 * close() method is called on the top ResultSet.
 		 */
-		if (isMaterializable())
+      /* Splice addition: add close() for *all* subqueries. This seems correct in general,
+       * & Splice was having trouble closing subqueries from the top RS.
+       */
+		if (true || isMaterializable())
 		{
 			/* rs.close() */
 			mb.getField(rsFieldLF);
 			mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ResultSet, "close", "void", 0);
-		}
+		} else {
+         /* Unused Splice addition:
+          * close non-materialized subqueries (i.e. those which have possibly been cached 
+          * with a call to materializeResultSetIfPossible) when the activation closes. This
+          * attempted as a (probably premature) optimization to avoid costs of closing subqueries
+          * which execute many times.
+          */
+         MethodBuilder closeMB = acb.getCloseActivationMethod();
+         closeMB.getField(rsFieldLF);
+         closeMB.conditionalIfNull();
+         closeMB.startElseCode();
+         closeMB.getField(rsFieldLF);
+         closeMB.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ResultSet, "close", "void", 0);
+         closeMB.completeConditional();
+      }
 
 		/* return col */
-		//mb.getVariable(colVar);
+      mb.getField(colVar);
 		mb.methodReturn();
 		mb.complete();
 

@@ -48,6 +48,8 @@ class MaterializeSubqueryNode extends ResultSetNode
 						 MethodBuilder mb)
 		throws StandardException
 	{
+		// Simply return reference to field, which has been populated in the
+		// execute() method (per SubqueryNode logic)
 		mb.getField(lf);
 	}
 
