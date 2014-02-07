@@ -4,13 +4,17 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.sql.Activation;
 import org.apache.log4j.Logger;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
@@ -27,26 +31,21 @@ import java.util.concurrent.*;
  *         Created on: 6/26/13
  */
 public class OperationTree {
-    private static Logger LOG = Logger.getLogger(OperationTree.class);
-    private final ThreadPoolExecutor levelExecutor;
+    private static final Logger LOG = Logger.getLogger(OperationTree.class);
+    private static final ThreadPoolExecutor levelExecutor;
 
-    private OperationTree(ThreadPoolExecutor levelExecutor) {
-        this.levelExecutor = levelExecutor;
-    }
-
-    public static OperationTree create(int maxThreads){
+    static {
         ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("operation-shuffle-pool-%d")
                                         .setDaemon(true).build();
 
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(maxThreads,
-                maxThreads,60, TimeUnit.SECONDS,
+        levelExecutor = new ThreadPoolExecutor(SpliceConstants.maxTreeThreads,
+                SpliceConstants.maxTreeThreads, 60, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),factory,
          new ThreadPoolExecutor.CallerRunsPolicy());
 
-        return new OperationTree(executor);
     }
 
-    public SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
+    public static SpliceNoPutResultSet executeTree(SpliceOperation operation, final SpliceRuntimeContext runtimeContext) throws StandardException{
         //first form the level Map
         NavigableMap<Integer,List<SpliceOperation>> levelMap = split(operation);
         if (LOG.isDebugEnabled())
@@ -54,7 +53,7 @@ public class OperationTree {
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
         //since we need to execute from bottom up, we go in descending order
-				long statementUuid = runtimeContext.getStatementInfo().getStatementUuid();
+        long statementUuid = runtimeContext.getStatementInfo().getStatementUuid();
         for(Integer level:levelMap.descendingKeySet()){
             List<SpliceOperation> levelOps = levelMap.get(level);
             if(levelOps.size()>1){
@@ -92,7 +91,7 @@ public class OperationTree {
         return operation.executeScan(runtimeContext);
     }
 
-    private NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
+    private static NavigableMap<Integer, List<SpliceOperation>> split(SpliceOperation parentOperation) {
         NavigableMap<Integer,List<SpliceOperation>> levelMap = Maps.newTreeMap();
         if(parentOperation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
             levelMap.put(0, Arrays.asList(parentOperation));
@@ -100,7 +99,7 @@ public class OperationTree {
         return levelMap;
     }
 
-    private void split(SpliceOperation parentOp,NavigableMap<Integer,List<SpliceOperation>> levelMap, int level){
+    private static void split(SpliceOperation parentOp,NavigableMap<Integer,List<SpliceOperation>> levelMap, int level){
         List<SpliceOperation> levelOps = levelMap.get(level);
         List<SpliceOperation> children = parentOp.getSubOperations();
         for(SpliceOperation child:children){
@@ -115,7 +114,7 @@ public class OperationTree {
         }
     }
 
-		public int getNumSinks(SpliceOperation topOperation) {
+		public static int getNumSinks(SpliceOperation topOperation) {
 				List<SpliceOperation> children = topOperation.getSubOperations();
 				int numSinks = 0;
 				for(SpliceOperation child:children){
