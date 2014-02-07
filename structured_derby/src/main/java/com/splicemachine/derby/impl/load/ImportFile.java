@@ -3,15 +3,19 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.utils.SpliceUtils;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+
 import javax.annotation.Nullable;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +32,45 @@ import java.util.List;
  * Date: 11/12/13
  */
 class ImportFile {
+		private static String IS_DIRECTORY = "isDirectory";
+		private static String IS_DIR = "isDir";
+		private static Directory directory;
+		private interface Directory {
+			boolean isDirectory(FileStatus fileStatus) throws IOException;
+		}
+	
+		static {
+				try {
+				FileStatus.class.getMethod(IS_DIRECTORY, null); 
+				directory = new Directory() {
+						@Override
+						public boolean isDirectory(FileStatus fileStatus) throws IOException {
+							try {
+								Method method = fileStatus.getClass().getMethod(IS_DIRECTORY, null);
+								return (Boolean) method.invoke(fileStatus, null);
+							} catch (Exception e) {
+								throw new IOException("Error with Hadoop Version, directory lookup off",e);
+							}
+						}
+						
+					};
+				}
+				catch (NoSuchMethodException e) {
+					directory = new Directory() {
+						@Override
+						public boolean isDirectory(FileStatus fileStatus) throws IOException {
+							try {
+								Method method = fileStatus.getClass().getMethod(IS_DIR, null);
+								return (Boolean) method.invoke(fileStatus, null);
+							} catch (Exception e) {
+								throw new IOException("Error with Hadoop Version, directory lookup off",e);
+								
+							}
+						}
+					};
+				}			
+		}
+		
 		private static final Logger LOG = Logger.getLogger(ImportFile.class);
 
 		private final String inputPath;
@@ -107,7 +150,7 @@ class ImportFile {
 								errors.add(p);
 						} else {
 								for (FileStatus globStat : matches) {
-										if (globStat.isDirectory()) {
+										if (directory.isDirectory(globStat)) {
 												Collections.addAll(result, fs.listStatus(globStat.getPath(), inputFilter));
 										} else {
 												result.add(globStat);
