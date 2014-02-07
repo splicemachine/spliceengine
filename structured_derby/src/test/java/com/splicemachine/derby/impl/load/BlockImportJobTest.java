@@ -90,7 +90,7 @@ public class BlockImportJobTest {
             for(int n=0;n<3;n++){
                 hosts[n] = "192.168.1."+Integer.toString(serverPos%5);
             }
-            blocks[i] = new BlockLocation(names,hosts,offset,length,false);
+            blocks[i] = new BlockLocation(names,hosts,offset,length);
             offset+=length+1;
         }
 
