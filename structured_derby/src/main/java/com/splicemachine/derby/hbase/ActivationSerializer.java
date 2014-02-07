@@ -2,6 +2,10 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
+import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.Activation;
@@ -62,7 +66,7 @@ public class ActivationSerializer {
 
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
-//        factories.add(new OperationFieldFactory());
+        factories.add(new CachedOpFieldFactory());
 
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
@@ -108,7 +112,6 @@ public class ActivationSerializer {
         void visit(Field field,Map<String,FieldStorage> storageMap) throws IllegalAccessException {
             //TODO -sf- cleaner way of removing fields we don't want to serialize?
             if(isQualifierType(field.getType())) return; //ignore qualifiers
-            else if(ResultSet.class.isAssignableFrom(field.getType())) return; //serialize operations elsewhere
             else if(ParameterValueSet.class.isAssignableFrom(field.getType())) return;
             else if(ResultDescription.class.isAssignableFrom(field.getType())) return;
 
@@ -397,6 +400,54 @@ public class ActivationSerializer {
             this.data = (ArrayFieldStorage)in.readObject();
         }
     }
+
+
+    public static class CachedOpFieldFactory implements FieldStorageFactory<CachedOpFieldStorage> {
+
+        @Override
+        public CachedOpFieldStorage create(Object objectToStore, @SuppressWarnings("rawtypes") Class type) {
+            return new CachedOpFieldStorage(((ConversionResultSet)objectToStore).getOperation());
+        }
+
+        @Override
+        public boolean isType(Object instance, Class type) {
+            return instance instanceof ConversionResultSet &&
+                           ((ConversionResultSet) instance).getOperation() instanceof CachedOperation;
+        }
+    }
+
+
+    public static class CachedOpFieldStorage implements FieldStorage {
+        private static final long serialVersionUID = 1l;
+
+        private SpliceOperation operation;
+
+        @Deprecated
+        public CachedOpFieldStorage() {
+        }
+
+        public CachedOpFieldStorage(SpliceOperation operation) {
+            this.operation = operation;
+        }
+
+        @Override
+        public Object getValue(Activation context) throws StandardException {
+            ConversionResultSet crs = new ConversionResultSet(operation);
+            crs.setActivation(context);
+            return crs;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeObject(operation);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            this.operation = (SpliceOperation) in.readObject();
+        }
+    }
+
 
     private static class SerializableFactory implements FieldStorageFactory<SerializableStorage>{
 
