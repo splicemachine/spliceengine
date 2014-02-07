@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
@@ -20,18 +19,15 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.GenericResultSetFactory;
 import org.apache.log4j.Logger;
 
+import java.util.List;
+
 public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 	private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 //	HTablePool htablePool = new HTablePool();
 
-    private final OperationTree treeManager;
-
 	public SpliceGenericResultSetFactory() {
 		super();
 		SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
-        int maxTreeThreads = SpliceConstants.maxTreeThreads;
-
-        treeManager = OperationTree.create(maxTreeThreads);
     }
 
     @Override
@@ -50,7 +46,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     pointOfAttachment,optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            OperationResultSet operationResultSet =  new OperationResultSet(source.getActivation(),treeManager,anyOp);
+            OperationResultSet operationResultSet =  new OperationResultSet(source.getActivation(),anyOp);
             operationResultSet.markAsTopResultSet();
             return operationResultSet;
         }catch(Exception e){
@@ -71,7 +67,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     resultSetNumber, subqueryNumber, pointOfAttachment,
                     optimizerEstimatedRowCount, optimizerEstimatedCost);
 
-            OperationResultSet operationResultSet = new OperationResultSet(source.getActivation(),treeManager,op);
+            OperationResultSet operationResultSet = new OperationResultSet(source.getActivation(),op);
             operationResultSet.markAsTopResultSet();
             return operationResultSet;
         }catch(Exception e){
@@ -144,7 +140,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     doesProjection,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -175,7 +171,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				   optimizerEstimatedCost,
 				   userSuppliedOptimizerOverrides);
 
-        return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+        return new OperationResultSet(leftResultSet.getActivation(),op);
 	}
 	
 	@Override
@@ -242,7 +238,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(activation,treeManager,op);
+            return new OperationResultSet(activation,op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -279,7 +275,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,newOp);
+            return new OperationResultSet(leftResultSet.getActivation(),newOp);
         }catch(Exception e){
             if(e instanceof StandardException) throw (StandardException)e;
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
@@ -294,7 +290,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             SpliceLogUtils.trace(LOG, "getScrollInsensitiveResultSet");
             ConvertedResultSet opSet = (ConvertedResultSet)source;
-            OperationResultSet op = new OperationResultSet(activation,treeManager,opSet.getOperation());
+            OperationResultSet op = new OperationResultSet(activation,opSet.getOperation());
             op.markAsTopResultSet();
             return op;
         }catch(Exception e){
@@ -359,7 +355,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(activation,treeManager,baseOp);
+            return new OperationResultSet(activation,baseOp);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -425,7 +421,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(activation,treeManager,op);
+            return new OperationResultSet(activation,op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -462,7 +458,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -481,7 +477,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, isRollup);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -507,7 +503,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             if(e instanceof StandardException) throw (StandardException)e;
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
@@ -534,7 +530,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             if(e instanceof StandardException) throw (StandardException)e;
             throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
@@ -557,7 +553,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     resultSetNumber,
                     optimizerEstimatedRowCount,optimizerEstimatedCost);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -593,6 +589,18 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             return null;
         }
     }
+
+    @Override
+    public NoPutResultSet getCachedResultSet(Activation activation, List rows, int resultSetNumber) throws StandardException {
+       try {
+           SpliceOperation op = new CachedOperation(activation, (List<ExecRow>)rows, resultSetNumber);
+           return new ConversionResultSet(op, activation);
+       } catch (StandardException e) {
+           SpliceLogUtils.logAndThrowRuntime(LOG, "Cannot get Cached Result Set", e);
+           return null;
+       }
+    }
+
 	@Override
 	public NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
 			int resultSetNumber, int erdNumber,
@@ -645,7 +653,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     isolationLevel,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
-            return new OperationResultSet(activation,treeManager,op);
+            return new OperationResultSet(activation,op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -676,7 +684,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -762,7 +770,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(activation,treeManager,op);
+            return new OperationResultSet(activation,op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -843,7 +851,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -868,7 +876,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, isRollup);
 
-            return new OperationResultSet(source.getActivation(),treeManager,op);
+            return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -900,7 +908,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -932,7 +940,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -964,7 +972,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     optimizerEstimatedCost,
                     userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -987,7 +995,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1010,7 +1018,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1033,7 +1041,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1057,7 +1065,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     oneRowRightSide, notExistsRightSide, optimizerEstimatedRowCount,
                     optimizerEstimatedCost, userSuppliedOptimizerOverrides);
 
-            return new OperationResultSet(leftResultSet.getActivation(),treeManager,op);
+            return new OperationResultSet(leftResultSet.getActivation(),op);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1081,7 +1089,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             SpliceLogUtils.trace(LOG, "getMiscResultSet");
             SpliceOperation top = new MiscOperation(activation);
             top.markAsTopResultSet();
-            return new OperationResultSet(activation,treeManager,top);
+            return new OperationResultSet(activation,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1094,7 +1102,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             SpliceOperation top = new CallStatementOperation(methodCall, activation);
             top.markAsTopResultSet();
-            return new OperationResultSet(activation,treeManager,top);
+            return new OperationResultSet(activation,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1107,7 +1115,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             SpliceOperation top = new SetTransactionOperation(activation);
             top.markAsTopResultSet();
-            return new OperationResultSet(activation,treeManager,top);
+            return new OperationResultSet(activation,top);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -1121,7 +1129,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM);
 
-            OperationResultSet opSet = new OperationResultSet(source.getActivation(),treeManager,top);
+            OperationResultSet opSet = new OperationResultSet(source.getActivation(),top);
             opSet.markAsTopResultSet();
             return opSet;
         }catch(Exception e){
@@ -1136,7 +1144,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation());
 
-            OperationResultSet resultSet = new OperationResultSet(source.getActivation(),treeManager,top);
+            OperationResultSet resultSet = new OperationResultSet(source.getActivation(),top);
             resultSet.markAsTopResultSet();
             return resultSet;
         }catch(Exception e){
@@ -1151,7 +1159,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top = new DeleteOperation(below.getOperation(), source.getActivation());
 
-            OperationResultSet opResultSet = new OperationResultSet(source.getActivation(),treeManager,top);
+            OperationResultSet opResultSet = new OperationResultSet(source.getActivation(),top);
             opResultSet.markAsTopResultSet();
             return opResultSet;
         }catch(Exception e){
@@ -1189,7 +1197,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 				optimizerEstimatedRowCount,
 				optimizerEstimatedCost);
 
-        return new OperationResultSet(source.getActivation(),treeManager,op);
+        return new OperationResultSet(source.getActivation(),op);
 	}
 	
 	public NoPutResultSet getLastIndexKeyResultSet
@@ -1225,6 +1233,6 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 					optimizerEstimatedRowCount,
 					optimizerEstimatedCost);
 		
-		return new OperationResultSet(activation, treeManager, op);
+		return new OperationResultSet(activation, op);
 	}
 }
