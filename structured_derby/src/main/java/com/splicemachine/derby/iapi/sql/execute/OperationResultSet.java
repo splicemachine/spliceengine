@@ -49,7 +49,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private final Activation activation;
-    private final OperationTree operationTree;
     private SpliceOperation topOperation;
     private SpliceNoPutResultSet delegate;
     private boolean closed = false;
@@ -57,10 +56,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 		private long scrollUuid;
 
 		public OperationResultSet(Activation activation,
-                              OperationTree operationTree,
                               SpliceOperation topOperation){
         this.activation = activation;
-        this.operationTree = operationTree;
         this.topOperation = topOperation;
     }
 
@@ -74,29 +71,36 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         topOperation.markAsTopResultSet();
     }
 
+    private StatementInfo initStatmentInfo(StatementInfo stmtInfo, SpliceOperationContext opCtx) {
+        if (stmtInfo != null){
+            // if statementInfo already created for this ResultSet, don't create again nor add
+            // to StatementManager
+            return stmtInfo;
+        }
+        String sql = opCtx.getPreparedStatement().getSource();
+        String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        String txnId = activation.getTransactionController().getActiveStateTxIdString();
+        stmtInfo = new StatementInfo(sql, user, txnId,
+                                                 OperationTree.getNumSinks(topOperation),
+                                                 SpliceDriver.driver().getUUIDGenerator());
+        List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
+        stmtInfo.setOperationInfo(operationInfo);
+        topOperation.setStatementId(stmtInfo.getStatementUuid());
+        SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+        return stmtInfo;
+    }
+
     @Override
     public void openCore() throws StandardException {
         SpliceLogUtils.trace(LOG,"openCore");
         closed=false;
         if(delegate!=null) delegate.close();
         try {
-						//create and load the Statement information
-						SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
-						String sql = operationContext.getPreparedStatement().getSource();
-						String user = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-						String txnId = activation.getTransactionController().getActiveStateTxIdString();
-						statementInfo = new StatementInfo(sql,user,txnId,
-										operationTree.getNumSinks(topOperation),
-										SpliceDriver.driver().getUUIDGenerator());
-
-						topOperation.init(operationContext);
-
+            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation);
+            topOperation.init(operationContext);
             topOperation.open();
+            statementInfo = initStatmentInfo(statementInfo, operationContext);
 
-						List<OperationInfo> operationInfo = getOperationInfo(statementInfo.getStatementUuid());
-						statementInfo.setOperationInfo(operationInfo);
-						topOperation.setStatementId(statementInfo.getStatementUuid());
-						SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -110,7 +114,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 								runtimeContext.setXplainSchema(xplainSchema);
 						}
 
-						delegate = operationTree.executeTree(topOperation,runtimeContext);
+						delegate = OperationTree.executeTree(topOperation,runtimeContext);
 						delegate.setScrollId(scrollUuid);
 						//open the delegate
 						delegate.openCore();
