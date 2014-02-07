@@ -13,6 +13,7 @@ import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
@@ -118,10 +119,23 @@ public class SpliceIndexObserver extends BaseRegionObserver {
 				return SpliceDriver.driver().getTempTable().getTempCompactionScanner();
 		}
 
-		@Override
+		
+		
+		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store,List<StoreFile> candidates) throws IOException {
+			if(!isTemp ||candidates.size()<=0){
+				return;
+			}
+			try {
+				SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(),candidates);
+				c.bypass();
+				c.complete();
+			} catch (ExecutionException e) {
+				throw new IOException(e.getCause());
+			}
+		}
+
 		public void preCompactSelection(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<StoreFile> candidates, CompactionRequest request) throws IOException {
 				if(!isTemp ||candidates.size()<=0){
-						super.preCompactSelection(c,store,candidates,request);
 						return;
 				}
 				try {
