@@ -151,8 +151,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.operationInformation = (OperationInformation)in.readObject();
 				transactionID = readNullableString(in);
 				isTopResultSet = in.readBoolean();
-				uniqueSequenceID = new byte[in.readInt()];
-				in.readFully(uniqueSequenceID);
+            if (in.readBoolean()){
+               uniqueSequenceID = new byte[in.readInt()];
+               in.readFully(uniqueSequenceID);
+            }
 				statisticsTimingOn = in.readBoolean();
 				if(statisticsTimingOn)
 						xplainSchema = in.readUTF();
@@ -165,8 +167,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				out.writeObject(operationInformation);
 				writeNullableString(getTransactionID(), out);
 				out.writeBoolean(isTopResultSet);
-				out.writeInt(uniqueSequenceID.length);
-				out.write(uniqueSequenceID);
+            out.writeBoolean(uniqueSequenceID != null);
+            if (uniqueSequenceID != null){
+                 out.writeInt(uniqueSequenceID.length);
+                 out.write(uniqueSequenceID);
+            }
 				out.writeBoolean(statisticsTimingOn);
 				if(statisticsTimingOn)
 						out.writeUTF(xplainSchema);
