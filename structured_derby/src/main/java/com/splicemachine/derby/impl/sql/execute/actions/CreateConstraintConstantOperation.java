@@ -33,7 +33,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class CreateConstraintConstantOperation extends ConstraintConstantOperation {
 	private static final Logger LOG = Logger.getLogger(CreateConstraintConstantOperation.class);
     private final boolean forCreateTable;
-	private String[] columnNames;
+	public String[] columnNames;
 	private	String constraintText;
 	private ConstraintInfo otherConstraintInfo;
 	private	ClassFactory cf;
