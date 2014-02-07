@@ -31,7 +31,9 @@ import org.apache.derby.iapi.sql.conn.Authorizer;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.derby.iapi.sql.execute.ResultSetFactory;
+import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.store.access.StaticCompiledOpenConglomInfo;
+import java.util.List;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -392,10 +394,39 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 									 double optimizerEstimatedRowCount,
 									 double optimizerEstimatedCost)
 	{
-		return new RowResultSet(activation, row, canCacheRow, resultSetNumber, 
+		return new RowResultSet(activation, row, canCacheRow, resultSetNumber,
 							    optimizerEstimatedRowCount,
 								optimizerEstimatedCost);
 	}
+
+    public NoPutResultSet getCachedResultSet(final Activation activation,
+                                             final List rows,
+                                             final int resultSetNumber)
+            throws StandardException
+    {
+        final int numRows = rows.size();
+        if (numRows == 0) {
+            return new RowResultSet(activation, (ExecRow) null, true, resultSetNumber, 0, 0);
+        }
+        NoPutResultSet[] rrs = new NoPutResultSet[numRows];
+        NoPutResultSet[] urs = new NoPutResultSet[numRows - 1];
+
+        for (int i = 0; i < numRows; i++) {
+            rrs[i] = new RowResultSet(activation, (ExecRow) rows.get(i), true, resultSetNumber, 1, 0);
+            if (i > 0) {
+                urs[i - 1] = new UnionResultSet((i > 1) ? (NoPutResultSet) urs[i - 2] : (NoPutResultSet) rrs[0],
+                                                       rrs[i],
+                                                       activation,
+                                                       resultSetNumber,
+                                                       i + 1,
+                                                       0);
+            }
+        }
+
+        return (numRows == 1) ? rrs[0] : urs[urs.length -1];
+
+    }
+
 
 	/**
     	a distinct scan generator, for ease of use at present.

@@ -34,6 +34,8 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
+import java.util.List;
+
 /**
  * ResultSetFactory provides a wrapper around all of
  * the result sets needed in an execution implementation.
@@ -638,6 +640,20 @@ public interface ResultSetFactory {
                                    double optimizerEstimatedRowCount,
                                    double optimizerEstimatedCost)
             throws StandardException;
+
+    /**
+        Splice Addition
+
+        A resultset that forms a result set on a collection of known rows.
+        It is used to cache rows from a result set that's been materialized.
+
+        @param activation The activation for this result set
+        @param rows The collection of known ExecRows
+        @param resultSetNumber The resultSetNumber for the result set being materialized
+     */
+
+    NoPutResultSet getCachedResultSet(Activation activation, List rows, int resultSetNumber)
+        throws StandardException;
 
 	/**
 		A VTI result set wraps a user supplied result set.

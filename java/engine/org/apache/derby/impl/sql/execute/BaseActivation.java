@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Vector;
+import java.util.List;
+import java.util.LinkedList;
 
 import	org.apache.derby.catalog.Dependable;
 import	org.apache.derby.catalog.DependableFinder;
@@ -1571,7 +1573,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		if(maxMemoryPerTable<=0)
 			return rs;
 		rs.openCore();
-		Vector rowCache = new Vector();
+		List rowCache = new LinkedList();
 		ExecRow aRow;
 		int cacheSize = 0;
 		FormatableBitSet toClone = null;
@@ -1589,7 +1591,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 			if (cacheSize > maxMemoryPerTable ||
 					rowCache.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS)
 				break;
-			rowCache.addElement(aRow.getClone(toClone));
+			rowCache.add(aRow.getClone(toClone));
 			aRow = rs.getNextRowCore();
 		}
 		rs.close();
@@ -1597,36 +1599,9 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		if (aRow == null)
 		{
 			int rsNum = rs.resultSetNumber();
-
-			int numRows = rowCache.size();
-			if (numRows == 0)
-			{
-                return getResultSetFactory().getRowResultSet(this,(ExecRow)null,true,rsNum,0,0);
-			}
-			NoPutResultSet[] rrs = new NoPutResultSet[numRows];
-			NoPutResultSet[] urs = new NoPutResultSet[numRows - 1];
-
-			for (int i = 0; i < numRows; i++)
-			{
-				rrs[i] = getResultSetFactory().getRowResultSet(this,(ExecRow)rowCache.elementAt(i),true,rsNum,1,0);
-				if (i > 0)
-				{
-					urs[i - 1] = getResultSetFactory().getUnionResultSet(
-										(i > 1) ? (NoPutResultSet)urs[i - 2] : (NoPutResultSet)rrs[0],
-										rrs[i],
-										rsNum,
-										i + 1,
-										0);
-				}
-			}
-
-			rs.finish();
-
-			if (numRows == 1)
-				return rrs[0];
-			else
-				return urs[urs.length - 1];
-		}
+         rs.finish();
+         return getResultSetFactory().getCachedResultSet(this, rowCache, rsNum);
+  		}
 		return rs;
 	}
 
