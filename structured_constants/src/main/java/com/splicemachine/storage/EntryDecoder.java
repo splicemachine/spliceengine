@@ -186,4 +186,7 @@ public class EntryDecoder {
             decoder.close();
     }
 
+		public long length() {
+				return length;
+		}
 }

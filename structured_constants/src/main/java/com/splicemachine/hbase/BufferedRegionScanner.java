@@ -5,9 +5,14 @@ import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.HasPredicateFilter;
 import com.splicemachine.utils.ConcurrentRingBuffer;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
@@ -48,6 +53,7 @@ import java.util.List;
 public class BufferedRegionScanner implements MeasuredRegionScanner{
 		private final HRegion region;
 		private final RegionScanner delegate;
+		private final Filter scanFilters;
 
 		//buffer filling stuff
 		private List<KeyValue>[] buffer;
@@ -60,18 +66,24 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 
 		public BufferedRegionScanner(HRegion region,
 																 RegionScanner delegate,
+																 Scan scan,
 																 int bufferSize,
 																 MetricFactory metricFactory) {
-			this(region,delegate,bufferSize,16,metricFactory); //initial buffer size of 16
+			this(region,delegate,scan,bufferSize,16,metricFactory); //initial buffer size of 16
 		}
 
 		public BufferedRegionScanner(HRegion region,
 																 RegionScanner delegate,
+																 Scan scan,
 																 int maxBufferSize,
 																 int  initialBufferSize,
 																 MetricFactory metricFactory) {
 				this.region = region;
 				this.delegate = delegate;
+				if(scan!=null)
+						this.scanFilters = scan.getFilter();
+				else
+						this.scanFilters = null;
 
 				this.bufferPosition =0;
 				int s=1;
@@ -207,7 +219,63 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		}
 
 		@Override public TimeView getReadTime() { return readTimer.getTime(); }
-		@Override public long getBytesRead() { return bytesReadCounter.getTotal(); }
+		@Override public long getBytesOutput() { return bytesReadCounter.getTotal(); }
 
-		@Override public long getRowsRead() { return readTimer.getNumEvents(); }
+
+		@Override public long getRowsOutput() { return readTimer.getNumEvents(); }
+
+		@Override
+		public long getRowsFiltered() {
+				/*
+				 * We hav to look at the region scanner and see if it contains an SIFilterPacked.
+				 * If so, we can get the correct number here. Otherwise, we'll just return the number
+				 * of rows we output 0 (assume we didn't filter anything).
+				 */
+				EntryPredicateFilter epf = getEntryPredicateFilter();
+
+				if(epf==null)
+						return 0;
+				else
+						return epf.getRowsFiltered();
+		}
+
+		@Override
+		public long getBytesVisited() {
+				HasPredicateFilter hpf = getSIFilter();
+				if(hpf==null) return getBytesOutput();
+				return hpf.getBytesVisited();
+		}
+
+		@Override
+		public long getRowsVisited() {
+				EntryPredicateFilter epf = getEntryPredicateFilter();
+
+				if(epf==null)
+						return getRowsOutput();
+				else
+						return epf.getRowsOutput()+epf.getRowsFiltered();
+		}
+
+		private EntryPredicateFilter getEntryPredicateFilter() {
+				HasPredicateFilter hpf = getSIFilter();
+				if(hpf==null) return null;
+				return hpf.getFilter();
+		}
+
+		private HasPredicateFilter getSIFilter(){
+				if(scanFilters==null) return null;
+				if(scanFilters instanceof FilterList){
+						FilterList fl = (FilterList) scanFilters;
+						List<Filter> filters = fl.getFilters();
+						for(Filter filter:filters){
+								if(filter instanceof HasPredicateFilter){
+										return (HasPredicateFilter) filter;
+								}
+						}
+				}else if (scanFilters instanceof HasPredicateFilter)
+						return (HasPredicateFilter) scanFilters;
+
+				return null;
+		}
+
 }

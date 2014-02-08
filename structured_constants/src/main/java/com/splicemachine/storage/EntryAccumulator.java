@@ -27,4 +27,6 @@ public interface EntryAccumulator {
     boolean hasField(int myFields);
 
     ByteBuffer getField(int myFields);
+
+		long getFinishCount();
 }

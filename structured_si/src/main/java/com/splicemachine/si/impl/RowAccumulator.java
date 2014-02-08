@@ -7,4 +7,6 @@ public interface RowAccumulator<Data, KeyValue> {
     boolean accumulate(KeyValue value) throws IOException;
     boolean isFinished();
     Data result();
+
+		long getBytesVisited();
 }

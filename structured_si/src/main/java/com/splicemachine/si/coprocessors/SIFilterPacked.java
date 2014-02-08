@@ -1,12 +1,16 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.derby.stats.Accumulator;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
 
+import com.splicemachine.storage.HasPredicateFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -26,7 +30,7 @@ import java.util.List;
 /**
  * An HBase filter that applies SI logic when reading data values.
  */
-public class SIFilterPacked extends FilterBase {
+public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
 
     private String tableName;
@@ -54,6 +58,20 @@ public class SIFilterPacked extends FilterBase {
         this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
     }
+
+		@Override
+		public long getBytesVisited(){
+				if(filterState==null) return 0l;
+
+				FilterStatePacked packed = (FilterStatePacked)filterState;
+				@SuppressWarnings("unchecked") RowAccumulator<byte[],KeyValue> accumulator = packed.getAccumulator();
+				return accumulator.getBytesVisited();
+		}
+
+		@Override
+		public EntryPredicateFilter getFilter(){
+				return predicateFilter;
+		}
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
@@ -93,15 +111,9 @@ public class SIFilterPacked extends FilterBase {
         }
     }
 
-    @Override
-    public boolean filterRow() {
-        return filterState.getExcludeRow();
-    }
+    @Override public boolean filterRow() { return filterState.getExcludeRow(); }
 
-    @Override
-    public boolean hasFilterRow() {
-        return true;
-    }
+    @Override public boolean hasFilterRow() { return true; }
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
@@ -127,9 +139,7 @@ public class SIFilterPacked extends FilterBase {
         }
     }
 
-    @Override
-    public void readFields(DataInput in) throws IOException {
-    }
+    @Override public void readFields(DataInput in) throws IOException { }
 
     @Override
     public void write(DataOutput out) throws IOException {

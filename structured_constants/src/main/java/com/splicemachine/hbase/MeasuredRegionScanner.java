@@ -15,9 +15,15 @@ public interface MeasuredRegionScanner extends RegionScanner {
 
 		TimeView getReadTime();
 
-		long getBytesRead();
+		long getBytesOutput();
 
-		long getRowsRead();
-		
 		KeyValue next() throws IOException;
+
+		long getBytesVisited();
+
+		long getRowsOutput();
+
+		long getRowsFiltered();
+
+		long getRowsVisited();
 }

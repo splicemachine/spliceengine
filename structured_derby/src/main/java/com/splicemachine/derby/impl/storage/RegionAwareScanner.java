@@ -125,8 +125,8 @@ public class RegionAwareScanner implements SpliceResultScanner {
 		@Override public long getRemoteRowsRead() { return remoteReadTimer.getNumEvents(); }
 
 		@Override public TimeView getLocalReadTime() { return localScanner.getReadTime(); }
-		@Override public long getLocalBytesRead() { return localScanner.getBytesRead(); }
-		@Override public long getLocalRowsRead() { return localScanner.getRowsRead(); }
+		@Override public long getLocalBytesRead() { return localScanner.getBytesOutput(); }
+		@Override public long getLocalRowsRead() { return localScanner.getRowsOutput(); }
 
 		/**
      * @return the new RowResult in the scan, or {@code null} if no more rows are to be returned.
@@ -272,6 +272,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
 				localScan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
         localScanner = new BufferedRegionScanner(region,
 								region.getScanner(localScan),
+								localScan,
 								SpliceConstants.DEFAULT_CACHE_SIZE, metricFactory );
 				if(remoteStart!=null){
             Scan lookBehindScan = boundary.buildScan(transactionId,remoteStart,regionFinish);
@@ -350,7 +351,7 @@ public class RegionAwareScanner implements SpliceResultScanner {
             startScan.setFilter(getCorrectFilter(scan.getFilter(), transactionId));
             RegionScanner localScanner = null;
             try{
-            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan.getCaching(),metricFactory);
+            	localScanner = new BufferedRegionScanner(region,region.getScanner(startScan),startScan,startScan.getCaching(),metricFactory);
                 List<KeyValue> keyValues = Lists.newArrayList();
                 localScanner.next(keyValues);
                 if (keyValues.isEmpty()) {

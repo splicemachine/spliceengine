@@ -35,4 +35,6 @@ public class LRowAccumulator implements RowAccumulator< Map<String, Object>,LKey
         return new HashMap<String, Object>(accumulation);
     }
 
+		@Override public long getBytesVisited() { return 0; }
+
 }
