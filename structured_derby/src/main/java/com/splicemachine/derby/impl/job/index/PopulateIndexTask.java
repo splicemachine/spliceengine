@@ -174,7 +174,7 @@ public class PopulateIndexTask extends ZkTask {
 						RegionScanner sourceScanner = region.getCoprocessorHost().preScannerOpen(regionScan);
 						if(sourceScanner==null)
 								sourceScanner = region.getScanner(regionScan);
-						BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
+						BufferedRegionScanner brs = new BufferedRegionScanner(region,sourceScanner,regionScan,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory);
 						try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
@@ -202,8 +202,8 @@ public class PopulateIndexTask extends ZkTask {
 												stats.addMetric(OperationMetric.START_TIMESTAMP,startTime);
 
 												TimeView readTime = brs.getReadTime();
-												stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,brs.getBytesRead());
-												stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,brs.getRowsRead());
+												stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,brs.getBytesOutput());
+												stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,brs.getRowsOutput());
 												stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, readTime.getWallClockTime());
 												stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
 												stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());

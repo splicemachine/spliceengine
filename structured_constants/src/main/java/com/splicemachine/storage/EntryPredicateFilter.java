@@ -20,7 +20,11 @@ public class EntryPredicateFilter {
     private boolean returnIndex;
     private BitSet predicateColumns;
 
-    public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
+		private long rowsFiltered = 0l;
+		private long bytesVisited = 0l;
+		private EntryAccumulator accumulator;
+
+		public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
     public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates){
         this(fieldsToReturn, predicates,true);
@@ -33,6 +37,7 @@ public class EntryPredicateFilter {
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
+				bytesVisited+=entry.length();
         BitIndex encodedIndex = entry.getCurrentIndex();
         BitSet remainingFields = accumulator.getRemainingFields();
 
@@ -77,8 +82,10 @@ public class EntryPredicateFilter {
             Object[] buffer = valuePredicates.buffer;
             int ibuffer = valuePredicates.size();
             for (int i =0; i<ibuffer; i++) {
-                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit))
-                    return false;            	
+                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit)){
+										rowsFiltered++;
+                    return false;
+								}
             }
             entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
         }
@@ -131,11 +138,21 @@ public class EntryPredicateFilter {
     }
 
     public EntryAccumulator newAccumulator(){
-        if(fieldsToReturn.isEmpty())
-            return new AlwaysAcceptEntryAccumulator(this,returnIndex);
-        else
-            return new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
+				if(accumulator==null){
+						if(fieldsToReturn.isEmpty())
+								accumulator = new AlwaysAcceptEntryAccumulator(this,returnIndex);
+						else
+								accumulator = new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
+				}
+				return accumulator;
     }
+
+		public long getRowsOutput(){
+				if(accumulator==null) return 0;
+				else return accumulator.getFinishCount();
+		}
+
+		public long getRowsFiltered(){ return rowsFiltered; }
 
     public byte[] toBytes() {
         //if we dont have any distinguishing information, just send over an empty byte array

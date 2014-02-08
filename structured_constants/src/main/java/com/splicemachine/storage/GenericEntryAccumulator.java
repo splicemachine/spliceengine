@@ -21,9 +21,10 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
     private BitSet floatFields;
     private BitSet doubleFields;
     private EntryPredicateFilter predicateFilter;
+		private long finishCount;
 
 
-    protected GenericEntryAccumulator(boolean returnIndex) {
+		protected GenericEntryAccumulator(boolean returnIndex) {
         this(null,returnIndex);
     }
 
@@ -90,6 +91,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
     @Override
     public byte[] finish() {
+				finishCount++;
         if(predicateFilter!=null){
             predicateFilter.reset();
             BitSet checkColumns = predicateFilter.getCheckedColumns();
@@ -192,4 +194,5 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return true;
     }
 
+		@Override public long getFinishCount() { return finishCount; }
 }

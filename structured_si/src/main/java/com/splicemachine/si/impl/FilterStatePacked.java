@@ -35,6 +35,10 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         simpleFilter.setIgnoreDoneWithColumn();
     }
 
+		public RowAccumulator<Data,KeyValue> getAccumulator(){
+				return accumulator;
+		}
+
     @Override
     public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         simpleFilter.setKeyValue(dataKeyValue);

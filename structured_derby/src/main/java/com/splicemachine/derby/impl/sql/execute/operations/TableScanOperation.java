@@ -200,12 +200,13 @@ public class TableScanOperation extends ScanOperation {
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
 						TimeView readTimer = regionScanner.getReadTime();
-						long bytesRead = regionScanner.getBytesRead();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead);
+						long bytesRead = regionScanner.getBytesOutput();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
+						stats.addMetric(OperationMetric.FILTERED_ROWS,regionScanner.getRowsFiltered());
 				}
 		}
 
