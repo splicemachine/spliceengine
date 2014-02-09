@@ -148,12 +148,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 				HRegion region = rce.getRegion();
 
-//				if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) {// Too Busy For Splice...
-//						activeWriteThreads.decrementAndGet();
-//						rejectedMeter.mark();
-//						BulkWriteResult result = new BulkWriteResult(new WriteResult(WriteResult.Code.REGION_TOO_BUSY));
-//						return result.toBytes();
-//				}
 				long start = System.nanoTime();
 				try {
 						region.startRegionOperation();
