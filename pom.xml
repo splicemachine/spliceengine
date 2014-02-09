@@ -184,6 +184,11 @@
 
         <profile>
             <id>cloudera-cdh4.3.0</id>
+          <activation>
+            <property>
+              <name>!hbase.profile</name>
+            </property>
+          </activation>
           <properties>
             <zookeeper.version>3.4.5-cdh4.3.0</zookeeper.version>
             <hbase.version>0.94.6-cdh4.3.0</hbase.version>
@@ -279,6 +284,12 @@
 
         <profile>
             <id>hdp1.3</id>
+          <activation>
+            <property>
+              <name>hbase.profile</name>
+              <value>hdp1.3</value>
+            </property>
+          </activation>
           <properties>
             <zookeeper.version>3.4.5.1.3.0.0-10</zookeeper.version>
             <hbase.version>0.94.6.1.3.0.0-107</hbase.version>
@@ -348,6 +359,12 @@
 
         <profile>
             <id>apache-hbase-0.94.5</id>
+          <activation>
+            <property>
+              <name>hbase.profile</name>
+              <value>apache-hbase-0.94.5</value>
+            </property>
+          </activation>
           <properties>
             <zookeeper.version>3.4.5</zookeeper.version>
             <hbase.version>0.94.5</hbase.version>
@@ -394,6 +411,12 @@
 
         <profile>
             <id>mapr-0.94.5</id>
+          <activation>
+            <property>
+              <name>hbase.profile</name>
+              <value>mapr-0.94.5</value>
+            </property>
+          </activation>
 
           <properties>
             <zookeeper.version>3.4.5</zookeeper.version>
@@ -448,6 +471,12 @@
 
         <profile>
             <id>mapr-0.94.9</id>
+          <activation>
+            <property>
+              <name>hbase.profile</name>
+              <value>mapr-0.94.9</value>
+            </property>
+          </activation>
 
           <properties>
             <zookeeper.version>3.4.5</zookeeper.version>
