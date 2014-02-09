@@ -53,8 +53,8 @@
 			<groupId>com.splicemachine</groupId>
 			<artifactId>structured_si</artifactId>
 			<version>0.5rc8-SNAPSHOT</version>
+      <classifier>${envClassifier}</classifier>
 			<type>jar</type>
-			<classifier>${envClassifier}</classifier>
 			<scope>compile</scope>
 		</dependency>
 
@@ -193,43 +193,43 @@
 	</build>
 
 	<profiles>
-        <profile>
-            <id>assemble</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.4</version>
-                        <configuration>
-                            <source>6</source>
-                            <archive>
-                                <manifestEntries>
-                                    <Implementation-Version>${buildNumber}</Implementation-Version>
-                                    <Release>${project.version}</Release>
-                                    <Build-Time>${maven.build.timestamp}</Build-Time>
-                                    <URL>http://www.splicemachine.com</URL>
-                                </manifestEntries>
-                            </archive>
-                            <descriptors>
-                              <descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
-                              <descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <id>simple</id>
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
+    <profile>
+      <id>assemble</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.4</version>
+            <configuration>
+              <source>6</source>
+              <archive>
+                <manifestEntries>
+                  <Implementation-Version>${buildNumber}</Implementation-Version>
+                  <Release>${project.version}</Release>
+                  <Build-Time>${maven.build.timestamp}</Build-Time>
+                  <URL>http://www.splicemachine.com</URL>
+                </manifestEntries>
+              </archive>
+              <descriptors>
+                <descriptor>${project.basedir}/src/main/assembly/assembly.xml</descriptor>
+                <descriptor>${project.basedir}/src/main/assembly/simple_assembly.xml</descriptor>
+              </descriptors>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <id>simple</id>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
-        <profile>
+    <profile>
             <id>ITs</id>
             <properties>
                 <!-- enable failsafe integration tests -->
