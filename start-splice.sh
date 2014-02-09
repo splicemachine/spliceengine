@@ -50,7 +50,7 @@ while getopts ":chp:b:" flag ; do
     esac
 done
 
-echo "Runing with profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
+echo "Runing with hbase profile \"${PROFILE}\" and chaos monkey = ${CHAOS} ${BUILD_TAG}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd )"
 pushd "${SCRIPT_DIR}/structured_derby" &>/dev/null
@@ -62,11 +62,11 @@ if [[ ! -e ${TARBALL} ]]; then
     # Maven assembly is required for server dependencies and executable start/stop scripts.
     # It's not present. Attempt to build assembly (only if it's not already built).
     echo "Required assembly, ${TARBALL}, not found. Running maven assembly."
-    mvn package -P${PROFILE},assemble -DskipTests  &>/dev/null
+    mvn package -Dhbase.profile=${PROFILE} -Passemble -DskipTests  &>/dev/null
 fi
 # fail if wrong profile was provided
 if [[ ! -e ${TARBALL} ]]; then
-    usage "Cannot find ${TARBALL}. An unexpected profile was provided \\"${PROFILE}\\" or the project needs to be built."
+    usage "Cannot find ${TARBALL}. An unexpected hbase profile was provided \\"${PROFILE}\\" or the project needs to be built."
     exit 1
 fi
 
@@ -92,7 +92,7 @@ if [[ -n ${S} || -n ${Z} ]]; then
 fi
 
 currentDateTime=$(date +'%m-%d-%Y:%H:%M:%S')
-echo "=== Running profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
+echo "=== Running with hbase profile ${PROFILE} at $currentDateTime ${BUILD_TAG} === " > ${SPLICELOG}
 
 export SPLICE_SYS_ARGS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000"
 ZOO_WAIT_TIME=45
