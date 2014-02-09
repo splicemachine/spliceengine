@@ -129,7 +129,7 @@ public class OperationRuntimeStats {
 				return stats;
 		}
 
-		protected static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId,
+		private static OperationRuntimeStats getTopMetrics(SpliceOperation topOperation, long taskId, long statementId,
 																												 WriteStats writeStats, TimeView writeTimer) {
 				OperationRuntimeStats metrics = topOperation.getMetrics(statementId,taskId);
 
@@ -140,22 +140,31 @@ public class OperationRuntimeStats {
 						metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
 						metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
 
-						TimeView sleepTime = writeStats.getSleepTime();
-						metrics.addMetric(OperationMetric.WRITE_SLEEP_WALL_TIME,sleepTime.getWallClockTime());
-						metrics.addMetric(OperationMetric.WRITE_SLEEP_CPU_TIME,sleepTime.getCpuTime());
-						metrics.addMetric(OperationMetric.WRITE_SLEEP_USER_TIME,sleepTime.getUserTime());
 
-						metrics.addMetric(OperationMetric.REJECTED_WRITE_ATTEMPTS,writeStats.getRejectedCount());
-						metrics.addMetric(OperationMetric.RETRIED_WRITE_ATTEMPTS,writeStats.getTotalRetries());
-						metrics.addMetric(OperationMetric.FAILED_WRITE_ATTEMPTS,writeStats.getGlobalErrors());
-						metrics.addMetric(OperationMetric.PARTIAL_WRITE_FAILURES,writeStats.getPartialFailureCount());
-
-						TimeView networkTime = writeStats.getNetworkTime();
-						metrics.addMetric(OperationMetric.WRITE_NETWORK_WALL_TIME,networkTime.getWallClockTime());
-						metrics.addMetric(OperationMetric.WRITE_NETWORK_CPU_TIME,networkTime.getCpuTime());
-						metrics.addMetric(OperationMetric.WRITE_NETWORK_USER_TIME,networkTime.getUserTime());
+						addWriteStats(writeStats, metrics);
 				}
 				return metrics;
+		}
+
+		public static void addWriteStats(WriteStats writeStats, OperationRuntimeStats metrics) {
+				metrics.addMetric(OperationMetric.REJECTED_WRITE_ATTEMPTS,writeStats.getRejectedCount());
+				metrics.addMetric(OperationMetric.RETRIED_WRITE_ATTEMPTS,writeStats.getTotalRetries());
+				metrics.addMetric(OperationMetric.FAILED_WRITE_ATTEMPTS,writeStats.getGlobalErrors());
+				metrics.addMetric(OperationMetric.PARTIAL_WRITE_FAILURES,writeStats.getPartialFailureCount());
+
+				TimeView networkTime = writeStats.getNetworkTime();
+				metrics.addMetric(OperationMetric.WRITE_NETWORK_WALL_TIME,networkTime.getWallClockTime());
+				metrics.addMetric(OperationMetric.WRITE_NETWORK_CPU_TIME,networkTime.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_NETWORK_USER_TIME,networkTime.getUserTime());
+
+				TimeView sleepTime = writeStats.getSleepTime();
+				metrics.addMetric(OperationMetric.WRITE_SLEEP_WALL_TIME,sleepTime.getWallClockTime());
+				metrics.addMetric(OperationMetric.WRITE_SLEEP_CPU_TIME,sleepTime.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_SLEEP_USER_TIME,sleepTime.getUserTime());
+				TimeView threadedTime = writeStats.getTotalTime();
+				metrics.addMetric(OperationMetric.WRITE_THREADED_WALL_TIME,threadedTime.getWallClockTime());
+				metrics.addMetric(OperationMetric.WRITE_THREADED_CPU_TIME,threadedTime.getCpuTime());
+				metrics.addMetric(OperationMetric.WRITE_THREADED_USER_TIME,threadedTime.getUserTime());
 		}
 
 		private static void populateStats(SpliceRuntimeContext context, SpliceOperation operation,

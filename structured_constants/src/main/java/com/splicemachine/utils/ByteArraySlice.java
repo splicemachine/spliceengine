@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.store.access.hbase;
+package com.splicemachine.utils;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 

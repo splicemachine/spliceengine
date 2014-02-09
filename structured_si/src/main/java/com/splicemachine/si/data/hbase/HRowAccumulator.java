@@ -32,7 +32,7 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
 
     @Override
     public boolean accumulate(KeyValue keyValue) throws IOException {
-				bytesAccumulated+=keyValue.getBuffer().length;
+				bytesAccumulated+=keyValue.getLength();
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
