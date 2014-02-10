@@ -391,6 +391,11 @@
             </dependency>
             <dependency>
               <groupId>org.apache.hadoop</groupId>
+              <artifactId>hadoop-mapreduce-client-core</artifactId>
+              <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>org.apache.hadoop</groupId>
               <artifactId>hadoop-common</artifactId>
               <version>${hadoop.version}</version>
               <classifier>tests</classifier>
@@ -532,6 +537,11 @@
         
         <profile>
             <id>downloadSources</id>
+          <activation>
+            <property>
+              <name>download.sources</name>
+            </property>
+          </activation>
             <properties>
                 <downloadSources>true</downloadSources>
                 <downloadJavadocs>true</downloadJavadocs>
