@@ -98,13 +98,14 @@ public class AlwaysAcceptEntryAccumulatorTest {
     }
 
     private void accumulate(EntryAccumulator accumulator, MultiFieldEncoder encoder, int i, TestType type) {
-        if(type.isScalarType())
-            accumulator.addScalar(i, ByteBuffer.wrap(encoder.build()));
+				byte[] data = encoder.build();
+				if(type.isScalarType())
+            accumulator.addScalar(i,data,0,data.length);
         else if(type==TestType.FLOAT)
-            accumulator.addFloat(i, ByteBuffer.wrap(encoder.build()));
+            accumulator.addFloat(i, data,0,data.length);
         else if(type==TestType.DOUBLE)
-            accumulator.addDouble(i, ByteBuffer.wrap(encoder.build()));
-        accumulator.add(i, ByteBuffer.wrap(encoder.build()));
+            accumulator.addDouble(i, data,0,data.length);
+        accumulator.add(i, data,0,data.length);
     }
 
     @Test

@@ -29,7 +29,7 @@ public class Puts {
     /**
      * Constructs a transaction-aware update for pushing an update to a row already present in HBase.
      *
-     * @param location the location of the row to update (location.getBytes() should return the HBase row key
+     * @param location the location of the row to update (location.getByteCopy() should return the HBase row key
      *                 of the row to be updated).
      * @param row the data to update
      * @param validColumns flags for which columns are to be updated,or {@code null} if all columns are to be used.
