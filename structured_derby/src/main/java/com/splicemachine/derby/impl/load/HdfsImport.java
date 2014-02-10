@@ -256,7 +256,7 @@ public class HdfsImport extends ParallelVTI {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				HTableInterface table = SpliceAccessManager.getHTable(tableName);
+				HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
 
 				List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
 				StatementInfo statementInfo = runtimeContext.getStatementInfo();

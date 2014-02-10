@@ -1,6 +1,9 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
+import com.google.common.collect.Maps;
+
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -10,7 +13,9 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
     private BitSet remainingFields;
     private BitSet allFields;
 
-    public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
+		private Map<BitSet,byte[]> encodedIndexCache = Maps.newHashMapWithExpectedSize(1);
+
+		public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
         super(predicateFilter,(int)remainingFields.length(),false);
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
@@ -28,7 +33,17 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
 				remainingFields.clear(position);
 		}
 
-    @Override
+		@Override
+		protected byte[] getIndex() {
+				byte[] data = encodedIndexCache.get(remainingFields);
+				if(data==null){
+						data = super.getIndex();
+						encodedIndexCache.put(remainingFields,data);
+				}
+				return data;
+		}
+
+		@Override
     public BitSet getRemainingFields(){
         return remainingFields;
     }

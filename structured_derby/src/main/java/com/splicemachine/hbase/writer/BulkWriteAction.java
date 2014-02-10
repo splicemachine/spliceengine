@@ -10,7 +10,10 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.si.impl.WriteConflict;
-import com.splicemachine.stats.*;
+import com.splicemachine.stats.Counter;
+import com.splicemachine.stats.MetricFactory;
+import com.splicemachine.stats.Metrics;
+import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.Sleeper;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -26,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,7 +43,7 @@ final class BulkWriteAction implements Callable<WriteStats> {
     private static final AtomicLong idGen = new AtomicLong(0l);
 
     private BulkWrite bulkWrite;
-    private final List<Throwable> errors = new CopyOnWriteArrayList<Throwable>();
+    private final List<Throwable> errors = Lists.newArrayListWithExpectedSize(0);
     private final Writer.WriteConfiguration writeConfiguration;
     private final RegionCache regionCache;
 		private final ActionStatusReporter statusReporter;

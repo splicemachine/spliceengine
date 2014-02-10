@@ -5,8 +5,6 @@ import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
 
-import java.util.Arrays;
-
 /**
  * @author Scott Fines
  * Created on: 10/2/13
@@ -52,8 +50,6 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 		@Override
 		public void add(int position, byte[] data, int offset, int length) {
 				if(occupiedFields.get(position)) return; //already populated that field
-
-				if(length<=0) return;
 
 				ByteSlice slice = fields[position];
 				if(slice==null){
@@ -112,8 +108,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
-            BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields,scalarFields,floatFields,doubleFields);
-            byte[] indexBytes = index.encode();
+						byte[] indexBytes = getIndex();
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
@@ -123,7 +118,12 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return dataBytes;
     }
 
-    @Override
+		protected byte[] getIndex() {
+				BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields, scalarFields, floatFields, doubleFields);
+				return index.encode();
+		}
+
+		@Override
     public void reset() {
         occupiedFields.clear();
         if(fields!=null){
