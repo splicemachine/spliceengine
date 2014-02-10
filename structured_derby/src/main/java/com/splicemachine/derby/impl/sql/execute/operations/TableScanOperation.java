@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -14,6 +13,7 @@ import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -45,7 +45,7 @@ public class TableScanOperation extends ScanOperation {
 		private Properties scanProperties;
 		public String startPositionString;
 		public String stopPositionString;
-		public ByteArraySlice slice;
+		public ByteSlice slice;
 
 		static {
 				nodeTypes = Arrays.asList(NodeType.MAP,NodeType.SCAN);
@@ -128,7 +128,7 @@ public class TableScanOperation extends ScanOperation {
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
-				this.slice = new ByteArraySlice();
+				this.slice = ByteSlice.empty();
 				this.startExecutionTime = System.currentTimeMillis();
 		}
 
@@ -238,7 +238,7 @@ public class TableScanOperation extends ScanOperation {
                  */
 								currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
 						} else {
-								slice.updateSlice(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
+								slice.set(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
 								currentRowLocation.setValue(slice);
 						}
 				}

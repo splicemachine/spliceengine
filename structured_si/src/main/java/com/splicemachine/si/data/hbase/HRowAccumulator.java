@@ -42,7 +42,7 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
 
     @Override
     public boolean isFinished() {
-        return entryAccumulator.getRemainingFields().isEmpty();
+        return entryAccumulator.isFinished();
     }
 
     @Override

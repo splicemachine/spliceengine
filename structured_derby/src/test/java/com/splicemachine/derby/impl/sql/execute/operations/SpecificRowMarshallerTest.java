@@ -45,8 +45,9 @@ public class SpecificRowMarshallerTest {
 
         byte[] correctRowLoc = snowflake.nextUUIDBytes();
         byte[] encodedRowLoc = Encoding.encodeBytesUnsorted(correctRowLoc);
-        accumulator.add(0,ByteBuffer.wrap(Encoding.encodeBytesUnsorted(snowflake.nextUUIDBytes())));
-        accumulator.add(2, ByteBuffer.wrap(encodedRowLoc));
+				byte[] encodedUUD = Encoding.encodeBytesUnsorted(snowflake.nextUUIDBytes());
+				accumulator.add(0,encodedUUD,0,encodedUUD.length);
+        accumulator.add(2, encodedRowLoc,0,encodedRowLoc.length);
 
         byte[] value = accumulator.finish();
         final KeyValue kv = new KeyValue(snowflake.nextUUIDBytes(),SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,value);

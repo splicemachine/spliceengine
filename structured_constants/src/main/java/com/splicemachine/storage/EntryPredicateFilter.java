@@ -5,9 +5,9 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
@@ -21,7 +21,6 @@ public class EntryPredicateFilter {
     private BitSet predicateColumns;
 
 		private long rowsFiltered = 0l;
-		private long bytesVisited = 0l;
 		private EntryAccumulator accumulator;
 
 		public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
@@ -37,8 +36,7 @@ public class EntryPredicateFilter {
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
-				bytesVisited+=entry.length();
-        BitIndex encodedIndex = entry.getCurrentIndex();
+				BitIndex encodedIndex = entry.getCurrentIndex();
         BitSet remainingFields = accumulator.getRemainingFields();
 
         MultiFieldDecoder decoder = entry.getEntryDecoder();
@@ -87,7 +85,7 @@ public class EntryPredicateFilter {
                     return false;
 								}
             }
-            entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
+            entry.accumulate(encodedPos, accumulator, array, offset, limit);
         }
         return true;
     }
@@ -104,7 +102,7 @@ public class EntryPredicateFilter {
         return predicateColumns;
     }
 
-    public boolean checkPredicates(ByteBuffer buffer,int position){
+    public boolean checkPredicates(ByteSlice buffer,int position){
         Object[] vpBuffer = valuePredicates.buffer;
         int ibuffer = valuePredicates.size();
         for (int i =0; i<ibuffer; i++) {
@@ -113,7 +111,7 @@ public class EntryPredicateFilter {
                 continue;
             if(predicate.checkAfter()){
                 if(buffer!=null){
-                    if(!predicate.match(position,buffer.array(),buffer.position(),buffer.remaining()))
+                    if(!predicate.match(position,buffer.array(),buffer.offset(),buffer.length()))
                         return false;
                 }else{
                     if(!predicate.match(position,null,0,0))

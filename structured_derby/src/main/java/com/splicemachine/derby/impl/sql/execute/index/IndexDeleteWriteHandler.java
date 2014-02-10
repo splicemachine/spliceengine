@@ -6,6 +6,7 @@ import java.util.List;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -55,7 +56,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
         this.transformer = new IndexTransformer(indexedColumns,
                 translatedIndexColumns,
                 nonUniqueIndexColumn,
-                descColumns,mainColToIndexPosMap,unique, uniqueWithDuplicateNulls);
+                descColumns,mainColToIndexPosMap,unique, uniqueWithDuplicateNulls, SpliceDriver.getKryoPool());
     }
 
     @Override

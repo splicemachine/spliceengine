@@ -7,6 +7,7 @@ import java.util.NoSuchElementException;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
 
 /**
@@ -170,16 +171,17 @@ public class EntryDecoder {
         return ByteBuffer.wrap(decoder.array(),offset,length);
     }
 
-    public void accumulate(int position, ByteBuffer buffer,EntryAccumulator accumulator) {
-        if(bitIndex.isScalarType(position)){
-            accumulator.addScalar(position,buffer);
-        }else if(bitIndex.isFloatType(position)){
-            accumulator.addFloat(position,buffer);
-        }else if(bitIndex.isDoubleType(position))
-            accumulator.addDouble(position,buffer);
-        else
-            accumulator.add(position,buffer);
-    }
+		public void accumulate(int position, EntryAccumulator accumulator,byte[] buffer, int offset, int length) {
+				if(bitIndex.isScalarType(position)){
+						accumulator.addScalar(position,buffer,offset,length);
+				}else if(bitIndex.isFloatType(position)){
+						accumulator.addFloat(position,buffer,offset,length);
+				}else if(bitIndex.isDoubleType(position))
+						accumulator.addDouble(position,buffer,offset,length);
+				else
+						accumulator.add(position,buffer,offset,length);
+		}
+
 
     public void close(){
         if(decoder!=null)
@@ -188,5 +190,14 @@ public class EntryDecoder {
 
 		public long length() {
 				return length;
+		}
+
+		public void nextField(MultiFieldDecoder mutationDecoder, int indexPosition, ByteSlice rowSlice) {
+				int offset = mutationDecoder.offset();
+				seekForward(mutationDecoder,indexPosition);
+				int length = mutationDecoder.offset()-1-offset;
+				if(length<=0) return;
+
+				rowSlice.set(mutationDecoder.array(),offset,length);
 		}
 }
