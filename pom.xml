@@ -53,7 +53,14 @@
 
       <envClassifier></envClassifier>
     </properties>
-    <!-- Lets go with 1.6 compliance -->
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
+  </dependencies>
 
     <build>
         <extensions>
@@ -142,10 +149,6 @@
             <name>Codehaus Release Repo</name>
             <url>http://repository.codehaus.org</url>
         </pluginRepository>
-        <!--<pluginRepository>-->
-            <!--<id>cloudera</id>-->
-            <!--<url>https://repository.cloudera.com/content/repositories/releases/</url>-->
-        <!--</pluginRepository>-->
     </pluginRepositories>
     <repositories>
         <repository>
