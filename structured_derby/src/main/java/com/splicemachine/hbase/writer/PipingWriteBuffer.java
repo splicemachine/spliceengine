@@ -286,8 +286,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 										writeStats.merge(retStats);
 								}
 						}
-						ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer);
-						buffer.clear();
+						ObjectArrayList<KVPair> newBuffer = ObjectArrayList.newInstance();
+						ObjectArrayList<KVPair> copy = buffer;
+						buffer = newBuffer;
+
 						//update heap size metrics
 						if(LOG.isTraceEnabled())
 								LOG.trace("flushing "+ copy.size()+" entries");

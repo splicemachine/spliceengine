@@ -53,8 +53,6 @@ public class FileImportJob extends ImportJob{
 				}
 
         ImportReader reader = new FileImportReader();
-        ImportTask task = new ImportTask(getJobId(), context,reader,
-                SpliceConstants.importTaskPriority, context.getTransactionId(),statementId,operationId);
 				Map<ImportTask,Pair<byte[],byte[]>> tasks = Maps.newHashMap();
 				for(Path filePath:files){
 						ImportContext ctx = context.getCopy();

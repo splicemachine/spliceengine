@@ -164,41 +164,41 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 								context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
 						} catch (InterruptedException e) {
 								//was interrupted while trying to create a write context.
-                //we're done, someone else will have to write this batch
-                throw new IOException(e);
-            }
-            
-            
-            Object[] bufferArray = bulkWrite.getBuffer();
-            int size = bulkWrite.getSize();
-            for (int i = 0; i<size; i++) {
-                context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
-            }
-            Map<KVPair,WriteResult> resultMap = context.finish();
+								//we're done, someone else will have to write this batch
+								throw new IOException(e);
+						}
 
-            BulkWriteResult response = new BulkWriteResult();
-            int pos=0;
-            int failed=0;
-            size = bulkWrite.getSize();
-            for (int i = 0; i<size; i++) {
-                @SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
-                if(result.getCode()== WriteResult.Code.FAILED){
-                    failed++;
-                }
-                response.addResult(pos,result);
-                pos++;
-            }
 
-            int numSuccessWrites = size-failed;
-            throughputMeter.mark(numSuccessWrites);
-            failedMeter.mark(failed);
-            return response.toBytes();
-        }finally{
-            region.closeRegionOperation();
-        	activeWriteThreads.decrementAndGet();
-            timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
-        }
-    }
+						Object[] bufferArray = bulkWrite.getBuffer();
+						int size = bulkWrite.getSize();
+						for (int i = 0; i<size; i++) {
+								context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
+						}
+						Map<KVPair,WriteResult> resultMap = context.finish();
+
+						BulkWriteResult response = new BulkWriteResult();
+						int pos=0;
+						int failed=0;
+						size = bulkWrite.getSize();
+						for (int i = 0; i<size; i++) {
+								@SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
+								if(result.getCode()== WriteResult.Code.FAILED){
+										failed++;
+								}
+								response.addResult(pos,result);
+								pos++;
+						}
+
+						int numSuccessWrites = size-failed;
+						throughputMeter.mark(numSuccessWrites);
+						failedMeter.mark(failed);
+						return response.toBytes();
+				}finally{
+						region.closeRegionOperation();
+						activeWriteThreads.decrementAndGet();
+						timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
+				}
+		}
 
 		private boolean shouldAllowWrite() {
 				if(metrics.compactionQueueSize.get()> compactionQueueSizeBlock || metrics.flushQueueSize.get()> flushQueueSizeBlock){
