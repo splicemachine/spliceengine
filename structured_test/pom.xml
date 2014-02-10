@@ -41,11 +41,6 @@
 			<version>2.1</version>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>com.splicemachine</groupId>
 			<artifactId>splice_machine</artifactId>
 			<version>0.5rc8-SNAPSHOT</version>
