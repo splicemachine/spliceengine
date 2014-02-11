@@ -3,6 +3,7 @@ package com.splicemachine.hbase.writer;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;

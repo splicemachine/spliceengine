@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;

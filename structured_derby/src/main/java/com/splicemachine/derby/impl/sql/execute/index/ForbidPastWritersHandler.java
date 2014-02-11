@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.DDLFilter;
 import org.apache.log4j.Logger;

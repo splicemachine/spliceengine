@@ -1,5 +1,6 @@
 package com.splicemachine.si.api;
 
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.SICompactionState;
@@ -8,6 +9,8 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -23,6 +26,8 @@ public interface Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Re
     boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException;
     OperationStatus[] processPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Mutation[] mutations)
             throws IOException;
+
+		OperationStatus[] processKvBatch(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue,Collection<KVPair> mutations,String txnId) throws IOException;
 
     /**
      * Look at the operation and report back whether it has been flagged for SI treatment.

@@ -1,5 +1,9 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
@@ -12,20 +16,15 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.nio.ByteBuffer;
+import java.util.*;
 
 import static com.splicemachine.si.api.TransactionStatus.ACTIVE;
 import static com.splicemachine.si.api.TransactionStatus.COMMITTED;
@@ -399,19 +398,20 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             throws IOException {
         if (mutations.length == 0) {
             //short-circuit special case of empty batch
-            return dataStore.writeBatch(table, new Pair[0]);
+						//noinspection unchecked
+						return dataStore.writeBatch(table, new Pair[0]);
         }
 
         // TODO add back the check if it is needed for DDL operations
         // checkPermission(table, mutations);
 
-        Map<Hashable, Lock> locks = new HashMap<Hashable, Lock>(mutations.length);
-        Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = new HashMap<Hashable, List<PutInBatch<Data, Put>>>(mutations.length);
+        Map<Hashable, Lock> locks = Maps.newHashMapWithExpectedSize(1);
+        Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap = Maps.newHashMapWithExpectedSize(mutations.length);
         try {
-            final Pair<Mutation, Lock>[] mutationsAndLocks = new Pair[mutations.length];
+            @SuppressWarnings("unchecked") final Pair<Mutation, Lock>[] mutationsAndLocks = new Pair[mutations.length];
             obtainLocksForPutBatchAndPrepNonSIPuts(table, mutations, locks, putInBatchMap, mutationsAndLocks);
 
-            final Set<Long>[] conflictingChildren = new Set[mutations.length];
+            @SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.length];
             dataStore.startLowLevelOperation(table);
             try {
                 checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
@@ -429,7 +429,41 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private void checkPermission(Table table, Mutation[] mutations) throws IOException {
+		@Override
+		public OperationStatus[] processKvBatch(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, Collection<KVPair> mutations, String txnId) throws IOException {
+				if(mutations.size()<=0)
+						//noinspection unchecked
+						return dataStore.writeBatch(table,new Pair[]{});
+
+				//ensure the transaction is in good shape
+				TransactionId txn = transactionIdFromString(txnId);
+				ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txn);
+				ensureTransactionAllowsWrites(transaction);
+
+				Pair<KVPair,Lock>[] lockPairs = null;
+				try {
+						lockPairs = obtainLocksForPutBatchAndPrepNonSIKVs(table, mutations, transaction);
+
+						@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
+						dataStore.startLowLevelOperation(table);
+						Pair<Mutation,Lock>[] writes;
+						try {
+								writes = checkConflictsForKvBatch(table, rollForwardQueue, lockPairs, conflictingChildren, transaction);
+						} finally {
+								dataStore.closeLowLevelOperation(table);
+						}
+
+						final OperationStatus[] status = dataStore.writeBatch(table, writes);
+
+						resolveConflictsForKvBatch(table, writes, conflictingChildren, status);
+
+						return status;
+				} finally {
+						releaseLocksForKvBatch(table, lockPairs);
+				}
+		}
+
+		private void checkPermission(Table table, Mutation[] mutations) throws IOException {
         final String tableName = dataStore.getTableName(table);
         for (TransactionId t : getTransactionIds(mutations)) {
             transactionStore.confirmPermission(t, tableName);
@@ -444,6 +478,18 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return writingTransactions;
     }
 
+		private void releaseLocksForKvBatch(Table table, Pair<KVPair,Lock>[] locks){
+				if(locks==null) return;
+				for(Pair<KVPair,Lock>lock:locks){
+						try {
+								dataWriter.unLockRow(table,lock.getSecond());
+						} catch (IOException e) {
+								LOG.error("Unable to unlock row "+ Bytes.toStringBinary(lock.getFirst().getRow()),e);
+								//ignore otherwise
+						}
+				}
+		}
+
     private void releaseLocksForPutBatch(Table table, Map<Hashable, Lock> locks) {
         for (Lock lock : locks.values()) {
             if (lock != null) {
@@ -456,6 +502,18 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             }
         }
     }
+
+		private void resolveConflictsForKvBatch(Table table, Pair<Mutation,Lock>[] mutations, Set<Long>[] conflictingChildren,OperationStatus[] status){
+				for(int i=0;i<mutations.length;i++){
+						try{
+								Put put = (Put)mutations[i].getFirst();
+								Lock lock = mutations[i].getSecond();
+								resolveChildConflicts(table,put,lock,conflictingChildren[i]);
+						}catch(Exception ex){
+								status[i]= dataLib.newFailStatus();
+						}
+				}
+		}
 
     private void resolveConflictsForPutBatch(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Set<Long>[] conflictingChildren, OperationStatus[] status) {
         for (int i = 0; i < mutations.length; i++) {
@@ -492,7 +550,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
     private void checkConflictsForPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks, Set<Long>[] conflictingChildren) throws IOException {
-        final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
+        final SortedSet<Hashable> keys = new TreeSet<Hashable>(putInBatchMap.keySet());
         for (Hashable hashableRowKey : keys) {
             for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
                 ConflictResults conflictResults;
@@ -521,7 +579,19 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private void obtainLockForPutBatch(Table table, Mutation mutation, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, int i) throws IOException {
+		private Pair<KVPair,Lock>[] obtainLocksForPutBatchAndPrepNonSIKVs(Table table,Collection<KVPair> mutations,ImmutableTransaction transaction) throws IOException {
+				@SuppressWarnings("unchecked") Pair<KVPair,Lock>[] mutationsAndLocks = new Pair[mutations.size()];
+
+				int i=0;
+				for(KVPair pair:mutations){
+						mutationsAndLocks[i] = Pair.newPair(pair,dataWriter.lockRow(table,(Data)pair.getRow()));
+						i++;
+				}
+				return mutationsAndLocks;
+		}
+
+
+		private void obtainLockForPutBatch(Table table, Mutation mutation, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, int i) throws IOException {
         final Put put = (Put) mutation;
         final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
         final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
@@ -539,6 +609,25 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
             putsInBatch.add(newPutInBatch);
         }
     }
+
+
+		private Mutation getMutationToRun(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, KVPair kvPair,ImmutableTransaction transaction,ConflictResults conflictResults) throws IOException{
+				long txnIdLong = transaction.getLongTransactionId();
+				Put newPut = (Put) kvPair.toPut(txnIdLong);
+				dataStore.suppressIndexing(newPut);
+				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
+				if(kvPair.getType()== KVPair.Type.DELETE)
+						dataStore.setTombstoneOnPut(newPut,txnIdLong);
+				else if(conflictResults.hasTombstone)
+						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
+
+				Data row = (Data) kvPair.getRow();
+				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
+				for(Long txnIdToRollForward : conflictResults.toRollForward){
+					dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
+				}
+				return newPut;
+		}
 
 
 		private Mutation getMutationToRun(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, KVPair kvPair,ImmutableTransaction transaction,ConflictResults conflictResults) throws IOException{

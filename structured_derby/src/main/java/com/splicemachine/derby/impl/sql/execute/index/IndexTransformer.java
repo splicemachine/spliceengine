@@ -4,7 +4,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.SparseEntryAccumulator;

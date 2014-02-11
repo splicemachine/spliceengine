@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 
 import com.splicemachine.hbase.batch.WriteContext;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 
 /**
  * @author Scott Fines

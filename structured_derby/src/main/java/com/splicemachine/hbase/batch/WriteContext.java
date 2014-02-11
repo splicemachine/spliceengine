@@ -1,5 +1,6 @@
 package com.splicemachine.hbase.batch;
 
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 
 import org.apache.hadoop.hbase.client.HTableInterface;

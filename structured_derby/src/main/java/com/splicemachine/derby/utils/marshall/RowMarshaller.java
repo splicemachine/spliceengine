@@ -6,6 +6,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.ByteBufferArrayUtils;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import org.apache.derby.iapi.error.StandardException;
@@ -19,7 +20,7 @@ import java.util.List;
  * Created on: 6/21/13
  */
 public class RowMarshaller {
-    public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
+    public static final byte[] PACKED_COLUMN_KEY = KVPair.PACKED_COLUMN_KEY;
 
     private static KeyValue getPackedKv(DataValueDescriptor[] row,
                                         byte[] rowKey,
