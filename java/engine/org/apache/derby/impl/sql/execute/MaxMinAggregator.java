@@ -40,16 +40,11 @@ import java.io.IOException;
  * @see OrderableAggregator
  *
  */
-public final class MaxMinAggregator 
-	extends OrderableAggregator
-{
-
+public final class MaxMinAggregator extends OrderableAggregator {
 	private boolean isMax; // true for max, false for min
-
 	/**
 	 */
-	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType )
-	{
+	public void setup( ClassFactory cf, String aggregateName, DataTypeDescriptor returnType ) {
 		super.setup( cf, aggregateName, returnType );
 		isMax = aggregateName.equals("MAX");
 	}
@@ -61,18 +56,14 @@ public final class MaxMinAggregator
 	 * @exception StandardException on error
 	 *
 	 */
-	protected void accumulate(DataValueDescriptor addend) 
-		throws StandardException
-	{
-		if ( (value == null) ||
-			      (isMax && (value.compare(addend) < 0)) ||
-				  (!isMax && (value.compare(addend) > 0))
-				  )
-		{
-			/* NOTE: We need to call cloneValue since value gets
-			 * reused underneath us
-			 */
-			value = addend.cloneValue(false);
+	protected void accumulate(DataValueDescriptor addend) throws StandardException {
+		if (value == null)
+			value = addend.cloneValue(false);			
+		else {
+			int compare = value.compare(addend);
+			if ( (isMax && compare <0) || (!isMax && compare >0)) {
+				value.setValue(addend.getValue);
+			}
 		}
 	}
 
