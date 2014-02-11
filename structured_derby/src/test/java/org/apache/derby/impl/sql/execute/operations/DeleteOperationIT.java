@@ -114,4 +114,19 @@ public class DeleteOperationIT extends SpliceUnitTest {
             throw sql;
         }
     }
+
+    @Test
+    public void testDeleteOverJoinUnsupported() throws Exception {
+        try {
+            methodWatcher
+                .executeUpdate("DELETE FROM deleteoperationit.a_test a " +
+                                   "WHERE c1 = ANY(SELECT c1" +
+                                   "                FROM deleteoperationit.a_test b" +
+                                   "                WHERE a.c1 = b.c1)");
+        } catch (SQLException e){
+            Assert.assertTrue("Deletes over joins are not supported",
+                                 e.getCause().getMessage().contains("A Delete over join"));
+        }
+
+    }
 }

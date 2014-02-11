@@ -67,8 +67,10 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
         for (Predicate p: toPullUp){
             p = updatePredColRefsToJoin(p, j);
             j.addOptPredicate(p);
-            LOG.debug(String.format("Added pred %s to Join=%s.",
-                    PredicateUtils.predToString.apply(p), j.getResultSetNumber()));
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(String.format("Added pred %s to Join=%s.",
+                        PredicateUtils.predToString.apply(p), j.getResultSetNumber()));
+            }
         }
 
         return j;
@@ -83,8 +85,11 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
                 Predicate p = (Predicate)pr.restrictionList.getOptPredicate(i);
                 if (shouldPull.apply(p)) {
                     pulled.add(p);
-                    LOG.debug(String.format("Pulled pred %s from PR=%s",
-                            PredicateUtils.predToString.apply(p), pr.getResultSetNumber()));
+                    if (LOG.isDebugEnabled()){
+                        LOG.debug(String.format("Pulled pred %s from PR=%s",
+                                                       PredicateUtils.predToString.apply(p),
+                                                       pr.getResultSetNumber()));
+                    }
                     pr.restrictionList.removeOptPredicate(i);
                 }
             }
@@ -102,8 +107,10 @@ public class MSJJoinConditionVisitor extends AbstractSpliceVisitor {
             Predicate p = (Predicate)pl.getOptPredicate(i);
             if (shouldPull.apply(p)) {
                 pulled.add(p);
-                LOG.debug(String.format("Pulled pred %s from Table=%s",
-                        PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(String.format("Pulled pred %s from Table=%s",
+                            PredicateUtils.predToString.apply((Predicate) p), t.getResultSetNumber()));
+                }
             } else {
                 t.pushOptPredicate(p);
             }

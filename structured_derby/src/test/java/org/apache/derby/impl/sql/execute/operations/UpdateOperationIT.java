@@ -2,6 +2,7 @@ package org.apache.derby.impl.sql.execute.operations;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
@@ -256,5 +257,21 @@ public class UpdateOperationIT extends SpliceUnitTest {
         }
 
         Assert.assertEquals("Row was not removed from original set",originalCount-1,finalCount);
+    }
+
+    @Test
+    public void testUpdateOverJoinIsUnsupported() throws Exception {
+        try {
+            methodWatcher
+                .executeUpdate("UPDATE updateoperationit.location a " +
+                                   "SET    num = num * 2 " +
+                                   "WHERE  num = ANY(SELECT num " +
+                                   "                   FROM   updateoperationit.location b " +
+                                   "                   WHERE  b.num = a.num) "
+                );
+        } catch (SQLException e) {
+            Assert.assertTrue("Updates over joins are not supported",
+                                 e.getCause().getMessage().contains("An Update over join"));
+        }
     }
 }
