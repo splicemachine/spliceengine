@@ -26,7 +26,8 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     @Override
     @Before
     public void setUp() {
-        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+//        SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
+
         this.storeSetup = classStoreSetup;
         this.transactorSetup = classTransactorSetup;
         baseSetUp();

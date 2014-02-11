@@ -12,7 +12,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.Snowflake;
 
 import org.apache.derby.iapi.sql.execute.ExecIndexRow;

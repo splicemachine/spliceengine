@@ -7,6 +7,7 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactorControl;

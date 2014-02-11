@@ -1,6 +1,6 @@
 package com.splicemachine.derby.utils.marshall;
 
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 

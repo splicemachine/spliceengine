@@ -3,27 +3,21 @@ package com.splicemachine.derby.utils.marshall;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.load.ImportTestUtils;
-import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.derby.utils.test.TestingDataType;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.*;
 
 import static org.mockito.Mockito.mock;

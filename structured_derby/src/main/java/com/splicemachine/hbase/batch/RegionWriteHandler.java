@@ -7,7 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
@@ -226,13 +226,14 @@ public class RegionWriteHandler implements WriteHandler {
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-        Mutation[] mutations = new Mutation[toProcess.size()];
-        int i=0;
-        for(KVPair pair:toProcess){
-            mutations[i] = getMutation(pair,ctx,true);
-            i++;
-        }
-        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
+				return transactor.processKvBatch(new HbRegion(region),queue,toProcess,ctx.getTransactionId());
+//        Mutation[] mutations = new Mutation[toProcess.size()];
+//        int i=0;
+//        for(KVPair pair:toProcess){
+//            mutations[i] = getMutation(pair,ctx,true);
+//            i++;
+//        }
+//        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
     }
 
 	@Override

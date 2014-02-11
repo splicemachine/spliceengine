@@ -65,7 +65,7 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
 
     private volatile boolean shutdown = false;
 
-    ConcurrentRollForwardQueue(Hasher<byte[],ByteBuffer> hasher,
+    public ConcurrentRollForwardQueue(Hasher<byte[],ByteBuffer> hasher,
                                        RollForwardAction<byte[]> action,
                                        long maxHeapSize,
                                        int maxEntries,

@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.index;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -29,7 +29,7 @@ public class IndexTransformerTest {
 				BitSet descColumns = new BitSet();
 
 				IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,
-								mainColToIndexPosMap,descColumns,false,false,KryoPool.defaultPool());
+								mainColToIndexPosMap, descColumns, false, false, KryoPool.defaultPool());
 
 
 				BitSet mainDataFields = new BitSet(4);
@@ -66,7 +66,7 @@ public class IndexTransformerTest {
 				//make sure row includes 2 fields--entry 1, and the row key
 				MultiFieldDecoder fieldDecoder= entryDecoder.getEntryDecoder();
 				Assert.assertEquals("Incorrect data element in position 0",1,fieldDecoder.decodeNextInt());
-				Assert.assertArrayEquals("Incorrect data element in position 1",mainPair.getRow(),fieldDecoder.decodeNextBytesUnsorted());
+				Assert.assertArrayEquals("Incorrect data element in position 1", mainPair.getRow(), fieldDecoder.decodeNextBytesUnsorted());
 
 				/*row key validation*/
 
@@ -74,7 +74,7 @@ public class IndexTransformerTest {
 				keyDecoder.set(indexPair.getRow());
 				Assert.assertEquals("Incorrect key element in position 0",1,keyDecoder.decodeNextInt());
 
-				Assert.assertArrayEquals("Incorrect key element in position 1",mainPair.getRow(),keyDecoder.slice(8));
+				Assert.assertArrayEquals("Incorrect key element in position 1", mainPair.getRow(), keyDecoder.slice(8));
 		}
 
 		@Test

@@ -10,10 +10,7 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.TransactionId;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -43,6 +40,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.*;
 
 import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME;
 
@@ -50,7 +48,12 @@ import static com.splicemachine.constants.SpliceConstants.SUPPRESS_INDEXING_ATTR
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
 public class SIObserver extends BaseRegionObserver {
-    private static Logger LOG = Logger.getLogger(SIObserver.class);
+		private static final ScheduledExecutorService timedRoller = Executors.newSingleThreadScheduledExecutor();
+		private static final ThreadPoolExecutor rollerPool = new ThreadPoolExecutor(0,4,60, TimeUnit.SECONDS,new LinkedBlockingDeque<Runnable>());
+		static{
+				rollerPool.allowCoreThreadTimeOut(true);
+		}
+		private static Logger LOG = Logger.getLogger(SIObserver.class);
     protected HRegion region;
     private boolean tableEnvMatch = false;
     private String tableName;
@@ -71,7 +74,8 @@ public class SIObserver extends BaseRegionObserver {
                 return transactor.rollForward(new HbRegion(region), transactionId, rowList);
             }
         };
-        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
+				rollForwardQueue = new ConcurrentRollForwardQueue(new HHasher(),action,10000,10000,5*60*S,timedRoller,rollerPool);
+//        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
 //        rollForwardQueue = RollForwardQueueMap.registerRegion(tableName,new HHasher(),action);
         RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
         super.start(e);

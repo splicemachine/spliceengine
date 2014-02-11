@@ -3,21 +3,13 @@ package com.splicemachine.hbase.writer;
 import com.carrotsearch.hppc.ObjectArrayList;
 
 import java.io.*;
-import java.util.EnumMap;
-import java.util.LinkedList;
 import java.util.List;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.encoding.Encoding;
-import org.apache.hadoop.io.compress.CompressionCodec;
+import com.splicemachine.hbase.KVPair;
 import org.apache.hadoop.io.compress.SnappyCodec;
-import org.xerial.snappy.Snappy;
 
 /**
  * @author Scott Fines

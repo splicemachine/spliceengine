@@ -14,7 +14,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.Timer;

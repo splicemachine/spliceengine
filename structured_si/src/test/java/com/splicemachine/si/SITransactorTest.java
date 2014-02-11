@@ -11,6 +11,7 @@ import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
 import com.splicemachine.si.data.hbase.HbRegion;
@@ -22,17 +23,6 @@ import com.splicemachine.si.data.light.LRowAccumulator;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.data.light.LTable;
 import com.splicemachine.si.data.light.LTuple;
-import com.splicemachine.si.impl.FilterState;
-import com.splicemachine.si.impl.FilterStatePacked;
-import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.impl.PermissionFailure;
-import com.splicemachine.si.impl.RollForwardAction;
-import com.splicemachine.si.impl.SITransactor;
-import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-import com.splicemachine.si.impl.Tracer;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -82,17 +72,27 @@ public class SITransactorTest extends SIConstants {
     @SuppressWarnings("unchecked")
 		void baseSetUp() {
         transactor = transactorSetup.transactor;
-        transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-                storeSetup.getHasher(),
-                new RollForwardAction() {
-                    @Override
-                    public Boolean rollForward(long transactionId, List rowList) throws IOException {
-                        final STableReader reader = storeSetup.getReader();
-                        Object testSTable = reader.open(storeSetup.getPersonTableName());
-                        transactor.rollForward(testSTable, transactionId, rowList);
-                        return true;
-                    }
-                }, 10, 100, 1000, "test");
+				transactorSetup.rollForwardQueue = new ConcurrentRollForwardQueue(storeSetup.getHasher(),
+								new RollForwardAction<byte[]>() {
+										@Override
+										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
+												final STableReader reader = storeSetup.getReader();
+												Object testSTable = reader.open(storeSetup.getPersonTableName());
+												transactor.rollForward(testSTable,transactionId,rowList);
+												return true;
+										}
+								}, 10000l,100,1000,Executors.newSingleThreadScheduledExecutor(),Executors.newSingleThreadExecutor());
+//        transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
+//                storeSetup.getHasher(),
+//                new RollForwardAction() {
+//                    @Override
+//                    public Boolean rollForward(long transactionId, List rowList) throws IOException {
+//                        final STableReader reader = storeSetup.getReader();
+//                        Object testSTable = reader.open(storeSetup.getPersonTableName());
+//                        transactor.rollForward(testSTable, transactionId, rowList);
+//                        return true;
+//                    }
+//                }, 10, 100, 1000, "test");
     }
 
     @Before

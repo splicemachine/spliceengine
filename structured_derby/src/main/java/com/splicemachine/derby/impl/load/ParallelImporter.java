@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.stats.*;
 import com.splicemachine.stats.util.Folders;

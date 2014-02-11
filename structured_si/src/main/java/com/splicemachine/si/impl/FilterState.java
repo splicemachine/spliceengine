@@ -351,9 +351,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      */
     private Transaction loadTransaction() throws IOException {
         final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp());
-        if (transaction == null) {
-            throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + keyValue.timestamp());
-        }
+				assert transaction!=null : "All transaction should already be loaded from the si family for the data row, txn id: " + keyValue.timestamp();
+
         return transaction;
     }
 

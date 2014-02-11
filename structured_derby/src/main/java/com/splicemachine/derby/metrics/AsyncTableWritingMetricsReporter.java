@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.HTableInterface;

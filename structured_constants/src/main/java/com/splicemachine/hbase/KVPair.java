@@ -1,7 +1,6 @@
-package com.splicemachine.hbase.writer;
+package com.splicemachine.hbase;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
@@ -18,6 +17,8 @@ import java.util.Arrays;
  * Created on: 8/8/13
  */
 public class KVPair implements Externalizable,Comparable<KVPair> {
+		public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
+
     private static final long serialVersionUID = 2l;
     private byte[] rowKey;
     private byte[] value;
@@ -86,14 +87,14 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         this.rowKey = key;
     }
 
-    public Put toPut(){
+    public Put toPut(long timestamp){
         Put put = new Put(rowKey);
-        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES, RowMarshaller.PACKED_COLUMN_KEY,value);
+        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,timestamp,value);
         return put;
     }
 
     public KeyValue toKeyValue(){
-        return new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,RowMarshaller.PACKED_COLUMN_KEY,value);
+        return new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,value);
     }
 
     @Override

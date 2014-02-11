@@ -8,6 +8,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;

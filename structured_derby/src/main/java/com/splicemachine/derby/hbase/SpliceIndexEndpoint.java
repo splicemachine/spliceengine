@@ -10,7 +10,7 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
