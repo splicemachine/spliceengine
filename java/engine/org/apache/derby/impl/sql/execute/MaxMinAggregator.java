@@ -62,7 +62,7 @@ public final class MaxMinAggregator extends OrderableAggregator {
 		else {
 			int compare = value.compare(addend);
 			if ( (isMax && compare <0) || (!isMax && compare >0)) {
-				value.setValue(addend.getValue);
+				value = addend.cloneValue(false);
 			}
 		}
 	}
