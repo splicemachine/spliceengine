@@ -8,7 +8,6 @@ import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.*;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.util.JBitSet;
 import org.apache.derby.impl.sql.compile.*;
 import org.apache.derby.impl.sql.compile.Predicate;
 import org.apache.log4j.Logger;
@@ -77,7 +76,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
     public static JoinNode withStrategy(JoinNode j, JoinStrategy s) throws StandardException {
         LOG.debug(String.format("--> SETTING STRATEGY %s", s));
-        ap(j).setJoinStrategy(s);
+        RSUtils.ap(j).setJoinStrategy(s);
         // With new strategy set, regenerate access path
         j.getRightResultSet().changeAccessPath();
         return j;
@@ -105,7 +104,7 @@ public class JoinSelector extends AbstractSpliceVisitor {
 
         boolean userSupplied = joinContainsStrategyHint(j);
 
-        ConglomerateDescriptor cd = ap(j).getConglomerateDescriptor();
+        ConglomerateDescriptor cd = RSUtils.ap(j).getConglomerateDescriptor();
         boolean isSystemTable = cd != null &&
                                     cd.getSchemaID().toString()
                                         .equals(SchemaDescriptor.SYSTEM_SCHEMA_UUID);
@@ -177,13 +176,8 @@ public class JoinSelector extends AbstractSpliceVisitor {
         return false;
     }
 
-    public static AccessPath ap(JoinNode j){
-         return ((Optimizable) j.getRightResultSet())
-                 .getTrulyTheBestAccessPath();
-    }
-
     public static JoinStrategy strategy(JoinNode j){
-        return ap(j).getJoinStrategy();
+        return RSUtils.ap(j).getJoinStrategy();
     }
 
     public static boolean containsClass(List<?> list, Class clazz){

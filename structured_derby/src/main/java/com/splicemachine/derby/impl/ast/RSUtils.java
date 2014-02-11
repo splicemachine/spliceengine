@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import com.splicemachine.utils.Partition;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.compile.Optimizable;
 import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.derby.impl.sql.compile.*;
@@ -87,6 +88,13 @@ public class RSUtils {
 
     public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
+    public static final Function<Object,Class<?>> classOf = new Function<Object, Class<?>>() {
+        @Override
+        public Class<?> apply(@Nullable Object input) {
+            return input == null ? null : input.getClass();
+        }
+    };
+
     /**
      * If rsn subtree contains a node with 2 children, return the node above
      * it, else return the leaf node
@@ -141,6 +149,10 @@ public class RSUtils {
         return (ap != null && ap.getJoinStrategy() instanceof HashableJoinStrategy);
     }
 
+    public static boolean isSinkingJoin(AccessPath ap){
+        return isHashableJoin(ap) && !(ap.getJoinStrategy() instanceof MergeJoinStrategy);
+    }
+
     public static Predicate<ResultColumn> pointsTo(ResultSetNode rsn)
             throws StandardException {
         final Set<Integer> rsns = Sets.newHashSet(Iterables.transform(getSelfAndDescendants(rsn), rsNum));
@@ -150,5 +162,10 @@ public class RSUtils {
                 return rsns.contains(rc.getResultSetNumber());
             }
         };
+    }
+
+    public static AccessPath ap(JoinNode j){
+         return ((Optimizable) j.getRightResultSet())
+                 .getTrulyTheBestAccessPath();
     }
 }

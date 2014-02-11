@@ -1,8 +1,11 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utility classes related to Marshalling entities
@@ -124,5 +127,23 @@ public class StringUtils {
 	}
 
 
+    /*
+     * Create string list with items separated by commas
+     * Lists of size 2 joined with conjunction (no comma), lists of size > 2
+     * have last item preceded by conjunction
+     */
+    public static String asEnglishList(List<String> items, String conjunction) {
+        int size = items.size();
+        if (size == 0) {
+            return "";
+        } else if (size == 1) {
+            return items.get(0);
+        } else if (size == 2) {
+            return String.format("%s %s %s", items.get(0), conjunction, items.get(1));
+        }
+        List<String> copy = Lists.newArrayList(items);
+        copy.set(size - 1, String.format("%s %s", conjunction, copy.get(size - 1)));
+        return Joiner.on(", ").join(copy);
+    }
 
 }

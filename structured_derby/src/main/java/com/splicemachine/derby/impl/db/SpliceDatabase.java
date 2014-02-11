@@ -76,6 +76,7 @@ public class SpliceDatabase extends BasicDatabase {
         DDLCoordinationFactory.getWatcher().registerLanguageConnectionContext(lctx);
 
         List<Class<? extends ISpliceVisitor>> afterOptVisitors = new ArrayList<Class<? extends ISpliceVisitor>>();
+        afterOptVisitors.add(UnsupportedFormsDetector.class);
         afterOptVisitors.add(AssignRSNVisitor.class);
         afterOptVisitors.add(JoinSelector.class);
         afterOptVisitors.add(MSJJoinConditionVisitor.class);

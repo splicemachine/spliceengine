@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.splicemachine.derby.utils.Exceptions;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.MessageId;
 import org.apache.derby.iapi.sql.compile.ASTVisitor;
 import org.apache.derby.iapi.sql.compile.Visitable;
 import org.apache.log4j.Logger;
@@ -30,7 +32,8 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     // Method lookup
     private static Cache<Class, Method> methods = CacheBuilder.newBuilder().build();
 
-    private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node) {
+    private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node)
+            throws StandardException {
         final Class<? extends Visitable> nClass = node.getClass();
         try {
             Method m = methods.get(nClass, new Callable<Method>() {
@@ -44,11 +47,15 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
             return (Visitable) m.invoke(visitor, node);
 
         } catch (ExecutionException e) {
-            throw new RuntimeException(String.format("Problem finding ISpliceVisitor visit method for %s", nClass), e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(String.format("Problem invoking ISpliceVisitor visit method for %s", nClass), e);
+            throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
+                                                    String.format("Problem finding ISpliceVisitor visit method for %s",
+                                                                     nClass));
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(String.format("Problem invoking ISpliceVisitor visit method for %s", nClass), e);
+             throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
+                                                    String.format("Problem invoking ISpliceVisitor visit method for %s",
+                                                                     nClass));
+        } catch (InvocationTargetException e) {
+            throw Exceptions.parseException(e);
         }
     }
 
