@@ -136,9 +136,9 @@ public class OperationRuntimeStats {
 				if(metrics!=null && writeStats.getRowsWritten()>=0){
 						metrics.addMetric(OperationMetric.WRITE_ROWS, writeStats.getRowsWritten());
 						metrics.addMetric(OperationMetric.WRITE_BYTES, writeStats.getBytesWritten());
-						metrics.addMetric(OperationMetric.WRITE_CPU_TIME,writeTimer.getCpuTime());
-						metrics.addMetric(OperationMetric.WRITE_USER_TIME,writeTimer.getUserTime());
-						metrics.addMetric(OperationMetric.WRITE_WALL_TIME,writeTimer.getWallClockTime());
+						metrics.addMetric(OperationMetric.PROCESSING_CPU_TIME,writeTimer.getCpuTime());
+						metrics.addMetric(OperationMetric.PROCESSING_USER_TIME,writeTimer.getUserTime());
+						metrics.addMetric(OperationMetric.PROCESSING_WALL_TIME,writeTimer.getWallClockTime());
 
 
 						addWriteStats(writeStats, metrics);
@@ -147,6 +147,8 @@ public class OperationRuntimeStats {
 		}
 
 		public static void addWriteStats(WriteStats writeStats, OperationRuntimeStats metrics) {
+				metrics.addMetric(OperationMetric.WRITE_ROWS,writeStats.getRowsWritten());
+				metrics.addMetric(OperationMetric.WRITE_BYTES,writeStats.getBytesWritten());
 				metrics.addMetric(OperationMetric.REJECTED_WRITE_ATTEMPTS,writeStats.getRejectedCount());
 				metrics.addMetric(OperationMetric.RETRIED_WRITE_ATTEMPTS,writeStats.getTotalRetries());
 				metrics.addMetric(OperationMetric.FAILED_WRITE_ATTEMPTS,writeStats.getGlobalErrors());

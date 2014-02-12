@@ -472,13 +472,32 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
+		private Pair<Mutation,Lock>[] checkConflictsForKvBatch(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue,
+																								Pair<KVPair,Lock>[] dataAndLocks,
+																								Set<Long>[] conflictingChildren,ImmutableTransaction transaction) throws IOException{
+				@SuppressWarnings("unchecked") Pair<Mutation,Lock>[] finalPuts = new Pair[dataAndLocks.length];
+				for(int i=0;i<dataAndLocks.length;i++){
+						ConflictResults conflictResults;
+						if(unsafeWrites)
+							conflictResults = ConflictResults.NO_CONFLICT;
+						else{
+								List<KeyValue>[] possibleConflicts = dataStore.getCommitTimestampsAndTombstonesSingle(table,(Data)dataAndLocks[i].getFirst().getRow());
+								conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
+						}
+						conflictingChildren[i] = conflictResults.childConflicts;
+						finalPuts[i] = Pair.newPair(getMutationToRun(table, rollForwardQueue, dataAndLocks[i].getFirst(), transaction, conflictResults),dataAndLocks[i].getSecond());
+				}
+				return finalPuts;
+		}
+
+		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
     private void checkConflictsForPutBatch(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Map<Hashable, Lock> locks, Map<Hashable, List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks, Set<Long>[] conflictingChildren) throws IOException {
         final SortedSet<Hashable> keys = new TreeSet(putInBatchMap.keySet());
         for (Hashable hashableRowKey : keys) {
             for (PutInBatch<Data, Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
                 ConflictResults conflictResults;
-                if (unsafeWrites()) {
-                    conflictResults = new ConflictResults(Collections.EMPTY_SET, Collections.EMPTY_SET, false);
+                if (unsafeWrites) {
+                    conflictResults = new ConflictResults(Collections.<Long>emptySet(), Collections.<Long>emptySet(), false);
                 } else {
                     final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
                     conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
@@ -490,9 +509,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    private boolean unsafeWrites() {
-        return Boolean.getBoolean("splice.unsafe.writes");
-    }
 
     private void obtainLocksForPutBatchAndPrepNonSIPuts(Table table, Mutation[] mutations, Map<Hashable, Lock> locks, Map<Hashable,
             List<PutInBatch<Data, Put>>> putInBatchMap, Pair<Mutation, Lock>[] mutationsAndLocks) throws IOException {
@@ -524,14 +540,37 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
+
+		private Mutation getMutationToRun(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, KVPair kvPair,ImmutableTransaction transaction,ConflictResults conflictResults) throws IOException{
+				long txnIdLong = transaction.getLongTransactionId();
+				Put newPut = (Put) kvPair.toPut(txnIdLong);
+				dataStore.suppressIndexing(newPut);
+				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
+				if(kvPair.getType()== KVPair.Type.DELETE)
+						dataStore.setTombstoneOnPut(newPut,txnIdLong);
+				else if(conflictResults.hasTombstone)
+						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
+
+				Data row = (Data) kvPair.getRow();
+				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
+				if(conflictResults.toRollForward!=null){
+						for(Long txnIdToRollForward : conflictResults.toRollForward){
+								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
+						}
+				}
+				return newPut;
+		}
+
     private PutToRun<Mutation, Lock> getMutationLockPutToRun(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put, ImmutableTransaction transaction, Data rowKey, Lock lock, ConflictResults conflictResults) throws IOException {
         final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
                 conflictResults.hasTombstone);
         dataStore.suppressIndexing(newPut);
         dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey, false);
-        for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-            dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey, false);
-        }
+				if(conflictResults.toRollForward!=null){
+						for (Long transactionIdToRollForward : conflictResults.toRollForward) {
+								dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey, false);
+						}
+				}
         return new PutToRun<Mutation, Lock>(new Pair<Mutation, Lock>(newPut, lock), conflictResults.childConflicts);
     }
 
@@ -546,7 +585,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     private void resolveChildConflicts(Table table, Put put, Lock lock, Set<Long> conflictingChildren) throws IOException {
-        if (!conflictingChildren.isEmpty()) {
+        if (conflictingChildren!=null && !conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
             dataWriter.delete(table, delete, lock);
@@ -589,16 +628,16 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
             throws IOException {
-        final Set<Long> toRollForward = new HashSet<Long>();
-        final Set<Long> childConflicts = new HashSet<Long>();
+//        final Set<Long> toRollForward = new HashSet<Long>();
+//        final Set<Long> childConflicts = new HashSet<Long>();
+				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2];
         for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
-            checkCommitTimestampForConflict(updateTransaction, toRollForward, childConflicts, dataCommitKeyValue);
+            checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
         }
-        return new ConflictResults(toRollForward, childConflicts, null);
+        return new ConflictResults(conflicts[0], conflicts[1], null);
     }
 
-    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction, Set<Long> toRollForward,
-                                                 Set<Long> childConflicts, KeyValue dataCommitKeyValue)
+    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
@@ -608,14 +647,18 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
                 final Transaction dataTransaction = transactionStore.getTransaction(dataTransactionId);
                 if (dataTransaction.getEffectiveStatus().isFinished()) {
                     // Transaction is now in a final state so asynchronously update the data row with the status
-                    toRollForward.add(dataTransactionId);
+										if(conflicts[0]==null)
+												conflicts[0] = Sets.newHashSetWithExpectedSize(1);
+                    conflicts[0].add(dataTransactionId);
                 }
                 if(dataTransaction.getEffectiveStatus()== TransactionStatus.ROLLED_BACK)
                     return; //can't conflict with a rolled back transaction
                 final ConflictType conflictType = checkTransactionConflict(updateTransaction, dataTransaction);
                 switch (conflictType) {
                     case CHILD:
-                        childConflicts.add(dataTransactionId);
+												if(conflicts[1]==null)
+														conflicts[1] = Sets.newHashSetWithExpectedSize(1);
+                        conflicts[1].add(dataTransactionId);
                         break;
                     case SIBLING:
                         if (doubleCheckConflict(updateTransaction, dataTransaction)) {
@@ -817,14 +860,16 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     public Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
         final Transaction transaction = transactionStore.getTransaction(transactionId);
         final Boolean isFinished = transaction.getEffectiveStatus().isFinished();
-        if (isFinished) {
+				boolean isCommitted = transaction.getEffectiveStatus().isCommitted();
+        if (isFinished && isCommitted) {
             for (Data row : rows) {
                 try {
-                    if (transaction.getEffectiveStatus().isCommitted()) {
+//                    if (transaction.getEffectiveStatus().isCommitted()) {
                         dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp());
-                    } else {
-                        dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
-                    }
+//                    }
+//										else {
+//                        dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
+//                    }
                     Tracer.traceRowRollForward(row);
                 } catch (NotServingRegionException e) {
                     // If the region split and the row is not here, then just skip it

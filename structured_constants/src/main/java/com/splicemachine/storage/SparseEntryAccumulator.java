@@ -2,6 +2,7 @@ package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.collect.Maps;
+import com.splicemachine.storage.index.BitIndex;
 
 import java.util.Map;
 
@@ -58,4 +59,9 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
         super.reset();
         remainingFields = (BitSet)allFields.clone();
     }
+
+		@Override
+		public boolean isInteresting(BitIndex potentialIndex) {
+				return potentialIndex.intersects(remainingFields);
+		}
 }

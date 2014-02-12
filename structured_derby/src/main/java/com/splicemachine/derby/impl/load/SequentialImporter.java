@@ -2,13 +2,12 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
-import com.splicemachine.hbase.writer.RecordingCallBuffer;
-import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.hbase.writer.*;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.stats.*;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 
 import java.io.IOException;
@@ -28,25 +27,35 @@ public class SequentialImporter implements Importer{
 
 		private Timer writeTimer;
 		private PairEncoder entryEncoder;
+		private KryoPool kryoPool;
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
 															String txnId){
-			this(importContext, templateRow, txnId,SpliceDriver.driver().getTableWriter());
+			this(importContext, templateRow, txnId,SpliceDriver.driver().getTableWriter(),SpliceDriver.getKryoPool());
 		}
 
 		public SequentialImporter(ImportContext importContext,
 															ExecRow templateRow,
 															String txnId,
-															CallBufferFactory<KVPair> callBufferFactory){
+															CallBufferFactory<KVPair> callBufferFactory,
+															KryoPool kryoPool){
 				this.importContext = importContext;
 				this.rowParser = new RowParser(templateRow,importContext);
+				this.kryoPool = kryoPool;
 
-				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txnId);
 				if(importContext.shouldRecordStats()){
 						metricFactory = Metrics.basicMetricFactory();
 				}else
 						metricFactory = Metrics.noOpMetricFactory();
+
+				Writer.WriteConfiguration config = new ForwardingWriteConfiguration(callBufferFactory.defaultWriteConfiguration()){
+						@Override
+						public MetricFactory getMetricFactory() {
+								return metricFactory;
+						}
+				};
+				writeBuffer = callBufferFactory.writeBuffer(importContext.getTableName().getBytes(), txnId,config);
 		}
 
 		@Override
@@ -63,6 +72,27 @@ public class SequentialImporter implements Importer{
 				writeTimer.tick(1);
 		}
 
+		@Override
+		public void processBatch(String[]... parsedRows) throws Exception {
+			if(parsedRows==null) return;
+			if(writeTimer==null)
+					writeTimer = metricFactory.newTimer();
+
+				writeTimer.startTiming();
+				int count=0;
+				for(String[] line:parsedRows){
+						if(line==null) break;
+						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
+						if(entryEncoder==null)
+								entryEncoder = newEntryEncoder(row);
+						writeBuffer.add(entryEncoder.encode(row));
+						count++;
+				}
+				if(count>0)
+						writeTimer.tick(count);
+				else
+						writeTimer.stopTiming();
+		}
 
 		@Override
 		public boolean isClosed() {
@@ -98,7 +128,7 @@ public class SequentialImporter implements Importer{
 				}else
 						encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 
-				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null);
+				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null,kryoPool);
 
 				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 		}

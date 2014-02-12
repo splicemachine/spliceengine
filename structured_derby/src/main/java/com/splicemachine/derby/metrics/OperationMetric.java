@@ -32,9 +32,9 @@ public enum OperationMetric {
 		/*Metrics relating to writing output data for tasks and/or operations like insert*/
 		WRITE_ROWS(18),
 		WRITE_BYTES(19),
-		WRITE_WALL_TIME(20),
-		WRITE_CPU_TIME(21),
-		WRITE_USER_TIME(22),
+		PROCESSING_WALL_TIME(20),
+		PROCESSING_CPU_TIME(21),
+		PROCESSING_USER_TIME(22),
 
 		WRITE_SLEEP_WALL_TIME(29),
 		WRITE_SLEEP_CPU_TIME(30),
@@ -52,7 +52,7 @@ public enum OperationMetric {
 		 * Network + sleep + overhead.
 		 *
 		 * This number is totalized across all writing threads, so it may be significantly
-		 * higher than the WRITE_WALL_TIME
+		 * higher than the PROCESSING_WALL_TIME
 		 */
 		WRITE_THREADED_WALL_TIME(39),
 		WRITE_THREADED_USER_TIME(40),

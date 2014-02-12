@@ -17,6 +17,7 @@ public class SpliceConstants {
 		@Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
 		@DefaultValue(SEQUENTIAL_IMPORT_THREASHOLD) public static final long DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD = 1024*1024*1024; //defaults to 1GB
 		public static long sequentialImportThreashold;
+		public static int sampleTimingSize = 10000;
 
 		@Retention(RetentionPolicy.SOURCE)
 		protected @interface Parameter{
@@ -217,7 +218,7 @@ public class SpliceConstants {
 		 * Defaults to 1000
 		 */
 		@Parameter private static final String IMPORT_MAX_READ_BUFFER_SIZE = "splice.import.maxReadBufferSize";
-		@DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1000;
+		@DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 2048;
 		public static int maxImportReadBufferSize;
 
 		//common SI fields

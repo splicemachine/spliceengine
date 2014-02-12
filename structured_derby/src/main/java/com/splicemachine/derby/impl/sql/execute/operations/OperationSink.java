@@ -103,7 +103,7 @@ public class OperationSink {
 								writeTimer.startTiming();
 								KVPair encode = encoder.encode(row);
 								writeBuffer.add(encode);
-								writeTimer.stopTiming();
+								writeTimer.tick(1);
 								rowsWritten++;
 
             }while(row!=null);

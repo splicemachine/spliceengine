@@ -41,7 +41,7 @@ public class Metrics {
 
 		private static final TimeMeasure NOOP_TIME_MEASURE = new TimeMeasure() {
 				@Override public void startTime() { }
-				@Override public void stopTime() { }
+				@Override public long stopTime() {return 0l; }
 				@Override public long getElapsedTime() { return 0; }
 				@Override public long getStopTimestamp() { return 0; }
 				@Override public long getStartTimestamp() { return 0; }
@@ -63,6 +63,9 @@ public class Metrics {
 
 		private static final Timer NOOP_TIMER = new Timer() {
 				@Override public void startTiming() { }
+
+				@Override public void startTiming(boolean force) {  }
+
 				@Override public void stopTiming() { }
 				@Override public void tick(long numEvents) { }
 				@Override public long getNumEvents() { return 0; }
@@ -89,6 +92,15 @@ public class Metrics {
 
 		public static MetricFactory basicMetricFactory() { return new CreatingMetricFactory(); }
 
+		public static MetricFactory samplingMetricFactory(int sampleSize){
+				int initialSize = sampleSize>100? sampleSize/100: sampleSize;
+				return samplingMetricFactory(sampleSize,initialSize);
+		}
+
+		public static MetricFactory samplingMetricFactory(int sampleSize,int initialSize){
+				return new SamplingMetricFactory(sampleSize,initialSize);
+		}
+
 		@ThreadSafe
 		public static MetricFactory noOpMetricFactory() { return NOOP_FACTORY; }
 
@@ -108,6 +120,18 @@ public class Metrics {
 						return new CompositeTimer(new NanoTimeMeasure(), NOOP_TIME_MEASURE, NOOP_TIME_MEASURE);
 				else
 						return new CompositeTimer(new NanoTimeMeasure(), new UserTimeMeasure(), new CpuTimeMeasure());
+		}
+
+		public static Timer samplingTimer(int sampleSize){
+				int initialSize = sampleSize>100? sampleSize/100: sampleSize;
+				return samplingTimer(sampleSize,initialSize);
+		}
+
+		public static Timer samplingTimer(int sampleSize,int initialSize){
+				if (!supportsCPUTime)
+						return new SamplingCompositeTimer(new NanoTimeMeasure(), NOOP_TIME_MEASURE, NOOP_TIME_MEASURE,sampleSize,initialSize);
+				else
+						return new SamplingCompositeTimer(new NanoTimeMeasure(), new UserTimeMeasure(), new CpuTimeMeasure(),sampleSize,initialSize);
 		}
 
 		@ThreadSafe
@@ -161,6 +185,22 @@ public class Metrics {
 				@Override protected long getTimestamp() { return System.nanoTime(); }
 		}
 
+		private static class SamplingMetricFactory implements MetricFactory{
+				private final int sampleSize;
+				private final int initialSize;
+
+				private SamplingMetricFactory(int sampleSize, int initialSize) {
+						this.sampleSize = sampleSize;
+						this.initialSize = initialSize;
+				}
+
+				@Override public Counter newCounter() { return basicCounter(); }
+				@Override public Timer newTimer() { return Metrics.samplingTimer(sampleSize,initialSize); }
+				@Override public Gauge newMaxGauge() { return maxGauge(); }
+				@Override public Gauge newMinGauge() { return minGauge(); }
+				@Override public boolean isActive() { return true; }
+
+		}
 		private static class CreatingMetricFactory implements MetricFactory {
 				@Override public Counter newCounter() { return basicCounter(); }
 				@Override public Timer newTimer() { return Metrics.newTimer(); }

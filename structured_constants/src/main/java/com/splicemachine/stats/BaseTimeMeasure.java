@@ -4,7 +4,7 @@ package com.splicemachine.stats;
  * @author Scott Fines
  * Date: 1/17/14
  */
-public abstract class BaseTimeMeasure implements TimeMeasure{
+abstract class BaseTimeMeasure implements TimeMeasure{
 		private long totalTime;
 
 		protected long start;
@@ -18,9 +18,11 @@ public abstract class BaseTimeMeasure implements TimeMeasure{
 		protected abstract long getTimestamp();
 
 		@Override
-		public void stopTime() {
+		public long stopTime() {
 				this.stop = getTimestamp();
-				this.totalTime+=(stop-start);
+				long elapsedTime = stop - start;
+				this.totalTime+= elapsedTime;
+				return elapsedTime;
 		}
 
 		@Override public long getElapsedTime() { return totalTime; }

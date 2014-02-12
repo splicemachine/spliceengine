@@ -136,16 +136,16 @@ public class XPLAINTaskDescriptor {
 										"	sum(th.rejectedwriteattempts) as TOTAL_REJECTED_WRITES," +
 										"	sum(th.failedwriteattempts) as TOTAL_FAILED_WRITES," +
 										"	sum(th.partialwritefailures) as TOTAL_PARTIAL_WRITE_FAILURES," +
-										"	sum(th.writewalltime)/cast(1000000000 as double) as WRITE_WALL_TIME_S," +
-										"	sum(th.writecputime)/cast(1000000000 as double) as WRITE_CPU_TIME_S," +
-										"	sum(th.writeusertime)/cast(1000000000 as double) as WRITE_USER_TIME_S," +
+										"	sum(th.processingwalltime)/cast(1000000000 as double) as PROCESSING_WALL_TIME_S," +
+										"	sum(th.processingcputime)/cast(1000000000 as double) as PROCESSING_CPU_TIME_S," +
+										"	sum(th.processingusertime)/cast(1000000000 as double) as PROCESSING_USER_TIME_S," +
+										"	sum((th.processingcputime-th.processingusertime))/cast(1000*1000*1000 as double) as PROCESSING_SYSTEM_TIME_S," +
 										"	sum(th.writesleepwalltime)/cast(1000000000 as double) as WRITE_SLEEP_WALL_TIME_S," +
 										"	sum(th.writesleepcputime)/cast(1000000000 as double) as WRITE_SLEEP_CPU_TIME_S," +
 										"	sum(th.writesleepusertime)/cast(1000000000 as double) as WRITE_SLEEP_USER_TIME_S," +
 										"	sum(th.writenetworkwalltime)/cast(1000000000 as double) as WRITE_NETWORK_WALL_TIME_S," +
 										"	sum(th.writenetworkcputime)/cast(1000000000 as double) as WRITE_NETWORK_CPU_TIME_S," +
 										"	sum(th.writenetworkusertime)/cast(1000000000 as double) as WRITE_NETWORK_USER_TIME_S," +
-										"	sum((th.writecputime-th.writeusertime))/cast(1000*1000*1000 as double) as WRITE_SYSTEM_TIME_S," +
 										"	sum(th.filteredrows) as ROWS_FILTERED," +
 										"	sum(th.taskqueuewaitwalltime)/cast(1000000000 as double) as TOTAL_QUEUE_TIME_S," +
 										"	max(th.buffer_fillratio) as MAX_BUFFER_FILL_RATIO," +

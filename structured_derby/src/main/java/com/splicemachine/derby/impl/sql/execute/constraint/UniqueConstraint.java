@@ -7,7 +7,8 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
+import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.KeyValue;
@@ -16,6 +17,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -29,6 +31,8 @@ import java.util.*;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
+		private static byte[] predicateBytes;
+		private static byte[] txnIdBytes;
 		private final ConstraintContext constraintContext;
 
     public UniqueConstraint(ConstraintContext constraintContext){
@@ -44,10 +48,17 @@ public class UniqueConstraint implements Constraint {
     };
 
     private static Get createGet(KVPair kvPair,String txnId) throws IOException {
-        Get get = SpliceUtils.createGet(txnId, kvPair.getRow());
-        get.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
-        EntryPredicateFilter predicateFilter = EntryPredicateFilter.emptyPredicate();
-        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+				if(txnIdBytes==null){
+						txnIdBytes = Bytes.toBytes(txnId);
+				}
+				if(predicateBytes==null)
+						predicateBytes = EntryPredicateFilter.emptyPredicate().toBytes();
+				Get get = new Get(kvPair.getRow());
+				get.setAttribute(SIConstants.SI_NEEDED,Bytes.toBytes(true));
+				get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,txnIdBytes);
+				get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateBytes);
+
+				get.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         return get;
     }
 

@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 
 
@@ -90,5 +91,7 @@ class AlwaysAcceptEntryAccumulator extends GenericEntryAccumulator {
     public boolean hasField(int myFields) {
         return occupiedFields.get(myFields);
     }
+
+		@Override public boolean isInteresting(BitIndex potentialIndex) { return true; }
 
 }

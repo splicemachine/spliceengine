@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -34,6 +35,8 @@ public class ParallelImporter implements Importer{
     private volatile Exception error;
 		private final MetricFactory metricFactory;
 		private List<Pair<WriteStats,TimeView>> stats;
+
+		private Timer processTimer;
 
 
 		public ParallelImporter(ImportContext importContext,ExecRow template,String txnId) {
@@ -73,10 +76,10 @@ public class ParallelImporter implements Importer{
                 .build();
         processingPool = Executors.newFixedThreadPool(numProcessingThreads, processingFactory);
 
-        processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxImportReadBufferSize);
+				processingQueue = new BoundedConcurrentLinkedQueue<String[]>(maxImportReadBufferSize);
 
 				if(importCtx.shouldRecordStats()){
-						metricFactory = Metrics.basicMetricFactory();
+						metricFactory = Metrics.samplingMetricFactory(SpliceConstants.sampleTimingSize);
 				}else
 						metricFactory = Metrics.noOpMetricFactory();
 
@@ -115,8 +118,19 @@ public class ParallelImporter implements Importer{
     
     @Override
     public void process(String[] parsedRow) throws Exception {
-        boolean shouldContinue;
-        do{
+				processBatch(parsedRow);
+    }
+
+		@Override
+		public void processBatch(String[]... parsedRows) throws Exception {
+				if(processTimer==null)
+						processTimer = metricFactory.newTimer();
+				processTimer.startTiming();
+				int count = 0;
+				for(String[] row:parsedRows){
+						if(row==null) break;
+						boolean shouldContinue;
+						do{
             /*
              * In the event of a processor failing, it will set the error
              * field atomically, then stop processing entries off the queue. All
@@ -126,14 +140,25 @@ public class ParallelImporter implements Importer{
              * don't spin for forever. To prevent that, we look at the error field
              * ourselves.
              */
-            if(error!=null)
-                throw error;
-            shouldContinue = !processingQueue.offer(parsedRow,200,TimeUnit.MILLISECONDS);
-        }while(shouldContinue);
-    }
+								if(error!=null)
+										throw error;
 
-    @Override
+								shouldContinue = !processingQueue.offer(row,200,TimeUnit.MILLISECONDS);
+						}while(shouldContinue);
+						count++;
+				}
+				if(count>0)
+						processTimer.tick(count);
+				else
+						processTimer.stopTiming();
+		}
+
+		@Override
     public void close() throws IOException {
+				if(processTimer==null)
+						processTimer = metricFactory.newTimer();
+
+				processTimer.startTiming();
         closed = true;
         try{
 						stats = Lists.newArrayListWithCapacity(futures.size());
@@ -151,6 +176,7 @@ public class ParallelImporter implements Importer{
 								throw new IOException(error);
         }finally{
             processingPool.shutdownNow();
+						processTimer.stopTiming();
         }
     }
 
@@ -171,14 +197,8 @@ public class ParallelImporter implements Importer{
 
 		@Override
 		public TimeView getTotalTime() {
-				if(stats==null) return Metrics.noOpTimeView();
-
-				MultiTimeView multiTimeView = new SimpleMultiTimeView(Folders.sumFolder(),Folders.sumFolder(),
-								Folders.sumFolder(),Folders.minLongFolder(),Folders.maxLongFolder());
-				for(Pair<WriteStats,TimeView> ioStats:stats){
-						multiTimeView.update(ioStats.getSecond());
-				}
-				return multiTimeView;
+				if(processTimer==null) return Metrics.noOpTimeView();
+				return processTimer.getTime();
 		}
 
 		void markFailed(Exception e){ this.error = e; }
@@ -240,15 +260,26 @@ public class ParallelImporter implements Importer{
              * we take for only a little while before backing off and trying again.
              */
             try{
+								String[][] elements = new String[16][];
+								int mask = 16-1;
+								int position = 0;
                 while(!isClosed()&&!isFailed()){
-                    String[] elements = queue.poll(200,TimeUnit.MILLISECONDS);
-                    if(elements==null)continue; //try again
-                    doImportRow(elements);
+                    String[] next = queue.poll(200,TimeUnit.MILLISECONDS);
+                    if(next==null)continue; //try again
+										elements[position] = next;
+										position = (position+1) & mask;
+										if(position==0){
+												doImportRow(elements);
+										}
 								}
 								//source is closed, poll until the queue is empty
 								String[] next;
 								while(!isFailed() && (next = queue.poll())!=null){
-										doImportRow(next);
+										elements[position] = next;
+										position = (position+1) & mask;
+										if(position==0){
+												doImportRow(elements);
+										}
 								}
 						}
             catch(Exception e){
@@ -262,12 +293,21 @@ public class ParallelImporter implements Importer{
 						return Pair.newPair(writeDestination.getWriteStats(), writeTimer.getTime());
         }
 
-        protected void doImportRow(String[] line) throws Exception {
+        protected void doImportRow(String[][] lines) throws Exception {
+						if(lines==null) return;
 						writeTimer.startTiming();
-						ExecRow newRow = importProcessor.process(line, importContext.getColumnInformation());
+						int count=0;
+						for(String[] line:lines){
+								if(line==null) break;
+								ExecRow newRow = importProcessor.process(line, importContext.getColumnInformation());
 
-						writeDestination.add(entryEncoder.encode(newRow));
-						writeTimer.tick(1);
+								writeDestination.add(entryEncoder.encode(newRow));
+								count++;
+						}
+						if(count>0)
+								writeTimer.tick(0);
+						else
+								writeTimer.stopTiming();
         }
     }
 }

@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -16,9 +17,15 @@ import java.io.IOException;
 public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected EntryEncoder entryEncoder;
 		protected ExecRow currentRow;
+		protected KryoPool kryoPool;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder) {
+				this(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+		}
+
+		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
 				super(keyColumns, keySortOrder,true);
+				this.kryoPool = kryoPool;
 		}
 
 		@Override
@@ -56,7 +63,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 								doubleFields.set(i);
 						i++;
 				}
-				return EntryEncoder.create(SpliceDriver.getKryoPool(),nCols,notNullFields,scalarFields,floatFields,doubleFields);
+				return EntryEncoder.create(kryoPool,nCols,notNullFields,scalarFields,floatFields,doubleFields);
 		}
 
 		protected BitSet getNotNullFields(ExecRow row,BitSet notNullFields) {

@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.stats.*;
@@ -161,7 +162,7 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		@Override
 		public Timer newTimer(){
 				if(!recordTraceMetrics) return Metrics.noOpTimer();
-				return Metrics.newTimer();
+				return Metrics.samplingTimer(SpliceConstants.sampleTimingSize);
 		}
 
 		@Override

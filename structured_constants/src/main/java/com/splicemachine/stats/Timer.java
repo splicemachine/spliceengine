@@ -11,6 +11,8 @@ public interface Timer {
 		 */
 		void startTiming();
 
+		void startTiming(boolean force);
+
 		/**
 		 * stop recording time. Equivalent to {@code tick(0)}.
 		 */

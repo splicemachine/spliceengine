@@ -8,7 +8,7 @@ public interface TimeMeasure {
 
 		void startTime();
 
-		void stopTime();
+		long stopTime();
 
 		long getElapsedTime();
 
