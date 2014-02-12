@@ -3,7 +3,9 @@ package com.splicemachine.derby.impl.sql.execute;
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.types.*;
+import org.apache.derby.iapi.util.StringUtil;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -49,6 +51,42 @@ public class LazyStringDataValueDescriptor extends LazyDataValueDescriptor imple
         return unwrapped;
     }
 
+    @Override
+    public void normalize(DataTypeDescriptor dtd, DataValueDescriptor source) throws StandardException {
+
+        if(source.isLazy() && source instanceof LazyStringDataValueDescriptor) {
+
+            LazyStringDataValueDescriptor ldvd = (LazyStringDataValueDescriptor) source;
+            int desiredWidth = dtd.getMaximumWidth();
+            byte[] sourceBytes = ldvd.getBytes();
+            byte[] result = sourceBytes;
+            int sourceWidth = sourceBytes.length;
+
+            if (sourceWidth > desiredWidth) {
+                // normalize the byte array to the desired length
+                for (int posn = desiredWidth; posn < sourceWidth; posn++)
+                {
+                    if (sourceBytes[posn]-2 != ' ')
+                    {
+                        throw StandardException.newException(
+                                SQLState.LANG_STRING_TRUNCATION,
+                                getTypeName(),
+                                StringUtil.formatForPrint(new String(sourceBytes)),
+                                String.valueOf(desiredWidth));
+                    }
+                }
+                result = new byte[desiredWidth];
+                for (int i = 0; i < desiredWidth; ++i) {
+                    result[i] = sourceBytes[i];
+                }
+            }
+            this.dvdBytes = result;
+            this.isNull = (this.dvdBytes == null);
+        } else {
+            dvd.normalize(dtd, source);
+            resetForSerialization();
+        }
+    }
 
     @Override
     public StringDataValue concatenate(StringDataValue leftOperand, StringDataValue rightOperand, StringDataValue result) throws StandardException {
