@@ -467,19 +467,19 @@
       <!--======================-->
       <!--apache-hbase-0.94.5-->
       <!--======================-->
-      <id>apache-hbase-0.94.5</id>
+      <id>apache-hbase-0.94.9</id>
       <activation>
         <property>
-          <!-- To run, specify -Dhbase.profile=apache-hbase-0.94.5 -->
+          <!-- To run, specify -Dhbase.profile=apache-hbase-0.94.9 -->
           <name>hbase.profile</name>
-          <value>apache-hbase-0.94.5</value>
+          <value>apache-hbase-0.94.9</value>
         </property>
       </activation>
       <properties>
         <zookeeper.version>3.4.5</zookeeper.version>
-        <hbase.version>0.94.5</hbase.version>
-        <hadoop.version>0.23.6</hadoop.version>
-        <envClassifier>apache-hbase-0.94.5</envClassifier>
+        <hbase.version>0.94.9</hbase.version>
+        <hadoop.version>1.0.3</hadoop.version>
+        <envClassifier>apache-hbase-0.94.9</envClassifier>
       </properties>
 
       <dependencies>
@@ -496,29 +496,7 @@
         </dependency>
         <dependency>
           <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-mapreduce-client-core</artifactId>
-          <version>${hadoop.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-common</artifactId>
-          <version>${hadoop.version}</version>
-          <classifier>tests</classifier>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
-          <version>${hadoop.version}</version>
-          <classifier>tests</classifier>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-hdfs</artifactId>
+          <artifactId>hadoop-minicluster</artifactId>
           <version>${hadoop.version}</version>
         </dependency>
       </dependencies>
