@@ -1,4 +1,4 @@
-package com.splicemachine.tools;
+package com.splicemachine.concurrent;
 
 import java.util.Random;
 /**

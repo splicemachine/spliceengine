@@ -10,4 +10,6 @@ package com.splicemachine.stats.util;
 public interface LongLongFolder {
 
 		long fold(long previous, long next);
+
+		long foldAll(long initialValue,long...array);
 }

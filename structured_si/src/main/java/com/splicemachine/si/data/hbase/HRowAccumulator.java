@@ -27,7 +27,7 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
     public boolean isOfInterest(KeyValue keyValue) {
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
-        return currentIndex.intersects(entryAccumulator.getRemainingFields());
+				return entryAccumulator.isInteresting(currentIndex);
     }
 
     @Override

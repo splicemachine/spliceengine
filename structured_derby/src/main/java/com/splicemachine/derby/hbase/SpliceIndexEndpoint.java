@@ -14,6 +14,7 @@ import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
+import com.splicemachine.si.impl.NoOpRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
@@ -75,7 +76,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     private long conglomId;
 
-    private RollForwardQueue<byte[],ByteBuffer> queue;
+    private RollForwardQueue<byte[],ByteBuffer> queue = NoOpRollForwardQueue.INSTANCE;
     private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);

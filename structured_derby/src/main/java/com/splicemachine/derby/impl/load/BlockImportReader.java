@@ -58,7 +58,12 @@ public class BlockImportReader implements ImportReader {
 				}
     }
 
-    @Override
+		@Override
+		public String[][] nextRowBatch() throws IOException {
+				return new String[][]{nextRow()}; //TODO -sf- implement!
+		}
+
+		@Override
     public void setup(FileSystem fileSystem, ImportContext importContext) throws IOException{
 				FileSplit split = new FileSplit(importContext.getFilePath(),
 								location.getOffset(),

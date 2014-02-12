@@ -1,6 +1,7 @@
 package com.splicemachine.storage;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 
 /**
@@ -42,4 +43,6 @@ public interface EntryAccumulator {
 		void markOccupiedDouble(int position);
 
 		void markOccupiedUntyped(int position);
+
+		boolean isInteresting(BitIndex potentialIndex);
 }

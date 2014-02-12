@@ -290,7 +290,13 @@ final class BulkWriteAction implements Callable<WriteStats> {
         IntArrayList notRunRows = response.getNotRunRows();
         IntObjectOpenHashMap<WriteResult> failedRows = response.getFailedRows();
 
-				IntOpenHashSet rowsToRetry = IntOpenHashSet.from(notRunRows);
+				ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
+				Object[] allWritesBuffer = allWrites.buffer;
+
+				ObjectArrayList<KVPair> toRetry  = ObjectArrayList.newInstanceWithCapacity(notRunRows.size()+failedRows.size());
+				for(int i=0;i<notRunRows.size();i++){
+					toRetry.add((KVPair)allWritesBuffer[notRunRows.get(i)]);
+				}
 
         List<String> errorMsgs = Lists.newArrayListWithCapacity(failedRows.size());
 
@@ -300,20 +306,13 @@ final class BulkWriteAction implements Callable<WriteStats> {
 
         errors.add(new WriteFailedException(errorMsgs));
 
-        ObjectArrayList<KVPair> allWrites = bulkWrite.getMutations();
-        ObjectArrayList<KVPair> failedWrites = ObjectArrayList.newInstanceWithCapacity(rowsToRetry.size());
-				Object[] allWritesBuffer = allWrites.buffer;
-				for(int i=0;i<rowsToRetry.size();i++){
-						KVPair e1 = (KVPair) allWritesBuffer[i];
-						failedWrites.add(e1);
-				}
 				for(IntObjectCursor<WriteResult> cursor: failedRows){
 						if(cursor.value.canRetry())
-								failedWrites.add((KVPair) allWritesBuffer[cursor.key]);
+								toRetry.add((KVPair) allWritesBuffer[cursor.key]);
 				}
 
-        if(failedWrites.size()>0){
-            retryFailedWrites(tries, bulkWrite.getTxnId(), failedWrites);
+        if(toRetry.size()>0){
+            retryFailedWrites(tries, bulkWrite.getTxnId(), toRetry);
         }
     }
 

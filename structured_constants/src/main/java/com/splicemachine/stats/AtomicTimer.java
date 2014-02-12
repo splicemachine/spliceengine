@@ -81,9 +81,11 @@ public class AtomicTimer implements MetricFactory{
 
 		private abstract class BaseUpdatingTimeMeasure extends BaseTimeMeasure{
 				@Override
-				public void stopTime() {
+				public long stopTime() {
 						super.stopTime();
-						update((stop - start));
+						long time = stop - start;
+						update(time);
+						return time;
 				}
 
 				protected abstract void update(long time);
