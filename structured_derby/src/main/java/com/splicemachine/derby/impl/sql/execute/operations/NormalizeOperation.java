@@ -10,6 +10,7 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardSupplier;
@@ -21,7 +22,7 @@ import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.TypeId;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
@@ -292,8 +293,11 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 		private DataValueDescriptor getCachedDesgination(int col) throws StandardException {
 				int index =col-1;
-				if(cachedDestinations[index]==null)
-						cachedDestinations[index] = getDesiredType(col).getNull();
+				if(cachedDestinations[index]==null) {
+                    DataValueDescriptor dvd =  getDesiredType(col).getNull();
+                    int formatId = dvd.getTypeFormatId();
+					cachedDestinations[index] = LazyDataValueFactory.getLazyNull(formatId);
+                }
 				return cachedDestinations[index];
 		}
 
