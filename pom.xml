@@ -200,7 +200,7 @@
           <!-- This is the default profile - runs when NO -Dhbase.profile=<profileid> is specified -->
           <!-- NOTE: since maven does not know about OR (ie, prop not set OR prop set to cloudera-cdh4.3.0), -->
           <!--     this will NOT run when you set -Dhbase.profile=cloudera-cdh4.3.0 -->
-          <name>!hbase.profile</name>
+                            <name>!hbase.profile</name>
         </property>
       </activation>
       <properties>
@@ -339,6 +339,137 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <!--======================-->
+      <!--cloudera-cdh5.0.0-beta2-->
+      <!--======================-->
+      <id>cloudera-cdh5.0.0-beta2</id>
+      <activation>
+        <property>
+                  <name>hbase.profile</name>
+          <value>cloudera-cdh5.0.0-beta2</value>
+        </property>
+      </activation>
+      <properties>
+        <zookeeper.version>3.4.5-cdh5.0.0-beta-2</zookeeper.version>
+        <hbase.version>0.96.1.1-cdh5.0.0-beta-2</hbase.version>
+        <hadoop.version>2.2.0-cdh5.0.0-beta-2</hadoop.version>
+        <envClassifier>cloudera-cdh5.0.0-beta2</envClassifier>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-client</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-protocol</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-testing-util</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-common</artifactId>
+          <version>${hbase.version}</version>
+          <classifier>tests</classifier>
+        </dependency>
+
+        <dependency>
+          <groupId>org.apache.hbase</groupId>
+          <artifactId>hbase-server</artifactId>
+          <version>${hbase.version}</version>
+        </dependency>
+
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-common</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-hdfs</artifactId>
+          <version>${hadoop.version}</version>
+          <classifier>tests</classifier>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-hdfs</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+      </dependencies>
+      <repositories>
+        <repository>
+          <id>cloudera</id>
+          <url>https://repository.cloudera.com/content/repositories/releases/</url>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+        </repository>
+      </repositories>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.15</version>
+            <configuration>
+              <argLine>-Xms256M -Xmx1024M</argLine>
+              <redirectTestOutputToFile>true</redirectTestOutputToFile>
+              <includes>
+                <include>**/*Test.java</include>
+              </includes>
+              <excludes>
+                <!-- Skip ITs -->
+                <exclude>**/*IT.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>integration-tests</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+            <version>2.12.2</version>
+            <configuration>
+              <skipTests>${skip.integration.tests}</skipTests>
+              <argLine>-Xms256M -Xmx1024M</argLine>
+              <redirectTestOutputToFile>true</redirectTestOutputToFile>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <excludes>
+                <!-- Skip all unit tests -->
+                <exclude>**/*Test.java</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+
+
+
 
     <profile>
       <!--======================-->
