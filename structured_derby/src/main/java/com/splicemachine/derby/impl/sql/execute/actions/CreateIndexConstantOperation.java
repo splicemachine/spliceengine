@@ -264,8 +264,10 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
-		TransactionController tc = lcc.getTransactionExecute();
+        TransactionController parent = lcc.getTransactionExecute();
+        TransactionController tc = lcc.getTransactionExecute().startNestedUserTransaction(false, true);
 		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true) ;
+        dd.startWriting(lcc);
 		td = activation.getDDLTableDescriptor();
 		if (td == null) {
 			td = tableId != null?dd.getTableDescriptor(tableId):dd.getTableDescriptor(tableName, sd, tc);
@@ -276,607 +278,617 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 		if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
 			throw StandardException.newException(SQLState.LANG_CREATE_SYSTEM_INDEX_ATTEMPTED, indexName, tableName);
 		}
+        try {
 
-		// invalidate any prepared statements that
-		// depended on this table (including this one)
-		if (! forCreateTable)
-			dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
+            // invalidate any prepared statements that
+            // depended on this table (including this one)
+            if (! forCreateTable)
+                dm.invalidateFor(td, DependencyManager.CREATE_INDEX, lcc);
 
-		SpliceLogUtils.trace(LOG, "Translation Base Column Names");
-		// Translate the base column names to column positions
-		baseColumnPositions = new int[columnNames.length];
-		for (int i = 0; i < columnNames.length; i++) {
-			// Look up the column in the data dictionary
-			columnDescriptor = td.getColumnDescriptor(columnNames[i]);
-			if (columnDescriptor == null) {
-				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE, columnNames[i],tableName);
-			}
+            SpliceLogUtils.trace(LOG, "Translation Base Column Names");
+            // Translate the base column names to column positions
+            baseColumnPositions = new int[columnNames.length];
+            for (int i = 0; i < columnNames.length; i++) {
+                // Look up the column in the data dictionary
+                columnDescriptor = td.getColumnDescriptor(columnNames[i]);
+                if (columnDescriptor == null) {
+                    throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE, columnNames[i],tableName);
+                }
 
-			TypeId typeId = columnDescriptor.getType().getTypeId();
+                TypeId typeId = columnDescriptor.getType().getTypeId();
 
-			// Don't allow a column to be created on a non-orderable type
-			ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
-			boolean isIndexable = typeId.orderable(cf);
+                // Don't allow a column to be created on a non-orderable type
+                ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+                boolean isIndexable = typeId.orderable(cf);
 
-			if (isIndexable && typeId.userType()) {
-				String userClass = typeId.getCorrespondingJavaTypeName();
+                if (isIndexable && typeId.userType()) {
+                    String userClass = typeId.getCorrespondingJavaTypeName();
 
-				// Don't allow indexes to be created on classes that
-				// are loaded from the database. This is because recovery
-				// won't be able to see the class and it will need it to
-				// run the compare method.
-				try {
-					if (cf.isApplicationClass(cf.loadApplicationClass(userClass)))
-						isIndexable = false;
-				} catch (ClassNotFoundException cnfe) {
-					// shouldn't happen as we just check the class is orderable
-					isIndexable = false;
-				}
-			}
+                    // Don't allow indexes to be created on classes that
+                    // are loaded from the database. This is because recovery
+                    // won't be able to see the class and it will need it to
+                    // run the compare method.
+                    try {
+                        if (cf.isApplicationClass(cf.loadApplicationClass(userClass)))
+                            isIndexable = false;
+                    } catch (ClassNotFoundException cnfe) {
+                        // shouldn't happen as we just check the class is orderable
+                        isIndexable = false;
+                    }
+                }
 
-			if (!isIndexable)
-				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
+                if (!isIndexable)
+                    throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION, typeId.getSQLTypeName());
 
-			// Remember the position in the base table of each column
-			baseColumnPositions[i] = columnDescriptor.getPosition();
+                // Remember the position in the base table of each column
+                baseColumnPositions[i] = columnDescriptor.getPosition();
 
-			if (maxBaseColumnPosition < baseColumnPositions[i])
-				maxBaseColumnPosition = baseColumnPositions[i];
-		}
+                if (maxBaseColumnPosition < baseColumnPositions[i])
+                    maxBaseColumnPosition = baseColumnPositions[i];
+            }
 
-		/* The code below tries to determine if the index that we're about
-		 * to create can "share" a conglomerate with an existing index.
-		 * If so, we will use a single physical conglomerate--namely, the
-		 * one that already exists--to support both indexes. I.e. we will
-		 * *not* create a new conglomerate as part of this constant action.
-		 */
+            /* The code below tries to determine if the index that we're about
+             * to create can "share" a conglomerate with an existing index.
+             * If so, we will use a single physical conglomerate--namely, the
+             * one that already exists--to support both indexes. I.e. we will
+             * *not* create a new conglomerate as part of this constant action.
+             */
 
-		// check if we have similar indices already for this table
-		ConglomerateDescriptor[] congDescs = td.getConglomerateDescriptors();
-		boolean shareExisting = false;
-		for (int i = 0; i < congDescs.length; i++) {
-			ConglomerateDescriptor cd = congDescs[i];
-			if ( ! cd.isIndex())
-				continue;
+            // check if we have similar indices already for this table
+            ConglomerateDescriptor[] congDescs = td.getConglomerateDescriptors();
+            boolean shareExisting = false;
+            for (int i = 0; i < congDescs.length; i++) {
+                ConglomerateDescriptor cd = congDescs[i];
+                if ( ! cd.isIndex())
+                    continue;
 
-			if (droppedConglomNum == cd.getConglomerateNumber()) {
-				/* We can't share with any conglomerate descriptor
-				 * whose conglomerate number matches the dropped
-				 * conglomerate number, because that descriptor's
-				 * backing conglomerate was dropped, as well.  If
-				 * we're going to share, we have to share with a
-				 * descriptor whose backing physical conglomerate
-				 * is still around.
-				 */
-				continue;
-			}
+                if (droppedConglomNum == cd.getConglomerateNumber()) {
+                    /* We can't share with any conglomerate descriptor
+                     * whose conglomerate number matches the dropped
+                     * conglomerate number, because that descriptor's
+                     * backing conglomerate was dropped, as well.  If
+                     * we're going to share, we have to share with a
+                     * descriptor whose backing physical conglomerate
+                     * is still around.
+                     */
+                    continue;
+                }
 
-			IndexRowGenerator irg = cd.getIndexDescriptor();
-			int[] bcps = irg.baseColumnPositions();
-			boolean[] ia = irg.isAscending();
-			int j = 0;
+                IndexRowGenerator irg = cd.getIndexDescriptor();
+                int[] bcps = irg.baseColumnPositions();
+                boolean[] ia = irg.isAscending();
+                int j = 0;
 
-			/* The conditions which allow an index to share an existing
-			 * conglomerate are as follows:
-			 *
-			 * 1. the set of columns (both key and include columns) and their 
-			 *  order in the index is the same as that of an existing index AND 
-			 *
-			 * 2. the ordering attributes are the same AND 
-			 *
-			 * 3. one of the following is true:
-			 *    a) the existing index is unique, OR
-			 *    b) the existing index is non-unique with uniqueWhenNotNulls
-			 *       set to TRUE and the index being created is non-unique, OR
-			 *    c) both the existing index and the one being created are
-			 *       non-unique and have uniqueWithDuplicateNulls set to FALSE.
-			 */
-			boolean possibleShare = (irg.isUnique() || !unique) &&
-			    (bcps.length == baseColumnPositions.length);
+                /* The conditions which allow an index to share an existing
+                 * conglomerate are as follows:
+                 *
+                 * 1. the set of columns (both key and include columns) and their
+                 *  order in the index is the same as that of an existing index AND
+                 *
+                 * 2. the ordering attributes are the same AND
+                 *
+                 * 3. one of the following is true:
+                 *    a) the existing index is unique, OR
+                 *    b) the existing index is non-unique with uniqueWhenNotNulls
+                 *       set to TRUE and the index being created is non-unique, OR
+                 *    c) both the existing index and the one being created are
+                 *       non-unique and have uniqueWithDuplicateNulls set to FALSE.
+                 */
+                boolean possibleShare = (irg.isUnique() || !unique) &&
+                    (bcps.length == baseColumnPositions.length);
 
-			//check if existing index is non unique and uniqueWithDuplicateNulls
-			//is set to true (backing index for unique constraint)
-			if (possibleShare && !irg.isUnique ()) {
-				/* If the existing index has uniqueWithDuplicateNulls set to
-				 * TRUE it can be shared by other non-unique indexes; otherwise
-				 * the existing non-unique index has uniqueWithDuplicateNulls
-				 * set to FALSE, which means the new non-unique conglomerate
-				 * can only share if it has uniqueWithDuplicateNulls set to
-				 * FALSE, as well.
-				 */
-				possibleShare = (irg.isUniqueWithDuplicateNulls() || ! uniqueWithDuplicateNulls);
-			}
+                //check if existing index is non unique and uniqueWithDuplicateNulls
+                //is set to true (backing index for unique constraint)
+                if (possibleShare && !irg.isUnique ()) {
+                    /* If the existing index has uniqueWithDuplicateNulls set to
+                     * TRUE it can be shared by other non-unique indexes; otherwise
+                     * the existing non-unique index has uniqueWithDuplicateNulls
+                     * set to FALSE, which means the new non-unique conglomerate
+                     * can only share if it has uniqueWithDuplicateNulls set to
+                     * FALSE, as well.
+                     */
+                    possibleShare = (irg.isUniqueWithDuplicateNulls() || ! uniqueWithDuplicateNulls);
+                }
 
-			if (possibleShare && indexType.equals(irg.indexType())) {
-				for (; j < bcps.length; j++) {
-					if ((bcps[j] != baseColumnPositions[j]) || (ia[j] != isAscending[j]))
-						break;
-				}
-			}
+                if (possibleShare && indexType.equals(irg.indexType())) {
+                    for (; j < bcps.length; j++) {
+                        if ((bcps[j] != baseColumnPositions[j]) || (ia[j] != isAscending[j]))
+                            break;
+                    }
+                }
 
-			if (j == baseColumnPositions.length) {	// share
-				/*
-				 * Don't allow users to create a duplicate index. Allow if being done internally
-				 * for a constraint
-				 */
-				if (!isConstraint) {
-					activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE,cd.getConglomerateName()));
-					return;
-				}
+                if (j == baseColumnPositions.length) {	// share
+                    /*
+                     * Don't allow users to create a duplicate index. Allow if being done internally
+                     * for a constraint
+                     */
+                    if (!isConstraint) {
+                        activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE,cd.getConglomerateName()));
+                        return;
+                    }
 
-				/* Sharing indexes share the physical conglomerate
-				 * underneath, so pull the conglomerate number from
-				 * the existing conglomerate descriptor.
-				 */
-				conglomId = cd.getConglomerateNumber();
+                    /* Sharing indexes share the physical conglomerate
+                     * underneath, so pull the conglomerate number from
+                     * the existing conglomerate descriptor.
+                     */
+                    conglomId = cd.getConglomerateNumber();
 
-				/* We create a new IndexRowGenerator because certain
-				 * attributes--esp. uniqueness--may be different between
-				 * the index we're creating and the conglomerate that
-				 * already exists.  I.e. even though we're sharing a
-				 * conglomerate, the new index is not necessarily
-				 * identical to the existing conglomerate. We have to
-				 * keep track of that info so that if we later drop
-				 * the shared physical conglomerate, we can figure out
-				 * what this index (the one we're creating now) is
-				 * really supposed to look like.
-				 */
-				indexRowGenerator =
-					new IndexRowGenerator(
-						indexType, unique, uniqueWithDuplicateNulls,
-						baseColumnPositions,
-						isAscending,
-						baseColumnPositions.length);
+                    /* We create a new IndexRowGenerator because certain
+                     * attributes--esp. uniqueness--may be different between
+                     * the index we're creating and the conglomerate that
+                     * already exists.  I.e. even though we're sharing a
+                     * conglomerate, the new index is not necessarily
+                     * identical to the existing conglomerate. We have to
+                     * keep track of that info so that if we later drop
+                     * the shared physical conglomerate, we can figure out
+                     * what this index (the one we're creating now) is
+                     * really supposed to look like.
+                     */
+                    indexRowGenerator =
+                        new IndexRowGenerator(
+                            indexType, unique, uniqueWithDuplicateNulls,
+                            baseColumnPositions,
+                            isAscending,
+                            baseColumnPositions.length);
 
-				//DERBY-655 and DERBY-1343
-				// Sharing indexes will have unique logical conglomerate UUIDs.
-				conglomerateUUID = dd.getUUIDFactory().createUUID();
-				shareExisting = true;
-				break;
-			}
-		}
+                    //DERBY-655 and DERBY-1343
+                    // Sharing indexes will have unique logical conglomerate UUIDs.
+                    conglomerateUUID = dd.getUUIDFactory().createUUID();
+                    shareExisting = true;
+                    break;
+                }
+            }
 
-		/* If we have a droppedConglomNum then the index we're about to
-		 * "create" already exists--i.e. it has an index descriptor and
-		 * the corresponding information is already in the system catalogs.
-		 * The only thing we're missing, then, is the physical conglomerate
-		 * to back the index (because the old conglomerate was dropped).
-		 */
-		boolean alreadyHaveConglomDescriptor = (droppedConglomNum > -1L);
+            /* If we have a droppedConglomNum then the index we're about to
+             * "create" already exists--i.e. it has an index descriptor and
+             * the corresponding information is already in the system catalogs.
+             * The only thing we're missing, then, is the physical conglomerate
+             * to back the index (because the old conglomerate was dropped).
+             */
+            boolean alreadyHaveConglomDescriptor = (droppedConglomNum > -1L);
 
-		/* If this index already has an essentially same one, we share the
-		 * conglomerate with the old one, and just simply add a descriptor
-		 * entry into SYSCONGLOMERATES--unless we already have a descriptor,
-		 * in which case we don't even need to do that.
-		 */
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		if (shareExisting && !alreadyHaveConglomDescriptor) {
-			ConglomerateDescriptor cgd =
-				ddg.newConglomerateDescriptor(conglomId, indexName, true,
-										  indexRowGenerator, isConstraint,
-										  conglomerateUUID, td.getUUID(), sd.getUUID() );
-			dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
-			// add newly added conglomerate to the list of conglomerate
-			// descriptors in the td.
-			ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
-			cdl.add(cgd);
-			// can't just return yet, need to get member "indexTemplateRow"
-			// because create constraint may use it
+            /* If this index already has an essentially same one, we share the
+             * conglomerate with the old one, and just simply add a descriptor
+             * entry into SYSCONGLOMERATES--unless we already have a descriptor,
+             * in which case we don't even need to do that.
+             */
+            DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+            if (shareExisting && !alreadyHaveConglomDescriptor) {
+                ConglomerateDescriptor cgd =
+                    ddg.newConglomerateDescriptor(conglomId, indexName, true,
+                                              indexRowGenerator, isConstraint,
+                                              conglomerateUUID, td.getUUID(), sd.getUUID() );
+                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+                // add newly added conglomerate to the list of conglomerate
+                // descriptors in the td.
+                ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+                cdl.add(cgd);
+                // can't just return yet, need to get member "indexTemplateRow"
+                // because create constraint may use it
 
-		}
+            }
 
-		// Describe the properties of the index to the store using Properties
-		// RESOLVE: The following properties assume a BTREE index.
-		Properties	indexProperties;
+            // Describe the properties of the index to the store using Properties
+            // RESOLVE: The following properties assume a BTREE index.
+            Properties	indexProperties;
 
-		if (properties != null) {
-			indexProperties = properties;
-		}
-		else {
-			indexProperties = new Properties();
-		}
+            if (properties != null) {
+                indexProperties = properties;
+            }
+            else {
+                indexProperties = new Properties();
+            }
 
-		SpliceLogUtils.trace(LOG, "Here XXX");
+            SpliceLogUtils.trace(LOG, "Here XXX");
 
-		// Tell it the conglomerate id of the base table
-		indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
+            // Tell it the conglomerate id of the base table
+            indexProperties.put("baseConglomerateId",Long.toString(td.getHeapConglomerateId()));
 
-        // All indexes are unique because they contain the RowLocation.
-        // The number of uniqueness columns must include the RowLocation
-        // if the user did not specify a unique index.
-        indexProperties.put("nUniqueColumns",
-                                   Integer.toString(unique ? baseColumnPositions.length :
-                                                            baseColumnPositions.length + 1));
+            // All indexes are unique because they contain the RowLocation.
+            // The number of uniqueness columns must include the RowLocation
+            // if the user did not specify a unique index.
+            indexProperties.put("nUniqueColumns",
+                                       Integer.toString(unique ? baseColumnPositions.length :
+                                                                baseColumnPositions.length + 1));
 
-        if (uniqueWithDuplicateNulls) {
-            // Derby made the distinction between "unique" and "uniqueWithDuplicateNulls"
-            // with different behavior for each -- IndexDescriptor.isUnique() returned
-            // false when IndexDescriptor.isUniqueWithDuplicateNulls() returned true,
-            // for instance.
-            // We don't make such a distinction.  Unique is always unique even when
-            // uniqueWithDuplicateNulls is true.
+            if (uniqueWithDuplicateNulls) {
+                // Derby made the distinction between "unique" and "uniqueWithDuplicateNulls"
+                // with different behavior for each -- IndexDescriptor.isUnique() returned
+                // false when IndexDescriptor.isUniqueWithDuplicateNulls() returned true,
+                // for instance.
+                // We don't make such a distinction.  Unique is always unique even when
+                // uniqueWithDuplicateNulls is true.
+                //
+                indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
+                unique = true;
+            }
+            // By convention, the row location column is the last column
+            indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
+
+            // For now, all columns are key fields, including the RowLocation
+            indexProperties.put("nKeyFields",Integer.toString(baseColumnPositions.length + 1));
+
+            // For now, assume that all index columns are ordered columns
+            if (! shareExisting) {
+                if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
+                    indexRowGenerator = new IndexRowGenerator(
+                                                indexType,
+                                                unique,
+                                                uniqueWithDuplicateNulls,
+                                                baseColumnPositions,
+                                                isAscending,
+                                                baseColumnPositions.length);
+                }
+                else {
+                    indexRowGenerator = new IndexRowGenerator(
+                                                indexType,
+                                                unique,
+                                                baseColumnPositions,
+                                                isAscending,
+                                                baseColumnPositions.length);
+                }
+            }
+
+            /* Now add the rows from the base table to the conglomerate.
+             * We do this by scanning the base table and inserting the
+             * rows into a sorter before inserting from the sorter
+             * into the index.  This gives us better performance
+             * and a more compact index.
+             */
+
+            rowSource = null;
+            sortId = 0;
+            boolean needToDropSort = false;	// set to true once the sorter is created
+
+            /* bulkFetchSIze will be 16 (for now) unless
+             * we are creating the table in which case it
+             * will be 1.  Too hard to remove scan when
+             * creating index on new table, so minimize
+             * work where we can.
+             */
+            int bulkFetchSize = (forCreateTable) ? 1 : 16;
+            int numColumns = td.getNumberOfColumns();
+            int approximateRowSize = 0;
+
+            // Create the FormatableBitSet for mapping the partial to full base row
+            FormatableBitSet bitSet = new FormatableBitSet(numColumns+1);
+            for (int index = 0; index < baseColumnPositions.length; index++) {
+                bitSet.set(baseColumnPositions[index]);
+            }
+            FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
+
+            // Start by opening a full scan on the base table.
+            scan = tc.openGroupFetchScan(
+                                td.getHeapConglomerateId(),
+                                false,	// hold
+                                0,	// open base table read only
+                                TransactionController.MODE_TABLE,
+                                TransactionController.ISOLATION_SERIALIZABLE,
+                                zeroBasedBitSet,    // all fields as objects
+                                (DataValueDescriptor[]) null,	// startKeyValue
+                                0,		// not used when giving null start posn.
+                                null,	// qualifier
+                                (DataValueDescriptor[]) null,	// stopKeyValue
+                                0);		// not used when giving null stop posn.
+
+            // Create an array to put base row template
+            baseRows = new ExecRow[bulkFetchSize];
+            indexRows = new ExecIndexRow[bulkFetchSize];
+            compactBaseRows = new ExecRow[bulkFetchSize];
+
+            ColumnOrdering[] order;
+            try {
+                // Create the array of base row template
+                for (int i = 0; i < bulkFetchSize; i++) {
+                    // create a base row template
+                    baseRows[i] = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
+
+                    // create an index row template
+                    indexRows[i] = indexRowGenerator.getIndexRowTemplate();
+
+                    // create a compact base row template
+                    compactBaseRows[i] = activation.getExecutionFactory().getValueRow(
+                                                        baseColumnPositions.length);
+                }
+
+                indexTemplateRow = indexRows[0];
+
+                // Fill the partial row with nulls of the correct type
+                ColumnDescriptorList cdl = td.getColumnDescriptorList();
+                int					 cdlSize = cdl.size();
+                for (int index = 0, numSet = 0; index < cdlSize; index++) {
+                    if (! zeroBasedBitSet.get(index)) {
+                        continue;
+                    }
+                    numSet++;
+                    ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+                    DataTypeDescriptor dts = cd.getType();
+
+                    for (int i = 0; i < bulkFetchSize; i++) {
+                        // Put the column in both the compact and sparse base rows
+                        baseRows[i].setColumn(index + 1,dts.getNull());
+                        compactBaseRows[i].setColumn(numSet,baseRows[i].getColumn(index + 1));
+                    }
+                    // Calculate the approximate row size for the index row
+                    approximateRowSize += dts.getTypeId().getApproximateLengthInBytes(dts);
+                }
+
+                // Get an array of RowLocation template
+                RowLocation rl[] = new RowLocation[bulkFetchSize];
+                for (int i = 0; i < bulkFetchSize; i++) {
+                    rl[i] = scan.newRowLocationTemplate();
+                    // Get an index row based on the base row
+                    indexRowGenerator.getIndexRow(compactBaseRows[i], rl[i], indexRows[i], bitSet);
+                }
+
+                /* now that we got indexTemplateRow, done for sharing index
+                 */
+                if (shareExisting) // Sharing leaves...
+                    return;
+
+                /* For non-unique indexes, we order by all columns + the RID.
+                 * For unique indexes, we just order by the columns.
+                 * We create a unique index observer for unique indexes
+                 * so that we can catch duplicate key.
+                 * We create a basic sort observer for non-unique indexes
+                 * so that we can reuse the wrappers during an external
+                 * sort.
+                 */
+                int             numColumnOrderings;
+                Properties      sortProperties = null;
+                if (unique || uniqueWithDuplicateNulls) {
+                    // if the index is a constraint, use constraintname in
+                    // possible error message
+                    String indexOrConstraintName = indexName;
+                    if  (conglomerateUUID != null) {
+                        ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateUUID);
+                        if ((isConstraint) &&  (cd != null && cd.getUUID() != null && td != null)) {
+                            ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
+                            indexOrConstraintName = conDesc.getConstraintName();
+                        }
+                    }
+
+                    if (unique) {
+                        numColumnOrderings = baseColumnPositions.length;
+                    }
+                    else {
+                        // unique with duplicate nulls allowed.
+                        numColumnOrderings = baseColumnPositions.length + 1;
+
+                        // tell transaction controller to use the unique with
+                        // duplicate nulls sorter, when making createSort() call.
+                        sortProperties = new Properties();
+                        sortProperties.put(
+                            AccessFactoryGlobals.IMPL_TYPE,
+                            AccessFactoryGlobals.SORT_UNIQUEWITHDUPLICATENULLS_EXTERNAL);
+                        //use sort operator which treats nulls unequal
+                    }
+                }
+                else {
+                    numColumnOrderings = baseColumnPositions.length + 1;
+                }
+
+                order= new ColumnOrdering[numColumnOrderings];
+                for (int i=0; i < numColumnOrderings; i++) {
+                    order[i] = new IndexColumnOrder(i, unique || i < numColumnOrderings - 1 ? isAscending[i] : true);
+                }
+
+                conglomId = tc.createConglomerate(indexType, indexTemplateRow.getRowArray(), order, indexRowGenerator.getColumnCollationIds(
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
+
+            }
+            finally {
+                /* close the table scan */
+                if (scan != null)
+                    scan.close();
+            }
+
+            ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
+
+            // Check to make sure that the conglomerate can be used as an index
+            if ( ! indexController.isKeyed()) {
+                indexController.close();
+                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+            }
+            indexController.close();
+
             //
-            indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
-            unique = true;
-		}
-		// By convention, the row location column is the last column
-		indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
+            // Create a conglomerate descriptor with the conglomId filled
+            // in and add it--if we don't have one already.
+            //
+            SpliceLogUtils.trace(LOG,"Huh?");
 
-		// For now, all columns are key fields, including the RowLocation
-		indexProperties.put("nKeyFields",Integer.toString(baseColumnPositions.length + 1));
+            if (!alreadyHaveConglomDescriptor) {
+                SpliceLogUtils.trace(LOG,"! Conglom Descriptor");
 
-		// For now, assume that all index columns are ordered columns
-		if (! shareExisting) {
-            if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
-                indexRowGenerator = new IndexRowGenerator(
-                                            indexType,
-                                            unique,
-                                            uniqueWithDuplicateNulls,
-                                            baseColumnPositions,
-                                            isAscending,
-                                            baseColumnPositions.length);
-			}
-			else {
-				indexRowGenerator = new IndexRowGenerator(
-                                            indexType,
-                                            unique,
-                                            baseColumnPositions,
-                                            isAscending,
-                                            baseColumnPositions.length);
-			}
-		}
-		
-		/* Now add the rows from the base table to the conglomerate.
-		 * We do this by scanning the base table and inserting the
-		 * rows into a sorter before inserting from the sorter
-		 * into the index.  This gives us better performance
-		 * and a more compact index.
-		 */
+                ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId, indexName, true, indexRowGenerator, isConstraint, conglomerateUUID, td.getUUID(), sd.getUUID() );
+                dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 
-		rowSource = null;
-		sortId = 0;
-		boolean needToDropSort = false;	// set to true once the sorter is created
+                // add newly added conglomerate to the list of conglomerate
+                // descriptors in the td.
+                ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+                cdl.add(cgd);
 
-		/* bulkFetchSIze will be 16 (for now) unless
-		 * we are creating the table in which case it
-		 * will be 1.  Too hard to remove scan when
-		 * creating index on new table, so minimize
-		 * work where we can.
-		 */
-		int bulkFetchSize = (forCreateTable) ? 1 : 16;
-		int numColumns = td.getNumberOfColumns();
-		int approximateRowSize = 0;
-
-		// Create the FormatableBitSet for mapping the partial to full base row
-		FormatableBitSet bitSet = new FormatableBitSet(numColumns+1);
-		for (int index = 0; index < baseColumnPositions.length; index++) {
-			bitSet.set(baseColumnPositions[index]);
-		}
-		FormatableBitSet zeroBasedBitSet = RowUtil.shift(bitSet, 1);
-
-		// Start by opening a full scan on the base table.
-		scan = tc.openGroupFetchScan(
-                            td.getHeapConglomerateId(),
-							false,	// hold
-							0,	// open base table read only
-                            TransactionController.MODE_TABLE,
-                            TransactionController.ISOLATION_SERIALIZABLE,
-							zeroBasedBitSet,    // all fields as objects
-							(DataValueDescriptor[]) null,	// startKeyValue
-							0,		// not used when giving null start posn.
-							null,	// qualifier
-							(DataValueDescriptor[]) null,	// stopKeyValue
-							0);		// not used when giving null stop posn.
-
-		// Create an array to put base row template
-		baseRows = new ExecRow[bulkFetchSize];
-		indexRows = new ExecIndexRow[bulkFetchSize];
-		compactBaseRows = new ExecRow[bulkFetchSize];
-
-        ColumnOrdering[] order;
-		try {
-			// Create the array of base row template
-			for (int i = 0; i < bulkFetchSize; i++) {
-				// create a base row template
-				baseRows[i] = activation.getExecutionFactory().getValueRow(maxBaseColumnPosition);
-
-				// create an index row template
-				indexRows[i] = indexRowGenerator.getIndexRowTemplate();
-
-				// create a compact base row template
-				compactBaseRows[i] = activation.getExecutionFactory().getValueRow(
-													baseColumnPositions.length);
-			}
-
-			indexTemplateRow = indexRows[0];
-
-			// Fill the partial row with nulls of the correct type
-			ColumnDescriptorList cdl = td.getColumnDescriptorList();
-			int					 cdlSize = cdl.size();
-			for (int index = 0, numSet = 0; index < cdlSize; index++) {
-				if (! zeroBasedBitSet.get(index)) {
-					continue;
-				}
-				numSet++;
-				ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
-				DataTypeDescriptor dts = cd.getType();
-
-				for (int i = 0; i < bulkFetchSize; i++) {
-					// Put the column in both the compact and sparse base rows
-					baseRows[i].setColumn(index + 1,dts.getNull());
-					compactBaseRows[i].setColumn(numSet,baseRows[i].getColumn(index + 1));
-				}
-				// Calculate the approximate row size for the index row
-				approximateRowSize += dts.getTypeId().getApproximateLengthInBytes(dts);
-			}
-
-			// Get an array of RowLocation template
-			RowLocation rl[] = new RowLocation[bulkFetchSize];
-			for (int i = 0; i < bulkFetchSize; i++) {
-				rl[i] = scan.newRowLocationTemplate();
-				// Get an index row based on the base row
-				indexRowGenerator.getIndexRow(compactBaseRows[i], rl[i], indexRows[i], bitSet);
-			}
-
-			/* now that we got indexTemplateRow, done for sharing index
-			 */
-			if (shareExisting) // Sharing leaves...
-				return;
-
-			/* For non-unique indexes, we order by all columns + the RID.
-			 * For unique indexes, we just order by the columns.
-			 * We create a unique index observer for unique indexes
-			 * so that we can catch duplicate key.
-			 * We create a basic sort observer for non-unique indexes
-			 * so that we can reuse the wrappers during an external
-			 * sort.
-			 */
-			int             numColumnOrderings;
-            Properties      sortProperties = null;
-			if (unique || uniqueWithDuplicateNulls) {
-				// if the index is a constraint, use constraintname in
-                // possible error message
-				String indexOrConstraintName = indexName;
-				if  (conglomerateUUID != null) {
-					ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateUUID);
-					if ((isConstraint) &&  (cd != null && cd.getUUID() != null && td != null)) {
-						ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
-						indexOrConstraintName = conDesc.getConstraintName();
-					}
-				}
-
-				if (unique) {
-                    numColumnOrderings = baseColumnPositions.length;
-				}
-				else {
-                    // unique with duplicate nulls allowed.
-					numColumnOrderings = baseColumnPositions.length + 1;
-
-                    // tell transaction controller to use the unique with 
-                    // duplicate nulls sorter, when making createSort() call.
-					sortProperties = new Properties();
-					sortProperties.put(
-                        AccessFactoryGlobals.IMPL_TYPE,
-                        AccessFactoryGlobals.SORT_UNIQUEWITHDUPLICATENULLS_EXTERNAL);
-					//use sort operator which treats nulls unequal
-				}
-			}
-			else {
-				numColumnOrderings = baseColumnPositions.length + 1;
-			}
-
-            order= new ColumnOrdering[numColumnOrderings];
-			for (int i=0; i < numColumnOrderings; i++) {
-				order[i] = new IndexColumnOrder(i, unique || i < numColumnOrderings - 1 ? isAscending[i] : true);
-			}
-
-			conglomId = tc.createConglomerate(indexType, indexTemplateRow.getRowArray(), order, indexRowGenerator.getColumnCollationIds(
-                        td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
-
-		}
-		finally {
-			/* close the table scan */
-			if (scan != null)
-				scan.close();
-		}
-
-		ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
-
-		// Check to make sure that the conglomerate can be used as an index
-		if ( ! indexController.isKeyed()) {
-			indexController.close();
-			throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
-		}
-		indexController.close();
-
-		//
-		// Create a conglomerate descriptor with the conglomId filled
-		// in and add it--if we don't have one already.
-		//
-        SpliceLogUtils.trace(LOG,"Huh?");
-
-		if (!alreadyHaveConglomDescriptor) {
-	        SpliceLogUtils.trace(LOG,"! Conglom Descriptor");
-
-			ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId, indexName, true, indexRowGenerator, isConstraint, conglomerateUUID, td.getUUID(), sd.getUUID() );
-			dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
-
-			// add newly added conglomerate to the list of conglomerate
-			// descriptors in the td.
-			ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
-			cdl.add(cgd);
-
-			/* Since we created a new conglomerate descriptor, load
-			 * its UUID into the corresponding field, to ensure that
-			 * it is properly set in the StatisticsDescriptor created
-			 * below.
-			 */
-			conglomerateUUID = cgd.getUUID();
-		}
-
-        boolean[] descColumns = new boolean[isAscending.length];
-        for(int i=0;i<isAscending.length;i++){
-           descColumns[i] = !isAscending[i];
-        }
-
-        // Perform tentative DDL change
-        TransactionId tentativeTransaction;
-        Transactor transactor = HTransactorFactory.getTransactor();
-        try {
-            tentativeTransaction = transactor.beginTransaction();
-        } catch (IOException e) {
-            LOG.error("Couldn't start transaction for tentative DDL operation");
-            throw Exceptions.parseException(e);
-        }
-        TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),
-                                                                       baseColumnPositions, unique,
-                                                                       uniqueWithDuplicateNulls,
-                                                                       SpliceUtils.bitSetFromBooleanArray(descColumns));
-        DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
-                DDLChange.TentativeType.CREATE_INDEX);
-        ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
-        ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
-
-        String notificationId = notifyMetadataChange(ddlChange);
-
-		String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-
-        // Add the indexes to the exisiting regions
-        JobFuture future = null;
-        final long tableConglomId = td.getHeapConglomerateId();
-        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
-				JobInfo info = null;
-				StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
-
-				statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
-								SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",false,-1l)));
-        try {
-						long start = System.currentTimeMillis();
-						CreateIndexJob job = new CreateIndexJob(table, ddlChange);
-						future = SpliceDriver.driver().getJobScheduler().submit(job);
-						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-						info.setJobFuture(future);
-						try{
-								future.completeAll(info); //TODO -sf- add status information
-						}catch(CancellationException ce){
-								throw Exceptions.parseException(ce);
-						}catch(Throwable t){
-								info.failJob();
-								throw t;
-						}
-						statementInfo.completeJob(info);
-        } catch (Throwable e) {
-						if(info!=null) info.failJob();
-            LOG.error("Couldn't create indexes on existing regions", e);
-            try {
-                table.close();
-            } catch (IOException e1) {
-                LOG.warn("Couldn't close table", e1);
+                /* Since we created a new conglomerate descriptor, load
+                 * its UUID into the corresponding field, to ensure that
+                 * it is properly set in the StatisticsDescriptor created
+                 * below.
+                 */
+                conglomerateUUID = cgd.getUUID();
             }
-            throw Exceptions.parseException(e);
-        }finally {
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
-            if (future!=null) {
+
+            boolean[] descColumns = new boolean[isAscending.length];
+            for(int i=0;i<isAscending.length;i++){
+               descColumns[i] = !isAscending[i];
+            }
+
+            // Perform tentative DDL change
+            TransactionId tentativeTransaction;
+            Transactor transactor = HTransactorFactory.getTransactor();
+            try {
+                tentativeTransaction = transactor.beginTransaction();
+            } catch (IOException e) {
+                LOG.error("Couldn't start transaction for tentative DDL operation");
+                throw Exceptions.parseException(e);
+            }
+            TentativeIndexDesc tentativeIndexDesc = new TentativeIndexDesc(conglomId, td.getHeapConglomerateId(),
+                                                                           baseColumnPositions, unique,
+                                                                           uniqueWithDuplicateNulls,
+                                                                           SpliceUtils.bitSetFromBooleanArray(descColumns));
+            DDLChange ddlChange = new DDLChange(tentativeTransaction.getTransactionIdString(),
+                    DDLChange.TentativeType.CREATE_INDEX);
+            ddlChange.setTentativeIndexDesc(tentativeIndexDesc);
+            ddlChange.setParentTransactionId(tc.getActiveStateTxIdString());
+
+            String notificationId = notifyMetadataChange(ddlChange);
+
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+
+            // Add the indexes to the exisiting regions
+            JobFuture future = null;
+            final long tableConglomId = td.getHeapConglomerateId();
+            HTableInterface table = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+                    JobInfo info = null;
+                    StatementInfo statementInfo = new StatementInfo(String.format("create index on %s",tableName),userId,
+                                activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+
+                    statementInfo.setOperationInfo(Arrays.asList(new OperationInfo(statementInfo.getStatementUuid(),
+                                    SpliceDriver.driver().getUUIDGenerator().nextUUID(),"CreateIndex",false,-1l)));
+            try {
+                            long start = System.currentTimeMillis();
+                            CreateIndexJob job = new CreateIndexJob(table, ddlChange);
+                            future = SpliceDriver.driver().getJobScheduler().submit(job);
+                            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+                            info.setJobFuture(future);
+                            try{
+                                    future.completeAll(info); //TODO -sf- add status information
+                            }catch(CancellationException ce){
+                                    throw Exceptions.parseException(ce);
+                            }catch(Throwable t){
+                                    info.failJob();
+                                    throw t;
+                            }
+                            statementInfo.completeJob(info);
+            } catch (Throwable e) {
+                            if(info!=null) info.failJob();
+                LOG.error("Couldn't create indexes on existing regions", e);
                 try {
-                    future.cleanup();
-                } catch (ExecutionException e) {
-                    LOG.error("Couldn't cleanup future", e);
-                    throw Exceptions.parseException(e.getCause());
+                    table.close();
+                } catch (IOException e1) {
+                    LOG.warn("Couldn't close table", e1);
+                }
+                throw Exceptions.parseException(e);
+            }finally {
+                            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                            boolean explain = xplainSchema !=null &&
+                                            activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+                            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema:null);
+                if (future!=null) {
+                    try {
+                        future.cleanup();
+                    } catch (ExecutionException e) {
+                        LOG.error("Couldn't cleanup future", e);
+                        throw Exceptions.parseException(e.getCause());
+                    }
                 }
             }
-        }
 
-        final TransactionId parentTransactionId =  new TransactionId(getTransactionId(activation.getLanguageConnectionContext().getTransactionExecute()));
-        TransactionId indexTransaction;
-        try {
-            indexTransaction = transactor.beginChildTransaction(parentTransactionId, true, true, false, false, false, tentativeTransaction);
-        } catch (IOException e) {
-            LOG.error("Couldn't commit transaction for tentative DDL operation");
-            // TODO must cleanup tentative DDL change
-            throw Exceptions.parseException(e);
-        }
-
-        // Wait for past transactions to die
-        List<TransactionId> active;
-        List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, indexTransaction);
-        try {
-            active = waitForConcurrentTransactions(indexTransaction, toIgnore);
-        } catch (IOException e) {
-            LOG.error("Unexpected error while waiting for past transactions to complete", e);
-            throw Exceptions.parseException(e);
-        }
-        if (!active.isEmpty()) {
-            throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
-                    new RuntimeException(String.format("There are active transactions %s", active)));
-        }
-        // TODO handle past transactions gracefully
-//        List<String> tables = getBlockedTables();
-//        forbidActiveTransactionsTableAccess(active, tables);
-
-        /*
-         * Backfill the index with any existing data.
-         *
-         * It's possible that the index will be created on the same node as some system tables are located.
-         * This means that there
-         */
-			//TODO -sf- replace this name with the actual SQL being issued
-			statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
-							activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
-			OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
-							SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", false,-1l);
-			statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
-			SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
-        try{
-						PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
-										conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-										statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
-						long start = System.currentTimeMillis();
-						future = SpliceDriver.driver().getJobScheduler().submit(job);
-						info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
-						info.setJobFuture(future);
-						statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
-						try{
-								future.completeAll(info); //TODO -sf- add status information
-						}catch(ExecutionException e){
-								info.failJob();
-								throw e;
-						}catch(CancellationException ce){
-								throw Exceptions.parseException(ce);
-						}
-						statementInfo.completeJob(info);
-        } catch (ExecutionException e) {
-            throw Exceptions.parseException(e.getCause());
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }finally {
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						boolean explain = xplainSchema !=null &&
-										activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
-						SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
+            final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
+            final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
+            TransactionId indexTransaction;
             try {
-                transactor.commit(indexTransaction);
+                indexTransaction = transactor.beginChildTransaction(wrapperTransactionId, true, true, false, false, false, tentativeTransaction);
             } catch (IOException e) {
-                LOG.error("Couldn't commit transaction populating index", e);
+                LOG.error("Couldn't commit transaction for tentative DDL operation");
+                // TODO must cleanup tentative DDL change
+                throw Exceptions.parseException(e);
+            }
+
+            // Wait for past transactions to die
+            List<TransactionId> active;
+            List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
+            try {
+                active = waitForConcurrentTransactions(indexTransaction, toIgnore);
+            } catch (IOException e) {
+                LOG.error("Unexpected error while waiting for past transactions to complete", e);
+                throw Exceptions.parseException(e);
+            }
+            if (!active.isEmpty()) {
+                throw StandardException.newException(SQLState.LANG_SERIALIZABLE,
+                        new RuntimeException(String.format("There are active transactions %s", active)));
+            }
+            // TODO handle past transactions gracefully
+    //        List<String> tables = getBlockedTables();
+    //        forbidActiveTransactionsTableAccess(active, tables);
+
+            /*
+             * Backfill the index with any existing data.
+             *
+             * It's possible that the index will be created on the same node as some system tables are located.
+             * This means that there
+             */
+                //TODO -sf- replace this name with the actual SQL being issued
+                statementInfo = new StatementInfo(String.format("populate index on %s",tableName),userId,
+                                activation.getTransactionController().getActiveStateTxIdString(),1,SpliceDriver.driver().getUUIDGenerator());
+                OperationInfo populateIndexOp = new OperationInfo(statementInfo.getStatementUuid(),
+                                SpliceDriver.driver().getUUIDGenerator().nextUUID(), "PopulateIndex", false,-1l);
+                statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
+                SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+            try{
+                            PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
+                                            conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
+                                            statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
+                            long start = System.currentTimeMillis();
+                            future = SpliceDriver.driver().getJobScheduler().submit(job);
+                            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+                            info.setJobFuture(future);
+                            statementInfo.addRunningJob(populateIndexOp.getOperationUuid(),info);
+                            try{
+                                    future.completeAll(info); //TODO -sf- add status information
+                            }catch(ExecutionException e){
+                                    info.failJob();
+                                    throw e;
+                            }catch(CancellationException ce){
+                                    throw Exceptions.parseException(ce);
+                            }
+                            statementInfo.completeJob(info);
+            } catch (ExecutionException e) {
                 throw Exceptions.parseException(e.getCause());
-            }
-            if (future!=null) {
+            } catch (InterruptedException e) {
+                throw Exceptions.parseException(e);
+            }finally {
+                            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+                            boolean explain = xplainSchema !=null &&
+                                            activation.getLanguageConnectionContext().getRunTimeStatisticsMode();
+                            SpliceDriver.driver().getStatementManager().completedStatement(statementInfo,explain? xplainSchema: null);
                 try {
-                    future.cleanup();
-                } catch (ExecutionException e) {
-                    LOG.error("Couldn't cleanup future", e);
+                    transactor.commit(indexTransaction);
+                } catch (IOException e) {
+                    LOG.error("Couldn't commit transaction populating index", e);
                     throw Exceptions.parseException(e.getCause());
                 }
+                if (future!=null) {
+                    try {
+                        future.cleanup();
+                    } catch (ExecutionException e) {
+                        LOG.error("Couldn't cleanup future", e);
+                        throw Exceptions.parseException(e.getCause());
+                    }
+                }
+                try {
+                    table.close();
+                } catch (IOException e) {
+                    SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
+                }
             }
-            try {
-                table.close();
-            } catch (IOException e) {
-                SpliceLogUtils.warn(LOG,"Unable to close HTable",e);
-            }
+        } catch (StandardException se) {
+            tc.abort();
+            throw se;
+        } catch (Throwable t) {
+            tc.abort();
+            throw Exceptions.parseException(t);
         }
+        tc.commit();
 	}
 
     /**
