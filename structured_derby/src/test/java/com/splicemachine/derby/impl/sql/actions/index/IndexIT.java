@@ -556,6 +556,33 @@ public class IndexIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testFailedIndexRollbacks() throws Exception {
+        try {
+            methodWatcher.prepareStatement("drop index ib").execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        try {
+            methodWatcher.prepareStatement(String.format("drop table %s.b", SCHEMA_NAME)).execute();
+        } catch (Exception e1) {
+            // ignore
+        }
+        methodWatcher.prepareStatement(String.format("create table %s.b (i int)", SCHEMA_NAME)).execute();
+        PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s.b values 1", SCHEMA_NAME));
+        ps.execute();
+        ps.execute();
+        ps.execute();
+        for (int i = 0; i < 5; ++i) {
+            try {
+                methodWatcher.prepareStatement(String.format("create unique index ib on %s.b (i)", SCHEMA_NAME)).execute();
+                Assert.fail("Index should have raised an exception");
+            } catch (SQLException se) {
+                Assert.assertEquals("Expected constraint violation exception", "23505", se.getSQLState());
+            }
+        }
+    }
+
     private static final String CUST_INSERT2 = "1,1,3002,0.1221,'GC','Jones','Fred',50000.0,-10.0,10.0,1,0,'qmvfraakwixzcrqxt','mamrsdfdsycaxrh','bcsyfdsdkurug','VL','843211111','3185126927164979','2013-08-01 10:33:44.813','OE','tktkdcbjqxbewxllutwigcdmzenarkhiklzfkaybefrppwtvdmecqfqaa'";
     @Test
     public void testInsertCustomerWithIndex() throws Exception {

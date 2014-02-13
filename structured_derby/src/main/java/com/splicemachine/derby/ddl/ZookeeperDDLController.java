@@ -42,6 +42,8 @@ public class ZookeeperDDLController implements DDLController, Watcher {
             throw Exceptions.parseException(e);
         }
 
+        LOG.debug("Notifying metadata change with id " + changeId + ": " + jsonChange);
+
         long startTimestamp = System.currentTimeMillis();
         synchronized (lock) {
             while (true) {
@@ -96,6 +98,7 @@ public class ZookeeperDDLController implements DDLController, Watcher {
 
     @Override
     public void finishMetadataChange(String identifier) throws StandardException {
+        LOG.debug("Finishing metadata change with id " + identifier);
         try {
         	if (identifier != null && !identifier.startsWith("/")) {
                 ZkUtils.recursiveDelete(SpliceConstants.zkSpliceDDLOngoingTransactionsPath + "/" + identifier);

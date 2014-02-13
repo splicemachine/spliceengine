@@ -128,6 +128,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
         for (Iterator<String> iterator = seenDDLChanges.iterator(); iterator.hasNext();) {
             String entry = iterator.next();
             if (!children.contains(entry)) {
+                LOG.debug("Removing change with id " + entry);
                 changesTimeouts.remove(entry);
                 currentDDLChanges.remove(entry);
                 tentativeIndexes.remove(entry);
@@ -144,6 +145,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
                     throw Exceptions.parseException(e);
                 }
                 String jsonChange = Bytes.toString(data);
+                LOG.debug("New change with id " + changeId + " :" + jsonChange);
                 DDLChange ddlChange = gson.fromJson(jsonChange, DDLChange.class);
                 ddlChange.setIdentifier(changeId);
                 newChanges.add(changeId);
@@ -159,11 +161,13 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
 
         if (currentWasEmpty != currentDDLChanges.isEmpty()) {
             if (currentDDLChanges.isEmpty()) {
+                LOG.debug("Finishing global ddl changes ");
                 // we can use caches again
                 for (LanguageConnectionContext c : contexts) {
                     c.finishGlobalDDLChange();
                 }
             } else {
+                LOG.debug("Starting global ddl changes, invalidate and disable caches");
                 // we have to invalidate and disable caches
                 for (LanguageConnectionContext c : contexts) {
                     c.startGlobalDDLChange();
