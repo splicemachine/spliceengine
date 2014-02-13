@@ -39,7 +39,7 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
+    public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
         for (KeyValue kv : rawList) {
             keyValue.setKeyValue(kv);
             results.add(mutate(keyValue));

@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
@@ -123,28 +124,30 @@ public class BlockImportJobTest {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void mockTransactions() throws IOException {
-        ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
-        doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
+		@SuppressWarnings("unchecked")
+		private void mockTransactions() throws IOException {
+				ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
+				doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
 
-        Transactor mockT = mock(Transactor.class);
-        when(mockT.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
-            @Override
-            public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-                return new TransactionId((String) invocation.getArguments()[0]);
-            }
-        });
-        when(mockTransactor.getTransactor()).thenReturn(mockT);
-        when(mockT.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
-            @Override
-            public TransactionId answer(InvocationOnMock invocation) throws Throwable {
-                return (TransactionId) invocation.getArguments()[0];
-            }
-        });
+				TransactionManager mockControl = mock(TransactionManager.class);
+				when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
+						@Override
+						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+								return new TransactionId((String) invocation.getArguments()[0]);
+						}
+				});
+				Transactor mockT = mock(Transactor.class);
+				when(mockTransactor.getTransactor()).thenReturn(mockT);
+				when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
+						@Override
+						public TransactionId answer(InvocationOnMock invocation) throws Throwable {
+								return (TransactionId) invocation.getArguments()[0];
+						}
+				});
 
-        HTransactorFactory.setTransactor(mockTransactor);
-    }
+				HTransactorFactory.setTransactor(mockTransactor);
+				HTransactorFactory.setTransactionManager(mockControl);
+		}
 }
 
 

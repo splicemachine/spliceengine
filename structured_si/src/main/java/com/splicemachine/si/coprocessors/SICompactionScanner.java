@@ -4,11 +4,8 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.SICompactionState;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
@@ -22,12 +19,12 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor;
+    private final Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor;
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
     List<KeyValue> rawList = new ArrayList<KeyValue>();
 
-    public SICompactionScanner(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
+    public SICompactionScanner(Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor,
                                InternalScanner scanner) {
         this.transactor = transactor;
         this.compactionState = transactor.newCompactionState();
@@ -57,10 +54,11 @@ public class SICompactionScanner implements InternalScanner {
     /**
      * Read data from the underlying scanner and send the results through the SICompactionState.
      */
-    private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
+    @SuppressWarnings("unchecked")
+		private boolean nextDirect(List<KeyValue> results, int limit) throws IOException {
         rawList.clear();
         final boolean more = (limit == -1) ? delegate.next(rawList) : delegate.next(rawList, limit);
-        transactor.compact(compactionState, rawList, results);
+				compactionState.mutate(rawList, results);
         return more;
     }
 

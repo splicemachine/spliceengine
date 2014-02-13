@@ -1,6 +1,7 @@
 package com.splicemachine.si.txn;
 
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -18,11 +19,13 @@ public class JtaXAResource implements XAResource {
     private static final Logger LOG = Logger.getLogger(JtaXAResource.class);
     private Map<Xid, TransactionId> xidToTransactionState = new HashMap<Xid, TransactionId>();
     private final Transactor transactor;
+		private final TransactionManager control;
     private ThreadLocal<TransactionId> threadLocalTransactionState = new ThreadLocal<TransactionId>();
     private int transactionTimeout = 60;
 
-    public JtaXAResource(final Transactor transactor) {
+    public JtaXAResource(final Transactor transactor,TransactionManager control) {
         this.transactor = transactor;
+				this.control = control;
     }
 
     @Override
@@ -34,9 +37,9 @@ public class JtaXAResource implements XAResource {
         }
         try {
             if (onePhase) {
-                transactor.commit(state);
+                control.commit(state);
             } else {
-                transactor.commit(state);
+                control.commit(state);
             }
         } catch (Exception e) {
             XAException xae = new XAException(XAException.XAER_RMERR);
@@ -59,7 +62,7 @@ public class JtaXAResource implements XAResource {
         TransactionId state = xidToTransactionState.remove(xid);
         if (state != null) {
             try {
-                transactor.rollback(state);
+                control.rollback(state);
             } catch (Exception e) {
                 XAException xae = new XAException(XAException.XAER_RMERR);
                 xae.initCause(e);
@@ -103,7 +106,7 @@ public class JtaXAResource implements XAResource {
     public void start(final Xid xid, final int flags) throws XAException {
     	SpliceLogUtils.trace(LOG, "start [%s]",xid);
         try {
-            TransactionId state = transactor.beginTransaction();
+            TransactionId state = control.beginTransaction();
             threadLocalTransactionState.set(state);
             xidToTransactionState.put(xid, state);
 

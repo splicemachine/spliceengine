@@ -1,50 +1,40 @@
 package com.splicemachine.si.impl;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
-import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.nio.ByteBuffer;
 import java.util.*;
-
-import static com.splicemachine.si.api.TransactionStatus.ACTIVE;
-import static com.splicemachine.si.api.TransactionStatus.COMMITTED;
-import static com.splicemachine.si.api.TransactionStatus.COMMITTING;
-import static com.splicemachine.si.api.TransactionStatus.ERROR;
-import static com.splicemachine.si.api.TransactionStatus.ROLLED_BACK;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
  * row updates in the underlying store. This is the core brains of the SI logic.
  */
-public class SITransactor<Table, OperationWithAttributes, Mutation extends OperationWithAttributes, Put extends Mutation, Get extends OperationWithAttributes,
-        Scan extends OperationWithAttributes, Result, KeyValue, Data, Hashable extends Comparable,
+@SuppressWarnings("unchecked")
+
+public class SITransactor<Table, OperationWithAttributes,
+				Mutation extends OperationWithAttributes,
+				Put extends Mutation,
+				Get extends OperationWithAttributes,
+        Scan extends OperationWithAttributes,
+				Result, KeyValue, Data, Hashable extends Comparable,
         Delete extends OperationWithAttributes, Lock, OperationStatus, Scanner>
-        implements Transactor<Table, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, Data, Hashable, Lock> {
+        implements Transactor<Table, Put, Mutation, OperationStatus, Data, Hashable> {
     static final Logger LOG = Logger.getLogger(SITransactor.class);
     public static final int MAX_ACTIVE_COUNT = 1000;
 
-    private final TimestampSource timestampSource;
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+		private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
     private final STableWriter<Table, Mutation, Put, Delete, Data, Lock, org.apache.hadoop.hbase.regionserver.OperationStatus> dataWriter;
     private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, Table, Lock, OperationStatus, Scanner> dataStore;
     private final TransactionStore transactionStore;
@@ -52,20 +42,26 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     private final int transactionTimeoutMS;
     private final Hasher<Data, Hashable> hasher;
 
-    private final TransactorListener listener;
+		private final TransactionSource transactionSource;
 
-    private final TransactionSource transactionSource;
+		private final TransactionManager transactionManager;
+		private final ClientTransactor<Put,Get,Scan,Mutation,Data> clientTransactor;
 
-    public SITransactor(TimestampSource timestampSource, SDataLib dataLib, STableWriter dataWriter, DataStore dataStore,
-                        final TransactionStore transactionStore, Clock clock, int transactionTimeoutMS,
-                        Hasher<Data, Hashable> hasher, TransactorListener listener) {
-        transactionSource = new TransactionSource() {
+		private SITransactor(SDataLib dataLib,
+												 STableWriter dataWriter,
+												 DataStore dataStore,
+												 final TransactionStore transactionStore,
+												 Clock clock,
+												 int transactionTimeoutMS,
+												 Hasher<Data, Hashable> hasher,
+												 ClientTransactor<Put, Get, Scan, Mutation, Data> clientTransactor,
+												 TransactionManager transactionManager) {
+				transactionSource = new TransactionSource() {
             @Override
             public Transaction getTransaction(long timestamp) throws IOException {
                 return transactionStore.getTransaction(timestamp);
             }
         };
-        this.timestampSource = timestampSource;
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
         this.dataStore = dataStore;
@@ -73,306 +69,13 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         this.clock = clock;
         this.transactionTimeoutMS = transactionTimeoutMS;
         this.hasher = hasher;
-        this.listener = listener;
+				this.clientTransactor = clientTransactor;
+				this.transactionManager = transactionManager;
     }
 
-    // Transaction control
+		// Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
 
-    @Override
-    public TransactionId beginTransaction() throws IOException {
-        return beginTransaction(true);
-    }
-
-    @Override
-    public TransactionId beginTransaction(boolean allowWrites) throws IOException {
-        return beginTransaction(allowWrites, false, false);
-    }
-
-    @Override
-    public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
-            throws IOException {
-        return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, false, readUncommitted,
-                readCommitted, null);
-    }
-
-    @Override
-    public TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException {
-        return beginChildTransaction(parent, true, allowWrites);
-    }
-
-    @Override
-    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
-        return beginChildTransaction(parent, dependent, allowWrites, false, null, null, null);
-    }
-
-    @Override
-    public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites,
-                                               boolean additive, Boolean readUncommitted, Boolean readCommitted,
-                                               TransactionId transactionToCommit) throws IOException {
-        Long timestamp = commitIfNeeded(transactionToCommit);
-        if (allowWrites || readCommitted != null || readUncommitted != null || timestamp != null) {
-            final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, additive, readUncommitted, readCommitted);
-            if (timestamp == null) {
-                timestamp = assignTransactionId();
-            }
-            final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
-            transactionStore.recordNewTransaction(timestamp, params, ACTIVE, beginTimestamp, 0L);
-            listener.beginTransaction(!parent.isRootTransaction());
-            return new TransactionId(timestamp);
-        } else {
-            return createLightweightChildTransaction(parent.getId());
-        }
-    }
-
-    private Long commitIfNeeded(TransactionId transactionToCommit) throws IOException {
-        if (transactionToCommit == null) {
-            return null;
-        } else {
-            return commitAndReturnTimestamp(transactionToCommit);
-        }
-    }
-
-    private Long commitAndReturnTimestamp(TransactionId transactionToCommit) throws IOException {
-        final ImmutableTransaction immutableTransaction = transactionStore.getImmutableTransaction(transactionToCommit);
-        if (!immutableTransaction.getImmutableParent().isRootTransaction()) {
-            throw new RuntimeException("Cannot begin a child transaction at the time a non-root transaction commits: "
-                    + transactionToCommit.getTransactionIdString());
-        }
-        commit(transactionToCommit);
-        final Transaction transaction = transactionStore.getTransaction(transactionToCommit.getId());
-        final Long commitTimestampDirect = transaction.getCommitTimestampDirect();
-        if (commitTimestampDirect.equals(transaction.getEffectiveCommitTimestamp())) {
-            return commitTimestampDirect;
-        } else {
-            throw new RuntimeException("commit times did not match");
-        }
-    }
-
-    private long assignTransactionId() throws IOException {
-        return timestampSource.nextTimestamp();
-    }
-
-    /**
-     * Generate the next sequential timestamp / transaction ID.
-     *
-     * @return the new transaction ID.
-     */
-    private long generateBeginTimestamp(long transactionId, long parentId) throws IOException {
-        if (parentId == Transaction.ROOT_ID) {
-            return transactionId;
-        } else {
-            return transactionStore.generateTimestamp(parentId);
-        }
-    }
-
-    private long generateCommitTimestamp(long parentId) throws IOException {
-        if (parentId == Transaction.ROOT_ID) {
-            return timestampSource.nextTimestamp();
-        } else {
-            return transactionStore.generateTimestamp(parentId);
-        }
-    }
-
-    private Long getGlobalCommitTimestamp(Transaction transaction) throws IOException {
-        if (transaction.needsGlobalCommitTimestamp()) {
-            return timestampSource.nextTimestamp();
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Create a non-resource intensive child. This avoids hitting the transaction table. The same transaction ID is
-     * given to many callers, and calls to commit, rollback, etc are ignored.
-     */
-    private TransactionId createLightweightChildTransaction(long parent) {
-        return new TransactionId(parent, true);
-    }
-
-    @Override
-    public void keepAlive(TransactionId transactionId) throws IOException {
-        if (!isIndependentReadOnly(transactionId)) {
-            transactionStore.recordTransactionKeepAlive(transactionId.getId());
-        }
-    }
-
-    @Override
-    public void commit(TransactionId transactionId) throws IOException {
-        if (!isIndependentReadOnly(transactionId)) {
-            final Transaction transaction = transactionStore.getTransaction(transactionId.getId());
-            ensureTransactionActive(transaction);
-            performCommit(transaction);
-            listener.commitTransaction();
-        }
-    }
-
-    /**
-     * Update the transaction table to show this transaction is committed.
-     */
-    private void performCommit(Transaction transaction) throws IOException {
-        final long transactionId = transaction.getLongTransactionId();
-        if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, COMMITTING)) {
-            throw new IOException("committing failed");
-        }
-        Tracer.traceCommitting(transaction.getLongTransactionId());
-        final Long globalCommitTimestamp = getGlobalCommitTimestamp(transaction);
-        final long commitTimestamp = generateCommitTimestamp(transaction.getParent().getLongTransactionId());
-        if (!transactionStore.recordTransactionCommit(transactionId, commitTimestamp, globalCommitTimestamp, COMMITTING, COMMITTED)) {
-            throw new DoNotRetryIOException("commit failed");
-        }
-    }
-
-    @Override
-    public void rollback(TransactionId transactionId) throws IOException {
-        if (!isIndependentReadOnly(transactionId)) {
-            listener.rollbackTransaction();
-            rollbackDirect(transactionId.getId());
-        }
-    }
-
-    private void rollbackDirect(long transactionId) throws IOException {
-        Transaction transaction = transactionStore.getTransaction(transactionId);
-        // currently the application above us tries to rollback already committed transactions.
-        // This is poor form, but if it happens just silently ignore it.
-        if (transaction.status.isActive()) {
-            if (!transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ROLLED_BACK)) {
-                throw new IOException("rollback failed");
-            }
-        }
-    }
-
-    @Override
-    public void fail(TransactionId transactionId) throws IOException {
-        if (!isIndependentReadOnly(transactionId)) {
-            listener.failTransaction();
-            failDirect(transactionId.getId());
-        }
-    }
-
-    private void failDirect(long transactionId) throws IOException {
-        transactionStore.recordTransactionStatusChange(transactionId, ACTIVE, ERROR);
-    }
-
-    @Override
-    public TransactionStatus getTransactionStatus(TransactionId transactionId) throws IOException {
-        return transactionStore.getTransaction(transactionId).status;
-    }
-
-    private boolean isIndependentReadOnly(TransactionId transactionId) {
-        return transactionId.independentReadOnly;
-    }
-
-    // Transaction ID manipulation
-
-    @Override
-    public TransactionId transactionIdFromString(String transactionId) {
-        return new TransactionId(transactionId);
-    }
-
-    @Override
-    public TransactionId transactionIdFromGet(Get operation) {
-        return dataStore.getTransactionIdFromOperation(operation);
-    }
-
-    @Override
-    public TransactionId transactionIdFromScan(Scan operation) {
-        return dataStore.getTransactionIdFromOperation(operation);
-    }
-
-    @Override
-    public TransactionId transactionIdFromPut(Put operation) {
-        return dataStore.getTransactionIdFromOperation(operation);
-    }
-
-    // Operation initialization. These are expected to be called "client-side" when operations are created.
-
-    @Override
-    public void initializeGet(String transactionId, Get get) throws IOException {
-        initializeOperation(transactionId, get, true);
-    }
-
-    @Override
-    public void initializeScan(String transactionId, Scan scan, boolean includeSIColumn) {
-        initializeOperation(transactionId, scan, includeSIColumn);
-    }
-
-    @Override
-    public void initializePut(String transactionId, Put put) {
-        initializePut(transactionId,put,true);
-    }
-
-    @Override
-    public void initializePut(String transactionId, Put put, boolean addPlaceHolderColumnToEmptyPut) {
-        initializeOperation(transactionId, put);
-        if (addPlaceHolderColumnToEmptyPut)
-        	dataStore.addPlaceHolderColumnToEmptyPut(put);
-    }
-
-    private void initializeOperation(String transactionId, OperationWithAttributes operation) {
-        initializeOperation(transactionId, operation, false);
-    }
-
-    private void initializeOperation(String transactionId, OperationWithAttributes operation, boolean includeSIColumn) {
-        flagForSITreatment(transactionIdFromString(transactionId).getId(), includeSIColumn, operation);
-    }
-
-    @Override
-    public Put createDeletePut(TransactionId transactionId, Data rowKey) {
-        return createDeletePutDirect(transactionId.getId(), rowKey);
-    }
-
-    /**
-     * Create a "put" operation that will effectively delete a given row.
-     */
-    private Put createDeletePutDirect(long transactionId, Data rowKey) {
-        final Put deletePut = dataLib.newPut(rowKey);
-        flagForSITreatment(transactionId, false, deletePut);
-        dataStore.setTombstoneOnPut(deletePut, transactionId);
-        dataStore.setDeletePutAttribute(deletePut);
-        return deletePut;
-    }
-
-    @Override
-    public boolean isDeletePut(Mutation mutation) {
-        final Boolean deleteAttribute = dataStore.getDeletePutAttribute(mutation);
-        return (deleteAttribute != null && deleteAttribute);
-    }
-
-    /**
-     * Set an attribute on the operation that identifies it as needing "snapshot isolation" treatment. This is so that
-     * later when the operation comes through for processing we will know how to handle it.
-     */
-    private void flagForSITreatment(long transactionId, boolean includeSIColumn,
-                                    OperationWithAttributes operation) {
-        dataStore.setSINeededAttribute(operation, includeSIColumn);
-        dataStore.setTransactionId(transactionId, operation);
-    }
-
-    // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
-
-    @Override
-    public void preProcessGet(Get readOperation) throws IOException {
-        dataLib.setGetTimeRange(readOperation, 0, Long.MAX_VALUE);
-        dataLib.setGetMaxVersions(readOperation);
-        if (dataStore.isIncludeSIColumn(readOperation)) {
-            dataStore.addSIFamilyToGet(readOperation);
-        } else {
-            dataStore.addSIFamilyToGetIfNeeded(readOperation);
-        }
-    }
-
-    @Override
-    public void preProcessScan(Scan readOperation) throws IOException {
-        dataLib.setScanTimeRange(readOperation, 0, Long.MAX_VALUE);
-        dataLib.setScanMaxVersions(readOperation);
-        if (dataStore.isIncludeSIColumn(readOperation)) {
-            dataStore.addSIFamilyToScan(readOperation);
-        } else {
-            dataStore.addSIFamilyToScanIfNeeded(readOperation);
-        }
-    }
-
-    // Process update operations
+		// Process update operations
 
     @Override
     public boolean processPut(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
@@ -385,7 +88,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
     private void processPutDirect(Table table, RollForwardQueue<Data, Hashable> rollForwardQueue, Put put) throws IOException {
-        final Mutation[] mutations = (Mutation[]) Array.newInstance(put.getClass(), 1);
+        @SuppressWarnings("unchecked") final Mutation[] mutations = (Mutation[]) Array.newInstance(put.getClass(), 1);
         mutations[0] = put;
         final OperationStatus[] operationStatuses = processPutBatch(table, rollForwardQueue, mutations);
         if (!((org.apache.hadoop.hbase.regionserver.OperationStatus) operationStatuses[0]).getOperationStatusCode().equals(HConstants.OperationStatusCode.SUCCESS)) {
@@ -436,13 +139,13 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 						return dataStore.writeBatch(table,new Pair[]{});
 
 				//ensure the transaction is in good shape
-				TransactionId txn = transactionIdFromString(txnId);
+				TransactionId txn = transactionManager.transactionIdFromString(txnId);
 				ImmutableTransaction transaction = transactionStore.getImmutableTransaction(txn);
 				ensureTransactionAllowsWrites(transaction);
 
 				Pair<KVPair,Lock>[] lockPairs = null;
 				try {
-						lockPairs = obtainLocksForPutBatchAndPrepNonSIKVs(table, mutations, transaction);
+						lockPairs = lockRows(table, mutations);
 
 						@SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.size()];
 						dataStore.startLowLevelOperation(table);
@@ -463,6 +166,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 				}
 		}
 
+		@SuppressWarnings("UnusedDeclaration")
 		private void checkPermission(Table table, Mutation[] mutations) throws IOException {
         final String tableName = dataStore.getTableName(table);
         for (TransactionId t : getTransactionIds(mutations)) {
@@ -543,7 +247,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 								conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
 						}
 						conflictingChildren[i] = conflictResults.childConflicts;
-						finalPuts[i] = Pair.newPair(getMutationToRun(table, rollForwardQueue, dataAndLocks[i].getFirst(), transaction, conflictResults),dataAndLocks[i].getSecond());
+						finalPuts[i] = Pair.newPair(getMutationToRun(rollForwardQueue, dataAndLocks[i].getFirst(), transaction, conflictResults),dataAndLocks[i].getSecond());
 				}
 				return finalPuts;
 		}
@@ -579,7 +283,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-		private Pair<KVPair,Lock>[] obtainLocksForPutBatchAndPrepNonSIKVs(Table table,Collection<KVPair> mutations,ImmutableTransaction transaction) throws IOException {
+		private Pair<KVPair,Lock>[] lockRows(Table table, Collection<KVPair> mutations) throws IOException {
 				@SuppressWarnings("unchecked") Pair<KVPair,Lock>[] mutationsAndLocks = new Pair[mutations.size()];
 
 				int i=0;
@@ -611,7 +315,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
     }
 
 
-		private Mutation getMutationToRun(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, KVPair kvPair,ImmutableTransaction transaction,ConflictResults conflictResults) throws IOException{
+		private Mutation getMutationToRun(RollForwardQueue<Data, Hashable> rollForwardQueue, KVPair kvPair, ImmutableTransaction transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getLongTransactionId();
 				Put newPut = (Put) kvPair.toPut(txnIdLong);
 				dataStore.suppressIndexing(newPut);
@@ -717,8 +421,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
      */
     private ConflictResults checkCommitTimestampsForConflicts(ImmutableTransaction updateTransaction, List<KeyValue> dataCommitKeyValues)
             throws IOException {
-//        final Set<Long> toRollForward = new HashSet<Long>();
-//        final Set<Long> childConflicts = new HashSet<Long>();
 				@SuppressWarnings("unchecked") Set<Long>[] conflicts = new Set[2];
         for (KeyValue dataCommitKeyValue : dataCommitKeyValues) {
             checkCommitTimestampForConflict(updateTransaction, conflicts, dataCommitKeyValue);
@@ -726,7 +428,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return new ConflictResults(conflicts[0], conflicts[1], null);
     }
 
-    private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
+    @SuppressWarnings("StatementWithEmptyBody")
+		private void checkCommitTimestampForConflict(ImmutableTransaction updateTransaction,Set<Long>[] conflicts, KeyValue dataCommitKeyValue)
             throws IOException {
         final long dataTransactionId = dataLib.getKeyValueTimestamp(dataCommitKeyValue);
         if (!updateTransaction.sameTransaction(dataTransactionId)) {
@@ -794,14 +497,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         if (!dataTransaction.isRootTransaction()
                 && dataTransaction.getEffectiveStatus().isActive()
                 && ((clock.getTime() - dataTransaction.keepAlive) > transactionTimeoutMS)) {
-            fail(dataTransaction.getTransactionId());
+            transactionManager.fail(dataTransaction.getTransactionId());
             checkTransactionTimeout(dataTransaction.getParent());
             return true;
-        } else if (dataTransaction.isRootTransaction()) {
-            return false;
-        } else {
-            return checkTransactionTimeout(dataTransaction.getParent());
-        }
+        } else return !dataTransaction.isRootTransaction() && checkTransactionTimeout(dataTransaction.getParent());
     }
 
     /**
@@ -825,7 +524,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         final Put newPut = dataLib.newPut(rowKey, lock);
         dataStore.copyPutKeyValues(put, newPut, transactionId);
         dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
-        if (isDeletePut(put)) {
+        if (clientTransactor.isDeletePut(put)) {
             dataStore.setTombstonesOnColumns(table, transactionId, newPut);
         } else if (hasTombstone) {
             dataStore.setAntiTombstoneOnPut(newPut, transactionId);
@@ -833,117 +532,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return newPut;
     }
 
-    // Process read operations
 
-    @Override
-    public boolean isFilterNeededGet(Get get) {
-        return isFlaggedForSITreatment(get)
-                && !dataStore.isSuppressIndexing(get);
-    }
-
-    @Override
-    public boolean isFilterNeededScan(Scan scan) {
-        return isFlaggedForSITreatment(scan)
-                && !dataStore.isSuppressIndexing(scan);
-    }
-
-    @Override
-    public boolean isGetIncludeSIColumn(Get get) {
-        return dataStore.isIncludeSIColumn(get);
-    }
-
-    @Override
-    public boolean isScanIncludeSIColumn(Scan read) {
-        return dataStore.isIncludeSIColumn(read);
-    }
-
-    @Override
-    public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-        return newFilterState(null, transactionId, false);
-    }
-
-    @Override
-    public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
-                                       boolean includeSIColumn)
-            throws IOException {
-        return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
-                transactionStore.getImmutableTransaction(transactionId));
-    }
-
-    @Override
-    public IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter,
-                                             TransactionId transactionId, boolean includeSIColumn) throws IOException {
-        return new FilterStatePacked(tableName, dataLib, dataStore,
-                (FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn),
-                new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
-    }
-
-    @Override
-    public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
-        return filterState.filterKeyValue(keyValue);
-    }
-
-    @Override
-    public void filterNextRow(IFilterState filterState) {
-        filterState.nextRow();
-    }
-
-    @Override
-    public Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException {
-        final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib = dataStore.dataLib;
-        final List<KeyValue> filteredCells = new ArrayList<KeyValue>();
-        final List<KeyValue> keyValues = dataLib.listResult(result);
-        if (keyValues != null) {
-            Data qualifierToSkip = null;
-            Data familyToSkip = null;
-            Data currentRowKey = null;
-            for (KeyValue keyValue : keyValues) {
-                final Data rowKey = dataLib.getKeyValueRow(keyValue);
-                if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, rowKey)) {
-                    currentRowKey = rowKey;
-                    filterNextRow(filterState);
-                }
-                if (familyToSkip != null
-                        && dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
-                        && dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {
-                    // skipping to next column
-                } else {
-                    familyToSkip = null;
-                    qualifierToSkip = null;
-                    boolean nextRow = false;
-                    Filter.ReturnCode returnCode = filterKeyValue(filterState, keyValue);
-                    switch (returnCode) {
-                        case SKIP:
-                            break;
-                        case INCLUDE:
-                            filteredCells.add(keyValue);
-                            break;
-                        case NEXT_COL:
-                            qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
-                            familyToSkip = dataLib.getKeyValueFamily(keyValue);
-                            break;
-                        case NEXT_ROW:
-                            nextRow = true;
-                            break;
-                    }
-                    if (nextRow) {
-                        break;
-                    }
-                }
-            }
-        }
-        final KeyValue finalKeyValue = filterState.produceAccumulatedKeyValue();
-        if (finalKeyValue != null) {
-            filteredCells.add(finalKeyValue);
-        }
-        if (filteredCells.isEmpty()) {
-            return null;
-        } else {
-            return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
-        }
-    }
-
-    // Roll-forward / compaction
+		// Roll-forward / compaction
 
     @Override
     public Boolean rollForward(Table table, long transactionId, List<Data> rows) throws IOException {
@@ -953,12 +543,12 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         if (isFinished && isCommitted) {
             for (Data row : rows) {
                 try {
-//                    if (transaction.getEffectiveStatus().isCommitted()) {
+                    if (transaction.getEffectiveStatus().isCommitted()) {
                         dataStore.setCommitTimestamp(table, row, transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp());
-//                    }
-//										else {
-//                        dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
-//                    }
+                    }
+										else {
+                        dataStore.setCommitTimestampToFail(table, row, transaction.getLongTransactionId());
+                    }
                     Tracer.traceRowRollForward(row);
                 } catch (NotServingRegionException e) {
                     // If the region split and the row is not here, then just skip it
@@ -974,18 +564,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return new SICompactionState(dataLib, dataStore, transactionStore);
     }
 
-    @Override
-    public void compact(SICompactionState compactionState, List<KeyValue> rawList, List<KeyValue> results) throws IOException {
-        compactionState.mutate(rawList, results);
-    }
 
-    @Override
-    public DDLFilter newDDLFilter(String transactionId) throws IOException {
-        return new DDLFilter(
-                transactionStore.getTransaction(transactionIdFromString(transactionId)),
-                transactionStore
-                );
-    }
 // Helpers
 
     /**
@@ -995,25 +574,7 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         return dataStore.getSINeededAttribute(operation) != null;
     }
 
-    /**
-     * Throw an exception if the transaction is not active.
-     */
-    private void ensureTransactionActive(Transaction transaction) throws IOException {
-        /*
-         * If the transaction is not finished, then it's active, so no worries.
-         *
-         * If it's committed, or COMMITTING, then it's also considered still active, so we
-         * ignore it
-         */
-        if(transaction.status.isFinished()
-                && transaction.status!=TransactionStatus.COMMITTED
-                && transaction.status!=TransactionStatus.COMMITTING){
-            String txnIdStr = transaction.getTransactionId().getTransactionIdString();
-            throw new DoNotRetryIOException("transaction " + txnIdStr + " is not ACTIVE. State is " + transaction.status);
-        }
-    }
-
-    /**
+		/**
      * Throw an exception if this is a read-only transaction.
      */
     private void ensureTransactionAllowsWrites(ImmutableTransaction transaction) throws IOException {
@@ -1022,41 +583,10 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
         }
     }
 
-    @Override
-    public List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException {
-        final long currentMin = timestampSource.retrieveTimestamp();
-        final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
-                true, false, false, false, false);
-        final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
-                currentMin, max.getId(), MAX_ACTIVE_COUNT, missingParams, TransactionStatus.ERROR);
-        final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());
-        if (!oldestActiveTransactions.isEmpty()) {
-            final long oldestId = oldestActiveTransactions.get(0).getTransactionId().getId();
-            if (oldestId > currentMin) {
-                timestampSource.rememberTimestamp(oldestId);
-            }
-            final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
-            if (youngestId.equals(max)) {
-                for (Transaction t : oldestActiveTransactions) {
-                    result.add(t.getTransactionId());
-                }
-            } else {
-                throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException {
-        return transactionStore.forbidPermission(tableName, transactionId);
-    }
-
 		public static class Builder<Data,
 						Result,KeyValue,OperationWithAttributes,Mutation extends OperationWithAttributes,
 						Put extends Mutation,Delete extends OperationWithAttributes,Get extends OperationWithAttributes,Scan extends OperationWithAttributes,
 						Lock,OperationStatus,Table,Hashable extends Comparable<Hashable>,Scanner>{
-				private TimestampSource timestampSource;
 				private SDataLib<Data,
 								Result,  KeyValue,  OperationWithAttributes,
 								Put,  Delete,  Get,  Scan,
@@ -1071,11 +601,16 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 				private Clock clock;
 				private int transactionTimeoutMS;
 				private Hasher<Data, Hashable> hasher;
-				private TransactorListener listener;
-				private TransactionSource transactionSource;
+				private TransactionManager control;
+				private ClientTransactor<Put,Get,Scan,Mutation,Data> clientTransactor;
 
-				public Builder timestampSource(TimestampSource timestampSource) {
-						this.timestampSource = timestampSource;
+				public Builder control(TransactionManager control) {
+						this.control = control;
+						return this;
+				}
+
+				public Builder clientTransactor(ClientTransactor<Put, Get, Scan, Mutation, Data> clientTransactor) {
+						this.clientTransactor = clientTransactor;
 						return this;
 				}
 
@@ -1120,16 +655,6 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 						return this;
 				}
 
-				public Builder transactionListener(TransactorListener listener) {
-						this.listener = listener;
-						return this;
-				}
-
-				public Builder transactionSource(TransactionSource transactionSource) {
-						this.transactionSource = transactionSource;
-						return this;
-				}
-
 				public SITransactor<Table,
 								OperationWithAttributes,Mutation, Put,Get,
 								Scan,Result,KeyValue,Data,Hashable,Delete,
@@ -1137,8 +662,8 @@ public class SITransactor<Table, OperationWithAttributes, Mutation extends Opera
 						return new SITransactor<Table,
 										OperationWithAttributes,Mutation, Put,Get,Scan,
 										Result,KeyValue,Data,Hashable,
-										Delete,Lock,OperationStatus,Scanner>(timestampSource,dataLib,dataWriter,
-										dataStore,transactionStore,clock,transactionTimeoutMS,hasher,listener);
+										Delete,Lock,OperationStatus,Scanner>(dataLib,dataWriter,
+										dataStore,transactionStore,clock,transactionTimeoutMS,hasher,clientTransactor,control);
 				}
 
 		}

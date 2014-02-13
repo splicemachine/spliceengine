@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.context.ContextManager;
@@ -50,7 +50,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 
 	public Transaction marshalTransaction(HBaseStore hbaseStore, ContextManager contextMgr, String transName, String transactionID) throws StandardException {
 		try {
-            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            final TransactionManager transactor = HTransactorFactory.getTransactionManager();
             Transaction trans = new SpliceTransaction(new SpliceLockSpace(),dataValueFactory,transactor,transName, transactor.transactionIdFromString(transactionID));
             return trans;
 		} catch (Exception e) {
@@ -134,7 +134,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
                                                      ContextManager contextMgr, SpliceLockFactory lockFactory, J2SEDataValueFactory dataValueFactory,
                                                      boolean readOnly, String transName, boolean abortAll, String contextName, boolean nested, boolean dependent, String parentTransactionID) {
         try {
-            final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            final TransactionManager transactor = HTransactorFactory.getTransactionManager();
 			SpliceTransaction trans = new SpliceTransaction(new SpliceLockSpace(), dataValueFactory, transactor, transName); 
 			trans.setTransactionName(transName);
 			

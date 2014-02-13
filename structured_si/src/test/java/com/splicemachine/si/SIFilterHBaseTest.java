@@ -9,7 +9,7 @@ import org.junit.BeforeClass;
 
 public class SIFilterHBaseTest extends SIFilterTest {
     static StoreSetup classStoreSetup;
-    static TransactorSetup classTransactorSetup;
+    static TestTransactionSetup classTransactorSetup;
     static Transactor classTransactor;
 
     public SIFilterHBaseTest() {
@@ -30,7 +30,7 @@ public class SIFilterHBaseTest extends SIFilterTest {
     @BeforeClass
     public static void setUpClass() {
         classStoreSetup = HStoreSetup.create();
-        classTransactorSetup = new TransactorSetup(classStoreSetup, false);
+        classTransactorSetup = new TestTransactionSetup(classStoreSetup, false);
         classTransactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
     }

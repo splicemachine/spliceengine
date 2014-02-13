@@ -1,5 +1,7 @@
 package com.splicemachine.si.coprocessors;
 
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.IFilterState;
@@ -26,32 +28,35 @@ import java.nio.ByteBuffer;
  */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
-    private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = null;
+		private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private boolean includeSIColumn;
 
     private IFilterState filterState = null;
+		private TransactionReadController<Get,Scan,byte[],ByteBuffer,Result,KeyValue> readController;
 
-    public SIFilter() {
+		public SIFilter() {
     }
 
-    public SIFilter(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
-                    TransactionId transactionId, RollForwardQueue rollForwardQueue, boolean includeSIColumn) throws IOException {
-        this.transactor = transactor;
-        this.transactionIdString = transactionId.getTransactionIdString();
+    public SIFilter(TransactionReadController<Get, Scan, byte[], ByteBuffer, Result, KeyValue> readController,
+										TransactionId transactionId, TransactionManager transactionManager, RollForwardQueue rollForwardQueue, boolean includeSIColumn) throws IOException {
+				this.transactionManager = transactionManager;
+				this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.includeSIColumn = includeSIColumn;
+				this.readController = readController;
     }
 
-    @Override
+		@Override
+		@SuppressWarnings("unchecked")
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         if (LOG.isTraceEnabled()) {
             SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
         }
         try {
             initFilterStateIfNeeded();
-            return transactor.filterKeyValue(filterState, keyValue);
+						return filterState.filterKeyValue(keyValue);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -59,7 +64,7 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterState(rollForwardQueue, transactor.transactionIdFromString(transactionIdString),
+            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString),
                     includeSIColumn);
         }
     }
@@ -72,7 +77,7 @@ public class SIFilter extends FilterBase {
     @Override
     public void reset() {
         if (filterState != null) {
-            transactor.filterNextRow(filterState);
+						filterState.nextRow();
         }
     }
 

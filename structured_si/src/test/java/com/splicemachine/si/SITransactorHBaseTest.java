@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 public class SITransactorHBaseTest extends SITransactorTest {
 
     private static HStoreSetup classStoreSetup;
-    private static TransactorSetup classTransactorSetup;
+    private static TestTransactionSetup classTransactorSetup;
 
     public SITransactorHBaseTest() {
         useSimple = false;
@@ -40,7 +40,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
 				SpliceConstants.numRetries = 1;
 				SIConstants.committingPause = 1000;
         classStoreSetup = HStoreSetup.create();
-        classTransactorSetup = new TransactorSetup(classStoreSetup, false);
+        classTransactorSetup = new TestTransactionSetup(classStoreSetup, false);
         Transactor transactor = classTransactorSetup.transactor;
         HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
     }

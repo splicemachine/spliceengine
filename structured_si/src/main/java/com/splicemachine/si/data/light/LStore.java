@@ -377,7 +377,7 @@ public class LStore implements STableReader<LTable, LTuple, LGet, LGet, LKeyValu
         final SICompactionState compactionState = transactor.newCompactionState();
         for (LTuple row : rows) {
             final ArrayList<LKeyValue> mutatedValues = new ArrayList<LKeyValue>();
-            transactor.compact(compactionState, row.values, mutatedValues);
+						compactionState.mutate(row.values,mutatedValues);
             LTuple newRow = new LTuple(row.key, mutatedValues, row.attributes);
             newRows.add(newRow);
         }

@@ -8,7 +8,7 @@ import java.io.IOException;
  * Transaction capabilities exposed to client processes (i.e. they don't have direct access to the transaction store)
  * for constructing operations to be applied under transaction control.
  */
-public interface ClientTransactor<Put, Get, Scan, Mutation, Data> extends TransactorControl {
+public interface ClientTransactor<Put, Get, Scan, Mutation, Data> {
     TransactionId transactionIdFromGet(Get get);
     TransactionId transactionIdFromScan(Scan scan);
     TransactionId transactionIdFromPut(Put put);

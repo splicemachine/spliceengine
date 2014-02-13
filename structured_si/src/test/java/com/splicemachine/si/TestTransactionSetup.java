@@ -2,35 +2,25 @@ package com.splicemachine.si;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.ClientTransactor;
-import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
-import com.splicemachine.si.impl.CacheMap;
-import com.splicemachine.si.impl.DataStore;
-import com.splicemachine.si.impl.ImmutableTransaction;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.impl.PermissionArgs;
-import com.splicemachine.si.impl.SITransactor;
-import com.splicemachine.si.impl.Transaction;
-import com.splicemachine.si.impl.TransactionSchema;
-import com.splicemachine.si.impl.TransactionStore;
+import com.splicemachine.si.data.light.LClientTransactor;
+import com.splicemachine.si.impl.*;
 import com.splicemachine.si.jmx.ManagedTransactor;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
-import javax.ws.rs.DELETE;
 import java.util.Map;
 
-public class TransactorSetup extends SIConstants {
+/**
+ * A Setup class for use in testing code.
+ */
+@SuppressWarnings("unchecked")
+public class TestTransactionSetup {
     final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, "siFamily",
             "permissionFamily", -1, "id", "begin", "parent", "dependent", "allowWrites", "additive", "readUncommited",
             "readCommitted", "keepAlive", "status", "commit", "globalCommit", "counter");
-    Object family;
+		Object family;
     Object ageQualifier;
     Object jobQualifier;
     Object commitTimestampQualifier;
@@ -38,18 +28,20 @@ public class TransactorSetup extends SIConstants {
 
     ClientTransactor clientTransactor;
     public Transactor transactor;
+		public final TransactionManager control;
     public ManagedTransactor hTransactor;
     public final TransactionStore transactionStore;
     public RollForwardQueue rollForwardQueue;
     public DataStore dataStore;
     public TimestampSource timestampSource = new SimpleTimestampSource();
+		public TransactionReadController readController;
 
-    public TransactorSetup(StoreSetup storeSetup, boolean simple) {
+    public TestTransactionSetup(StoreSetup storeSetup, boolean simple) {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
         final STableWriter writer = storeSetup.getWriter();
 
-        final String userColumnsFamilyName = DEFAULT_FAMILY;
+        final String userColumnsFamilyName = SIConstants.DEFAULT_FAMILY;
         family = dataLib.encode(userColumnsFamilyName);
         ageQualifier = dataLib.encode("age");
         jobQualifier = dataLib.encode("job");
@@ -64,18 +56,25 @@ public class TransactorSetup extends SIConstants {
         transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer, immutableCache, activeCache,
                 cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, listener);
 
-        final String tombstoneQualifierString = SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
+        final String tombstoneQualifierString = SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING;
         tombstoneQualifier = dataLib.encode(tombstoneQualifierString);
-        final String commitTimestampQualifierString = SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
+        final String commitTimestampQualifierString = SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = dataLib.encode(commitTimestampQualifierString);
 				//noinspection unchecked
-				dataStore = new DataStore(dataLib, reader, writer, "si_needed", SI_NEEDED_VALUE, ONLY_SI_FAMILY_NEEDED_VALUE,
-                "si_transaction_id", "si_delete_put", SNAPSHOT_ISOLATION_FAMILY,
+				dataStore = new DataStore(dataLib, reader, writer, "si_needed",
+								SIConstants.SI_NEEDED_VALUE,
+								SIConstants.ONLY_SI_FAMILY_NEEDED_VALUE,
+                "si_transaction_id", "si_delete_put",
+								SIConstants.SNAPSHOT_ISOLATION_FAMILY,
                 commitTimestampQualifierString, tombstoneQualifierString, -1, "zombie", -2, userColumnsFamilyName);
         timestampSource = new SimpleTimestampSource();
 				SITransactor.Builder builder = new SITransactor.Builder();
+				control = new SITransactionManager(transactionStore,timestampSource,listener);
+
+				readController = new SITransactionReadController(dataStore,dataLib,transactionStore,control);
 				//noinspection unchecked
-				builder = builder.timestampSource(timestampSource)
+				LClientTransactor cTransactor = new LClientTransactor(dataStore, control, dataLib);
+				builder = builder
 								.dataLib(dataLib)
 								.dataWriter(writer)
 								.dataStore(dataStore)
@@ -83,13 +82,14 @@ public class TransactorSetup extends SIConstants {
 								.clock(storeSetup.getClock())
 								.transactionTimeout(SIConstants.transactionTimeout)
 								.hasher(storeSetup.getHasher())
-								.transactionListener(listener);
+								.control(control)
+								.clientTransactor(cTransactor);
 				transactor = builder.build();
         if (!simple) {
             listener.setTransactor(transactor);
             hTransactor = listener;
         }
-        clientTransactor = transactor;
+        clientTransactor = cTransactor;
     }
 
 }

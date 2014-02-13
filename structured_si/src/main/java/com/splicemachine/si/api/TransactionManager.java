@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Transactor calls for controlling transactions (e.g. starting, stopping them).
  */
-public interface TransactorControl {
+public interface TransactionManager {
     /**
      * Start a writable transaction in "snapshot isolation" concurrency mode.
      */

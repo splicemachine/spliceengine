@@ -3,23 +3,15 @@ package com.splicemachine.si.jmx;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.ActiveTransactionCacheEntry;
-import com.splicemachine.si.impl.ImmutableTransaction;
-import com.splicemachine.si.impl.Transaction;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor implements TransactorListener, TransactorStatus {
-    private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor;
+    private Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor;
 
     private final AtomicLong createdChildTxns = new AtomicLong(0l);
 
@@ -31,11 +23,11 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
     private final AtomicLong writes = new AtomicLong(0l);
     private final AtomicLong loadedTxns = new AtomicLong(0l);
 
-    public Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> getTransactor() {
+    public Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> getTransactor() {
         return transactor;
     }
 
-    public void setTransactor(Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor) {
+    public void setTransactor(Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor) {
         this.transactor = transactor;
     }
 

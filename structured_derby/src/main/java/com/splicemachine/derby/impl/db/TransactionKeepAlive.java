@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.db;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.services.context.ContextManager;
 import org.apache.derby.iapi.services.context.ContextService;
@@ -56,7 +56,7 @@ public class TransactionKeepAlive {
                 final ContextManager contextManager = (ContextManager) o;
                 final String transactionId = SpliceObserverInstructions.getTransactionId(contextManager);
                 if (transactionId != null && !keptAlive.contains(transactionId)) {
-                    final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+                    final TransactionManager transactor = HTransactorFactory.getTransactionManager();
                     try {
                     	SpliceLogUtils.trace(LOG,"keeping alive %s",transactionId);
                         transactor.keepAlive(transactor.transactionIdFromString(transactionId));
