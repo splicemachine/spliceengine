@@ -1616,7 +1616,8 @@ public class GenericLanguageConnectionContext
 
     private void checkGlobalDDLChanges() {
     	if (invalidateCaches) {
-    		getLanguageConnectionFactory().getStatementCache().discard(null); // discard cache
+            invalidateAllCaches();
+
     		invalidateCaches = false;
     		if (ongoingDDLChange) {
     			// if DDL changes are still ongoing, next transaction can't use caches
@@ -1884,6 +1885,15 @@ public class GenericLanguageConnectionContext
 
         if (tc != null && refreshStyle && allDeclaredGlobalTempTables != null)
             tempTablesAndRollback();
+    }
+
+    private void invalidateAllCaches() {
+        getLanguageConnectionFactory().getStatementCache().discard(null); // discard cache
+        try {
+            getDataDictionary().clearCaches();
+        } catch (StandardException se) {
+            // ignore
+        }
     }
 
     /**
