@@ -34,7 +34,7 @@ import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.job.TaskSchedulerManagement;
 import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.CachedResourcePool;
 import com.splicemachine.tools.EmbedConnectionMaker;
@@ -314,7 +314,7 @@ public class SpliceDriver extends SIConstants {
             public Object apply(@Nullable TransactionId input) {
                 if(random.nextDouble()>=testTaskFailureRate) return null;
 
-                TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+                TransactionManager txnControl = HTransactorFactory.getTransactionManager();
                 try{
                     txnControl.fail(input);
                 } catch (IOException e) {

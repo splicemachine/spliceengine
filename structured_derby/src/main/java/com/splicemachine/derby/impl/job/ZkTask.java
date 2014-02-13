@@ -1,18 +1,15 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.utils.ByteDataOutput;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -136,7 +133,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
          * wait for a long time.
          */
         if(parentTxnId!=null){
-            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionManager transactor = HTransactorFactory.getTransactionManager();
             TransactionId parent = transactor.transactionIdFromString(parentTxnId);
             try {
                 TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);

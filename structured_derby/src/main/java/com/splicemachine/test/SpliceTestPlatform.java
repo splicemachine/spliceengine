@@ -12,7 +12,7 @@ import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.impl.TransactionId;
 import java.io.IOException;
@@ -69,7 +69,7 @@ public class SpliceTestPlatform extends TestConstants {
         @Override
         public Object apply(@Nullable TransactionId transactionId) {
             if (randomly(12)) {
-                final TransactorControl transactor = HTransactorFactory.getTransactorControl();
+                final TransactionManager transactor = HTransactorFactory.getTransactionManager();
                 try {
                     transactor.fail(transactionId);
                 } catch (IOException e) {

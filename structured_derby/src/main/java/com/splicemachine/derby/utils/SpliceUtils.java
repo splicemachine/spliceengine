@@ -37,7 +37,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 
-import javax.management.relation.RoleUnresolved;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -211,7 +210,7 @@ public class SpliceUtils extends SpliceUtilities {
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
         final ClientTransactor<Put, Get, Scan, Mutation, byte[]> clientTransactor = HTransactorFactory.getClientTransactor();
-        return clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
+        return clientTransactor.createDeletePut(HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId), rowKey);
     }
 
     public static boolean isDelete(Mutation mutation) {

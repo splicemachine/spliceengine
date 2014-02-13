@@ -1,11 +1,9 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.derby.stats.Accumulator;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.hbase.IHTable;
 import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -34,7 +32,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
 
     private String tableName;
-    private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = null;
+		private TransactionReadController<Get,Scan,byte[],ByteBuffer,Result,KeyValue> readController;
+		private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
@@ -48,16 +47,22 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     public SIFilterPacked() {
     }
 
-    public SIFilterPacked(String tableName, Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
-                          TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
-                          boolean includeSIColumn) throws IOException {
+    public SIFilterPacked(String tableName,
+													TransactionId transactionId,
+													TransactionManager transactionManager,
+													RollForwardQueue rollForwardQueue,
+													EntryPredicateFilter predicateFilter,
+													TransactionReadController<Get, Scan, byte[], ByteBuffer, Result, KeyValue> readController,
+													boolean includeSIColumn) throws IOException {
         this.tableName = tableName;
-        this.transactor = transactor;
-        this.transactionIdString = transactionId.getTransactionIdString();
+				this.transactionManager = transactionManager;
+				this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
+				this.readController = readController;
     }
+
 
 		@Override
 		public long getBytesVisited(){
@@ -77,7 +82,8 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         try {
             initFilterStateIfNeeded();
-            ReturnCode returnCode = transactor.filterKeyValue(filterState, keyValue);
+						ReturnCode returnCode = filterState.filterKeyValue(keyValue);
+//            ReturnCode returnCode = HTransactorFactory.getTransactionReadController().filterKeyValue(filterState, keyValue);
             switch (returnCode) {
                 case INCLUDE:
                 case INCLUDE_AND_NEXT_COL:
@@ -104,10 +110,11 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
         }
     }
 
-    private void initFilterStateIfNeeded() throws IOException {
+    @SuppressWarnings("unchecked")
+		private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactor.transactionIdFromString(transactionIdString), includeSIColumn);
+            filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
+                    transactionManager.transactionIdFromString(transactionIdString), includeSIColumn);
         }
     }
 
@@ -135,7 +142,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     public void reset() {
         extraKeyValueIncluded = null;
         if (filterState != null) {
-            transactor.filterNextRow(filterState);
+            readController.filterNextRow(filterState);
         }
     }
 

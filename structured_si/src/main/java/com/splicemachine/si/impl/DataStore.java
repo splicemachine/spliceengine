@@ -65,7 +65,7 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         this.userColumnFamily = dataLib.encode(userColumnFamily);
     }
 
-    void setSINeededAttribute(OperationWithAttributes operation, boolean includeSIColumn) {
+    public void setSINeededAttribute(OperationWithAttributes operation, boolean includeSIColumn) {
         dataLib.addAttribute(operation, siNeededAttribute, dataLib.encode(includeSIColumn ? includeSIColumnValue : siNeededValue));
     }
 
@@ -77,11 +77,11 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         return dataLib.valuesEqual(dataLib.getAttribute(operation, siNeededAttribute), includeSIColumnValue);
     }
 
-    void setDeletePutAttribute(Put operation) {
+    public void setDeletePutAttribute(Put operation) {
         dataLib.addAttribute(operation, deletePutAttribute, dataLib.encode(true));
     }
 
-    Boolean getDeletePutAttribute(OperationWithAttributes operation) {
+    public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
         Data neededValue = dataLib.getAttribute(operation, deletePutAttribute);
         return (Boolean) dataLib.decode(neededValue, Boolean.class);
     }
@@ -90,11 +90,11 @@ public class DataStore<Data, Hashable extends Comparable, Result, KeyValue, Oper
         dataLib.addKeyValueToPut(put, siFamily, commitTimestampQualifier, transactionId, siNull);
     }
 
-    void setTransactionId(long transactionId, OperationWithAttributes operation) {
+    public void setTransactionId(long transactionId, OperationWithAttributes operation) {
         dataLib.addAttribute(operation, transactionIdAttribute, dataLib.encode(String.valueOf(transactionId)));
     }
 
-    TransactionId getTransactionIdFromOperation(OperationWithAttributes put) {
+    public TransactionId getTransactionIdFromOperation(OperationWithAttributes put) {
         Data value = dataLib.getAttribute(put, transactionIdAttribute);
         String transactionId = (String) dataLib.decode(value, String.class);
         if (transactionId != null) {

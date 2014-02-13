@@ -53,7 +53,7 @@ public class ForbidPastWritesJob implements CoprocessorJob{
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactorControl().transactionIdFromString(transactionId);
+        return HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId);
     }
 
     @Override

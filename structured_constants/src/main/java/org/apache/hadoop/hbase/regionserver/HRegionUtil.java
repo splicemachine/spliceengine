@@ -1,9 +1,9 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.SortedSet;
+import java.util.*;
+
+import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -78,8 +78,19 @@ public class HRegionUtil {
 	public static boolean keyExists(Store store, byte[] key) throws IOException {
 		return keyExists.keyExists(store, key);
 	}
-	
-	public static void closeRegionOperation(HRegion region) {
+
+		protected static boolean checkMemstoreSet(SortedSet<KeyValue> set, byte[] key, KeyValue kv) {
+				KeyValue placeHolder;
+				try {
+						SortedSet<KeyValue> kvset = set.tailSet(kv);
+						placeHolder = kvset.isEmpty()?null:kvset.first();
+						if (placeHolder != null && placeHolder.matchingRow(key))
+								return true;
+				} catch (NoSuchElementException ignored) {} // This keeps us from constantly performing key value comparisons for empty set
+				return false;
+		}
+
+		public static void closeRegionOperation(HRegion region) {
 		region.closeRegionOperation();
 	}
 

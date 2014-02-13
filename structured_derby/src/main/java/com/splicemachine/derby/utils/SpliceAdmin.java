@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
@@ -14,7 +13,7 @@ import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
@@ -28,13 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import javax.management.AttributeNotFoundException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -470,7 +465,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
         try {
-            HTransactorFactory.getTransactorControl().fail(new TransactionId(Long.toString(transactionId)));
+            HTransactorFactory.getTransactionManager().fail(new TransactionId(Long.toString(transactionId)));
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
@@ -478,7 +473,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
         try {
-            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionManager transactor = HTransactorFactory.getTransactionManager();
             List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
             for (TransactionId txnId : active) {
                 transactor.fail(txnId);
