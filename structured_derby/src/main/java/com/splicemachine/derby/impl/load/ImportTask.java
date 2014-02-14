@@ -17,7 +17,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.tools.run;
 import org.apache.derby.iapi.types.DataTypeDescriptor;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.impl.sql.execute.ValueRow;
@@ -26,7 +25,6 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -247,7 +245,7 @@ public class ImportTask extends ZkTask{
 				super.prepareTask(rce, zooKeeper);
 		}
 
-		protected ExecRow getExecRow(ImportContext context) throws StandardException {
+		public static ExecRow getExecRow(ImportContext context) throws StandardException {
 				ColumnContext[] cols = context.getColumnInformation();
 				int size = cols[cols.length-1].getColumnNumber()+1;
 				ExecRow row = new ValueRow(size);
@@ -258,7 +256,7 @@ public class ImportTask extends ZkTask{
 				return row;
 		}
 
-		private DataValueDescriptor getDataValueDescriptor(ColumnContext columnContext) throws StandardException {
+		public static DataValueDescriptor getDataValueDescriptor(ColumnContext columnContext) throws StandardException {
 				DataTypeDescriptor td = DataTypeDescriptor.getBuiltInDataTypeDescriptor(columnContext.getColumnType());
 				if(!columnContext.isNullable())
 						td = td.getNullabilityType(false);
