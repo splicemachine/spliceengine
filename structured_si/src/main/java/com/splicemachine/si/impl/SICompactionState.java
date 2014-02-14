@@ -1,7 +1,10 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -14,12 +17,12 @@ import java.util.Map;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<Data, Hashable extends Comparable, Result, KeyValue, OperationWithAttributes, Mutation,
-        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus, Scanner> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put, Delete, Get, Scan, IHTable, Lock, OperationStatus, Scanner> dataStore;
+public class SICompactionState<Result,  Mutation,
+        Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable, Lock, OperationStatus> {
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final DataStore<Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
-    private final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
+    private final DecodedKeyValue<Result,  Put, Delete, Get, Scan> keyValue;
 
     /**
      * Cache of transactions that have been read during the execution of this compaction.
@@ -36,9 +39,9 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
     /**
      * Given a list of key-values, populate the results list with possibly mutated values.
      *
-     * @param rawList - the input of key values to process
-     * @param results - the output key values
-     */
+		 * @param rawList - the input of key values to process
+		 * @param results - the output key values
+		 */
     public void mutate(List<KeyValue> rawList, List<KeyValue> results) throws IOException {
         for (KeyValue kv : rawList) {
             keyValue.setKeyValue(kv);
@@ -49,7 +52,7 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
     /**
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
-    private KeyValue mutate(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
+    private KeyValue mutate(DecodedKeyValue<Result, Put, Delete, Get, Scan> kv) throws IOException {
         final KeyValueType keyValueType = dataStore.getKeyValueType(kv.keyValue());
         if (keyValueType.equals(KeyValueType.COMMIT_TIMESTAMP)){
             return mutateCommitTimestamp(kv);
@@ -61,17 +64,17 @@ public class SICompactionState<Data, Hashable extends Comparable, Result, KeyVal
     /**
      * Replace unknown commit timestamps with actual commit times.
      */
-    private KeyValue mutateCommitTimestamp(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> kv) throws IOException {
+    private KeyValue mutateCommitTimestamp(DecodedKeyValue<Result, Put, Delete, Get, Scan> kv) throws IOException {
         KeyValue result = kv.keyValue();
-        if (dataStore.isSINull(kv.keyValue())) {
+        if (dataStore.isSINull(result)) {
             final Transaction transaction = getFromCache(kv.timestamp());
             final TransactionStatus effectiveStatus = transaction.getEffectiveStatus();
             if (effectiveStatus.isFinished()) {
                 final Long globalCommitTimestamp = transaction.getEffectiveCommitTimestamp();
-                final Data commitTimestampValue = effectiveStatus.isCommitted() ?
+                final byte[] commitTimestampValue = effectiveStatus.isCommitted() ?
                         dataLib.encode(globalCommitTimestamp) :
                         dataStore.siFail;
-                result = dataLib.newKeyValue(kv.keyValue(), commitTimestampValue);
+                result = KeyValueUtils.newKeyValue(kv.keyValue(), commitTimestampValue);
             }
         }
         return result;

@@ -33,7 +33,6 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 
@@ -48,7 +47,7 @@ public class RegionWriteHandler implements WriteHandler {
     private final List<KVPair> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
-    private RollForwardQueue<byte[], ByteBuffer> queue;
+    private RollForwardQueue queue;
 
     public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize) {
         this.region = region;
@@ -59,7 +58,7 @@ public class RegionWriteHandler implements WriteHandler {
     public RegionWriteHandler(HRegion region,
                               ResettableCountDownLatch writeLatch,
                               int writeBatchSize,
-                              RollForwardQueue<byte[],ByteBuffer>queue){
+                              RollForwardQueue queue){
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
@@ -221,11 +220,11 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
-        final Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor = HTransactorFactory.getTransactor();
+        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-				return transactor.processKvBatch(new HbRegion(region),queue,toProcess,ctx.getTransactionId());
+				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY,toProcess,ctx.getTransactionId());
 //        Mutation[] mutations = new Mutation[toProcess.size()];
 //        int i=0;
 //        for(KVPair pair:toProcess){

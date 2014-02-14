@@ -13,7 +13,7 @@ import java.util.Arrays;
  * @author Scott Fines
  * Date: 2/13/14
  */
-public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Mutation,byte[]>{
+public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Mutation>{
 		private static final byte[] TRUE_BYTES = Bytes.toBytes(true);
 		private static final byte[] FALSE_BYTES = Bytes.toBytes(false);
 		private final TransactionManager transactionControl;
@@ -56,8 +56,14 @@ public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Muta
 				return deletePut!=null && Arrays.equals(deletePut, TRUE_BYTES);
 		}
 
+		@Override
+		public boolean requiresSI(Put put) {
+				byte[] attribute = put.getAttribute(SIConstants.SI_NEEDED);
+				return attribute !=null &&Arrays.equals(attribute,TRUE_BYTES);
+		}
 
-/**********************************************************************************/
+
+		/**********************************************************************************/
 		/*private helper methods*/
 		private TransactionId getTransactionId(OperationWithAttributes operation) {
 				byte[] txnIdValue = operation.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);

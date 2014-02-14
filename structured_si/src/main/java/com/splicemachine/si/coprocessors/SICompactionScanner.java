@@ -7,10 +7,8 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,12 +17,12 @@ import java.util.List;
  * SICompactionState.
  */
 public class SICompactionScanner implements InternalScanner {
-    private final Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor;
+    private final Transactor<IHTable, Mutation,Put> transactor;
     private final  SICompactionState compactionState;
     private final InternalScanner delegate;
     List<KeyValue> rawList = new ArrayList<KeyValue>();
 
-    public SICompactionScanner(Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor,
+    public SICompactionScanner(Transactor<IHTable, Mutation,Put> transactor,
                                InternalScanner scanner) {
         this.transactor = transactor;
         this.compactionState = transactor.newCompactionState();

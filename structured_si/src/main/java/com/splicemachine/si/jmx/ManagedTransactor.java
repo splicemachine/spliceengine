@@ -5,13 +5,11 @@ import com.splicemachine.si.api.TransactorListener;
 import com.splicemachine.si.data.hbase.IHTable;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ManagedTransactor implements TransactorListener, TransactorStatus {
-    private Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor;
+    private Transactor<IHTable, Mutation,Put> transactor;
 
     private final AtomicLong createdChildTxns = new AtomicLong(0l);
 
@@ -23,11 +21,11 @@ public class ManagedTransactor implements TransactorListener, TransactorStatus {
     private final AtomicLong writes = new AtomicLong(0l);
     private final AtomicLong loadedTxns = new AtomicLong(0l);
 
-    public Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> getTransactor() {
+    public Transactor<IHTable, Mutation,Put> getTransactor() {
         return transactor;
     }
 
-    public void setTransactor(Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> transactor) {
+    public void setTransactor(Transactor<IHTable, Mutation,Put> transactor) {
         this.transactor = transactor;
     }
 

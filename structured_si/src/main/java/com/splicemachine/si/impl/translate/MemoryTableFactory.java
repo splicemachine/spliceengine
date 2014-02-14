@@ -50,12 +50,12 @@ public class MemoryTableFactory implements HTableInterfaceFactory {
 
             @Override
             public Object transcodeFamily(Object family) {
-                return dataLib.decode(family, String.class);
+                return dataLib.decode((byte[])family, String.class);
             }
 
             @Override
             public Object transcodeQualifier(Object qualifier) {
-                return dataLib.decode(qualifier, String.class);
+                return dataLib.decode((byte[])qualifier, String.class);
             }
         };
         transcoder2 = new Transcoder() {

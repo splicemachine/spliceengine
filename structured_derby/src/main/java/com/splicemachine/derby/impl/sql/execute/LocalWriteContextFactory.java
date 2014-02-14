@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -96,7 +95,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
-                               RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
+                               RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
         context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
         addIndexInformation(expectedWrites, context);

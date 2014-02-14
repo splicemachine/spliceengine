@@ -5,6 +5,7 @@ import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.TransactionId;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 import java.io.IOException;
 
@@ -13,12 +14,12 @@ import java.io.IOException;
  * Date: 2/13/14
  */
 @SuppressWarnings("unchecked")
-public class LClientTransactor<OperationWithAttributes,
+public class LClientTransactor<
 				Put extends OperationWithAttributes,
 				Get extends OperationWithAttributes,
 				Scan extends OperationWithAttributes,
-				Mutation extends OperationWithAttributes,Data>
-				implements ClientTransactor<Put,Get,Scan,Mutation,Data> {
+				Mutation extends OperationWithAttributes>
+				implements ClientTransactor<Put,Get,Scan,Mutation> {
 		private final DataStore dataStore;
 		private final TransactionManager control;
 		private final SDataLib dataLib;
@@ -69,7 +70,7 @@ public class LClientTransactor<OperationWithAttributes,
 		}
 
 		@Override
-		public Put createDeletePut(TransactionId transactionId, Data rowKey) {
+		public Put createDeletePut(TransactionId transactionId, byte[] rowKey) {
 				return createDeletePutDirect(transactionId.getId(),rowKey);
 		}
 
@@ -79,10 +80,15 @@ public class LClientTransactor<OperationWithAttributes,
 				return (deleteAttribute != null && deleteAttribute);
 		}
 
+		@Override
+		public boolean requiresSI(Put put) {
+				return dataStore.getSINeededAttribute(put)!=null;
+		}
+
 		/**
 		 * Create a "put" operation that will effectively delete a given row.
 		 */
-		private Put createDeletePutDirect(long transactionId, Data rowKey) {
+		private Put createDeletePutDirect(long transactionId, byte[] rowKey) {
 				final Put deletePut = (Put) dataLib.newPut(rowKey);
 				flagForSITreatment(transactionId, false, deletePut);
 				dataStore.setTombstoneOnPut(deletePut, transactionId);

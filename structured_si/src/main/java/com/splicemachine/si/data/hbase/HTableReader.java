@@ -1,19 +1,14 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.STableReader;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
-public class HTableReader implements STableReader<IHTable, Result, Get, Scan, KeyValue, RegionScanner, byte[]> {
+public class HTableReader implements STableReader<IHTable, Get, Scan> {
     private final HTableSource tableSource;
 
     public HTableReader(HTableSource tableSource) {

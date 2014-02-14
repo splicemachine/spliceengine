@@ -3,7 +3,6 @@ package com.splicemachine.si.coprocessors;
 import com.splicemachine.si.api.RollForwardQueue;
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,12 +10,12 @@ public class RollForwardQueueMap {
     private static ConcurrentMap<String,RollForwardQueueHolder> map  = new NonBlockingHashMap<String, RollForwardQueueHolder>();
 //    private static Map<String, RollForwardQueue<byte[], ByteBuffer>> map = new HashMap<String, RollForwardQueue<byte[], ByteBuffer>>();
 
-    public static void registerRollForwardQueue(String tableName, RollForwardQueue<byte[], ByteBuffer> rollForwardQueue) {
+    public static void registerRollForwardQueue(String tableName, RollForwardQueue rollForwardQueue) {
         RollForwardQueueHolder holder = new RollForwardQueueHolder(rollForwardQueue);
         map.putIfAbsent(tableName, holder);
     }
 
-    public static RollForwardQueue<byte[], ByteBuffer> lookupRollForwardQueue(String tableName) {
+    public static RollForwardQueue lookupRollForwardQueue(String tableName) {
         RollForwardQueueHolder holder = map.get(tableName);
         if(holder==null) return null;
         return holder.queue;
@@ -38,9 +37,9 @@ public class RollForwardQueueMap {
 
     private static class RollForwardQueueHolder{
         private final AtomicInteger refCount = new AtomicInteger(0);
-        private final RollForwardQueue<byte[],ByteBuffer> queue;
+        private final RollForwardQueue queue;
 
-        private RollForwardQueueHolder(RollForwardQueue<byte[], ByteBuffer> queue) {
+        private RollForwardQueueHolder(RollForwardQueue queue) {
             this.queue = queue;
         }
 

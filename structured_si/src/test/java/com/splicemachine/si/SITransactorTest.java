@@ -3,60 +3,43 @@ package com.splicemachine.si;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.data.light.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.translate.Transcoder;
 import com.splicemachine.si.impl.translate.Translator;
-import com.splicemachine.si.data.hbase.HbRegion;
-import com.splicemachine.si.data.light.IncrementingClock;
-import com.splicemachine.si.data.light.LDataLib;
-import com.splicemachine.si.data.light.LGet;
-import com.splicemachine.si.data.light.LKeyValue;
-import com.splicemachine.si.data.light.LRowAccumulator;
-import com.splicemachine.si.data.light.LStore;
-import com.splicemachine.si.data.light.LTable;
-import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.kryo.KryoPool;
-
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.*;
 
 import javax.annotation.Nullable;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -75,24 +58,16 @@ public class SITransactorTest extends SIConstants {
 		void baseSetUp() {
         transactor = transactorSetup.transactor;
 				control = transactorSetup.control;
-//				transactorSetup.rollForwardQueue = new ConcurrentRollForwardQueue(storeSetup.getHasher(),
-//								new RollForwardAction<byte[]>() {
-//										@Override
-//										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-//												final STableReader reader = storeSetup.getReader();
-//												Object testSTable = reader.open(storeSetup.getPersonTableName());
-//												transactor.rollForward(testSTable,transactionId,rowList);
-//												return true;
-//										}
-//								}, 10000l,100,1000,Executors.newSingleThreadScheduledExecutor(),Executors.newSingleThreadExecutor());
         transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
-                storeSetup.getHasher(),
-                new RollForwardAction() {
+								new RollForwardAction() {
                     @Override
-                    public Boolean rollForward(long transactionId, List rowList) throws IOException {
+                    public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
                         final STableReader reader = storeSetup.getReader();
                         Object testSTable = reader.open(storeSetup.getPersonTableName());
-                        transactor.rollForward(testSTable, transactionId, rowList);
+												new RegionRollForwardAction((IHTable)testSTable,
+																Providers.basicProvider(transactorSetup.transactionStore),
+																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
+//                        transactor.rollForward(testSTable, transactionId, rowList);
                         return true;
                     }
                 }, 10, 100, 1000, "test");
@@ -134,14 +109,14 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = dataLib.newRowKey(new Object[]{name});
         Object scan = makeScan(dataLib, key, null, key);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Iterator results = reader.scan(testSTable, scan);
+            Iterator<Result> results = reader.scan(testSTable, scan);
             if (results.hasNext()) {
-                Object rawTuple = results.next();
+                Result rawTuple = results.next();
                 Assert.assertTrue(!results.hasNext());
                 return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, true,
                         true, true);
@@ -162,15 +137,15 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{startKey});
-        Object endKey = dataLib.newRowKey(new Object[]{stopKey});
+        byte[] key = dataLib.newRowKey(new Object[]{startKey});
+        byte[] endKey = dataLib.newRowKey(new Object[]{stopKey});
         Object get = makeScan(dataLib, endKey, null, key);
         if (!useSimple && filterValue != null) {
             final Scan scan = (Scan) get;
             SingleColumnValueFilter filter = new SingleColumnValueFilter((byte[]) transactorSetup.family,
                     (byte[]) transactorSetup.ageQualifier,
                     CompareFilter.CompareOp.EQUAL,
-                    new BinaryComparator((byte[]) dataLib.encode(filterValue)));
+                    new BinaryComparator(dataLib.encode(filterValue)));
             filter.setFilterIfMissing(true);
             scan.setFilter(filter);
         }
@@ -178,12 +153,12 @@ public class SITransactorTest extends SIConstants {
         );
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Iterator results = reader.scan(testSTable, get);
+            Iterator<Result> results = reader.scan(testSTable, get);
 
             StringBuilder result = new StringBuilder();
             while (results.hasNext()) {
-                final Object value = results.next();
-                final String name = (String) dataLib.decode(dataLib.getResultKey(value), String.class);
+                final Result value = results.next();
+                final String name = Bytes.toString(value.getRow());
                 final String s = readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, value, false,
                         includeSIColumn, true, true);
                 result.append(s);
@@ -212,24 +187,24 @@ public class SITransactorTest extends SIConstants {
         insertField(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, transactorSetup.jobQualifier, job);
     }
 
-    private static void insertField(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-                                    TransactionId transactionId, String name, Object qualifier, Object fieldValue)
+ 		private static void insertField(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
+                                    TransactionId transactionId, String name, byte[] qualifier, Object fieldValue)
             throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
         Object put = makePut(useSimple, usePacked, transactorSetup, transactionId, name, qualifier, fieldValue, dataLib);
-        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, put);
+        processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, (OperationWithAttributes)put);
     }
 
-    private static Object makePut(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, TransactionId transactionId, String name, Object qualifier, Object fieldValue, SDataLib dataLib) throws IOException {
-        Object key = dataLib.newRowKey(new Object[]{name});
-        Object put = dataLib.newPut(key);
+    private static Object makePut(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, TransactionId transactionId, String name, byte[] qualifier, Object fieldValue, SDataLib dataLib) throws IOException {
+        byte[] key = dataLib.newRowKey(new Object[]{name});
+        OperationWithAttributes put = dataLib.newPut(key);
         if (fieldValue != null) {
             if (usePacked && !useSimple) {
                 int columnIndex;
-                if (dataLib.valuesEqual(qualifier, transactorSetup.ageQualifier)) {
+								if(Bytes.equals(qualifier,transactorSetup.ageQualifier)){
                     columnIndex = 0;
-                } else if (dataLib.valuesEqual(qualifier, transactorSetup.jobQualifier)) {
+                } else if (Bytes.equals(qualifier,transactorSetup.jobQualifier)){
                     columnIndex = 1;
                 } else {
                     throw new RuntimeException("unknown qualifier");
@@ -244,12 +219,12 @@ public class SITransactorTest extends SIConstants {
                         entryEncoder.getEntryEncoder().encodeNext((String) fieldValue);
                     }
                     final byte[] packedRow = entryEncoder.encode();
-                    dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), null, packedRow);
+                    dataLib.addKeyValueToPut(put, transactorSetup.family, dataLib.encode("x"), -1, packedRow);
                 } finally {
                     entryEncoder.close();
                 }
             } else {
-                dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, null, dataLib.encode(fieldValue));
+                dataLib.addKeyValueToPut(put, transactorSetup.family, qualifier, -1l, dataLib.encode(fieldValue));
             }
         }
         transactorSetup.clientTransactor.initializePut(transactionId.getTransactionIdString(), put);
@@ -257,10 +232,10 @@ public class SITransactorTest extends SIConstants {
     }
 
     private static void insertFieldBatch(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-                                         Object[] args, Object qualifier) throws IOException {
+                                         Object[] args, byte[] qualifier) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
-        Object[] puts = new Object[args.length];
+        OperationWithAttributes[] puts = new OperationWithAttributes[args.length];
         int i = 0;
         for (Object subArgs : args) {
             Object[] subArgsArray = (Object[]) subArgs;
@@ -268,7 +243,7 @@ public class SITransactorTest extends SIConstants {
             String name = (String) subArgsArray[1];
             Object fieldValue = subArgsArray[2];
             Object put = makePut(useSimple, usePacked, transactorSetup, transactionId, name, qualifier, fieldValue, dataLib);
-            puts[i] = put;
+            puts[i] = (OperationWithAttributes)put;
             i++;
         }
         processPutDirectBatch(useSimple, usePacked, transactorSetup, storeSetup, reader, puts);
@@ -279,20 +254,20 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
-        Object deletePut = transactorSetup.clientTransactor.createDeletePut(transactionId, key);
+        byte[] key = dataLib.newRowKey(new Object[]{name});
+        OperationWithAttributes deletePut = transactorSetup.clientTransactor.createDeletePut(transactionId, key);
         processPutDirect(useSimple, usePacked, transactorSetup, storeSetup, reader, deletePut);
     }
 
     private static void processPutDirect(boolean useSimple, boolean usePacked,
                                          TestTransactionSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
-                                         Object put) throws IOException {
+                                         OperationWithAttributes put) throws IOException {
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             if (useSimple) {
                 if (usePacked) {
                     Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue,
-                            ((LTuple) put).pack("V", "p")));
+                            ((LTuple) put).pack(Bytes.toBytes("V"), Bytes.toBytes("p"))));
                 } else {
                     Assert.assertTrue(transactorSetup.transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
                 }
@@ -306,15 +281,15 @@ public class SITransactorTest extends SIConstants {
 
     private static void processPutDirectBatch(boolean useSimple, boolean usePacked,
                                               TestTransactionSetup transactorSetup, StoreSetup storeSetup, STableReader reader,
-                                              Object[] puts) throws IOException {
+                                              OperationWithAttributes[] puts) throws IOException {
         final Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Object tableToUse = testSTable;
             if (useSimple) {
                 if (usePacked) {
-                    Object[] packedPuts = new Object[puts.length];
+                    OperationWithAttributes[] packedPuts = new OperationWithAttributes[puts.length];
                     for (int i = 0; i < puts.length; i++) {
-                        packedPuts[i] = ((LTuple) puts[i]).pack("V", "p");
+                        packedPuts[i] = ((LTuple) puts[i]).pack(Bytes.toBytes("V"), Bytes.toBytes("p"));
                     }
                     puts = packedPuts;
                 }
@@ -335,12 +310,12 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = dataLib.newRowKey(new Object[]{name});
         Object get = makeGet(dataLib, key);
         transactorSetup.clientTransactor.initializeGet(transactionId.getTransactionIdString(), get);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Object rawTuple = reader.get(testSTable, get);
+            Result rawTuple = reader.get(testSTable, get);
             return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, true, true, false, true);
         } finally {
             reader.close(testSTable);
@@ -352,20 +327,19 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        final Object endKey = dataLib.newRowKey(new Object[]{name});
+        byte[] endKey = dataLib.newRowKey(new Object[]{name});
         final ArrayList families = new ArrayList();
-        final Object startKey = endKey;
-        Object scan = makeScan(dataLib, endKey, families, startKey);
+				Object scan = makeScan(dataLib, endKey, families, endKey);
         transactorSetup.clientTransactor.initializeScan(transactionId.getTransactionIdString(), scan, true);
         transactorSetup.readController.preProcessScan(scan);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            Iterator results = reader.scan(testSTable, scan);
-            if (deleted) {
-            } else {
-                Assert.assertTrue(results.hasNext());
-            }
-            Object rawTuple = results.next();
+            Iterator<Result> results = reader.scan(testSTable, scan);
+						Assert.assertTrue(deleted || results.hasNext());
+//						if (!deleted) {
+//								Assert.assertTrue(results.hasNext());
+//						}
+						Result rawTuple = results.next();
             Assert.assertTrue(!results.hasNext());
             return readRawTuple(useSimple, usePacked, transactorSetup, storeSetup, transactionId, name, dataLib, rawTuple, false, true, false, true);
         } finally {
@@ -374,12 +348,12 @@ public class SITransactorTest extends SIConstants {
     }
 
     private static String readRawTuple(boolean useSimple, boolean usePacked, TestTransactionSetup transactorSetup, StoreSetup storeSetup,
-                                       TransactionId transactionId, String name, SDataLib dataLib, Object rawTuple,
+                                       TransactionId transactionId, String name, SDataLib dataLib, Result rawTuple,
                                        boolean singleRowRead, boolean includeSIColumn,
                                        boolean dumpKeyValues, boolean decodeTimestamps)
             throws IOException {
         if (rawTuple != null) {
-            Object result = rawTuple;
+            Result result = rawTuple;
             if (useSimple) {
                 IFilterState filterState;
                 try {
@@ -393,35 +367,38 @@ public class SITransactorTest extends SIConstants {
                 }
                 result = transactorSetup.readController.filterResult(filterState, rawTuple);
                 if (usePacked && result != null) {
-                    result = ((LTuple) result).unpack("V");
+										List<KeyValue> kvs = Lists.newArrayList(result.raw());
+										result = new Result(LTuple.unpack(kvs,Bytes.toBytes("V")));
+//										result = ((LTuple) result).unpack(Bytes.toBytes("V"));
                 }
             } else {
-                if (((Result) result).size() == 0) {
+                if (result.size() == 0) {
                     return name + " absent";
                 }
-                if (usePacked && result != null) {
-                    final Object resultKey = dataLib.getResultKey(result);
+                if (usePacked) {
+                    byte[] resultKey = result.getRow();
                     final List newKeyValues = new ArrayList();
-                    for (Object kv : dataLib.listResult(result)) {
-                        if (dataLib.valuesEqual(dataLib.getKeyValueFamily(kv), transactorSetup.family) &&
-                                dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
-                            final byte[] packedColumns = (byte[]) dataLib.getKeyValueValue(kv);
+										List<KeyValue> list = dataLib.listResult(result);
+										for (KeyValue kv : list) {
+												if(kv.matchingColumn(transactorSetup.family,dataLib.encode("x"))){
+//                        if (Bytes.equals(dataLib.getKeyValueFamily(kv), transactorSetup.family) && Bytes.equals(dataLib.getKeyValueQualifier(kv), dataLib.encode("x"))) {
+                            final byte[] packedColumns = kv.getValue();
                             final EntryDecoder entryDecoder = new EntryDecoder(KryoPool.defaultPool());
                             entryDecoder.set(packedColumns);
                             final MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
                             if (entryDecoder.isSet(0)) {
                                 final int age = decoder.decodeNextInt();
-                                final Object ageKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
-                                        transactorSetup.ageQualifier,
-                                        dataLib.getKeyValueTimestamp(kv),
-                                        dataLib.encode(age));
+                                final KeyValue ageKeyValue = KeyValueUtils.newKeyValue(resultKey, transactorSetup.family,
+																				transactorSetup.ageQualifier,
+																				kv.getTimestamp(),
+																				dataLib.encode(age));
                                 newKeyValues.add(ageKeyValue);
                             }
                             if (entryDecoder.isSet(1)) {
                                 final String job = decoder.decodeNextString();
-                                final Object jobKeyValue = dataLib.newKeyValue(resultKey, transactorSetup.family,
+                                final KeyValue jobKeyValue = KeyValueUtils.newKeyValue(resultKey, transactorSetup.family,
                                         transactorSetup.jobQualifier,
-                                        dataLib.getKeyValueTimestamp(kv),
+                                        kv.getTimestamp(),
                                         dataLib.encode(job));
                                 newKeyValues.add(jobKeyValue);
                             }
@@ -429,11 +406,11 @@ public class SITransactorTest extends SIConstants {
                             newKeyValues.add(kv);
                         }
                     }
-                    result = dataLib.newResult(resultKey, newKeyValues);
+                    result = new Result(newKeyValues);
                 }
             }
             if (result != null) {
-                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, name, dataLib, result, decodeTimestamps) + "]" : "";
+                String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(transactorSetup, dataLib, result, decodeTimestamps) + "]" : "";
                 return resultToStringDirect(transactorSetup, name, dataLib, result) + suffix;
             }
         }
@@ -444,48 +421,53 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private String resultToString(String name, Object result) {
+    private String resultToString(String name, Result result) {
         return resultToStringDirect(transactorSetup, name, storeSetup.getDataLib(), result);
     }
 
-    private static String resultToStringDirect(TestTransactionSetup transactorSetup, String name, SDataLib dataLib, Object result) {
-        final Object ageValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.ageQualifier);
+    private static String resultToStringDirect(TestTransactionSetup transactorSetup, String name, SDataLib dataLib, Result result) {
+        final byte[] ageValue = result.getValue(transactorSetup.family, transactorSetup.ageQualifier);
+
         Integer age = (Integer) dataLib.decode(ageValue, Integer.class);
-        final Object jobValue = dataLib.getResultValue(result, transactorSetup.family, transactorSetup.jobQualifier);
+        final byte[] jobValue = result.getValue(transactorSetup.family, transactorSetup.jobQualifier);
         String job = (String) dataLib.decode(jobValue, String.class);
         return name + " age=" + age + " job=" + job;
     }
 
-    private static String resultToKeyValueString(TestTransactionSetup transactorSetup, String name, SDataLib dataLib,
-                                                 Object result, boolean decodeTimestamps) {
+    private static String resultToKeyValueString(TestTransactionSetup transactorSetup, SDataLib dataLib,
+																								 Result result, boolean decodeTimestamps) {
         final Map<Long, String> timestampDecoder = new HashMap<Long, String>();
         final StringBuilder s = new StringBuilder();
-        for (Object kv : dataLib.listResult(result)) {
-            final String family = (String) dataLib.decode(dataLib.getKeyValueFamily(kv), String.class);
+				List<KeyValue> list = dataLib.listResult(result);
+				for (KeyValue kv : list) {
+            final byte[] family = kv.getFamily();
             String qualifier = "?";
             String value = "?";
-            if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.ageQualifier)) {
-                value = dataLib.decode(dataLib.getKeyValueValue(kv), Integer.class).toString();
+						if(kv.matchingQualifier(transactorSetup.ageQualifier)){
+                value = dataLib.decode(kv.getValue(), Integer.class).toString();
                 qualifier = "age";
-            } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.jobQualifier)) {
-                value = (String) dataLib.decode(dataLib.getKeyValueValue(kv), String.class);
+            } else if(kv.matchingQualifier(transactorSetup.jobQualifier)){
+                value = (String) dataLib.decode(kv.getValue(), String.class);
                 qualifier = "job";
-            } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.tombstoneQualifier)) {
+            } else if(kv.matchingQualifier(transactorSetup.tombstoneQualifier)){
                 qualifier = "X";
                 value = "";
-            } else if (dataLib.valuesEqual(dataLib.getKeyValueQualifier(kv), transactorSetup.commitTimestampQualifier)) {
+            } else if(kv.matchingQualifier(transactorSetup.commitTimestampQualifier)){
                 qualifier = "TX";
                 value = "";
             }
-            final long timestamp = dataLib.getKeyValueTimestamp(kv);
+            final long timestamp = kv.getTimestamp();
             String timestampString;
             if (decodeTimestamps) {
                 timestampString = timestampToStableString(timestampDecoder, timestamp);
             } else {
-                timestampString = new Long(timestamp).toString();
+                timestampString = Long.toString(timestamp);
             }
             String equalString = value.length() > 0 ? "=" : "";
-            s.append(family + "." + qualifier + "@" + timestampString + equalString + value + " ");
+            s.append(Bytes.toString(family))
+										.append(".").append(qualifier)
+										.append("@").append(timestampString)
+										.append(equalString).append(value).append(" ");
         }
         return s.toString();
     }
@@ -500,15 +482,11 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private void dumpStore() {
-        dumpStore("");
-    }
-
-    private void dumpStore(String label) {
-        if (useSimple) {
-            System.out.println("store " + label + " =" + storeSetup.getStore());
-        }
-    }
+//		private void dumpStore(String label) {
+//        if (useSimple) {
+//            System.out.println("store " + label + " =" + storeSetup.getStore());
+//        }
+//    }
 
     @Test
     public void writeRead() throws IOException {
@@ -1984,30 +1962,30 @@ public class SITransactorTest extends SIConstants {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        final Object testKey = dataLib.newRowKey(new Object[]{"jim"});
-        Object put = dataLib.newPut(testKey);
-        Object family = dataLib.encode(DEFAULT_FAMILY);
-        Object ageQualifier = dataLib.encode("age");
-        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(25));
+        final byte[] testKey = dataLib.newRowKey(new Object[]{"jim"});
+        OperationWithAttributes put = dataLib.newPut(testKey);
+        byte[] family = dataLib.encode(DEFAULT_FAMILY);
+        byte[] ageQualifier = dataLib.encode("age");
+        dataLib.addKeyValueToPut(put, family, ageQualifier, -1, dataLib.encode(25));
         TransactionId t = control.beginTransaction();
         transactorSetup.clientTransactor.initializePut(t.getTransactionIdString(), put);
-        Object put2 = dataLib.newPut(testKey);
-        dataLib.addKeyValueToPut(put2, family, ageQualifier, null, dataLib.encode(27));
+        OperationWithAttributes put2 = dataLib.newPut(testKey);
+        dataLib.addKeyValueToPut(put2, family, ageQualifier, -1, dataLib.encode(27));
         transactorSetup.clientTransactor.initializePut(
                 transactorSetup.clientTransactor.transactionIdFromPut(put).getTransactionIdString(),
                 put2);
-        Assert.assertTrue(dataLib.valuesEqual(dataLib.encode((short) 0), dataLib.getAttribute(put2, SIConstants.SI_NEEDED)));
+        Assert.assertTrue(Bytes.equals(dataLib.encode((short) 0), put2.getAttribute(SIConstants.SI_NEEDED)));
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put));
             Assert.assertTrue(transactor.processPut(testSTable, transactorSetup.rollForwardQueue, put2));
             Object get1 = makeGet(dataLib, testKey);
             transactorSetup.clientTransactor.initializeGet(t.getTransactionIdString(), get1);
-            Object result = reader.get(testSTable, get1);
+            Result result = reader.get(testSTable, get1);
             if (useSimple) {
                 result = transactorSetup.readController.filterResult(transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t, false), result);
             }
-            final int ageRead = (Integer) dataLib.decode(dataLib.getResultValue(result, family, ageQualifier), Integer.class);
+            final int ageRead = (Integer) dataLib.decode(result.getValue(family, ageQualifier), Integer.class);
             Assert.assertEquals(27, ageRead);
         } finally {
             reader.close(testSTable);
@@ -2017,7 +1995,7 @@ public class SITransactorTest extends SIConstants {
         Object get = makeGet(dataLib, testKey);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
-            final Object resultTuple = reader.get(testSTable, get);
+            final Result resultTuple = reader.get(testSTable, get);
             final IFilterState filterState = transactorSetup.readController.newFilterState(transactorSetup.rollForwardQueue, t2, false);
             if (useSimple) {
                 transactorSetup.readController.filterResult(filterState, resultTuple);
@@ -2029,7 +2007,7 @@ public class SITransactorTest extends SIConstants {
         control.commit(t);
         t = control.beginTransaction();
 
-        dataLib.addKeyValueToPut(put, family, ageQualifier, null, dataLib.encode(35));
+        dataLib.addKeyValueToPut(put, family, ageQualifier, -1, dataLib.encode(35));
         transactorSetup.clientTransactor.initializePut(t.getTransactionIdString(), put);
         testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -2045,9 +2023,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
                 Assert.assertEquals(t.getId() + 1, timestamp);
                 return null;
             }
@@ -2060,9 +2038,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final long timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2075,9 +2053,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final long timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2090,9 +2068,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final long timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2105,9 +2083,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final long timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2120,9 +2098,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
                 Assert.assertEquals(t.getId() + 1, timestamp);
                 return null;
             }
@@ -2135,9 +2113,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final long timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2150,11 +2128,11 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
                 Assert.assertEquals(t.getId() + 2, timestamp);
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
+                return null;
             }
         });
     }
@@ -2201,23 +2179,23 @@ public class SITransactorTest extends SIConstants {
                     throw new RuntimeException("unknown value");
                 }
             }
-            Object result = readRaw(testRow);
+            Result result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+            final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                     dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-            for (Object c : commitTimestamps) {
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+            for (KeyValue c : commitTimestamps) {
+                final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
                 Assert.assertEquals(-1, timestamp);
-                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
+                Assert.assertEquals(t1.getId(), c.getTimestamp());
             }
             Assert.assertTrue("Latch timed out", latch.await(11, TimeUnit.SECONDS));
 
-            Object result2 = readRaw(testRow);
-            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+            Result result2 = readRaw(testRow);
+            final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                     dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-            for (Object c2 : commitTimestamps2) {
+            for (KeyValue c2 : commitTimestamps2) {
                 timestampDecoder.apply(new Object[]{t1, c2});
-                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+                Assert.assertEquals(t1.getId(), c2.getTimestamp());
             }
             TransactionId t2 = control.beginTransaction(false);
             if (commitRollBackOrFail.equals("commit") && (!nested || parentCommitRollBackOrFail.equals("commit"))) {
@@ -2244,9 +2222,9 @@ public class SITransactorTest extends SIConstants {
     private CountDownLatch makeLatch(final String targetKey) {
         final SDataLib dataLib = storeSetup.getDataLib();
         final CountDownLatch latch = new CountDownLatch(1);
-        Tracer.registerRowRollForward(new Function<Object, Object>() {
+        Tracer.registerRowRollForward(new Function<byte[],byte[]>() {
             @Override
-            public Object apply(@Nullable Object input) {
+            public byte[] apply(@Nullable byte[] input) {
                 String key = (String) dataLib.decode(input, String.class);
                 if (key.equals(targetKey)) {
                     latch.countDown();
@@ -2277,9 +2255,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
                 Assert.assertEquals(t.getId() + 1, timestamp);
                 return null;
             }
@@ -2292,9 +2270,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final Object keyValueValue = dataLib.getKeyValueValue(cell);
+                final byte[] keyValueValue = cell.getValue();
                 final int timestamp = (Integer) dataLib.decode(keyValueValue, Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
@@ -2315,14 +2293,14 @@ public class SITransactorTest extends SIConstants {
             } else {
                 control.rollback(t1);
             }
-            Object result = readRaw(testRow);
+            Result result = readRaw(testRow);
             final SDataLib dataLib = storeSetup.getDataLib();
-            final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+            final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                     dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-            for (Object c : commitTimestamps) {
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(c), Integer.class);
+            for (KeyValue c : commitTimestamps) {
+                final int timestamp = (Integer) dataLib.decode(c.getValue(), Integer.class);
                 Assert.assertEquals(-1, timestamp);
-                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c));
+                Assert.assertEquals(t1.getId(), c.getTimestamp());
             }
 
             final CountDownLatch latch = makeLatch(testRow);
@@ -2334,33 +2312,33 @@ public class SITransactorTest extends SIConstants {
             }
             Assert.assertTrue(latch.await(11, TimeUnit.SECONDS));
 
-            Object result2 = readRaw(testRow);
+            Result result2 = readRaw(testRow);
 
-            final List commitTimestamps2 = dataLib.getResultColumn(result2, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+            final List<KeyValue> commitTimestamps2 = result2.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                     dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-            for (Object c2 : commitTimestamps2) {
+            for (KeyValue c2 : commitTimestamps2) {
                 timestampProcessor.apply(new Object[]{t1, c2});
-                Assert.assertEquals(t1.getId(), dataLib.getKeyValueTimestamp(c2));
+                Assert.assertEquals(t1.getId(), c2.getTimestamp());
             }
         } finally {
             Tracer.rollForwardDelayOverride = null;
         }
     }
 
-    private Object readRaw(String name) throws IOException {
+    private Result readRaw(String name) throws IOException {
         return readAgeRawDirect(storeSetup, name, false);
     }
 
-    private Object readRaw(String name, boolean allVersions) throws IOException {
+    private Result readRaw(String name, boolean allVersions) throws IOException {
         return readAgeRawDirect(storeSetup, name, allVersions);
     }
 
-    static Object readAgeRawDirect(StoreSetup storeSetup, String name, boolean allversions) throws IOException {
+    static Result readAgeRawDirect(StoreSetup storeSetup, String name, boolean allversions) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
-        Object get = makeGet(dataLib, key);
+        byte[] key = dataLib.newRowKey(new Object[]{name});
+        OperationWithAttributes get = makeGet(dataLib, key);
         if (allversions) {
             dataLib.setGetMaxVersions(get);
         }
@@ -2372,13 +2350,13 @@ public class SITransactorTest extends SIConstants {
         }
     }
 
-    private static Object makeGet(SDataLib dataLib, Object key) throws IOException {
-        final Object get = dataLib.newGet(key, null, null, null);
+    private static OperationWithAttributes makeGet(SDataLib dataLib, byte[] key) throws IOException {
+        final OperationWithAttributes get = dataLib.newGet(key, null, null, null);
         addPredicateFilter(dataLib, get);
         return get;
     }
 
-    private static Object makeScan(SDataLib dataLib, Object endKey, ArrayList families, Object startKey) throws IOException {
+    private static Object makeScan(SDataLib dataLib, byte[] endKey, ArrayList families, byte[] startKey) throws IOException {
         final Object scan = dataLib.newScan(startKey, endKey, families, null, null);
         addPredicateFilter(dataLib, scan);
         return scan;
@@ -2389,7 +2367,7 @@ public class SITransactorTest extends SIConstants {
         bitSet.set(0);
         bitSet.set(1);
         EntryPredicateFilter filter = new EntryPredicateFilter(bitSet, new ObjectArrayList<Predicate>(), true);
-        dataLib.addAttribute(operation, SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
+				((OperationWithAttributes)operation).setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filter.toBytes());
     }
 
     @Ignore
@@ -2588,9 +2566,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-1, timestamp);
                 return null;
             }
@@ -2603,9 +2581,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-1, timestamp);
                 return null;
             }
@@ -2627,13 +2605,13 @@ public class SITransactorTest extends SIConstants {
                 control.rollback(tx);
             }
         }
-        Object result = readRaw(testKey + "-0");
+        Result result = readRaw(testKey + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
-        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+        final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                 dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
-        for (Object c : commitTimestamps) {
+        for (KeyValue c : commitTimestamps) {
             timestampProcessor.apply(new Object[]{t0, c});
-            Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+            Assert.assertEquals(t0.getId(), c.getTimestamp());
         }
     }
 
@@ -2643,9 +2621,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final long timestamp = (Long) dataLib.decode(dataLib.getKeyValueValue(cell), Long.class);
+                final long timestamp = (Long) dataLib.decode(cell.getValue(), Long.class);
                 Assert.assertEquals(t.getId() + 1, timestamp);
                 return null;
             }
@@ -2658,9 +2636,9 @@ public class SITransactorTest extends SIConstants {
             @Override
             public Object apply(@Nullable Object[] input) {
                 TransactionId t = (TransactionId) input[0];
-                Object cell = input[1];
+                KeyValue cell = (KeyValue)input[1];
                 final SDataLib dataLib = storeSetup.getDataLib();
-                final int timestamp = (Integer) dataLib.decode(dataLib.getKeyValueValue(cell), Integer.class);
+                final int timestamp = (Integer) dataLib.decode(cell.getValue(), Integer.class);
                 Assert.assertEquals(-2, timestamp);
                 return null;
             }
@@ -2703,13 +2681,13 @@ public class SITransactorTest extends SIConstants {
             admin.majorCompact(storeSetup.getPersonTableName());
             Assert.assertTrue(latch.await(2, TimeUnit.SECONDS));
         }
-        Object result = readRaw(testRow + "-0");
+        Result result = readRaw(testRow + "-0");
         final SDataLib dataLib = storeSetup.getDataLib();
-        final List commitTimestamps = dataLib.getResultColumn(result, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+        final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
                 dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-        for (Object c : commitTimestamps) {
+        for (KeyValue c : commitTimestamps) {
             timestampProcessor.apply(new Object[]{t0, c});
-            Assert.assertEquals(t0.getId(), dataLib.getKeyValueTimestamp(c));
+            Assert.assertEquals(t0.getId(), c.getTimestamp());
         }
     }
 
@@ -2952,7 +2930,7 @@ public class SITransactorTest extends SIConstants {
         insertAge(t2, "joe89", 21);
 
         TransactionId t3 = control.beginTransaction();
-        Object result = readRaw("joe89", true);
+        Result result = readRaw("joe89", true);
         final IFilterState filterState = transactorSetup.readController.newFilterState(t3);
         result = transactorSetup.readController.filterResult(filterState, result);
         Assert.assertEquals("joe89 age=20 job=null", resultToString("joe89", result));
@@ -3677,17 +3655,17 @@ public class SITransactorTest extends SIConstants {
 
             @Override
             public Object transcodeKey(Object key) {
-                return storeSetup.getDataLib().decode(key, String.class);
+                return storeSetup.getDataLib().decode((byte[])key, String.class);
             }
 
             @Override
             public Object transcodeFamily(Object family) {
-                return storeSetup.getDataLib().decode(family, String.class);
+                return storeSetup.getDataLib().decode((byte[])family, String.class);
             }
 
             @Override
             public Object transcodeQualifier(Object qualifier) {
-                return storeSetup.getDataLib().decode(qualifier, String.class);
+                return storeSetup.getDataLib().decode((byte[])qualifier, String.class);
             }
         };
         final Transcoder transcoder2 = new Transcoder() {
@@ -3698,17 +3676,17 @@ public class SITransactorTest extends SIConstants {
 
             @Override
             public Object transcodeKey(Object key) {
-                return dataLib2.decode(key, String.class);
+                return dataLib2.decode((byte[])key, String.class);
             }
 
             @Override
             public Object transcodeFamily(Object family) {
-                return dataLib2.decode(family, String.class);
+                return dataLib2.decode((byte[])family, String.class);
             }
 
             @Override
             public Object transcodeQualifier(Object qualifier) {
-                return dataLib2.decode(qualifier, String.class);
+                return dataLib2.decode((byte[])qualifier, String.class);
             }
         };
         final Translator translator = new Translator(storeSetup.getDataLib(), storeSetup.getReader(), dataLib2, store2, store2, transcoder, transcoder2);
@@ -3716,16 +3694,16 @@ public class SITransactorTest extends SIConstants {
         translator.translate(storeSetup.getPersonTableName());
         final LGet get = dataLib2.newGet(dataLib2.encode("joe70"), null, null, null);
         final LTable table2 = store2.open(storeSetup.getPersonTableName());
-        final LTuple result = store2.get(table2, get);
+        final Result result = store2.get(table2, get);
         Assert.assertNotNull(result);
-        final List<LKeyValue> results = dataLib2.listResult(result);
+        final List<KeyValue> results = dataLib2.listResult(result);
         Assert.assertEquals(2, results.size());
-        final LKeyValue kv = results.get(1);
-        Assert.assertEquals("joe70", dataLib2.getKeyValueRow(kv));
-        Assert.assertEquals("V", dataLib2.getKeyValueFamily(kv));
-        Assert.assertEquals("age", dataLib2.getKeyValueQualifier(kv));
-        Assert.assertEquals(1L, dataLib2.getKeyValueTimestamp(kv));
-        Assert.assertEquals(20, dataLib2.getKeyValueValue(kv));
+        final KeyValue kv = results.get(1);
+        Assert.assertEquals("joe70", Bytes.toString(kv.getRow()));
+        Assert.assertEquals("V", Bytes.toString(kv.getFamily()));
+        Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));
+        Assert.assertEquals(1L, kv.getTimestamp());
+        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
 
     }
 }
