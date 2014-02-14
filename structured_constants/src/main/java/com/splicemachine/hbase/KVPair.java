@@ -67,6 +67,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         this.type = writeType;
     }
 
+
     public byte[] getValue(){
         return value;
     }
@@ -87,9 +88,9 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
         this.rowKey = key;
     }
 
-    public Put toPut(long timestamp){
+    public Put toPut(byte[] cf, byte[] qualifier,long timestamp){
         Put put = new Put(rowKey);
-        put.add(SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,timestamp,value);
+        put.add(cf,qualifier,timestamp,value);
         return put;
     }
 

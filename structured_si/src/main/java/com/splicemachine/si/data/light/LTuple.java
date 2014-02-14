@@ -1,57 +1,62 @@
 package com.splicemachine.si.data.light;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.util.Bytes;
 
-public class LTuple {
-    final String key;
-    final List<LKeyValue> values;
-    final Map<String, Object> attributes;
-    final LRowLock lock;
+import java.util.*;
 
-    public LTuple(String key, List<LKeyValue> values) {
-        this.key = key;
-        this.values = values;
-        this.attributes = new HashMap<String, Object>();
-        this.lock = null;
+public class LTuple extends OperationWithAttributes{
+    final byte[] key;
+    final List<KeyValue> values;
+    final Integer lock;
+
+    public LTuple(byte[] key, List<KeyValue> values) {
+				this(key,values,Maps.<String,byte[]>newHashMap(),null);
     }
 
-    public LTuple(String key, List<LKeyValue> values, Map<String, Object> attributes) {
-        this.key = key;
-        this.values = values;
-        this.attributes = attributes;
-        this.lock = null;
+    public LTuple(byte[] key, List<KeyValue> values, Map<String, byte[]> attributes) {
+				this(key,values,attributes,null);
     }
 
-    public LTuple(String key, List<LKeyValue> values, LRowLock lock) {
-        this.key = key;
-        this.values = values;
-        this.attributes = new HashMap<String, Object>();
-        this.lock = lock;
+		public LTuple(byte[] key, List<KeyValue> values, Map<String, byte[]> attributes, Integer lock) {
+				this.key = key;
+				this.values = values;
+				this.lock = lock;
+				for(Map.Entry<String,byte[]> attributePair:attributes.entrySet()){
+						super.setAttribute(attributePair.getKey(),attributePair.getValue());
+				}
+		}
+
+    public LTuple(byte[] key, List<KeyValue> values, Integer lock) {
+				this(key,values,Maps.<String,byte[]>newHashMap(),lock);
     }
 
-    public LTuple pack(String familyToPack, String packedQualifier) {
-        List<LKeyValue> newValues = new ArrayList<LKeyValue>();
-        String newRowKey = null;
+    public LTuple pack(byte[] familyToPack, byte[] packedQualifier) {
+        List<KeyValue> newValues = Lists.newArrayList();
+				byte[] newRowKey = null;
         Long newTimestamp = null;
         boolean nothingPacked = true;
-        Map<String, Object> packedRow = new HashMap<String, Object>();
-        for (LKeyValue keyValue : values) {
-            if (keyValue.family.equals(familyToPack)) {
-                packedRow.put(keyValue.qualifier, keyValue.value);
+        Map<byte[], byte[]> packedRow = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        for (KeyValue keyValue : values) {
+						if(keyValue.matchingFamily(familyToPack)){
+                packedRow.put(keyValue.getQualifier(), keyValue.getValue());
                 if (nothingPacked) {
-                    newRowKey = keyValue.rowKey;
+                    newRowKey = keyValue.getKey();
                 } else {
-                    if (newRowKey != keyValue.rowKey) {
+                    if (!keyValue.matchingRow(newRowKey)) {
                         throw new RuntimeException("rowkey mis-match");
                     }
                 }
                 if (nothingPacked) {
-                    newTimestamp = keyValue.timestamp;
+                    newTimestamp = keyValue.getTimestamp();
                 } else {
-                    if (newTimestamp != keyValue.timestamp) {
+                    if (!newTimestamp.equals(keyValue.getTimestamp())) {
                         throw new RuntimeException("timestamp mis-match");
                     }
                 }
@@ -61,30 +66,63 @@ public class LTuple {
             }
         }
         if (!nothingPacked) {
-            newValues.add(new LKeyValue(newRowKey, familyToPack, packedQualifier, newTimestamp, packedRow));
+						MultiFieldEncoder encoder =MultiFieldEncoder.create(KryoPool.defaultPool(),packedRow.size()*2+1);
+						encoder.encodeNext(packedRow.size());
+						for(Map.Entry<byte[],byte[]> packedRowColumn:packedRow.entrySet()){
+								byte[] qual = packedRowColumn.getKey();
+								byte[] val = packedRowColumn.getValue();
+								encoder.encodeNextUnsorted(qual).encodeNextUnsorted(val);
+						}
+            newValues.add(new KeyValue(newRowKey, familyToPack, packedQualifier, newTimestamp, encoder.build()));
         }
-        return new LTuple(key, newValues, new HashMap<String, Object>(attributes));
+        return new LTuple(key, newValues, new HashMap<String, byte[]>(getAttributesMap()));
     }
 
-    public LTuple unpack(String familyToUnpack) {
-        List<LKeyValue> newValues = new ArrayList<LKeyValue>();
-        for (LKeyValue keyValue : values) {
-            if (keyValue.family.equals(familyToUnpack)) {
-                Map<String, Object> packedRow = (Map<String, Object>) keyValue.value;
-                for (String k : packedRow.keySet()) {
-                    final LKeyValue newKeyValue = new LKeyValue(keyValue.rowKey, keyValue.family, k, keyValue.timestamp, packedRow.get(k));
-                    newValues.add(newKeyValue);
-                }
-            } else {
-                newValues.add(keyValue);
-            }
-        }
-        return new LTuple(key, newValues, new HashMap<String, Object>(attributes));
+		public static List<KeyValue> unpack(List<KeyValue> values,byte[] familyToUnpack){
+				List<KeyValue> newValues = Lists.newArrayList();
+				for (KeyValue keyValue : values) {
+						if(keyValue.matchingFamily(familyToUnpack)){
+								byte[] packedData = keyValue.getValue();
+								MultiFieldDecoder decoder = MultiFieldDecoder.wrap(packedData,KryoPool.defaultPool());
+								int numEntries = decoder.decodeNextInt();
+								for(int i=0;i<numEntries;i++){
+										byte[] qual = decoder.decodeNextBytesUnsorted();
+										byte[] val = decoder.decodeNextBytesUnsorted();
+										final KeyValue newKeyValue = new KeyValue(keyValue.getRow(), keyValue.getFamily(),qual, keyValue.getTimestamp(), val);
+										newValues.add(newKeyValue);
+								}
+
+////                Map<byte[], Object> packedRow = (Map<byte[], Object>) keyValue.value;
+//                for (byte[] k : packedRow.keySet()) {
+//                    final LKeyValue newKeyValue = new LKeyValue(keyValue.rowKey, keyValue.family, k, keyValue.timestamp, packedRow.get(k));
+//                    newValues.add(newKeyValue);
+//                }
+						} else {
+								newValues.add(keyValue);
+						}
+				}
+				return newValues;
+		}
+
+    public LTuple unpackTuple(byte[] familyToUnpack) {
+        return new LTuple(key, unpack(values,familyToUnpack), new HashMap<String, byte[]>(getAttributesMap()));
     }
 
-    @Override
+		/*
+		 * Methods for interface compliance with OperationWithAttributes, we don't actually use them anywhere.
+		 */
+		@Override public Map<String, Object> getFingerprint() { throw new UnsupportedOperationException(); }
+		@Override public Map<String, Object> toMap(int maxCols) { throw new UnsupportedOperationException(); }
+
+		public List<KeyValue> getValues(){
+				List<KeyValue> keyValues = Lists.newArrayList(values);
+				LStore.sortValues(keyValues);
+				return keyValues;
+		}
+
+		@Override
     public String toString() {
-        return "<" + key + " " + values + ">";
+        return "<" + Bytes.toString(key) + " " + values + ">";
     }
 
 }

@@ -1,40 +1,29 @@
 package com.splicemachine.si.data.hbase;
 
 import com.google.common.collect.Iterables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.hbase.ByteBufferArrayUtils;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
 
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.KeyValue.Type;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.lucene.util.ArrayUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of SDataLib that is specific to the HBase operation and result types.
  */
-public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Integer, OperationStatus> {
+public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 
-    @Override
-    public Result newResult(byte[] key, List<KeyValue> keyValues) {
-        return new Result(keyValues);
-    }
-
-    @Override
+		@Override
     public byte[] newRowKey(Object... args) {
         List<byte[]> bytes = new ArrayList<byte[]>();
         for (Object a : args) {
@@ -43,40 +32,12 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         return BytesUtil.concat(bytes);
     }
 
-    @Override
-    public byte[] increment(byte[] key) {
-        if (key.length == 0) {
-            return key;
-        }
-        return BytesUtil.unsignedCopyAndIncrement(key);
-    }
-
-    @Override
-    public byte[] getResultKey(Result result) {
-        return result.getRow();
-    }
-
-    @Override
+		@Override
     public byte[] getPutKey(Put put) {
         return put.getRow();
     }
 
-    @Override
-    public List<KeyValue> getResultColumn(Result result, byte[] family, byte[] qualifier) {
-        return result.getColumn(family, qualifier);
-    }
-
-    @Override
-    public byte[] getResultValue(Result result, byte[] family, byte[] qualifier) {
-        return result.getValue(family, qualifier);
-    }
-
-    @Override
-    public Map<byte[], byte[]> getResultFamilyMap(Result result, byte[] family) {
-        return result.getFamilyMap(family);
-    }
-
-    @Override
+		@Override
     public List<KeyValue> listResult(Result result) {
         return result.list();
     }
@@ -85,33 +46,8 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
     public Iterable<KeyValue> listPut(Put put) {
         return Iterables.concat(put.getFamilyMap().values());
     }
-    
-    @Override
-    public byte[] getKeyValueRow(KeyValue keyValue) {
-        return keyValue.getRow();
-    }
 
-    @Override
-    public byte[] getKeyValueFamily(KeyValue keyValue) {
-        return keyValue.getFamily();
-    }
-
-    @Override
-    public byte[] getKeyValueQualifier(KeyValue keyValue) {
-        return keyValue.getQualifier();
-    }
-
-    @Override
-    public byte[] getKeyValueValue(KeyValue keyValue) {
-        return keyValue.getValue();
-    }
-
-    @Override
-    public long getKeyValueTimestamp(KeyValue keyValue) {
-        return keyValue.getTimestamp();
-    }
-
-    @Override
+		@Override
     public byte[] encode(Object value) {
         return convertToBytes(value, value.getClass());
     }
@@ -142,31 +78,16 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         throw new RuntimeException("unsupported type conversion: " + type.getName());
     }
 
-    @Override
-    public boolean valuesEqual(byte[] value1, byte[] value2) {
-        return Arrays.equals(value1, value2);
-    }
-
-    @Override
-    public void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
-        if (timestamp == null) {
+		@Override
+    public void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value) {
+        if (timestamp <0) {
             put.add(family, qualifier, value);
         } else {
             put.add(family, qualifier, timestamp, value);
         }
     }
 
-    @Override
-    public void addAttribute(OperationWithAttributes operation, String attributeName, byte[] value) {
-        operation.setAttribute(attributeName, value);
-    }
-
-    @Override
-    public byte[] getAttribute(OperationWithAttributes operation, String attributeName) {
-        return operation.getAttribute(attributeName);
-    }
-
-    @Override
+		@Override
     public Put newPut(byte[] key) {
         return new Put(key);
     }
@@ -176,12 +97,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         return new Put(key, lock);
     }
 
-    @Override
-    public OperationStatus newFailStatus() {
-        return new OperationStatus(HConstants.OperationStatusCode.FAILURE);
-    }
-
-    @Override
+		@Override
     public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
         if (families != null) {
@@ -283,12 +199,7 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         scan.setMaxVersions();
     }
 
-    @Override
-    public void setScanMaxVersions(Scan scan, int max) {
-        scan.setMaxVersions(max);
-    }
-
-    @Override
+		@Override
     public void addFamilyToScan(Scan scan, byte[] family) {
         scan.addFamily(family);
     }
@@ -328,53 +239,9 @@ public class HDataLib implements SDataLib<byte[], Result, KeyValue, OperationWit
         }
         throw new RuntimeException("Unsupported class " + clazz.getName() + " for " + value);
     }
-    
-    @Override
-    public boolean matchingColumn(KeyValue keyValue, byte[] family, byte[] qualifier) {
-    	return ByteBufferArrayUtils.matchingColumn(keyValue, family, qualifier);
-    }
 
-    @Override
-    public boolean matchingFamily(KeyValue keyValue, byte[] family) {
-    	return ByteBufferArrayUtils.matchingFamily(keyValue, family);
-    }
-    
-    @Override
-    public boolean matchingQualifier(KeyValue keyValue, byte[] qualifier) {
-    	return ByteBufferArrayUtils.matchingQualifier(keyValue, qualifier);
-    }
-
-    @Override
-    public boolean matchingValue(KeyValue keyValue, byte[] value) {
-    	return ByteBufferArrayUtils.matchingValue(keyValue, value);
-    }
-
-	@Override
-	public boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other) {
-		return ByteBufferArrayUtils.matchingFamilyKeyValue(keyValue, other);
-	}
-	@Override
-	public boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other) {
-		return ByteBufferArrayUtils.matchingQualifierKeyValue(keyValue, other);
-	}
-	@Override
-	public boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other) {
-		return ByteBufferArrayUtils.matchingRowKeyValue(keyValue, other);
-	}
-
-	@Override
-    public boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other) {
-		return ByteBufferArrayUtils.matchingValueKeyValue(keyValue, other);
-    }
-
-	@Override
-	public KeyValue newKeyValue(KeyValue keyValue, byte[] value) {		
-			return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getFamilyLength(),keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(),Type.Put,value,0,value==null ? 0 : value.length);		
-	}
-	
-    @Override
-    public KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
-        return new KeyValue(rowKey, family, qualifier, timestamp, value);
-    }
-
+		@Override
+		public KVPair toKVPair(Put put) {
+				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY).get(0).getValue());
+		}
 }

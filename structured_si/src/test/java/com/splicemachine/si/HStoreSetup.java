@@ -10,26 +10,23 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.data.hbase.HDataLib;
-import com.splicemachine.si.data.hbase.HHasher;
 import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.data.hbase.IHTable;
-import com.splicemachine.si.impl.Hasher;
 import com.splicemachine.si.impl.STableReaderDelegate;
 import com.splicemachine.si.impl.SystemClock;
 import com.splicemachine.si.impl.Tracer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import javax.annotation.Nullable;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 public class HStoreSetup implements StoreSetup {
     static int nextBasePort = 12000;
@@ -44,8 +41,7 @@ public class HStoreSetup implements StoreSetup {
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
-    final Hasher hasher = new HHasher();
-    Clock clock = new SystemClock();
+		Clock clock = new SystemClock();
 
     HBaseTestingUtility testCluster;
 
@@ -112,8 +108,8 @@ public class HStoreSetup implements StoreSetup {
 
     private void setupHBaseHarness(boolean usePacked) {
         dataLib = new HDataLib();
-        final STableReader<IHTable, Result, Get, Scan, KeyValue, RegionScanner, byte[]> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
-        reader = new STableReaderDelegate<IHTable, Result, Get, Scan, KeyValue, RegionScanner, byte[]>(rawReader) {
+        final STableReader<IHTable, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
+        reader = new STableReaderDelegate<IHTable, Result, Get, Scan>(rawReader) {
             @Override
             public void close(IHTable table) {
                 // Ignore close calls
@@ -137,12 +133,7 @@ public class HStoreSetup implements StoreSetup {
         return writer;
     }
 
-    @Override
-    public Hasher getHasher() {
-        return hasher;
-    }
-
-    @Override
+		@Override
     public HBaseTestingUtility getTestCluster() {
         return testCluster;
     }

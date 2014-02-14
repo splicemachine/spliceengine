@@ -1,13 +1,12 @@
 package com.splicemachine.si;
 
+import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
-import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.si.data.light.LStore;
-import com.splicemachine.si.impl.Hasher;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 
 public class LStoreSetup implements StoreSetup {
@@ -15,8 +14,7 @@ public class LStoreSetup implements StoreSetup {
     SDataLib dataLib;
     STableReader reader;
     STableWriter writer;
-    final Hasher hasher = new NoOpHasher();
-    Clock clock;
+		Clock clock;
 
     public LStoreSetup() {
         dataLib = new LDataLib();
@@ -41,12 +39,7 @@ public class LStoreSetup implements StoreSetup {
         return writer;
     }
 
-    @Override
-    public Hasher getHasher() {
-        return hasher;
-    }
-
-    @Override
+		@Override
     public HBaseTestingUtility getTestCluster() {
         return null;
     }

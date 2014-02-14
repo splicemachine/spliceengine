@@ -45,12 +45,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  * Created on: 8/21/13
  */
-public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteBuffer> {
+public class ConcurrentRollForwardQueue implements RollForwardQueue {
     private static final Logger LOG = Logger.getLogger(ConcurrentRollForwardQueue.class);
 
-    private final Hasher<byte[],ByteBuffer> hasher;
 
-    private final RollForwardAction<byte[]> action;
+    private final RollForwardAction action;
 
     private final long maxHeapSize;
     private final AtomicLong currentHeapSize = new AtomicLong(0l);
@@ -65,14 +64,12 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
 
     private volatile boolean shutdown = false;
 
-    public ConcurrentRollForwardQueue(Hasher<byte[],ByteBuffer> hasher,
-                                       RollForwardAction<byte[]> action,
-                                       long maxHeapSize,
-                                       int maxEntries,
-                                       long timeoutMs,
-                                       ScheduledExecutorService timedRollerPool,
-                                       ExecutorService filledRollerPool){
-        this.hasher = hasher;
+    public ConcurrentRollForwardQueue(RollForwardAction action,
+																			long maxHeapSize,
+																			int maxEntries,
+																			long timeoutMs,
+																			ScheduledExecutorService timedRollerPool,
+																			ExecutorService filledRollerPool){
         this.action = action;
         this.maxEntries = maxEntries;
         this.maxHeapSize = maxHeapSize;
@@ -153,7 +150,7 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
                 entrySet = Sets.newHashSetWithExpectedSize(1);
                 itemsToRoll.put(entry.entry,entrySet);
             }
-            entrySet.add(hasher.toHashable(entry.value));
+            entrySet.add(ByteBuffer.wrap(entry.value));
             rolledItemCount++;
             heapSize+=entry.value.length;
         }
@@ -185,8 +182,8 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
 
     private class RollForward implements Callable<Void> {
         private final Map<Long,Set<ByteBuffer>> itemsToRoll;
-        private final RollForwardAction<byte[]> action;
-        public RollForward(Map<Long, Set<ByteBuffer>> itemsToRoll,RollForwardAction<byte[]> action) {
+        private final RollForwardAction action;
+        public RollForward(Map<Long, Set<ByteBuffer>> itemsToRoll,RollForwardAction action) {
             this.action = action;
             this.itemsToRoll = itemsToRoll;
         }
@@ -198,7 +195,9 @@ public class ConcurrentRollForwardQueue implements RollForwardQueue<byte[],ByteB
                 long txnId = itemToRoll.getKey();
                 List<byte[]> items = Lists.newArrayListWithCapacity(buffer.size());
                 for(ByteBuffer bufferItem:buffer){
-                    items.add(hasher.fromHashable(bufferItem));
+										byte[] data = new byte[bufferItem.remaining()];
+										bufferItem.get(data);
+                    items.add(data);
                 }
 
                 try{

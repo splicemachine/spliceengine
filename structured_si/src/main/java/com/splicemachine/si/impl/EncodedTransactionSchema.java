@@ -3,31 +3,43 @@ package com.splicemachine.si.impl;
 /**
  * Same as TransactionSchema except the fields are in their encoded form.
  */
-public class EncodedTransactionSchema<Data> {
+public class EncodedTransactionSchema {
     final String tableName;
-    final Data siFamily;
-    final Data permissionFamily;
-    final Data siNull;
+    final byte[] siFamily;
+    final byte[] permissionFamily;
+    final byte[] siNull;
 
-    final Data idQualifier;
-    final Data startQualifier;
-    final Data parentQualifier;
-    final Data dependentQualifier;
-    final Data allowWritesQualifier;
-    final Data additiveQualifier;
-    final Data readUncommittedQualifier;
-    final Data readCommittedQualifier;
-    final Data commitQualifier;
-    final Data globalCommitQualifier;
-    final Data statusQualifier;
-    final Data keepAliveQualifier;
-    final Data counterQualifier;
+    final byte[] idQualifier;
+    final byte[] startQualifier;
+    final byte[] parentQualifier;
+    final byte[] dependentQualifier;
+    final byte[] allowWritesQualifier;
+    final byte[] additiveQualifier;
+    final byte[] readUncommittedQualifier;
+    final byte[] readCommittedQualifier;
+    final byte[] commitQualifier;
+    final byte[] globalCommitQualifier;
+    final byte[] statusQualifier;
+    final byte[] keepAliveQualifier;
+    final byte[] counterQualifier;
 
-    public EncodedTransactionSchema(String tableName, Data siFamily, Data permissionFamily, Data siNull, Data idQualifier,
-                                    Data startQualifier, Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
-                                    Data additiveQualifier, Data readUncommittedQualifier, Data readCommittedQualifier,
-                                    Data keepAliveQualifier, Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
-                                    Data counterQualifier) {
+    public EncodedTransactionSchema(String tableName,
+																		byte[] siFamily,
+																		byte[] permissionFamily,
+																		byte[] siNull,
+																		byte[] idQualifier,
+                                    byte[] startQualifier,
+																		byte[] parentQualifier,
+																		byte[] dependentQualifier,
+																		byte[] allowWritesQualifier,
+                                    byte[] additiveQualifier,
+																		byte[] readUncommittedQualifier,
+																		byte[] readCommittedQualifier,
+                                    byte[] keepAliveQualifier,
+																		byte[] statusQualifier,
+																		byte[] commitQualifier,
+																		byte[] globalCommitQualifier,
+                                    byte[] counterQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.permissionFamily = permissionFamily;

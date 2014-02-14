@@ -8,6 +8,8 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,11 +44,11 @@ public class SIFilterTest extends SIConstants {
         SITransactorTest.insertAgeDirect(useSimple, false, transactorSetup, storeSetup, transactionId, name, age);
     }
 
-    Object readEntireTuple(String name) throws IOException {
+    Result readEntireTuple(String name) throws IOException {
         final SDataLib dataLib = storeSetup.getDataLib();
         final STableReader reader = storeSetup.getReader();
 
-        Object key = dataLib.newRowKey(new Object[]{name});
+        byte[] key = dataLib.newRowKey(new Object[]{name});
         Object get = dataLib.newGet(key, null, null, null);
         Object testSTable = reader.open(storeSetup.getPersonTableName());
         try {
@@ -67,9 +69,9 @@ public class SIFilterTest extends SIConstants {
         final TransactionId t2 = control.beginTransaction();
         insertAge(t2, "bill", 30);
 
-        Object row = readEntireTuple("bill");
-        final List keyValues = dataLib.getResultColumn(row, dataLib.encode(SNAPSHOT_ISOLATION_FAMILY), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-        for (Object kv : keyValues) {
+        Result row = readEntireTuple("bill");
+        final List<KeyValue> keyValues = row.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY), dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+        for (KeyValue kv : keyValues) {
 						filterState.filterKeyValue(kv);
         }
     }

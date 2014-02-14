@@ -40,7 +40,6 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -76,7 +75,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     private long conglomId;
 
-    private RollForwardQueue<byte[],ByteBuffer> queue = NoOpRollForwardQueue.INSTANCE;
+    private RollForwardQueue queue = NoOpRollForwardQueue.INSTANCE;
     private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
@@ -216,7 +215,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 
-		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue,int writeSize) throws IOException, InterruptedException {
+		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue queue,int writeSize) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
         return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
     }

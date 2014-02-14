@@ -1,5 +1,7 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.api.RollForwardQueue;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
@@ -7,6 +9,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -34,7 +37,7 @@ import java.util.concurrent.*;
  * much code as required inside of the synchronized blocks. All of the mutable state is accessed from inside of
  * synchronized blocks.
  */
-public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> implements RollForwardQueue<Data,Hashable> {
+public class SynchronousRollForwardQueue implements RollForwardQueue {
     static final Logger LOG = Logger.getLogger(SynchronousRollForwardQueue.class);
 
     /**
@@ -43,7 +46,6 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     public static ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5,
             new ThreadFactoryBuilder().setNameFormat("synchronous-rollforward-%d").build());
 
-    private final Hasher<Data, Hashable> hasher;
 
     /**
      * A plug-point to define what action to take at roll-forward time.
@@ -73,7 +75,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      * The queue of pending roll-forward requests. It is a map from transaction ID to a pair of boolean and a
      * set of row keys. The boolean indicates whether rows for the transaction ID are currently being enqueued.
      */
-    private Map<Long, Pair<Boolean,Set<Hashable>>> transactionMap;
+    private Map<Long, Pair<Boolean,Set<ByteBuffer>>> transactionMap;
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -92,14 +94,13 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      * It is expected that one queue will be created for each HBase region. All of the queues in a JVM will use a shared
      * thread pool.
      */
-    public SynchronousRollForwardQueue(Hasher<Data, Hashable> hasher, RollForwardAction<Data> action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
-        this.hasher = hasher;
+    public SynchronousRollForwardQueue(RollForwardAction action, int maxCount, int rollForwardDelayMS, int resetMS, String tableName) {
         this.action = action;
         this.maxCount = maxCount;
         this.rollForwardDelayMS = rollForwardDelayMS;
         this.resetMS = resetMS;
         this.tableName = tableName;
-        transactionMap = new HashMap<Long, Pair<Boolean,Set<Hashable>>>(maxCount * 2);
+        transactionMap = new HashMap<Long, Pair<Boolean,Set<ByteBuffer>>>(maxCount * 2);
         reset();
     }
 
@@ -120,13 +121,13 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      * that information.
      */
     @Override
-    public void recordRow(long transactionId, Data rowKey, Boolean knownToBeCommitted) {
+    public void recordRow(long transactionId, byte[] rowKey, Boolean knownToBeCommitted) {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
-                Pair<Boolean,Set<Hashable>> transPair = transactionMap.get(transactionId);
+                Pair<Boolean,Set<ByteBuffer>> transPair = transactionMap.get(transactionId);
                 if (transPair == null) {
-                    transPair = new Pair<Boolean, Set<Hashable>>(true, new HashSet());
+                    transPair = new Pair<Boolean, Set<ByteBuffer>>(true, Sets.<ByteBuffer>newHashSet());
                     transactionMap.put(transactionId, transPair);
                     scheduleRollForward(transactionId);
                 }
@@ -137,8 +138,8 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
                     }
                 }
                 if (transPair.getFirst()){
-                    Set<Hashable> rowSet = transPair.getSecond();
-                    final Hashable newRow = hasher.toHashable(rowKey);
+                    Set<ByteBuffer> rowSet = transPair.getSecond();
+                    final ByteBuffer newRow = ByteBuffer.wrap(rowKey);
                     if (!rowSet.contains(newRow)) {
                         rowSet.add(newRow);
                         count = count + 1;
@@ -163,7 +164,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     private void scheduleRollForward(final long transactionId) {
         final Runnable roller = new Runnable() {
             public void run() {
-                List<Data> rowList = takeRowList(transactionId);
+                List<byte[]> rowList = takeRowList(transactionId);
                 try {
                     Boolean transactionFinished = action.rollForward(transactionId, rowList);
                     if (!transactionFinished){
@@ -195,7 +196,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
         if (override == null) {
             return rollForwardDelayMS;
         } else {
-            return override.intValue();
+            return override;
         }
     }
 
@@ -203,14 +204,14 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      * Retrieve all of the queued rows for a given transaction. This causes the rows to be atomically removed from the
      * queue.
      */
-    private List<Data> takeRowList(long transactionId) {
-        Set rowSet;
+    private List<byte[]> takeRowList(long transactionId) {
+        Set<ByteBuffer> rowSet;
         synchronized (this) {
-            Pair<Boolean, Set<Hashable>> pair = transactionMap.get(transactionId);
+            Pair<Boolean, Set<ByteBuffer>> pair = transactionMap.get(transactionId);
             rowSet = pair.getSecond();
             if (rowSet.size() > 0) {
                 count = count - rowSet.size();
-                pair.setSecond(new HashSet<Hashable>());
+                pair.setSecond(Sets.<ByteBuffer>newHashSet());
             }
         }
         return produceRowList(rowSet);
@@ -219,13 +220,15 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
     /**
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
-    private List<Data> produceRowList(Set<Hashable> rowSet) {
+    private List<byte[]> produceRowList(Set<ByteBuffer> rowSet) {
         if (rowSet == null || rowSet.size() == 0) {
             return Collections.emptyList();
         } else {
-            List<Data> result = new ArrayList<Data>(rowSet.size());
-            for (Hashable row : rowSet) {
-                result.add(hasher.fromHashable(row));
+            List<byte[]> result = Lists.newArrayListWithExpectedSize(rowSet.size());
+            for (ByteBuffer row : rowSet) {
+								byte[] data = new byte[row.remaining()];
+								row.get(data);
+                result.add(data);
             }
             return result;
         }
@@ -247,7 +250,7 @@ public class SynchronousRollForwardQueue<Data, Hashable extends Comparable> impl
      */
     private void reset() {
         synchronized (this) {
-            for (Map.Entry<Long, Pair<Boolean, Set<Hashable>>> entry: transactionMap.entrySet()) {
+            for (Map.Entry<Long, Pair<Boolean, Set<ByteBuffer>>> entry: transactionMap.entrySet()) {
                 entry.getValue().getSecond().clear();
             }
             count = 0;

@@ -10,7 +10,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.hbase.KeyValue;
 
-public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
+public class HRowAccumulator implements RowAccumulator {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;

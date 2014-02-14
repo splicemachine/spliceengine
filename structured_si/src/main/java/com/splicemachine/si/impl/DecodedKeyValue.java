@@ -1,15 +1,17 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 
 /**
- * Lazily read individual elements out of a KeyValue object and cache them for subsequent calls.
+ * Lazily read individual elements out of a KV object and cache them for subsequent calls.
  */
-public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+public class DecodedKeyValue<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan> {
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private KeyValue keyValue;
-    private Data row;
-    private Data value;
+    private byte[] row;
+    private byte[] value;
     private long timestamp;
 
     public DecodedKeyValue(SDataLib dataLib) {
@@ -27,22 +29,22 @@ public class DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, Ope
         return keyValue;
     }
 
-    public Data row() {
+    public byte[] row() {
         if (row == null) {
-            row = dataLib.getKeyValueRow(keyValue);
+            row = keyValue.getRow();
         }
         return row;
     }
-    public Data value() {
+    public byte[] value() {
         if (value == null) {
-            value = dataLib.getKeyValueValue(keyValue);
+            value = keyValue.getValue();
         }
         return value;
     }
 
     public long timestamp() {
         if (timestamp == -1) {
-            timestamp = dataLib.getKeyValueTimestamp(keyValue);
+            timestamp = keyValue.getTimestamp();
         }
         return timestamp;
     }

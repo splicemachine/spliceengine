@@ -9,7 +9,11 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,15 +22,13 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 2/13/14
  */
-public class SITransactionReadController<OperationWithAttributes,
+public class SITransactionReadController<
 				Get extends OperationWithAttributes,
 				Scan extends OperationWithAttributes,
 				Delete extends OperationWithAttributes,
-				Put extends OperationWithAttributes,
-				OperationStatus,
-				Lock,
-				Data,Hashable extends Comparable,Result,KeyValue>
-				implements TransactionReadController<Get,Scan,Data,Hashable,Result,KeyValue>{
+				Put extends OperationWithAttributes
+				>
+				implements TransactionReadController<Get,Scan>{
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
 		private final TransactionStore transactionStore;
@@ -103,14 +105,14 @@ public class SITransactionReadController<OperationWithAttributes,
 		}
 
 		@Override
-		public IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
+		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
 				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
 								transactionStore.getImmutableTransaction(transactionId));
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean includeSIColumn) throws IOException {
+		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean includeSIColumn) throws IOException {
 				return new FilterStatePacked(tableName, dataLib, dataStore,
 								(FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn),
 								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
@@ -131,40 +133,43 @@ public class SITransactionReadController<OperationWithAttributes,
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException {
+		public Result filterResult(IFilterState filterState, Result result) throws IOException {
 				//TODO -sf- this is only used in testing--ignore when production tuning
-				final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib = dataStore.dataLib;
+				final SDataLib<Put, Delete, Get, Scan> dataLib = dataStore.dataLib;
 				final List<KeyValue> filteredCells = Lists.newArrayList();
-				final List<KeyValue> keyValues = dataLib.listResult(result);
-				if (keyValues != null) {
-						Data qualifierToSkip = null;
-						Data familyToSkip = null;
-						Data currentRowKey = null;
-						for (KeyValue keyValue : keyValues) {
-								final Data rowKey = dataLib.getKeyValueRow(keyValue);
-								if (currentRowKey == null || !dataLib.valuesEqual(currentRowKey, rowKey)) {
+				final List<KeyValue> KVs = dataLib.listResult(result);
+				if (KVs != null) {
+						byte[] qualifierToSkip = null;
+						byte[] familyToSkip = null;
+						byte[] currentRowKey = null;
+						for (KeyValue kv : KVs) {
+								final byte[] rowKey = kv.getRow();
+								if (currentRowKey == null || !Bytes.equals(currentRowKey, rowKey)) {
 										currentRowKey = rowKey;
-										filterNextRow(filterState);
+										filterState.nextRow();
 								}
 								//noinspection StatementWithEmptyBody
 								if (familyToSkip != null
-												&& dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(keyValue))
-												&& dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(keyValue))) {
+												&&kv.matchingColumn(familyToSkip,qualifierToSkip)){
+//												&& Bytes.equals(familyToSkip,dataLib.getKeyValueFamily(kv))
+//												&& dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(KV))
+//												&& Bytes.equals(qualifierToSkip, dataLib.getKeyValueQualifier(kv))){
+//												&& dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(KV))) {
 										// skipping to next column
 								} else {
 										familyToSkip = null;
 										qualifierToSkip = null;
 										boolean nextRow = false;
-										Filter.ReturnCode returnCode = filterKeyValue(filterState, keyValue);
+										Filter.ReturnCode returnCode = filterKeyValue(filterState, kv);
 										switch (returnCode) {
 												case SKIP:
 														break;
 												case INCLUDE:
-														filteredCells.add(keyValue);
+														filteredCells.add(kv);
 														break;
 												case NEXT_COL:
-														qualifierToSkip = dataLib.getKeyValueQualifier(keyValue);
-														familyToSkip = dataLib.getKeyValueFamily(keyValue);
+														qualifierToSkip = kv.getQualifier();
+														familyToSkip = kv.getFamily();
 														break;
 												case NEXT_ROW:
 														nextRow = true;
@@ -176,14 +181,14 @@ public class SITransactionReadController<OperationWithAttributes,
 								}
 						}
 				}
-				final KeyValue finalKeyValue = filterState.produceAccumulatedKeyValue();
-				if (finalKeyValue != null) {
-						filteredCells.add(finalKeyValue);
+				final KeyValue finalKV = filterState.produceAccumulatedKeyValue();
+				if (finalKV != null) {
+						filteredCells.add(finalKV);
 				}
 				if (filteredCells.isEmpty()) {
 						return null;
 				} else {
-						return dataLib.newResult(dataLib.getResultKey(result), filteredCells);
+						return new Result(filteredCells);
 				}
 		}
 

@@ -26,25 +26,25 @@ public class HBaseStoreTest {
 
         try {
             final TestHTableSource tableSource = new TestHTableSource(testCluster, "table1", new String[]{"foo"});
-            SDataLib SDataLib = new HDataLib();
+            SDataLib dataLib = new HDataLib();
             STableReader reader = new HTableReader(tableSource);
             STableWriter writer = new HTableWriter();
 
-            RelationHelper api = new RelationHelper(SDataLib, reader, writer);
+            RelationHelper api = new RelationHelper(dataLib, reader, writer);
             api.open("table1");
             api.write(new Object[] {"joe"}, "foo", "age", 21, 0L);
 
-            Object testKey = SDataLib.newRowKey(new Object[]{"joe"});
-            Object get = SDataLib.newGet(testKey, null, null, null);
-            final Object outputTuple = reader.get(reader.open("table1"), get);
-            Assert.assertEquals("joe", Bytes.toString((byte[]) SDataLib.getResultKey(outputTuple)));
-            final List<KeyValue> outputCells = SDataLib.listResult(outputTuple);
+            byte[] testKey = dataLib.newRowKey(new Object[]{"joe"});
+            Object get = dataLib.newGet(testKey, null, null, null);
+            final Result outputTuple = reader.get(reader.open("table1"), get);
+            Assert.assertEquals("joe", Bytes.toString(outputTuple.getRow()));
+            final List<KeyValue> outputCells = dataLib.listResult(outputTuple);
             Assert.assertEquals(1, outputCells.size());
             final KeyValue outputCell = outputCells.get(0);
-            Assert.assertEquals("foo", Bytes.toString((byte[]) SDataLib.getKeyValueFamily(outputCell)));
-            Assert.assertEquals("age", Bytes.toString((byte[]) SDataLib.getKeyValueQualifier(outputCell)));
-            Assert.assertEquals(21, Bytes.toInt((byte[]) SDataLib.getKeyValueValue(outputCell)));
-            Assert.assertEquals(0L, SDataLib.getKeyValueTimestamp(outputCell));
+            Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
+            Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
+            Assert.assertEquals(21, Bytes.toInt(outputCell.getValue()));
+            Assert.assertEquals(0L, outputCell.getTimestamp());
         } finally {
             testCluster.shutdownMiniCluster();
         }

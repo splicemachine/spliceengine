@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import java.io.IOException;
 import java.util.List;
 
-public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete, byte[], Integer, OperationStatus> {
+public class HTableWriter implements STableWriter<IHTable, Mutation, Put, Delete> {
 
     @Override
     public void write(IHTable table, Put put) throws IOException {

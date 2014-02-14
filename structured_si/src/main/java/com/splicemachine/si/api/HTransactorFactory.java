@@ -12,12 +12,11 @@ import com.splicemachine.si.impl.*;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
+import com.splicemachine.utils.Provider;
+import com.splicemachine.utils.Providers;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +37,10 @@ public class HTransactorFactory extends SIConstants {
     private static volatile ManagedTransactor managedTransactor;
 		private static volatile TransactionManager transactionManager;
 		private static volatile ClientTransactor clientTransactor;
-		private static volatile SITransactionReadController<OperationWithAttributes, Get, Scan, Delete, Put, OperationStatus, Integer, byte[], ByteBuffer, Result, KeyValue> readController;
+		private static volatile SITransactionReadController< Get, Scan, Delete, Put> readController;
+		private static volatile RollForwardFactory<byte[], HbRegion> rollForwardFactory;
+		private static volatile TransactionStore transactionStore;
+		private static volatile DataStore dataStore;
 
 		public static void setTransactor(ManagedTransactor managedTransactorToUse) {
         managedTransactor = managedTransactorToUse;
@@ -54,17 +56,41 @@ public class HTransactorFactory extends SIConstants {
 				return transactionManager;
     }
 
-    public static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getClientTransactor() {
+    @SuppressWarnings("unchecked")
+		public static ClientTransactor<Put, Get, Scan, Mutation> getClientTransactor() {
 				initializeIfNeeded();
 				return clientTransactor;
     }
 
-    public static Transactor<IHTable, Put, Mutation, OperationStatus, byte[], ByteBuffer> getTransactor() {
+    public static Transactor<IHTable, Mutation,Put> getTransactor() {
 				initializeIfNeeded();
 				return managedTransactor.getTransactor();
     }
 
-		public static TransactionReadController<Get,Scan,byte[],ByteBuffer,Result,KeyValue> getTransactionReadController(){
+		public static RollForwardFactory<byte[],HbRegion> getRollForwardFactory(){
+				if(rollForwardFactory!=null)
+						return rollForwardFactory;
+
+				synchronized (HTransactorFactory.class){
+						rollForwardFactory = new HBaseRollForwardFactory(new Provider<TransactionStore>() {
+								@Override
+								public TransactionStore get() {
+										initializeIfNeeded();
+										return transactionStore;
+								}
+						},new Provider<DataStore>() {
+								@Override
+								public DataStore get() {
+										initializeIfNeeded();
+										return dataStore;
+								}
+						});
+				}
+
+				return rollForwardFactory;
+		}
+
+		public static TransactionReadController<Get,Scan> getTransactionReadController(){
 				initializeIfNeeded();
 				return readController;
 		}
@@ -107,18 +133,18 @@ public class HTransactorFactory extends SIConstants {
 										TRANSACTION_COUNTER_COLUMN
 						);
 						ManagedTransactor builderTransactor = new ManagedTransactor();
-						final TransactionStore transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
+						transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,
 										immutableCache, activeCache, cache, committedCache, failedCache, permissionCache, SIConstants.committingPause, builderTransactor);
 
-						@SuppressWarnings("unchecked") final DataStore rowStore = new DataStore(dataLib, reader, writer,
+						dataStore = new DataStore(dataLib, reader, writer,
 										SI_NEEDED, //siNeededAttribute
 										SI_NEEDED_VALUE ,             //the bytes for the siNeededAttribute
 										ONLY_SI_FAMILY_NEEDED_VALUE, //includeSiColumnValue (e.g. true to only need si family)
 										SI_TRANSACTION_ID_KEY, //transactionIdAttribute
 										SI_DELETE_PUT,  //deletePutAttribute
-										SNAPSHOT_ISOLATION_FAMILY, //siFamily
-										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING, //commitTimestampQualifier
-										SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING, //tombstoneQualifier
+										SNAPSHOT_ISOLATION_FAMILY_BYTES, //siFamily
+										SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, //commitTimestampQualifier
+										SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, //tombstoneQualifier
 										EMPTY_BYTE_ARRAY,  //siNull
 										SI_ANTI_TOMBSTONE_VALUE, //siAntiTombstoneValue
 										SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,  //siFail
@@ -127,19 +153,20 @@ public class HTransactorFactory extends SIConstants {
 								transactionManager = new SITransactionManager(transactionStore,timestampSource,builderTransactor);
 						if(clientTransactor==null)
 								clientTransactor = new HBaseClientTransactor(transactionManager);
+						if(rollForwardFactory ==null)
+								rollForwardFactory = new HBaseRollForwardFactory(Providers.basicProvider(transactionStore),
+												Providers.basicProvider(dataStore));
 
 						if(readController==null)
-								readController = new SITransactionReadController<OperationWithAttributes,
-												Get,Scan,Delete,Put,OperationStatus,
-												Integer,byte[],ByteBuffer,Result,KeyValue>(rowStore,dataLib,transactionStore,transactionManager);
+								readController = new SITransactionReadController<
+												Get,Scan,Delete,Put>(dataStore,dataLib,transactionStore,transactionManager);
 						Transactor transactor = new SITransactor.Builder()
 										.dataLib(dataLib)
 										.dataWriter(writer)
-										.dataStore(rowStore)
+										.dataStore(dataStore)
 										.transactionStore(transactionStore)
 										.clock(new SystemClock())
 										.transactionTimeout(transactionTimeout)
-										.hasher(new HHasher())
 										.clientTransactor(clientTransactor)
 										.control(transactionManager).build();
 //						final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>

@@ -4,6 +4,8 @@ import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.IFilterState;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
 
 import java.io.IOException;
@@ -14,7 +16,7 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 2/13/14
  */
-public interface TransactionReadController<Get,Scan,Data,Hashable extends Comparable,Result,KeyValue> {
+public interface TransactionReadController<Get,Scan> {
 
 		/**
 		 * Look at the operation and report back whether it has been flagged for SI treatment.
@@ -39,9 +41,9 @@ public interface TransactionReadController<Get,Scan,Data,Hashable extends Compar
 		 * in light of this state.
 		 */
 		IFilterState newFilterState(TransactionId transactionId) throws IOException;
-		IFilterState newFilterState(RollForwardQueue<Data, Hashable> rollForwardQueue, TransactionId transactionId,
+		IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId,
 																boolean includeSIColumn) throws IOException;
-		IFilterState newFilterStatePacked(String tableName, RollForwardQueue<Data, Hashable> rollForwardQueue,
+		IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue,
 																			EntryPredicateFilter predicateFilter, TransactionId transactionId,
 																			boolean includeSIColumn) throws IOException;
 
@@ -60,7 +62,7 @@ public interface TransactionReadController<Get,Scan,Data,Hashable extends Compar
 		 * Pass in an entire result object that contains all of the key values for a row. Receive back a new result that only
 		 * contains the key values that should be visible in light of the filterState.
 		 */
-		Result filterResult(IFilterState<KeyValue> filterState, Result result) throws IOException;
+		Result filterResult(IFilterState filterState, Result result) throws IOException;
 
 	  /**
      * Create a DDLFilter for tracking the visibility of (tentative) DDL operations for DML operations

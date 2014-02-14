@@ -209,7 +209,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
-        final ClientTransactor<Put, Get, Scan, Mutation, byte[]> clientTransactor = HTransactorFactory.getClientTransactor();
+        final ClientTransactor<Put, Get, Scan, Mutation> clientTransactor = HTransactorFactory.getClientTransactor();
         return clientTransactor.createDeletePut(HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId), rowKey);
     }
 
@@ -274,7 +274,7 @@ public class SpliceUtils extends SpliceUtilities {
 		return transID;
 	}
 
-    protected static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getTransactor() {
+    protected static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
         return HTransactorFactory.getClientTransactor();
     }
 

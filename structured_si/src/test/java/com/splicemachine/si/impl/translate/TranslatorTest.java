@@ -1,15 +1,11 @@
 package com.splicemachine.si.impl.translate;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.impl.translate.Transcoder;
-import com.splicemachine.si.impl.translate.Translator;
-import com.splicemachine.si.data.light.IncrementingClock;
-import com.splicemachine.si.data.light.LDataLib;
-import com.splicemachine.si.data.light.LGet;
-import com.splicemachine.si.data.light.LKeyValue;
-import com.splicemachine.si.data.light.LStore;
-import com.splicemachine.si.data.light.LTable;
-import com.splicemachine.si.data.light.LTuple;
+import com.splicemachine.si.data.light.*;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -61,15 +57,15 @@ public class TranslatorTest {
 
         final LGet get = dataLib2.newGet(dataLib2.encode("joe"), null, null, null);
         final LTable table2 = store2.open("people");
-        final LTuple result = store2.get(table2, get);
+        final Result result = store2.get(table2, get);
         Assert.assertNotNull(result);
-        final List<LKeyValue> results = dataLib2.listResult(result);
+        final List<KeyValue> results = Lists.newArrayList(result.raw());
         Assert.assertEquals(1, results.size());
-        final LKeyValue kv = results.get(0);
-        Assert.assertEquals("joe", dataLib2.getKeyValueRow(kv));
-        Assert.assertEquals("family1", dataLib2.getKeyValueFamily(kv));
-        Assert.assertEquals("age", dataLib2.getKeyValueQualifier(kv));
-        Assert.assertEquals(100L, dataLib2.getKeyValueTimestamp(kv));
-        Assert.assertEquals(20, dataLib2.getKeyValueValue(kv));
+        final KeyValue kv = results.get(0);
+        Assert.assertEquals("joe", Bytes.toString(kv.getRow()));
+        Assert.assertEquals("family1", Bytes.toString(kv.getFamily()));
+        Assert.assertEquals("age", Bytes.toString(kv.getQualifier()));
+        Assert.assertEquals(100L, kv.getTimestamp());
+        Assert.assertEquals(20, Bytes.toInt(kv.getValue()));
     }
 }
