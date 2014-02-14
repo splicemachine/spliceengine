@@ -1,6 +1,9 @@
 package com.splicemachine.encoding;
 
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.UnicodeUtil;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -19,6 +22,31 @@ import java.nio.ByteBuffer;
  */
 public class StringEncoding {
 
+	/**
+	 * 
+	 * Wraps the Lucene UnicodeUtil.UTF16toUTF8 bytes serializatiom...
+	 * 
+	 * @param value
+	 * @param desc
+	 * @return
+	 */
+    public static byte[] toBytes(String value, boolean desc){
+        if(value==null) return new byte[0];
+        if(value.length()==0) return new byte[]{0x01};
+
+        //convert to UTF-8 encoding
+        BytesRef result = new BytesRef();
+        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);        
+        for(int i=0;i<result.length;i++){
+            byte newD = (byte)(result.bytes[i] + 2);
+            if(desc)
+                newD ^= 0xff; //reverse the sign bit so that data is reversed in 2's complement
+            result.bytes[i] = newD;
+        }
+        return result.bytes;
+    }
+
+    /* Way Slower....
     public static byte[] toBytes(String value, boolean desc){
         if(value==null) return new byte[0];
         if(value.length()==0) return new byte[]{0x01};
@@ -33,7 +61,7 @@ public class StringEncoding {
         }
         return data;
     }
-
+    */
     /**
      * SIDE EFFECT WARNING: Transforms the passed in byte[] in place!
      *
