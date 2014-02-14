@@ -36,18 +36,18 @@ public class StringEncoding {
 
         //convert to UTF-8 encoding
         BytesRef result = new BytesRef();
-        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);        
+        UnicodeUtil.UTF16toUTF8(value, 0, value.length(), result);   
+        byte[] returnArray = new byte[result.length];
         for(int i=0;i<result.length;i++){
-            byte newD = (byte)(result.bytes[i] + 2);
+            byte newD = (byte)(result.bytes[i+result.offset] + 2);
             if(desc)
                 newD ^= 0xff; //reverse the sign bit so that data is reversed in 2's complement
-            result.bytes[i] = newD;
+            returnArray[i] = newD;
         }
-        return result.bytes;
+        return returnArray;
     }
-
-    /* Way Slower....
-    public static byte[] toBytes(String value, boolean desc){
+    @Deprecated
+    public static byte[] toBytesOld(String value, boolean desc){
         if(value==null) return new byte[0];
         if(value.length()==0) return new byte[]{0x01};
 
@@ -61,7 +61,6 @@ public class StringEncoding {
         }
         return data;
     }
-    */
     /**
      * SIDE EFFECT WARNING: Transforms the passed in byte[] in place!
      *
