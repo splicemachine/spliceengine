@@ -100,7 +100,27 @@ public class BufferedRegionScanner implements MeasuredRegionScanner{
 		@Override public long getMvccReadPoint() { return delegate.getMvccReadPoint(); }
 		@Override public boolean nextRaw(List<KeyValue> result, String metric) throws IOException { return next(result); }
 		@Override public boolean nextRaw(List<KeyValue> result, int limit, String metric) throws IOException { return next(result); }
-
+		@Override
+		public KeyValue next() throws IOException {
+			if(bufferPosition==0)
+				refill();
+			KeyValue keyValue = null;
+			List<KeyValue> next = buffer[bufferPosition];
+			if(next!=null) {
+				if (next.isEmpty()) {
+					bufferPosition = (bufferPosition+1)&(buffer.length-1);
+					keyValue = null;
+					return keyValue;
+				} else {
+					keyValue = next.get(next.size()-1);
+					bufferPosition = (bufferPosition+1)&(buffer.length-1);
+					return keyValue;
+				}
+			} else 
+				return keyValue;
+		
+		}
+		
 		@Override
 		public boolean next(List<KeyValue> results) throws IOException {
        /*
