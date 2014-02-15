@@ -22,6 +22,23 @@ import org.cliffc.high_scale_lib.Counter;
  *
  */
 public class HRegionUtil {
+	public static KeyExists keyExists;
+	public interface KeyExists {
+		boolean keyExists(Store store, byte[] key) throws IOException;
+	}
+	
+	static {
+		try {
+			KeyValueSkipListSet test = new KeyValueSkipListSet(KeyValue.COMPARATOR);
+			KeyValue keyValue = new KeyValue(Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),Bytes.toBytes("sdf"));
+			test.lower(keyValue);
+			keyExists = new Log1KeyExists();
+		} catch (Exception e) {
+			e.printStackTrace();
+			keyExists = new LogNKeyExists();
+		}
+		
+	}
 
 	public static void startRegionOperation(HRegion region) throws IOException {
 		region.startRegionOperation();
@@ -56,42 +73,7 @@ public class HRegionUtil {
 	 * @throws IOException
 	 */
 	public static boolean keyExists(Store store, byte[] key) throws IOException {
-		if (key == null)
-			return false;
-	    store.lock.readLock().lock();
-	    List<StoreFile> storeFiles;
-	    try {
-	      storeFiles = store.getStorefiles();
-	      Reader fileReader;
-	      for (StoreFile file: storeFiles) {
-	    	  if (file != null) {
-	    		  fileReader = file.createReader();
-		    	  if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0, key.length, null))
-		    		  return true;
-	    	  }  
-	      }
-	      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
-	      KeyValue placeHolder;
-	      try { 
-		      SortedSet<KeyValue> kvset = store.memstore.kvset.tailSet(kv);
-		      placeHolder = kvset.isEmpty()?null:kvset.first();
-		      if (placeHolder != null && placeHolder.matchingRow(key))
-		    	  return true;
-	      } catch (NoSuchElementException e) {} // This keeps us from constantly performing key value comparisons for empty set
-		  try {
-			  SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	     
-		      placeHolder = snapshot.isEmpty()?null:snapshot.first();
-		      if (placeHolder != null && placeHolder.matchingRow(key))
-	    		  return true;
-		  } catch (NoSuchElementException e) {}	    // This keeps us from constantly performing key value comparisons for empty set
-	      return false;  
-	    } catch (IOException ioe) {
-	    	ioe.printStackTrace();
-	    	throw ioe;
-	    }
-	    finally {
-	      store.lock.readLock().unlock();
-	    }
+		return keyExists.keyExists(store, key);
 	}
 	
 	public static void closeRegionOperation(HRegion region) {
@@ -154,4 +136,82 @@ public class HRegionUtil {
 
         return true;
     }
+    
+    static class Log1KeyExists implements KeyExists {
+
+		@Override
+		public boolean keyExists(Store store, byte[] key) throws IOException {
+			if (key == null)
+				return false;
+		    store.lock.readLock().lock();
+		    List<StoreFile> storeFiles;
+		    try {
+		      storeFiles = store.getStorefiles();
+		      Reader fileReader;
+		      for (StoreFile file: storeFiles) {
+		    	  if (file != null) {
+		    		  fileReader = file.createReader();
+			    	  if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0, key.length, null))
+			    		  return true;
+		    	  }  
+		      }
+
+		      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
+		      if (store.memstore.kvset.lower(kv) == null && store.memstore.snapshot.lower(kv) == null)
+		    	  return false;
+		      return true;
+		    }
+		    finally {
+		      store.lock.readLock().unlock();
+		    }			
+			
+		}
+    	
+    }
+
+    static class LogNKeyExists implements KeyExists {
+
+		@Override
+		public boolean keyExists(Store store, byte[] key) throws IOException {
+			if (key == null)
+				return false;
+		    store.lock.readLock().lock();
+		    List<StoreFile> storeFiles;
+		    try {
+		      storeFiles = store.getStorefiles();
+		      Reader fileReader;
+		      for (StoreFile file: storeFiles) {
+		    	  if (file != null) {
+		    		  fileReader = file.createReader();
+			    	  if (fileReader.generalBloomFilter != null && fileReader.generalBloomFilter.contains(key, 0, key.length, null))
+			    		  return true;
+		    	  }  
+		      }
+		      KeyValue kv = new KeyValue(key, HConstants.LATEST_TIMESTAMP);
+		      KeyValue placeHolder;
+		      try { 
+			      SortedSet<KeyValue> kvset = store.memstore.kvset.tailSet(kv);
+			      placeHolder = kvset.isEmpty()?null:kvset.first();
+			      if (placeHolder != null && placeHolder.matchingRow(key))
+			    	  return true;
+		      } catch (NoSuchElementException e) {} // This keeps us from constantly performing key value comparisons for empty set
+			  try {
+				  SortedSet<KeyValue> snapshot = store.memstore.snapshot.tailSet(kv);	     
+			      placeHolder = snapshot.isEmpty()?null:snapshot.first();
+			      if (placeHolder != null && placeHolder.matchingRow(key))
+		    		  return true;
+			  } catch (NoSuchElementException e) {}	    // This keeps us from constantly performing key value comparisons for empty set
+		      return false;  
+		    } catch (IOException ioe) {
+		    	ioe.printStackTrace();
+		    	throw ioe;
+		    }
+		    finally {
+		      store.lock.readLock().unlock();
+		    }
+		}
+    	
+    }
+    
+    
 }
