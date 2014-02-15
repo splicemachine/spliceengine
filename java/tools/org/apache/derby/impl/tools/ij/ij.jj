@@ -733,7 +733,7 @@ class ij {
     private int[] getColumnWidthsForIndex(String schema){
         int[] columnWidths = new int[] {
             20,
-            20,
+            50,
             20,
             6,
             4,
