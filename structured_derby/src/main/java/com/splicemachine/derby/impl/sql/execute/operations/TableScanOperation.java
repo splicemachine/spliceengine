@@ -41,7 +41,6 @@ public class TableScanOperation extends ScanOperation {
 		protected int indexColItem;
 		public String userSuppliedOptimizerOverrides;
 		public int rowsPerRead;
-		private List<KeyValue> keyValues;
 		protected boolean runTimeStatisticsOn;
 		private Properties scanProperties;
 		public String startPositionString;
@@ -128,7 +127,6 @@ public class TableScanOperation extends ScanOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
-				keyValues = new ArrayList<KeyValue>(1);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
 				this.slice = new ByteArraySlice();
 				this.startExecutionTime = System.currentTimeMillis();
@@ -217,9 +215,8 @@ public class TableScanOperation extends ScanOperation {
 						timer = spliceRuntimeContext.newTimer();
 
 				timer.startTiming();
-				keyValues.clear();
-				regionScanner.next(keyValues);
-				if (keyValues.isEmpty()) {
+				KeyValue keyValue = regionScanner.next();
+				if (keyValue == null) {
 						if (LOG.isTraceEnabled())
 								SpliceLogUtils.trace(LOG,"%s:no more data retrieved from table",tableName);
 						currentRow = null;
@@ -230,10 +227,7 @@ public class TableScanOperation extends ScanOperation {
 						currentRow.resetRowArray();
 						DataValueDescriptor[] fields = currentRow.getRowArray();
 						if (fields.length != 0) {
-								for(KeyValue kv:keyValues){
-										//should only be 1
-										RowMarshaller.sparsePacked().decode(kv,fields,baseColumnMap,rowDecoder);
-								}
+							RowMarshaller.sparsePacked().decode(keyValue,fields,baseColumnMap,rowDecoder);
 						}
 						if(indexName!=null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
                 /*
@@ -243,7 +237,6 @@ public class TableScanOperation extends ScanOperation {
                  */
 								currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
 						} else {
-								KeyValue keyValue = keyValues.get(0);
 								slice.updateSlice(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
 								currentRowLocation.setValue(slice);
 						}
