@@ -1,5 +1,8 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.splicemachine.hbase.KVPair;
@@ -10,14 +13,15 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -46,7 +50,6 @@ public class SITransactor<Table,
 		private final TransactionSource transactionSource;
 
 		private final TransactionManager transactionManager;
-		private final ClientTransactor<Put,Get,Scan,Mutation> clientTransactor;
 
 		private SITransactor(SDataLib dataLib,
 												 STableWriter dataWriter,
@@ -54,7 +57,6 @@ public class SITransactor<Table,
 												 final TransactionStore transactionStore,
 												 Clock clock,
 												 int transactionTimeoutMS,
-												 ClientTransactor<Put, Get, Scan, Mutation> clientTransactor,
 												 TransactionManager transactionManager) {
 				transactionSource = new TransactionSource() {
             @Override
@@ -68,7 +70,6 @@ public class SITransactor<Table,
         this.transactionStore = transactionStore;
         this.clock = clock;
         this.transactionTimeoutMS = transactionTimeoutMS;
-				this.clientTransactor = clientTransactor;
 				this.transactionManager = transactionManager;
     }
 
@@ -80,54 +81,133 @@ public class SITransactor<Table,
     public boolean processPut(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
 				if(!isFlaggedForSITreatment(put)) return false;
 
-				processPutDirect(table,rollForwardQueue,put);
-				return true;
+				final Put[] mutations = (Put[])Array.newInstance(put.getClass(),1);
+				mutations[0] = put;
+				OperationStatus[] operationStatuses = processPutBatch(table,rollForwardQueue,mutations);
+				switch(operationStatuses[0].getOperationStatusCode()){
+						case NOT_RUN:
+								return false;
+						case BAD_FAMILY:
+								throw new NoSuchColumnFamilyException(operationStatuses[0].getExceptionMsg());
+						case SANITY_CHECK_FAILURE:
+								throw new IOException("Sanity Check failure:" +operationStatuses[0].getExceptionMsg());
+						case FAILURE:
+								throw new IOException(operationStatuses[0].getExceptionMsg());
+						default:
+								return true;
+				}
     }
 
-    private void processPutDirect(Table table, RollForwardQueue rollForwardQueue, Put put) throws IOException {
-        @SuppressWarnings("unchecked") final Mutation[] mutations = (Mutation[]) Array.newInstance(put.getClass(), 1);
-        mutations[0] = put;
-        OperationStatus[] operationStatuses = processPutBatch(table, rollForwardQueue, mutations);
-        if (!operationStatuses[0].getOperationStatusCode().equals(HConstants.OperationStatusCode.SUCCESS)) {
-            throw new IOException("operation not successful: " + operationStatuses[0]);
-        }
-    }
-
-    @Override
-    public OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Mutation[] mutations)
+		@Override
+    public OperationStatus[] processPutBatch(Table table, RollForwardQueue rollForwardQueue, Put[] mutations)
             throws IOException {
         if (mutations.length == 0) {
             //short-circuit special case of empty batch
 						//noinspection unchecked
 						return dataStore.writeBatch(table, new Pair[0]);
         }
-
-        // TODO add back the check if it is needed for DDL operations
-        // checkPermission(table, mutations);
-
-        Map<ByteBuffer, Integer> locks = Maps.newHashMapWithExpectedSize(1);
-        Map<ByteBuffer, List<PutInBatch<byte[], Put>>> putInBatchMap = Maps.newHashMapWithExpectedSize(mutations.length);
-        try {
-            @SuppressWarnings("unchecked") final Pair<Mutation, Integer>[] mutationsAndLocks = new Pair[mutations.length];
-            obtainLocksForPutBatchAndPrepNonSIPuts(table, mutations, locks, putInBatchMap, mutationsAndLocks);
-
-            @SuppressWarnings("unchecked") final Set<Long>[] conflictingChildren = new Set[mutations.length];
-            dataStore.startLowLevelOperation(table);
-            try {
-                checkConflictsForPutBatch(table, rollForwardQueue, locks, putInBatchMap, mutationsAndLocks, conflictingChildren);
-            } finally {
-                dataStore.closeLowLevelOperation(table);
-            }
-
-            final OperationStatus[] status = dataStore.writeBatch(table, mutationsAndLocks);
-
-            resolveConflictsForPutBatch(table, mutations, locks, conflictingChildren, status);
-
-            return status;
-        } finally {
-            releaseLocksForPutBatch(table, locks);
-        }
+				/*
+				 * Here we convert a Put into a KVPair.
+				 *
+				 * Each Put represents a single row, but a KVPair represents a single column. Each row
+				 * is written with a single transaction.
+				 *
+				 * What we do here is we group up the puts by their Transaction id (just in case they are different),
+				 * then we group them up by family and column to create proper KVPair groups. Then, we attempt
+				 * to write all the groups in sequence.
+				 *
+				 * Note the following:
+				 *
+				 * 1) We do all this as support for things that probably don't happen. With Splice's Packed Row
+				 * Encoding, it is unlikely that people will send more than a single column of data over each
+				 * time. Additionally, people likely won't send over a batch of Puts that have more than one
+				 * transaction id (as that would be weird). Still, better safe than sorry.
+				 *
+				 * 2). This method is, because of all the regrouping and the partial writes and stuff,
+				 * Significantly slower than the equivalent KVPair method, so It is highly recommended that you
+				 * use the BulkWrite pipeline along with the KVPair abstraction to improve your overall throughput.
+				 *
+				 *
+				 * To be frank, this is only here to support legacy code without needing to rewrite everything under
+				 * the sun. You should almost certainly NOT use it.
+				 */
+				Map<String,Map<byte[],Map<byte[],List<KVPair>>>> kvPairMap = Maps.newHashMap();
+				for(Put mutation:mutations){
+						String txnId = dataStore.getTransactionid(mutation);
+						boolean isDelete = dataStore.getDeletePutAttribute(mutation);
+						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
+						byte[] row = dataLib.getPutKey(mutation);
+						for(KeyValue keyValue:keyValues){
+								byte[] family = keyValue.getFamily();
+								byte[] column = keyValue.getQualifier();
+								byte[] value = keyValue.getValue();
+								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
+								if(familyMap==null){
+										familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+										kvPairMap.put(txnId,familyMap);
+								}
+								Map<byte[],List<KVPair>> columnMap = familyMap.get(family);
+								if(columnMap==null){
+										columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+										familyMap.put(family,columnMap);
+								}
+								List<KVPair> kvPairs = columnMap.get(column);
+								if(kvPairs==null){
+										kvPairs = Lists.newArrayList();
+										columnMap.put(column,kvPairs);
+								}
+								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.INSERT));
+						}
+				}
+				final Map<byte[],OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+				for(Map.Entry<String,Map<byte[],Map<byte[],List<KVPair>>>> entry:kvPairMap.entrySet()){
+						String txnId = entry.getKey();
+						Map<byte[],Map<byte[],List<KVPair>>> familyMap = entry.getValue();
+						for(Map.Entry<byte[],Map<byte[],List<KVPair>>> familyEntry:familyMap.entrySet()){
+								byte[] family = familyEntry.getKey();
+								Map<byte[],List<KVPair>> columnMap = familyEntry.getValue();
+								for(Map.Entry<byte[],List<KVPair>>columnEntry:columnMap.entrySet()){
+										byte[] qualifier = columnEntry.getKey();
+										List<KVPair> kvPairs = Lists.newArrayList(Collections2.filter(columnEntry.getValue(), new Predicate<KVPair>() {
+												@Override
+												public boolean apply(@Nullable KVPair input) {
+														assert input != null;
+														return !statusMap.containsKey(input.getRow()) || statusMap.get(input.getRow()).getOperationStatusCode() == HConstants.OperationStatusCode.SUCCESS;
+												}
+										}));
+										OperationStatus[] statuses = processKvBatch(table,rollForwardQueue,family,qualifier,kvPairs,txnId);
+										for(int i=0;i<statuses.length;i++){
+												byte[] row = kvPairs.get(i).getRow();
+												OperationStatus status = statuses[i];
+												if(statusMap.containsKey(row)){
+														OperationStatus oldStatus = statusMap.get(row);
+														status = getCorrectStatus(status,oldStatus);
+												}
+												statusMap.put(row,status);
+										}
+								}
+						}
+				}
+				OperationStatus[] retStatuses = new OperationStatus[mutations.length];
+				for(int i=0;i<mutations.length;i++){
+						Put put = mutations[i];
+						retStatuses[i] = statusMap.get(dataLib.getPutKey(put));
+				}
+				return retStatuses;
     }
+
+		private OperationStatus getCorrectStatus(OperationStatus status, OperationStatus oldStatus) {
+				switch(oldStatus.getOperationStatusCode()){
+						case SUCCESS:
+								return status;
+						case NOT_RUN:
+						case BAD_FAMILY:
+						case SANITY_CHECK_FAILURE:
+						case FAILURE:
+								return oldStatus;
+				}
+				return null;
+		}
 
 		@Override
 		public OperationStatus[] processKvBatch(Table table,
@@ -203,19 +283,6 @@ public class SITransactor<Table,
 				}
 		}
 
-    private void releaseLocksForPutBatch(Table table, Map<ByteBuffer, Integer> locks) {
-        for (Integer lock : locks.values()) {
-            if (lock != null) {
-                try {
-                    dataWriter.unLockRow(table, lock);
-                } catch (Exception ex) {
-                    LOG.error("Exception while cleaning up locks", ex);
-                    // ignore
-                }
-            }
-        }
-    }
-
 		private void resolveConflictsForKvBatch(Table table, Pair<Mutation, Integer>[] mutations, Set<Long>[] conflictingChildren, OperationStatus[] status){
 				for(int i=0;i<mutations.length;i++){
 						try{
@@ -227,21 +294,6 @@ public class SITransactor<Table,
 						}
 				}
 		}
-
-    private void resolveConflictsForPutBatch(Table table, Mutation[] mutations, Map<ByteBuffer, Integer> locks, Set<Long>[] conflictingChildren, OperationStatus[] status) {
-        for (int i = 0; i < mutations.length; i++) {
-            try {
-                if (isFlaggedForSITreatment(mutations[i])) {
-                    Put put = (Put) mutations[i];
-                    Integer lock = locks.get(ByteBuffer.wrap(dataLib.getPutKey(put)));
-                    resolveChildConflicts(table, put, lock, conflictingChildren[i]);
-                }
-            } catch (Exception ex) {
-                LOG.error("Exception while post processing batch put", ex);
-                status[i] = new OperationStatus(HConstants.OperationStatusCode.FAILURE,ex.getMessage());
-            }
-        }
-    }
 
 		private Pair<Mutation, Integer>[] checkConflictsForKvBatch(Table table, RollForwardQueue rollForwardQueue,
 																															 Pair<KVPair, Integer>[] dataAndLocks,
@@ -265,34 +317,6 @@ public class SITransactor<Table,
 
 		private static final boolean unsafeWrites = Boolean.getBoolean("splice.unsafe.writes");
 
-    private void checkConflictsForPutBatch(Table table, RollForwardQueue rollForwardQueue, Map<ByteBuffer, Integer> locks, Map<ByteBuffer, List<PutInBatch<byte[], Put>>> putInBatchMap, Pair<Mutation, Integer>[] mutationsAndLocks, Set<Long>[] conflictingChildren) throws IOException {
-        final SortedSet<ByteBuffer> keys = new TreeSet<ByteBuffer>(putInBatchMap.keySet());
-        for (ByteBuffer hashableRowKey : keys) {
-            for (PutInBatch<byte[], Put> putInBatch : putInBatchMap.get(hashableRowKey)) {
-                ConflictResults conflictResults;
-                if (unsafeWrites) {
-                    conflictResults = new ConflictResults(Collections.<Long>emptySet(), Collections.<Long>emptySet(), false);
-                } else {
-                    final List<KeyValue>[] values = dataStore.getCommitTimestampsAndTombstonesSingle(table, putInBatch.rowKey);
-                    conflictResults = ensureNoWriteConflict(putInBatch.transaction, values);
-                }
-                final PutToRun<Mutation, Integer> putToRun = getMutationLockPutToRun(table, rollForwardQueue, putInBatch.put, putInBatch.transaction, putInBatch.rowKey, locks.get(hashableRowKey), conflictResults);
-                mutationsAndLocks[putInBatch.index] = putToRun.putAndLock;
-                conflictingChildren[putInBatch.index] = putToRun.conflictingChildren;
-            }
-        }
-    }
-
-
-    private void obtainLocksForPutBatchAndPrepNonSIPuts(Table table, Mutation[] mutations, Map<ByteBuffer, Integer> locks, Map<ByteBuffer, List<PutInBatch<byte[], Put>>> putInBatchMap, Pair<Mutation, Integer>[] mutationsAndLocks) throws IOException {
-        for (int i = 0; i < mutations.length; i++) {
-            if (isFlaggedForSITreatment(mutations[i])) {
-                obtainLockForPutBatch(table, mutations[i], locks, putInBatchMap, i);
-            } else {
-                mutationsAndLocks[i] = new Pair<Mutation, Integer>(mutations[i], null);
-            }
-        }
-    }
 
 		private Pair<KVPair, Integer>[] lockRows(Table table, Collection<KVPair> mutations) throws IOException {
 				@SuppressWarnings("unchecked") Pair<KVPair,Integer>[] mutationsAndLocks = new Pair[mutations.size()];
@@ -306,31 +330,11 @@ public class SITransactor<Table,
 		}
 
 
-		private void obtainLockForPutBatch(Table table, Mutation mutation, Map<ByteBuffer, Integer> locks, Map<ByteBuffer, List<PutInBatch<byte[], Put>>> putInBatchMap, int i) throws IOException {
-        final Put put = (Put) mutation;
-        final TransactionId transactionId = dataStore.getTransactionIdFromOperation(put);
-        final ImmutableTransaction transaction = transactionStore.getImmutableTransaction(transactionId);
-        ensureTransactionAllowsWrites(transaction);
-        final byte[] rowKey = dataLib.getPutKey(put);
-
-        final ByteBuffer hashableRowKey = obtainLock(locks, table, rowKey);
-        List<PutInBatch<byte[], Put>> putsInBatch = putInBatchMap.get(hashableRowKey);
-        final PutInBatch newPutInBatch = new PutInBatch(transaction, rowKey, i, put);
-        if (putsInBatch == null) {
-            putsInBatch = new ArrayList<PutInBatch<byte[], Put>>();
-            putsInBatch.add(newPutInBatch);
-            putInBatchMap.put(hashableRowKey, putsInBatch);
-        } else {
-            putsInBatch.add(newPutInBatch);
-        }
-    }
-
-
 		private Mutation getMutationToRun(RollForwardQueue rollForwardQueue, KVPair kvPair,
 																			byte[] family, byte[] column,
 																			ImmutableTransaction transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getLongTransactionId();
-				Put newPut = (Put) kvPair.toPut(family,column,txnIdLong);
+				Put newPut = dataLib.toPut(kvPair,family, column,transaction.getLongTransactionId());
 				dataStore.suppressIndexing(newPut);
 				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
 				if(kvPair.getType()== KVPair.Type.DELETE)
@@ -367,30 +371,7 @@ public class SITransactor<Table,
 				return newPut;
 		}
 
-    private PutToRun<Mutation, Integer> getMutationLockPutToRun(Table table, RollForwardQueue rollForwardQueue, Put put, ImmutableTransaction transaction, byte[] rowKey, Integer lock, ConflictResults conflictResults) throws IOException {
-        final Put newPut = createUltimatePut(transaction.getLongTransactionId(), lock, put, table,
-                conflictResults.hasTombstone);
-        dataStore.suppressIndexing(newPut);
-        dataStore.recordRollForward(rollForwardQueue, transaction.getLongTransactionId(), rowKey, false);
-				if(conflictResults.toRollForward!=null){
-						for (Long transactionIdToRollForward : conflictResults.toRollForward) {
-								dataStore.recordRollForward(rollForwardQueue, transactionIdToRollForward, rowKey, false);
-						}
-				}
-        return new PutToRun<Mutation, Integer>(new Pair<Mutation, Integer>(newPut, lock), conflictResults.childConflicts);
-    }
-
-    private ByteBuffer obtainLock(Map<ByteBuffer, Integer> locks, Table table, byte[] rowKey) throws IOException {
-        final ByteBuffer hashableRowKey = ByteBuffer.wrap(rowKey);
-        Integer lock = locks.get(hashableRowKey);
-        if (lock == null) {
-            lock = dataWriter.lockRow(table, rowKey);
-            locks.put(hashableRowKey, lock);
-        }
-        return hashableRowKey;
-    }
-
-    private void resolveChildConflicts(Table table, Put put, Integer lock, Set<Long> conflictingChildren) throws IOException {
+		private void resolveChildConflicts(Table table, Put put, Integer lock, Set<Long> conflictingChildren) throws IOException {
         if (conflictingChildren!=null && !conflictingChildren.isEmpty()) {
             Delete delete = dataStore.copyPutToDelete(put, conflictingChildren);
             dataStore.suppressIndexing(delete);
@@ -529,23 +510,6 @@ public class SITransactor<Table,
         }
     }
 
-    /**
-     * Create a new operation, with the lock, that has all of the keyValues from the original operation.
-     * This will also set the timestamp of the data being updated to reflect the transaction doing the update.
-     */
-    Put createUltimatePut(long transactionId, Integer lock, Put put, Table table, boolean hasTombstone) throws IOException {
-        final byte[] rowKey = dataLib.getPutKey(put);
-        final Put newPut = dataLib.newPut(rowKey, lock);
-        dataStore.copyPutKeyValues(put, newPut, transactionId);
-        dataStore.addTransactionIdToPutKeyValues(newPut, transactionId);
-        if (clientTransactor.isDeletePut(put)) {
-            dataStore.setTombstonesOnColumns(table, transactionId, newPut);
-        } else if (hasTombstone) {
-            dataStore.setAntiTombstoneOnPut(newPut, transactionId);
-        }
-        return newPut;
-    }
-
 
 		// Roll-forward / compaction
 
@@ -587,15 +551,12 @@ public class SITransactor<Table,
 				private Clock clock;
 				private int transactionTimeoutMS;
 				private TransactionManager control;
-				private ClientTransactor<Put,Get,Scan,Mutation> clientTransactor;
+
+				public Builder() {
+				}
 
 				public Builder control(TransactionManager control) {
 						this.control = control;
-						return this;
-				}
-
-				public Builder clientTransactor(ClientTransactor<Put, Get, Scan, Mutation> clientTransactor) {
-						this.clientTransactor = clientTransactor;
 						return this;
 				}
 
@@ -639,7 +600,7 @@ public class SITransactor<Table,
 						return new SITransactor<Table,
 										Mutation, Put,Get,Scan,
 										Delete> (dataLib,dataWriter,
-										dataStore,transactionStore,clock,transactionTimeoutMS, clientTransactor,control);
+										dataStore,transactionStore,clock,transactionTimeoutMS, control);
 				}
 
 		}
