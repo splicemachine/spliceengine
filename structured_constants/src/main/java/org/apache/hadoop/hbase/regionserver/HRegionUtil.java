@@ -28,6 +28,9 @@ public class HRegionUtil {
 	}
 	
 	static {
+		
+		keyExists = new LogNKeyExists();
+		/*
 		try {
 			KeyValueSkipListSet test = new KeyValueSkipListSet(KeyValue.COMPARATOR);
 			KeyValue keyValue = new KeyValue(Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),Bytes.toBytes("sdf"),Bytes.toBytes("sdf"));
@@ -37,7 +40,7 @@ public class HRegionUtil {
 			e.printStackTrace();
 			keyExists = new LogNKeyExists();
 		}
-		
+		*/
 	}
 
 	public static void startRegionOperation(HRegion region) throws IOException {
