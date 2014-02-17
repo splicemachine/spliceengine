@@ -13,6 +13,6 @@ public interface StoreSetup {
 
 		HBaseTestingUtility getTestCluster();
     Object getStore();
-    String getPersonTableName();
+    String getPersonTableName(boolean usePacked);
     Clock getClock();
 }

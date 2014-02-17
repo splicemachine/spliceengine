@@ -26,7 +26,7 @@ public class TransactionManagerTest {
     }
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws Exception{
         storeSetup = new LStoreSetup();
         transactorSetup = new TestTransactionSetup(storeSetup, true);
         baseSetUp();

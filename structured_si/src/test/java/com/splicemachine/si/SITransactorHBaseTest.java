@@ -1,9 +1,5 @@
 package com.splicemachine.si;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -14,9 +10,6 @@ import java.util.concurrent.Executors;
 
 public class SITransactorHBaseTest extends SITransactorTest {
 
-    private static HStoreSetup classStoreSetup;
-    private static TestTransactionSetup classTransactorSetup;
-
     public SITransactorHBaseTest() {
         useSimple = false;
     }
@@ -25,8 +18,8 @@ public class SITransactorHBaseTest extends SITransactorTest {
     @Before
     public void setUp() {
         SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
-        this.storeSetup = classStoreSetup;
-        this.transactorSetup = classTransactorSetup;
+        this.storeSetup = HBaseSuite.classStoreSetup;
+        this.transactorSetup = HBaseSuite.classTransactorSetup;
         baseSetUp();
     }
 
@@ -35,19 +28,22 @@ public class SITransactorHBaseTest extends SITransactorTest {
     public void tearDown() throws Exception {
     }
 
-    @BeforeClass
-    public static void setUpClass() {
-				SpliceConstants.numRetries = 1;
-				SIConstants.committingPause = 1000;
-        classStoreSetup = HStoreSetup.create();
-        classTransactorSetup = new TestTransactionSetup(classStoreSetup, false);
-        Transactor transactor = classTransactorSetup.transactor;
-        HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
-    }
+		private static boolean selfManaged = false;
+		@BeforeClass
+		public static void setUpClass() throws Exception {
+				if(HBaseSuite.classStoreSetup==null){
+						System.out.printf("[%s]Not running in Suite, Setting up HBase myself%n",SITransactorHBaseTest.class.getSimpleName());
+						HBaseSuite.setUp();
+						selfManaged = true;
+				}
+		}
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        HStoreSetup.destroy(classStoreSetup);
-    }
+		@AfterClass
+		public static void tearDownClass() throws Exception {
+				if(selfManaged){
+						System.out.printf("[%s]Tearing down HBase%n",SITransactorHBaseTest.class.getSimpleName());
+						HBaseSuite.tearDownClass();
+				}
+		}
 
 }

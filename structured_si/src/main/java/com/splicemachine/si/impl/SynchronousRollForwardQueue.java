@@ -5,13 +5,16 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.api.RollForwardQueue;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Collect "roll-forward" requests for a given table. Accumulate these by transaction ID. At regular intervals
@@ -75,7 +78,7 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
      * The queue of pending roll-forward requests. It is a map from transaction ID to a pair of boolean and a
      * set of row keys. The boolean indicates whether rows for the transaction ID are currently being enqueued.
      */
-    private Map<Long, Pair<Boolean,Set<ByteBuffer>>> transactionMap;
+    private Map<Long, Pair<Boolean,Set<byte[]>>> transactionMap;
 
     /**
      * A reference to the task that is scheduled to reset the queue. As tasks run they check that this is still scheduled.
@@ -100,7 +103,7 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
         this.rollForwardDelayMS = rollForwardDelayMS;
         this.resetMS = resetMS;
         this.tableName = tableName;
-        transactionMap = new HashMap<Long, Pair<Boolean,Set<ByteBuffer>>>(maxCount * 2);
+        transactionMap = new HashMap<Long, Pair<Boolean,Set<byte[]>>>(maxCount * 2);
         reset();
     }
 
@@ -125,26 +128,27 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
         synchronized (this) {
             forceResetIfNeeded();
             if (count < maxCount) {
-                Pair<Boolean,Set<ByteBuffer>> transPair = transactionMap.get(transactionId);
+                Pair<Boolean,Set<byte[]>> transPair = transactionMap.get(transactionId);
+								boolean shouldSchedule = false;
                 if (transPair == null) {
-                    transPair = new Pair<Boolean, Set<ByteBuffer>>(true, Sets.<ByteBuffer>newHashSet());
+										//noinspection RedundantTypeArguments
+										transPair = new Pair<Boolean, Set<byte[]>>(true, Sets.<byte[]>newTreeSet(Bytes.BYTES_COMPARATOR));
                     transactionMap.put(transactionId, transPair);
-                    scheduleRollForward(transactionId);
+										shouldSchedule = true;
                 }
                 if (knownToBeCommitted){
                     transPair.setFirst(true);
                     if (transPair.getSecond().size() == 0){
-                        scheduleRollForward(transactionId);
+												shouldSchedule = true;
                     }
                 }
                 if (transPair.getFirst()){
-                    Set<ByteBuffer> rowSet = transPair.getSecond();
-                    final ByteBuffer newRow = ByteBuffer.wrap(rowKey);
-                    if (!rowSet.contains(newRow)) {
-                        rowSet.add(newRow);
+                    Set<byte[]> rowSet = transPair.getSecond();
+										if(rowSet.add(rowKey))
                         count = count + 1;
-                    }
                 }
+								if(shouldSchedule)
+										scheduleRollForward(transactionId);
             }
         }
     }
@@ -205,13 +209,13 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
      * queue.
      */
     private List<byte[]> takeRowList(long transactionId) {
-        Set<ByteBuffer> rowSet;
+        Set<byte[]> rowSet;
         synchronized (this) {
-            Pair<Boolean, Set<ByteBuffer>> pair = transactionMap.get(transactionId);
+            Pair<Boolean, Set<byte[]>> pair = transactionMap.get(transactionId);
             rowSet = pair.getSecond();
             if (rowSet.size() > 0) {
                 count = count - rowSet.size();
-                pair.setSecond(Sets.<ByteBuffer>newHashSet());
+                pair.setSecond(Sets.<byte[]>newTreeSet(Bytes.BYTES_COMPARATOR));
             }
         }
         return produceRowList(rowSet);
@@ -220,15 +224,13 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
     /**
      * Convert the internal set of wrapped row identifiers into a list of un-wrapped identifiers.
      */
-    private List<byte[]> produceRowList(Set<ByteBuffer> rowSet) {
+    private List<byte[]> produceRowList(Set<byte[]> rowSet) {
         if (rowSet == null || rowSet.size() == 0) {
             return Collections.emptyList();
         } else {
             List<byte[]> result = Lists.newArrayListWithExpectedSize(rowSet.size());
-            for (ByteBuffer row : rowSet) {
-								byte[] data = new byte[row.remaining()];
-								row.get(data);
-                result.add(data);
+            for (byte[] row : rowSet) {
+                result.add(row);
             }
             return result;
         }
@@ -250,7 +252,7 @@ public class SynchronousRollForwardQueue implements RollForwardQueue {
      */
     private void reset() {
         synchronized (this) {
-            for (Map.Entry<Long, Pair<Boolean, Set<ByteBuffer>>> entry: transactionMap.entrySet()) {
+            for (Map.Entry<Long, Pair<Boolean, Set<byte[]>>> entry: transactionMap.entrySet()) {
                 entry.getValue().getSecond().clear();
             }
             count = 0;
