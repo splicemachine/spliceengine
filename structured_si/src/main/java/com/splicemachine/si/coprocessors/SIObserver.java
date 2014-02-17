@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -186,46 +187,12 @@ public class SIObserver extends BaseRegionObserver {
 				 */
         if (tableEnvMatch) {
             final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-						if(!HTransactorFactory.getClientTransactor().requiresSI(put)){
-								return; //not managed by SI, ignore it
-						}
-						TransactionId transactionId = HTransactorFactory.getClientTransactor().transactionIdFromPut(put);
-						/*
-						 * We are given a single Put. This means we are modifying a single row at a time. This means
-						 * that there is one KVPair for each column to be added (no more). Thus, we construct a map
-						 * from column family to a map of column qualifier to KVPair for the actual data, then
-						 * insert them one at a time. This is very expensive because of the extra WAL edits, but we won't deal
-						 * with that situation.
-						 */
-						//convert Put into many KVPairs, then initiate them one at a time
-						HbRegion region = new HbRegion(e.getEnvironment().getRegion());
-						Map<byte[],List<KeyValue>> familyMap = put.getFamilyMap();
-						for(Map.Entry<byte[],List<KeyValue>> familyPair:familyMap.entrySet()){
-								byte[] family = familyPair.getKey();
-								List<KeyValue> kvs = familyPair.getValue();
-								for(KeyValue kv:kvs){
-										byte[] qualifier = kv.getQualifier();
-										byte[] value = kv.getValue();
-										KVPair newKVPair = new KVPair(put.getRow(),value);
-
-										OperationStatus[] statuses = transactor.processKvBatch(region,rollForwardQueue, transactionId, family, qualifier, Collections.singletonList(newKVPair));
-										switch(statuses[0].getOperationStatusCode()){
-												case BAD_FAMILY:
-														throw new NoSuchColumnFamilyException(Bytes.toString(family));
-												case SANITY_CHECK_FAILURE:
-												case NOT_RUN:
-												case FAILURE:
-														throw new IOException("Operation did not succeed");
-										}
-								}
-						}
-						e.bypass();
-						e.complete();
-//						final boolean processed = transactor.processPut(new HbRegion(e.getEnvironment().getRegion()), rollForwardQueue, put);
-//            if (processed) {
-//                e.bypass();
-//                e.complete();
-//            }
+						//TODO -sf- make HbRegion() a constant field
+            final boolean processed = transactor.processPut(new HbRegion(e.getEnvironment().getRegion()), rollForwardQueue, put);
+            if (processed) {
+                e.bypass();
+                e.complete();
+            }
         }
     }
 

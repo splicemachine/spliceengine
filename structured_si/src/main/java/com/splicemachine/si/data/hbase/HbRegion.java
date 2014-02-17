@@ -15,6 +15,7 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -25,7 +26,7 @@ import static com.splicemachine.constants.SpliceConstants.CHECK_BLOOM_ATTRIBUTE_
  */
 public class HbRegion implements IHTable {
     static final Logger LOG = Logger.getLogger(HbRegion.class);
-    static final Result EMPTY_RESULT = new Result(new ArrayList<KeyValue>());
+    static final Result EMPTY_RESULT = new Result(Collections.<KeyValue>emptyList());
     
     final HRegion region;
 

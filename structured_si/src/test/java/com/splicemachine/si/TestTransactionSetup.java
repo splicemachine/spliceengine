@@ -83,8 +83,7 @@ public class TestTransactionSetup {
 								.transactionStore(transactionStore)
 								.clock(storeSetup.getClock())
 								.transactionTimeout(SIConstants.transactionTimeout)
-								.control(control)
-								.clientTransactor(cTransactor);
+								.control(control);
 				transactor = builder.build();
         if (!simple) {
             listener.setTransactor(transactor);

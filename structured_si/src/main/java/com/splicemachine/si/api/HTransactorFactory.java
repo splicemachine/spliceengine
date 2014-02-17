@@ -167,7 +167,6 @@ public class HTransactorFactory extends SIConstants {
 										.transactionStore(transactionStore)
 										.clock(new SystemClock())
 										.transactionTimeout(transactionTimeout)
-										.clientTransactor(clientTransactor)
 										.control(transactionManager).build();
 //						final Transactor transactor = new SITransactor<IHTable, OperationWithAttributes, Mutation, Put, Get, Scan, Result, KeyValue, byte[], ByteBuffer, Delete, Integer, OperationStatus, RegionScanner>
 //										(dataLib, writer, rowStore, transactionStore, new SystemClock(), transactionTimeout,

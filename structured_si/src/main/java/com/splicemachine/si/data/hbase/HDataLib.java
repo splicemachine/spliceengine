@@ -244,4 +244,9 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 		public KVPair toKVPair(Put put) {
 				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY).get(0).getValue());
 		}
+
+		@Override
+		public Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
+				return kvPair.toPut(family,column,longTransactionId);
+		}
 }

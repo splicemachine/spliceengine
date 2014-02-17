@@ -240,4 +240,11 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 		public KVPair toKVPair(LTuple lTuple) {
 				return new KVPair(lTuple.key,lTuple.values.get(0).getValue());
 		}
+
+		@Override
+		public LTuple toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
+				KeyValue kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
+				LTuple tuple = new LTuple(kvPair.getRow(),Lists.newArrayList(kv));
+				return tuple;
+		}
 }

@@ -100,6 +100,7 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
 
     public Boolean getDeletePutAttribute(OperationWithAttributes operation) {
         byte[] neededValue = operation.getAttribute(deletePutAttribute);
+				if(neededValue==null) return false;
         return dataLib.decode(neededValue, Boolean.class);
     }
 
@@ -116,6 +117,12 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
 				if(value==null) return null;
 				return new TransactionId(Bytes.toString(value));
     }
+
+		public String getTransactionid(OperationWithAttributes owa){
+				byte[] value = owa.getAttribute(transactionIdAttribute);
+				if(value==null) return null;
+				return Bytes.toString(value);
+		}
 
     void copyPutKeyValues(Put put, Put newPut, long timestamp) {
         for (KeyValue keyValue : dataLib.listPut(put)) {
