@@ -5,6 +5,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
@@ -135,10 +137,15 @@ public class SITransactor<Table,
 				for(Put mutation:mutations){
 						String txnId = dataStore.getTransactionid(mutation);
 						boolean isDelete = dataStore.getDeletePutAttribute(mutation);
-						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
 						byte[] row = dataLib.getPutKey(mutation);
+						Iterable<KeyValue> keyValues = dataLib.listPut(mutation);
+						boolean isSIDataOnly = true;
 						for(KeyValue keyValue:keyValues){
 								byte[] family = keyValue.getFamily();
+								if(Bytes.equals(family,SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES))
+										continue; //skip SI columns
+
+								isSIDataOnly = false;
 								byte[] column = keyValue.getQualifier();
 								byte[] value = keyValue.getValue();
 								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
@@ -157,6 +164,31 @@ public class SITransactor<Table,
 										columnMap.put(column,kvPairs);
 								}
 								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.INSERT));
+						}
+						if(isSIDataOnly){
+							/*
+							 * Someone attempted to write only SI data, which means that the values column is empty.
+							 * Put a KVPair which is an empty byte[] for all the columns in the data
+							 */
+								byte[] family = SpliceConstants.DEFAULT_FAMILY_BYTES;
+								byte[] column = KVPair.PACKED_COLUMN_KEY;
+								byte[] value = new byte[]{};
+								Map<byte[],Map<byte[],List<KVPair>>> familyMap = kvPairMap.get(txnId);
+								if(familyMap==null){
+										familyMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+										kvPairMap.put(txnId,familyMap);
+								}
+								Map<byte[],List<KVPair>> columnMap = familyMap.get(family);
+								if(columnMap==null){
+										columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+										familyMap.put(family,columnMap);
+								}
+								List<KVPair> kvPairs = columnMap.get(column);
+								if(kvPairs==null){
+										kvPairs = Lists.newArrayList();
+										columnMap.put(column,kvPairs);
+								}
+								kvPairs.add(new KVPair(row,value,isDelete? KVPair.Type.DELETE : KVPair.Type.EMPTY_COLUMN));
 						}
 				}
 				final Map<byte[],OperationStatus> statusMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -309,7 +341,7 @@ public class SITransactor<Table,
 								conflictResults = ensureNoWriteConflict(transaction,possibleConflicts);
 						}
 						conflictingChildren[i] = conflictResults.childConflicts;
-						finalPuts[i] = Pair.newPair(getMutationToRun(rollForwardQueue,
+						finalPuts[i] = Pair.newPair(getMutationToRun(table,rollForwardQueue,
 										dataAndLocks[i].getFirst(), family, qualifier,transaction, conflictResults),dataAndLocks[i].getSecond());
 				}
 				return finalPuts;
@@ -330,16 +362,32 @@ public class SITransactor<Table,
 		}
 
 
-		private Mutation getMutationToRun(RollForwardQueue rollForwardQueue, KVPair kvPair,
+		private Mutation getMutationToRun(Table table,RollForwardQueue rollForwardQueue, KVPair kvPair,
 																			byte[] family, byte[] column,
 																			ImmutableTransaction transaction, ConflictResults conflictResults) throws IOException{
 				long txnIdLong = transaction.getLongTransactionId();
-				Put newPut = dataLib.toPut(kvPair,family, column,transaction.getLongTransactionId());
+				Put newPut;
+				if(kvPair.getType() == KVPair.Type.EMPTY_COLUMN){
+						/*
+						 * WARNING: This requires a read of column data to populate! Try not to use
+						 * it unless no other option presents itself.
+						 *
+						 * In point of fact, this only occurs if someone sends over a non-delete Put
+						 * which has only SI data. In the even that we send over a row with all nulls
+						 * from actual Splice system, we end up with a KVPair that has a non-empty byte[]
+						 * for the values column (but which is nulls everywhere)
+						 */
+						newPut = dataLib.newPut(kvPair.getRow());
+						dataStore.setTombstonesOnColumns(table,txnIdLong,newPut);
+				}else if(kvPair.getType()== KVPair.Type.DELETE){
+						newPut = dataLib.newPut(kvPair.getRow());
+						dataStore.setTombstoneOnPut(newPut,txnIdLong);
+				}else
+						newPut = dataLib.toPut(kvPair,family, column,transaction.getLongTransactionId());
+
 				dataStore.suppressIndexing(newPut);
 				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
-				if(kvPair.getType()== KVPair.Type.DELETE)
-						dataStore.setTombstoneOnPut(newPut,txnIdLong);
-				else if(conflictResults.hasTombstone)
+				if(kvPair.getType()!= KVPair.Type.DELETE && conflictResults.hasTombstone)
 						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
 
 				byte[]row = kvPair.getRow();

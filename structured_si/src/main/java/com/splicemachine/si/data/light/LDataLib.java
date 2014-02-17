@@ -71,19 +71,20 @@ public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
             return (T)value;
         }
 
-				byte[] data = (byte[])value;
 				if(byte[].class.equals(type))
 						return (T)value;
 				if(String.class.equals(type))
-						return (T)Bytes.toString(data);
+						return (T)Bytes.toString(value);
 				else if(Long.class.equals(type))
-						return (T)(Long)Bytes.toLong(data);
-				else if(Integer.class.equals(type))
-						return (T)(Integer)Bytes.toInt(data);
-				else if(Boolean.class.equals(type))
-						return (T)(Boolean)Bytes.toBoolean(data);
+						return (T)(Long)Bytes.toLong(value);
+				else if(Integer.class.equals(type)){
+						if(value.length<4)
+								return (T)new Integer(-1);
+						return (T)(Integer)Bytes.toInt(value);
+				}else if(Boolean.class.equals(type))
+						return (T)(Boolean)Bytes.toBoolean(value);
 				else if(Byte.class.equals(type))
-						return (T)(Byte)data[0];
+						return (T)(Byte) value[0];
 				else
 						throw new RuntimeException("types don't match " + value.getClass().getName() + " " + type.getName() + " " + value);
     }

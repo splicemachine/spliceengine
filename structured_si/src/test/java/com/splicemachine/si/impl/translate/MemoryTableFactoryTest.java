@@ -18,7 +18,7 @@ import java.util.Set;
 public class MemoryTableFactoryTest {
     @Test
     public void foo() throws IOException {
-        final HStoreSetup storeSetup = HStoreSetup.create();
+        final HStoreSetup storeSetup = new HStoreSetup(false);
         final Object table0 = storeSetup.getReader().open("999");
         try {
             final OperationWithAttributes put = storeSetup.getDataLib().newPut(Bytes.toBytes("joe"));

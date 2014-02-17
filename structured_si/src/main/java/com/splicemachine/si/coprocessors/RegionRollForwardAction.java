@@ -12,12 +12,12 @@ import java.util.List;
  * @author Scott Fines
  * Date: 2/13/14
  */
-public class RegionRollForwardAction<Data> implements RollForwardAction {
-		private final IHTable region;
+public class RegionRollForwardAction<Table> implements RollForwardAction {
+		private final Table region;
 		private final Provider<TransactionStore> transactionStoreProvider;
 		private final Provider<DataStore> dataStoreProvider;
 
-		public RegionRollForwardAction(IHTable region,
+		public RegionRollForwardAction(Table region,
 																	 Provider<TransactionStore> transactionStoreProvider,
 																	 Provider<DataStore> dataStoreProvider) {
 				this.region = region;
@@ -31,10 +31,10 @@ public class RegionRollForwardAction<Data> implements RollForwardAction {
 				final Transaction transaction = transactionStoreProvider.get().getTransaction(transactionId);
 				final Boolean isFinished = transaction.getEffectiveStatus().isFinished();
 				boolean isCommitted = transaction.getEffectiveStatus().isCommitted();
-				if (isFinished && isCommitted) {
+				if (isFinished) {
 						for (byte[] row : rowList) {
 								try {
-										if (transaction.getEffectiveStatus().isCommitted()) {
+										if (isCommitted) {
 												dataStoreProvider.get().setCommitTimestamp(region, row, transaction.getLongTransactionId(), transaction.getEffectiveCommitTimestamp());
 										}
 										else {

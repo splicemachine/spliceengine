@@ -42,7 +42,7 @@ public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Muta
 		@Override
 		public Put createDeletePut(TransactionId transactionId, byte[] rowKey) {
 				Put put = new Put(rowKey);
-				setSI(put,false,transactionId.getId());
+				setSI(put,false,transactionId.toString());
 				put.add(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
 								Bytes.toBytes(SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING),
 								transactionId.getId(),SIConstants.EMPTY_BYTE_ARRAY);
@@ -74,11 +74,11 @@ public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Muta
 		}
 
 		private void initializeOperation(String transactionId, OperationWithAttributes op,boolean includeSIColumn) {
-				long txnId = transactionControl.transactionIdFromString(transactionId).getId();
-				setSI(op, includeSIColumn, txnId);
+//				long txnId = transactionControl.transactionIdFromString(transactionId).getId();
+				setSI(op, includeSIColumn, transactionId);
 		}
 
-		private void setSI(OperationWithAttributes op, boolean includeSIColumn, long txnId) {
+		private void setSI(OperationWithAttributes op, boolean includeSIColumn, String txnId) {
 				op.setAttribute(SIConstants.SI_NEEDED, includeSIColumn ? TRUE_BYTES : FALSE_BYTES);
 				op.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY, Bytes.toBytes(txnId));
 		}

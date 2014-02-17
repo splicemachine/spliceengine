@@ -25,7 +25,7 @@ public class HBaseStoreTest {
         testCluster.startMiniCluster(1);
 
         try {
-            final TestHTableSource tableSource = new TestHTableSource(testCluster, "table1", new String[]{"foo"});
+            final TestHTableSource tableSource = new TestHTableSource(testCluster, new String[]{"foo"});
             SDataLib dataLib = new HDataLib();
             STableReader reader = new HTableReader(tableSource);
             STableWriter writer = new HTableWriter();

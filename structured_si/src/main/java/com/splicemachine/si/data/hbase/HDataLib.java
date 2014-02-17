@@ -52,28 +52,29 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
         return convertToBytes(value, value.getClass());
     }
 
-    @Override
-    public Object decode(byte[] value, Class type) {
+    @SuppressWarnings("unchecked")
+		@Override
+    public <T> T decode(byte[] value, Class<T> type) {
         if (value == null) {
             return null;
         }
-        final byte[] bytes = value;
-        if (type.equals(Boolean.class)) {
-            return Bytes.toBoolean(bytes);
+				if (type.equals(Boolean.class)) {
+            return (T)(Boolean)Bytes.toBoolean(value);
         } else if (type.equals(Short.class)) {
-            return Bytes.toShort(bytes);
+            return (T)(Short)Bytes.toShort(value);
         } else if (type.equals(Integer.class)) {
-            return Bytes.toInt(bytes);
+						if(value.length<4) return (T)new Integer(-1);
+            return (T)(Integer)Bytes.toInt(value);
         } else if (type.equals(Long.class)) {
-            return Bytes.toLong(bytes);
+            return (T)(Long)Bytes.toLong(value);
         } else if (type.equals(Byte.class)) {
             if (value.length > 0) {
-                return value[0];
+                return (T)(Byte)value[0];
             } else {
                 return null;
             }
         } else if (type.equals(String.class)) {
-            return Bytes.toString(bytes);
+            return (T)Bytes.toString(value);
         }
         throw new RuntimeException("unsupported type conversion: " + type.getName());
     }

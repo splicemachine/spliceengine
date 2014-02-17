@@ -35,7 +35,8 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     public enum Type{
         INSERT((byte)0x01),
         UPDATE((byte)0x02),
-        DELETE((byte)0x03);
+        DELETE((byte)0x03),
+				EMPTY_COLUMN((byte)0x04);
 
 				private final byte typeCode;
 

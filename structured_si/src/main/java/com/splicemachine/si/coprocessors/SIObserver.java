@@ -61,16 +61,8 @@ public class SIObserver extends BaseRegionObserver {
         Tracer.traceRegion(tableName, region);
         tableEnvMatch = doesTableNeedSI(region);
 				RollForwardAction action = HTransactorFactory.getRollForwardFactory().newAction(new HbRegion(region));
-//        RollForwardAction<byte[]> action = new RollForwardAction<byte[]>() {
-//            @Override
-//            public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
-//                Transactor<IHTable, Mutation,Put, OperationStatus, byte[], ByteBuffer> transactor = HTransactorFactory.getTransactor();
-//                return transactor.rollForward(new HbRegion(region), transactionId, rowList);
-//            }
-//        };
-				rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
-//        rollForwardQueue = new SynchronousRollForwardQueue<byte[], ByteBuffer>(new HHasher(), action, 10000, 10 * S, 5 * 60 * S, tableName);
-//        rollForwardQueue = RollForwardQueueMap.registerRegion(tableName,new HHasher(),action);
+//				rollForwardQueue = new ConcurrentRollForwardQueue(action,10000,10000,5*60*S,timedRoller,rollerPool);
+				rollForwardQueue = new SynchronousRollForwardQueue(action,10000,10*S,5*60*S,tableName);
         RollForwardQueueMap.registerRollForwardQueue(tableName, rollForwardQueue);
         super.start(e);
     }

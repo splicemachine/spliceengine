@@ -31,17 +31,21 @@ public class SIFilterTest extends SIConstants {
     public void setUp() {
         storeSetup = new LStoreSetup();
         transactorSetup = new TestTransactionSetup(storeSetup, true);
-        transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
-				readController = transactorSetup.readController;
+				baseSetup();
     }
 
-    @After
+		protected void baseSetup() {
+				transactor = transactorSetup.transactor;
+				control = transactorSetup.control;
+				readController = transactorSetup.readController;
+		}
+
+		@After
     public void tearDown() throws Exception {
     }
 
     private void insertAge(TransactionId transactionId, String name, int age) throws IOException {
-        SITransactorTest.insertAgeDirect(useSimple, false, transactorSetup, storeSetup, transactionId, name, age);
+        TransactorTestUtility.insertAgeDirect(useSimple, false, transactorSetup, storeSetup, transactionId, name, age);
     }
 
     Result readEntireTuple(String name) throws IOException {
@@ -50,7 +54,7 @@ public class SIFilterTest extends SIConstants {
 
         byte[] key = dataLib.newRowKey(new Object[]{name});
         Object get = dataLib.newGet(key, null, null, null);
-        Object testSTable = reader.open(storeSetup.getPersonTableName());
+        Object testSTable = reader.open(storeSetup.getPersonTableName(false));
         try {
             return reader.get(testSTable, get);
         } finally {

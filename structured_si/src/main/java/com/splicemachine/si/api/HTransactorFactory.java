@@ -14,7 +14,9 @@ import com.splicemachine.si.jmx.TransactorStatus;
 import com.splicemachine.si.txn.ZooKeeperStatTimestampSource;
 import com.splicemachine.utils.Provider;
 import com.splicemachine.utils.Providers;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.*;
 
 import java.util.Map;

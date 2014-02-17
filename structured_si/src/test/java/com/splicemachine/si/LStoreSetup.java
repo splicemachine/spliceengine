@@ -49,12 +49,9 @@ public class LStoreSetup implements StoreSetup {
         return store;
     }
 
-    @Override
-    public String getPersonTableName() {
-        return "person";
-    }
+    @Override public String getPersonTableName(boolean usePacked) { return "person"; }
 
-    @Override
+		@Override
     public Clock getClock() {
         return clock;
     }

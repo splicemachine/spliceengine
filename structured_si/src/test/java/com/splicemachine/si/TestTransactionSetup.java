@@ -18,10 +18,25 @@ import java.util.Map;
  */
 @SuppressWarnings("unchecked")
 public class TestTransactionSetup {
-    final TransactionSchema transactionSchema = new TransactionSchema(SpliceConstants.TRANSACTION_TABLE, Bytes.toBytes("siFamily"),
-            Bytes.toBytes("permissionFamily"), -1, Bytes.toBytes("id"), Bytes.toBytes("begin"), Bytes.toBytes("parent"), Bytes.toBytes("dependent"),
-						Bytes.toBytes("allowWrites"), Bytes.toBytes("additive"), Bytes.toBytes("readUncommited"),
-            Bytes.toBytes("readCommitted"), Bytes.toBytes("keepAlive"), Bytes.toBytes("status"), Bytes.toBytes("commit"), Bytes.toBytes("globalCommit"), Bytes.toBytes("counter"));
+		final TransactionSchema transactionSchema = new TransactionSchema(
+						SIConstants.TRANSACTION_TABLE,
+						SIConstants.DEFAULT_FAMILY,
+						SIConstants.SI_PERMISSION_FAMILY,
+						SIConstants.EMPTY_BYTE_ARRAY,
+						SIConstants.TRANSACTION_ID_COLUMN,
+						SIConstants.TRANSACTION_START_TIMESTAMP_COLUMN,
+						SIConstants.TRANSACTION_PARENT_COLUMN_BYTES,
+						SIConstants.TRANSACTION_DEPENDENT_COLUMN_BYTES,
+						SIConstants.TRANSACTION_ALLOW_WRITES_COLUMN_BYTES,
+						SIConstants.TRANSACTION_ADDITIVE_COLUMN_BYTES,
+						SIConstants.TRANSACTION_READ_UNCOMMITTED_COLUMN_BYTES,
+						SIConstants.TRANSACTION_READ_COMMITTED_COLUMN_BYTES,
+						SIConstants.TRANSACTION_KEEP_ALIVE_COLUMN,
+						SIConstants.TRANSACTION_STATUS_COLUMN,
+						SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN,
+						SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
+						SIConstants.TRANSACTION_COUNTER_COLUMN
+		);
 		byte[] family;
     byte[]  ageQualifier;
     byte[] jobQualifier;
@@ -63,12 +78,19 @@ public class TestTransactionSetup {
 //        final String commitTimestampQualifierString = SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING;
         commitTimestampQualifier = SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
 				//noinspection unchecked
-				dataStore = new DataStore(dataLib, reader, writer, "si_needed",
+				dataStore = new DataStore(dataLib, reader, writer,
+								SIConstants.SI_NEEDED,
 								SIConstants.SI_NEEDED_VALUE,
 								SIConstants.ONLY_SI_FAMILY_NEEDED_VALUE,
-                "si_transaction_id", "si_delete_put",
+								SIConstants.SI_TRANSACTION_ID_KEY,
+								SIConstants.SI_DELETE_PUT,
 								SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
-                commitTimestampQualifier, tombstoneQualifier, -1, "zombie", -2, userColumnsFamilyName);
+                commitTimestampQualifier,
+								tombstoneQualifier,
+								SIConstants.EMPTY_BYTE_ARRAY,
+								SIConstants.SI_ANTI_TOMBSTONE_VALUE,
+								SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
+								userColumnsFamilyName);
         timestampSource = new SimpleTimestampSource();
 				SITransactor.Builder builder = new SITransactor.Builder();
 				control = new SITransactionManager(transactionStore,timestampSource,listener);
