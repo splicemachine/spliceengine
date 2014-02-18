@@ -14,10 +14,10 @@ import org.junit.rules.TestRule;
  * @author Scott Fines
  *         Created on: 8/1/13
  */
-//@Ignore("Takes forever and uses up lots of memory")
-public class CompoundNonUniqueIndexTest extends AbstractIndexTest{
+@Ignore("Takes forever and uses up lots of memory")
+public class CompoundNonUniqueIndexIT extends AbstractIndexTest{
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static String CLASS_NAME = CompoundNonUniqueIndexTest.class.getSimpleName().toUpperCase();
+    private static String CLASS_NAME = CompoundNonUniqueIndexIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static SpliceTableWatcher twoContiguousColumns                          = new SpliceTableWatcher("TWO_CONTIGUOUS",               spliceSchemaWatcher.schemaName,tableSchema);

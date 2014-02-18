@@ -16,7 +16,7 @@ public interface Importer extends Closeable {
 
     void process(String[] parsedRow) throws Exception;
 
-		void processBatch(String[]...parsedRows) throws Exception;
+		boolean processBatch(String[]...parsedRows) throws Exception;
 
     boolean isClosed();
 

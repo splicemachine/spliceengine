@@ -17,9 +17,9 @@ import org.junit.rules.TestRule;
  * Created on: 8/4/13
  */
 @Ignore("Ignored because setup seems to break something")
-public class CompoundNonUniqueIndexImportTest extends AbstractIndexTest{
+public class CompoundNonUniqueIndexImportIT extends AbstractIndexTest{
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static String CLASS_NAME = CompoundNonUniqueIndexImportTest.class.getSimpleName().toUpperCase();
+    private static String CLASS_NAME = CompoundNonUniqueIndexImportIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static SpliceTableWatcher twoCtgColumns                          = new SpliceTableWatcher("TWO_CTG",               spliceSchemaWatcher.schemaName,tableSchema);

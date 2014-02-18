@@ -97,13 +97,13 @@ public class ImportTask extends ZkTask{
 								}
 
 								try{
+										boolean shouldContinue;
 										do{
 												SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
 												String[][] lines = reader.nextRowBatch();
-												if(lines==null) break;
 
-												importer.processBatch(lines);
-										}while(true);
+												shouldContinue = importer.processBatch(lines);
+										}while(shouldContinue);
 								} catch (Exception e) {
 										throw new ExecutionException(e);
 								} finally{

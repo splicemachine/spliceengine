@@ -73,8 +73,8 @@ public class SequentialImporter implements Importer{
 		}
 
 		@Override
-		public void processBatch(String[]... parsedRows) throws Exception {
-			if(parsedRows==null) return;
+		public boolean processBatch(String[]... parsedRows) throws Exception {
+			if(parsedRows==null) return false;
 			if(writeTimer==null)
 					writeTimer = metricFactory.newTimer();
 
@@ -92,6 +92,7 @@ public class SequentialImporter implements Importer{
 						writeTimer.tick(count);
 				else
 						writeTimer.stopTiming();
+				return count==parsedRows.length; //return true if the batch was full
 		}
 
 		@Override

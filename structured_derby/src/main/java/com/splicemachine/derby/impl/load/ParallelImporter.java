@@ -123,10 +123,13 @@ public class ParallelImporter implements Importer{
     }
 
 		@Override
-		public void processBatch(String[]... parsedRows) throws Exception {
+		public boolean processBatch(String[]... parsedRows) throws Exception {
+				if(parsedRows==null) return false;
+
 				if(processTimer==null)
 						processTimer = metricFactory.newTimer();
 				processTimer.startTiming();
+
 				int count = 0;
 				for(String[] row:parsedRows){
 						if(row==null) break;
@@ -152,6 +155,7 @@ public class ParallelImporter implements Importer{
 						processTimer.tick(count);
 				else
 						processTimer.stopTiming();
+				return count == parsedRows.length;
 		}
 
 		@Override
@@ -281,6 +285,10 @@ public class ParallelImporter implements Importer{
 										if(position==0){
 												doImportRow(elements);
 										}
+								}
+								if(position!=0){
+										Arrays.fill(elements,position,elements.length,null);
+										doImportRow(elements);
 								}
 						}
             catch(Exception e){
