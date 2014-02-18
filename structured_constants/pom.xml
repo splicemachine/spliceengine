@@ -10,14 +10,7 @@
     <version>0.5rc8-SNAPSHOT</version>
   </parent>
   <dependencies>
-      <dependency>
-          <groupId>com.splicemachine</groupId>
-          <artifactId>test_utils</artifactId>
-          <version>0.5rc8-SNAPSHOT</version>
-          <classifier>${envClassifier}</classifier>
-          <type>jar</type>
-          <scope>test</scope>
-      </dependency>
+
     <dependency>
       <groupId>com.carrotsearch</groupId>
       <artifactId>hppc</artifactId>
