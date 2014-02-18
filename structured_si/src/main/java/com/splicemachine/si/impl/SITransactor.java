@@ -392,25 +392,6 @@ public class SITransactor<Table,
 
 				byte[]row = kvPair.getRow();
 				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
-				for(Long txnIdToRollForward : conflictResults.toRollForward){
-					dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
-				}
-				return newPut;
-		}
-
-
-		private Mutation getMutationToRun(Table table, RollForwardQueue<Data,Hashable> rollForwardQueue, KVPair kvPair,ImmutableTransaction transaction,ConflictResults conflictResults) throws IOException{
-				long txnIdLong = transaction.getLongTransactionId();
-				Put newPut = (Put) kvPair.toPut(txnIdLong);
-				dataStore.suppressIndexing(newPut);
-				dataStore.addTransactionIdToPutKeyValues(newPut, txnIdLong);
-				if(kvPair.getType()== KVPair.Type.DELETE)
-						dataStore.setTombstoneOnPut(newPut,txnIdLong);
-				else if(conflictResults.hasTombstone)
-						dataStore.setAntiTombstoneOnPut(newPut, txnIdLong);
-
-				Data row = (Data) kvPair.getRow();
-				dataStore.recordRollForward(rollForwardQueue,txnIdLong, row,false);
 				if(conflictResults.toRollForward!=null){
 						for(Long txnIdToRollForward : conflictResults.toRollForward){
 								dataStore.recordRollForward(rollForwardQueue,txnIdToRollForward,row,false);
@@ -418,6 +399,7 @@ public class SITransactor<Table,
 				}
 				return newPut;
 		}
+
 
 		private void resolveChildConflicts(Table table, Put put, Integer lock, Set<Long> conflictingChildren) throws IOException {
         if (conflictingChildren!=null && !conflictingChildren.isEmpty()) {

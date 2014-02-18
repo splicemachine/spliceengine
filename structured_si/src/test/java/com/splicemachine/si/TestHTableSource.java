@@ -14,6 +14,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TestHTableSource implements HTableSource {
 		private Map<String, HTable> hTables = new HashMap<String, HTable>();
@@ -21,10 +23,11 @@ public class TestHTableSource implements HTableSource {
 		private final HBaseTestingUtility testCluster;
 		private final String[] families;
 
+		private final ExecutorService tableExecutorService = Executors.newCachedThreadPool();
+
 		public TestHTableSource(HBaseTestingUtility testCluster,  String[] families) {
 				this.testCluster = testCluster;
 				this.families = families;
-//				addTable(testCluster, tableName, families);
 		}
 
 		public void addTable(HBaseTestingUtility testCluster, String tableName, String[] families) {
@@ -48,8 +51,6 @@ public class TestHTableSource implements HTableSource {
 						descriptor.addFamily(family);
 				}
 				testCluster.getHBaseAdmin().createTable(descriptor);
-				HTable table = new HTable(new Configuration(testCluster.getConfiguration()), tableName);
-				hTables.put(tableName,table);
 		}
 
 		public void addPackedTable(String tableName) throws IOException {
@@ -64,13 +65,11 @@ public class TestHTableSource implements HTableSource {
 						descriptor.addFamily(family);
 				}
 				testCluster.getHBaseAdmin().createTable(descriptor);
-				HTable table = new HTable(new Configuration(testCluster.getConfiguration()), tableName);
-				hTables.put(tableName,table);
 		}
 
 		@Override
-		public HTable getTable(String tableName) {
-				return hTables.get(tableName);
+		public HTable getTable(String tableName) throws IOException {
+				return new HTable(new Configuration(testCluster.getConfiguration()), Bytes.toBytes(tableName),tableExecutorService);
 		}
 
 		protected byte[][] getFamilyBytes(String[] families) {
