@@ -12,6 +12,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -20,6 +21,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +53,7 @@ import static org.mockito.Mockito.*;
  * Created on: 10/1/13
  */
 @RunWith(Parameterized.class)
+@Ignore
 public class TableScanOperationTest {
     private static final KryoPool kryoPool = mock(KryoPool.class);
 
