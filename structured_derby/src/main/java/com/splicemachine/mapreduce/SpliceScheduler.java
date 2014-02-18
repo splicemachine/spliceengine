@@ -1,24 +1,8 @@
 package com.splicemachine.mapreduce;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.server.tasktracker.TTConfig;
-
-import com.splicemachine.mapreduce.SpliceBulkImportInput.TeraFileSplit;
 
 public class SpliceScheduler {
+	/*
 	  static String USE = "mapreduce.terasort.use.terascheduler";
 	  private static final Log LOG = LogFactory.getLog(SpliceScheduler.class);
 	  private Split[] splits;
@@ -192,6 +176,7 @@ public class SpliceScheduler {
 	   *    best host as the only host.
 	   * @throws IOException
 	   */
+	/*
 	  public List<InputSplit> getNewFileSplits() throws IOException {
 	    solve();
 	    FileSplit[] result = new FileSplit[realSplits.length];
@@ -235,5 +220,5 @@ public class SpliceScheduler {
 	    System.out.println("left over: " + leftOvers.size());
 	    LOG.info("done");
 	  }
-
+*/
 	}
