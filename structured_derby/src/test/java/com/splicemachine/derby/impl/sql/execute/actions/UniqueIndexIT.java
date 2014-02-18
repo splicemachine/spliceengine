@@ -1,24 +1,27 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -91,7 +94,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
         //now add some data
         String name = "sfines";
         int value = 2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_1),name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_1), name, value));
 
         //now check that we can get data out for the proper key
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME_1),name));
@@ -117,7 +121,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_2),name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", this.getTableReference(TABLE_NAME_2), name, value));
         //create the index
         new SpliceIndexWatcher(TABLE_NAME_2,CLASS_NAME,INDEX_21,CLASS_NAME,"(name)",true).starting(null);
 
@@ -142,7 +146,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test(timeout=10000)
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_3),"sfines",2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", this.getTableReference(TABLE_NAME_3), "sfines", 2));
         //create the index
         new SpliceIndexWatcher(TABLE_NAME_3,CLASS_NAME,INDEX_31,CLASS_NAME,"(name)",true).starting(null);
         //add some more data
@@ -222,7 +226,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect value returned!",value,val);
             results.add(String.format("name:%s,value:%d",retName,val));
         }
-        Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
+        Assert.assertEquals("Incorrect number of rows returned!", 2, results.size());
     }
     /**
      * Tests that we can safely delete a record, and have it
@@ -242,8 +246,48 @@ public class UniqueIndexIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
+    /**
+     * Tests that we can safely delete a record, and have it
+     * percolate through to the index.
+     *
+     * NULL values should NOT be deleted.
+     */
+    @Test
+    public void testCanDeleteEntryWithNulls() throws Exception{
+        new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
+        String name = "sfines";
+        int value = 2;
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_6), name, value));
 
-    @Ignore
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
+                                                    this.getTableReference(TABLE_NAME_6)));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+                                                    this.getTableReference(TABLE_NAME_6)));
+
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_6));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println("1:");
+        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_6)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println("2:");
+        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_6)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        System.out.println("3:");
+        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+    }
+
     @Test(timeout = 10000)
     public void testCanDeleteThenInsertEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
