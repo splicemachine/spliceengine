@@ -88,7 +88,7 @@ public class OperationSink {
 						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
 						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
 						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
-            String txnId = getTransactionId(destinationTable);
+            String txnId = getTransactionId(spliceRuntimeContext, destinationTable);
 						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
 
             ExecRow row;
@@ -152,8 +152,8 @@ public class OperationSink {
 				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
     }
 
-		private String getTransactionId(byte[] destinationTable) {
-				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {
+				byte[] tempTableBytes = context.getTempTable().getTempTableName();
 				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.

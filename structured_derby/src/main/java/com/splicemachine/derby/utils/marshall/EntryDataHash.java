@@ -24,7 +24,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		}
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
-				super(keyColumns, keySortOrder,true);
+				super(keyColumns, keySortOrder,true,kryoPool);
 				this.kryoPool = kryoPool;
 		}
 

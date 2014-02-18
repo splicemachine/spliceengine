@@ -3,11 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -74,6 +76,7 @@ import static org.mockito.Mockito.*;
 @RunWith(Parameterized.class)
 public class InsertOperationTest {
 
+		private static final TempTable table = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
     private static final KryoPool kryoPool = mock(KryoPool.class);
     private static final Snowflake snowflake = new Snowflake((short)1);
     private static final Random random = new Random(0l);
@@ -167,7 +170,7 @@ public class InsertOperationTest {
         operation.init(mock(SpliceOperationContext.class));
         when(mockInstructions.getTopOperation()).thenReturn(operation);
 
-        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext());
+        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext(table,kryoPool));
         resultSet.open();
 
         Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());
@@ -302,7 +305,7 @@ public class InsertOperationTest {
 
                 OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
 
-                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext());
+                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 
