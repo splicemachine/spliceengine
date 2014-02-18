@@ -1,30 +1,22 @@
 package com.splicemachine.mapreduce;
 
-import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
-import org.apache.hadoop.util.IndexedSortable;
-import org.apache.hadoop.util.QuickSort;
-import org.apache.hadoop.util.StringUtils;
 
 public class SpliceBulkImportInput extends FileInputFormat<Text,Text> {
 
+	@Override
+	public RecordReader<Text, Text> createRecordReader(InputSplit split,
+			TaskAttemptContext context) throws IOException,
+			InterruptedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+		/*
 		  static final String PARTITION_FILENAME = "_partition.lst";
 		  private static final String NUM_PARTITIONS = "mapreduce.terasort.num.partitions";
 		  private static final String SAMPLE_SIZE = "mapreduce.terasort.partitions.sample";
@@ -105,6 +97,7 @@ public class SpliceBulkImportInput extends FileInputFormat<Text,Text> {
 		     * @param numPartitions the desired number of partitions
 		     * @return an array of size numPartitions - 1 that holds the split points
 		     */
+	/*
 		    Text[] createPartitions(int numPartitions) {
 		      int numRecords = records.size();
 		      System.out.println("Making " + numPartitions + " from " + numRecords + 
@@ -123,7 +116,6 @@ public class SpliceBulkImportInput extends FileInputFormat<Text,Text> {
 		      return result;
 		    }
 		  }
-		  
 		  /**
 		   * Use the input splits to take samples of the input and generate sample
 		   * keys. By default reads 100,000 keys from 10 locations in the input, sorts
@@ -132,6 +124,7 @@ public class SpliceBulkImportInput extends FileInputFormat<Text,Text> {
 		   * @param partFile where to write the output file to
 		   * @throws Throwable if something goes wrong
 		   */
+	/*
 		  public static void writePartitionFile(final JobContext job, 
 		      Path partFile) throws Throwable  {
 		    long t1 = System.currentTimeMillis();
@@ -324,4 +317,5 @@ public class SpliceBulkImportInput extends FileInputFormat<Text,Text> {
 		    }
 		    return lastResult;
 		  }
+		  */
 		}
