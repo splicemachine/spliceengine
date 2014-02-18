@@ -25,7 +25,7 @@ import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.i18n.MessageService;
 import org.apache.derby.iapi.services.sanity.SanityManager;
-
+import org.joda.time.DateTime;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -35,7 +35,6 @@ import java.sql.Timestamp;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
-
 import java.util.Calendar;
 
 /**
@@ -211,6 +210,11 @@ public abstract class DataType
 		throw dataTypeConversion("java.sql.Timestamp");
 	}
 
+    public DateTime	getDateTime() throws StandardException
+    {
+        throw dataTypeConversion("org.joda.time.DateTime");
+    }
+
 	/**
 	 * Gets the value in the data stream descriptor as an InputStream.
 	 * Throws an exception if the data value is not receivable as a stream.
@@ -304,6 +308,10 @@ public abstract class DataType
         setValue( theValue, (Calendar) null);
 	}
 
+    public void setValue(DateTime theValue) throws StandardException
+    {
+        throwLangSetMismatch("java.sql.DateTime");
+    }
 	/**
 	 * Set the value of this DataValueDescriptor.
 	 * At DataType level just throws an error lower classes will override

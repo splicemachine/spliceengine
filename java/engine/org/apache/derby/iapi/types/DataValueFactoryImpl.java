@@ -1193,7 +1193,7 @@ abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl
         // on first access. This is necessary because the Monitor can't find
         // the Database at boot time, because the Database is not done booting.
         // See LanguageConnectionFactory.
-        private LocaleFinder getLocaleFinder()
+        protected LocaleFinder getLocaleFinder()
         {
                 if (localeFinder == null)
                 {

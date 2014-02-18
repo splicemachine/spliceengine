@@ -390,6 +390,11 @@ public final class SQLTimestamp extends DataType
 		setValue(value, (Calendar) null);
 	}
 
+    public SQLTimestamp(org.joda.time.DateTime value) throws StandardException
+    {
+        setValue(value);
+    }
+
 	SQLTimestamp(int encodedDate, int encodedTime, int nanos) {
 
 		this.encodedDate = encodedDate;
@@ -585,7 +590,10 @@ public final class SQLTimestamp extends DataType
 	 */
 	void setObject(Object theValue) throws StandardException
 	{
-		setValue((Timestamp) theValue);
+        if (theValue instanceof DateTime)
+            setValue((DateTime) theValue);
+        else
+            setValue((Timestamp) theValue);
 	}
 	
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
@@ -633,6 +641,12 @@ public final class SQLTimestamp extends DataType
 		setNumericTimestamp(value, cal);
 	}
 
+    public void setValue(DateTime value)
+            throws StandardException
+    {
+        restoreToNull();
+        setNumericTimestamp(value);
+    }
 
 	public void setValue(String theValue)
 	    throws StandardException
@@ -838,9 +852,16 @@ public final class SQLTimestamp extends DataType
 		t.setNanos(nanos);
 		return t;
 	}
-	
+
+    public DateTime getDateTime() {
+        DateTime dt = createDateTime();
+        return dt;
+    }
+
 	private DateTime createDateTime(){
-		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime), 0);
+		return new DateTime(SQLDate.getYear(encodedDate), SQLDate.getMonth(encodedDate), SQLDate.getDay(encodedDate),
+                            SQLTime.getHour(encodedTime),  SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime),
+                            nanos/1000000);
     }
 
     private void setCalendar(Calendar cal)
@@ -881,6 +902,23 @@ public final class SQLTimestamp extends DataType
 		/* encoded date should already be 0 for null */
 	}
 
+    private void setNumericTimestamp(DateTime dt) throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(isNull(), "setNumericTimestamp called when already set");
+        }
+        if (dt != null)
+        {
+            encodedDate = computeEncodedDate(dt);
+            encodedTime = computeEncodedTime(dt);
+            nanos = (int)((dt.getMillis()%1000) * 1000000);
+            if (nanos < 0) {
+                nanos = 1000000000 + nanos;
+            }
+        }
+		/* encoded date should already be 0 for null */
+    }
 	/**
 		computeEncodedDate sets the date in a Calendar object
 		and then uses the SQLDate function to compute an encoded date

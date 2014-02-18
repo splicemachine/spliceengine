@@ -81,7 +81,7 @@
       <classpath>
         <!--pathelement location="${oro}"/-->
         <pathelement path="${java15compile.classpath}"/>
-        <pathelement path="${junit}"/>
+        <pathelement path="${joda-time};${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
     </javac>

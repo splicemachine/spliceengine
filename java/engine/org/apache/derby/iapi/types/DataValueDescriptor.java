@@ -24,7 +24,7 @@ package org.apache.derby.iapi.types;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
 
 import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.Orderable;
+import org.joda.time.DateTime;
 import org.apache.derby.iapi.services.io.Storable;
 
 import java.io.InputStream;
@@ -259,7 +259,10 @@ public interface DataValueDescriptor extends Storable, Orderable
 	 *
 	 * @exception StandardException   Thrown on error
 	 */
-	Timestamp	getTimestamp(java.util.Calendar cal) throws StandardException;
+	Timestamp    getTimestamp(java.util.Calendar cal) throws StandardException;
+
+
+    DateTime  getDateTime() throws StandardException;
 
 	/**
 	 * Gets the value in the data value descriptor as a Java Object.
@@ -555,6 +558,14 @@ public interface DataValueDescriptor extends Storable, Orderable
 	 */
 	public void setValue(Timestamp theValue, Calendar cal) throws StandardException;
 
+    /**
+     * Set the value of this DataValueDescriptor.
+     *
+     * @param theValue	The Timestamp value to set this DataValueDescriptor to
+     * @param cal The time zone from the calendar is used to construct the database timestamp value
+     *
+     */
+    public void setValue(DateTime theValue) throws StandardException;
 	/**
 	 * Set the value of this DataValueDescriptor.
 	 *

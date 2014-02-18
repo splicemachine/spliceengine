@@ -87,7 +87,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${xmlApis};${java15compile.classpath}"/>
+        <pathelement path="${joda-time};${xmlApis};${java15compile.classpath}"/>
         <path refid="lib.path.id"/>
       </classpath>
       <include name="${derby.dir}/iapi/types/SqlXmlUtil.java"/>
@@ -106,7 +106,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${compile.classpath}"/>
+        <pathelement path="${joda-time};${compile.classpath}"/>
         <path refid="lib.path.id"/>
       </classpath>
       <include name="${derby.dir}/iapi/types/*.java"/>
@@ -128,7 +128,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${joda-time};${java15compile.classpath}"/>
         <path refid="lib.path.id"/>
       </classpath>
       <include name="${derby.dir}/iapi/types/SQLDecimal.java"/>
