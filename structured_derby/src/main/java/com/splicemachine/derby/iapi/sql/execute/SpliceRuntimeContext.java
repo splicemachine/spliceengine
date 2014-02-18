@@ -4,8 +4,10 @@ import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.stats.*;
+import com.splicemachine.utils.kryo.KryoPool;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -41,9 +43,17 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		 */
 		private boolean recordTraceMetrics;
 		private String xplainSchema;
+		private transient KryoPool kryoPool;
+		private TempTable tempTable;
 
 		public SpliceRuntimeContext() {
-				this.hashBucket = SpliceDriver.driver().getTempTable().getCurrentSpread().bucket((int) System.currentTimeMillis());
+				this(SpliceDriver.driver().getTempTable(),SpliceDriver.driver().getKryoPool());
+		}
+
+		public SpliceRuntimeContext(TempTable tempTable,KryoPool kryoPool){
+				this.tempTable = tempTable;
+				this.hashBucket = tempTable.getCurrentSpread().bucket((int) System.currentTimeMillis());
+				this.kryoPool = kryoPool;
 		}
 
 		public static SpliceRuntimeContext generateLeftRuntimeContext(int resultSetNumber) {
@@ -230,6 +240,14 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		public String getXplainSchema() { return xplainSchema; }
 		public void setXplainSchema(String xplainSchema) {
 				this.xplainSchema = xplainSchema;
+		}
+
+		public KryoPool getKryoPool() {
+				return kryoPool;
+		}
+
+		public TempTable getTempTable() {
+				return tempTable;
 		}
 
 		public static enum Side {
