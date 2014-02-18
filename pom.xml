@@ -302,13 +302,15 @@
             <configuration>
               <argLine>-Xms256M -Xmx1024M</argLine>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
-              <includes>
-                <include>**/*Test.java</include>
-              </includes>
-              <excludes>
-                <!-- Skip ITs -->
-                <exclude>**/*IT.java</exclude>
-              </excludes>
+                <includes>
+                    <include>**/*Suite.java</include>
+                    <include>**/*Test.java</include>
+                </includes>
+                <excludes>
+                    <!-- Skip ITs -->
+                    <exclude>**/*IT.java</exclude>
+                    <exclude>**/si/**/*Test.java</exclude>
+                </excludes>
             </configuration>
           </plugin>
           <plugin>

@@ -724,7 +724,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 
             // Perform tentative DDL change
             TransactionId tentativeTransaction;
-            Transactor transactor = HTransactorFactory.getTransactor();
+            TransactionManager transactor = HTransactorFactory.getTransactionManager();
             try {
                 tentativeTransaction = transactor.beginTransaction();
             } catch (IOException e) {
