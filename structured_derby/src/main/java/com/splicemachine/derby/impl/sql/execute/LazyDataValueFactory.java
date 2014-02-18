@@ -4,17 +4,20 @@ import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DecimalDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
+import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.types.*;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 
 public class LazyDataValueFactory extends J2SEDataValueFactory{
 
     private static final StringDVDSerializer stringSerializer = new StringDVDSerializer();
     private static final DoubleDVDSerializer doubleSerializer = new DoubleDVDSerializer();
     private static final DecimalDVDSerializer decimalSerializer = new DecimalDVDSerializer();
+    private static final TimestampDVDSerializer timestampSerializer = new TimestampDVDSerializer();
 
     public StringDataValue getVarcharDataValue(String value) {
         return new LazyStringDataValueDescriptor(new SQLVarchar(value), stringSerializer);
@@ -92,6 +95,53 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
         return dataValue;
     }
 
+    @Override
+    public DateTimeDataValue getDataValue(Timestamp value,
+                                          DateTimeDataValue previous)
+            throws StandardException
+    {
+        if (previous != null && previous instanceof LazyTimestampDataValueDescriptor) {
+            previous.setValue(value);
+        } else {
+            previous = new LazyTimestampDataValueDescriptor(new SQLTimestamp(value), timestampSerializer);
+        }
+        return previous;
+    }
+
+    @Override
+    public DateTimeDataValue getTimestampValue( String timestampStr, boolean isJdbcEscape) throws StandardException
+    {
+        SQLTimestamp ts = new SQLTimestamp( timestampStr, isJdbcEscape, getLocaleFinder());
+        return new LazyTimestampDataValueDescriptor(ts, timestampSerializer);
+    }
+
+    @Override
+    public DateTimeDataValue getTimestamp( DataValueDescriptor date, DataValueDescriptor time) throws StandardException
+    {
+        return new LazyTimestampDataValueDescriptor(new SQLTimestamp( date, time), timestampSerializer);
+    }
+
+    @Override
+    public DateTimeDataValue getNullTimestamp(DateTimeDataValue dataValue)
+    {
+        if (dataValue == null)
+        {
+            try
+            {
+                return new LazyTimestampDataValueDescriptor(new SQLTimestamp((Timestamp) null), timestampSerializer);
+            }
+            catch( StandardException se)
+            {
+                return null;
+            }
+        }
+        else
+        {
+            dataValue.setToNull();
+            return dataValue;
+        }
+    }
+
     public static DataValueDescriptor getLazyNull(int formatId) throws StandardException {
         switch (formatId) {
         /* Wrappers */
@@ -107,7 +157,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_REF_ID: return new SQLRef();
             case StoredFormatIds.SQL_SMALLINT_ID: return new SQLSmallint();
             case StoredFormatIds.SQL_TIME_ID: return new SQLTime();
-            case StoredFormatIds.SQL_TIMESTAMP_ID: return new SQLTimestamp();
+            case StoredFormatIds.SQL_TIMESTAMP_ID: return new LazyTimestampDataValueDescriptor(new SQLTimestamp(), timestampSerializer);
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
             case StoredFormatIds.SQL_VARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLVarchar(), stringSerializer);
             case StoredFormatIds.SQL_LONGVARCHAR_ID: return new LazyStringDataValueDescriptor(new SQLLongvarchar(), stringSerializer);
@@ -129,6 +179,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_VARCHAR_ID: return stringSerializer;
             case StoredFormatIds.SQL_LONGVARCHAR_ID: return stringSerializer;
             case StoredFormatIds.SQL_CLOB_ID: return stringSerializer;
+            case StoredFormatIds.SQL_TIMESTAMP_ID: return timestampSerializer;
             default: throw new UnsupportedOperationException("No Serializer for format ID: " + formatId);
         }
     }

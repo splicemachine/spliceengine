@@ -4,14 +4,10 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
-import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
+import com.splicemachine.derby.impl.sql.execute.LazyTimestampDataValueDescriptor;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.IndexRow;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
@@ -37,7 +33,6 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoPool;
 
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -583,38 +578,39 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SpliceStddevSamp.class,145);
         instance.register(Properties.class,EXTERNALIZABLE_SERIALIZER,146);
 
-				instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
-				instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
-				instance.register(org.apache.derby.impl.sql.execute.IndexRow.class,
-								new ValueRowSerializer<org.apache.derby.impl.sql.execute.IndexRow>(){
-										@Override
-										public void write(Kryo kryo, Output output, org.apache.derby.impl.sql.execute.IndexRow object) {
-												super.write(kryo, output, object);
-												boolean[] orderedNulls = object.getOrderedNulls();
-												output.writeInt(orderedNulls.length);
-												for (boolean orderedNull : orderedNulls) {
-														output.writeBoolean(orderedNull);
-												}
-										}
+        instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
+        instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
+        instance.register(org.apache.derby.impl.sql.execute.IndexRow.class,
+                new ValueRowSerializer<org.apache.derby.impl.sql.execute.IndexRow>(){
+                    @Override
+                    public void write(Kryo kryo, Output output, org.apache.derby.impl.sql.execute.IndexRow object) {
+                        super.write(kryo, output, object);
+                        boolean[] orderedNulls = object.getOrderedNulls();
+                        output.writeInt(orderedNulls.length);
+                        for (boolean orderedNull : orderedNulls) {
+                            output.writeBoolean(orderedNull);
+                        }
+                    }
 
-										@Override
-										public org.apache.derby.impl.sql.execute.IndexRow read(Kryo kryo,
-																																					 Input input,
-																																					 Class<org.apache.derby.impl.sql.execute.IndexRow> type) {
-												org.apache.derby.impl.sql.execute.IndexRow row = super.read(kryo, input, type);
-												boolean[] orderedNulls = new boolean[input.readInt()];
-												for(int i=0;i<orderedNulls.length;i++){
-														orderedNulls[i] = input.readBoolean();
-												}
-												row.setOrderedNulls(orderedNulls);
-												return row;
-										}
+                    @Override
+                    public org.apache.derby.impl.sql.execute.IndexRow read(Kryo kryo,
+                                                                           Input input,
+                                                                           Class<org.apache.derby.impl.sql.execute.IndexRow> type) {
+                        org.apache.derby.impl.sql.execute.IndexRow row = super.read(kryo, input, type);
+                        boolean[] orderedNulls = new boolean[input.readInt()];
+                        for(int i=0;i<orderedNulls.length;i++){
+                            orderedNulls[i] = input.readBoolean();
+                        }
+                        row.setOrderedNulls(orderedNulls);
+                        return row;
+                    }
 
-										@Override
-										protected org.apache.derby.impl.sql.execute.IndexRow newType(int size) {
-												return org.apache.derby.impl.sql.execute.IndexRow.createRaw(size);
-										}
-								},149);
+                    @Override
+                    protected org.apache.derby.impl.sql.execute.IndexRow newType(int size) {
+                        return org.apache.derby.impl.sql.execute.IndexRow.createRaw(size);
+                    }
+                },149);
 
-		}
+        instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
+	}
 }

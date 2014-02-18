@@ -64,6 +64,8 @@ public class DerbyBytesUtil {
                 bytes = decoder.getNextRawDouble();
             else if(colFormatId==StoredFormatIds.SQL_REAL_ID)
                 bytes = decoder.getNextRawFloat();
+            else if (colFormatId==StoredFormatIds.SQL_TIMESTAMP_ID)
+                bytes = decoder.getNextRawLong();
             else
                 bytes = decoder.getNextRaw();
 
