@@ -55,7 +55,9 @@ public class SIConstants extends SpliceConstants {
 		public static final byte[] SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES = Bytes.toBytes(SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_STRING);
 
     public static final short SI_NEEDED_VALUE = (short) 0;
+		public static final byte[] SI_NEEDED_VALUE_BYTES = Bytes.toBytes(SI_NEEDED_VALUE);
     public static final short ONLY_SI_FAMILY_NEEDED_VALUE = (short) 1;
+		public static final byte[] ONLY_SI_FAMILY_NEEDED_VALUE_BYTES = Bytes.toBytes(ONLY_SI_FAMILY_NEEDED_VALUE);
 
 		@Parameter public static final String TRANSACTION_KEEP_ALIVE_INTERVAL = "splice.txn.keepAliveIntervalMs";
 		@DefaultValue(TRANSACTION_KEEP_ALIVE_INTERVAL) public static final int DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL=60000;

@@ -35,6 +35,12 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
 		}
 
 		@Override
+		public void markOccupiedUntyped(int position) {
+				super.markOccupiedUntyped(position);
+				remainingFields.clear(position);
+		}
+
+		@Override
 		protected byte[] getIndex() {
 				byte[] data = encodedIndexCache.get(remainingFields);
 				if(data==null){

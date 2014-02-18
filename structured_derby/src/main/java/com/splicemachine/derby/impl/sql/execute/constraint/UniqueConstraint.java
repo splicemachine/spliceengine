@@ -31,8 +31,7 @@ import java.util.*;
  */
 public class UniqueConstraint implements Constraint {
     private static final Logger logger = Logger.getLogger(UniqueConstraint.class);
-		private static byte[] predicateBytes;
-		private static byte[] txnIdBytes;
+		private static byte[] predicateBytes = EntryPredicateFilter.emptyPredicate().toBytes();
 		private final ConstraintContext constraintContext;
 
     public UniqueConstraint(ConstraintContext constraintContext){
@@ -47,17 +46,12 @@ public class UniqueConstraint implements Constraint {
         }
     };
 
-    private static Get createGet(KVPair kvPair,String txnId) throws IOException {
-				if(txnIdBytes==null){
-						txnIdBytes = Bytes.toBytes(txnId);
-				}
-				if(predicateBytes==null)
-						predicateBytes = EntryPredicateFilter.emptyPredicate().toBytes();
+    private Get createGet(KVPair kvPair,String txnId) throws IOException {
+				byte[] txnIdBytes = Bytes.toBytes(txnId);
 				Get get = new Get(kvPair.getRow());
-				get.setAttribute(SIConstants.SI_NEEDED,Bytes.toBytes(true));
+				get.setAttribute(SIConstants.SI_NEEDED,SIConstants.ONLY_SI_FAMILY_NEEDED_VALUE_BYTES);
 				get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,txnIdBytes);
-				get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateBytes);
-
+//				get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateBytes);
 				get.addFamily(SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES);
         return get;
     }

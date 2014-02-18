@@ -7,12 +7,13 @@
   <artifactId>structured_hbase</artifactId>
   <name>structured_hbase</name>
   <description>Set of modules for getting hbase to function in structure</description>
-  <modules>
-    <module>structured_constants</module>
-    <module>structured_si</module>
-    <module>structured_derby</module>
-    <module>structured_test</module>
-  </modules>
+    <modules>
+        <module>structured_constants</module>
+        <module>structured_si</module>
+        <module>structured_derby</module>
+        <module>structured_test</module>
+        <module>test_utils</module>
+    </modules>
   <scm>
     <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
     <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>

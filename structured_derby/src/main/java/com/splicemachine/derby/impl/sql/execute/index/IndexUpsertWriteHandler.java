@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -186,42 +187,46 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 //fill in all the index fields that have changed
                 for(int newPos=updateIndex.nextSetBit(0);newPos>=0 && newPos<=indexedColumns.length();newPos=updateIndex.nextSetBit(newPos+1)){
                     if(indexedColumns.get(newPos)){
-												int offset = newDecoder.offset();
-												newPutDecoder.seekForward(newDecoder,newPos);
-												int length = newDecoder.offset()-offset-1;
-												byte[] data = newDecoder.array();
-                        ByteBuffer newBuffer = newPutDecoder.nextAsBuffer(newDecoder, newPos); // next indexed key
-                        if(descColumns.get(mainColToIndexPosMap[newPos])){
-                            accumulate(newKeyAccumulator,updateIndex,newPos,getDescendingArray(data,offset,length),0,length);
-												}else{
-                            accumulate(newKeyAccumulator,updateIndex,newPos,data,offset,length);
-												}
-                        accumulate(newRowAccumulator,updateIndex,newPos,data,offset,length);
+												int mappedPosition = mainColToIndexPosMap[newPos];
+												ByteSlice rowSlice = newRowAccumulator.getField(mappedPosition,true);
+												newPutDecoder.nextField(newDecoder,newPos,rowSlice);
+												ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
+												keySlice.set(rowSlice,descColumns.get(mappedPosition));
+												occupy(newKeyAccumulator,updateIndex,newPos);
+												occupy(newRowAccumulator,updateIndex,newPos);
                     }
                 }
 
                 BitSet newRemainingCols = newKeyAccumulator.getRemainingFields();
                 for(int oldPos=oldIndex.nextSetBit(0);oldPos>=0&&oldPos<=indexedColumns.length();oldPos=updateIndex.nextSetBit(oldPos+1)){
                     if(indexedColumns.get(oldPos)){
-												int offset = oldDecoder.offset();
-												oldDataDecoder.seekForward(oldDecoder,oldPos);
-												int length = oldDecoder.offset()-offset-1;
-												byte[] data = oldDecoder.array();
+												int mappedPosition = mainColToIndexPosMap[oldPos];
+												ByteSlice oldKeySlice = oldKeyAccumulator.getField(mappedPosition,true);
+												oldDataDecoder.nextField(oldDecoder,oldPos,oldKeySlice);
+												occupy(oldKeyAccumulator,oldIndex,oldPos);
+
 //                        ByteBuffer oldBuffer = oldDataDecoder.nextAsBuffer(oldDecoder, oldPos);
                         //fill in the old key for checking
-                        if(descColumns.get(mainColToIndexPosMap[oldPos]))
-                            accumulate(oldKeyAccumulator,oldIndex,oldPos,getDescendingArray(data,offset,length),0,length);
-                        else
-                            accumulate(oldKeyAccumulator,oldIndex,oldPos,data,offset,length);
+//                        if(descColumns.get(mainColToIndexPosMap[oldPos]))
+//                            accumulate(oldKeyAccumulator,oldIndex,oldPos,getDescendingArray(data,offset,length),0,length);
+//                        else
+//                            accumulate(oldKeyAccumulator,oldIndex,oldPos,data,offset,length);
 
-                        if(oldPos!=indexedColumns.length()&&newRemainingCols.get(oldPos)){
-                            //we are missing this field from the new update, so add in the field from the old position
-                            if(descColumns.get(oldPos))
-                                accumulate(newKeyAccumulator,updateIndex,oldPos,getDescendingArray(data,offset,length),0,length);
-                            else
-                                accumulate(newKeyAccumulator,updateIndex,oldPos,data,offset,length);
-                            accumulate(newKeyAccumulator,oldIndex,oldPos,data,offset,length);
-                            accumulate(newRowAccumulator,oldIndex,oldPos,data,offset,length);
+                        if(oldPos!=indexedColumns.length()&&newRemainingCols.get(mappedPosition)){
+
+														//we are missing this field from the new update, so add in the field from the old position
+														ByteSlice rowSlice = newRowAccumulator.getField(mappedPosition,true);
+														rowSlice.set(oldKeySlice,false);
+														ByteSlice keySlice = newKeyAccumulator.getField(mappedPosition,true);
+														keySlice.set(oldKeySlice,descColumns.get(oldPos));
+														occupy(newKeyAccumulator,oldIndex,oldPos);
+														occupy(newRowAccumulator,oldIndex,oldPos);
+//                            if(descColumns.get(oldPos))
+//                                accumulate(newKeyAccumulator,updateIndex,oldPos,getDescendingArray(data,offset,length),0,length);
+//                            else
+//                                accumulate(newKeyAccumulator,updateIndex,oldPos,data,offset,length);
+//                            accumulate(newKeyAccumulator,oldIndex,oldPos,data,offset,length);
+//                            accumulate(newRowAccumulator,oldIndex,oldPos,data,offset,length);
                         }
                     }
                 }
@@ -287,6 +292,17 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     }
 
 
+		private void occupy(EntryAccumulator accumulator, BitIndex index, int position) {
+				int mappedPosition = mainColToIndexPosMap[position];
+				if(index.isScalarType(position))
+						accumulator.markOccupiedScalar(mappedPosition);
+				else if(index.isDoubleType(position))
+						accumulator.markOccupiedDouble(mappedPosition);
+				else if(index.isFloatType(position))
+						accumulator.markOccupiedFloat(mappedPosition);
+				else
+						accumulator.markOccupiedUntyped(mappedPosition);
+		}
 
     protected void doDelete(final WriteContext ctx, final KVPair delete) throws Exception {
         ensureBufferReader(delete,ctx);

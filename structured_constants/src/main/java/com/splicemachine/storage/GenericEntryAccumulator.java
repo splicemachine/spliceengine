@@ -208,21 +208,21 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
 		@Override
 		public void markOccupiedScalar(int position) {
-				occupiedFields.set(position);
+				markOccupiedUntyped(position);
 				if(returnIndex)
 						scalarFields.set(position);
 		}
 
 		@Override
 		public void markOccupiedFloat(int position) {
-				occupiedFields.set(position);
+				markOccupiedUntyped(position);
 				if(returnIndex)
 						floatFields.set(position);
 		}
 
 		@Override
 		public void markOccupiedDouble(int position) {
-				occupiedFields.set(position);
+				markOccupiedUntyped(position);
 				if(returnIndex)
 						doubleFields.set(position);
 		}

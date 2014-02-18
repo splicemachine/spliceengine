@@ -182,7 +182,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             if(se.getMessage().contains("unique"))
                 throw se;
         }
-        Assert.assertTrue("Did not report a duplicate key violation!",false);
+        Assert.fail("Did not report a duplicate key violation!");
     }
     /**
      * Tests that we can safely drop the index, and constraints
@@ -333,7 +333,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             Assert.assertTrue(se.getMessage().contains("identified by 'FOO' defined on 'H'"));
             throw se;
         }
-        Assert.assertTrue("Did not report a duplicate key violation!",false);
+        Assert.fail("Did not report a duplicate key violation!");
     }
 
 

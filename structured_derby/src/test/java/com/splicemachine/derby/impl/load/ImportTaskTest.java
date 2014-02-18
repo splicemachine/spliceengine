@@ -476,8 +476,10 @@ public class ImportTaskTest {
 								for(int i=0;i<retLines.length;i++){
 										if(feedLines.size()>0)
 												retLines[i] = feedLines.remove(0);
-										else
+										else{
 												Arrays.fill(retLines, i, retLines.length, null);
+												return retLines;
+										}
 								}
 								return retLines;
 						}
@@ -509,7 +511,8 @@ public class ImportTaskTest {
         when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(testingBuffer);
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
-				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory,KryoPool.defaultPool()){
+				KryoPool kryoPool = KryoPool.defaultPool();
+				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool){
 						@Override
 						protected Snowflake.Generator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
