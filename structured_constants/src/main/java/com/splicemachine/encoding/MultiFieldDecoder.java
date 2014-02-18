@@ -253,6 +253,17 @@ public class MultiFieldDecoder {
         return retData;
     }
 
+    public byte[] getNextRawLong(){
+        if(!available())
+            return new byte[]{};
+        int offset = currentOffset>=0?currentOffset:0;
+        int length = ScalarEncoding.toLongLength(data, offset, false);
+        currentOffset+=length;
+        byte[] retData = new byte[length];
+        System.arraycopy(data,offset,retData,0,length);
+        currentOffset++;
+        return retData;
+    }
 //    public byte[] getNextRawBytes(){
 //        if(!available()) return new byte[]{};
 //        if(currentOffset>=offset&&data[currentOffset]==0x00) {

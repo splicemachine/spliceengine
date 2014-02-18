@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
-import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
@@ -24,11 +23,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.nio.ByteBuffer;
-import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
 
+import org.joda.time.DateTime;
 /**
  * Lazy subclass of DataValueDescriptor.  Holds a byte array representing the data value
  * and the DVDSerializer for converting to/from bytes.  There is also some duplication
@@ -228,6 +226,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
+    public DateTime getDateTime() throws StandardException {
+        forceDeserialization();
+        return dvd.getDateTime();
+    }
+
+    @Override
     public Object getObject() throws StandardException {
         forceDeserialization();
         return dvd.getObject();
@@ -368,6 +372,12 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
     @Override
     public void setValue(Timestamp theValue, Calendar cal) throws StandardException {
         dvd.setValue(theValue, cal);
+        resetForSerialization();
+    }
+
+    @Override
+    public void setValue(DateTime theValue) throws StandardException {
+        dvd.setValue(theValue);
         resetForSerialization();
     }
 
