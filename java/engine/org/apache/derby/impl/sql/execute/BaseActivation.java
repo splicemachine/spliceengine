@@ -1368,22 +1368,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	/**
 	 * Remember the row for the specified ResultSet.
 	 */
-	public void setCurrentRow(ExecRow currentRow, int resultSetNumber)
-	{
-		if (SanityManager.DEBUG) 
-		{
-			SanityManager.ASSERT(!isClosed(), "closed");
-			if (row != null)
-			{
-				if (!(resultSetNumber >=0 && resultSetNumber < row.length))
-				{
-					SanityManager.THROWASSERT("resultSetNumber = " + resultSetNumber +
-								 ", expected to be between 0 and " + row.length);
-				}
-			}
-		}
-		if (row != null)
-		{
+	public void setCurrentRow(ExecRow currentRow, int resultSetNumber) {
+		if (row != null) {
 			row[resultSetNumber] = currentRow;
 		}
 	}
