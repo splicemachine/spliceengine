@@ -61,23 +61,27 @@ class AlwaysAcceptEntryAccumulator extends GenericEntryAccumulator {
 
     @Override
     public BitSet getRemainingFields() {
-        BitSet bitSet = new BitSet();
-        if(fields!=null){
-            for(int i=0;i<fields.length;i++){
-                if(fields[i]==null||fields[i].length()<=0)
-                    bitSet.set(i);
-            }
-        }
         /*
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
-        if(!completed){
-            if(fields!=null)
-                bitSet.set(fields.length,1024);
-            else
-                bitSet.set(0,1024);
-        }
+        BitSet bitSet = new BitSet();
+				bitSet.set(0,1024);
+				for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1))
+						bitSet.clear(i);
+
+//        if(fields!=null){
+//            for(int i=0;i<fields.length;i++){
+//                if(fields[i]==null||fields[i].length()<=0)
+//                    bitSet.set(i);
+//            }
+//        }
+//        if(!completed){
+//            if(fields!=null)
+//                bitSet.set(fields.length,1024);
+//            else
+//                bitSet.set(0,1024);
+//        }
         return bitSet;
     }
 

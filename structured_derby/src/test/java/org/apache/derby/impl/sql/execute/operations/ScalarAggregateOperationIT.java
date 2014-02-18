@@ -242,10 +242,22 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
         }
         Assert.assertEquals("Incorrect num rows returned",1,count);
-
     }
 
-    @Test
+		@Test
+		public void testSelectCountDoesNotDivideByZero() throws Exception {
+				ResultSet rs = methodWatcher.executeQuery("select 66/count(*) from " +spliceTableWatcher);
+
+				int count =0;
+				int correctVal = 6;
+				while(rs.next()){
+						count++;
+						Assert.assertEquals("Incorrect count returned!", correctVal, rs.getInt(1));
+				}
+				Assert.assertEquals("Incorrect num rows returned",1,count);
+		}
+
+		@Test
     public void testCountNullColumns() throws Exception {
        /* regression test for Bug 416 */
         ResultSet rs = methodWatcher.executeQuery("select count(*) from "+nullTableWatcher.toString()+" where a is null");

@@ -12,7 +12,6 @@
         <module>structured_si</module>
         <module>structured_derby</module>
         <module>structured_test</module>
-        <module>test_utils</module>
     </modules>
   <scm>
     <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
