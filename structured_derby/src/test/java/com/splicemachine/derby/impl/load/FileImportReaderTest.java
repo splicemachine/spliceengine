@@ -7,6 +7,7 @@ import com.splicemachine.stats.TimeView;
 import com.splicemachine.stats.Timer;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Set;
@@ -15,6 +16,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 2/12/14
  */
+@Ignore("Not actually a unit test")
 public class FileImportReaderTest {
 
 		@Test
