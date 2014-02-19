@@ -301,14 +301,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                  * Instead, we create a child transaction, which we can roll back
                  * safely.
                  */
-								TransactionId parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
-								TransactionId childTransactionId;
-								try{
-										childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId,true);
-								}catch(IOException ioe){
-										LOG.error(ioe);
-										throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
-								}
+								TransactionId childTransactionId = getChildTransaction();
 
 								try {
 										spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
@@ -338,6 +331,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 								}
 						}
 				}
+
+
 
 				private void rollback(TransactionId txnId, int numTries) throws StandardException {
 						if(numTries> SpliceConstants.numRetries)
@@ -476,5 +471,17 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public boolean isReferencingTable(long tableNumber) {
 				return source.isReferencingTable(tableNumber);
+		}
+
+		TransactionId getChildTransaction() {
+				TransactionId parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
+				TransactionId childTransactionId;
+				try{
+						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId,true);
+				}catch(IOException ioe){
+						LOG.error(ioe);
+						throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
+				}
+				return childTransactionId;
 		}
 }

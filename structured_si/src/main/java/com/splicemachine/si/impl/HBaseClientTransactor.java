@@ -9,13 +9,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static com.splicemachine.constants.SIConstants.*;
+
 /**
  * @author Scott Fines
  * Date: 2/13/14
  */
 public class HBaseClientTransactor implements ClientTransactor<Put,Get,Scan,Mutation>{
-		private static final byte[] TRUE_BYTES = Bytes.toBytes(true);
-		private static final byte[] FALSE_BYTES = Bytes.toBytes(false);
 		private final TransactionManager transactionControl;
 
 		public HBaseClientTransactor(TransactionManager transactionControl) {
