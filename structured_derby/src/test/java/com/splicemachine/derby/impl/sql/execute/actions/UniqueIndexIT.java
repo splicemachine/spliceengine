@@ -246,6 +246,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),name));
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
+
     /**
      * Tests that we can safely delete a record, and have it
      * percolate through to the index.
@@ -253,13 +254,50 @@ public class UniqueIndexIT extends SpliceUnitTest {
      * NULL values should NOT be deleted.
      */
     @Test
-    public void testCanDeleteEntryWithNulls() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
-        String name = "sfines";
-        int value = 2;
+    public void testCanDeleteIndexWithNulls() throws Exception{
+        new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_6), name, value));
+                                                    this.getTableReference(TABLE_NAME_7), "sfines", 2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
+                                                    this.getTableReference(TABLE_NAME_7)));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+                                                    this.getTableReference(TABLE_NAME_7)));
 
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_7));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("1:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 3, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_7)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("2:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_7)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("3:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+    }
+
+    /**
+     * Tests that we can safely delete a record, and have it
+     * percolate through to the unique index.
+     *
+     * NULL values should NOT be deleted.
+     */
+    @Test
+    public void testCanDeleteUniqueIndexWithNulls() throws Exception{
+        new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_7), "sfines", 2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
                                                     this.getTableReference(TABLE_NAME_6)));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
