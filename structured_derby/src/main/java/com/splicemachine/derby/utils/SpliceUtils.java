@@ -69,7 +69,7 @@ public class SpliceUtils extends SpliceUtilities {
      */
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
-            if(dvd != null){
+            if(dvd != null && dvd.isNull()){
                 switch(dvd.getTypeFormatId()){
                     case StoredFormatIds.SQL_DOUBLE_ID:
                         dvd.setValue((double)defaultValue); //set to one to prevent /-by-zero errors
