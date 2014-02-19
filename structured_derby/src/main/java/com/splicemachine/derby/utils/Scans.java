@@ -5,12 +5,6 @@ import java.util.Comparator;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
-import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.storage.*;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
@@ -24,11 +18,20 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.util.Pair;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.derby.utils.marshall.RowMarshaller;
+import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.filter.ColumnNullableFilter;
-
-import org.apache.hadoop.hbase.util.Pair;
+import com.splicemachine.storage.AndPredicate;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.NullPredicate;
+import com.splicemachine.storage.OrPredicate;
+import com.splicemachine.storage.Predicate;
+import com.splicemachine.storage.ValuePredicate;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -209,14 +212,6 @@ public class Scans extends SpliceUtils {
 						}
 				}else
 						predicates = ObjectArrayList.newInstanceWithCapacity(1);
-
-				if(scanColumnList!=null){
-						for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
-								colsToReturn.set(i);
-						}
-				}else{
-						colsToReturn.clear(); //we want everything
-				}
 
 				if(scanColumnList!=null){
 						for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
