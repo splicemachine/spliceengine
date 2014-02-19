@@ -13,6 +13,8 @@ public class SIConstants extends SpliceConstants {
         setParameters();
     }
 
+		public static final byte[] TRUE_BYTES = Bytes.toBytes(true);
+		public static final byte[] FALSE_BYTES = Bytes.toBytes(false);
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     public static final byte[] SNAPSHOT_ISOLATION_FAILED_TIMESTAMP = new byte[] {-1};
 

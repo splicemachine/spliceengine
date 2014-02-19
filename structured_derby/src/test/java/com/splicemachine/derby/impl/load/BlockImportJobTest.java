@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -29,9 +30,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * @author Scott Fines
@@ -101,8 +100,11 @@ public class BlockImportJobTest {
         when(fs.getFileBlockLocations(any(FileStatus.class),any(Long.class),any(Long.class))).thenReturn(blocks);
 
         BlockImportJob job = new BlockImportJob(table,context,-1l,-1l,fs);
+				BlockImportJob spy = Mockito.spy(job);
+				doReturn(new TransactionId("12")).when(spy).getParentTransaction();
+				job = spy;
 
-        Map<? extends RegionTask,Pair<byte[],byte[]>> tasks = job.getTasks();
+				Map<? extends RegionTask,Pair<byte[],byte[]>> tasks = job.getTasks();
         /*
          * We need to make sure that:
          *

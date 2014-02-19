@@ -10,6 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.storage.EntryEncoder;
@@ -156,7 +157,7 @@ public class IndexRowReaderTest {
         EntryPredicateFilter epf = new EntryPredicateFilter(heapCols, new ObjectArrayList<Predicate>());
         byte[] epfBytes = epf.toBytes();
         IndexRowReader rowReader = new IndexRowReader(mockService,table,mockSource,
-                1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes,new SpliceRuntimeContext());
+                1,1,templateOutput,"10.IRO",indexCols,1184l,baseColumnMap,epfBytes,new SpliceRuntimeContext(new TempTable(SpliceConstants.TEMP_TABLE_BYTES),kryoPool));
 
         List<IndexRowReader.RowAndLocation> actualOutput = Lists.newArrayListWithExpectedSize(correctOutput.size());
         IndexRowReader.RowAndLocation rowAndLocation;

@@ -185,4 +185,8 @@ public class HTransactorFactory extends SIConstants {
 		public static void setTransactionManager(TransactionManager transactionManager) {
 				HTransactorFactory.transactionManager = transactionManager;
 		}
+		public static void setClientTransactor(ClientTransactor clientTransactor){
+				HTransactorFactory.clientTransactor = clientTransactor;
+		}
+
 }
