@@ -23,6 +23,7 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
+import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
@@ -40,6 +41,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -115,7 +117,14 @@ public class InsertOperationTest {
         this.primaryKeys = primaryKeys;
     }
 
-    @Test
+		@Before
+		public void setUp() throws Exception {
+				ClientTransactor transactor = mock(ClientTransactor.class);
+				HTransactorFactory.setClientTransactor(transactor);
+
+		}
+
+		@Test
     public void testCanInsertDataNoPrimaryKeys() throws Exception {
         final List<ExecRow> correctOutputRows = getInputRows();
         final List<KVPair> output = doInsertionOperation(false,correctOutputRows);
@@ -168,10 +177,14 @@ public class InsertOperationTest {
 
         InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
         operation.init(mock(SpliceOperationContext.class));
-        when(mockInstructions.getTopOperation()).thenReturn(operation);
+				InsertOperation spy = spy(operation);
+				doReturn(new TransactionId("12")).when(spy).getChildTransaction();
+				operation = spy;
 
-        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext(table,kryoPool));
-        resultSet.open();
+				when(mockInstructions.getTopOperation()).thenReturn(operation);
+
+        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext(table, kryoPool));
+				resultSet.open();
 
         Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());
         Assert.assertEquals("Incorrect number of rows written!",correctOutputRows.size(),output.size());
