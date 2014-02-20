@@ -11,12 +11,11 @@ import com.carrotsearch.hppc.BitSet;
  * @author Scott Fines
  * Created on: 7/8/13
  */
-abstract class LazyBitIndex implements BitIndex{
+public abstract class LazyBitIndex implements BitIndex{
     protected BitSet decodedBits;
     protected BitSet decodedScalarFields;
     protected BitSet decodedFloatFields;
     protected BitSet decodedDoubleFields;
-
     protected byte[] encodedBitMap;
     protected int offset;
     protected int length;
@@ -209,5 +208,20 @@ abstract class LazyBitIndex implements BitIndex{
             decodedScalarFields = new BitSet(stopPos);
         decodedScalarFields.set(startPos,stopPos);
     }
+
+	public byte[] getEncodedBitMap() {
+		return encodedBitMap;
+	}
+
+	public int getEncodedBitMapOffset() {
+		return offset;
+	}
+
+	public int getEncodedBitMapLength() {
+		return length;
+	}    
+	
+	public abstract boolean isCompressed();
+    
 }
 
