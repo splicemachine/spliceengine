@@ -75,7 +75,7 @@ public class EntryEncoder {
 
         if (differs) {
             bitIndex = BitIndexing.getBestIndex(nonNullFields, bitIndex.getScalarFields(),
-                                                   bitIndex.getFloatFlields(), bitIndex.getDoubleFields());
+                                                   bitIndex.getFloatFields(), bitIndex.getDoubleFields());
         }
         resetEncoder();
     }

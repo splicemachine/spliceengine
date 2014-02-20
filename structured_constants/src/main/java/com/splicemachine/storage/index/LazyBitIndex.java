@@ -170,7 +170,7 @@ public abstract class LazyBitIndex implements BitIndex{
     }
 
     @Override
-    public BitSet getFloatFlields() {
+    public BitSet getFloatFields() {
         decodeAll();
         return decodedDoubleFields;
     }

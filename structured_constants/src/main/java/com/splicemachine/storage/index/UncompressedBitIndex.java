@@ -191,7 +191,7 @@ class UncompressedBitIndex implements BitIndex {
     }
 
     @Override
-    public BitSet getFloatFlields() {
+    public BitSet getFloatFields() {
         return floatFields;
     }
 

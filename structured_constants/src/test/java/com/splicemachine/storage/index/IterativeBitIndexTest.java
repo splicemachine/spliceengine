@@ -27,18 +27,16 @@ public class IterativeBitIndexTest {
             BitSet floatFields = new BitSet(i);
             BitSet doubleFields = new BitSet(i);
             for(int j=0;j<=i;j++){
-            	if (random.nextBoolean())
-                bitSet.set(j);
-                if(bitSet.get(j)){
-                	if (random.nextBoolean())
+                if (random.nextBoolean())
+                    bitSet.set(j);
+                if (random.nextBoolean())
                     lengthDelimitedBits.set(j);
-                    if(!lengthDelimitedBits.get(j)){
-                    	if (random.nextBoolean())
-                    		floatFields.set(j);
-                        if(!floatFields.get(j)){
-                        	if (random.nextBoolean())
-                        		doubleFields.set(j);
-                        }
+                if (!lengthDelimitedBits.get(j)) {
+                    if (random.nextBoolean())
+                        floatFields.set(j);
+                    if (!floatFields.get(j)) {
+                        if (random.nextBoolean())
+                            doubleFields.set(j);
                     }
                 }
             }
@@ -175,6 +173,38 @@ public class IterativeBitIndexTest {
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue("Incorrect encode/decode of bitmap "+ bitSet,decoded.isSet(i));
         }
+    }
+
+    @Test
+    public void testThatIndexesTreatBitSetsAsIfImmutable() throws Exception {
+        /* Other code assumes that new BitIndexes can be created from existing indexes by reusing the
+         * type-specific bitsets the index contains. Therefore it's unsafe for a BitIndex to modify
+         * those bitsets. This tests verifies that no modification takes place.
+         */
+        BitIndex compressed = BitIndexing.compressedBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+        BitIndex uncompressed = BitIndexing.uncompressedBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+        BitIndex sparse = BitIndexing.sparseBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getScalarFields(), uncompressed.getScalarFields(),
+                                           sparse.getScalarFields(), lengthDelimitedBits));
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getFloatFields(), uncompressed.getFloatFields(),
+                                           sparse.getFloatFields(), floatFields));
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getDoubleFields(), uncompressed.getDoubleFields(),
+                                           sparse.getDoubleFields(), doubleFields));
+    }
+
+    public static boolean naryEquals(Object first, Object ... args) {
+        Object prev = first;
+        for (Object arg: args){
+            if (!prev.equals(arg)){
+                return false;
+            }
+            prev = arg;
+        }
+        return true;
     }
 
     public static void main(String... args) throws Exception{

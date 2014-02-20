@@ -238,7 +238,7 @@ class SparseBitIndex implements BitIndex {
     }
 
     @Override
-    public BitSet getFloatFlields() {
+    public BitSet getFloatFields() {
         return floatFields;
     }
 
