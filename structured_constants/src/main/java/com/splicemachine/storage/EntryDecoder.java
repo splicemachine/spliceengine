@@ -3,7 +3,8 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
-
+import com.splicemachine.storage.index.LazyBitIndex;
+import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
@@ -15,15 +16,14 @@ import com.splicemachine.utils.kryo.KryoPool;
  * Created on: 7/5/13
  */
 public class EntryDecoder {
-    private BitIndex bitIndex;
-
+    private LazyBitIndex bitIndex;
     private byte[] data;
-    private boolean compressedData = false;
     private int dataOffset;
     private MultiFieldDecoder decoder;
     private final KryoPool kryoPool;
     private int offset;
     private int length;
+    private LazyBitIndex lastBitIndex;
 
     public EntryDecoder(KryoPool kryoPool) {
         this.kryoPool = kryoPool;
@@ -46,6 +46,14 @@ public class EntryDecoder {
     private void rebuildBitIndex() {
         //find separator byte
         dataOffset = 0;
+        // Short Circuit the bit index if I look like the last one.        
+        if (lastBitIndex != null && data != null && lastBitIndex.getEncodedBitMap() != null && length > lastBitIndex.getEncodedBitMapLength()) {
+        	if (Bytes.equals(data, offset, lastBitIndex.getEncodedBitMapLength(), lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength())) {
+        		dataOffset = lastBitIndex.getEncodedBitMapLength()+1;
+        		bitIndex = lastBitIndex;
+        		return;
+        	}
+        }
         for(int i=offset;i<offset+length;i++){
             if(data[i]==0x00){
                 dataOffset = i-offset;
@@ -64,9 +72,8 @@ public class EntryDecoder {
             //sparse index
             bitIndex = BitIndexing.sparseBitMap(data, offset, dataOffset);
         }
-
+        lastBitIndex = bitIndex;
         dataOffset++;
-        compressedData = (headerByte & 0x20) != 0;
     }
 
     public boolean isSet(int position){
