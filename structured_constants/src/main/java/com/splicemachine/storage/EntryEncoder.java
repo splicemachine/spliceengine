@@ -60,50 +60,49 @@ public class EntryEncoder {
         return entry;
     }
 
-    public void reset(BitSet nonNullFields){
-        /*
-         * Assumes that the fields which are scalar, float, double, are subsets of the nonnull, so adjusts
-         * using and() methods
-         */
+    public void reset(BitSet nonNullFields) {
         int oldCardinality = bitIndex.cardinality();
-        boolean differs = nonNullFields.cardinality()!=oldCardinality;
+        boolean differs = nonNullFields.cardinality() != oldCardinality;
 
-        for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
-            if(!nonNullFields.get(i)){
-                differs=true;
-                break;
+        if (!differs) {
+            for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
+                if (!nonNullFields.get(i)) {
+                    differs = true;
+                    break;
+                }
             }
         }
 
-        if(differs){
-            bitIndex = BitIndexing.getBestIndex(nonNullFields,bitIndex.getScalarFields(),
-                    bitIndex.getFloatFlields(),bitIndex.getDoubleFields());
+        if (differs) {
+            bitIndex = BitIndexing.getBestIndex(nonNullFields, bitIndex.getScalarFields(),
+                                                   bitIndex.getFloatFlields(), bitIndex.getDoubleFields());
         }
-				resetEncoder();
+        resetEncoder();
     }
-		public void reset(BitIndex newIndex){
-				this.bitIndex = newIndex;
-				resetEncoder();
-		}
 
-		private void resetEncoder() {
-				if(encoder==null) return;
-				/*
+    public void reset(BitIndex newIndex) {
+        this.bitIndex = newIndex;
+        resetEncoder();
+    }
+
+    private void resetEncoder() {
+        if (encoder == null) return;
+                /*
 				 * It is possible that we changed the underlying bitset in the bitIndex out from under
 				 * us, which means that the encoder is using out of date information. Check for that,
 				 * and if so, reset the encoder
 				 */
 
-				if(encoder.getNumFields()==bitIndex.cardinality()){
-						encoder.reset();
-				}else{
-						//close the old encoder to prevent resource leaks
-						encoder.close();
-						encoder = MultiFieldEncoder.create(kryoPool, bitIndex.cardinality());
-				}
-		}
+        if (encoder.getNumFields() == bitIndex.cardinality()) {
+            encoder.reset();
+        } else {
+            //close the old encoder to prevent resource leaks
+            encoder.close();
+            encoder = MultiFieldEncoder.create(kryoPool, bitIndex.cardinality());
+        }
+    }
 
-		public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
+    public void reset(BitSet newIndex,BitSet newScalarFields,BitSet newFloatFields,BitSet newDoubleFields){
         //save effort if they are the same
         int oldCardinality = bitIndex.cardinality();
         boolean differs=newIndex.cardinality()!=oldCardinality;
