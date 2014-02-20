@@ -87,4 +87,9 @@ class UncompressedLazyBitIndex extends LazyBitIndex{
 
         System.out.println(decoded);
     }
+
+	@Override
+	public boolean isCompressed() {
+		return false;
+	}
 }
