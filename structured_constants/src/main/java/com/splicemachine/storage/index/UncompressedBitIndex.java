@@ -28,22 +28,6 @@ class UncompressedBitIndex implements BitIndex {
         this.scalarFields = scalarFields;
         this.floatFields = floatFields;
         this.doubleFields = doubleFields;
-//        if(scalarFields!=null){
-//            this.scalarFields = (BitSet)scalarFields.clone();
-////            this.scalarFields.and(bitSet);
-//        }else
-//            this.scalarFields = null;
-//        if(floatFields!=null){
-//            this.floatFields = (BitSet)floatFields.clone();
-////            this.floatFields.and(bitSet);
-//        }else{
-//            this.floatFields=null;
-//        }
-//        if(doubleFields!=null){
-//            this.doubleFields = (BitSet)doubleFields.clone();
-////            this.doubleFields.and(bitSet);
-//        }else
-//            this.doubleFields=null;
     }
 
     @Override
