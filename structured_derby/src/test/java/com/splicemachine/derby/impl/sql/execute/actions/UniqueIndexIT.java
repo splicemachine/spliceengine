@@ -248,6 +248,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
     }
 
     /**
+     * DB-1020
      * Tests that we can safely delete a record, and have it
      * percolate through to the index.
      *
@@ -258,6 +259,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
         new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
                                                     this.getTableReference(TABLE_NAME_7), "sfines", 2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_7), "lfines", -2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
                                                     this.getTableReference(TABLE_NAME_7)));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
@@ -268,7 +271,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
 //        System.out.println("1:");
 //        System.out.println(fr.toString());
-        Assert.assertEquals(fr.toString(), 3, fr.size());
+        Assert.assertEquals(fr.toString(), 4, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_7)));
         rs = methodWatcher.executeQuery(query);
@@ -276,7 +279,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
 //        System.out.println("2:");
 //        System.out.println(fr.toString());
-        Assert.assertEquals(fr.toString(), 2, fr.size());
+        Assert.assertEquals(fr.toString(), 3, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_7)));
         rs = methodWatcher.executeQuery(query);
@@ -288,6 +291,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
     }
 
     /**
+     * DB-1020
      * Tests that we can safely delete a record, and have it
      * percolate through to the unique index.
      *
@@ -297,7 +301,9 @@ public class UniqueIndexIT extends SpliceUnitTest {
     public void testCanDeleteUniqueIndexWithNulls() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_7), "sfines", 2));
+                                                    this.getTableReference(TABLE_NAME_6), "sfines", -2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_6), "lfines", 2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
                                                     this.getTableReference(TABLE_NAME_6)));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
@@ -306,23 +312,24 @@ public class UniqueIndexIT extends SpliceUnitTest {
         String query = format("select * from %s",this.getTableReference(TABLE_NAME_6));
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println("1:");
-        System.out.println(fr.toString());
+//        System.out.println("1:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 4, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_6)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println("2:");
-        System.out.println(fr.toString());
-        Assert.assertEquals(fr.toString(), 2, fr.size());
+//        System.out.println("2:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 3, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_6)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-        System.out.println("3:");
-        System.out.println(fr.toString());
+//        System.out.println("3:");
+//        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 2, fr.size());
     }
 
