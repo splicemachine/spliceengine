@@ -21,36 +21,36 @@
 
 package	org.apache.derby.impl.sql.compile;
 
-import org.apache.derby.catalog.IndexDescriptor;
-import org.apache.derby.iapi.services.compiler.MethodBuilder;
-import org.apache.derby.iapi.services.compiler.LocalField;
-import org.apache.derby.iapi.reference.ClassName;
-import org.apache.derby.iapi.services.classfile.VMOpcode;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CompilerContext;
-import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
-import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.C_NodeTypes;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.impl.sql.compile.ExpressionClassBuilder;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.util.JBitSet;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
+
+import org.apache.derby.catalog.IndexDescriptor;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.ClassName;
+import org.apache.derby.iapi.services.classfile.VMOpcode;
+import org.apache.derby.iapi.services.compiler.LocalField;
+import org.apache.derby.iapi.services.compiler.MethodBuilder;
+import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.compile.AccessPath;
+import org.apache.derby.iapi.sql.compile.C_NodeTypes;
+import org.apache.derby.iapi.sql.compile.CompilerContext;
+import org.apache.derby.iapi.sql.compile.ExpressionClassBuilderInterface;
+import org.apache.derby.iapi.sql.compile.Optimizable;
+import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
+import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
+import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
+import org.apache.derby.iapi.sql.compile.RowOrdering;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
+import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptorList;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
+import org.apache.derby.iapi.sql.execute.ExecutionFactory;
+import org.apache.derby.iapi.store.access.ScanController;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.util.JBitSet;
 
 /**
  * A PredicateList represents the list of top level predicates.
@@ -861,8 +861,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 						currentStartPosition = thisIndexPosition;
 						thisPredMarked = true;
 						seenGT = (thisPred.getStartOperator(optTable) == ScanController.GT);
-						if(!seenGT)
-										thisPred.markQualifier();
+						thisPred.markQualifier();
 					}
 				}
 			}
@@ -885,6 +884,7 @@ public class PredicateList extends QueryTreeNodeVector implements OptimizablePre
 						currentStopPosition = thisIndexPosition;
 						thisPredMarked = true;
 						seenGE = (thisPred.getStopOperator(optTable) == ScanController.GE);
+                        thisPred.markQualifier();
 					}
 				}
 			}
