@@ -243,6 +243,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 				ExecRow row = sourceExecIndexRow.getClone();
+				// Set the default values to 0 in case a ProjectRestrictOperation has set the default values to 1.
+				// That is done to avoid division by zero exceptions when executing a projection for defining the rows
+				// before execution.
 				SpliceUtils.populateDefaultValues(row.getRowArray(),0);
 				return row;
 		}

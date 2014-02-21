@@ -245,7 +245,6 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
     }
 
 		@Test
-		@Ignore
 		public void testSelectCountDoesNotDivideByZero() throws Exception {
 				ResultSet rs = methodWatcher.executeQuery("select 66/count(*) from " +spliceTableWatcher);
 
