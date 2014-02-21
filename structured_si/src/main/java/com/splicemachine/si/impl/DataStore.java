@@ -206,19 +206,19 @@ public class DataStore<Mutation, Put extends OperationWithAttributes,
 		}
 
     public KeyValueType getKeyValueType(KeyValue keyValue) {
-				if(keyValue.matchingFamily(siFamily)){
-						if(keyValue.matchingQualifier(commitTimestampQualifier)){
-	            return KeyValueType.COMMIT_TIMESTAMP;
-	        } else { // Took out the check...
-	            if (KeyValueUtils.matchingValue(keyValue, siNull)) {
-	                return KeyValueType.TOMBSTONE;
-	            } else if (KeyValueUtils.matchingValue(keyValue, siAntiTombstoneValue)) {
-	                return KeyValueType.ANTI_TOMBSTONE;
-	            } else {
-	                return KeyValueType.OTHER;
-	            }
+			if(KeyValueUtils.singleMatchingFamily(keyValue,siFamily)){
+				if(KeyValueUtils.singleMatchingQualifier(keyValue,commitTimestampQualifier)){
+					return KeyValueType.COMMIT_TIMESTAMP;
+				} else { // Took out the check...
+		            if (KeyValueUtils.matchingValue(keyValue, siNull)) {
+		                return KeyValueType.TOMBSTONE;
+		            } else if (KeyValueUtils.matchingValue(keyValue, siAntiTombstoneValue)) {
+		                return KeyValueType.ANTI_TOMBSTONE;
+		            } else {
+		                return KeyValueType.OTHER;
+		            }
 	        }
-	   }else if(keyValue.matchingFamily(userColumnFamily)){
+	   }else if(KeyValueUtils.singleMatchingFamily(keyValue,userColumnFamily)){
 		   return KeyValueType.USER_DATA;
 	   } else {
 	       return KeyValueType.OTHER;
