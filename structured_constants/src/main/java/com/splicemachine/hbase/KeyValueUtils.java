@@ -2,6 +2,8 @@ package com.splicemachine.hbase;
 
 import org.apache.hadoop.hbase.KeyValue;
 
+import com.splicemachine.constants.SpliceConstants;
+
 /**
  * @author Scott Fines
  *         Date: 2/14/14
@@ -9,7 +11,19 @@ import org.apache.hadoop.hbase.KeyValue;
 public class KeyValueUtils {
 
 		private KeyValueUtils(){}
+		
+		public static boolean singleMatchingColumn(KeyValue keyValue, byte[] family, byte[] qualifier) {
+			return singleMatchingFamily(keyValue,family) && singleMatchingQualifier(keyValue,qualifier);
+		}
+		
+		public static boolean singleMatchingFamily(KeyValue keyValue, byte[] family) {
+			return keyValue.getBuffer()[keyValue.getFamilyOffset()] == family[0];
+		}
 
+		public static boolean singleMatchingQualifier(KeyValue keyValue, byte[] qualifier) {
+			return keyValue.getBuffer()[keyValue.getQualifierOffset()] == qualifier[0];
+		}
+		
 		public static boolean matchingValue(KeyValue keyValue, byte[] value) {
 				return ByteBufferArrayUtils.matchingValue(keyValue, value);
 		}
@@ -31,4 +45,5 @@ public class KeyValueUtils {
 		public static KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {
 				return new KeyValue(rowKey, family, qualifier, timestamp, value);
 		}
+		
 }
