@@ -38,6 +38,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_6 = "F";
 	public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
+    public static final String TABLE_NAME_9 = "I";
+    public static final String TABLE_NAME_10 = "J";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -54,7 +56,9 @@ public class UniqueIndexIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(name varchar(40), val int)");
-    protected static SpliceTableWatcher uniqueTableWatcher = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, constraint FOO unique(val))");
+    protected static SpliceTableWatcher uniqueTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, constraint FOO unique(val))");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,CLASS_NAME,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,CLASS_NAME,"(name varchar(40), val int)");
 
     @Override
     public String getSchemaName() {
@@ -70,8 +74,10 @@ public class UniqueIndexIT extends SpliceUnitTest {
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
-		.around(spliceTableWatcher7)
-        .around(uniqueTableWatcher);
+        .around(spliceTableWatcher7)
+        .around(uniqueTableWatcher8)
+        .around(spliceTableWatcher9)
+        .around(spliceTableWatcher10);
 
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -256,24 +262,24 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test
     public void testCanDeleteIndexWithNulls() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_7,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_9,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_7), "sfines", 2));
+                                                    this.getTableReference(TABLE_NAME_9), "sfines", 2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_7), "lfines", -2));
+                                                    this.getTableReference(TABLE_NAME_9), "lfines", -2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
-                                                    this.getTableReference(TABLE_NAME_7)));
+                                                    this.getTableReference(TABLE_NAME_9)));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
-                                                    this.getTableReference(TABLE_NAME_7)));
+                                                    this.getTableReference(TABLE_NAME_9)));
 
-        String query = format("select * from %s",this.getTableReference(TABLE_NAME_7));
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_9));
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
 //        System.out.println("1:");
 //        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 4, fr.size());
 
-        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_7)));
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_9)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
@@ -281,7 +287,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
 //        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 3, fr.size());
 
-        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_7)));
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_9)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
@@ -299,24 +305,24 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test
     public void testCanDeleteUniqueIndexWithNulls() throws Exception{
-        new SpliceIndexWatcher(TABLE_NAME_6,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
+        new SpliceIndexWatcher(TABLE_NAME_10,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_6), "sfines", -2));
+                                                    this.getTableReference(TABLE_NAME_10), "sfines", -2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_6), "lfines", 2));
+                                                    this.getTableReference(TABLE_NAME_10), "lfines", 2));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
-                                                    this.getTableReference(TABLE_NAME_6)));
+                                                    this.getTableReference(TABLE_NAME_10)));
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
-                                                    this.getTableReference(TABLE_NAME_6)));
+                                                    this.getTableReference(TABLE_NAME_10)));
 
-        String query = format("select * from %s",this.getTableReference(TABLE_NAME_6));
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_10));
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
 //        System.out.println("1:");
 //        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 4, fr.size());
 
-        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_6)));
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_10)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
@@ -324,7 +330,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
 //        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 3, fr.size());
 
-        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_6)));
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_10)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
