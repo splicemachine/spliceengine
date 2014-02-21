@@ -58,18 +58,20 @@ public class SpliceUtils extends SpliceUtilities {
 				}
 		}
 
-		/**
+    /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
      *
      * This is used mainly to prevent NullPointerExceptions from occurring in administrative
      * operations such as getExecRowDefinition().
      *
      * @param dvds the descriptors to populate
+     * @param defaultValue the value to default each descriptor to
+     *
      * @throws StandardException
      */
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
         for(DataValueDescriptor dvd:dvds){
-            if(dvd != null && dvd.isNull()){
+            if(dvd != null){
                 switch(dvd.getTypeFormatId()){
                     case StoredFormatIds.SQL_DOUBLE_ID:
                         dvd.setValue((double)defaultValue); //set to one to prevent /-by-zero errors

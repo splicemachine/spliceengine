@@ -124,6 +124,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				ExecRow clone = sourceExecIndexRow.getClone();
+				// Set the default values to 0 in case a ProjectRestrictOperation has set the default values to 1.
+				// That is done to avoid division by zero exceptions when executing a projection for defining the rows
+				// before execution.
 				SpliceUtils.populateDefaultValues(clone.getRowArray(), 0);
 				return clone;
 		}
