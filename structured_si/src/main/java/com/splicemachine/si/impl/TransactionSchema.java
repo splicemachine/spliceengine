@@ -24,12 +24,26 @@ public class TransactionSchema {
     final Object statusQualifier;
     final Object keepAliveQualifier;
     final Object counterQualifier;
+		final Object writeTableQualifier;
 
-    public TransactionSchema(String tableName, Object siFamily, Object permissionFamily, Object siNull, Object idQualifier,
-                             Object startQualifier, Object parentQualifier, Object dependentQualifier, Object allowWritesQualifier,
-                             Object additiveQualifier, Object readUncommittedQualifier, Object readCommittedQualifier,
-                             Object keepAliveQualifier, Object statusQualifier, Object commitQualifier, Object globalCommitQualifier,
-                             Object counterQualifier) {
+    public TransactionSchema(String tableName,
+														 Object siFamily,
+														 Object permissionFamily,
+														 Object siNull,
+														 Object idQualifier,
+                             Object startQualifier,
+														 Object parentQualifier,
+														 Object dependentQualifier,
+														 Object allowWritesQualifier,
+                             Object additiveQualifier,
+														 Object readUncommittedQualifier,
+														 Object readCommittedQualifier,
+                             Object keepAliveQualifier,
+														 Object statusQualifier,
+														 Object commitQualifier,
+														 Object globalCommitQualifier,
+                             Object counterQualifier,
+														 Object writeTableQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.permissionFamily = permissionFamily;
@@ -47,6 +61,7 @@ public class TransactionSchema {
         this.statusQualifier = statusQualifier;
         this.keepAliveQualifier = keepAliveQualifier;
         this.counterQualifier = counterQualifier;
+				this.writeTableQualifier = writeTableQualifier;
     }
 
     public EncodedTransactionSchema encodedSchema(SDataLib SDataLib) {
@@ -66,7 +81,8 @@ public class TransactionSchema {
                 SDataLib.encode(statusQualifier),
                 SDataLib.encode(commitQualifier),
                 SDataLib.encode(globalCommitQualifier),
-                SDataLib.encode(counterQualifier)
+                SDataLib.encode(counterQualifier),
+								SDataLib.encode(writeTableQualifier)
         );
     }
 }

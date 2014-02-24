@@ -188,6 +188,9 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         if (params.readCommitted != null) {
             addFieldToPut(put, encodedSchema.readCommittedQualifier, params.readCommitted);
         }
+				if(params.writeTable!=null){
+						addFieldToPut(put,encodedSchema.writeTableQualifier,params.writeTable);
+				}
         if (status != null) {
             addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         }
@@ -467,7 +470,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
                 decodeStatus(resultTuple, encodedSchema.statusQualifier),
                 decodeLong(resultTuple, encodedSchema.commitQualifier),
                 decodeLong(resultTuple, encodedSchema.globalCommitQualifier),
-                decodeLong(resultTuple, encodedSchema.counterQualifier));
+                decodeLong(resultTuple, encodedSchema.counterQualifier),
+								resultTuple.getValue(encodedSchema.siFamily,encodedSchema.writeTableQualifier));
     }
 
     private long decodeKeepAlive(Result resultTuple) {

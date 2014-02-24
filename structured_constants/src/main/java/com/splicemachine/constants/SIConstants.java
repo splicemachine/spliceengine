@@ -33,6 +33,7 @@ public class SIConstants extends SpliceConstants {
     public static final int TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN = 16;
     public static final int TRANSACTION_KEEP_ALIVE_COLUMN = 8;
     public static final int TRANSACTION_COUNTER_COLUMN = 15;
+		public static final int WRITE_TABLE_COLUMN = 18;
 
     public static final byte[] TRANSACTION_ID_COLUMN_BYTES = Encoding.encode(TRANSACTION_ID_COLUMN);
     public static final byte[] TRANSACTION_START_TIMESTAMP_COLUMN_BYTES = Encoding.encode(TRANSACTION_START_TIMESTAMP_COLUMN);

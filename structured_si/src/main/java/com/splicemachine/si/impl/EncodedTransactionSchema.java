@@ -22,8 +22,9 @@ public class EncodedTransactionSchema {
     public final byte[] statusQualifier;
     public final byte[] keepAliveQualifier;
     public final byte[] counterQualifier;
+		public final byte[] writeTableQualifier;
 
-    public EncodedTransactionSchema(String tableName,
+		public EncodedTransactionSchema(String tableName,
 																		byte[] siFamily,
 																		byte[] permissionFamily,
 																		byte[] siNull,
@@ -39,7 +40,8 @@ public class EncodedTransactionSchema {
 																		byte[] statusQualifier,
 																		byte[] commitQualifier,
 																		byte[] globalCommitQualifier,
-                                    byte[] counterQualifier) {
+                                    byte[] counterQualifier,
+																		byte[] writeTableQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.permissionFamily = permissionFamily;
@@ -58,5 +60,6 @@ public class EncodedTransactionSchema {
         this.statusQualifier = statusQualifier;
         this.keepAliveQualifier = keepAliveQualifier;
         this.counterQualifier = counterQualifier;
+				this.writeTableQualifier = writeTableQualifier;
     }
 }

@@ -31,6 +31,23 @@ public class Transaction extends ImmutableTransaction {
 
     public final Long counter;
 
+		public Transaction(TransactionBehavior transactionBehavior,
+											 long id,
+											 long beginTimestamp,
+											 long keepAlive,
+											 Transaction parent,
+											 boolean dependent,
+											 boolean allowWrites,
+											 boolean additive,
+											 Boolean readUncommitted,
+											 Boolean readCommitted,
+											 TransactionStatus status,
+											 Long commitTimestamp,
+											 Long globalCommitTimestamp,
+											 Long counter) {
+			this(transactionBehavior, id, beginTimestamp, keepAlive, parent, dependent, allowWrites, additive, readUncommitted, readCommitted, status, commitTimestamp, globalCommitTimestamp, counter,null);
+		}
+
     public Transaction(TransactionBehavior transactionBehavior,
 											 long id,
 											 long beginTimestamp,
@@ -44,9 +61,10 @@ public class Transaction extends ImmutableTransaction {
                        TransactionStatus status,
 											 Long commitTimestamp,
 											 Long globalCommitTimestamp,
-											 Long counter) {
+											 Long counter,
+											 byte[] writeTable) {
         super(transactionBehavior, id, allowWrites, additive, readCommitted, parent, dependent, readUncommitted,
-                beginTimestamp);
+                beginTimestamp,writeTable);
         this.keepAlive = keepAlive;
         this.parent = parent;
         this.commitTimestamp = commitTimestamp;

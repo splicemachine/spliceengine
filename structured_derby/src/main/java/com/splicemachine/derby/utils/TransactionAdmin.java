@@ -17,6 +17,7 @@ import org.apache.derby.iapi.types.*;
 import org.apache.derby.impl.jdbc.EmbedConnection;
 import org.apache.derby.impl.jdbc.EmbedResultSet40;
 import org.apache.derby.impl.sql.GenericColumnDescriptor;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -45,8 +46,8 @@ public class TransactionAdmin {
 						new GenericColumnDescriptor("globalCommitTimestamp",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("status",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
 						new GenericColumnDescriptor("lastKeepAlive",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP)),
-						new GenericColumnDescriptor("counter",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER))
-
+						new GenericColumnDescriptor("counter",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+						new GenericColumnDescriptor("modifiedConglomerate",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
 		};
 
 		private static final ResultColumnDescriptor[] CURRENT_TXN_ID_COLUMNS = new GenericColumnDescriptor[]{
@@ -73,7 +74,7 @@ public class TransactionAdmin {
 						TransactionStore store = HTransactorFactory.getTransactionStore();
 						//noinspection unchecked
 						List<Transaction> transactions =store.getAllTransactions();
-						ExecRow template = new ValueRow(14);
+						ExecRow template = new ValueRow(15);
 						template.setRowArray(new DataValueDescriptor[]{
 										new SQLLongint(), //txnId
 										new SQLLongint(), //begin
@@ -88,7 +89,8 @@ public class TransactionAdmin {
 										new SQLLongint(), //global commit timestamp
 										new SQLVarchar(), //status
 										new SQLTimestamp(), //last keep alive
-										new SQLInteger() //counter
+										new SQLInteger(), //counter
+										new SQLVarchar() //destinationConglomerate
 						});
 
 						List<ExecRow> rows = Lists.newArrayListWithCapacity(transactions.size());
@@ -112,6 +114,7 @@ public class TransactionAdmin {
 								dvds[11].setValue(txn.getStatus().toString());
 								dvds[12].setValue(new Timestamp(txn.getKeepAlive()),null);
 								dvds[13].setValue(txn.getCounter());
+								dvds[14].setValue(Bytes.toString(txn.getWriteTable()));
 
 								rows.add(template.getClone());
 						}

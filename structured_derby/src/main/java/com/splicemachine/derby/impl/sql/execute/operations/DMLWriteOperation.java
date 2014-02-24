@@ -24,6 +24,7 @@ import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -477,7 +478,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				TransactionId parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
 				TransactionId childTransactionId;
 				try{
-						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId,true);
+						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
 				}catch(IOException ioe){
 						LOG.error(ioe);
 						throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());

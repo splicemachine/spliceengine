@@ -137,7 +137,8 @@ public class HTransactorFactory extends SIConstants {
 										TRANSACTION_KEEP_ALIVE_COLUMN, TRANSACTION_STATUS_COLUMN,
 										TRANSACTION_COMMIT_TIMESTAMP_COLUMN,
 										TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
-										TRANSACTION_COUNTER_COLUMN
+										TRANSACTION_COUNTER_COLUMN,
+										WRITE_TABLE_COLUMN
 						);
 						ManagedTransactor builderTransactor = new ManagedTransactor();
 						transactionStore = new TransactionStore(transactionSchema, dataLib, reader, writer,

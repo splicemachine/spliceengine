@@ -169,6 +169,26 @@ public class SITransactorTest extends SIConstants {
 		}
 
 		@Test
+		public void testGetActiveWriteTransactionsShowsWriteTransactions() throws Exception {
+				TransactionId parent = control.beginTransaction();
+
+				List<TransactionId> ids = control.getActiveWriteTransactionIds(parent,null);
+				Assert.assertEquals("Incorrect size",1,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(parent),ids);
+
+				TimestampSource timestampSource = transactorSetup.timestampSource;
+				timestampSource.nextTimestamp();
+				timestampSource.nextTimestamp();
+
+
+				//now see if a read-only doesn't show
+				TransactionId next = control.beginTransaction(false);
+				ids = control.getActiveWriteTransactionIds(next,null);
+				Assert.assertEquals("Incorrect size",1,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(parent),ids);
+		}
+
+		@Test
 		public void testGetActiveTransactionsWorksWithGap() throws Exception {
 				TransactionId parent = control.beginTransaction();
 
@@ -201,6 +221,14 @@ public class SITransactorTest extends SIConstants {
 				testUtility.insertAge(child,"joe",20);
 
 				Assert.assertEquals("joe absent", testUtility.read(interleave, "joe"));
+		}
+
+		@Test
+		public void testCanRecordWriteTable() throws Exception {
+				byte[] writeTable = Bytes.toBytes("1184");
+				TransactionId parent = control.beginTransaction(writeTable);
+				Transaction readTransaction = transactorSetup.transactionStore.getTransaction(parent.getId());
+				Assert.assertArrayEquals("Incorrect write table!",writeTable,readTransaction.getWriteTable());
 		}
 
 		@Test

@@ -35,7 +35,8 @@ public class TestTransactionSetup {
 						SIConstants.TRANSACTION_STATUS_COLUMN,
 						SIConstants.TRANSACTION_COMMIT_TIMESTAMP_COLUMN,
 						SIConstants.TRANSACTION_GLOBAL_COMMIT_TIMESTAMP_COLUMN,
-						SIConstants.TRANSACTION_COUNTER_COLUMN
+						SIConstants.TRANSACTION_COUNTER_COLUMN,
+						SIConstants.WRITE_TABLE_COLUMN
 		);
 		byte[] family;
     byte[]  ageQualifier;

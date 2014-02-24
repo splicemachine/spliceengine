@@ -748,7 +748,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 								// Add the indexes to the exisiting regions
 								createIndex(activation, ddlChange, table);
 
-								TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor);
+								TransactionId indexTransaction = getIndexTransaction(parent, tc, tentativeTransaction, transactor,tableConglomId);
 
 								populateIndex(activation, baseColumnPositions, descColumns, tableConglomId, table, indexTransaction);
 								//only commit the index transaction if the job actually completed
@@ -766,7 +766,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 			tc.commit();
 	}
 
-		protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor) throws StandardException {
+		protected TransactionId getIndexTransaction(TransactionController parent, TransactionController tc, TransactionId tentativeTransaction, TransactionManager transactor, long tableConglomId) throws StandardException {
 				final TransactionId parentTransactionId =  new TransactionId(getTransactionId(parent));
 				final TransactionId wrapperTransactionId =  new TransactionId(getTransactionId(tc));
 				TransactionId indexTransaction;
@@ -782,7 +782,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
 				List<TransactionId> active;
 				List<TransactionId> toIgnore = Arrays.asList(parentTransactionId, wrapperTransactionId, indexTransaction);
 				try {
-						active = waitForConcurrentTransactions(indexTransaction, toIgnore);
+						active = waitForConcurrentTransactions(indexTransaction, toIgnore,tableConglomId);
 				} catch (IOException e) {
 						LOG.error("Unexpected error while waiting for past transactions to complete", e);
 						throw Exceptions.parseException(e);
