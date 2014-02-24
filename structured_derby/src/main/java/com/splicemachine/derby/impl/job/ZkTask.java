@@ -46,7 +46,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
     protected SpliceZooKeeperManager zkManager;
     private int priority;
     protected String parentTxnId;
-    private boolean readOnly;
+    protected boolean readOnly;
     private String taskPath;
 
 		protected byte[] parentTaskId = null;
@@ -136,7 +136,7 @@ public abstract class ZkTask implements RegionTask,Externalizable {
             TransactionManager transactor = HTransactorFactory.getTransactionManager();
             TransactionId parent = transactor.transactionIdFromString(parentTxnId);
             try {
-                TransactionId childTxnId  = transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+                TransactionId childTxnId  = beginChildTransaction(transactor, parent);
                 status.setTxnId(childTxnId.getTransactionIdString());
             } catch (IOException e) {
                 throw new ExecutionException("Unable to acquire child transaction",e);
@@ -151,7 +151,11 @@ public abstract class ZkTask implements RegionTask,Externalizable {
 				}
     }
 
-    protected abstract void doExecute() throws ExecutionException, InterruptedException;
+		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
+				return transactor.beginChildTransaction(parent, !readOnly, !readOnly);
+		}
+
+		protected abstract void doExecute() throws ExecutionException, InterruptedException;
 
     @Override
     public void prepareTask(RegionCoprocessorEnvironment rce, SpliceZooKeeperManager zooKeeper)

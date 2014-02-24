@@ -16,13 +16,24 @@ public class DDLFilter {
 
     public boolean isVisibleBy(String transactionId) throws IOException {
         Transaction transaction = transactionStore.getTransaction(new TransactionId(transactionId));
-        // TODO use cache here
-        return transaction.canSee(myTransaction, new TransactionSource() {
-            @Override
-            public Transaction getTransaction(long timestamp) throws IOException {
-                return transactionStore.getTransaction(timestamp);
-            }
-        }).visible;
+				/*
+				 * For the purposes of DDL, we intercept any writes which occur AFTER us, regardless of
+				 * my status.
+				 *
+				 * The reason for this is because the READ of us will not see those writes, which means
+				 * that we need to intercept them and deal with them as if we were committed. If we rollback,
+				 * then it shouldn't matter to the other operation (except for performance), and if we commit,
+				 * then we should see properly constructed data.
+				 */
+				long otherTxnId = transaction.getLongTransactionId();
+				return myTransaction.getLongTransactionId()<=otherTxnId;
+//				// TODO use cache here
+//        return transaction.canSee(myTransaction, new TransactionSource() {
+//            @Override
+//            public Transaction getTransaction(long timestamp) throws IOException {
+//                return transactionStore.getTransaction(timestamp);
+//            }
+//        }).visible;
     }
 
     public Transaction getTransaction() {

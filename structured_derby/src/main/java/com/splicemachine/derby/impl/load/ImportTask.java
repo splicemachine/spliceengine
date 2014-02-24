@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.hbase.writer.WriteStats;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.stats.IOStats;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
@@ -79,6 +81,11 @@ public class ImportTask extends ZkTask{
 				this.importer = importer;
 		}
 
+		@Override
+		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
+				byte[] table = Long.toString(importContext.getTableId()).getBytes();
+				return transactor.beginChildTransaction(parent,!readOnly,table);
+		}
 
 		@Override
 		public void doExecute() throws ExecutionException, InterruptedException {

@@ -932,12 +932,14 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException 
      */
-	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore) throws IOException {
+	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
 	    if (!waitsForConcurrentTransactions()) {
 	        return Collections.emptyList();
 	    }
-	    List<TransactionId> active = transactor.getActiveTransactionIds(maximum);
-        active.removeAll(toIgnore);
+			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+	    List<TransactionId> active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
+			active.removeAll(toIgnore);
+
 	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
 	    long totalWait = 0;
 	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
@@ -948,8 +950,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
             }
 	        totalWait += waitTime;
 	        waitTime *= 10;
-	        active = transactor.getActiveTransactionIds(maximum);
-            active.removeAll(toIgnore);
+	        active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
+					active.removeAll(toIgnore);
 	    }
 	    if (!active.isEmpty()) {
 	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));

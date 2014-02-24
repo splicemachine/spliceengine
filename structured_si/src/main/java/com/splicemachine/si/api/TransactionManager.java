@@ -14,11 +14,21 @@ public interface TransactionManager {
      */
     TransactionId beginTransaction() throws IOException;
 
+
     /**
      * Start a transaction in "snapshot isolation" concurrency mode.
      */
     TransactionId beginTransaction(boolean allowWrites) throws IOException;
 
+		/**
+		 * Start a transaction which is allowed to modify the given table (if not null).
+		 *
+		 * @param writeTable the destination table to write to, or {@code null} if writes
+		 *                   are not allowed
+		 * @return the transaction id for this transaction
+		 * @throws IOException
+		 */
+		TransactionId beginTransaction(byte[] writeTable) throws IOException;
     /**
      * Start a transaction with the specified isolation mode.
      * @param allowWrites boolean indicator of whether the new transaction is allowed to write
@@ -27,7 +37,10 @@ public interface TransactionManager {
      *                      transaction is begun
      */
     TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException;
+
     TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException;
+
+		TransactionId beginChildTransaction(TransactionId parent, byte[] writeTable) throws IOException;
 
     /**
      *
@@ -39,6 +52,9 @@ public interface TransactionManager {
      * @throws java.io.IOException
      */
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException;
+
+		TransactionId beginChildTransaction(TransactionId parent, boolean dependent, byte[] table) throws IOException;
+
     /**
      * @param parent              The new transaction should be a child of parent.
      * @param dependent           Whether the commit of the child depends on the parent committing as well.
@@ -57,7 +73,38 @@ public interface TransactionManager {
      * @throws IOException
      */
     TransactionId beginChildTransaction(TransactionId parent, boolean dependent,
-                                        boolean allowWrites, boolean additive, Boolean readUncommitted, Boolean readCommitted, TransactionId transactionToCommit) throws IOException;
+                                        boolean allowWrites,
+																				boolean additive,
+																				Boolean readUncommitted,
+																				Boolean readCommitted,
+																				TransactionId transactionToCommit) throws IOException;
+
+		/**
+		 * @param parent              The new transaction should be a child of parent.
+		 * @param dependent           Whether the commit of the child depends on the parent committing as well.
+		 * @param additive            Whether the new transaction will be used to perform operations that do not incur write conflicts
+		 *                            and which are idempotent.
+		 * @param readUncommitted     Whether the new transaction should see uncommitted changes from other transactions, setting
+		 *                            this to null causes the new transaction to "inherit" this property from its parent.
+		 * @param readCommitted       Whether the new transaction should see committed changes from concurrent transactions. Otherwise
+		 *                            snapshot isolation semantics apply. Setting this to null causes the new transaction to "inherit"
+		 *                            this property from its parent.
+		 * @param transactionToCommit The transactionToCommit is committed before starting a new transaction and the commit
+		 *                            timestamp is used as the begin timestamp of the new transaction. This allows a transaction
+		 *                            to be committed and a new one begun without any gap in the timestamps between them.
+		 * @param  writeTable					A byte[] representing the table that the transaction is writing to, or {@code null} if
+		 *                            no table is being written to (e.g. a read-only transaction).
+		 * @return a TransactionId representing a transaction which is the child of the specified parent.
+		 * @throws IOException
+		 */
+		TransactionId beginChildTransaction(TransactionId parent,
+																				boolean dependent,
+																				boolean additive,
+																				Boolean readUncommitted,
+																				Boolean readCommitted,
+																				TransactionId transactionToCommit,
+																				byte[] writeTable) throws IOException;
+
     void keepAlive(TransactionId transactionId) throws IOException;
     void commit(TransactionId transactionId) throws IOException;
     void rollback(TransactionId transactionId) throws IOException;
@@ -67,6 +114,9 @@ public interface TransactionManager {
     TransactionId transactionIdFromString(String transactionId);
 
     List<TransactionId> getActiveTransactionIds(TransactionId max) throws IOException;
+
+		List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException;
+
     boolean forbidWrites(String tableName, TransactionId transactionId) throws IOException;
 
 }

@@ -46,6 +46,7 @@ public class SIEncodingUtils {
 				Long commitTimestamp  = decode(result.getValue(family,schema.commitQualifier),Long.class);
 				Long globalCommitTimestamp   =decode(result.getValue(family,schema.globalCommitQualifier),Long.class);
 				Long counterColumn   =decode(result.getValue(family,schema.counterQualifier),Long.class);
+				byte[] writeTable = result.getValue(family,schema.writeTableQualifier);
 				return new Transaction(transactionBehavior,
 								transactionId,
 								beginTimestamp,
@@ -59,7 +60,8 @@ public class SIEncodingUtils {
 								status,
 								commitTimestamp,
 								globalCommitTimestamp,
-								counterColumn);
+								counterColumn,
+								writeTable);
 		}
 
 		private static TransactionStatus decodeStatus(byte[] value) {

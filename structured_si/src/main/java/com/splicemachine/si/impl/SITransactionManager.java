@@ -5,6 +5,7 @@ import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.TransactorListener;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,6 +45,11 @@ public class SITransactionManager implements TransactionManager {
 		}
 
 		@Override
+		public TransactionId beginTransaction(byte[] writeTable) throws IOException {
+				return beginChildTransaction(Transaction.rootTransaction.getTransactionId(),true,false,false,false,null,writeTable);
+		}
+
+		@Override
 		public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted)
 						throws IOException {
 				return beginChildTransaction(Transaction.rootTransaction.getTransactionId(), true, allowWrites, false, readUncommitted,
@@ -56,8 +62,18 @@ public class SITransactionManager implements TransactionManager {
 		}
 
 		@Override
+		public TransactionId beginChildTransaction(TransactionId parent, byte[] writeTable) throws IOException {
+				return beginChildTransaction(parent,true,false,null,null,null,writeTable);
+		}
+
+		@Override
 		public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites) throws IOException {
 				return beginChildTransaction(parent, dependent, allowWrites, false, null, null, null);
+		}
+
+		@Override
+		public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, byte[] table) throws IOException {
+				return beginChildTransaction(parent,dependent,false,null,null,null,table);
 		}
 
 		@Override
@@ -67,6 +83,32 @@ public class SITransactionManager implements TransactionManager {
 				Long timestamp = commitIfNeeded(transactionToCommit);
 				if (allowWrites || readCommitted != null || readUncommitted != null || timestamp != null) {
 						final TransactionParams params = new TransactionParams(parent, dependent, allowWrites, additive, readUncommitted, readCommitted);
+						if (timestamp == null) {
+								timestamp = assignTransactionId();
+						}
+						final long beginTimestamp = generateBeginTimestamp(timestamp, params.parent.getId());
+						transactionStore.recordNewTransaction(timestamp, params, TransactionStatus.ACTIVE, beginTimestamp, 0L);
+						listener.beginTransaction(!parent.isRootTransaction());
+						return new TransactionId(timestamp);
+				} else {
+						return createLightweightChildTransaction(parent.getId());
+				}
+		}
+
+		@Override
+		public TransactionId beginChildTransaction(TransactionId parent,
+																							 boolean dependent,
+																							 boolean additive,
+																							 Boolean readUncommitted,
+																							 Boolean readCommitted,
+																							 TransactionId transactionToCommit,
+																							 byte[] writeTable) throws IOException {
+				Long timestamp = commitIfNeeded(transactionToCommit);
+				boolean allowWrites = writeTable!=null;
+				if (allowWrites || readCommitted != null || readUncommitted != null || timestamp != null) {
+						final TransactionParams params = new TransactionParams(parent,
+										dependent, allowWrites,
+										additive, readUncommitted, readCommitted,writeTable);
 						if (timestamp == null) {
 								timestamp = assignTransactionId();
 						}
@@ -143,6 +185,37 @@ public class SITransactionManager implements TransactionManager {
 								}
 						} else {
 								throw new RuntimeException("expected max id of " + max + " but was " + youngestId);
+						}
+				}
+				return result;
+		}
+
+		@Override
+		public List<TransactionId> getActiveWriteTransactionIds(TransactionId max, byte[] table) throws IOException {
+				final long currentMin = timestampSource.retrieveTimestamp();
+				final TransactionParams missingParams = new TransactionParams(Transaction.rootTransaction.getTransactionId(),
+								true, false, false, false, false);
+				@SuppressWarnings("unchecked") final List<Transaction> oldestActiveTransactions = transactionStore.getOldestActiveTransactions(
+								currentMin, max.getId(), MAX_ACTIVE_COUNT, missingParams, TransactionStatus.ERROR);
+				final List<TransactionId> result = new ArrayList<TransactionId>(oldestActiveTransactions.size());
+				if (!oldestActiveTransactions.isEmpty()) {
+						final long oldestId = oldestActiveTransactions.get(0).getTransactionId().getId();
+						if (oldestId > currentMin)
+								timestampSource.rememberTimestamp(oldestId);
+
+						final TransactionId youngestId = oldestActiveTransactions.get(oldestActiveTransactions.size() - 1).getTransactionId();
+						assert youngestId.equals(max) : "Expected max id of "+ max+" but was "+ youngestId;
+
+						for (Transaction t : oldestActiveTransactions) {
+								if(!t.allowsWrites())
+										continue; //ignore read-only transactions
+								if(table==null)
+										result.add(t.getTransactionId());
+								else{
+										byte[] writeTable = t.getWriteTable();
+										if (writeTable != null && Bytes.equals(table,writeTable))
+												result.add(t.getTransactionId());
+								}
 						}
 				}
 				return result;
