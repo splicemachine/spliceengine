@@ -13,10 +13,10 @@ import java.util.List;
  */
 public class OrderedMuxer<ID extends Comparable, Data> implements Iterator<Data> {
     private final List<Pair<Short, Data>> candidates = new ArrayList<Pair<Short, Data>>();
-    private final List<Iterator<Data>> sources;
+    private final List<? extends Iterator<Data>> sources;
     private final DataIDDecoder<ID, Data> reader;
 
-    public OrderedMuxer(List<Iterator<Data>> sources, DataIDDecoder<ID, Data> reader) {
+    public OrderedMuxer(List<? extends Iterator<Data>> sources, DataIDDecoder<ID, Data> reader) {
         this.sources = sources;
         this.reader = reader;
         loadAllCandidates();

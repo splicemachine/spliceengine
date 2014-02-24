@@ -1,5 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.utils.CloseableIterator;
+import com.splicemachine.utils.ForwardingCloseableIterator;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -46,12 +48,17 @@ public class HbTable implements IHTable {
     }
 
     @Override
-    public Iterator<Result> scan(Scan scan) throws IOException {
+    public CloseableIterator<Result> scan(Scan scan) throws IOException {
         if(scan.getStartRow() == null) {
             scan.setStartRow(new byte[]{});
         }
         final ResultScanner scanner = table.getScanner(scan);
-        return scanner.iterator();
+				return new ForwardingCloseableIterator<Result>(scanner.iterator()) {
+						@Override
+						public void close() throws IOException {
+							scanner.close();
+						}
+				};
     }
 
     @Override

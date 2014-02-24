@@ -6,6 +6,8 @@ import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import java.util.List;
 import java.util.Map;
+
+import com.splicemachine.derby.utils.TransactionAdmin;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.catalog.types.RoutineAliasInfo;
 import org.apache.derby.iapi.error.StandardException;
@@ -209,6 +211,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                         .ownerClass(SpliceAdmin.class.getCanonicalName())
                         .build();
                 procedures.add(killStaleTransactions);
+
+								Procedure dumpTransactions = Procedure.newBuilder().name("SYSCS_DUMP_TRANSACTIONS")
+												.numOutputParams(0)
+												.numResultSets(1)
+												.ownerClass(TransactionAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(dumpTransactions);
+
+								Procedure currTxn = Procedure.newBuilder().name("SYSCS_GET_CURRENT_TRANSACTION")
+												.numOutputParams(0)
+												.numResultSets(1)
+												.ownerClass(TransactionAdmin.class.getCanonicalName())
+												.build();
+								procedures.add(currTxn);
 
                 /*
                  * Procedure to get the log level for the given logger

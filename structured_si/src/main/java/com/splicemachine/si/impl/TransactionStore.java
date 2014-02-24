@@ -1,6 +1,9 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
@@ -12,17 +15,16 @@ import com.splicemachine.si.impl.iterator.ContiguousIterator;
 import com.splicemachine.si.impl.iterator.ContiguousIteratorFunctions;
 import com.splicemachine.si.impl.iterator.DataIDDecoder;
 import com.splicemachine.si.impl.iterator.OrderedMuxer;
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
@@ -426,13 +428,11 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         return result;
     }
 
-    private void cacheCompletedTransactions(long transactionId, Transaction result) {
+    public void cacheCompletedTransactions(long transactionId, Transaction result) {
         if (result.getEffectiveStatus().isFinished()) {
             // If a transaction has reached a terminal status, then we can cache it for future reference.
             completedTransactionCache.put(transactionId, result);
             //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
-        } else {
-            //LOG.warn("cache NOT " + transactionId.getTransactionIdString());
         }
     }
 
@@ -448,7 +448,7 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
 		 * @return
      * @throws IOException
      */
-    private Transaction decodeTransactionResults(long transactionId, Result resultTuple) throws IOException {
+    public Transaction decodeTransactionResults(long transactionId, Result resultTuple) throws IOException {
         // TODO: create optimized versions of this code block that only load the data required by the caller, or make the loading lazy
         final Boolean dependent = decodeBoolean(resultTuple, encodedSchema.dependentQualifier);
         final TransactionBehavior transactionBehavior = dependent ?
@@ -620,31 +620,56 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         }
     };
 
-    public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
-                                                         final int maxCount, final TransactionParams missingParams,
-                                                         final TransactionStatus missingStatus)
-            throws IOException {
-        return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
-            @Override
-            public List<Transaction> withTable(final Table transactionTable) throws IOException {
-               final ContiguousIterator<Long, Result> contiguousIterator = makeContiguousIterator(transactionTable, startTransactionId, missingParams, missingStatus);
-                final List<Transaction> results = new ArrayList<Transaction>();
-                long transactionId = startTransactionId;
-                while (results.size() < maxCount && contiguousIterator.hasNext() && transactionId < maxTransactionId) {
-                    final Result next = contiguousIterator.next();
-                    transactionId = decoder.getID(next);
-                    final Transaction transaction = decodeResults(transactionId, next);
-                    if (transaction.getStatus().isActive() && transaction.getEffectiveStatus().isActive()) {
-                        results.add(transaction);
-                    }
-                }
-                return results;
-            }
-        });
-    }
+		public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
+																												 final int maxCount, final TransactionParams missingParams,
+																												 final TransactionStatus missingStatus)
+						throws IOException {
+				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+						@Override
+						public List<Transaction> withTable(Table table) throws IOException {
+								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,false,
+												startTransactionId,encodedSchema,dataLib,table,reader,TransactionStore.this);
+								try{
+										final List<Transaction> results = Lists.newArrayList();
+										while(iterator.hasNext() && results.size()<maxCount){
+												Transaction next = iterator.next();
+												if(next.getLongTransactionId()> maxTransactionId) continue;
+
+												if(next.getStatus().isActive() && next.getEffectiveStatus().isActive())
+														results.add(next);
+										}
+										return results;
+								}finally{
+										Closeables.closeQuietly(iterator);
+								}
+						}
+				});
+		}
+
+		public List<Transaction> getAllTransactions() throws IOException {
+
+				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+						@Override
+						public List<Transaction> withTable(Table table) throws IOException {
+								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,true,
+												0l,encodedSchema,dataLib,table,reader,TransactionStore.this);
+								try{
+										final List<Transaction> results = Lists.newArrayList();
+										while(iterator.hasNext()){
+												Transaction next = iterator.next();
+
+												results.add(next);
+										}
+										return results;
+								}finally{
+										Closeables.closeQuietly(iterator);
+								}
+						}
+				});
+		}
 
     private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId, TransactionParams missingParams, TransactionStatus missingStatus) throws IOException {
-        List<Iterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
+        List<CloseableIterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
         return new ContiguousIterator<Long, Result>(startTransactionId,
                 new OrderedMuxer<Long, Result>(scanners, decoder), decoder, makeCallbacks(transactionTable, missingParams, missingStatus));
     }
@@ -664,8 +689,8 @@ public class TransactionStore<Put extends OperationWithAttributes, Delete, Get e
         };
     }
 
-    private List<Iterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
-        List<Iterator<Result>> scanners = Lists.newArrayList();
+    private List<CloseableIterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
+        List<CloseableIterator<Result>> scanners = Lists.newArrayList();
         for (byte i = 0; i < SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT; i++) {
             final byte[] rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
             final byte[] endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});

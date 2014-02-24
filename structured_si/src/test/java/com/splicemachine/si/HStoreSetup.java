@@ -4,8 +4,6 @@ import com.google.common.base.Function;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.coprocessors.SIObserver;
-import com.splicemachine.si.coprocessors.SIObserverUnPacked;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
@@ -20,9 +18,7 @@ import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import javax.annotation.Nullable;
@@ -99,7 +95,7 @@ public class HStoreSetup implements StoreSetup {
     private void setupHBaseHarness(boolean usePacked) {
         dataLib = new HDataLib();
         final STableReader<IHTable, Get, Scan> rawReader = new HTableReader(setupHTableSource(getNextBasePort(), usePacked));
-        reader = new STableReaderDelegate<IHTable, Result, Get, Scan>(rawReader) {
+        reader = new STableReaderDelegate<IHTable, Get, Scan>(rawReader) {
             @Override
             public void close(IHTable table) {
                 // Ignore close calls

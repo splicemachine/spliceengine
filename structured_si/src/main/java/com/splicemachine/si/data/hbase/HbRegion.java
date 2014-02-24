@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.hbase;
 
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
@@ -63,7 +64,7 @@ public class HbRegion implements IHTable {
     }
 
     @Override
-    public Iterator<Result> scan(Scan scan) throws IOException {
+    public CloseableIterator<Result> scan(Scan scan) throws IOException {
         throw new RuntimeException("not implemented");
     }
 
