@@ -5,23 +5,23 @@ package com.splicemachine.si.impl;
  */
 public class EncodedTransactionSchema {
     final String tableName;
-    final byte[] siFamily;
-    final byte[] permissionFamily;
-    final byte[] siNull;
+    public final byte[] siFamily;
+    public final byte[] permissionFamily;
+    public final byte[] siNull;
 
-    final byte[] idQualifier;
-    final byte[] startQualifier;
-    final byte[] parentQualifier;
-    final byte[] dependentQualifier;
-    final byte[] allowWritesQualifier;
-    final byte[] additiveQualifier;
-    final byte[] readUncommittedQualifier;
-    final byte[] readCommittedQualifier;
-    final byte[] commitQualifier;
-    final byte[] globalCommitQualifier;
-    final byte[] statusQualifier;
-    final byte[] keepAliveQualifier;
-    final byte[] counterQualifier;
+    public final byte[] idQualifier;
+    public final byte[] startQualifier;
+    public final byte[] parentQualifier;
+    public final byte[] dependentQualifier;
+    public final byte[] allowWritesQualifier;
+    public final byte[] additiveQualifier;
+    public final byte[] readUncommittedQualifier;
+    public final byte[] readCommittedQualifier;
+    public final byte[] commitQualifier;
+    public final byte[] globalCommitQualifier;
+    public final byte[] statusQualifier;
+    public final byte[] keepAliveQualifier;
+    public final byte[] counterQualifier;
 
     public EncodedTransactionSchema(String tableName,
 																		byte[] siFamily,

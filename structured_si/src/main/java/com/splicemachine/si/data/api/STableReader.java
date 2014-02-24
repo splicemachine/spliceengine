@@ -1,5 +1,6 @@
 package com.splicemachine.si.data.api;
 
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ public interface STableReader<Table, Get, Scan> {
     String getTableName(Table table);
 
     Result get(Table table, Get get) throws IOException;
-    Iterator<Result> scan(Table table, Scan scan) throws IOException;
+    CloseableIterator<Result> scan(Table table, Scan scan) throws IOException;
 
     // These methods deal with low-level, server-side region scanners.
 

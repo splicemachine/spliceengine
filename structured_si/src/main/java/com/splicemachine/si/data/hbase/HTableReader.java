@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
 import com.splicemachine.si.data.api.STableReader;
+import com.splicemachine.utils.CloseableIterator;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
@@ -36,7 +37,7 @@ public class HTableReader implements STableReader<IHTable, Get, Scan> {
     }
 
     @Override
-    public Iterator<Result> scan(IHTable table, Scan scan) throws IOException {
+    public CloseableIterator<Result> scan(IHTable table, Scan scan) throws IOException {
         return table.scan(scan);
     }
 

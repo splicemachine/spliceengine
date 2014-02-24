@@ -26,8 +26,9 @@ public class ImmutableTransaction {
     private final long beginTimestamp;
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
+		private int counter;
 
-    public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
+		public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
                                 boolean additive, Boolean readCommitted, ImmutableTransaction immutableParent,
                                 boolean dependent, Boolean readUncommitted, long beginTimestamp) {
         this.behavior = behavior;
@@ -118,7 +119,12 @@ public class ImmutableTransaction {
         return transactionId.hashCode();
     }
 
-    // effective access (see Transaction class for notes on "effective" methods)
+		public boolean isDependent() { return dependent; }
+		public boolean allowsWrites() { return allowWrites; }
+		public Boolean getReadUncommitted() { return readUncommitted; }
+		public Boolean getReadCommitted() { return readCommitted; }
+
+		// effective access (see Transaction class for notes on "effective" methods)
 
     public boolean getEffectiveReadUncommitted() {
         if (readUncommitted == null) {
@@ -311,4 +317,5 @@ public class ImmutableTransaction {
         return null;
     }
 
+		public int getCounter() { return counter; }
 }

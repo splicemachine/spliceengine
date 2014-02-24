@@ -1,7 +1,6 @@
 package com.splicemachine.si;
 
 import com.splicemachine.si.impl.SynchronousRollForwardQueue;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -18,14 +17,7 @@ public class SITransactorHBaseTest extends SITransactorTest {
     @Before
     public void setUp() {
         SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
-        this.storeSetup = HBaseSuite.classStoreSetup;
-        this.transactorSetup = HBaseSuite.classTransactorSetup;
         baseSetUp();
-    }
-
-    @Override
-    @After
-    public void tearDown() throws Exception {
     }
 
 		private static boolean selfManaged = false;
@@ -36,6 +28,8 @@ public class SITransactorHBaseTest extends SITransactorTest {
 						HBaseSuite.setUp();
 						selfManaged = true;
 				}
+				storeSetup = HBaseSuite.classStoreSetup;
+				transactorSetup = HBaseSuite.classTransactorSetup;
 		}
 
 		@AfterClass

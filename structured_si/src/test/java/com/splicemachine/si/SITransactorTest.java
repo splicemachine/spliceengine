@@ -1,11 +1,9 @@
 package com.splicemachine.si;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SIConstants;
-import com.splicemachine.si.api.Clock;
-import com.splicemachine.si.api.TransactionManager;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.RegionRollForwardAction;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -34,17 +32,57 @@ public class SITransactorTest extends SIConstants {
     boolean useSimple = true;
     boolean usePacked = false;
 
-    StoreSetup storeSetup;
-    TestTransactionSetup transactorSetup;
+    static StoreSetup storeSetup;
+    static TestTransactionSetup transactorSetup;
     Transactor transactor;
 		TransactionManager control;
 
 		TransactorTestUtility testUtility;
 
+		final List<TransactionId> createdParentTxns = Lists.newArrayList();
+
     @SuppressWarnings("unchecked")
 		void baseSetUp() {
         transactor = transactorSetup.transactor;
-				control = transactorSetup.control;
+				control = new ForwardingTransactionManager(transactorSetup.control) {
+						@Override
+						public TransactionId beginTransaction() throws IOException {
+								TransactionId id =  super.beginTransaction();
+								createdParentTxns.add(id);
+								return id;
+						}
+
+						@Override
+						public TransactionId beginTransaction(boolean allowWrites) throws IOException {
+								TransactionId id =  super.beginTransaction(allowWrites);
+								createdParentTxns.add(id);
+								return id;
+						}
+
+						@Override
+						public TransactionId beginTransaction(boolean allowWrites, boolean readUncommitted, boolean readCommitted) throws IOException {
+								TransactionId id =  super.beginTransaction(allowWrites,readUncommitted,readCommitted);
+								createdParentTxns.add(id);
+								return id;
+						}
+
+						@Override
+						public TransactionId beginChildTransaction(TransactionId parent, boolean allowWrites) throws IOException {
+								TransactionId id =  super.beginChildTransaction(parent, allowWrites);
+								if(parent.getId()<0)
+										createdParentTxns.add(id);
+								return id;
+						}
+
+						@Override
+						public TransactionId beginChildTransaction(TransactionId parent, boolean dependent, boolean allowWrites, boolean additive, Boolean readUncommitted, Boolean readCommitted, TransactionId transactionToCommit) throws IOException {
+								TransactionId txnId = super.beginChildTransaction(parent, dependent, allowWrites, additive, readUncommitted, readCommitted, transactionToCommit);
+								if(parent.getId()<0){
+										createdParentTxns.add(txnId);
+								}
+								return txnId;
+						}
+				};
         transactorSetup.rollForwardQueue = new SynchronousRollForwardQueue(
 								new RollForwardAction() {
                     @Override
@@ -60,16 +98,22 @@ public class SITransactorTest extends SIConstants {
 				testUtility = new TransactorTestUtility(useSimple,usePacked,storeSetup,transactorSetup,transactor,control);
     }
 
+		@BeforeClass
+		public static void setupClass(){
+				storeSetup = new LStoreSetup();
+				transactorSetup = new TestTransactionSetup(storeSetup, true);
+		}
     @Before
     public void setUp() {
         SynchronousRollForwardQueue.scheduler = Executors.newScheduledThreadPool(1);
-        storeSetup = new LStoreSetup();
-        transactorSetup = new TestTransactionSetup(storeSetup, true);
         baseSetUp();
     }
 
     @After
     public void tearDown() throws Exception {
+				for(TransactionId id:createdParentTxns){
+						control.rollback(id);
+				}
     }
 
 
@@ -105,7 +149,81 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals("joe8 absent", testUtility.read(t2, "joe8"));
     }
 
-    @Test
+		@Test
+		public void testGetActiveTransactionsFiltersOutChildrenCommit() throws Exception {
+				TransactionId parent = control.beginTransaction();
+				TransactionId child = control.beginChildTransaction(parent,true);
+				List<TransactionId> activeTransactionIds = control.getActiveTransactionIds(child);
+				Assert.assertEquals("Incorrect size",2,activeTransactionIds.size());
+				Assert.assertEquals("Incorrect transaction returned!",parent,activeTransactionIds.get(0));
+				Assert.assertEquals("Incorrect transaction returned!",child,activeTransactionIds.get(1));
+
+				control.commit(parent);
+				activeTransactionIds = control.getActiveTransactionIds(child);
+				Assert.assertEquals("Incorrect size",0,activeTransactionIds.size());
+
+				TransactionId next = control.beginTransaction();
+				activeTransactionIds = control.getActiveTransactionIds(next);
+				Assert.assertEquals("Incorrect size",1,activeTransactionIds.size());
+				Assert.assertEquals("Incorrect transaction returned!",next,activeTransactionIds.get(0));
+		}
+
+		@Test
+		public void testGetActiveTransactionsWorksWithGap() throws Exception {
+				TransactionId parent = control.beginTransaction();
+
+				List<TransactionId> ids = control.getActiveTransactionIds(parent);
+				Assert.assertEquals("Incorrect size",1,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(parent),ids);
+
+				TimestampSource timestampSource = transactorSetup.timestampSource;
+				timestampSource.nextTimestamp();
+				timestampSource.nextTimestamp();
+
+
+				TransactionId next = control.beginTransaction();
+				ids = control.getActiveTransactionIds(next);
+				Assert.assertEquals("Incorrect size",2,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(parent,next),ids);
+		}
+
+		@Test
+		public void testChildTransactionsInterleave() throws Exception {
+				/*
+				 * Similar to what happens when an insertion occurs,
+				 */
+				TransactionId parent = control.beginTransaction();
+
+				TransactionId interleave = control.beginTransaction();
+
+				TransactionId child = control.beginChildTransaction(parent,true);
+
+				testUtility.insertAge(child,"joe",20);
+
+				Assert.assertEquals("joe absent", testUtility.read(interleave, "joe"));
+		}
+
+		@Test
+		public void testGetActiveTransactionsFiltersOutIfParentRollsbackGrandChildCommits() throws Exception {
+				TransactionId parent = control.beginTransaction();
+				TransactionId child = control.beginChildTransaction(parent, true);
+				TransactionId grandChild = control.beginChildTransaction(child,true);
+				List<TransactionId> ids = control.getActiveTransactionIds(grandChild);
+				Assert.assertEquals("Incorrect size",3,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(parent,child,grandChild),ids);
+				@SuppressWarnings("UnusedDeclaration") TransactionId grandGrandChild = control.beginChildTransaction(child,true);
+
+				//commit grandchild, leave child alone, and rollback parent, then see who's active. should be noone
+				control.commit(grandChild);
+				control.rollback(parent);
+
+				TransactionId next = control.beginTransaction();
+				ids = control.getActiveTransactionIds(next);
+				Assert.assertEquals("Incorrect size",1,ids.size());
+				Assert.assertEquals("Incorrect values",Lists.newArrayList(next),ids);
+		}
+
+		@Test
     public void writeWrite() throws IOException {
         TransactionId t1 = control.beginTransaction();
         testUtility.insertAge(t1, "joe", 20);
@@ -2572,7 +2690,7 @@ public class SITransactorTest extends SIConstants {
     }
 
     @Test
-    public void oldestActiveTransactionsFillMissing() throws IOException {
+    public void oldestActiveTransactionIgnoresCommitTimestampIds() throws IOException {
         final TransactionId t0 = control.beginTransaction();
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
         TransactionId committedTransactionID = null;
@@ -2598,21 +2716,32 @@ public class SITransactorTest extends SIConstants {
         Assert.assertEquals(2, result.size());
         Assert.assertEquals(t0.getId(), result.get(0).getId());
         Assert.assertEquals(t1.getId(), result.get(1).getId());
-        Assert.assertEquals(TransactionStatus.ERROR, control.getTransactionStatus(voidedTransactionID));
-    }
+				//this transaction should still be missing
+				try {
+						control.getTransactionStatus(voidedTransactionID);
+						Assert.fail();
+				} catch (RuntimeException ex) {
+						Assert.assertTrue(ex.getMessage().startsWith("transaction ID not found:"));
+				}
+		}
 
     @Test
     public void oldestActiveTransactionsManyActive() throws IOException {
+				List<TransactionId> startedTxns = Lists.newArrayList();
         final TransactionId t0 = control.beginTransaction();
+				startedTxns.add(t0);
         transactorSetup.timestampSource.rememberTimestamp(t0.getId());
         for (int i = 0; i < SITransactor.MAX_ACTIVE_COUNT / 2; i++) {
-            control.beginTransaction();
-        }
+						TransactionId transactionId = control.beginTransaction();
+						startedTxns.add(transactionId);
+				}
         final TransactionId t1 = control.beginTransaction();
+				startedTxns.add(t1);
         final List<TransactionId> result = control.getActiveTransactionIds(t1);
-        Assert.assertEquals(SITransactor.MAX_ACTIVE_COUNT / 2 + 2, result.size());
-        Assert.assertEquals(t0.getId(), result.get(0).getId());
-        Assert.assertEquals(t1.getId(), result.get(result.size() - 1).getId());
+        Assert.assertEquals(startedTxns.size(), result.size());
+				Assert.assertEquals(startedTxns,result);
+//        Assert.assertEquals(t0.getId(), result.get(0).getId());
+//        Assert.assertEquals(t1.getId(), result.get(result.size() - 1).getId());
     }
 
     @Test

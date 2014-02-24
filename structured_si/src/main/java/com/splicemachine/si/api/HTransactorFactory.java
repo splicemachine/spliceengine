@@ -97,6 +97,11 @@ public class HTransactorFactory extends SIConstants {
 				return readController;
 		}
 
+		public static TransactionStore getTransactionStore() {
+				initializeIfNeeded();
+				return transactionStore;
+		}
+
 		@SuppressWarnings("unchecked")
 		private static void initializeIfNeeded(){
 				if(initialized) return;

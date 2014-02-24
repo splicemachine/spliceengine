@@ -31,9 +31,20 @@ public class Transaction extends ImmutableTransaction {
 
     public final Long counter;
 
-    public Transaction(TransactionBehavior transactionBehavior, long id, long beginTimestamp, long keepAlive, Transaction parent,
-                       boolean dependent, boolean allowWrites, boolean additive, Boolean readUncommitted, Boolean readCommitted,
-                       TransactionStatus status, Long commitTimestamp, Long globalCommitTimestamp, Long counter) {
+    public Transaction(TransactionBehavior transactionBehavior,
+											 long id,
+											 long beginTimestamp,
+											 long keepAlive,
+											 Transaction parent,
+                       boolean dependent,
+											 boolean allowWrites,
+											 boolean additive,
+											 Boolean readUncommitted,
+											 Boolean readCommitted,
+                       TransactionStatus status,
+											 Long commitTimestamp,
+											 Long globalCommitTimestamp,
+											 Long counter) {
         super(transactionBehavior, id, allowWrites, additive, readCommitted, parent, dependent, readUncommitted,
                 beginTimestamp);
         this.keepAlive = keepAlive;
@@ -99,4 +110,9 @@ public class Transaction extends ImmutableTransaction {
         return behavior.getEffectiveCommitTimestamp(scope, globalCommitTimestamp, commitTimestamp, parent);
     }
 
+		public Long getGlobalCommitTimestamp() {
+				return globalCommitTimestamp;
+		}
+
+		public long getKeepAlive() { return keepAlive; }
 }

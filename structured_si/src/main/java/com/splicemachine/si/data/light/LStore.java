@@ -9,6 +9,8 @@ import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.SICompactionState;
+import com.splicemachine.utils.CloseableIterator;
+import com.splicemachine.utils.ForwardingCloseableIterator;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
@@ -73,8 +75,13 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
 
 		@SuppressWarnings("unchecked")
 		@Override
-    public Iterator<Result> scan(LTable table, LGet scan) {
-        return runScan(table, scan);
+    public CloseableIterator<Result> scan(LTable table, LGet scan) {
+        return new ForwardingCloseableIterator<Result>(runScan(table,scan)) {
+						@Override
+						public void close() throws IOException {
+							//no-op
+						}
+				};
     }
 
     @SuppressWarnings({"unchecked", "UnusedDeclaration"})
