@@ -101,10 +101,10 @@ public class DropTableNode extends DDLStatementNode
 			td = getTableDescriptor();
 		} catch (StandardException e) {
 	        if (e.getMessageId().equals(SQLState.LANG_OBJECT_DOES_NOT_EXIST) && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
-	        	// this case is only a warning - no exception
+	        	// this case is only a warning - no exception - reset severity to WARN
 	            e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
-	            throw e;
 	        }
+            throw e;
 		}
 
 		conglomerateNumber = td.getHeapConglomerateId();
