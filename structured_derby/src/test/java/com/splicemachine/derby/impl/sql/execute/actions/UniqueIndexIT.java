@@ -1,7 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -263,36 +266,46 @@ public class UniqueIndexIT extends SpliceUnitTest {
     @Test
     public void testCanDeleteIndexWithNulls() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_9,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_9), "sfines", 2));
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
-                                                    this.getTableReference(TABLE_NAME_9), "lfines", -2));
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
-                                                    this.getTableReference(TABLE_NAME_9)));
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
-                                                    this.getTableReference(TABLE_NAME_9)));
+				PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s (name,val) values (?,?)",spliceTableWatcher9));
+				ps.setString(1,"sfines");
+				ps.setInt(2,2);
+				ps.addBatch();
+				ps.setString(1,"lfines");
+				ps.setInt(2,-2);
+				ps.addBatch();
+				ps.setNull(1, Types.VARCHAR);
+				ps.setNull(2,Types.INTEGER);
+				ps.addBatch();
+				ps.setString(1,"0");
+				ps.setInt(2,0);
+				ps.addBatch();
+				int[] updated = ps.executeBatch();
+				Assert.assertEquals("Incorrect update number!",4,updated.length);
+				System.out.println(Arrays.toString(updated));
+//				methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+//                                                    this.getTableReference(TABLE_NAME_9), "sfines", 2));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+//                                                    this.getTableReference(TABLE_NAME_9), "lfines", -2));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
+//                                                    this.getTableReference(TABLE_NAME_9)));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+//                                                    this.getTableReference(TABLE_NAME_9)));
 
         String query = format("select * from %s",this.getTableReference(TABLE_NAME_9));
         ResultSet rs = methodWatcher.executeQuery(query);
         TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-//        System.out.println("1:");
-//        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 4, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_9)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-//        System.out.println("2:");
-//        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 3, fr.size());
 
         methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_9)));
         rs = methodWatcher.executeQuery(query);
 
         fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
-//        System.out.println("3:");
-//        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 2, fr.size());
     }
 
