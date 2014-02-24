@@ -37,7 +37,8 @@ public interface StatementType
 
 	public static final int DROP_CASCADE = 0;
 	public static final int DROP_RESTRICT = 1;
-	public static final int DROP_DEFAULT = 2;
+    public static final int DROP_DEFAULT = 2;
+    public static final int DROP_IF_EXISTS = 3;
 
 	public static final int RENAME_TABLE = 1;
 	public static final int RENAME_COLUMN = 2;

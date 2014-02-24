@@ -21,8 +21,11 @@
 
 package	org.apache.derby.impl.sql.compile;
 
+import org.apache.derby.iapi.error.ExceptionSeverity;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.SQLState;
 import org.apache.derby.iapi.services.sanity.SanityManager;
+import org.apache.derby.iapi.sql.StatementType;
 import org.apache.derby.iapi.sql.compile.CompilerContext;
 import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
@@ -94,7 +97,15 @@ public class DropTableNode extends DDLStatementNode
 	{
 		CompilerContext			cc = getCompilerContext();
 
-		td = getTableDescriptor();
+		try {
+			td = getTableDescriptor();
+		} catch (StandardException e) {
+	        if (e.getMessageId().equals(SQLState.LANG_OBJECT_DOES_NOT_EXIST) && this.dropBehavior == StatementType.DROP_IF_EXISTS) {
+	        	// this case is only a warning - no exception
+	            e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+	            throw e;
+	        }
+		}
 
 		conglomerateNumber = td.getHeapConglomerateId();
 

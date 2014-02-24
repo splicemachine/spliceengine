@@ -2397,6 +2397,7 @@ TOKEN [IGNORE_CASE] :
 |	<HAVING: "having">
 |	<HOUR: "hour">
 |	<IDENTITY: "identity">
+|	<IF: "if">
 |	<IMMEDIATE: "immediate">
 |	<IN: "in">
 |	<INDICATOR: "indicator">
@@ -13874,17 +13875,24 @@ dropTableConstraintDefinition() throws StandardException :
 StatementNode
 dropTableStatement() throws StandardException :
 {
+	Token ifTok = null;
+	Token existsTok = null;
 	TableName tableName;
 }
 {
-	<TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	[ ifTok = <IF> existsTok = <EXISTS> ] <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
 	{
+        // must have both "if" and "exists"
+        boolean ifExists = ifTok != null && existsTok != null;
 		// DB2 does not support a drop behaviour
-		return (StatementNode) nodeFactory.getNode(
+		StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
 											C_NodeTypes.DROP_TABLE_NODE,
 											tableName,
-											new Integer(StatementType.DROP_DEFAULT),
+											(ifExists ? 
+											  new Integer(StatementType.DROP_IF_EXISTS) : 
+											  new Integer(StatementType.DROP_DEFAULT)),
 											getContextManager());
+        return deleteNode;
 	}
 }
 
@@ -14733,6 +14741,7 @@ reservedKeyword() :
 |	tok = <HAVING>
 |	tok = <HOUR>
 |	tok = <IDENTITY>
+|	tok = <IF>
 |	tok = <IMMEDIATE>
 |	tok = <IN>
 |	tok = <INDICATOR>
