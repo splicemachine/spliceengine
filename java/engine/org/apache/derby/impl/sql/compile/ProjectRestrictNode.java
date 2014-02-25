@@ -521,50 +521,31 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 				"optimizablePredicate either has a subquery or a method call");
 		}
 
-        boolean shouldPushPredicate = true;
+      /* Add the matching predicate to the restrictionList */
+      if (restrictionList == null)
+      {
+          restrictionList = (PredicateList) getNodeFactory().getNode(
+                  C_NodeTypes.PREDICATE_LIST,
+                  getContextManager());
+      }
 
-        if(optimizablePredicate instanceof Predicate){
+      restrictionList.addPredicate((Predicate) optimizablePredicate);
 
-            Predicate pred = (Predicate) optimizablePredicate;
+      /* Remap all of the ColumnReferences to point to the
+       * source of the values.
+       */
+      Predicate pred = (Predicate)optimizablePredicate;
 
-            if(!pred.isJoinPredicate()){
-
-                Set childTableUUIDs = getAllChildReferencedTables();
-                Vector predColumnRefs = getColumnReferences(pred);
-
-                shouldPushPredicate = areAllReferencedTablesFromChild(childTableUUIDs, predColumnRefs);
-            }
-        }
-
-        if(shouldPushPredicate){
-
-            /* Add the matching predicate to the restrictionList */
-            if (restrictionList == null)
-            {
-                restrictionList = (PredicateList) getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager());
-            }
-
-            restrictionList.addPredicate((Predicate) optimizablePredicate);
-
-            /* Remap all of the ColumnReferences to point to the
-             * source of the values.
-             */
-            Predicate pred = (Predicate)optimizablePredicate;
-
-            /* If the predicate is scoped then the call to "remapScopedPred()"
-             * will do the necessary remapping for us and will return true;
-             * otherwise, we'll just do the normal remapping here.
-             */
-            if (!pred.remapScopedPred())
-            {
-                RemapCRsVisitor rcrv = new RemapCRsVisitor(true);
-                pred.getAndNode().accept(rcrv);
-            }
-        }
-
-		return shouldPushPredicate;
+      /* If the predicate is scoped then the call to "remapScopedPred()"
+       * will do the necessary remapping for us and will return true;
+       * otherwise, we'll just do the normal remapping here.
+       */
+      if (!pred.remapScopedPred())
+      {
+          RemapCRsVisitor rcrv = new RemapCRsVisitor(true);
+          pred.getAndNode().accept(rcrv);
+      }
+		return true;
 	}
 
     private boolean areAllReferencedTablesFromChild(Set childTableUUIDs, Vector columnRefs){
