@@ -64,8 +64,8 @@ public class DistinctScalarBufferedAggregator implements BufferedAggregator {
             if(aggregate.finish(currentRow))
                 eliminatedNulls=true;
         }
-        if(eliminatedNulls)
-            warningCollector.addWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION);
+//        if(eliminatedNulls)
+//            warningCollector.addWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION);
         //once finished, return this to an unitialized state so it can be reused
         ExecRow toReturn = currentRow;
         currentRow= null;
