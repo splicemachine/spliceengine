@@ -18,15 +18,7 @@ import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -914,13 +906,12 @@ public class SpliceAdmin {
         // todo
     }
 
-    public static long getConglomid(Connection conn, String schemaName, String tableName) throws SQLException {
-        long[] congomIDs = getConglomids(conn, schemaName, tableName);
-        if (congomIDs.length > 0) return congomIDs[0];
-        return 0l;
-    }
-
-    public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+		/**
+		 * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
+		 * as well as the table itself. While the first conglomerate SHOULD be the main table, there
+		 * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
+		 */
+		public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
@@ -962,6 +953,12 @@ public class SpliceAdmin {
         for (int i =0; i<conglomIDs.size(); i++) {
             congloms[i] = conglomIDs.get(i);
         }
+				/*
+				 * An index conglomerate id can be returned by the query before the main table one is,
+				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
+				 * we should return the main table before any of its indices.
+				 */
+				Arrays.sort(congloms);
         return congloms;
     }
 
