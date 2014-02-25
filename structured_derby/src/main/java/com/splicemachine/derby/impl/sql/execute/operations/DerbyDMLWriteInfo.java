@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
 import java.io.IOException;
@@ -52,7 +53,12 @@ public class DerbyDMLWriteInfo implements DMLWriteInfo {
         return SpliceObserverInstructions.create(activation,operation,new SpliceRuntimeContext());
     }
 
-    @Override
+		@Override
+		public ResultDescription getResultDescription() {
+				return activation.getResultDescription();
+		}
+
+		@Override
     public void writeExternal(ObjectOutput out) throws IOException {
     }
 
