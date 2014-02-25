@@ -232,8 +232,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				setCurrentRow(row);
 				boolean eliminatedNulls = aggregator.finish(row);
 
-				if (eliminatedNulls)
-						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+//				if (eliminatedNulls)
+//						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
 
 				return row;
 		}
