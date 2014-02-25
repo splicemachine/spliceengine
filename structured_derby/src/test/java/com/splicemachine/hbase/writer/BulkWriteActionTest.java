@@ -14,11 +14,7 @@ import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.utils.Sleeper;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.RegionTooBusyException;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
@@ -31,6 +27,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
@@ -83,15 +80,17 @@ public class BulkWriteActionTest {
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
 				Writer.WriteConfiguration config = mock(Writer.WriteConfiguration.class);
+				when(config.getMaximumRetries()).thenReturn(1);
 
 				final BulkWriteResult result = new BulkWriteResult(IntArrayList.newInstanceWithCapacity(0),
 								IntObjectOpenHashMap.<WriteResult>newInstance(0,0.75f));
 				BulkWriteInvoker invoker = mock(BulkWriteInvoker.class);
-				final AtomicBoolean throwError = new AtomicBoolean(true);
+				final AtomicInteger errorCount = new AtomicInteger(3);
+//				final AtomicBoolean throwError = new AtomicBoolean(true);
 				Answer<BulkWriteResult> answer = new Answer<BulkWriteResult>() {
 						@Override
 						public BulkWriteResult answer(InvocationOnMock invocationOnMock) throws Throwable {
-								if (throwError.get())
+								if (errorCount.decrementAndGet()>0)
 										throw new RegionTooBusyException("too many active ipc threads on region test");
 								else
 										return result;
@@ -106,15 +105,16 @@ public class BulkWriteActionTest {
 				BulkWriteAction action = new BulkWriteAction(tableName,write,cache,config, statusReporter,factory, new Sleeper() {
 						@Override
 						public void sleep(long wait) throws InterruptedException {
-								Assert.assertTrue("Slept more than once!",throwError.compareAndSet(true, false));
+								Assert.assertTrue("Slept after retries required!", errorCount.get()>0);
 						}
 
 						@Override public TimeView getSleepStats() { return Metrics.noOpTimeView(); }
 				});
 				action.call();
+				Assert.assertEquals("Did not retry often enough!",0,errorCount.get());
 		}
 
-		@Test(expected = RetriesExhaustedWithDetailsException.class)
+		@Test(expected = DoNotRetryIOException.class)
 		public void testRetryFailsWhenCacheCantFill() throws Exception {
 				byte[] tableName = Bytes.toBytes("testTable");
 				ObjectArrayList<KVPair> mutations = ObjectArrayList.newInstanceWithCapacity(5);
@@ -124,11 +124,21 @@ public class BulkWriteActionTest {
 				byte[] regionKey = Encoding.encode(5);
 				BulkWrite write = new BulkWrite(mutations,"testTxnId",regionKey);
 				RegionCache cache = mock(RegionCache.class);
-				SortedSet<HRegionInfo> regions = Sets.newTreeSet();
+				final SortedSet<HRegionInfo> regions = Sets.newTreeSet();
 //				regions.add(new HRegionInfo(tableName, HConstants.EMPTY_START_ROW,Encoding.encode(6)));
 				regions.add(new HRegionInfo(tableName, Encoding.encode(6),HConstants.EMPTY_END_ROW));
 
-				when(cache.getRegions(tableName)).thenReturn(regions);
+				final boolean[] returnedRegions = new boolean[]{false};
+				when(cache.getRegions(tableName)).thenAnswer(new Answer<Object>() {
+						@Override
+						public Object answer(InvocationOnMock invocation) throws Throwable {
+								if(returnedRegions[0]){
+										return null;
+								}
+								returnedRegions[0] = true;
+								return regions;
+						}
+				});
 				Writer.WriteConfiguration config = new Writer.WriteConfiguration() {
 						@Override public int getMaximumRetries() { return 5; }
 						@Override public long getPause() { return 1000; }
