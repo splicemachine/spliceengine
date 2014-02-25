@@ -180,9 +180,6 @@ public class HdfsImport extends ParallelVTI {
 						throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.ID_PARSE_ERROR,ae.getMessage()));
 				}
 
-				long conglomId = SpliceAdmin.getConglomid(connection, schemaName, tableName);
-				builder = builder.destinationTable(conglomId);
-
 				HdfsImport importer;
 				StatementInfo statementInfo = new StatementInfo(String.format("import(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
 								schemaName,tableName,insertColumnList,inputFileName,delimiter,charDelimiter,timestampFormat,dateFormat,timeFormat),
@@ -473,6 +470,8 @@ public class HdfsImport extends ParallelVTI {
 						TableDescriptor td = dataDictionary.getTableDescriptor(tableName,sd, tc);
 						if(td==null)
 								throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
+						long conglomerateId = td.getHeapConglomerateId();
+						builder.destinationTable(conglomerateId);
 						RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
 
 						for(ColumnContext.Builder cb:columns.values()){
