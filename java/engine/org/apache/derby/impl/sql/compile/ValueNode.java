@@ -211,7 +211,9 @@ public abstract class ValueNode extends QueryTreeNode
      */
     public void setNullability(boolean nullability) throws StandardException
     {
-        setType(getTypeServices().getNullabilityType(nullability));
+        if (getTypeServices() != null){
+            setType(getTypeServices().getNullabilityType(nullability));
+        }
     }
     
     /**
