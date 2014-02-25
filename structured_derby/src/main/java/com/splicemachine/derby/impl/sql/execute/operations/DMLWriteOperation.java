@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -19,9 +20,12 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -197,7 +201,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-				ExecRow row = source.getExecRowDefinition();
+				/*
+				 * Typically, we just call down to our source and then pass that along
+				 * unfortunately, with autoincrement columns this can lead to a
+				 * StackOverflow, so we can't do that(see DB-1098 for more info)
+				 *
+				 * Luckily, DML operations are the top of their stack, so we can
+				 * just form our exec row from our result description.
+				 */
+				ResultDescription description = writeInfo.getResultDescription();
+				ResultColumnDescriptor[] rcd = description.getColumnInfo();
+				DataValueDescriptor[] dvds = new DataValueDescriptor[rcd.length];
+				for(int i=0;i<rcd.length;i++){
+						dvds[i] = rcd[i].getType().getNull();
+				}
+				ExecRow row = new ValueRow(dvds.length);
+				row.setRowArray(dvds);
+//				ExecRow row = source.getExecRowDefinition();
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}

@@ -179,6 +179,7 @@ public class InsertOperationTest {
         operation.init(mock(SpliceOperationContext.class));
 				InsertOperation spy = spy(operation);
 				doReturn(new TransactionId("12")).when(spy).getChildTransaction();
+				doReturn(TestingDataType.getTemplateOutput(dataTypes)).when(spy).getExecRowDefinition();
 				operation = spy;
 
 				when(mockInstructions.getTopOperation()).thenReturn(operation);
