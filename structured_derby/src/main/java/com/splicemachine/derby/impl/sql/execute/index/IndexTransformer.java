@@ -5,7 +5,10 @@ import java.nio.ByteBuffer;
 
 import com.carrotsearch.hppc.BitSet;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.KVPair;
@@ -13,6 +16,9 @@ import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.SparseEntryAccumulator;
 import com.splicemachine.storage.index.BitIndex;
+import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.log4j.Logger;
 
 /**
  * Class responsible for transforming an incoming main table row
@@ -32,7 +38,14 @@ public class IndexTransformer {
     private EntryAccumulator indexKeyAccumulator;
     private EntryAccumulator indexRowAccumulator;
     private EntryDecoder mainPutDecoder;
-
+    private int[] columnOrdering;
+    private int[] format_ids;
+    private KeyData[] pkIndex;
+    private DataValueDescriptor[] kdvds;
+    private MultiFieldDecoder keyDecoder;
+    private BitSet pkColumns;
+    private BitSet pkIndexColumns;
+    private static final Logger LOG = Logger.getLogger(IndexTransformer.class);
     public IndexTransformer(BitSet indexedColumns,
                             BitSet translatedIndexedColumns,
                             BitSet nonUniqueIndexedColumns,
@@ -49,11 +62,39 @@ public class IndexTransformer {
         this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
     }
 
+    public IndexTransformer(BitSet indexedColumns,
+                            BitSet translatedIndexedColumns,
+                            BitSet nonUniqueIndexedColumns,
+                            BitSet descColumns,
+                            int[] mainColToIndexPosMap,
+                            boolean isUnique,
+                            boolean isUniqueWithDuplicateNulls,
+                            int[] columnOrdering,
+                            int[] format_ids){
+        this.indexedColumns = indexedColumns;
+        this.translatedIndexedColumns = translatedIndexedColumns;
+        this.nonUniqueIndexedColumns = nonUniqueIndexedColumns;
+        this.descColumns = descColumns;
+        this.mainColToIndexPosMap = mainColToIndexPosMap;
+        this.isUnique = isUnique;
+        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
+        this.columnOrdering = columnOrdering;
+        this.format_ids = format_ids;
+        pkColumns = new BitSet();
+        if(columnOrdering != null && columnOrdering.length > 0) {
+            for (int col:columnOrdering) {
+                pkColumns.set(col);
+            }
+        }
+    }
+
     public static IndexTransformer newTransformer(BitSet indexedColumns,
                                                   int[] mainColToIndexPosMap,
                                                   BitSet descColumns,
                                                   boolean unique,
-                                                  boolean uniqueWithDuplicateNulls) {
+                                                  boolean uniqueWithDuplicateNulls,
+                                                  int[] columnOrdering,
+                                                  int[] format_ids){
         BitSet translatedIndexedColumns = new BitSet(indexedColumns.cardinality());
         for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
             translatedIndexedColumns.set(mainColToIndexPosMap[i]);
@@ -67,12 +108,48 @@ public class IndexTransformer {
                                     descColumns,
                                     mainColToIndexPosMap,
                                     unique,
-                                    uniqueWithDuplicateNulls
+                                    uniqueWithDuplicateNulls,
+                                    columnOrdering,
+                                    format_ids
         );
     }
 
-    public KVPair translate(KVPair mutation) throws IOException {
+    private void buildKeyMap (KVPair mutation) throws StandardException{
+
+        // if index key column set and primary key column set do not intersect,
+        // no need to build a key map
+        pkIndexColumns = (BitSet)pkColumns.clone();
+        pkIndexColumns.and(indexedColumns);
+        if(pkIndexColumns.cardinality() > 0)
+        {
+            int len = columnOrdering.length;
+            createKeyDecoder();
+            if (kdvds == null) {
+                kdvds = new DataValueDescriptor[len];
+                for(int i = 0; i < len; ++i) {
+                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+                }
+            }
+            if(pkIndex == null)
+                pkIndex = new KeyData[len];
+            keyDecoder.set(mutation.getRow());
+            for (int i = 0; i < len; ++i) {
+                int offset = keyDecoder.offset();
+                DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
+                int size = keyDecoder.offset()-1-offset;
+                pkIndex[i] = new KeyData(offset, size);
+            }
+        }
+    }
+
+    private void createKeyDecoder() {
+        if (keyDecoder == null)
+            keyDecoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+    }
+
+    public KVPair translate(KVPair mutation) throws IOException, StandardException {
         if (mutation == null) return null; //nothing to do
+        buildKeyMap(mutation);
 
         //make sure that row and key accumulators are initialized
         getRowAccumulator();
@@ -92,9 +169,14 @@ public class IndexTransformer {
         // Check for null columns in data when isUniqueWithDuplicateNulls == true
         // -- in this case, we'll have to append a uniqueness value to the row key
         boolean makeUniqueForDuplicateNulls = false;
-
-        for (int i = mutationIndex.nextSetBit(0); i >= 0 && i <= indexedColumns.length(); i = mutationIndex.nextSetBit(i + 1)) {
-            if (indexedColumns.get(i)) {
+        int pos = 0;
+        for (int i = 0; i < format_ids.length; ++i) {
+            if (pkIndexColumns.get(i)) {
+                indexKeyAccumulator.add(mainColToIndexPosMap[i],
+                        ByteBuffer.wrap(keyDecoder.array(),pkIndex[i].getOffset(),pkIndex[i].getSize()));
+                //indexRowAccumulator.add(pos++, null);
+            }
+            else if (indexedColumns.get(i)) {
                 if (isUniqueWithDuplicateNulls && !makeUniqueForDuplicateNulls) {
                     makeUniqueForDuplicateNulls = mainPutDecoder.nextIsNull(i);
                 }
@@ -103,19 +185,38 @@ public class IndexTransformer {
                     accumulate(indexKeyAccumulator, mutationIndex, getDescendingBuffer(entry), i);
                 else
                     accumulate(indexKeyAccumulator, mutationIndex, entry, i);
-                accumulate(indexRowAccumulator, mutationIndex, entry, i);
+                //indexRowAccumulator.add(pos++, null);
             } else {
                 mainPutDecoder.seekForward(mutationDecoder, i);
             }
         }
+        /*for (int i = mutationIndex.nextSetBit(0); i >= 0 && i <= indexedColumns.length(); i = mutationIndex.nextSetBit(i + 1)) {
+            if (pkIndexColumns.get(i)) {
+               //BitSet
+            }
+            else if (indexedColumns.get(i)) {
+                if (isUniqueWithDuplicateNulls && !makeUniqueForDuplicateNulls) {
+                    makeUniqueForDuplicateNulls = mainPutDecoder.nextIsNull(i);
+                }
+                ByteBuffer entry = mainPutDecoder.nextAsBuffer(mutationDecoder, i);
+                if (descColumns.get(mainColToIndexPosMap[i]))
+                    accumulate(indexKeyAccumulator, mutationIndex, getDescendingBuffer(entry), i);
+                else
+                    accumulate(indexKeyAccumulator, mutationIndex, entry, i);
+                //accumulate(indexRowAccumulator, mutationIndex, entry, i);
+            } else {
+                mainPutDecoder.seekForward(mutationDecoder, i);
+            }
+        }*/
         //add the row location to the end of the index row
-        indexRowAccumulator.add((int) translatedIndexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted
-                (mutation.getRow())));
+        indexRowAccumulator.add((int) translatedIndexedColumns.length(), ByteBuffer.wrap(Encoding.encodeBytesUnsorted(mutation.getRow())));
         // only make the call to check the accumulator if we have to -- if we haven't already determined
         makeUniqueForDuplicateNulls = (isUniqueWithDuplicateNulls &&
                 (makeUniqueForDuplicateNulls || indexKeyAccumulator.getRemainingFields().cardinality() > 0));
         byte[] indexRowKey = getIndexRowKey(mutation.getRow(), (!isUnique || makeUniqueForDuplicateNulls));
         byte[] indexRowData = indexRowAccumulator.finish();
+        LOG.error("key = " + BytesUtil.toHex(indexRowKey));
+        LOG.error("value = " + BytesUtil.toHex(indexRowData));
         return new KVPair(indexRowKey, indexRowData, mutation.getType());
     }
 
@@ -132,7 +233,7 @@ public class IndexTransformer {
 
     public byte[] getIndexRowKey(byte[] rowKey, boolean makeUniqueRowKey){
         if(makeUniqueRowKey)
-            indexKeyAccumulator.add((int)translatedIndexedColumns.length(),ByteBuffer.wrap(rowKey));
+            indexKeyAccumulator.add((int) translatedIndexedColumns.length(), ByteBuffer.wrap(rowKey));
 
         return indexKeyAccumulator.finish();
     }
@@ -162,5 +263,23 @@ public class IndexTransformer {
 
     public boolean isUnique() {
         return isUnique;
+    }
+
+    private class KeyData {
+        private int offset;
+        private int size;
+
+        public KeyData(int offset, int size) {
+            this.offset = offset;
+            this.size = size;
+        }
+
+        public int getOffset() {
+            return offset;
+        }
+
+        public int getSize() {
+            return size;
+        }
     }
 }

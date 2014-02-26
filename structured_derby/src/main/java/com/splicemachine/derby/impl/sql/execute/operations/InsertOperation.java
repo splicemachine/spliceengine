@@ -90,11 +90,22 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				return new KeyEncoder(prefix,dataHash,postfix);
 		}
 
+        private int[] getEncodingColumns(int n) {
+            int[] columns = IntArrays.count(n);
+
+            // Skip primary key columns to save space
+            if (pkCols != null) {
+                for(int pkCol:pkCols) {
+                    columns[pkCol-1] = -1;
+                }
+            }
+            return columns;
+        }
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				//get all columns that are being set
 				ExecRow defnRow = getExecRowDefinition();
-				int[] columns = IntArrays.count(defnRow.nColumns());
+				int[] columns = getEncodingColumns(defnRow.nColumns());
 				return new EntryDataHash(columns,null);
 		}
 

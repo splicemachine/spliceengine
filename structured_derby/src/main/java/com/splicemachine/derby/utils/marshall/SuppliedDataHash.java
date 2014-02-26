@@ -20,7 +20,8 @@ public class SuppliedDataHash implements DataHash<ExecRow>{
 				this.supplier = supplier;
 		}
 
-		@Override public void setRow(ExecRow rowToEncode) { }
+		@Override
+        public void setRow(ExecRow rowToEncode) { }
 
 		@Override
 		public byte[] encode() throws StandardException, IOException {

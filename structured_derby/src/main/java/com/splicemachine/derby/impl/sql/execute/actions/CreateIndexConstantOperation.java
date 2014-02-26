@@ -7,6 +7,7 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.reference.SQLState;
@@ -835,9 +836,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation {
                 statementInfo.setOperationInfo(Arrays.asList(populateIndexOp));
                 SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
             try{
+                            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(tableConglomId);
                             PopulateIndexJob job = new PopulateIndexJob(table, indexTransaction.getTransactionIdString(),
                                             conglomId, tableConglomId, baseColumnPositions, unique, uniqueWithDuplicateNulls, descColumns,
-                                            statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),activation.getLanguageConnectionContext().getXplainSchema());
+                                            statementInfo.getStatementUuid(),populateIndexOp.getOperationUuid(),
+                                            activation.getLanguageConnectionContext().getXplainSchema(), conglomerate.getColumnOrdering(), conglomerate.getFormat_ids());
                             long start = System.currentTimeMillis();
                             future = SpliceDriver.driver().getJobScheduler().submit(job);
                             info = new JobInfo(job.getJobId(),future.getNumTasks(),start);

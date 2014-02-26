@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -209,6 +210,11 @@ public class InsertOperationTest {
     private List<KVPair> getCorrectOutput(final boolean usePrimaryKeys,List<ExecRow> rowsToWrite) {
         BitSet setCols = new BitSet(dataTypes.length);
         setCols.set(0,dataTypes.length);
+        if(usePrimaryKeys){
+            for (int i = 0; i < primaryKeys.length; ++i) {
+                setCols.clear(primaryKeys[i]-1);
+            }
+        }
 
         BitSet scalarCols = TestingDataType.getScalarFields(dataTypes);
         BitSet floatCols = TestingDataType.getFloatFields(dataTypes);
@@ -217,13 +223,24 @@ public class InsertOperationTest {
         final EntryEncoder encoder = EntryEncoder.create(kryoPool,index);
 
         int[] pks = null;
+        int[] cols = null;
+        MultiFieldEncoder kEncoder = null;
         if(usePrimaryKeys){
+            cols = new int[dataTypes.length];
+            for (int i = 0; i < dataTypes.length; ++i) {
+                cols[i] = i;
+            }
+
             pks = new int[primaryKeys.length];
             for(int i=0;i<primaryKeys.length;i++){
                 pks[i] = primaryKeys[i]-1;
+                cols[primaryKeys[i]-1] = -1; // exclude primary key columns for a row encoding
             }
+            kEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(), primaryKeys.length);
         }
         final int[] pksToUse = pks;
+        final int[] colsToUse = cols;
+        final MultiFieldEncoder keyEncoder = kEncoder;
 
         return Lists.newArrayList(Lists.transform(rowsToWrite,new Function<ExecRow, KVPair>() {
             @Override
@@ -233,7 +250,7 @@ public class InsertOperationTest {
 
                 try {
                     //noinspection ConstantConditions
-                    RowMarshaller.sparsePacked().encodeRow(input.getRowArray(),null, fieldEncoder);
+                    RowMarshaller.sparsePacked().encodeRow(input.getRowArray(),colsToUse, fieldEncoder);
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
                 }
@@ -248,8 +265,9 @@ public class InsertOperationTest {
                 else{
                     //need to generate the primary keys
                     try {
-                        fieldEncoder.reset();
-                        KeyType.BARE.encodeKey(input.getRowArray(), pksToUse, null, null, fieldEncoder);
+
+                        keyEncoder.reset();
+                        KeyType.BARE.encodeKey(input.getRowArray(), pksToUse, null, null, keyEncoder);
                         return new KVPair(fieldEncoder.build(),dataBytes);
                     } catch (StandardException e) {
                         throw new RuntimeException(e);

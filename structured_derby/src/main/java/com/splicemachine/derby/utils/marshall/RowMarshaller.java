@@ -33,6 +33,7 @@ public class RowMarshaller {
 
         if(rowColumns!=null){
             for(int rowCol:rowColumns){
+                if (rowCol == -1) continue;
                 DataValueDescriptor dvd = row[rowCol];
                 if(dvd==null){
                     if(encodeEmpty)
@@ -182,7 +183,7 @@ public class RowMarshaller {
                     continue;
                 }
                 if(DerbyBytesUtil.isNextFieldNull(decoder,dvd)){
-                    dvd.setToNull();;
+                    dvd.setToNull();
                     DerbyBytesUtil.skip(decoder,dvd);
                 }else{
                     DerbyBytesUtil.decodeInto(decoder,dvd);

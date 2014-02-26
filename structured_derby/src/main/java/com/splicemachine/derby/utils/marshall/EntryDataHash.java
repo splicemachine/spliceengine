@@ -63,7 +63,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 				notNullFields.clear();
 				int i=0;
 				for(DataValueDescriptor dvd:row.getRowArray()){
-						if(!dvd.isNull())
+						if(!dvd.isNull() && (i >= keyColumns.length || keyColumns[i] != -1)) // skip primary key columns
 								notNullFields.set(i);
 						i++;
 				}
