@@ -59,6 +59,8 @@ public class PopulateIndexTask extends ZkTask {
     private boolean isUniqueWithDuplicateNulls;
     private BitSet indexedColumns;
     private BitSet descColumns;
+    private int[] columnOrdering;
+    private int[] format_ids;
 
     private HRegion region;
 
@@ -81,7 +83,9 @@ public class PopulateIndexTask extends ZkTask {
                              BitSet descColumns,
                              String xplainSchema,
                              long statementId,
-                             long operationId) {
+                             long operationId,
+                             int[] columnOrdering,
+                             int[] format_ids) {
         super(jobId, OperationJob.operationTaskPriority,transactionId,false);
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
@@ -94,6 +98,8 @@ public class PopulateIndexTask extends ZkTask {
         this.xplainSchema = xplainSchema;
         this.statementId = statementId;
         this.operationId = operationId;
+        this.columnOrdering = columnOrdering;
+        this.format_ids = format_ids;
     }
 
     @Override
@@ -120,12 +126,14 @@ public class PopulateIndexTask extends ZkTask {
         out.writeBoolean(isUniqueWithDuplicateNulls);
         out.writeInt(descColumns.wlen);
         ArrayUtil.writeLongArray(out, descColumns.bits);
-				out.writeBoolean(xplainSchema!=null);
-				if(xplainSchema!=null){
-						out.writeUTF(xplainSchema);
-						out.writeLong(statementId);
-						out.writeLong(operationId);
-				}
+        out.writeBoolean(xplainSchema!=null);
+        if(xplainSchema!=null){
+            out.writeUTF(xplainSchema);
+            out.writeLong(statementId);
+            out.writeLong(operationId);
+        }
+        ArrayUtil.writeIntArray(out, columnOrdering);
+        ArrayUtil.writeIntArray(out, format_ids);
     }
 
     @Override
@@ -141,11 +149,13 @@ public class PopulateIndexTask extends ZkTask {
         isUniqueWithDuplicateNulls = in.readBoolean();
         numWords = in.readInt();
         descColumns = new BitSet(ArrayUtil.readLongArray(in),numWords);
-				if(in.readBoolean()){
-						xplainSchema = in.readUTF();
-						statementId = in.readLong();
-						operationId = in.readLong();
-				}
+        if(in.readBoolean()){
+            xplainSchema = in.readUTF();
+            statementId = in.readLong();
+            operationId = in.readLong();
+        }
+        columnOrdering = ArrayUtil.readIntArray(in);
+        format_ids = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -178,7 +188,10 @@ public class PopulateIndexTask extends ZkTask {
 						try{
 								List<KeyValue> nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								IndexTransformer transformer = IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,isUnique,isUniqueWithDuplicateNulls);
+								IndexTransformer transformer =
+                                        IndexTransformer.newTransformer(indexedColumns,mainColToIndexPosMap,descColumns,
+                                                isUnique,isUniqueWithDuplicateNulls,columnOrdering,format_ids);
+
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								RecordingCallBuffer<KVPair> writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTaskStatus().getTransactionId());
 								try{

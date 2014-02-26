@@ -2,14 +2,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -43,7 +45,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.util.Collections;
+import com.splicemachine.constants.bytes.BytesUtil;
 
 /**
  * @author jessiezhang
@@ -53,6 +55,8 @@ public class UpdateOperation extends DMLWriteOperation{
 		private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
 
 		private ResultSupplier resultSupplier;
+
+        private DataValueDescriptor[] kdvds;
 
 		@SuppressWarnings("UnusedDeclaration")
 		public UpdateOperation() {
@@ -85,6 +89,14 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				pkCols = writeInfo.getPkColumnMap();
 				pkColumns = writeInfo.getPkColumns();
+
+                SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
+                int[] format_ids = conglomerate.getFormat_ids();
+                int[] columnOrdering = conglomerate.getColumnOrdering();
+                kdvds = new DataValueDescriptor[columnOrdering.length];
+                for (int i = 0; i < columnOrdering.length; ++i) {
+                    kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+                }
 
 				startExecutionTime = System.currentTimeMillis();
 		}
@@ -121,7 +133,8 @@ public class UpdateOperation extends DMLWriteOperation{
 						};
 				}else{
 						//TODO -sf- we need a sort order here for descending columns, don't we?
-						hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
+						//hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
+                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds);
 				}
 				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
 		}
@@ -357,7 +370,7 @@ public class UpdateOperation extends DMLWriteOperation{
 										}else{
 												DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
 										}
-										resultDecoder.seekForward(getFieldDecoder,pos);
+										resultDecoder.seekForward(getFieldDecoder, pos);
 								}else{
 										//use the index to get the correct offsets
 										int offset = getFieldDecoder.offset();
@@ -434,4 +447,61 @@ public class UpdateOperation extends DMLWriteOperation{
 						return notNullFields;
 				}
 		}
+
+        private class PkDataHash implements DataHash<ExecRow> {
+            private ExecRow currentRow;
+            private byte[] rowKey;
+            private int[] keyColumns;
+            private MultiFieldEncoder encoder;
+            private MultiFieldDecoder decoder;
+            private DataValueDescriptor[] kdvds;
+
+            public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds) {
+                this.keyColumns = keyColumns;
+                this.kdvds = kdvds;
+            }
+
+            @Override
+            public void setRow(ExecRow rowToEncode) {
+                this.currentRow = rowToEncode;
+            }
+
+            @Override
+            public byte[] encode() throws StandardException, IOException {
+                rowKey = ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
+                if (encoder == null)
+                    encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length);
+                if (decoder == null)
+                    decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+                pack();
+                return encoder.build();
+            }
+
+            private void pack() throws StandardException {
+                encoder.reset();
+                decoder.set(rowKey);
+                int i = 0;
+                for (int col:keyColumns) {
+                    if (col > 0) {
+                        DataValueDescriptor dvd = currentRow.getRowArray()[col];
+                        if(dvd==null||dvd.isNull()){
+                            encoder.encodeEmpty();
+                        }else{
+                            DerbyBytesUtil.encodeInto(encoder, dvd,false);
+                        }
+                        DerbyBytesUtil.skip(decoder,kdvds[i++]);
+                    } else {
+                        int offset = decoder.offset();
+                        DerbyBytesUtil.skip(decoder,kdvds[i++]);
+                        int limit = decoder.offset()-1-offset;
+                        encoder.setRawBytes(decoder.array(),offset,limit);
+                    }
+                }
+
+            }
+            @Override
+            public KeyHashDecoder getDecoder() {
+                return NoOpKeyHashDecoder.INSTANCE;
+            }
+        }
 }

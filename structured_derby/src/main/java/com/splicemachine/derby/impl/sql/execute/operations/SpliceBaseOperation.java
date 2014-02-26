@@ -629,4 +629,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				}
 		}
 
+        public int[] getAccessedNonPkColumns() throws StandardException{
+            // by default return null
+            return null;
+        }
+
 }

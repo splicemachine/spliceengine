@@ -165,6 +165,7 @@ class IndexRowReader {
             entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
 
         for(KeyValue kv:nextFetchedData.raw()){
+
             RowMarshaller.sparsePacked().decode(kv,nextScannedRow.row.getRowArray(),adjustedBaseColumnMap,entryDecoder);
         }
 

@@ -17,6 +17,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.derby.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -542,7 +543,7 @@ public class IndexedPipelineTest {
     											ObjectArrayList<KVPair> indexedRows,
     											ObjectArrayList<KVPair> mainTablePairs,
                                              Map<KVPair, WriteResult> finishedResults,
-                                             IndexTransformer transformer) throws IOException {
+                                             IndexTransformer transformer) throws IOException, StandardException {
     	Object[] pairBuffer = mainTablePairs.buffer;
     	for (int i = 0; i<mainTablePairs.size();i++) {
         	KVPair mainTablePair = (KVPair) pairBuffer[i];

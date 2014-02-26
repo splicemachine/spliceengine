@@ -166,20 +166,20 @@ public class Scans extends SpliceUtils {
 		 * properly serialized into a byte[].
 		 */
 		public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-																 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-																 Qualifier[][] qualifiers,
-																 boolean[] sortOrder,
-																 FormatableBitSet scanColumnList,
-																 String transactionId,boolean sameStartStopPosition, 
-																 int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
-				Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
+                                     DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                     Qualifier[][] qualifiers,
+                                     boolean[] sortOrder,
+                                     FormatableBitSet scanColumnList,
+                                     String transactionId,boolean sameStartStopPosition,
+                                     int[] formatIds, int[] columnOrdering, DataValueFactory dataValueFactory) throws StandardException {
+            Scan scan = SpliceUtils.createScan(transactionId, scanColumnList!=null);
 				scan.setCaching(DEFAULT_CACHE_SIZE);
 				try{
 						attachScanKeys(scan, startKeyValue, startSearchOperator,
 										stopKeyValue, stopSearchOperator,
 										qualifiers, scanColumnList, sortOrder,sameStartStopPosition, formatIds, columnOrdering, dataValueFactory);
 
-						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, scan);
+						buildPredicateFilter(startKeyValue, startSearchOperator, qualifiers, scanColumnList, columnOrdering, formatIds, scan);
 				}catch(IOException e){
 						throw Exceptions.parseException(e);
 				}
@@ -187,17 +187,21 @@ public class Scans extends SpliceUtils {
 		}
 
 		public static void buildPredicateFilter(DataValueDescriptor[] startKeyValue,
-																						int startSearchOperator,
-																						Qualifier[][] qualifiers,
-																						FormatableBitSet scanColumnList, Scan scan) throws StandardException, IOException {
-				EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList);
+                                                int startSearchOperator,
+                                                Qualifier[][] qualifiers,
+                                                FormatableBitSet scanColumnList,
+                                                int[] columnOrdering,
+                                                int[] formatIds, Scan scan) throws StandardException, IOException {
+                EntryPredicateFilter pqf = getPredicates(startKeyValue,startSearchOperator,qualifiers,scanColumnList, columnOrdering, formatIds);
 				scan.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,pqf.toBytes());
 		}
 
 		public static EntryPredicateFilter getPredicates(DataValueDescriptor[] startKeyValue,
-																										 int startSearchOperator,
-																										 Qualifier[][] qualifiers,
-																										 FormatableBitSet scanColumnList) throws StandardException {
+                                                         int startSearchOperator,
+                                                         Qualifier[][] qualifiers,
+                                                         FormatableBitSet scanColumnList,
+                                                         int[] columnOrdering,
+                                                         int[] formatIds) throws StandardException {
 				ObjectArrayList<Predicate> predicates;
 				BitSet colsToReturn = new BitSet();
 				if(qualifiers!=null){
@@ -218,19 +222,18 @@ public class Scans extends SpliceUtils {
 						colsToReturn.clear(); //we want everything
 				}
 
-				if(scanColumnList!=null){
-						for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
-								colsToReturn.set(i);
-						}
-				}else{
-						colsToReturn.clear(); //we want everything
-				}
+               //exclude any primary key columns
+               if (columnOrdering != null && columnOrdering.length > 0) {
+                   for (int col:columnOrdering) {
+                       colsToReturn.clear(col);
+                   }
+               }
 //        if(startKeyValue!=null && startSearchOperator != ScanController.GT){
 //            Predicate indexPredicate = generateIndexPredicate(startKeyValue,startSearchOperator);
 //            if(indexPredicate!=null)
 //                predicates.add(indexPredicate);
 //        }
-				return new EntryPredicateFilter(colsToReturn,predicates,true);
+				return new EntryPredicateFilter(colsToReturn,predicates,true, columnOrdering, formatIds);
 		}
 
 		public static ObjectArrayList<Predicate> getQualifierPredicates(Qualifier[][] qualifiers) throws StandardException {
