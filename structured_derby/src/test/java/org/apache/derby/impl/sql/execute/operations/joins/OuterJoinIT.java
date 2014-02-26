@@ -1,5 +1,6 @@
 package org.apache.derby.impl.sql.execute.operations.joins;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -23,7 +24,6 @@ import static com.splicemachine.homeless.TestUtils.o;
 public class OuterJoinIT extends SpliceUnitTest { 
 
     private static Logger LOG = Logger.getLogger(OuterJoinIT.class);
-    private static final Map<String, String> tableMap = Maps.newHashMap();
 
     public static final String CLASS_NAME = OuterJoinIT.class.getSimpleName().toUpperCase()+ "_2"; 
     public static final String TABLE_NAME_1 = "A";
@@ -363,6 +363,38 @@ public class OuterJoinIT extends SpliceUnitTest {
     		count++;
     	}
     	Assert.assertEquals("Returned the wrong number of rows", 5,count);
+    }
+
+    @Test
+    public void testThatPredicatesAreNotDiscarded() throws Exception {
+        // Regression tests for DB-1006, which dupes DB-1005 & DB-1084
+        Map<String,Integer> expectedCounts =
+            ImmutableMap.of("SELECT STAFF.CITY,EMPNAME,PNAME,BUDGET " +
+                                  "     FROM STAFF left outer JOIN PROJ " +
+                                  "       ON STAFF.CITY = PROJ.CITY ",
+                               11,
+                               "SELECT STAFF.CITY,EMPNAME,PNAME,BUDGET " +
+                                   "     FROM STAFF left outer JOIN PROJ " +
+                                   "       ON STAFF.CITY = PROJ.CITY " +
+                                   "      AND STAFF.CITY <> 'Vienna' ",
+                                9,
+                               "SELECT STAFF.CITY,EMPNAME,PNAME,BUDGET " +
+                                   "     FROM STAFF left outer JOIN PROJ " +
+                                   "on EMPNAME <> 'Don' ",
+                               25,
+                               "SELECT STAFF.CITY,EMPNAME,PNAME,BUDGET " +
+                                   "     FROM STAFF left outer JOIN PROJ " +
+                                   "       ON STAFF.CITY = PROJ.CITY " +
+                                   "      AND STAFF.CITY <> 'Vienna' " +
+                                   "      AND EMPNAME <> 'Don' " +
+                                   "     WHERE BUDGET > 15000 OR BUDGET IS NULL " +
+                                   "   ORDER BY STAFF.CITY, EMPNAME, BUDGET ",
+                                6);
+
+        for (Map.Entry<String,Integer> q: expectedCounts.entrySet()){
+            List results = TestUtils.resultSetToArrays(methodWatcher.executeQuery(q.getKey()));
+            Assert.assertEquals("Outer join query produced incorrect number of results", (int) q.getValue(), results.size());
+        }
     }
 }
 
