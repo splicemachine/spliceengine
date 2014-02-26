@@ -317,7 +317,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      * NULL values should NOT be deleted.
      */
     @Test
-    public void testCanDeleteUniqueIndexWithNulls() throws Exception{
+    public void testCanDeleteUniqueIndexWithoutNulls() throws Exception{
         new SpliceIndexWatcher(TABLE_NAME_10,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
                                                     this.getTableReference(TABLE_NAME_10), "sfines", -2));
@@ -350,6 +350,104 @@ public class UniqueIndexIT extends SpliceUnitTest {
 //        System.out.println("3:");
 //        System.out.println(fr.toString());
         Assert.assertEquals(fr.toString(), 2, fr.size());
+    }
+
+    /**
+     * DB-1092
+     * Tests that we can delete a row with a non-null value in unique index column then insert same row.
+     *
+     */
+    @Test
+    public void testCanDeleteUniqueIndexWithoutNulls2() throws Exception{
+        String indexName = "IDX2";
+        String tableName = "T2";
+        new MyWatcher(tableName,CLASS_NAME, "(name varchar(40), val int)").create(null);
+        new SpliceIndexWatcher(tableName,CLASS_NAME,indexName,CLASS_NAME,"(val)",true).starting(null);
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "sfines", -2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "lfines", 2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "MyNull",null));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+                                                    this.getTableReference(tableName)));
+
+        String query = format("select * from %s",this.getTableReference(tableName));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 4, fr.size());
+//        System.out.println("1:");
+//        System.out.println(fr.toString());
+//
+//        System.out.println(TestUtils.indexQuery(methodWatcher.getOrCreateConnection(), CLASS_NAME, tableName));
+
+        methodWatcher.getStatement().execute(format("delete from %s", this.getTableReference(tableName)));
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 0, fr.size());
+//        System.out.println("2:");
+//        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "0",0));
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 1, fr.size());
+//        System.out.println("3:");
+//        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "sfines",-2));
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+//        System.out.println("4:");
+//        System.out.println(fr.toString());
+    }
+
+    /**
+     * DB-1092
+     * Tests that we can delete a row with null in unique index column then insert same row.
+     *
+     */
+    @Test
+    public void testCanDeleteUniqueIndexWithNulls() throws Exception{
+        String indexName = "IDX1";
+        String tableName = "T1";
+        new MyWatcher(tableName,CLASS_NAME, "(name varchar(40), val int)").create(null);
+        new SpliceIndexWatcher(tableName,CLASS_NAME,indexName,CLASS_NAME,"(val)",true).starting(null);
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "sfines", -2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "lfines", 2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "MyNull",null));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+                                                    this.getTableReference(tableName)));
+
+        String query = format("select * from %s",this.getTableReference(tableName));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 4, fr.size());
+//        System.out.println("1:");
+//        System.out.println(fr.toString());
+//
+//        System.out.println(TestUtils.indexQuery(methodWatcher.getOrCreateConnection(), CLASS_NAME, tableName));
+
+        methodWatcher.getStatement().execute(format("delete from %s where val is null", this.getTableReference(tableName)));
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 3, fr.size());
+//        System.out.println("2:");
+//        System.out.println(fr.toString());
+
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(tableName), "MyNull",null));
+        rs = methodWatcher.executeQuery(query);
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 4, fr.size());
+//        System.out.println("3:");
+//        System.out.println(fr.toString());
     }
 
     @Test(timeout = 10000)
@@ -443,6 +541,5 @@ public class UniqueIndexIT extends SpliceUnitTest {
         }
         Assert.fail("Did not report a duplicate key violation!");
     }
-
 
 }
