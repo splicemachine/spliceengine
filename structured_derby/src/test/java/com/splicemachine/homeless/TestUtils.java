@@ -1,11 +1,10 @@
 package com.splicemachine.homeless;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -16,10 +15,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class TestUtils {
 
@@ -195,6 +198,17 @@ public class TestUtils {
         out.println("--------------------");
         out.println(resultSetSize+" rows");
         return resultSetSize;
+    }
+
+    public static FormattedResult indexQuery(Connection connection, String schemaName, String tableName) throws Exception {
+        String indexQuery = String.format("select t1.tableid, t2.tablename, t1.descriptor, " +
+                                                  "t1.CONGLOMERATENUMBER from sys.sysconglomerates t1, " +
+                                                  "sys.systables t2, sys.sysschemas t3 where t1.tableid=t2.tableid " +
+                                                  "and t2.schemaid=t3.schemaid and t3.schemaname = '%s' and t2" +
+                                                  ".tablename = '%s' order by t1.conglomeratenumber desc",
+                                          schemaName, tableName);
+        ResultSet rs = connection.createStatement().executeQuery(indexQuery);
+        return FormattedResult.ResultFactory.convert(indexQuery, rs);
     }
 
     /**
