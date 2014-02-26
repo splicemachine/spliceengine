@@ -5,10 +5,10 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
@@ -24,7 +24,10 @@ public class EntryPredicateFilter {
     private int[] columnOrdering;
     private int[] format_ids;
 
-    public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
+		private long rowsFiltered = 0l;
+		private EntryAccumulator accumulator;
+
+		public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
     public EntryPredicateFilter(BitSet fieldsToReturn, ObjectArrayList<Predicate> predicates){
         this(fieldsToReturn, predicates,true);
@@ -54,7 +57,7 @@ public class EntryPredicateFilter {
     }
 
     public boolean match(EntryDecoder entry,EntryAccumulator accumulator) throws IOException {
-        BitIndex encodedIndex = entry.getCurrentIndex();
+				BitIndex encodedIndex = entry.getCurrentIndex();
         BitSet remainingFields = accumulator.getRemainingFields();
 
         MultiFieldDecoder decoder = entry.getEntryDecoder();
@@ -98,10 +101,12 @@ public class EntryPredicateFilter {
             Object[] buffer = valuePredicates.buffer;
             int ibuffer = valuePredicates.size();
             for (int i =0; i<ibuffer; i++) {
-                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit))
-                    return false;            	
+                if(((Predicate)buffer[i]).applies(encodedPos) && !((Predicate)buffer[i]).match(encodedPos,array, offset,limit)){
+										rowsFiltered++;
+                    return false;
+								}
             }
-            entry.accumulate(encodedPos, ByteBuffer.wrap(array, offset, limit), accumulator);
+            entry.accumulate(encodedPos, accumulator, array, offset, limit);
         }
         return true;
     }
@@ -124,7 +129,7 @@ public class EntryPredicateFilter {
         return predicateColumns;
     }
 
-    public boolean checkPredicates(ByteBuffer buffer,int position){
+    public boolean checkPredicates(ByteSlice buffer,int position){
         Object[] vpBuffer = valuePredicates.buffer;
         int ibuffer = valuePredicates.size();
         for (int i =0; i<ibuffer; i++) {
@@ -133,7 +138,7 @@ public class EntryPredicateFilter {
                 continue;
             if(predicate.checkAfter()){
                 if(buffer!=null){
-                    if(!predicate.match(position,buffer.array(),buffer.position(),buffer.remaining()))
+                    if(!predicate.match(position,buffer.array(),buffer.offset(),buffer.length()))
                         return false;
                 }else{
                     if(!predicate.match(position,null,0,0))
@@ -158,11 +163,21 @@ public class EntryPredicateFilter {
     }
 
     public EntryAccumulator newAccumulator(){
-        if(fieldsToReturn.isEmpty())
-            return new AlwaysAcceptEntryAccumulator(this,returnIndex);
-        else
-            return new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
+				if(accumulator==null){
+						if(fieldsToReturn.isEmpty())
+								accumulator = new AlwaysAcceptEntryAccumulator(this,returnIndex);
+						else
+								accumulator = new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
+				}
+				return accumulator;
     }
+
+		public long getRowsOutput(){
+				if(accumulator==null) return 0;
+				else return accumulator.getFinishCount();
+		}
+
+		public long getRowsFiltered(){ return rowsFiltered; }
 
     public byte[] toBytes() {
         //if we dont have any distinguishing information, just send over an empty byte array

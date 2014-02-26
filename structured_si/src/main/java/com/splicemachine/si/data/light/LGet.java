@@ -1,24 +1,27 @@
 package com.splicemachine.si.data.light;
 
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LGet {
-    final Object startTupleKey;
-    final Object endTupleKey;
+public class LGet extends OperationWithAttributes{
+    final byte[] startTupleKey;
+    final byte[] endTupleKey;
     final List families;
-    final List<List<Object>> columns;
+    final List<List<byte[]>> columns;
     Long effectiveTimestamp;
-    final Map<String, Object> attributes;
 
-    public LGet(Object startTupleKey, Object endTupleKey, List families, List<List<Object>> columns,
+    public LGet(byte[] startTupleKey, byte[] endTupleKey, List families, List<List<byte[]>> columns,
                 Long effectiveTimestamp) {
         this.startTupleKey = startTupleKey;
         this.endTupleKey = endTupleKey;
         this.families = families;
         this.columns = columns;
         this.effectiveTimestamp = effectiveTimestamp;
-        this.attributes = new HashMap<String, Object>();
     }
+
+		@Override public Map<String, Object> getFingerprint() { throw new UnsupportedOperationException(); }
+		@Override public Map<String, Object> toMap(int maxCols) { throw new UnsupportedOperationException(); }
 }

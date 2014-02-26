@@ -79,5 +79,5 @@ public interface BitIndex {
 
     BitSet getDoubleFields();
 
-    BitSet getFloatFlields();
+    BitSet getFloatFields();
 }

@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.job.operation;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -17,7 +16,8 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskStatus;
-import com.splicemachine.tools.splice;
+import com.splicemachine.si.api.TransactionManager;
+import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.derby.iapi.error.StandardException;
@@ -55,6 +55,9 @@ public class SinkTask extends ZkTask {
 		 * concurrent operations across multiple buckets.
 		 */
 		private byte hashBucket;
+		private SpliceRuntimeContext spliceRuntimeContext;
+		private SpliceTransactionResourceImpl transactionResource;
+		private SpliceOperationContext opContext;
 
 		/*Stats stuff*/
 
@@ -90,23 +93,30 @@ public class SinkTask extends ZkTask {
         return true;
     }
 
-    @Override
-    public void doExecute() throws ExecutionException, InterruptedException {
-				if(LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
-        SpliceTransactionResourceImpl impl = null;
-        boolean prepared=false;
-        SpliceOperationContext opContext = null;
-        try {
-            impl = new SpliceTransactionResourceImpl();
-            impl.prepareContextManager();
-            prepared=true;
-            if(instructions==null)
-                instructions = SpliceUtils.getSpliceObserverInstructions(scan);
-            impl.marshallTransaction(instructions);
-						Activation activation = instructions.getActivation(impl.getLcc());
-            SpliceRuntimeContext spliceRuntimeContext = instructions.getSpliceRuntimeContext();
-            spliceRuntimeContext.markAsSink();
+		@Override
+		public void execute() throws ExecutionException, InterruptedException {
+				/*
+				 * we initialize so that later, if we need to use initialization information
+				 * during, say, transaction creation, then we are sufficiently initialized
+				 * to do it without being weird.
+				 *
+				 * This makes the flow of events:
+				 *
+				 * 1. initialize
+				 * 2. create the child transaction
+				 * 3. execute work
+				 */
+				boolean prepared = false;
+				try{
+						transactionResource = new SpliceTransactionResourceImpl();
+						transactionResource.prepareContextManager();
+						prepared=true;
+						if(instructions==null)
+								instructions = SpliceUtils.getSpliceObserverInstructions(scan);
+						transactionResource.marshallTransaction(instructions);
+						Activation activation = instructions.getActivation(transactionResource.getLcc());
+						spliceRuntimeContext = instructions.getSpliceRuntimeContext();
+						spliceRuntimeContext.markAsSink();
 						spliceRuntimeContext.setCurrentTaskId(getTaskId());
 						SpliceOperation op = instructions.getTopOperation();
 						if(op.shouldRecordStats()){
@@ -114,11 +124,33 @@ public class SinkTask extends ZkTask {
 								spliceRuntimeContext.setXplainSchema(op.getXplainSchema());
 						}
 
-            opContext = new SpliceOperationContext(region,
-                    scan,activation,instructions.getStatement(),impl.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
-            //init the operation stack
+						opContext = new SpliceOperationContext(region,
+										scan,activation,instructions.getStatement(), transactionResource.getLcc(),true,instructions.getTopOperation(), spliceRuntimeContext);
+						//init the operation stack
 
-            op.init(opContext);
+						op.init(opContext);
+				}catch(Exception e){
+						closeQuietly(prepared, transactionResource, opContext);
+						throw new ExecutionException(e);
+				}
+				super.execute();
+		}
+
+		protected void closeQuietly(boolean prepared, SpliceTransactionResourceImpl impl, SpliceOperationContext opContext)  {
+				try{
+						resetContext(impl,prepared);
+						closeOperationContext(opContext);
+				} catch (ExecutionException e) {
+						LOG.error("Unable to close Operation context during unexpected initialization error",e);
+				}
+		}
+
+		@Override
+    public void doExecute() throws ExecutionException, InterruptedException {
+				if(LOG.isTraceEnabled())
+						SpliceLogUtils.trace(LOG,"executing task %s",Bytes.toString(getTaskId()));
+        try {
+						SpliceOperation op = instructions.getTopOperation();
             OperationSink opSink = OperationSink.create((SinkingOperation) op, getTaskId(), getTransactionId(), op.getStatementId(),waitTimeNs);
 
             TaskStats stats;
@@ -138,43 +170,23 @@ public class SinkTask extends ZkTask {
             else if(e instanceof InterruptedException)
                 throw (InterruptedException)e;
             else throw new ExecutionException(e);
-        } finally {
-            resetContext(impl, prepared);
-            closeOperationContext(opContext);
-        }
+        }finally{
+						//if we get this far, then we were initialized
+						resetContext(transactionResource,true);
+						closeOperationContext(opContext);
+				}
     }
 
-    private void closeOperationContext(SpliceOperationContext opContext) throws ExecutionException {
-        if(opContext!=null){
-            try {
-                opContext.close();
-            } catch (IOException e) {
-                throw new ExecutionException(e);
-            } catch (StandardException e) {
-                throw new ExecutionException(e);
-            }
-        }
-    }
+		@Override
+		protected TransactionId beginChildTransaction(TransactionManager transactor, TransactionId parent) throws IOException {
+				byte[] table = null;
+				if(instructions.getTopOperation() instanceof DMLWriteOperation){
+						table = ((DMLWriteOperation)instructions.getTopOperation()).getDestinationTable();
+				}
+				return transactor.beginChildTransaction(parent, !readOnly, table);
+		}
 
-    private void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
-        if(prepared){
-            impl.resetContextManager();
-        }
-        if (impl != null) {
-            impl.cleanup();
-        }
-    }
-
-    private String getTransactionId() {
-        final TaskStatus taskStatus = getTaskStatus();
-        if (taskStatus != null) {
-            return taskStatus.getTransactionId();
-        } else {
-            return null;
-        }
-    }
-
-    @Override
+		@Override
     public boolean isCancelled() throws ExecutionException {
         return status.getStatus()==Status.CANCELLED;
     }
@@ -212,5 +224,37 @@ public class SinkTask extends ZkTask {
         if(instructions==null)
             instructions = SpliceUtils.getSpliceObserverInstructions(scan);
         return instructions.getTopOperation().getClass().getSimpleName();
+    }
+
+/*******************************************************************************************************/
+		/*private helper methods*/
+		 private void closeOperationContext(SpliceOperationContext opContext) throws ExecutionException {
+        if(opContext!=null){
+            try {
+                opContext.close();
+            } catch (IOException e) {
+                throw new ExecutionException(e);
+            } catch (StandardException e) {
+                throw new ExecutionException(e);
+            }
+        }
+    }
+
+    private void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
+        if(prepared){
+            impl.resetContextManager();
+        }
+        if (impl != null) {
+            impl.cleanup();
+        }
+    }
+
+    private String getTransactionId() {
+        final TaskStatus taskStatus = getTaskStatus();
+        if (taskStatus != null) {
+            return taskStatus.getTransactionId();
+        } else {
+            return null;
+        }
     }
 }

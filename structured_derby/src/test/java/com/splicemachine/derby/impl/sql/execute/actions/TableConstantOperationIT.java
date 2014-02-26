@@ -1,6 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -9,12 +15,12 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.List;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceViewWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 /**
  * @author Jeff Cunningham
@@ -143,6 +149,23 @@ public class TableConstantOperationIT extends SpliceUnitTest {
         } catch (SQLException e) {
             // expected
         }
+    }
+
+    @Test
+    public void testCreateDropTableIfExist() throws Exception {
+        String tableName = "R";
+        methodWatcher.getStatement().execute(String.format("create table %s.%s (i int)", tableSchema.schemaName, tableName));
+        methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+
+        try {
+            methodWatcher.getStatement().execute(String.format("drop table %s", tableSchema.schemaName + "." + tableName));
+            Assert.fail("Expected exception but didn't get one.");
+        } catch (SQLException e) {
+            // expected - no "if exists"
+        }
+
+        // we should not get an exception here because we've used "if exists"
+        methodWatcher.getStatement().execute(String.format("drop if exists table %s", tableSchema.schemaName + "." + tableName));
     }
 
     @Test

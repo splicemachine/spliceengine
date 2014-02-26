@@ -10,10 +10,11 @@ import com.splicemachine.hbase.BatchProtocol;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.writer.BulkWrite;
 import com.splicemachine.hbase.writer.BulkWriteResult;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.coprocessors.RollForwardQueueMap;
+import com.splicemachine.si.impl.NoOpRollForwardQueue;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.Meter;
@@ -39,7 +40,6 @@ import org.cliffc.high_scale_lib.NonBlockingHashMap;
 
 import javax.management.*;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -75,7 +75,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 
     private long conglomId;
 
-    private RollForwardQueue<byte[],ByteBuffer> queue;
+    private RollForwardQueue queue = NoOpRollForwardQueue.INSTANCE;
     private Timer timer=SpliceDriver.driver().getRegistry().newTimer(receptionName, TimeUnit.MILLISECONDS,TimeUnit.SECONDS);
     private Meter throughputMeter = SpliceDriver.driver().getRegistry().newMeter(throughputMeterName,"successfulRows",TimeUnit.SECONDS);
     private Meter failedMeter =SpliceDriver.driver().getRegistry().newMeter(failedMeterName,"failedRows",TimeUnit.SECONDS);
@@ -148,12 +148,6 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 				HRegion region = rce.getRegion();
 
-//				if (activeWriteThreads.incrementAndGet() > (SpliceConstants.ipcThreads-maxWorkers-ipcReserved) || metrics.compactionQueueSize.get() > compactionQueueSizeBlock|| metrics.flushQueueSize.get() > flushQueueSizeBlock) {// Too Busy For Splice...
-//						activeWriteThreads.decrementAndGet();
-//						rejectedMeter.mark();
-//						BulkWriteResult result = new BulkWriteResult(new WriteResult(WriteResult.Code.REGION_TOO_BUSY));
-//						return result.toBytes();
-//				}
 				long start = System.nanoTime();
 				try {
 						region.startRegionOperation();
@@ -170,41 +164,41 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 								context = getWriteContext(bulkWrite.getTxnId(),rce,queue,bulkWrite.getMutations().size());
 						} catch (InterruptedException e) {
 								//was interrupted while trying to create a write context.
-                //we're done, someone else will have to write this batch
-                throw new IOException(e);
-            }
-            
-            
-            Object[] bufferArray = bulkWrite.getBuffer();
-            int size = bulkWrite.getSize();
-            for (int i = 0; i<size; i++) {
-                context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
-            }
-            Map<KVPair,WriteResult> resultMap = context.finish();
+								//we're done, someone else will have to write this batch
+								throw new IOException(e);
+						}
 
-            BulkWriteResult response = new BulkWriteResult();
-            int pos=0;
-            int failed=0;
-            size = bulkWrite.getSize();
-            for (int i = 0; i<size; i++) {
-                @SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
-                if(result.getCode()== WriteResult.Code.FAILED){
-                    failed++;
-                }
-                response.addResult(pos,result);
-                pos++;
-            }
 
-            int numSuccessWrites = size-failed;
-            throughputMeter.mark(numSuccessWrites);
-            failedMeter.mark(failed);
-            return response.toBytes();
-        }finally{
-            region.closeRegionOperation();
-        	activeWriteThreads.decrementAndGet();
-            timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
-        }
-    }
+						Object[] bufferArray = bulkWrite.getBuffer();
+						int size = bulkWrite.getSize();
+						for (int i = 0; i<size; i++) {
+								context.sendUpstream((KVPair) bufferArray[i]); //send all writes along the pipeline
+						}
+						Map<KVPair,WriteResult> resultMap = context.finish();
+
+						BulkWriteResult response = new BulkWriteResult();
+						int pos=0;
+						int failed=0;
+						size = bulkWrite.getSize();
+						for (int i = 0; i<size; i++) {
+								@SuppressWarnings("RedundantCast") WriteResult result = resultMap.get((KVPair)bufferArray[i]);
+								if(result.getCode()== WriteResult.Code.FAILED){
+										failed++;
+								}
+								response.addResult(pos,result);
+								pos++;
+						}
+
+						int numSuccessWrites = size-failed;
+						throughputMeter.mark(numSuccessWrites);
+						failedMeter.mark(failed);
+						return response.toBytes();
+				}finally{
+						region.closeRegionOperation();
+						activeWriteThreads.decrementAndGet();
+						timer.update(System.nanoTime()-start,TimeUnit.NANOSECONDS);
+				}
+		}
 
 		private boolean shouldAllowWrite() {
 				if(metrics.compactionQueueSize.get()> compactionQueueSizeBlock || metrics.flushQueueSize.get()> flushQueueSizeBlock){
@@ -221,7 +215,7 @@ public class SpliceIndexEndpoint extends BaseEndpointCoprocessor implements Batc
 		}
 
 
-		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue<byte[],ByteBuffer> queue,int writeSize) throws IOException, InterruptedException {
+		private WriteContext getWriteContext(String txnId,RegionCoprocessorEnvironment rce,RollForwardQueue queue,int writeSize) throws IOException, InterruptedException {
         Pair<LocalWriteContextFactory, AtomicInteger> ctxFactoryPair = getContextPair(conglomId);
         return ctxFactoryPair.getFirst().create(txnId,rce,queue,writeSize);
     }

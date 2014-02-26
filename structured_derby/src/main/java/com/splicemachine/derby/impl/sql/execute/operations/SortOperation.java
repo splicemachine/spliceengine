@@ -22,8 +22,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;

@@ -3,6 +3,7 @@ package org.apache.derby.impl.sql.execute.operations;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Types;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.homeless.TestUtils;
@@ -35,6 +36,7 @@ public class TableScanOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher("CHICKEN1",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c1))");
     protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher("CHICKEN2",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c2))");
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher("CHICKEN3",CLASS_NAME,"(c1 timestamp, c2 date, c3 time, primary key (c3))");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher("NUMBERS", CLASS_NAME,"(i int, l bigint, s smallint, d double precision, r real, dc decimal(10,2), PRIMARY KEY(i))");
     
 	@ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -45,71 +47,96 @@ public class TableScanOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)            
             .around(spliceTableWatcher6)            
-            .around(spliceTableWatcher7)            
-            .around(spliceTableWatcher8)            
-            .around(new SpliceDataWatcher(){
+            .around(spliceTableWatcher7)
+            .around(spliceTableWatcher8)
+            .around(spliceTableWatcher9)
+            .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se,sf) values (?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME));
-                        for (int i =0; i< 10; i++) {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd,se,sf) values (?,?,?,?,?,?)", CLASS_NAME, TABLE_NAME));
+                        for (int i = 0; i < 10; i++) {
                             ps.setString(1, "" + i);
                             ps.setString(2, "i");
-                            ps.setString(3, "" + i*10);
+                            ps.setString(3, "" + i * 10);
                             ps.setInt(4, i);
-                            ps.setFloat(5,10.0f*i);
+                            ps.setFloat(5, 10.0f * i);
                             ps.setBigDecimal(6, i % 2 == 0 ? BigDecimal.valueOf(i).negate() : BigDecimal.valueOf(i)); //make sure we have some negative values
                             ps.executeUpdate();
                         }
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)",CLASS_NAME,"T1"));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN"));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN1"));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN2"));
-                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))",CLASS_NAME,"CHICKEN3"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (null, null), (1,1), (null, null), (2,1), (3,1),(10,10)", CLASS_NAME, "T1"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))", CLASS_NAME, "CHICKEN"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))", CLASS_NAME, "CHICKEN1"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))", CLASS_NAME, "CHICKEN2"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (timestamp('2012-05-01 00:00:00.0'), date('2010-01-01'), time('00:00:00'))", CLASS_NAME, "CHICKEN3"));
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
                     }
-                    finally {
+                }
+
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd1, sd2, sd3,se1,se2,se3,se4) values (?,?,?,?,?,?,?,?,?,?)", CLASS_NAME, TABLE_NAME2));
+                        for (int i = 0; i < 10; i++) {
+                            ps.setString(1, "" + i);
+                            ps.setString(2, "i");
+                            ps.setString(3, "" + i * 10);
+                            ps.setInt(4, i);
+                            ps.setInt(5, i);
+                            ps.setInt(6, i);
+
+                            ps.setFloat(7, 10.0f * i);
+                            ps.setFloat(8, 10.0f * i);
+                            ps.setFloat(9, 10.0f * i);
+                            ps.setFloat(10, 10.0f * i);
+                            ps.executeUpdate();
+                        }
+
+                        ps = spliceClassWatcher.prepareStatement("insert into " + spliceTableWatcher3 + " values (?,?,?,?)");
+                        ps.setString(1, "II");
+                        ps.setString(2, "KK");
+                        ps.setBigDecimal(3, new BigDecimal("9.0"));
+                        ps.setBigDecimal(4, BigDecimal.ZERO);
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
                         spliceClassWatcher.closeAll();
                     }
                 }
 
             }).around(new SpliceDataWatcher(){
-                @Override
-                protected void starting(Description description) {
+        @Override
+        protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (si, sa, sc,sd1, sd2, sd3,se1,se2,se3,se4) values (?,?,?,?,?,?,?,?,?,?)",CLASS_NAME, TABLE_NAME2));
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (i, l, s, d, r, dc) values (?,?,?,?,?,?)",CLASS_NAME, "NUMBERS"));
                         for (int i =0; i< 10; i++) {
-                            ps.setString(1, "" + i);
-                            ps.setString(2, "i");
-                            ps.setString(3, "" + i*10);
-                            ps.setInt(4, i);
-                            ps.setInt(5, i);
-                            ps.setInt(6, i);
-
-                            ps.setFloat(7,10.0f*i);
-                            ps.setFloat(8,10.0f*i);
-                            ps.setFloat(9,10.0f*i);
-                            ps.setFloat(10,10.0f*i);
+                            ps.setInt(1, i);
+                            ps.setInt(2, i);
+                            ps.setInt(3, i);
+                            ps.setDouble(4, 10.0);
+                            ps.setDouble(5, 10.0);
+                            if (i == 0) {
+                                ps.setNull(6, Types.DECIMAL);
+                            } else {
+                                ps.setBigDecimal(6, BigDecimal.valueOf(i));
+                            }
                             ps.executeUpdate();
                         }
-
-                        ps = spliceClassWatcher.prepareStatement("insert into "+ spliceTableWatcher3+" values (?,?,?,?)");
-                        ps.setString(1,"II");
-                        ps.setString(2,"KK");
-                        ps.setBigDecimal(3, new BigDecimal("9.0"));
-                        ps.setBigDecimal(4,BigDecimal.ZERO);
-                        ps.execute();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                     finally {
                         spliceClassWatcher.closeAll();
                     }
-                }
+        }
 
-            });
+    });
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -616,5 +643,17 @@ public class TableScanOperationIT extends SpliceUnitTest {
         Assert.assertEquals("Incorrect count returned!",1,count);
     }
 
-
+    @Test
+    // Test for DB-1101
+    public void testScanOfNumericalTypeIsNotNull() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(format("select dc from %s",spliceTableWatcher9));
+        int nulls = 0;
+        while(rs.next()){
+            BigDecimal bd = rs.getBigDecimal(1);
+            if (bd == null) {
+                nulls++;
+            }
+        }
+        Assert.assertEquals("Incorrect number of nulls returned!", 1, nulls);
+    }
 }

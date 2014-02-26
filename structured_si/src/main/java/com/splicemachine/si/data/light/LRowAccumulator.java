@@ -1,29 +1,43 @@
 package com.splicemachine.si.data.light;
 
+import com.google.common.collect.Maps;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.impl.RowAccumulator;
+import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
-public class LRowAccumulator implements RowAccumulator< Map<String, Object>,LKeyValue> {
-    private Map<String, Object> accumulation = new HashMap<String, Object>();
+public class LRowAccumulator implements RowAccumulator {
+		private Map<byte[],byte[]> accumulation = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
 
     @Override
-    public boolean isOfInterest(LKeyValue value) {
+    public boolean isOfInterest(KeyValue value) {
         return true;
     }
 
     @Override
-    public boolean accumulate(LKeyValue keyValue) throws IOException {
-    	Map<String,Object> packedRow = (Map<String,Object>) keyValue.value;
-    	for (String k : packedRow.keySet()) {
-              if (!accumulation.containsKey(k)) {
-                  accumulation.put(k, packedRow.get(k));
-              }
-          }
-        return true;
-    }
+		public boolean accumulate(KeyValue keyValue) throws IOException {
+				byte[] packedData = keyValue.getValue();
+				MultiFieldDecoder decoder = MultiFieldDecoder.wrap(packedData, KryoPool.defaultPool());
+				int numEntries = decoder.decodeNextInt();
+				for(int i=0;i<numEntries;i++){
+						byte[] qual = decoder.decodeNextBytesUnsorted();
+						byte[] val = decoder.decodeNextBytesUnsorted();
+						if(!accumulation.containsKey(qual))
+								accumulation.put(qual,val);
+				}
+//    	Map<String,Object> packedRow = (Map<String,Object>) keyValue.value;
+//    	for (String k : packedRow.keySet()) {
+//              if (!accumulation.containsKey(k)) {
+//                  accumulation.put(k, packedRow.get(k));
+//              }
+//          }
+				return true;
+		}
 
     @Override
     public boolean isFinished() {
@@ -31,8 +45,16 @@ public class LRowAccumulator implements RowAccumulator< Map<String, Object>,LKey
     }
 
     @Override
-    public Map<String, Object> result() {
-        return new HashMap<String, Object>(accumulation);
+    public byte[] result() {
+				MultiFieldEncoder encoder = MultiFieldEncoder.create(KryoPool.defaultPool(), 2 * accumulation.size() + 1);
+				encoder.encodeNext(accumulation.size());
+				for(Map.Entry<byte[],byte[]> data:accumulation.entrySet()){
+						encoder.encodeNextUnsorted(data.getKey());
+						encoder.encodeNextUnsorted(data.getValue());
+				}
+				return encoder.build();
     }
+
+		@Override public long getBytesVisited() { return 0; }
 
 }

@@ -48,7 +48,7 @@ public class BufferedRegionScannerTest {
 						}
 				});
 				MetricFactory factory = Metrics.noOpMetricFactory();
-				BufferedRegionScanner scanner = new BufferedRegionScanner(region,fromListScanner,2,1024,factory);
+				BufferedRegionScanner scanner = new BufferedRegionScanner(region,fromListScanner,null,2,1024,factory);
 
 				int count =0;
 				while(scanner.nextRaw(new ArrayList<KeyValue>(),null))

@@ -241,50 +241,50 @@ public class ZkUtils extends SpliceConstants {
 		 * this implementation uses the second option
 		 */
 
-		RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
-		int maxTries=10;
-		int tries=0;
-		while(tries<=maxTries){
-			tries++;
-			//get the current state of the counter
-			Stat version = new Stat();
-			long currentCount;
-			byte[] data;
-			try {
-				data = rzk.getData(counterNode,false,version);
-			} catch (KeeperException e) {
-				//if we timed out trying to deal with ZooKeeper, retry
-				switch (e.code()) {
-					case CONNECTIONLOSS:
-					case OPERATIONTIMEOUT:
-						continue;
-					default:
-						throw new IOException(e);
-				}
-			} catch (InterruptedException e) {
-				throw new IOException(e);
-			}
-			currentCount = Bytes.toLong(data)+1;
+			RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
+			int maxTries=10;
+			int tries=0;
+			while(tries<=maxTries){
+					tries++;
+					//get the current state of the counter
+					Stat version = new Stat();
+					long currentCount;
+					byte[] data;
+					try {
+							data = rzk.getData(counterNode,false,version);
+					} catch (KeeperException e) {
+							//if we timed out trying to deal with ZooKeeper, retry
+							switch (e.code()) {
+									case CONNECTIONLOSS:
+									case OPERATIONTIMEOUT:
+											continue;
+									default:
+											throw new IOException(e);
+							}
+					} catch (InterruptedException e) {
+							throw new IOException(e);
+					}
+					currentCount = Bytes.toLong(data)+1;
 
-			//try and write the next entry, but only if the versions haven't changed
-			try {
-				rzk.setData(counterNode, Bytes.toBytes(currentCount),version.getVersion());
-				return currentCount;
-			} catch (KeeperException e) {
-				//if we timed out talking, or if the version didn't match, retry
-				switch (e.code()) {
-					case CONNECTIONLOSS:
-					case OPERATIONTIMEOUT:
-					case BADVERSION:
-						continue;
-					default:
-						throw new IOException(e);
-				}
-			} catch (InterruptedException e) {
-				//we were interrupted, which means we need to bail
-				throw new IOException(e);
+					//try and write the next entry, but only if the versions haven't changed
+					try {
+							rzk.setData(counterNode, Bytes.toBytes(currentCount),version.getVersion());
+							return currentCount;
+					} catch (KeeperException e) {
+							//if we timed out talking, or if the version didn't match, retry
+							switch (e.code()) {
+									case CONNECTIONLOSS:
+									case OPERATIONTIMEOUT:
+									case BADVERSION:
+											continue;
+									default:
+											throw new IOException(e);
+							}
+					} catch (InterruptedException e) {
+							//we were interrupted, which means we need to bail
+							throw new IOException(e);
+					}
 			}
-		}
 		/*
 		 * We've tried to get the latest sequence number a whole bunch of times,
 		 * without success. That means either a problem with ZooKeeper, or a LOT
@@ -294,31 +294,31 @@ public class ZkUtils extends SpliceConstants {
 		 * TODO -sf- we could fix this by putting in a non-optimistic lock at this point, but
 		 * it's probably best to see if it poses a problem as written first.
 		 */
-		throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
-				"speaking with ZooKeeper");
+			throw new IOException("Unable to get next conglomerate sequence, there is an issue" +
+							"speaking with ZooKeeper");
 	}
 
-	public static void cleanZookeeper() throws InterruptedException, KeeperException {
-    	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-    	for (String path: SpliceConstants.zookeeperPaths) {
-    		if (rzk.exists(path, false) != null) {
-    			for (String child: rzk.getChildren(path, false)) {
-    				for (String grandChild: rzk.getChildren(path + "/" + child,false)) {
-        				rzk.delete(path + "/" + child + "/" + grandChild, -1);    					
-    				}
-    				rzk.delete(path + "/" + child, -1);    					    				
-    			}
-    			rzk.delete(path, -1);
-    		}
-    	}
-    }
-    
-    public static void delete(String path) throws InterruptedException, KeeperException {
-    	RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-		rzk.delete(path, -1);    	
-    }
+		public static void cleanZookeeper() throws InterruptedException, KeeperException {
+				RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+				for (String path: SpliceConstants.zookeeperPaths) {
+						if (rzk.exists(path, false) != null) {
+								for (String child: rzk.getChildren(path, false)) {
+										for (String grandChild: rzk.getChildren(path + "/" + child,false)) {
+												rzk.delete(path + "/" + child + "/" + grandChild, -1);
+										}
+										rzk.delete(path + "/" + child, -1);
+								}
+								rzk.delete(path, -1);
+						}
+				}
+		}
 
-    public static void initializeZookeeper() throws InterruptedException, KeeperException {
+		public static void delete(String path) throws InterruptedException, KeeperException {
+				RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+				rzk.delete(path, -1);
+		}
+
+		public static void initializeZookeeper() throws InterruptedException, KeeperException {
 				safeInitializeZooKeeper();
 
 				initializeTransactions();

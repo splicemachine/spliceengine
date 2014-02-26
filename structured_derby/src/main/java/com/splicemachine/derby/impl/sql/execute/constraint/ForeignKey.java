@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
@@ -67,7 +67,7 @@ public class ForeignKey implements Constraint{
     public void updateForeignKey(Delete delete) throws IOException{
 //        Get get = SpliceUtils.createGet(...);
 //        for(int fk = fkCols.nextSetBit(0);fk!=-1;fk=fkCols.nextSetBit(fk+1)){
-//            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getBytes());
+//            get.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,Integer.toString(fk).getByteCopy());
 //        }
 //        HTableInterface table = tableSource.getTable(mainTableBytes);
 //        Result result = table.get(get);

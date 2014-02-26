@@ -64,5 +64,10 @@ class LazyCompressedBitIndex extends LazyBitIndex{
         return pos;
     }
 
+	@Override
+	public boolean isCompressed() {
+		return true;
+	}
+
 
 }

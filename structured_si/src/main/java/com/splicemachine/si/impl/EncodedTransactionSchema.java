@@ -3,31 +3,45 @@ package com.splicemachine.si.impl;
 /**
  * Same as TransactionSchema except the fields are in their encoded form.
  */
-public class EncodedTransactionSchema<Data> {
+public class EncodedTransactionSchema {
     final String tableName;
-    final Data siFamily;
-    final Data permissionFamily;
-    final Data siNull;
+    public final byte[] siFamily;
+    public final byte[] permissionFamily;
+    public final byte[] siNull;
 
-    final Data idQualifier;
-    final Data startQualifier;
-    final Data parentQualifier;
-    final Data dependentQualifier;
-    final Data allowWritesQualifier;
-    final Data additiveQualifier;
-    final Data readUncommittedQualifier;
-    final Data readCommittedQualifier;
-    final Data commitQualifier;
-    final Data globalCommitQualifier;
-    final Data statusQualifier;
-    final Data keepAliveQualifier;
-    final Data counterQualifier;
+    public final byte[] idQualifier;
+    public final byte[] startQualifier;
+    public final byte[] parentQualifier;
+    public final byte[] dependentQualifier;
+    public final byte[] allowWritesQualifier;
+    public final byte[] additiveQualifier;
+    public final byte[] readUncommittedQualifier;
+    public final byte[] readCommittedQualifier;
+    public final byte[] commitQualifier;
+    public final byte[] globalCommitQualifier;
+    public final byte[] statusQualifier;
+    public final byte[] keepAliveQualifier;
+    public final byte[] counterQualifier;
+		public final byte[] writeTableQualifier;
 
-    public EncodedTransactionSchema(String tableName, Data siFamily, Data permissionFamily, Data siNull, Data idQualifier,
-                                    Data startQualifier, Data parentQualifier, Data dependentQualifier, Data allowWritesQualifier,
-                                    Data additiveQualifier, Data readUncommittedQualifier, Data readCommittedQualifier,
-                                    Data keepAliveQualifier, Data statusQualifier, Data commitQualifier, Data globalCommitQualifier,
-                                    Data counterQualifier) {
+		public EncodedTransactionSchema(String tableName,
+																		byte[] siFamily,
+																		byte[] permissionFamily,
+																		byte[] siNull,
+																		byte[] idQualifier,
+                                    byte[] startQualifier,
+																		byte[] parentQualifier,
+																		byte[] dependentQualifier,
+																		byte[] allowWritesQualifier,
+                                    byte[] additiveQualifier,
+																		byte[] readUncommittedQualifier,
+																		byte[] readCommittedQualifier,
+                                    byte[] keepAliveQualifier,
+																		byte[] statusQualifier,
+																		byte[] commitQualifier,
+																		byte[] globalCommitQualifier,
+                                    byte[] counterQualifier,
+																		byte[] writeTableQualifier) {
         this.tableName = tableName;
         this.siFamily = siFamily;
         this.permissionFamily = permissionFamily;
@@ -46,5 +60,6 @@ public class EncodedTransactionSchema<Data> {
         this.statusQualifier = statusQualifier;
         this.keepAliveQualifier = keepAliveQualifier;
         this.counterQualifier = counterQualifier;
+				this.writeTableQualifier = writeTableQualifier;
     }
 }

@@ -10,8 +10,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.tools.splice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -84,7 +83,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 								keyColumns[i] = pkCols[i] -1;
 						}
 						prefix = NoOpPrefix.INSTANCE;
-						dataHash = BareKeyHash.encoder(keyColumns,null);
+						dataHash = BareKeyHash.encoder(keyColumns,null, spliceRuntimeContext.getKryoPool());
 				}
 
 				return new KeyEncoder(prefix,dataHash,postfix);

@@ -3,6 +3,7 @@ package com.splicemachine.hbase.writer;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;
 import com.splicemachine.stats.Metrics;
@@ -286,8 +287,10 @@ public class PipingWriteBuffer implements RecordingCallBuffer<KVPair>{
 										writeStats.merge(retStats);
 								}
 						}
-						ObjectArrayList<KVPair> copy = ObjectArrayList.from(buffer);
-						buffer.clear();
+						ObjectArrayList<KVPair> newBuffer = ObjectArrayList.newInstance();
+						ObjectArrayList<KVPair> copy = buffer;
+						buffer = newBuffer;
+
 						//update heap size metrics
 						if(LOG.isTraceEnabled())
 								LOG.trace("flushing "+ copy.size()+" entries");

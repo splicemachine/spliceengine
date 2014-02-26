@@ -1,23 +1,32 @@
 package com.splicemachine.si.txn;
 
-import com.splicemachine.si.HStoreSetup;
-import com.splicemachine.si.TransactorSetup;
+import com.splicemachine.si.HBaseSuite;
 import com.splicemachine.si.api.HTransactorFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 public class TransactionManagerHBaseTest extends TransactionManagerTest {
-    @BeforeClass
-    public static void setUp() {
-        storeSetup = HStoreSetup.create();
-        transactorSetup = new TransactorSetup(storeSetup, false);
-        HTransactorFactory.setTransactor(transactorSetup.hTransactor);
-        baseSetUp();
-    }
+		private static boolean selfManaged = false;
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        HStoreSetup.destroy((HStoreSetup) storeSetup);
-    }
+		@BeforeClass
+		public static void setUp() throws Exception {
+				if(HBaseSuite.classStoreSetup==null){
+						System.out.printf("[%s]Not running in Suite, Setting up HBase myself%n",TransactionManagerHBaseTest.class.getSimpleName());
+						HBaseSuite.setUp();
+						selfManaged=true;
+				}
+				storeSetup = HBaseSuite.classStoreSetup;
+				transactorSetup = HBaseSuite.classTransactorSetup;
+				HTransactorFactory.setTransactor(transactorSetup.hTransactor);
+				baseSetUp();
+		}
+
+		@AfterClass
+		public static void tearDown() throws Exception {
+				if(selfManaged){
+						System.out.printf("[%s]Tearing down HBase%n",TransactionManagerHBaseTest.class.getSimpleName());
+						HBaseSuite.tearDownClass();
+				}
+		}
 
 }

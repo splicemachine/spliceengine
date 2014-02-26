@@ -26,10 +26,20 @@ public class ImmutableTransaction {
     private final long beginTimestamp;
     private final Boolean readUncommitted;
     private final Boolean readCommitted;
+		private int counter;
 
-    public ImmutableTransaction(TransactionBehavior behavior, TransactionId transactionId, boolean allowWrites,
-                                boolean additive, Boolean readCommitted, ImmutableTransaction immutableParent,
-                                boolean dependent, Boolean readUncommitted, long beginTimestamp) {
+		private byte[] writeTable;
+
+		public ImmutableTransaction(TransactionBehavior behavior,
+																TransactionId transactionId,
+																boolean allowWrites,
+                                boolean additive,
+																Boolean readCommitted,
+																ImmutableTransaction immutableParent,
+                                boolean dependent,
+																Boolean readUncommitted,
+																long beginTimestamp,
+																byte[] writeTable) {
         this.behavior = behavior;
         this.transactionId = transactionId;
         this.immutableParent = immutableParent;
@@ -39,21 +49,29 @@ public class ImmutableTransaction {
         this.beginTimestamp = beginTimestamp;
         this.readUncommitted = readUncommitted;
         this.readCommitted = readCommitted;
+				this.writeTable = writeTable;
     }
 
     public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, boolean additive,
                                 Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
                                 Boolean readUncommitted, long beginTimestamp) {
         this(behavior, new TransactionId(id), allowWrites, additive, readCommitted, immutableParent,
-                dependent, readUncommitted, beginTimestamp);
+                dependent, readUncommitted, beginTimestamp,null);
     }
+
+		public ImmutableTransaction(TransactionBehavior behavior, long id, boolean allowWrites, boolean additive,
+																Boolean readCommitted, ImmutableTransaction immutableParent, boolean dependent,
+																Boolean readUncommitted, long beginTimestamp,byte[] writeTable) {
+				this(behavior, new TransactionId(id), allowWrites, additive, readCommitted, immutableParent,
+								dependent, readUncommitted, beginTimestamp,writeTable);
+		}
 
     public ImmutableTransaction cloneWithId(TransactionId newTransactionId, ImmutableTransaction parent) {
         if (transactionId.getId() != newTransactionId.getId()) {
             throw new RuntimeException("Cannot clone transaction with different id");
         }
         return new ImmutableTransaction(behavior, newTransactionId,
-                allowWrites, additive, readCommitted, parent, dependent, readUncommitted, beginTimestamp);
+                allowWrites, additive, readCommitted, parent, dependent, readUncommitted, beginTimestamp,parent.writeTable);
     }
 
     // immediate access
@@ -74,7 +92,11 @@ public class ImmutableTransaction {
         return !allowWrites;
     }
 
-    public boolean isAdditive() {
+		public byte[] getWriteTable() {
+				return writeTable;
+		}
+
+		public boolean isAdditive() {
         return additive;
     }
 
@@ -118,7 +140,12 @@ public class ImmutableTransaction {
         return transactionId.hashCode();
     }
 
-    // effective access (see Transaction class for notes on "effective" methods)
+		public boolean isDependent() { return dependent; }
+		public boolean allowsWrites() { return allowWrites; }
+		public Boolean getReadUncommitted() { return readUncommitted; }
+		public Boolean getReadCommitted() { return readCommitted; }
+
+		// effective access (see Transaction class for notes on "effective" methods)
 
     public boolean getEffectiveReadUncommitted() {
         if (readUncommitted == null) {
@@ -191,7 +218,7 @@ public class ImmutableTransaction {
 								//if I can read committed rows, and this transaction has a known committed state, I can see it
 								visible = true;
 						} else if (readUncommitted1 && otherTxnEffectiveStatus.isActive()) {
-								//if I can read committed rows, and this transaction is active, then I can see it
+								//if I can read uncommitted rows, and this transaction is active, then I can see it
 								visible = true;
 						}else if (!isReadCommitted && !readUncommitted1 && otherTxnEffectiveStatus.isCommitted()) {
 								/*
@@ -311,4 +338,5 @@ public class ImmutableTransaction {
         return null;
     }
 
+		public int getCounter() { return counter; }
 }

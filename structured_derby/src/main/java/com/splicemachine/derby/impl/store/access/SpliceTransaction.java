@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
@@ -39,11 +39,11 @@ public class SpliceTransaction implements Transaction {
 	protected static final int	ACTIVE		    = 2;
 
 	//FIXME: this is a temp workaround to integrate our existing transaction code. We need to implement the function here eventually.
-	protected TransactorControl transactor;
+	protected TransactionManager transactor;
 
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace,
                              DataValueFactory dataValueFactory,
-                             TransactorControl transactor,
+                             TransactionManager transactor,
                              String transName) {
 		SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 		this.compatibilitySpace = compatibilitySpace;
@@ -54,7 +54,7 @@ public class SpliceTransaction implements Transaction {
 	}
 
 	public SpliceTransaction(CompatibilitySpace compatibilitySpace, DataValueFactory dataValueFactory,
-                             TransactorControl transactor,
+                             TransactionManager transactor,
                              String transName, TransactionId transactionId) {
 			SpliceLogUtils.trace(LOG,"Instantiating Splice transaction");
 			this.compatibilitySpace = compatibilitySpace;

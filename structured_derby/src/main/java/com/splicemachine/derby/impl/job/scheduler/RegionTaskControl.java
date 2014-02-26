@@ -11,7 +11,7 @@ import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -263,7 +263,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
 				if(LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG,"Attempting to roll back transaction id %s on task %d",tId,Bytes.toLong(getTaskId()));
         try {
-						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactorControl(), tId, maxTries);
+						boolean rollback = TransactionUtils.rollback(HTransactorFactory.getTransactionManager(), tId, maxTries);
 						if(LOG.isDebugEnabled())
 								SpliceLogUtils.debug(LOG,"Rollback of transaction %s on task %d complete with return state %b",tId,Bytes.toLong(getTaskId()),rollback);
 						return rollback; //TODO -sf- make 5 configurable
@@ -284,7 +284,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
         String tId = taskStatus.getTransactionId();
         Preconditions.checkNotNull(tId,"Transactional task has no transaction");
 
-        TransactorControl txnControl = HTransactorFactory.getTransactorControl();
+        TransactionManager txnControl = HTransactorFactory.getTransactionManager();
 
 				if(LOG.isDebugEnabled())
 						SpliceLogUtils.debug(LOG,"Committing transaction %s for task %d",tId,Bytes.toLong(getTaskId()));

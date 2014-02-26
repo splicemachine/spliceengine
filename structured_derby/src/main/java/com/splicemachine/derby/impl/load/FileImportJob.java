@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.HBaseRegionCache;
@@ -52,8 +53,6 @@ public class FileImportJob extends ImportJob{
 				}
 
         ImportReader reader = new FileImportReader();
-        ImportTask task = new ImportTask(getJobId(), context,reader,
-                SpliceConstants.importTaskPriority, context.getTransactionId(),statementId,operationId);
 				Map<ImportTask,Pair<byte[],byte[]>> tasks = Maps.newHashMap();
 				for(Path filePath:files){
 						ImportContext ctx = context.getCopy();
@@ -75,7 +74,7 @@ public class FileImportJob extends ImportJob{
     }
 
     private Pair<byte[],byte[]> getTaskBoundary(ImportContext ctx) throws IOException{
-        byte[] tableBytes = Bytes.toBytes(ctx.getTableName());
+        byte[] tableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
 				List<HRegionInfo> regions;
 				HBaseAdmin admin = new HBaseAdmin(SpliceConstants.config);
 				try{

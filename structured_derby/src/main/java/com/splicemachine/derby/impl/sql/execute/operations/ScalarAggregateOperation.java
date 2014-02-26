@@ -17,12 +17,8 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.stats.Counter;
 import com.splicemachine.stats.TimeView;
-import com.splicemachine.stats.Timer;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -32,7 +28,6 @@ import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -212,8 +207,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 						stats.addMetric(OperationMetric.FILTERED_ROWS,scanAggregator.getRowsRead());
 
 						TimeView readTime = regionScanner.getReadTime();
-						long readBytes = regionScanner.getBytesRead();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsRead());
+						long readBytes = regionScanner.getBytesOutput();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, regionScanner.getRowsOutput());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTime.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTime.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTime.getWallClockTime());
@@ -237,8 +232,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				setCurrentRow(row);
 				boolean eliminatedNulls = aggregator.finish(row);
 
-				if (eliminatedNulls)
-						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
+//				if (eliminatedNulls)
+//						addWarning(SQLWarningFactory.newSQLWarning(SQLState.LANG_NULL_ELIMINATED_IN_SET_FUNCTION));
 
 				return row;
 		}
@@ -248,6 +243,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				if (LOG.isTraceEnabled())
 						SpliceLogUtils.trace(LOG,"getExecRowDefinition");
 				ExecRow row = sourceExecIndexRow.getClone();
+				// Set the default values to 0 in case a ProjectRestrictOperation has set the default values to 1.
+				// That is done to avoid division by zero exceptions when executing a projection for defining the rows
+				// before execution.
 				SpliceUtils.populateDefaultValues(row.getRowArray(),0);
 				return row;
 		}

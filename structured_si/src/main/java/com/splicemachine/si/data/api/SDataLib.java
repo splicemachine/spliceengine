@@ -3,69 +3,52 @@ package com.splicemachine.si.data.api;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.hbase.KVPair;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 /**
  * Defines an abstraction over the construction and manipulate of HBase operations. Having this abstraction allows an
  * alternate lightweight store to be used instead of HBase (e.g. for rapid testing).
  */
-public interface SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> {
-    Data newRowKey(Object[] args);
-    Data increment(Data key);
+public interface SDataLib<
+				Put extends OperationWithAttributes,
+				Delete,
+				Get extends OperationWithAttributes, Scan> {
+    byte[] newRowKey(Object[] args);
 
-    Data encode(Object value);
-    Object decode(Data value, Class type);
-    boolean valuesEqual(Data value1, Data value2);
+		byte[] encode(Object value);
+    <T> T decode(byte[] value, Class<T> type);
 
-    void addAttribute(OperationWithAttributes operation, String attributeName, Data value);
-    Data getAttribute(OperationWithAttributes operation, String attributeName);
+		List<KeyValue> listResult(Result result);
 
-    Result newResult(Data key, List<KeyValue> keyValues);
-    Data getResultKey(Result result);
-    List<KeyValue> listResult(Result result);
-    List<KeyValue> getResultColumn(Result result, Data family, Data qualifier);
-    Data getResultValue(Result result, Data family, Data qualifier);
-    Map<Data, Data> getResultFamilyMap(Result result, Data family);
-
-    Put newPut(Data key);
-    Put newPut(Data key, Lock lock);
-    void addKeyValueToPut(Put put, Data family, Data qualifier, Long timestamp, Data value);
+		Put newPut(byte[] key);
+    Put newPut(byte[] key, Integer lock);
+    void addKeyValueToPut(Put put, byte[] family, byte[] qualifier, long timestamp, byte[] value);
     Iterable<KeyValue> listPut(Put put);
-    Data getPutKey(Put put);
+    byte[] getPutKey(Put put);
 
-    OperationStatus newFailStatus();
-
-    Data getKeyValueRow(KeyValue keyValue);
-    Data getKeyValueFamily(KeyValue keyValue);
-    Data getKeyValueQualifier(KeyValue keyValue);
-    Data getKeyValueValue(KeyValue keyValue);
-    long getKeyValueTimestamp(KeyValue keyValue);
-
-    Get newGet(Data rowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
-    Data getGetRow(Get get);
+		Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
+    byte[] getGetRow(Get get);
     void setGetTimeRange(Get get, long minTimestamp, long maxTimestamp);
     void setGetMaxVersions(Get get);
     void setGetMaxVersions(Get get, int max);
-    void addFamilyToGet(Get read, Data family);
-    void addFamilyToGetIfNeeded(Get get, Data family);
+    void addFamilyToGet(Get read, byte[] family);
+    void addFamilyToGetIfNeeded(Get get, byte[] family);
 
-    Scan newScan(Data startRowKey, Data endRowKey, List<Data> families, List<List<Data>> columns, Long effectiveTimestamp);
+    Scan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp);
     void setScanTimeRange(Scan get, long minTimestamp, long maxTimestamp);
     void setScanMaxVersions(Scan get);
-    void setScanMaxVersions(Scan get, int max);
-    void addFamilyToScan(Scan read, Data family);
-    void addFamilyToScanIfNeeded(Scan get, Data family);
 
-    Delete newDelete(Data rowKey);
-    void addKeyValueToDelete(Delete delete, Data family, Data qualifier, long timestamp);
-    boolean matchingColumn(KeyValue keyValue, Data family, Data qualifier);
-    boolean matchingFamily(KeyValue keyValue, Data family);
-    boolean matchingQualifier(KeyValue keyValue, Data qualifier);
-    boolean matchingValue(KeyValue keyValue, Data value);
-    boolean matchingFamilyKeyValue(KeyValue keyValue, KeyValue other);
-    boolean matchingQualifierKeyValue(KeyValue keyValue, KeyValue other);
-    boolean matchingValueKeyValue(KeyValue keyValue, KeyValue other);
-    boolean matchingRowKeyValue(KeyValue keyValue, KeyValue other);
-    KeyValue newKeyValue(KeyValue keyValue, Data value);
-    KeyValue newKeyValue(Data rowKey, Data family, Data qualifier, Long timestamp, Data value);
+		void addFamilyToScan(Scan read, byte[] family);
+    void addFamilyToScanIfNeeded(Scan get, byte[] family);
+
+    Delete newDelete(byte[] rowKey);
+    void addKeyValueToDelete(Delete delete, byte[] family, byte[] qualifier, long timestamp);
+
+		KVPair toKVPair(Put put);
+
+		Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId);
 }

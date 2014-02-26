@@ -10,10 +10,12 @@ import java.io.IOException;
 
 import org.apache.hadoop.hbase.KeyValue;
 
-public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
+public class HRowAccumulator implements RowAccumulator {
     private final EntryPredicateFilter predicateFilter;
     private final EntryAccumulator entryAccumulator;
     private final EntryDecoder decoder;
+
+		private long bytesAccumulated = 0l;
 
     public HRowAccumulator(EntryPredicateFilter predicateFilter, EntryDecoder decoder) {
         this.predicateFilter = predicateFilter;
@@ -25,11 +27,12 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
     public boolean isOfInterest(KeyValue keyValue) {
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         final BitIndex currentIndex = decoder.getCurrentIndex();
-        return currentIndex.intersects(entryAccumulator.getRemainingFields());
+				return entryAccumulator.isInteresting(currentIndex);
     }
 
     @Override
     public boolean accumulate(KeyValue keyValue) throws IOException {
+				bytesAccumulated+=keyValue.getLength();
         decoder.set(keyValue.getBuffer(),keyValue.getValueOffset(),keyValue.getValueLength());
         boolean pass = predicateFilter.match(decoder, entryAccumulator);
         if(!pass)
@@ -39,7 +42,7 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
 
     @Override
     public boolean isFinished() {
-        return entryAccumulator.getRemainingFields().isEmpty();
+        return entryAccumulator.isFinished();
     }
 
     @Override
@@ -48,4 +51,6 @@ public class HRowAccumulator implements RowAccumulator<byte[],KeyValue> {
         entryAccumulator.reset();
         return result;
     }
+
+		@Override public long getBytesVisited() { return bytesAccumulated; }
 }

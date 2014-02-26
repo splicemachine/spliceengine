@@ -1,17 +1,18 @@
 package com.splicemachine.si.data.light;
 
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.google.common.collect.Lists;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.util.Bytes;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTuple, LTuple, LGet, LGet, LRowLock, Object> {
+public class LDataLib implements SDataLib<LTuple, LTuple, LGet, LGet> {
 
     @Override
-    public Object newRowKey(Object... args) {
+    public byte[] newRowKey(Object... args) {
         StringBuilder builder = new StringBuilder();
         for (Object a : args) {
             Object toAppend = a;
@@ -24,22 +25,20 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
             }
             builder.append(toAppend);
         }
-        return builder.toString();
+        return Bytes.toBytes(builder.toString());
     }
 
-    @Override
-    public Object increment(Object key) {
-        if (key instanceof String) {
-            String s = (String) key;
-            final byte[] bytes = BytesUtil.unsignedCopyAndIncrement(s.getBytes());
-            return new String(bytes);
-        } else {
-            throw new RuntimeException("local data library does not implement increment for key of type: " + key.getClass().getSimpleName());
-        }
-    }
+		private boolean nullSafeComparison(Object o1, Object o2) {
+				if(o1==null){
+						return o2==null;
+				}else if(o2==null) return false;
 
-    private boolean nullSafeComparison(Object o1, Object o2) {
-        return (o1 == null && o2 == null) || ((o1 != null) && o1.equals(o2));
+				if(o1 instanceof byte[] && o2 instanceof byte[])
+						return Arrays.equals((byte[])o1,(byte[])o2);
+				else
+						return o1.equals(o2);
+
+//        return (o1 == null && o2 == null) || ((o1 != null) && o1.equals(o2));
     }
 
     public boolean valuesMatch(Object family1, Object family2) {
@@ -47,83 +46,76 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     }
 
     @Override
-    public Object encode(Object value) {
-        return value;
+    public byte[] encode(Object value) {
+				if(value instanceof String){
+						return Bytes.toBytes((String)value);
+				}else if(value instanceof Boolean)
+						return Bytes.toBytes((Boolean)value);
+				else if(value instanceof Integer)
+						return Bytes.toBytes((Integer)value);
+				else if(value instanceof Long)
+						return Bytes.toBytes((Long)value);
+				else if(value instanceof Byte)
+						return new byte[]{(Byte)value};
+				else if(value instanceof Short)
+						return Bytes.toBytes((Short)value);
+				else
+						return (byte[])value;
     }
 
-    @Override
-    public Object decode(Object value, Class type) {
-        if (value == null) {
-            return value;
+
+		@SuppressWarnings("unchecked")
+		@Override
+    public <T> T decode(byte[] value, Class<T> type) {
+        if (!(value instanceof byte[])) {
+            return (T)value;
         }
-        if (type.equals(value.getClass())) {
-            return value;
-        }
-        throw new RuntimeException("types don't match " + value.getClass().getName() + " " + type.getName() + " " + value);
+
+				if(byte[].class.equals(type))
+						return (T)value;
+				if(String.class.equals(type))
+						return (T)Bytes.toString(value);
+				else if(Long.class.equals(type))
+						return (T)(Long)Bytes.toLong(value);
+				else if(Integer.class.equals(type)){
+						if(value.length<4)
+								return (T)new Integer(-1);
+						return (T)(Integer)Bytes.toInt(value);
+				}else if(Boolean.class.equals(type))
+						return (T)(Boolean)Bytes.toBoolean(value);
+				else if(Byte.class.equals(type))
+						return (T)(Byte) value[0];
+				else
+						throw new RuntimeException("types don't match " + value.getClass().getName() + " " + type.getName() + " " + value);
     }
 
-    @Override
-    public boolean valuesEqual(Object value1, Object value2) {
-        return value1.equals(value2);
-    }
-
-    @Override
-    public void addKeyValueToPut(LTuple put, Object family, Object qualifier, Long timestamp, Object value) {
+		@Override
+    public void addKeyValueToPut(LTuple put, byte[] family, byte[] qualifier, long timestamp, byte[] value) {
         addKeyValueToTuple(put, family, qualifier, timestamp, value);
     }
 
-    private void addKeyValueToTuple(LTuple tuple, Object family, Object qualifier, Long timestamp, Object value) {
-        LTuple lTuple = tuple;
-        final LKeyValue newCell = new LKeyValue(lTuple.key, (String) family, (String) qualifier, timestamp, value);
-        lTuple.values.add(newCell);
+    private void addKeyValueToTuple(LTuple tuple, Object family, Object qualifier, long timestamp, byte[] value) {
+				KeyValue newCell = new KeyValue(tuple.key, (byte[]) family, (byte[]) qualifier, timestamp, value);
+        tuple.values.add(newCell);
     }
 
-    @Override
-    public void addAttribute(Object operation, String attributeName, Object value) {
-        if (operation instanceof LGet) {
-            ((LGet) operation).attributes.put(attributeName, value);
-        } else {
-            LTuple lTuple = (LTuple) operation;
-            lTuple.attributes.put(attributeName, value);
-        }
-    }
-
-    @Override
-    public Object getAttribute(Object operation, String attributeName) {
-        if (operation instanceof LGet) {
-            return ((LGet) operation).attributes.get(attributeName);
-        } else {
-            return ((LTuple) operation).attributes.get(attributeName);
-        }
-    }
-
-    @Override
-    public LTuple newResult(Object key, List<LKeyValue> keyValues) {
-        return new LTuple((String) key, new ArrayList<LKeyValue>(keyValues));
-    }
-
-    @Override
-    public LTuple newPut(Object key) {
+		@Override
+    public LTuple newPut(byte[] key) {
         return newPut(key, null);
     }
 
     @Override
-    public LTuple newPut(Object key, LRowLock lock) {
-        return new LTuple((String) key, new ArrayList(), lock);
+    public LTuple newPut(byte[] key, Integer lock) {
+        return new LTuple(key, new ArrayList<KeyValue>(), lock);
     }
 
-    @Override
-    public Object newFailStatus() {
-        throw new RuntimeException("not implemented");
-    }
-
-    @Override
-    public LGet newGet(Object rowKey, List<Object> families, List<List<Object>> columns, Long effectiveTimestamp) {
+		@Override
+    public LGet newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         return new LGet(rowKey, rowKey, families, columns, effectiveTimestamp);
     }
 
     @Override
-    public Object getGetRow(LGet get) {
+    public byte[] getGetRow(LGet get) {
         return get.startTupleKey;
     }
 
@@ -142,12 +134,12 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     }
 
     @Override
-    public void addFamilyToGet(LGet get, Object family) {
+    public void addFamilyToGet(LGet get, byte[] family) {
         get.families.add(family);
     }
 
     @Override
-    public void addFamilyToGetIfNeeded(LGet get, Object family) {
+    public void addFamilyToGetIfNeeded(LGet get, byte[] family) {
         ensureFamilyDirect(get, family);
     }
 
@@ -161,17 +153,13 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     public void setScanMaxVersions(LGet get) {
     }
 
-    @Override
-    public void setScanMaxVersions(LGet get, int max) {
-    }
-
-    @Override
-    public void addFamilyToScan(LGet get, Object family) {
+		@Override
+    public void addFamilyToScan(LGet get, byte[] family) {
         get.families.add(family);
     }
 
     @Override
-    public void addFamilyToScanIfNeeded(LGet get, Object family) {
+    public void addFamilyToScanIfNeeded(LGet get, byte[] family) {
         ensureFamilyDirect(get, family);
     }
 
@@ -186,30 +174,27 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
     }
 
     @Override
-    public LGet newScan(Object startRowKey, Object endRowKey, List families, List columns, Long effectiveTimestamp) {
+    public LGet newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         return new LGet(startRowKey, endRowKey, families, columns, effectiveTimestamp);
     }
 
-    @Override
-    public Object getResultKey(LTuple result) {
-        return getTupleKey(result);
-    }
-
-    @Override
-    public Object getPutKey(LTuple put) {
+		@Override
+    public byte[] getPutKey(LTuple put) {
         return getTupleKey(put);
     }
 
-    private Object getTupleKey(Object result) {
+    private byte[] getTupleKey(Object result) {
         return ((LTuple) result).key;
     }
 
-    private List<LKeyValue> getValuesForColumn(LTuple tuple, Object family, Object qualifier) {
-        List<LKeyValue> values = tuple.values;
-        List<LKeyValue> results = new ArrayList<LKeyValue>();
-        for (Object vRaw : values) {
-            LKeyValue v = (LKeyValue) vRaw;
-            if (valuesMatch(v.family, family) && valuesMatch(v.qualifier, qualifier)) {
+    private List<KeyValue> getValuesForColumn(Result tuple, byte[] family, byte[] qualifier) {
+        KeyValue[] values = tuple.raw();
+        List<KeyValue> results = Lists.newArrayList();
+				for (KeyValue v : values) {
+						if(v.matchingColumn(family,qualifier)){
+								results.add(v);
+						}
+            if (valuesMatch(v.getFamily(), family) && valuesMatch(v.getFamily(), qualifier)) {
                 results.add(v);
             }
         }
@@ -217,139 +202,50 @@ public class LDataLib implements SDataLib<Object, LTuple, LKeyValue, Object, LTu
         return results;
     }
 
-    private List<LKeyValue> getValuesForFamily(LTuple tuple, Object family) {
-        List<LKeyValue> values = tuple.values;
-        List<LKeyValue> results = new ArrayList<LKeyValue>();
-        for (Object vRaw : values) {
-            LKeyValue v = (LKeyValue) vRaw;
-            if (valuesMatch(v.family, family)) {
+    private List<KeyValue> getValuesForFamily(Result tuple, byte[] family) {
+        KeyValue[] values = tuple.raw();
+        List<KeyValue> results = Lists.newArrayList();
+        for (KeyValue v: values) {
+						if(v.matchingFamily(family))
                 results.add(v);
-            }
         }
         return results;
     }
 
-    @Override
-    public List<LKeyValue> getResultColumn(LTuple result, Object family, Object qualifier) {
-        List<LKeyValue> values = getValuesForColumn(result, family, qualifier);
-        LStore.sortValues(values);
-        return values;
+		@Override
+		public List<KeyValue> listResult(Result result) {
+				List<KeyValue> values = Lists.newArrayList(result.raw());
+				LStore.sortValues(values);
+				return values;
     }
 
     @Override
-    public Object getResultValue(LTuple result, Object family, Object qualifier) {
-        final List<LKeyValue> valuesForColumn = getValuesForColumn(result, family, qualifier);
-        if (valuesForColumn.isEmpty()) {
-            return null;
-        }
-        return valuesForColumn.get(0).value;
-    }
-
-    @Override
-    public Map getResultFamilyMap(LTuple result, Object family) {
-        final List<LKeyValue> valuesForFamily = getValuesForFamily(result, family);
-        final Map familyMap = new HashMap();
-        for (LKeyValue kv : valuesForFamily) {
-            familyMap.put(kv.qualifier, kv.value);
-        }
-        return familyMap;
-    }
-
-    @Override
-    public List<LKeyValue> listResult(LTuple result) {
-        return listPut(result);
-    }
-
-    @Override
-    public List<LKeyValue> listPut(LTuple put) {
-        final List<LKeyValue> values = put.values;
-        LStore.sortValues(values);
-        return values;
+    public Iterable<KeyValue> listPut(LTuple put) {
+				List<KeyValue> values = Lists.newArrayList(put.values);
+				LStore.sortValues(values);
+				return values;
     }
 
 
-    @Override
-    public Object getKeyValueRow(LKeyValue keyValue) {
-        return keyValue.rowKey;
-    }
-
-    @Override
-    public Object getKeyValueFamily(LKeyValue keyValue) {
-        return keyValue.family;
-    }
-
-    @Override
-    public Object getKeyValueQualifier(LKeyValue keyValue) {
-        return keyValue.qualifier;
-    }
-
-    @Override
-    public Object getKeyValueValue(LKeyValue keyValue) {
-        return keyValue.value;
-    }
-
-    @Override
-    public long getKeyValueTimestamp(LKeyValue keyValue) {
-        return keyValue.timestamp;
-    }
-
-    @Override
-    public LTuple newDelete(Object rowKey) {
+		@Override
+    public LTuple newDelete(byte[] rowKey) {
         return newPut(rowKey, null);
     }
 
     @Override
-    public void addKeyValueToDelete(LTuple delete, Object family, Object qualifier, long timestamp) {
+    public void addKeyValueToDelete(LTuple delete, byte[] family, byte[] qualifier, long timestamp) {
         addKeyValueToTuple(delete, family, qualifier, timestamp, null);
     }
 
-    @Override
-    public boolean matchingColumn(LKeyValue keyValue, Object family, Object qualifier) {
-        return valuesMatch(keyValue.family, family) && valuesMatch(keyValue.qualifier, qualifier);
-    }
+		@Override
+		public KVPair toKVPair(LTuple lTuple) {
+				return new KVPair(lTuple.key,lTuple.values.get(0).getValue());
+		}
 
-    @Override
-    public boolean matchingFamily(LKeyValue keyValue, Object family) {
-        return valuesMatch(keyValue.family, family);
-    }
-
-    @Override
-    public boolean matchingQualifier(LKeyValue keyValue, Object qualifier) {
-        return valuesMatch(keyValue.qualifier, qualifier);
-    }
-
-    @Override
-    public boolean matchingValue(LKeyValue keyValue, Object value) {
-        return valuesMatch(keyValue.value, value);
-    }
-
-    @Override
-    public boolean matchingFamilyKeyValue(LKeyValue keyValue, LKeyValue other) {
-        return valuesMatch(keyValue.family, other.family);
-    }
-
-    @Override
-    public boolean matchingQualifierKeyValue(LKeyValue keyValue, LKeyValue other) {
-        return other == null ? false : valuesMatch(keyValue.qualifier, other.qualifier);
-    }
-
-    @Override
-    public boolean matchingValueKeyValue(LKeyValue keyValue, LKeyValue other) {
-        return other == null ? false : valuesMatch(keyValue.value, other.value);
-    }
-
-    @Override
-    public boolean matchingRowKeyValue(LKeyValue keyValue, LKeyValue other) {
-        return other == null ? false : valuesMatch(keyValue.rowKey, other.rowKey);
-    }
-
-    @Override
-    public LKeyValue newKeyValue(LKeyValue keyValue, Object value) {
-        return new LKeyValue(keyValue.rowKey, keyValue.family, keyValue.qualifier, keyValue.timestamp, value);
-    }
-
-    @Override
-    public LKeyValue newKeyValue(Object rowKey, Object family, Object qualifier, Long timestamp, Object value) {
-        return new LKeyValue((String) rowKey, (String) family, (String) qualifier, timestamp, value);
-    }
+		@Override
+		public LTuple toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
+				KeyValue kv = new KeyValue(kvPair.getRow(),family,column,longTransactionId,kvPair.getValue());
+				LTuple tuple = new LTuple(kvPair.getRow(),Lists.newArrayList(kv));
+				return tuple;
+		}
 }

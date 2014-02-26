@@ -4,6 +4,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -20,18 +21,29 @@ public class BareKeyHash{
 		protected final boolean[] keySortOrder;
 		protected final boolean sparse;
 
-		protected BareKeyHash(int[] keyColumns, boolean[] keySortOrder,boolean sparse) {
+		protected final KryoPool kryoPool;
+
+		protected BareKeyHash(int[] keyColumns, boolean[] keySortOrder,boolean sparse,KryoPool kryoPool) {
 				this.keyColumns = keyColumns;
 				this.keySortOrder = keySortOrder;
 				this.sparse = sparse;
+				this.kryoPool = kryoPool;
 		}
 
 		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder){
-				return new Encoder(keyColumns,keySortOrder);
+				return encoder(keyColumns, keySortOrder, SpliceDriver.getKryoPool());
+		}
+
+		public static DataHash encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool){
+				return new Encoder(keyColumns,keySortOrder,kryoPool);
 		}
 
 		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder){
-				return new Decoder(keyColumns,keySortOrder);
+				return decoder(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+		}
+
+		public static KeyHashDecoder decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool){
+				return new Decoder(keyColumns,keySortOrder,kryoPool);
 		}
 
 		protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException, IOException {
@@ -94,14 +106,14 @@ public class BareKeyHash{
 		private static class Decoder extends BareKeyHash implements KeyHashDecoder{
 				private MultiFieldDecoder decoder;
 
-				private Decoder(int[] keyColumns, boolean[] keySortOrder) {
-						super(keyColumns,keySortOrder,false);
+				private Decoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
+						super(keyColumns,keySortOrder,false,kryoPool);
 				}
 
 				@Override
 				public void set(byte[] bytes, int hashOffset,int length) {
 						if(decoder==null)
-								decoder = MultiFieldDecoder.create(SpliceDriver.getKryoPool());
+								decoder = MultiFieldDecoder.create(kryoPool);
 
 						decoder.set(bytes,hashOffset,length);
 				}
@@ -118,8 +130,8 @@ public class BareKeyHash{
 
 				private ExecRow currentRow;
 
-				public Encoder(int[] keyColumns, boolean[] keySortOrder) {
-						super(keyColumns,keySortOrder,false);
+				public Encoder(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool) {
+						super(keyColumns,keySortOrder,false,kryoPool);
 				}
 
 				@Override
@@ -130,7 +142,7 @@ public class BareKeyHash{
 				@Override
 				public byte[] encode() throws StandardException, IOException {
 						if(encoder==null)
-								encoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(),keyColumns.length);
+								encoder = MultiFieldEncoder.create(kryoPool,keyColumns.length);
 
 						pack(encoder,currentRow);
 						return encoder.build();
@@ -138,7 +150,7 @@ public class BareKeyHash{
 
 				@Override
 				public KeyHashDecoder getDecoder(){
-						return new Decoder(keyColumns,keySortOrder);
+						return new Decoder(keyColumns,keySortOrder,kryoPool);
 				}
 		}
 }

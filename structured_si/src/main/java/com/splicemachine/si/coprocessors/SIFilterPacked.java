@@ -1,36 +1,33 @@
 package com.splicemachine.si.coprocessors;
 
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.FilterStatePacked;
 import com.splicemachine.si.impl.IFilterState;
-import com.splicemachine.si.api.RollForwardQueue;
+import com.splicemachine.si.impl.RowAccumulator;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryPredicateFilter;
 
+import com.splicemachine.storage.HasPredicateFilter;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.FilterBase;
-import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.log4j.Logger;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 
 /**
  * An HBase filter that applies SI logic when reading data values.
  */
-public class SIFilterPacked extends FilterBase {
+public class SIFilterPacked extends FilterBase implements HasPredicateFilter {
     private static Logger LOG = Logger.getLogger(SIFilterPacked.class);
 
     private String tableName;
-    private Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = null;
+		private TransactionReadController<Get,Scan> readController;
+		private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
     private EntryPredicateFilter predicateFilter;
@@ -39,27 +36,48 @@ public class SIFilterPacked extends FilterBase {
     // always include at least one keyValue so that we can use the "hook" of filterRow(...) to generate the accumulated key value
     private Boolean extraKeyValueIncluded = null;
 
-    private IFilterState<KeyValue> filterState = null;
+    private IFilterState filterState = null;
 
     public SIFilterPacked() {
     }
 
-    public SIFilterPacked(String tableName, Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor,
-                          TransactionId transactionId, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter,
-                          boolean includeSIColumn) throws IOException {
+    public SIFilterPacked(String tableName,
+													TransactionId transactionId,
+													TransactionManager transactionManager,
+													RollForwardQueue rollForwardQueue,
+													EntryPredicateFilter predicateFilter,
+													TransactionReadController<Get, Scan> readController,
+													boolean includeSIColumn) throws IOException {
         this.tableName = tableName;
-        this.transactor = transactor;
-        this.transactionIdString = transactionId.getTransactionIdString();
+				this.transactionManager = transactionManager;
+				this.transactionIdString = transactionId.getTransactionIdString();
         this.rollForwardQueue = rollForwardQueue;
         this.predicateFilter = predicateFilter;
         this.includeSIColumn = includeSIColumn;
+				this.readController = readController;
     }
+
+
+		@Override
+		public long getBytesVisited(){
+				if(filterState==null) return 0l;
+
+				FilterStatePacked packed = (FilterStatePacked)filterState;
+				@SuppressWarnings("unchecked") RowAccumulator accumulator = packed.getAccumulator();
+				return accumulator.getBytesVisited();
+		}
+
+		@Override
+		public EntryPredicateFilter getFilter(){
+				return predicateFilter;
+		}
 
     @Override
     public ReturnCode filterKeyValue(KeyValue keyValue) {
         try {
             initFilterStateIfNeeded();
-            ReturnCode returnCode = transactor.filterKeyValue(filterState, keyValue);
+						ReturnCode returnCode = filterState.filterKeyValue(keyValue);
+//            ReturnCode returnCode = HTransactorFactory.getTransactionReadController().filterKeyValue(filterState, keyValue);
             switch (returnCode) {
                 case INCLUDE:
                 case INCLUDE_AND_NEXT_COL:
@@ -86,22 +104,17 @@ public class SIFilterPacked extends FilterBase {
         }
     }
 
-    private void initFilterStateIfNeeded() throws IOException {
+    @SuppressWarnings("unchecked")
+		private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = transactor.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
-                    transactor.transactionIdFromString(transactionIdString), includeSIColumn);
+            filterState = readController.newFilterStatePacked(tableName, rollForwardQueue, predicateFilter,
+                    transactionManager.transactionIdFromString(transactionIdString), includeSIColumn);
         }
     }
 
-    @Override
-    public boolean filterRow() {
-        return filterState.getExcludeRow();
-    }
+    @Override public boolean filterRow() { return filterState.getExcludeRow(); }
 
-    @Override
-    public boolean hasFilterRow() {
-        return true;
-    }
+    @Override public boolean hasFilterRow() { return true; }
 
     @Override
     public void filterRow(List<KeyValue> keyValues) {
@@ -123,13 +136,11 @@ public class SIFilterPacked extends FilterBase {
     public void reset() {
         extraKeyValueIncluded = null;
         if (filterState != null) {
-            transactor.filterNextRow(filterState);
+						filterState.nextRow();
         }
     }
 
-    @Override
-    public void readFields(DataInput in) throws IOException {
-    }
+    @Override public void readFields(DataInput in) throws IOException { }
 
     @Override
     public void write(DataOutput out) throws IOException {

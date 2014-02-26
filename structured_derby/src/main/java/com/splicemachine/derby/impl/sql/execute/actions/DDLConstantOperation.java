@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,7 +10,6 @@ import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.index.ForbidPastWritesJob;
-import com.splicemachine.derby.impl.job.index.PopulateIndexJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.job.JobFuture;
 import org.apache.derby.catalog.AliasInfo;
@@ -62,7 +60,7 @@ import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -74,7 +72,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class DDLConstantOperation implements ConstantAction {
 private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 
-    protected TransactorControl transactor = HTransactorFactory.getTransactorControl();
+    protected TransactionManager transactor = HTransactorFactory.getTransactionManager();
 	/**
 	 * Get the schema descriptor for the schemaid.
 	 *
@@ -934,12 +932,14 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      * @return list of transactions still running after timeout
      * @throws IOException 
      */
-	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore) throws IOException {
+	public List<TransactionId> waitForConcurrentTransactions(TransactionId maximum, List<TransactionId> toIgnore,long tableConglomId) throws IOException {
 	    if (!waitsForConcurrentTransactions()) {
 	        return Collections.emptyList();
 	    }
-	    List<TransactionId> active = transactor.getActiveTransactionIds(maximum);
-        active.removeAll(toIgnore);
+			byte[] conglomBytes = Long.toString(tableConglomId).getBytes();
+	    List<TransactionId> active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
+			active.removeAll(toIgnore);
+
 	    long waitTime = SpliceConstants.ddlDrainingInitialWait;
 	    long totalWait = 0;
 	    while (!active.isEmpty() && totalWait < SpliceConstants.ddlDrainingMaximumWait) {
@@ -950,8 +950,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
             }
 	        totalWait += waitTime;
 	        waitTime *= 10;
-	        active = transactor.getActiveTransactionIds(maximum);
-            active.removeAll(toIgnore);
+	        active = transactor.getActiveWriteTransactionIds(maximum,conglomBytes);
+					active.removeAll(toIgnore);
 	    }
 	    if (!active.isEmpty()) {
 	        LOG.warn(String.format("Running DDL statement %s. There are transaction still active: %.100s", toString(), active));

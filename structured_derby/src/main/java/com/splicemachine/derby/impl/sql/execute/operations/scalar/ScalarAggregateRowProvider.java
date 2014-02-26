@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import org.apache.derby.iapi.error.StandardException;
@@ -37,7 +38,12 @@ public class ScalarAggregateRowProvider implements RowProvider {
 																			SpliceGenericAggregator[] aggregates,
 																			RowProvider delegate) throws StandardException {
 				this.delegate = delegate;
-				this.templateRow =templateRow;
+				this.templateRow =templateRow.getClone();
+				this.templateRow.resetRowArray();
+				// Set the default values to 0 in case a ProjectRestrictOperation has set the default values to 1.
+				// That is done to avoid division by zero exceptions when executing a projection for defining the rows
+				// before execution.
+				SpliceUtils.populateDefaultValues(this.templateRow.getRowArray(),0);
 				this.genericAggregators = aggregates;
 				this.execAggregators = new ExecAggregator[genericAggregators.length];
 				int []columnMap = new int[execAggregators.length];

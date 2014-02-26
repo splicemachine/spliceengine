@@ -5,11 +5,7 @@ import com.splicemachine.si.impl.translate.MemoryTableFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableFactory;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.HTableInterfaceFactory;
-import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -22,10 +18,10 @@ import java.util.Set;
 public class MemoryTableFactoryTest {
     @Test
     public void foo() throws IOException {
-        final HStoreSetup storeSetup = HStoreSetup.create();
+        final HStoreSetup storeSetup = new HStoreSetup(false);
         final Object table0 = storeSetup.getReader().open("999");
         try {
-            final Object put = storeSetup.getDataLib().newPut(Bytes.toBytes("joe"));
+            final OperationWithAttributes put = storeSetup.getDataLib().newPut(Bytes.toBytes("joe"));
             storeSetup.getDataLib().addKeyValueToPut(put, Bytes.toBytes("V"), Bytes.toBytes("qualifier1"), 100L, Bytes.toBytes(20));
             storeSetup.getWriter().write(table0, put);
         } finally {

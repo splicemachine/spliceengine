@@ -1,5 +1,9 @@
 package com.splicemachine.si.impl;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.io.Closeables;
+import com.google.common.primitives.Longs;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import com.splicemachine.si.api.TransactionStatus;
@@ -11,32 +15,33 @@ import com.splicemachine.si.impl.iterator.ContiguousIterator;
 import com.splicemachine.si.impl.iterator.ContiguousIteratorFunctions;
 import com.splicemachine.si.impl.iterator.DataIDDecoder;
 import com.splicemachine.si.impl.iterator.OrderedMuxer;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
+import com.splicemachine.utils.CloseableIterator;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Library of functions used by the SI module when accessing the transaction table. Encapsulates low-level data access
  * calls so the other classes can be expressed at a higher level. The intent is to capture mechanisms here rather than
  * policy.
  */
-public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, Table, OperationStatus, Scanner> {
+public class TransactionStore<Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, Table> {
     static final Logger LOG = Logger.getLogger(TransactionStore.class);
 
     // Plugins for creating gets/puts against the transaction table and for running the operations.
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data> reader;
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final STableReader<Table, Get, Scan> reader;
     private final STableWriter writer;
     private final TransactionSchema transactionSchema;
-    private final EncodedTransactionSchema<Data> encodedSchema;
-    private final List<Data> siFamilyList = new ArrayList<Data>(1);
-    private final List<Data> permissionFamilyList = new ArrayList<Data>(1);
+    private final EncodedTransactionSchema encodedSchema;
+    private final List<byte[]> siFamilyList = Lists.newArrayListWithCapacity(1);
+    private final List<byte[]> permissionFamilyList = Lists.newArrayListWithCapacity(1);
 
     // Configure how long to wait in the event of a commit race.
     private int waitForCommittingMS;
@@ -183,6 +188,9 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         if (params.readCommitted != null) {
             addFieldToPut(put, encodedSchema.readCommittedQualifier, params.readCommitted);
         }
+				if(params.writeTable!=null){
+						addFieldToPut(put,encodedSchema.writeTableQualifier,params.writeTable);
+				}
         if (status != null) {
             addFieldToPut(put, encodedSchema.statusQualifier, status.ordinal());
         }
@@ -217,12 +225,12 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return dataLib.newPut(transactionIdToRowKeyObject(transactionId));
     }
 
-    private Data transactionIdToRowKeyObject(long transactionId) {
+    private byte[] transactionIdToRowKeyObject(long transactionId) {
         return dataLib.newRowKey(transactionIdToRowKey(transactionId));
     }
 
-    private void addFieldToPut(Put put, Data qualifier, Object value) {
-        dataLib.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, null, dataLib.encode(value));
+    private void addFieldToPut(Put put, byte[] qualifier, Object value) {
+        dataLib.addKeyValueToPut(put, encodedSchema.siFamily, qualifier, -1l, dataLib.encode(value));
     }
 
     // Apply operations to the transaction table
@@ -240,7 +248,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         }
     }
 
-    private boolean writePut(Table transactionTable, Put put, Data expectedStatus) throws IOException {
+    private boolean writePut(Table transactionTable, Put put, byte[] expectedStatus) throws IOException {
         final boolean result = writer.checkAndPut(transactionTable, encodedSchema.siFamily, encodedSchema.statusQualifier,
                 expectedStatus, put);
         if (expectedStatus == null && result) {
@@ -408,7 +416,7 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     }
 
     private Result readTransaction(Table transactionTable, long transactionId) throws IOException {
-        Data tupleKey = transactionIdToRowKeyObject(transactionId);
+        byte[] tupleKey = transactionIdToRowKeyObject(transactionId);
         Get get = dataLib.newGet(tupleKey, siFamilyList, null, null);
         return reader.get(transactionTable, get);
     }
@@ -423,28 +431,27 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return result;
     }
 
-    private void cacheCompletedTransactions(long transactionId, Transaction result) {
+    public void cacheCompletedTransactions(long transactionId, Transaction result) {
         if (result.getEffectiveStatus().isFinished()) {
             // If a transaction has reached a terminal status, then we can cache it for future reference.
             completedTransactionCache.put(transactionId, result);
             //LOG.warn("cache PUT " + transactionId.getTransactionIdString());
-        } else {
-            //LOG.warn("cache NOT " + transactionId.getTransactionIdString());
         }
     }
 
     // Decoding results from the transaction table.
 
     /**
-     * Read the contents of a Result object (representing a row from the transaction table) and produce a Transaction
+     * Read the contents of a R object (representing a row from the transaction table) and produce a Transaction
      * object.
      *
-     * @param transactionId
-     * @param resultTuple
-     * @return
+     *
+		 * @param transactionId
+		 * @param resultTuple
+		 * @return
      * @throws IOException
      */
-    private Transaction decodeTransactionResults(long transactionId, Result resultTuple) throws IOException {
+    public Transaction decodeTransactionResults(long transactionId, Result resultTuple) throws IOException {
         // TODO: create optimized versions of this code block that only load the data required by the caller, or make the loading lazy
         final Boolean dependent = decodeBoolean(resultTuple, encodedSchema.dependentQualifier);
         final TransactionBehavior transactionBehavior = dependent ?
@@ -463,13 +470,14 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
                 decodeStatus(resultTuple, encodedSchema.statusQualifier),
                 decodeLong(resultTuple, encodedSchema.commitQualifier),
                 decodeLong(resultTuple, encodedSchema.globalCommitQualifier),
-                decodeLong(resultTuple, encodedSchema.counterQualifier));
+                decodeLong(resultTuple, encodedSchema.counterQualifier),
+								resultTuple.getValue(encodedSchema.siFamily,encodedSchema.writeTableQualifier));
     }
 
     private long decodeKeepAlive(Result resultTuple) {
-        final List<KeyValue> keepAliveValues = dataLib.getResultColumn(resultTuple, encodedSchema.siFamily, encodedSchema.keepAliveQualifier);
+        final List<KeyValue> keepAliveValues = resultTuple.getColumn(encodedSchema.siFamily, encodedSchema.keepAliveQualifier);
         final KeyValue keepAliveValue = keepAliveValues.get(0);
-        return dataLib.getKeyValueTimestamp(keepAliveValue);
+        return keepAliveValue.getTimestamp();
     }
 
     private Transaction decodeParent(Result resultTuple) throws IOException {
@@ -484,38 +492,38 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return parent;
     }
 
-    private Long decodeLong(Result resultTuple, Data columnQualifier) {
-        final Data columnValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, columnQualifier);
+    private Long decodeLong(Result resultTuple, byte[] columnQualifier) {
+        final byte[] columnValue = resultTuple.getValue(encodedSchema.siFamily, columnQualifier);
         Long result = null;
         if (columnValue != null) {
-            result = (Long) dataLib.decode(columnValue, Long.class);
+            result = dataLib.decode(columnValue, Long.class);
         }
         return result;
     }
 
-    private TransactionStatus decodeStatus(Result resultTuple, Data statusQualifier) {
-        final Data statusValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, statusQualifier);
+    private TransactionStatus decodeStatus(Result resultTuple, byte[] statusQualifier) {
+        final byte[] statusValue = resultTuple.getValue(encodedSchema.siFamily, statusQualifier);
         if (statusValue == null) {
             return null;
         } else {
-            return TransactionStatus.values()[((Integer) dataLib.decode(statusValue, Integer.class))];
+            return TransactionStatus.values()[dataLib.decode(statusValue, Integer.class)];
         }
     }
 
-    private Boolean decodeBoolean(Result resultTuple, Data columnQualifier) {
-        final Data columnValue = dataLib.getResultValue(resultTuple, encodedSchema.siFamily, columnQualifier);
+    private Boolean decodeBoolean(Result resultTuple, byte[] columnQualifier) {
+        final byte[] columnValue = resultTuple.getValue(encodedSchema.siFamily, columnQualifier);
         Boolean result = null;
         if (columnValue != null) {
-            result = (Boolean) dataLib.decode(columnValue, Boolean.class);
+            result = dataLib.decode(columnValue, Boolean.class);
         }
         return result;
     }
 
-    private Byte decodeByte(Result resultTuple, Data family, Data columnQualifier) {
-        final Data columnValue = dataLib.getResultValue(resultTuple, family, columnQualifier);
+    private Byte decodeByte(Result resultTuple, byte[] family, byte[] columnQualifier) {
+        final byte[] columnValue = resultTuple.getValue(family, columnQualifier);
         Byte result = null;
         if (columnValue != null) {
-            result = (Byte) dataLib.decode(columnValue, Byte.class);
+            result = dataLib.decode(columnValue, Byte.class);
         }
         return result;
     }
@@ -597,10 +605,11 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     /**
      * Convert a TransactionStatus into the representation used for it in the transaction table.
      *
-     * @param status
-     * @return
+     *
+		 * @param status
+		 * @return
      */
-    private Data encodeStatus(TransactionStatus status) {
+    private byte[] encodeStatus(TransactionStatus status) {
         if (status == null) {
             return encodedSchema.siNull;
         } else {
@@ -615,31 +624,56 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         }
     };
 
-    public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
-                                                         final int maxCount, final TransactionParams missingParams,
-                                                         final TransactionStatus missingStatus)
-            throws IOException {
-        return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
-            @Override
-            public List<Transaction> withTable(final Table transactionTable) throws IOException {
-                final ContiguousIterator<Long, Result> contiguousIterator = makeContiguousIterator(transactionTable, startTransactionId, missingParams, missingStatus);
-                final List<Transaction> results = new ArrayList<Transaction>();
-                long transactionId = startTransactionId;
-                while (results.size() < maxCount && contiguousIterator.hasNext() && transactionId < maxTransactionId) {
-                    final Result next = contiguousIterator.next();
-                    transactionId = decoder.getID(next);
-                    final Transaction transaction = decodeResults(transactionId, next);
-                    if (transaction.getStatus().isActive() && transaction.getEffectiveStatus().isActive()) {
-                        results.add(transaction);
-                    }
-                }
-                return results;
-            }
-        });
-    }
+		public List<Transaction> getOldestActiveTransactions(final long startTransactionId, final long maxTransactionId,
+																												 final int maxCount, final TransactionParams missingParams,
+																												 final TransactionStatus missingStatus)
+						throws IOException {
+				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+						@Override
+						public List<Transaction> withTable(Table table) throws IOException {
+								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,false,
+												startTransactionId,encodedSchema,dataLib,table,reader,TransactionStore.this);
+								try{
+										final List<Transaction> results = Lists.newArrayList();
+										while(iterator.hasNext() && results.size()<maxCount){
+												Transaction next = iterator.next();
+												if(next.getLongTransactionId()> maxTransactionId) continue;
+
+												if(next.getStatus().isActive() && next.getEffectiveStatus().isActive())
+														results.add(next);
+										}
+										return results;
+								}finally{
+										Closeables.closeQuietly(iterator);
+								}
+						}
+				});
+		}
+
+		public List<Transaction> getAllTransactions() throws IOException {
+
+				return withTransactionTable(new TransactionStoreCallback<List<Transaction>, Table>() {
+						@Override
+						public List<Transaction> withTable(Table table) throws IOException {
+								final TransactionTableIterator<Table,Scan> iterator = new TransactionTableIterator<Table, Scan>(true,true,
+												0l,encodedSchema,dataLib,table,reader,TransactionStore.this);
+								try{
+										final List<Transaction> results = Lists.newArrayList();
+										while(iterator.hasNext()){
+												Transaction next = iterator.next();
+
+												results.add(next);
+										}
+										return results;
+								}finally{
+										Closeables.closeQuietly(iterator);
+								}
+						}
+				});
+		}
 
     private ContiguousIterator<Long, Result> makeContiguousIterator(Table transactionTable, long startTransactionId, TransactionParams missingParams, TransactionStatus missingStatus) throws IOException {
-        List<Iterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
+        List<CloseableIterator<Result>> scanners = makeScanners(transactionTable, startTransactionId);
         return new ContiguousIterator<Long, Result>(startTransactionId,
                 new OrderedMuxer<Long, Result>(scanners, decoder), decoder, makeCallbacks(transactionTable, missingParams, missingStatus));
     }
@@ -659,11 +693,11 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         };
     }
 
-    private List<Iterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
-        List<Iterator<Result>> scanners = new ArrayList<Iterator<Result>>();
+    private List<CloseableIterator<Result>> makeScanners(Table transactionTable, long startTransactionId) throws IOException {
+        List<CloseableIterator<Result>> scanners = Lists.newArrayList();
         for (byte i = 0; i < SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT; i++) {
-            final Data rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
-            final Data endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
+            final byte[] rowKey = dataLib.newRowKey(new Object[]{i, startTransactionId});
+            final byte[] endKey = i == (SpliceConstants.TRANSACTION_TABLE_BUCKET_COUNT-1) ? null : dataLib.newRowKey(new Object[]{(byte) (i + 1)});
             final Scan scan = dataLib.newScan(rowKey, endKey, null, null, null);
             scanners.add(reader.scan(transactionTable, scan));
         }
@@ -705,9 +739,9 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
     }
 
     private Byte readPermissionBody(Table transactionTable, TransactionId transactionId, String tableName) throws IOException {
-        Data tupleKey = transactionIdToRowKeyObject(transactionId.getId());
-        final Data qualifier = dataLib.encode(tableName);
-        final List<List<Data>> columnList = Arrays.asList(
+        byte[] tupleKey = transactionIdToRowKeyObject(transactionId.getId());
+        final byte[] qualifier = dataLib.encode(tableName);
+        @SuppressWarnings("unchecked") final List<List<byte[]>> columnList = Arrays.asList(
                 Arrays.asList(encodedSchema.permissionFamily, qualifier));
         Get get = dataLib.newGet(tupleKey, permissionFamilyList, columnList, null);
         final Result result = reader.get(transactionTable, get);
@@ -722,10 +756,10 @@ public class TransactionStore<Data, Result, KeyValue, Put, Delete, Get, Scan, Op
         return withTransactionTable(new TransactionStoreCallback<Boolean, Table>() {
             @Override
             public Boolean withTable(Table transactionTable) throws IOException {
-                Data tupleKey = transactionIdToRowKeyObject(transactionId.getId());
+                byte[] tupleKey = transactionIdToRowKeyObject(transactionId.getId());
                 final Put put = dataLib.newPut(tupleKey);
-                final Data qualifier = dataLib.encode(tableName);
-                dataLib.addKeyValueToPut(put, encodedSchema.permissionFamily, qualifier, null, dataLib.encode(permissionValue));
+                final byte[] qualifier = dataLib.encode(tableName);
+                dataLib.addKeyValueToPut(put, encodedSchema.permissionFamily, qualifier, -1, dataLib.encode(permissionValue));
                 if (writer.checkAndPut(transactionTable, encodedSchema.permissionFamily, qualifier, null, put)) {
                     return true;
                 } else {

@@ -66,7 +66,7 @@ public class SpliceOperationContext {
                                   SpliceRuntimeContext spliceRuntimeContext){
         this.activation = activation;
         this.preparedStatement = preparedStatement;
-        this.scanner = new BufferedRegionScanner(region,scanner, scan.getCaching(),spliceRuntimeContext);
+        this.scanner = new BufferedRegionScanner(region,scanner, scan,scan.getCaching(),spliceRuntimeContext);
         this.region=region;
         this.scan = scan;
         this.lcc = lcc;
@@ -111,7 +111,7 @@ public class SpliceOperationContext {
             int caching = scan.getCaching();
             if(caching<0)
                 caching=SpliceConstants.DEFAULT_CACHE_SIZE;
-            scanner = new BufferedRegionScanner(region,baseScanner, SpliceConstants.DEFAULT_CACHE_SIZE,spliceRuntimeContext);
+            scanner = new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE,spliceRuntimeContext);
         }
         return scanner;
     }

@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.Exceptions;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 
 import org.apache.hadoop.hbase.client.HTableInterface;

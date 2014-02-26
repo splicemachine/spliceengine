@@ -1,6 +1,6 @@
 package com.splicemachine.hbase.batch;
 
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 
 import java.io.IOException;
 import java.util.List;

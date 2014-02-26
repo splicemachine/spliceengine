@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.data.hbase.HHasher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,12 +37,12 @@ public class ConcurrentRollForwardQueueTest {
         final byte[] out = new byte[] {0};
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 out[0] = ((byte[]) rowList.get(0))[0];
                 return true;
             }
         };
-        final RollForwardQueue queue = new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,SHORT_DELAY,timedPool,loadPool);
+        final RollForwardQueue queue = new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         Thread.sleep(SHORT_WAIT);
@@ -55,14 +54,14 @@ public class ConcurrentRollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 for (Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
                 return true;
             }
         };
-        final RollForwardQueue queue =new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,100000,timedPool,loadPool);
+        final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,100000,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         queue.recordRow(2, new byte[] {20}, false);
@@ -83,14 +82,14 @@ public class ConcurrentRollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 for (Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
                 return true;
             }
         };
-        final RollForwardQueue queue =new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,100000,timedPool,loadPool);
+        final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,100000,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         queue.recordRow(1, new byte[] {20}, false);
@@ -111,14 +110,14 @@ public class ConcurrentRollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 for(Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
                 return true;
             }
         };
-        final RollForwardQueue queue =new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,LONG_DELAY,timedPool,loadPool);
+        final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,LONG_DELAY,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         queue.recordRow(1, new byte[] {20}, false);
@@ -136,14 +135,14 @@ public class ConcurrentRollForwardQueueTest {
         final Set<Byte> out = new HashSet<Byte>();
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 for(Object row : rowList) {
                     out.add(((byte[]) row)[0]);
                 }
                 return true;
             }
         };
-        final RollForwardQueue queue =new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,SHORT_DELAY,timedPool,loadPool);
+        final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         queue.recordRow(1, new byte[] {11}, false);
@@ -163,7 +162,7 @@ public class ConcurrentRollForwardQueueTest {
         final byte[] out = new byte[] {0};
         RollForwardAction action = new RollForwardAction() {
             @Override
-            public Boolean rollForward(long transactionId, List rowList) {
+            public Boolean rollForward(long transactionId, List<byte[]> rowList) {
                 if (transactionId == 1) {
                     throw new RuntimeException("fail");
                 } else {
@@ -173,7 +172,7 @@ public class ConcurrentRollForwardQueueTest {
                 }
             }
         };
-        final RollForwardQueue queue =new ConcurrentRollForwardQueue(new HHasher(), action, 1024,4,SHORT_DELAY,timedPool,loadPool);
+        final RollForwardQueue queue =new ConcurrentRollForwardQueue(action, 1024,4,SHORT_DELAY,timedPool,loadPool);
         queue.start();
         queue.recordRow(1, new byte[] {10}, false);
         queue.recordRow(2, new byte[] {20}, false);

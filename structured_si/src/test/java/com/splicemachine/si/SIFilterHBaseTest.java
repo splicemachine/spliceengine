@@ -1,16 +1,11 @@
 package com.splicemachine.si;
 
-import com.splicemachine.si.api.Transactor;
-import com.splicemachine.si.api.HTransactorFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
 public class SIFilterHBaseTest extends SIFilterTest {
-    static StoreSetup classStoreSetup;
-    static TransactorSetup classTransactorSetup;
-    static Transactor classTransactor;
 
     public SIFilterHBaseTest() {
         useSimple = false;
@@ -18,26 +13,31 @@ public class SIFilterHBaseTest extends SIFilterTest {
 
     @Before
     public void setUp() {
-        storeSetup = classStoreSetup;
-        transactorSetup = classTransactorSetup;
-        transactor = classTransactor;
+        storeSetup = HBaseSuite.classStoreSetup;
+        transactorSetup = HBaseSuite.classTransactorSetup;
+				baseSetup();
     }
 
     @After
     public void tearDown() throws Exception {
     }
 
-    @BeforeClass
-    public static void setUpClass() {
-        classStoreSetup = HStoreSetup.create();
-        classTransactorSetup = new TransactorSetup(classStoreSetup, false);
-        classTransactor = classTransactorSetup.transactor;
-        HTransactorFactory.setTransactor(classTransactorSetup.hTransactor);
-    }
+		private static boolean selfManaged = false;
+		@BeforeClass
+		public static void setUpClass() throws Exception {
+				if(HBaseSuite.classStoreSetup==null){
+						System.out.printf("[%s]Not running in Suite, Setting up HBase myself%n", SIFilterHBaseTest.class.getSimpleName());
+						HBaseSuite.setUp();
+						selfManaged = true;
+				}
+		}
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        HStoreSetup.destroy((HStoreSetup) classStoreSetup);
-    }
+		@AfterClass
+		public static void tearDownClass() throws Exception {
+				if(selfManaged){
+						System.out.printf("[%s]Tearing down HBase%n",SIFilterHBaseTest.class.getSimpleName());
+						HBaseSuite.tearDownClass();
+				}
+		}
 
 }

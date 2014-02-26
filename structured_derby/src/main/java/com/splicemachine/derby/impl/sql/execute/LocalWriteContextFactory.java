@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -10,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.si.api.*;
 import org.apache.derby.catalog.IndexDescriptor;
 import org.apache.derby.catalog.UUID;
 import org.apache.derby.iapi.error.StandardException;
@@ -46,10 +46,6 @@ import com.splicemachine.hbase.batch.RegionWriteHandler;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteContextFactory;
 import com.splicemachine.hbase.batch.WriteHandler;
-import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.RollForwardQueue;
-import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.tools.ResettableCountDownLatch;
@@ -99,7 +95,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
 
     @Override
     public WriteContext create(String txnId, RegionCoprocessorEnvironment rce,
-                               RollForwardQueue<byte[], ByteBuffer> queue,int expectedWrites) throws IOException, InterruptedException {
+                               RollForwardQueue queue,int expectedWrites) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(txnId,rce);
         context.addLast(new RegionWriteHandler(rce.getRegion(), tableWriteLatch, writeBatchSize, queue));
         addIndexInformation(expectedWrites, context);
@@ -349,10 +345,10 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
         for (DDLChange indexChange : DDLCoordinationFactory.getWatcher().getTentativeIndexes()) {
             TentativeIndexDesc indexDesc = indexChange.getTentativeIndexDesc();
             boolean error = false;
-            Transactor transactor = HTransactorFactory.getTransactor();
+            TransactionManager transactionControl = HTransactorFactory.getTransactionManager();
             TransactionStatus status = null;
             try {
-                status = transactor.getTransactionStatus(
+                status = transactionControl.getTransactionStatus(
                         new TransactionId(indexChange.getParentTransactionId()));
             } catch (Exception e) {
                 // Error while checking transaction status, remove change
@@ -532,7 +528,7 @@ public class LocalWriteContextFactory implements WriteContextFactory<RegionCopro
                 ctx.addLast(deleteHandler);
                 ctx.addLast(writeHandler);
             } else {
-                DDLFilter ddlFilter = HTransactorFactory.getTransactor().newDDLFilter(ddlChange.getTransactionId());
+                DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController().newDDLFilter(ddlChange.getTransactionId());
                 ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
                 ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
             }

@@ -3,7 +3,6 @@ package com.splicemachine.hbase.batch;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.si.api.RollForwardQueue;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * @author Scott Fines
@@ -14,7 +13,7 @@ public interface WriteContextFactory<T> {
     WriteContext create(String txnId,T key) throws IOException, InterruptedException;
 
     WriteContext create(String txnId,T key,
-                        RollForwardQueue<byte[],ByteBuffer> queue,
+                        RollForwardQueue queue,
                         int expectedWrites) throws IOException, InterruptedException;
 
     /**

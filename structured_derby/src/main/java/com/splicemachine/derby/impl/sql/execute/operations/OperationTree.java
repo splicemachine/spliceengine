@@ -52,8 +52,7 @@ public class OperationTree {
         	SpliceLogUtils.debug(LOG, "OperationTree levelMap: %s \n\tfor operation %s", levelMap, operation);
 
         //The levelMap is sorted so that lower level number means higher on the tree, so
-        //since we need to execute from bottom u
-        // p, we go in descending order
+        //since we need to execute from bottom up, we go in descending order
         long statementUuid = runtimeContext.getStatementInfo().getStatementUuid();
         for(Integer level:levelMap.descendingKeySet()){
             List<SpliceOperation> levelOps = levelMap.get(level);

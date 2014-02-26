@@ -35,7 +35,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.batch.PipelineWriteContext;
 import com.splicemachine.hbase.writer.BufferConfiguration;
 import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.UnsafeCallBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.Writer;

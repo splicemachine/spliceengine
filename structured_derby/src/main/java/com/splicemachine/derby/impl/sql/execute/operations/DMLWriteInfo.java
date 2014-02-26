@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import org.apache.derby.iapi.services.io.FormatableBitSet;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.execute.ConstantAction;
 
 import java.io.Externalizable;
@@ -31,4 +32,6 @@ interface DMLWriteInfo extends Externalizable {
     long getConglomerateId();
 
 		SpliceObserverInstructions buildInstructions(SpliceOperation operation);
+
+		ResultDescription getResultDescription();
 }

@@ -137,7 +137,7 @@ public class ZooKeeperStatTimestampSource implements TimestampSource {
                  */
                 throw new IllegalStateException("Exceeded the maximum number of transactions "+
                         "available in Splice. How did you even do this, " +
-                        "we have 2^63 possible transaction ids! You're screwed. Call SpliceMachine Support" +
+                        "we have 2^63 possible transaction ids! You're screwed. Call SpliceMachine Support " +
                         "and ask for another database");
             }else if(newHighBits>highBits){
                 /*

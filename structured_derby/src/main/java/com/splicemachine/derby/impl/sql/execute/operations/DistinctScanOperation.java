@@ -17,8 +17,6 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.hbase.writer.CallBuffer;
-import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.stats.TimeView;
 import com.splicemachine.storage.EntryDecoder;
@@ -234,8 +232,8 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 				}
 				//in both sink and scan we read from local scanner
 				if(regionScanner!=null){
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesRead());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesOutput());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsOutput());
 						TimeView localReadTime = regionScanner.getReadTime();
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localReadTime.getWallClockTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localReadTime.getCpuTime());

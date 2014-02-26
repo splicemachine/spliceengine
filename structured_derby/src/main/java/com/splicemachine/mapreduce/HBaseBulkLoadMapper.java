@@ -2,6 +2,8 @@ package com.splicemachine.mapreduce;
 
 import java.io.IOException;
 import java.io.Reader;
+
+import com.splicemachine.hbase.KVPair;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.KeyValue;
@@ -27,7 +29,6 @@ import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.marshall.SaltedPrefix;
-import com.splicemachine.hbase.writer.KVPair;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Snowflake;
 import au.com.bytecode.opencsv.CSVReader;

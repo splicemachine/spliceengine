@@ -14,7 +14,7 @@ import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.stats.Metrics;
 import com.splicemachine.stats.Timer;
@@ -88,7 +88,7 @@ public class OperationSink {
 						KVPair.Type dataType = operation instanceof UpdateOperation? KVPair.Type.UPDATE: KVPair.Type.INSERT;
 						dataType = operation instanceof DeleteOperation? KVPair.Type.DELETE: dataType;
 						encoder = new PairEncoder(keyEncoder,rowHash,dataType);
-            String txnId = getTransactionId(destinationTable);
+            String txnId = getTransactionId(spliceRuntimeContext, destinationTable);
 						writeBuffer = operation.transformWriteBuffer(tableWriter.writeBuffer(destinationTable, txnId,spliceRuntimeContext));
 
             ExecRow row;
@@ -103,7 +103,7 @@ public class OperationSink {
 								writeTimer.startTiming();
 								KVPair encode = encoder.encode(row);
 								writeBuffer.add(encode);
-								writeTimer.stopTiming();
+								writeTimer.tick(1);
 								rowsWritten++;
 
             }while(row!=null);
@@ -152,8 +152,8 @@ public class OperationSink {
 				return new TaskStats(totalTimer.getTime().getWallClockTime(),rowsRead,rowsWritten);
     }
 
-		private String getTransactionId(byte[] destinationTable) {
-				byte[] tempTableBytes = SpliceDriver.driver().getTempTable().getTempTableName();
+		private String getTransactionId(SpliceRuntimeContext context, byte[] destinationTable) {
+				byte[] tempTableBytes = context.getTempTable().getTempTableName();
 				if(Bytes.equals(destinationTable, tempTableBytes)){
 						/*
 						 * We are writing to the TEMP Table.

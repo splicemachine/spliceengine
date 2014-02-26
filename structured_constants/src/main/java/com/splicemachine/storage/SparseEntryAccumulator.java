@@ -1,7 +1,10 @@
 package com.splicemachine.storage;
 
-import java.nio.ByteBuffer;
 import com.carrotsearch.hppc.BitSet;
+import com.google.common.collect.Maps;
+import com.splicemachine.storage.index.BitIndex;
+
+import java.util.Map;
 
 /**
  * @author Scott Fines
@@ -11,7 +14,9 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
     private BitSet remainingFields;
     private BitSet allFields;
 
-    public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
+		private Map<BitSet,byte[]> encodedIndexCache = Maps.newHashMapWithExpectedSize(1);
+
+		public SparseEntryAccumulator(EntryPredicateFilter predicateFilter,BitSet remainingFields) {
         super(predicateFilter,(int)remainingFields.length(),false);
         this.allFields = remainingFields;
         this.remainingFields = (BitSet)remainingFields.clone();
@@ -23,38 +28,46 @@ public class SparseEntryAccumulator extends GenericEntryAccumulator {
         this.remainingFields = (BitSet)remainingFields.clone();
     }
 
-    @Override
-    public void add(int position, ByteBuffer buffer){
-        super.add(position,buffer);
-        remainingFields.clear(position);
-    }
+		@Override
+		public void add(int position, byte[] data, int offset, int length) {
+				super.add(position, data, offset, length);
+				remainingFields.clear(position);
+		}
 
-    @Override
-    public void addScalar(int position, ByteBuffer buffer) {
-        super.addScalar(position,buffer);
-        remainingFields.clear(position);
-    }
+		@Override
+		public void markOccupiedUntyped(int position) {
+				super.markOccupiedUntyped(position);
+				remainingFields.clear(position);
+		}
 
-    @Override
-    public void addFloat(int position, ByteBuffer buffer) {
-        super.addFloat(position,buffer);
-        remainingFields.clear(position);
-    }
+		@Override
+		protected byte[] getIndex() {
+				byte[] data = encodedIndexCache.get(remainingFields);
+				if(data==null){
+						data = super.getIndex();
+						encodedIndexCache.put(remainingFields,data);
+				}
+				return data;
+		}
 
-    @Override
-    public void addDouble(int position, ByteBuffer buffer) {
-        super.addDouble(position, buffer);
-        remainingFields.clear(position);
-    }
-
-    @Override
+		@Override
     public BitSet getRemainingFields(){
         return remainingFields;
     }
 
-    @Override
+		@Override
+		public boolean isFinished() {
+				return remainingFields.cardinality()<=0;
+		}
+
+		@Override
     public void reset(){
         super.reset();
         remainingFields = (BitSet)allFields.clone();
     }
+
+		@Override
+		public boolean isInteresting(BitIndex potentialIndex) {
+				return potentialIndex.intersects(remainingFields);
+		}
 }

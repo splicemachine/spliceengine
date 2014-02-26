@@ -38,7 +38,7 @@ import com.splicemachine.hbase.batch.PipelineWriteContext;
 import com.splicemachine.hbase.batch.RegionWriteHandler;
 import com.splicemachine.hbase.writer.BufferConfiguration;
 import com.splicemachine.hbase.writer.BulkWrite;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.PipingWriteBuffer;
 import com.splicemachine.hbase.writer.WriteCoordinator;
 import com.splicemachine.hbase.writer.WriteResult;

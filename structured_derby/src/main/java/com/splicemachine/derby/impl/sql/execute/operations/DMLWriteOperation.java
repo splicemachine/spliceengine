@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -15,17 +16,19 @@ import com.splicemachine.job.JobResults;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.impl.TransactionId;
-import com.splicemachine.stats.Counter;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.loader.GeneratedMethod;
 import org.apache.derby.iapi.sql.Activation;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
+import org.apache.derby.iapi.sql.ResultDescription;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
 import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -198,7 +201,23 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-				ExecRow row = source.getExecRowDefinition();
+				/*
+				 * Typically, we just call down to our source and then pass that along
+				 * unfortunately, with autoincrement columns this can lead to a
+				 * StackOverflow, so we can't do that(see DB-1098 for more info)
+				 *
+				 * Luckily, DML operations are the top of their stack, so we can
+				 * just form our exec row from our result description.
+				 */
+				ResultDescription description = writeInfo.getResultDescription();
+				ResultColumnDescriptor[] rcd = description.getColumnInfo();
+				DataValueDescriptor[] dvds = new DataValueDescriptor[rcd.length];
+				for(int i=0;i<rcd.length;i++){
+						dvds[i] = rcd[i].getType().getNull();
+				}
+				ExecRow row = new ValueRow(dvds.length);
+				row.setRowArray(dvds);
+//				ExecRow row = source.getExecRowDefinition();
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}
@@ -303,14 +322,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                  * Instead, we create a child transaction, which we can roll back
                  * safely.
                  */
-								TransactionId parentTxnId = HTransactorFactory.getTransactor().transactionIdFromString(getTransactionID());
-								TransactionId childTransactionId;
-								try{
-										childTransactionId = HTransactorFactory.getTransactor().beginChildTransaction(parentTxnId,true);
-								}catch(IOException ioe){
-										LOG.error(ioe);
-										throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
-								}
+								TransactionId childTransactionId = getChildTransaction();
 
 								try {
 										spliceObserverInstructions.setTransactionId(childTransactionId.getTransactionIdString());
@@ -341,11 +353,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 						}
 				}
 
+
+
 				private void rollback(TransactionId txnId, int numTries) throws StandardException {
 						if(numTries> SpliceConstants.numRetries)
 								throw ErrorState.XACT_ROLLBACK_EXCEPTION.newException();
 						try{
-								HTransactorFactory.getTransactor().rollback(txnId);
+								HTransactorFactory.getTransactionManager().rollback(txnId);
 						}catch (IOException e) {
 								TransactionStatus status = getTransactionStatusSafely(txnId,0);
 								switch (status) {
@@ -375,7 +389,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 								throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
 
 						try{
-								HTransactorFactory.getTransactor().commit(txnId);
+								HTransactorFactory.getTransactionManager().commit(txnId);
 						} catch (IOException e) {
 								TransactionStatus status = getTransactionStatusSafely(txnId,0);
 								switch (status) {
@@ -399,7 +413,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 						if(numTries> SpliceConstants.numRetries)
 								throw ErrorState.XACT_COMMIT_EXCEPTION.newException();
 						try{
-								return HTransactorFactory.getTransactor().getTransactionStatus(txnId);
+								return HTransactorFactory.getTransactionManager().getTransactionStatus(txnId);
 						}catch(IOException ioe){
 								LOG.error(ioe);
 								//try again
@@ -478,5 +492,17 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		@Override
 		public boolean isReferencingTable(long tableNumber) {
 				return source.isReferencingTable(tableNumber);
+		}
+
+		TransactionId getChildTransaction() {
+				TransactionId parentTxnId = HTransactorFactory.getTransactionManager().transactionIdFromString(getTransactionID());
+				TransactionId childTransactionId;
+				try{
+						childTransactionId = HTransactorFactory.getTransactionManager().beginChildTransaction(parentTxnId, Bytes.toBytes(Long.toString(heapConglom)));
+				}catch(IOException ioe){
+						LOG.error(ioe);
+						throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
+				}
+				return childTransactionId;
 		}
 }

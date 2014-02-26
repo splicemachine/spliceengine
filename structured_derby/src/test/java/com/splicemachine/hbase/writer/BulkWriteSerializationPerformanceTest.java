@@ -3,6 +3,7 @@ package com.splicemachine.hbase.writer;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.esotericsoftware.kryo.Kryo;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.ByteDataOutput;
 import com.yammer.metrics.Metrics;
 import com.yammer.metrics.core.Histogram;

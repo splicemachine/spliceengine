@@ -6,6 +6,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
 import com.splicemachine.hbase.writer.*;
@@ -21,7 +22,6 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.net.ConnectException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -208,26 +208,25 @@ abstract class AbstractIndexWriteHandler extends SpliceConstants implements Writ
         return ctx.getWriteBuffer(indexConglomBytes,flushHook, writeConfiguration,expectedSize*2+10); //make sure we don't flush before we can
     }
 
-    protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, ByteBuffer newBuffer, int newPos) {
-        if(updateIndex.isScalarType(newPos))
-            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],newBuffer);
-        else if(updateIndex.isFloatType(newPos))
-            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],newBuffer);
-        else if(updateIndex.isDoubleType(newPos))
-            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],newBuffer);
-        else
-            newKeyAccumulator.add(mainColToIndexPosMap[newPos],newBuffer);
-    }
+		protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, int newPos, byte[] data, int offset, int length) {
+				if(updateIndex.isScalarType(newPos))
+						newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos],data,offset,length);
+				else if(updateIndex.isFloatType(newPos))
+						newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos],data,offset,length);
+				else if(updateIndex.isDoubleType(newPos))
+						newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos],data,offset,length);
+				else
+						newKeyAccumulator.add(mainColToIndexPosMap[newPos],data,offset,length);
+		}
 
-    protected ByteBuffer getDescendingBuffer(ByteBuffer entry) {
-        if(entry==null) return null;
-        entry.mark();
-        byte[] data = new byte[entry.remaining()];
-        entry.get(data);
-        entry.reset();
-        for(int i=0;i<data.length;i++){
-            data[i]^=0xff;
-        }
-        return ByteBuffer.wrap(data);
-    }
+		protected byte[] getDescendingArray(byte[] data, int offset, int length){
+				if(length<=0) return null;
+				byte[] copy = new byte[length];
+				System.arraycopy(data,offset,copy,0,length);
+				for(int i=0;i<copy.length;i++){
+						copy[i]^=0xff;
+				}
+				return copy;
+		}
+
 }

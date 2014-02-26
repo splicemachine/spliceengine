@@ -9,7 +9,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
  * to "trace" the internals of the SI execution.
  */
 public class Tracer {
-    private static transient Function<Object, Object> fRowRollForward = null;
+    private static transient Function<byte[],byte[]> fRowRollForward = null;
     private static transient Function<Long, Object> fTransactionRollForward = null;
     private static transient Function<Object[], Object> fStatus = null;
     public static transient Runnable fCompact = null;
@@ -19,7 +19,7 @@ public class Tracer {
 
     public static Integer rollForwardDelayOverride = null;
 
-    public static void registerRowRollForward(Function<Object, Object> f) {
+    public static void registerRowRollForward(Function<byte[],byte[]> f) {
         Tracer.fRowRollForward = f;
     }
 
@@ -47,7 +47,7 @@ public class Tracer {
         Tracer.fRegion = f;
     }
 
-    public static void traceRowRollForward(Object key) {
+    public static void traceRowRollForward(byte[] key) {
         if (fRowRollForward != null) {
             fRowRollForward.apply(key);
         }
