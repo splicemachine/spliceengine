@@ -10,6 +10,7 @@
     <version>0.5rc8-SNAPSHOT</version>
   </parent>
   <dependencies>
+
     <dependency>
       <groupId>com.carrotsearch</groupId>
       <artifactId>hppc</artifactId>

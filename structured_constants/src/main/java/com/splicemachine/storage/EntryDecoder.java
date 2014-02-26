@@ -3,10 +3,12 @@ package com.splicemachine.storage;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.NoSuchElementException;
-
+import com.splicemachine.storage.index.LazyBitIndex;
+import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoPool;
 
 /**
@@ -14,15 +16,14 @@ import com.splicemachine.utils.kryo.KryoPool;
  * Created on: 7/5/13
  */
 public class EntryDecoder {
-    private BitIndex bitIndex;
-
+    private LazyBitIndex bitIndex;
     private byte[] data;
-    private boolean compressedData = false;
     private int dataOffset;
     private MultiFieldDecoder decoder;
     private final KryoPool kryoPool;
     private int offset;
     private int length;
+    private LazyBitIndex lastBitIndex;
 
     public EntryDecoder(KryoPool kryoPool) {
         this.kryoPool = kryoPool;
@@ -45,6 +46,14 @@ public class EntryDecoder {
     private void rebuildBitIndex() {
         //find separator byte
         dataOffset = 0;
+        // Short Circuit the bit index if I look like the last one.        
+        if (lastBitIndex != null && data != null && lastBitIndex.getEncodedBitMap() != null && length > lastBitIndex.getEncodedBitMapLength()) {
+        	if (Bytes.equals(data, offset, length, lastBitIndex.getEncodedBitMap(), lastBitIndex.getEncodedBitMapOffset(), lastBitIndex.getEncodedBitMapLength())) {
+        		dataOffset = lastBitIndex.getEncodedBitMapLength()+1;
+        		bitIndex = lastBitIndex;
+        		return;
+        	}
+        }
         for(int i=offset;i<offset+length;i++){
             if(data[i]==0x00){
                 dataOffset = i-offset;
@@ -63,9 +72,8 @@ public class EntryDecoder {
             //sparse index
             bitIndex = BitIndexing.sparseBitMap(data, offset, dataOffset);
         }
-
+        lastBitIndex = bitIndex;
         dataOffset++;
-        compressedData = (headerByte & 0x20) != 0;
     }
 
     public boolean isSet(int position){
@@ -170,20 +178,33 @@ public class EntryDecoder {
         return ByteBuffer.wrap(decoder.array(),offset,length);
     }
 
-    public void accumulate(int position, ByteBuffer buffer,EntryAccumulator accumulator) {
-        if(bitIndex.isScalarType(position)){
-            accumulator.addScalar(position,buffer);
-        }else if(bitIndex.isFloatType(position)){
-            accumulator.addFloat(position,buffer);
-        }else if(bitIndex.isDoubleType(position))
-            accumulator.addDouble(position,buffer);
-        else
-            accumulator.add(position,buffer);
-    }
+		public void accumulate(int position, EntryAccumulator accumulator,byte[] buffer, int offset, int length) {
+				if(bitIndex.isScalarType(position)){
+						accumulator.addScalar(position,buffer,offset,length);
+				}else if(bitIndex.isFloatType(position)){
+						accumulator.addFloat(position,buffer,offset,length);
+				}else if(bitIndex.isDoubleType(position))
+						accumulator.addDouble(position,buffer,offset,length);
+				else
+						accumulator.add(position,buffer,offset,length);
+		}
+
 
     public void close(){
         if(decoder!=null)
             decoder.close();
     }
 
+		public long length() {
+				return length;
+		}
+
+		public void nextField(MultiFieldDecoder mutationDecoder, int indexPosition, ByteSlice rowSlice) {
+				int offset = mutationDecoder.offset();
+				seekForward(mutationDecoder,indexPosition);
+				int length = mutationDecoder.offset()-1-offset;
+				if(length<=0) return;
+
+				rowSlice.set(mutationDecoder.array(),offset,length);
+		}
 }

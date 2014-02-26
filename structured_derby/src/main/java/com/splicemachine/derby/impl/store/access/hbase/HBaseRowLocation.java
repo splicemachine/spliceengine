@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.services.io.ArrayInputStream;
@@ -21,7 +22,7 @@ import java.io.IOException;
 
 public class HBaseRowLocation extends DataType implements RowLocation {
 
-	private ByteArraySlice slice;
+	private ByteSlice slice;
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( HBaseRowLocation.class);
     private static final int RECORD_HANDLE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( org.apache.derby.impl.store.raw.data.RecordId.class);
 
@@ -30,10 +31,10 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	}
 
 	public HBaseRowLocation(byte[] rowKey) {
-		this.slice = new ByteArraySlice(rowKey);
+		this.slice = ByteSlice.wrap(rowKey);
 	}
 	
-	public HBaseRowLocation(ByteArraySlice slice) {
+	public HBaseRowLocation(ByteSlice slice) {
 		this.slice = slice;
 	}
 	
@@ -43,11 +44,11 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
     @Override
     public final void setValue(byte[] theValue) {
-    	this.slice = new ByteArraySlice(theValue);
+    	this.slice = ByteSlice.wrap(theValue);
 	}
     
     public final byte[]	getBytes() throws StandardException {
-		return slice != null?slice.getBytes():null;
+		return slice != null?slice.getByteCopy():null;
 	}
     @Override
 	public String getTypeName() {
@@ -68,7 +69,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 	@Override
 	public void setValue(Object theValue) throws StandardException {
-		this.slice = (ByteArraySlice) theValue;
+		this.slice = (ByteSlice) theValue;
 	}
 
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
@@ -80,7 +81,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	}
 	
 	public int getLength() {
-		return this.slice == null ? 0 : this.slice.getLength();//what is the length of the primary key?
+		return this.slice == null ? 0 : this.slice.length();//what is the length of the primary key?
 	}
 
 	/*

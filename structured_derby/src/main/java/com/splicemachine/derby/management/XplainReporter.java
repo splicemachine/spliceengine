@@ -7,9 +7,10 @@ import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.*;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.derby.iapi.error.PublicAPI;
@@ -41,12 +42,12 @@ public abstract class XplainReporter<T> {
 				ThreadFactory factory = new ThreadFactoryBuilder().setDaemon(true).build();
 				this.writers = Executors.newFixedThreadPool(numWorkers,factory);
 				this.taskQueue = new LinkedBlockingQueue<Pair<String, T>>();
-				TransactorControl transactorControl = HTransactorFactory.getTransactorControl();
+				TransactionManager transactionManager = HTransactorFactory.getTransactionManager();
 				final String txnId;
 				try {
-						TransactionId transactionId = transactorControl.beginTransaction();
+						TransactionId transactionId = transactionManager.beginTransaction();
 						txnId = transactionId.getTransactionIdString();
-						transactorControl.commit(transactionId);
+						transactionManager.commit(transactionId);
 				} catch (IOException e) {
 						throw new RuntimeException(e); //TODO -sf- do something about this
 				}

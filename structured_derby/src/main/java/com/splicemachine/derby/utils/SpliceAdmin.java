@@ -1,6 +1,5 @@
 package com.splicemachine.derby.utils;
 
-import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint.ActiveWriteHandlersIface;
@@ -14,27 +13,15 @@ import com.splicemachine.hbase.ThreadPoolStatus;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.HTransactorFactory;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.logging.Logging;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import javax.management.AttributeNotFoundException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanException;
+import java.util.*;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
@@ -470,7 +457,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_KILL_TRANSACTION(final long transactionId) throws SQLException {
         try {
-            HTransactorFactory.getTransactorControl().fail(new TransactionId(Long.toString(transactionId)));
+            HTransactorFactory.getTransactionManager().fail(new TransactionId(Long.toString(transactionId)));
         } catch (IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
@@ -478,7 +465,7 @@ public class SpliceAdmin {
 
     public static void SYSCS_KILL_STALE_TRANSACTIONS(final long maximumTransactionId) throws SQLException {
         try {
-            TransactorControl transactor = HTransactorFactory.getTransactorControl();
+            TransactionManager transactor = HTransactorFactory.getTransactionManager();
             List<TransactionId> active = transactor.getActiveTransactionIds(new TransactionId(Long.toString(maximumTransactionId)));
             for (TransactionId txnId : active) {
                 transactor.fail(txnId);
@@ -633,31 +620,70 @@ public class SpliceAdmin {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
                 List<TieredSchedulerManagement> taskSchedulers = JMXUtils.getTaskSchedulerManagement(connections);
-                StringBuilder sb = new StringBuilder("select * from (values ");
+
+								ExecRow template = new ValueRow(13);
+								template.setRowArray(new DataValueDescriptor[]{
+												new SQLVarchar(),new SQLInteger(),new SQLInteger(),new SQLInteger(),
+												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLLongint(),
+												new SQLLongint(),new SQLLongint(),new SQLLongint(),new SQLInteger(), new SQLInteger()
+								});
+								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(taskSchedulers.size());
+
                 int i = 0;
                 for (TieredSchedulerManagement taskSchedule : taskSchedulers) {
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    sb.append(String.format("('%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d)",
-                            connections.get(i).getFirst(),
-                            taskSchedule.getTotalWorkerCount(),
-                            taskSchedule.getPending(),
-                            taskSchedule.getExecuting(),
-                            taskSchedule.getTotalCancelledTasks(),
-                            taskSchedule.getTotalCompletedTasks(),
-                            taskSchedule.getTotalFailedTasks(),
-                            taskSchedule.getTotalInvalidatedTasks(),
-                            taskSchedule.getTotalSubmittedTasks(),
-                            taskSchedule.getTotalShruggedTasks(),
-                            taskSchedule.getTotalStolenTasks(),
-                            taskSchedule.getMostLoadedTier(),
-                            taskSchedule.getLeastLoadedTier()));
+										template.resetRowArray();
+										DataValueDescriptor[] dvds = template.getRowArray();
+										try {
+												dvds[0].setValue(connections.get(i).getFirst());
+												dvds[1].setValue(taskSchedule.getTotalWorkerCount());
+												dvds[2].setValue(taskSchedule.getPending());
+												dvds[3].setValue(taskSchedule.getExecuting());
+												dvds[4].setValue(taskSchedule.getTotalSubmittedTasks());
+												dvds[5].setValue(taskSchedule.getTotalCompletedTasks());
+												dvds[6].setValue(taskSchedule.getTotalFailedTasks());
+												dvds[7].setValue(taskSchedule.getTotalCancelledTasks());
+												dvds[8].setValue(taskSchedule.getTotalInvalidatedTasks());
+												dvds[9].setValue(taskSchedule.getTotalShruggedTasks());
+												dvds[10].setValue(taskSchedule.getTotalStolenTasks());
+												dvds[11].setValue(taskSchedule.getMostLoadedTier());
+												dvds[12].setValue(taskSchedule.getLeastLoadedTier());
+										} catch (StandardException e) {
+												throw PublicAPI.wrapStandardException(e);
+										}
+
+										rows.add(template.getClone());
                     i++;
                 }
-                sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
-                        + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted,totalShrugged,totalStolen,mostLoadedTier,leastLoadedTier)");
-                resultSet[0] = executeStatement(sb);
+
+								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[13];
+								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[1] = new GenericColumnDescriptor("totalWorkers",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[2] = new GenericColumnDescriptor("pending",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[3] = new GenericColumnDescriptor("running",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[4] = new GenericColumnDescriptor("totalSubmitted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[5] = new GenericColumnDescriptor("totalCompleted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[6] = new GenericColumnDescriptor("totalFailed",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[7] = new GenericColumnDescriptor("totalCancelled",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[8] = new GenericColumnDescriptor("totalInvalidated",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[9] = new GenericColumnDescriptor("totalShrugged",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[10] = new GenericColumnDescriptor("totalStolen",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[11] = new GenericColumnDescriptor("mostLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[12] = new GenericColumnDescriptor("leastLoadedTier",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+
+								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+								try {
+										resultsToWrap.openCore();
+								} catch (StandardException e) {
+										throw PublicAPI.wrapStandardException(e);
+								}
+								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+								resultSet[0] = ers;
+//                sb.append(") foo (hostname, totalWorkers, pending, running, totalCancelled, "
+//                        + "totalCompleted, totalFailed, totalInvalidated, totalSubmitted,totalShrugged,totalStolen,mostLoadedTier,leastLoadedTier)");
+//                resultSet[0] = executeStatement(sb);
             }
         });
     }
@@ -673,39 +699,58 @@ public class SpliceAdmin {
                 } catch (MalformedObjectNameException e) {
                     throw new SQLException(e);
                 }
-                StringBuilder sb = new StringBuilder("select * from (values ");
+								ExecRow template = new ValueRow(9);
+								template.setRowArray(new DataValueDescriptor[]{
+												new SQLVarchar(),new SQLInteger(),new SQLLongint(),new SQLLongint(),
+												new SQLLongint(),new SQLLongint(),new SQLReal(),new SQLInteger(),new SQLInteger()
+								});
                 int i = 0;
+								List<ExecRow> rows = Lists.newArrayListWithExpectedSize(connections.size());
                 for (Pair<String, JMXConnector> mxc : connections) {
                     MBeanServerConnection mbsc = mxc.getSecond().getMBeanServerConnection();
-                    if (i != 0) {
-                        sb.append(", ");
-                    }
-                    try {
-                        sb.append(String.format("('%s','%d','%d','%d','%d','%d','%f','%d','%d')",
-                                connections.get(i).getFirst(),
-                                mbsc.getAttribute(regionServerStats, "regions"),
-                                mbsc.getAttribute(regionServerStats, "fsReadLatencyAvgTime"),
-                                mbsc.getAttribute(regionServerStats, "fsWriteLatencyAvgTime"),
-                                mbsc.getAttribute(regionServerStats, "writeRequestsCount"),
-                                mbsc.getAttribute(regionServerStats, "readRequestsCount"),
-                                mbsc.getAttribute(regionServerStats, "requests"),
-                                mbsc.getAttribute(regionServerStats, "compactionQueueSize"),
-                                mbsc.getAttribute(regionServerStats, "flushQueueSize")));
-                    } catch (MBeanException e) {
-                        throw new SQLException(e);
-                    } catch (AttributeNotFoundException e) {
-                        throw new SQLException(e);
-                    } catch (InstanceNotFoundException e) {
-                        throw new SQLException(e);
-                    } catch (ReflectionException e) {
-                        throw new SQLException(e);
-                    }
+
+										template.resetRowArray();
+										DataValueDescriptor[] dvds = template.getRowArray();
+										try{
+												dvds[0].setValue(connections.get(i).getFirst());
+												dvds[1].setValue(((Integer)mbsc.getAttribute(regionServerStats,"regions")).intValue());
+												dvds[2].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsReadLatencyAvgTime")).longValue());
+												dvds[3].setValue(((Long)mbsc.getAttribute(regionServerStats,"fsWriteLatencyAvgTime")).longValue());
+												dvds[4].setValue(((Long)mbsc.getAttribute(regionServerStats,"writeRequestsCount")).longValue());
+												dvds[5].setValue(((Long)mbsc.getAttribute(regionServerStats,"readRequestsCount")).longValue());
+												dvds[6].setValue(((Float)mbsc.getAttribute(regionServerStats,"requests")).floatValue());
+												dvds[7].setValue(((Integer)mbsc.getAttribute(regionServerStats,"compactionQueueSize")).intValue());
+												dvds[8].setValue(((Integer)mbsc.getAttribute(regionServerStats,"flushQueueSize")).intValue());
+										}catch(StandardException se){
+												throw PublicAPI.wrapStandardException(se);
+										} catch (Exception e) {
+												throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+										}
+										rows.add(template.getClone());
                     i++;
                 }
-                sb.append(") foo (hostname, regions, fsReadLatencyAvgTime, fsWriteLatencyAvgTime, ");
-                sb.append("writeRequestsCount, readRequestsCount, ");
-                sb.append("requests, compactionQueueSize, flushQueueSize)");
-                resultSet[0] = executeStatement(sb);
+								ResultColumnDescriptor []columnInfo = new ResultColumnDescriptor[9];
+								columnInfo[0] = new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
+								columnInfo[1] = new GenericColumnDescriptor("regions",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[2] = new GenericColumnDescriptor("fsReadLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[3] = new GenericColumnDescriptor("fsWriteLatencyAvgTime",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[4] = new GenericColumnDescriptor("writeRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[5] = new GenericColumnDescriptor("readRequestsCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+								columnInfo[6] = new GenericColumnDescriptor("requests",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL));
+								columnInfo[7] = new GenericColumnDescriptor("compactionQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+								columnInfo[8] = new GenericColumnDescriptor("flushQueueSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER));
+
+								EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
+								Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
+								IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, columnInfo,lastActivation);
+								try {
+										resultsToWrap.openCore();
+								} catch (StandardException e) {
+										throw PublicAPI.wrapStandardException(e);
+								}
+								EmbedResultSet ers = new EmbedResultSet40(defaultConn, resultsToWrap,false,null,true);
+
+								resultSet[0] = ers;
             }
         });
     }
@@ -861,13 +906,12 @@ public class SpliceAdmin {
         // todo
     }
 
-    public static long getConglomid(Connection conn, String schemaName, String tableName) throws SQLException {
-        long[] congomIDs = getConglomids(conn, schemaName, tableName);
-        if (congomIDs.length > 0) return congomIDs[0];
-        return 0l;
-    }
-
-    public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+		/**
+		 * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
+		 * as well as the table itself. While the first conglomerate SHOULD be the main table, there
+		 * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
+		 */
+		public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
@@ -909,6 +953,12 @@ public class SpliceAdmin {
         for (int i =0; i<conglomIDs.size(); i++) {
             congloms[i] = conglomIDs.get(i);
         }
+				/*
+				 * An index conglomerate id can be returned by the query before the main table one is,
+				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
+				 * we should return the main table before any of its indices.
+				 */
+				Arrays.sort(congloms);
         return congloms;
     }
 

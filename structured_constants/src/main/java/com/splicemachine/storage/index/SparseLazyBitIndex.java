@@ -69,4 +69,10 @@ class SparseLazyBitIndex extends LazyBitIndex{
             }
         }
     }
+
+
+	@Override
+	public boolean isCompressed() {
+		return false;
+	}
 }

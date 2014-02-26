@@ -1,7 +1,8 @@
 package com.splicemachine.storage;
 
-import java.nio.ByteBuffer;
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteSlice;
 
 
 /**
@@ -21,29 +22,11 @@ class AlwaysAcceptEntryAccumulator extends GenericEntryAccumulator {
         this.completed = false;
     }
 
-    @Override
-    public void add(int position, ByteBuffer buffer) {
-        growFields(position); //make sure we're big enough
-        super.add(position, buffer);
-    }
-
-    @Override
-    public void addScalar(int position, ByteBuffer buffer) {
-        growFields(position); //make sure we're big enough
-        super.addScalar(position, buffer);
-    }
-
-    @Override
-    public void addFloat(int position, ByteBuffer buffer) {
-        growFields(position); //make sure we're big enough
-        super.addFloat(position, buffer);
-    }
-
-    @Override
-    public void addDouble(int position, ByteBuffer buffer) {
-        growFields(position); //make sure we're big enough
-        super.addDouble(position, buffer);
-    }
+		@Override
+		public void add(int position, byte[] data, int offset, int length) {
+				growFields(position);
+				super.add(position, data, offset, length);
+		}
 
     public void complete(){
         this.completed = true;
@@ -54,7 +37,7 @@ class AlwaysAcceptEntryAccumulator extends GenericEntryAccumulator {
          * Make sure that the fields array is large enough to hold elements up to position.
          */
         if(fields==null){
-            fields = new ByteBuffer[position+1];
+            fields = new ByteSlice[position+1];
         }else if(fields.length<=position && !completed){ //if completed, we know how many to return
             //grow the fields list to be big enough to hold the position
 
@@ -70,43 +53,49 @@ class AlwaysAcceptEntryAccumulator extends GenericEntryAccumulator {
              * to grow again, so we'll pay a penalty on the first row only.
              */
             int newSize = position+1;
-            ByteBuffer[] oldFields = fields;
-            fields = new ByteBuffer[newSize];
+            ByteSlice[] oldFields = fields;
+            fields = new ByteSlice[newSize];
             System.arraycopy(oldFields,0,fields,0,oldFields.length);
         }
     }
 
     @Override
     public BitSet getRemainingFields() {
-        BitSet bitSet = new BitSet();
-        if(fields!=null){
-            for(int i=0;i<fields.length;i++){
-                if(fields[i]==null)
-                    bitSet.set(i);
-            }
-        }
         /*
          * We always want an entry, because we want to ensure that we run until the entire row is
          * populated, which means running until the end of all versions.
          */
-        if(!completed){
-            if(fields!=null)
-                bitSet.set(fields.length,1024);
-            else
-                bitSet.set(0,1024);
-        }
+        BitSet bitSet = new BitSet();
+				bitSet.set(0,1024);
+				for(int i=occupiedFields.nextSetBit(0);i>=0;i=occupiedFields.nextSetBit(i+1))
+						bitSet.clear(i);
+
+//        if(fields!=null){
+//            for(int i=0;i<fields.length;i++){
+//                if(fields[i]==null||fields[i].length()<=0)
+//                    bitSet.set(i);
+//            }
+//        }
+//        if(!completed){
+//            if(fields!=null)
+//                bitSet.set(fields.length,1024);
+//            else
+//                bitSet.set(0,1024);
+//        }
         return bitSet;
     }
 
+		@Override
+		public boolean isFinished() {
+				return completed;
+		}
 
 
-    @Override
+		@Override
     public boolean hasField(int myFields) {
         return occupiedFields.get(myFields);
     }
 
-    @Override
-    public ByteBuffer getField(int myFields) {
-        return fields[myFields];
-    }
+		@Override public boolean isInteresting(BitIndex potentialIndex) { return true; }
+
 }

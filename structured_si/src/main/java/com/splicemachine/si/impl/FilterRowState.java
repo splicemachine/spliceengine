@@ -4,18 +4,20 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 
 /**
  * Helper class for FilterState. Captures the state associated with the current row being processed by the filter.
  */
-public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> {
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+public class FilterRowState<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, Lock, OperationStatus> {
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
 
     /**
      * The key of the row currently being processed.
      */
-    private DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> currentRowKey = null;
+    private DecodedKeyValue<Result, Put, Delete, Get, Scan> currentRowKey = null;
 
     /**
      * Used to emulate the INCLUDE_AND_NEXT_COLUMN ReturnCode that is in later HBase versions .
@@ -33,7 +35,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      */
     LongObjectOpenHashMap<Transaction> transactionCache = new LongObjectOpenHashMap<Transaction>();
 
-    ObjectArrayList<KeyValue> commitTimestamps = new ObjectArrayList<KeyValue>();
+    ObjectArrayList<KeyValue> commitTimestamps = ObjectArrayList.newInstance();
 
     boolean siColumnIncluded = false;
     boolean siTombstoneIncluded = false;
@@ -49,7 +51,7 @@ public class FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, Oper
      * Called for every key-value encountered by the filter. It is expected that key-values are read in row order.
      * Detects when the filter has moved to a new row and updates the state appropriately.
      */
-    public void updateCurrentRow(DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue) {
+    public void updateCurrentRow(DecodedKeyValue<Result, Put, Delete, Get, Scan> keyValue) {
         if (currentRowKey == null) {
             currentRowKey = keyValue;
             lastValidQualifier = null;

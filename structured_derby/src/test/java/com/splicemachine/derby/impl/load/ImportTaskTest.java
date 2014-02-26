@@ -3,11 +3,9 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.KeyMarshall;
-import com.splicemachine.derby.utils.marshall.SaltedKeyMarshall;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.hbase.writer.Writer;
 import com.splicemachine.utils.Snowflake;
@@ -24,10 +22,7 @@ import javax.annotation.Nullable;
 import java.sql.Date;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -473,6 +468,22 @@ public class ImportTaskTest {
                             Function<KVPair,ExecRow> importReverserParser) throws Exception {
         ImportReader reader = mock(ImportReader.class);
         when(reader.nextRow()).thenAnswer(new ListAnswer(lines));
+				final String[][] retLines = new String[lines.size()/3+1][];
+				final LinkedList<String[]> feedLines = Lists.newLinkedList(lines);
+				when(reader.nextRowBatch()).thenAnswer(new Answer<String[][]>() {
+						@Override
+						public String[][] answer(InvocationOnMock invocation) throws Throwable {
+								for(int i=0;i<retLines.length;i++){
+										if(feedLines.size()>0)
+												retLines[i] = feedLines.remove(0);
+										else{
+												Arrays.fill(retLines, i, retLines.length, null);
+												return retLines;
+										}
+								}
+								return retLines;
+						}
+				});
 
         ColumnContext colCtx = new ColumnContext.Builder()
                 .nullable(true)
@@ -500,23 +511,13 @@ public class ImportTaskTest {
         when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class))).thenReturn(testingBuffer);
 				when(fakeBufferFactory.writeBuffer(any(byte[].class),any(String.class),any(Writer.WriteConfiguration.class))).thenReturn(testingBuffer);
         final Snowflake snowflake = new Snowflake((short)1);
-				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory){
+				KryoPool kryoPool = KryoPool.defaultPool();
+				Importer importer = new SequentialImporter(ctx,template,"TEXT_TXN",fakeBufferFactory, kryoPool){
 						@Override
 						protected Snowflake.Generator getRandomGenerator() {
 								return snowflake.newGenerator(lines.size());
 						}
 				};
-//        Importer importer = new ParallelImporter(ctx,
-//                template,
-//                "TEST_TXN",
-//                1,
-//                100,
-//                fakeBufferFactory){
-//						@Override
-//						protected Snowflake.Generator getRandomGenerator() {
-//								return snowflake.newGenerator(lines.size());
-//						}
-//        };
 
         ImportTask importTask = new ImportTask("TEST_JOB",ctx,reader,importer,1,"TEST_TXN");
         importTask.doExecute();
@@ -585,6 +586,7 @@ public class ImportTaskTest {
             return null;
         }
     }
+
 
 
 }

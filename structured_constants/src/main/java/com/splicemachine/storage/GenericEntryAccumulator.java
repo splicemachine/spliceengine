@@ -1,10 +1,9 @@
 package com.splicemachine.storage;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.utils.ByteSlice;
 
 /**
  * @author Scott Fines
@@ -14,22 +13,14 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
     protected BitSet occupiedFields;
 
-    protected ByteBuffer[] fields;
+    protected ByteSlice[] fields;
     private final boolean returnIndex;
 
     private BitSet scalarFields;
     private BitSet floatFields;
     private BitSet doubleFields;
     private EntryPredicateFilter predicateFilter;
-
-
-    protected GenericEntryAccumulator(boolean returnIndex) {
-        this(null,returnIndex);
-    }
-
-    protected GenericEntryAccumulator(int size,boolean returnIndex) {
-        this(null,size,returnIndex);
-    }
+		private long finishCount;
 
     protected GenericEntryAccumulator(EntryPredicateFilter filter,boolean returnIndex) {
         this.returnIndex = returnIndex;
@@ -53,61 +44,63 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
             doubleFields = new BitSet(size);
         }
         occupiedFields = new BitSet(size);
-        fields = new ByteBuffer[size];
+        fields = new ByteSlice[size];
     }
 
-    @Override
-    public void add(int position, ByteBuffer buffer) {
-        if(occupiedFields.get(position)) return; //already populated that field
+		@Override
+		public void add(int position, byte[] data, int offset, int length) {
+				if(occupiedFields.get(position)) return; //already populated that field
 
-        fields[position] = buffer;
-        if(buffer!=null)
-            buffer.mark();
-        occupiedFields.set(position);
-    }
+				ByteSlice slice = fields[position];
+				if(slice==null){
+						slice = ByteSlice.wrap(data,offset,length);
+						fields[position] = slice;
+				}else
+					slice.set(data,offset,length);
+				occupiedFields.set(position);
+		}
 
-    @Override
-    public void addScalar(int position, ByteBuffer buffer) {
-        add(position,buffer);
-        if(returnIndex)
-            scalarFields.set(position);
-    }
+		@Override
+		public void addScalar(int position, byte[] data, int offset, int length) {
+			add(position,data,offset,length);
+				if(returnIndex)
+						scalarFields.set(position);
+		}
 
-    @Override
-    public void addFloat(int position, ByteBuffer buffer) {
-        add(position,buffer);
-        if(returnIndex)
-            floatFields.set(position);
-    }
+		@Override
+		public void addFloat(int position, byte[] data, int offset, int length) {
+				add(position,data,offset,length);
+				if(returnIndex)
+						floatFields.set(position);
+		}
 
-    @Override
-    public void addDouble(int position, ByteBuffer buffer) {
-        add(position,buffer);
-        if(returnIndex)
-            doubleFields.set(position);
-    }
+		@Override
+		public void addDouble(int position, byte[] data, int offset, int length) {
+				add(position, data, offset, length);
+				if(returnIndex)
+						doubleFields.set(position);
+		}
 
-
-    @Override
+		@Override
     public byte[] finish() {
+				finishCount++;
         if(predicateFilter!=null){
             predicateFilter.reset();
             BitSet checkColumns = predicateFilter.getCheckedColumns();
             if(fields!=null){
                 for(int i=checkColumns.nextSetBit(0);i>=0;i=checkColumns.nextSetBit(i+1)){
-
-                    if(i>=fields.length||fields[i]==null){
+										boolean isNull = i>=fields.length || fields[i]==null || fields[i].length()<=0;
+                    if(isNull){
                         if(!predicateFilter.checkPredicates(null,i)) return null;
                     }else{
-                        ByteBuffer buffer = fields[i];
-                        buffer.reset();
+                        ByteSlice buffer = fields[i];
                         if(!predicateFilter.checkPredicates(buffer,i)) return null;
                     }
                 }
-            }else{
-                for(int i=0;i<checkColumns.length();i++){
-                        if(!predicateFilter.checkPredicates(null,i)) return null;
-                }
+						}else{
+								for(int i=0;i<checkColumns.length();i++){
+										if(!predicateFilter.checkPredicates(null,i)) return null;
+								}
             }
 
             predicateFilter.rowReturned();
@@ -115,8 +108,7 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
 
         byte[] dataBytes = getDataBytes();
         if(returnIndex){
-            BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields,scalarFields,floatFields,doubleFields);
-            byte[] indexBytes = index.encode();
+						byte[] indexBytes = getIndex();
 
             byte[] finalBytes = new byte[indexBytes.length+dataBytes.length+1];
             System.arraycopy(indexBytes,0,finalBytes,0,indexBytes.length);
@@ -126,11 +118,20 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return dataBytes;
     }
 
-    @Override
+		protected byte[] getIndex() {
+				BitIndex index = BitIndexing.uncompressedBitMap(occupiedFields, scalarFields, floatFields, doubleFields);
+				return index.encode();
+		}
+
+		@Override
     public void reset() {
         occupiedFields.clear();
-        if(fields!=null)
-            Arrays.fill(fields,null);
+        if(fields!=null){
+						for (ByteSlice field : fields) {
+								if (field != null)
+										field.reset();
+						}
+				}
 
         if(predicateFilter!=null)
             predicateFilter.reset();
@@ -141,22 +142,33 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return occupiedFields.get(myFields);
     }
 
-    @Override
-    public ByteBuffer getField(int myFields) {
-        return fields[myFields];
-    }
+		@Override
+		public ByteSlice getFieldSlice(int myField) {
+				ByteSlice field = fields[myField];
+				if(field.length()<=0) return null;
+				return field;
+		}
 
-    protected byte[] getDataBytes() {
+		@Override
+		public ByteSlice getField(int myField, boolean create) {
+				ByteSlice field = fields[myField];
+				if(field==null && create){
+						field = ByteSlice.empty();
+						fields[myField] = field;
+				}
+				return field;
+		}
+
+		protected byte[] getDataBytes() {
         int size=0;
         boolean isFirst=true;
         for(int n = occupiedFields.nextSetBit(0);n>=0;n=occupiedFields.nextSetBit(n+1)){
             if(isFirst)isFirst=false;
             else
                 size++;
-            ByteBuffer buffer = fields[n];
+            ByteSlice buffer = fields[n];
             if(buffer!=null){
-                buffer.reset();
-                size+=buffer.remaining();
+                size+=buffer.length();
             }
         }
 
@@ -168,10 +180,10 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
             else
                 offset++;
 
-            ByteBuffer buffer = fields[n];
+            ByteSlice buffer = fields[n];
             if(buffer!=null){
-                int newOffset = offset+buffer.remaining();
-                buffer.get(bytes,offset,buffer.remaining());
+                int newOffset = offset+buffer.length();
+                buffer.get(bytes,offset);
                 offset=newOffset;
             }
         }
@@ -183,8 +195,8 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         for(int myFields=occupiedFields.nextSetBit(0);myFields>=0;myFields=occupiedFields.nextSetBit(myFields+1)){
             if(!oldKeyAccumulator.hasField(myFields)) return false;
 
-            ByteBuffer myField = fields[myFields];
-            ByteBuffer theirField = oldKeyAccumulator.getField(myFields);
+            ByteSlice myField = getFieldSlice(myFields);
+            ByteSlice theirField = oldKeyAccumulator.getFieldSlice(myFields);
             if(myField==null){
                 if(theirField!=null) return false;
             }else if(!myField.equals(theirField)) return false;
@@ -192,4 +204,31 @@ abstract class GenericEntryAccumulator implements EntryAccumulator{
         return true;
     }
 
+		@Override public long getFinishCount() { return finishCount; }
+
+		@Override
+		public void markOccupiedScalar(int position) {
+				markOccupiedUntyped(position);
+				if(returnIndex)
+						scalarFields.set(position);
+		}
+
+		@Override
+		public void markOccupiedFloat(int position) {
+				markOccupiedUntyped(position);
+				if(returnIndex)
+						floatFields.set(position);
+		}
+
+		@Override
+		public void markOccupiedDouble(int position) {
+				markOccupiedUntyped(position);
+				if(returnIndex)
+						doubleFields.set(position);
+		}
+
+		@Override
+		public void markOccupiedUntyped(int position) {
+				occupiedFields.set(position);
+		}
 }

@@ -18,6 +18,8 @@ public interface ImportReader extends Closeable,Externalizable {
 
     public String[] nextRow() throws IOException;
 
+		public String[][] nextRowBatch() throws IOException;
+
 		public IOStats getStats();
 
 		boolean shouldParallelize(FileSystem fs, ImportContext ctx) throws IOException;

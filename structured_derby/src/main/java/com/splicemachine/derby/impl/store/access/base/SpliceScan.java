@@ -459,7 +459,7 @@ public class SpliceScan implements ScanManager, ParallelScan, LazyScan {
 
             table.put(put);
 
-//			table.put(Puts.buildInsert(currentRowLocation.getBytes(), row, validColumns, transID));
+//			table.put(Puts.buildInsert(currentRowLocation.getByteCopy(), row, validColumns, transID));
 			return true;
 		} catch (Exception e) {
 			throw StandardException.newException("Error during replace " + e);

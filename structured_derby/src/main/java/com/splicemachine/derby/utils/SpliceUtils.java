@@ -37,7 +37,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 
-import javax.management.relation.RoleUnresolved;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -59,13 +58,15 @@ public class SpliceUtils extends SpliceUtilities {
 				}
 		}
 
-		/**
+    /**
      * Populates an array of DataValueDescriptors with a default value based on their type.
      *
      * This is used mainly to prevent NullPointerExceptions from occurring in administrative
      * operations such as getExecRowDefinition().
      *
      * @param dvds the descriptors to populate
+     * @param defaultValue the value to default each descriptor to
+     *
      * @throws StandardException
      */
     public static void populateDefaultValues(DataValueDescriptor[] dvds,int defaultValue) throws StandardException{
@@ -210,8 +211,8 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static Put createDeletePut(String transactionId, byte[] rowKey) {
-        final ClientTransactor<Put, Get, Scan, Mutation, byte[]> clientTransactor = HTransactorFactory.getClientTransactor();
-        return clientTransactor.createDeletePut(clientTransactor.transactionIdFromString(transactionId), rowKey);
+        final ClientTransactor<Put, Get, Scan, Mutation> clientTransactor = HTransactorFactory.getClientTransactor();
+        return clientTransactor.createDeletePut(HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId), rowKey);
     }
 
     public static boolean isDelete(Mutation mutation) {
@@ -275,7 +276,7 @@ public class SpliceUtils extends SpliceUtilities {
 		return transID;
 	}
 
-    protected static ClientTransactor<Put, Get, Scan, Mutation, byte[]> getTransactor() {
+    protected static ClientTransactor<Put, Get, Scan, Mutation> getTransactor() {
         return HTransactorFactory.getClientTransactor();
     }
 

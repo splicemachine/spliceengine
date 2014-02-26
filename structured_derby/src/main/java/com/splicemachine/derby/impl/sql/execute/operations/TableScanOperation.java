@@ -9,7 +9,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
@@ -53,7 +53,7 @@ public class TableScanOperation extends ScanOperation {
 		private Properties scanProperties;
 		public String startPositionString;
 		public String stopPositionString;
-		public ByteArraySlice slice;
+		public ByteSlice slice;
         private EntryPredicateFilter predicateFilter;
         private boolean cachedPredicateFilter = false;
 		static {
@@ -140,7 +140,7 @@ public class TableScanOperation extends ScanOperation {
 		public void init(SpliceOperationContext context) throws StandardException{
 				super.init(context);
 				this.baseColumnMap = operationInformation.getBaseColumnMap();
-				this.slice = new ByteArraySlice();
+				this.slice = ByteSlice.empty();
 				this.startExecutionTime = System.currentTimeMillis();
 		}
 
@@ -253,12 +253,13 @@ public class TableScanOperation extends ScanOperation {
 		protected void updateStats(OperationRuntimeStats stats) {
 				if(regionScanner!=null){
 						TimeView readTimer = regionScanner.getReadTime();
-						long bytesRead = regionScanner.getBytesRead();
-						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
-						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,bytesRead);
+						long bytesRead = regionScanner.getBytesOutput();
+						stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsVisited());
+						stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesVisited());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,readTimer.getCpuTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME,readTimer.getUserTime());
 						stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,readTimer.getWallClockTime());
+                        stats.addMetric(OperationMetric.FILTERED_ROWS,regionScanner.getRowsFiltered());
 				}
 		}
 
@@ -316,7 +317,7 @@ public class TableScanOperation extends ScanOperation {
                              */
                             currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
                         } else {
-                            slice.updateSlice(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
+                            slice.set(keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
                             currentRowLocation.setValue(slice);
                         }
                         break;

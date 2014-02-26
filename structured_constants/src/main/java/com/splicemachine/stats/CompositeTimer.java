@@ -14,7 +14,7 @@ class CompositeTimer implements Timer,TimeView{
 		private final TimeMeasure userTime;
 		private final TimeMeasure cpuTime;
 
-		private long numEvents;
+		protected long numEvents;
 
 		public CompositeTimer(TimeMeasure wallClockTime, TimeMeasure userTime, TimeMeasure cpuTime) {
 				this.wallClockTime = wallClockTime;
@@ -24,21 +24,23 @@ class CompositeTimer implements Timer,TimeView{
 
 		@Override
 		public void startTiming() {
-				wallClockTime.startTime();
 				cpuTime.startTime();
 				userTime.startTime();
+				wallClockTime.startTime();
 		}
+
+		@Override public void startTiming(boolean force) { startTiming();		 }
 
 		@Override
 		public void stopTiming() {
-			tick(0);
+				wallClockTime.stopTime();
+				userTime.stopTime();
+				cpuTime.stopTime();
 		}
 
 		@Override
 		public void tick(long numEvents) {
-				userTime.stopTime();
-				cpuTime.stopTime();
-				wallClockTime.stopTime();
+				stopTiming();
 				this.numEvents+=numEvents;
 		}
 

@@ -1,20 +1,20 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.data.api.STableReader;
-import com.splicemachine.si.data.hbase.IHTable;
+import com.splicemachine.utils.CloseableIterator;
+import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * A class that delegates all the interface methods. This is intended to be sub-classed to provide a "decorator" for the
  * interface. By having this class the decorator can only override the methods that need to be customized.
  */
-public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, Data> implements STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data>{
-    STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data> delegate;
+public class STableReaderDelegate<Table, Get, Scan> implements STableReader<Table, Get, Scan>{
+    STableReader<Table, Get, Scan> delegate;
 
-    public STableReaderDelegate(STableReader<Table, Result, Get, Scan, KeyValue, Scanner, Data> delegate) {
+    public STableReaderDelegate(STableReader<Table, Get, Scan> delegate) {
         this.delegate = delegate;
     }
 
@@ -39,7 +39,7 @@ public class STableReaderDelegate<Table, Result, Get, Scan, KeyValue, Scanner, D
     }
 
     @Override
-    public Iterator<Result> scan(Table table, Scan scan) throws IOException {
+    public CloseableIterator<Result> scan(Table table, Scan scan) throws IOException {
         return delegate.scan(table, scan);
     }
 

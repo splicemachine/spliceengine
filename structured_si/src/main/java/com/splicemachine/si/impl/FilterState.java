@@ -1,25 +1,25 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.api.TransactionStatus;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Map;
 
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.INCLUDE;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.NEXT_COL;
-import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.SKIP;
+import static org.apache.hadoop.hbase.filter.Filter.ReturnCode.*;
 
 /**
  * Contains the logic for performing an HBase-style filter using "snapshot isolation" logic. This means it filters out
  * data that should not be seen by the transaction that is performing the read operation (either a "get" or a "scan").
  */
-public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Hashable extends Comparable, Mutation, IHTable, Scanner>
-        implements IFilterState<KeyValue> {
+public class FilterState<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
+        Scan, Lock, OperationStatus, Mutation, IHTable>
+        implements IFilterState {
     static final Logger LOG = Logger.getLogger(FilterState.class);
 
     /**
@@ -29,16 +29,16 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     final LongPrimitiveCacheMap<VisibleResult> visibleCache;
 
     private final ImmutableTransaction myTransaction;
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
-    private final DataStore<Data, Hashable, Result, KeyValue, OperationWithAttributes, Mutation, Put,
-            Delete, Get, Scan, IHTable, Lock, OperationStatus, Scanner> dataStore;
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
+    private final DataStore<Mutation, Put,
+            Delete, Get, Scan, IHTable> dataStore;
     private final TransactionStore transactionStore;
     private final RollForwardQueue rollForwardQueue;
     private final boolean includeSIColumn;
     private boolean ignoreDoneWithColumn;
 
-    private final FilterRowState<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> rowState;
-    final DecodedKeyValue<Data, Result, KeyValue, Put, Delete, Get, Scan, OperationWithAttributes, Lock, OperationStatus> keyValue;
+    private final FilterRowState<Result, Put, Delete, Get, Scan, Lock, OperationStatus> rowState;
+    final DecodedKeyValue<Result, Put, Delete, Get, Scan> keyValue;
     KeyValueType type;
 
     private final TransactionSource transactionSource;
@@ -75,7 +75,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * The public entry point. This returns an HBase filter code and is expected to serve as the heart of an HBase filter
      * implementation.
      * The order of the column families is important. It is expected that the SI family will be processed first.
-     */
+		 * @param dataKeyValue
+		 */
     @Override
     public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
         setKeyValue(dataKeyValue);
@@ -153,10 +154,10 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
         } else {
             final KeyValue oldKeyValue = keyValue.keyValue();
             boolean include = false;
-            KeyValue[] commits = rowState.getCommitTimestamps().buffer;
+            Object[] commits = rowState.getCommitTimestamps().buffer;
             int commitsSize = rowState.getCommitTimestamps().size();
             for (int i = 0 ; i < commitsSize; i++) {
-                keyValue.setKeyValue(commits[i]);
+                keyValue.setKeyValue((KeyValue)commits[i]);
                 if (processUserData().equals(INCLUDE)) {
                     include = true;
                     break;
@@ -314,7 +315,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      * The second half of manually implementing our own "INCLUDE & NEXT_COL" return code.
      */
     private boolean doneWithColumn() {
-        return dataLib.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
+        return KeyValueUtils.matchingQualifierKeyValue(keyValue.keyValue(), rowState.lastValidQualifier);
     }
 
     /**
@@ -351,9 +352,8 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
      */
     private Transaction loadTransaction() throws IOException {
         final Transaction transaction = rowState.transactionCache.get(keyValue.timestamp());
-        if (transaction == null) {
-            throw new RuntimeException("All transactions should already be loaded from the si family for the data row, transaction Id: " + keyValue.timestamp());
-        }
+				assert transaction!=null : "All transaction should already be loaded from the si family for the data row, txn id: " + keyValue.timestamp();
+
         return transaction;
     }
 
@@ -370,7 +370,7 @@ public class FilterState<Data, Result, KeyValue, OperationWithAttributes, Put ex
     }
 
     @Override
-    public KeyValue produceAccumulatedKeyValue() {
+    public org.apache.hadoop.hbase.KeyValue produceAccumulatedKeyValue() {
         return null;
     }
 

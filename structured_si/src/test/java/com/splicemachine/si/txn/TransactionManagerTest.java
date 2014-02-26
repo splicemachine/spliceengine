@@ -2,7 +2,8 @@ package com.splicemachine.si.txn;
 
 import com.splicemachine.si.LStoreSetup;
 import com.splicemachine.si.StoreSetup;
-import com.splicemachine.si.TransactorSetup;
+import com.splicemachine.si.TestTransactionSetup;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.Transaction;
 import com.splicemachine.si.impl.TransactionId;
@@ -14,18 +15,20 @@ import org.junit.Test;
 
 public class TransactionManagerTest {
     protected static Transactor transactor;
+		protected static TransactionManager control;
 
     static StoreSetup storeSetup;
-    static TransactorSetup transactorSetup;
+    static TestTransactionSetup transactorSetup;
 
     static void baseSetUp() {
         transactor = transactorSetup.transactor;
+				control = transactorSetup.control;
     }
 
     @BeforeClass
-    public static void setUp() {
+    public static void setUp() throws Exception{
         storeSetup = new LStoreSetup();
-        transactorSetup = new TransactorSetup(storeSetup, true);
+        transactorSetup = new TestTransactionSetup(storeSetup, true);
         baseSetUp();
     }
 
@@ -35,7 +38,7 @@ public class TransactionManagerTest {
 
     @Test
     public void beginTransactionTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction();
+        TransactionId transactionId = control.beginTransaction();
         Assert.assertNotNull(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
@@ -44,8 +47,8 @@ public class TransactionManagerTest {
 
     @Test
     public void doCommitTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction();
-        transactor.commit(transactionId);
+        TransactionId transactionId = control.beginTransaction();
+        control.commit(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(transaction.commitTimestamp != null);
@@ -54,8 +57,8 @@ public class TransactionManagerTest {
 
     @Test
     public void rollbackTest() throws Exception {
-        TransactionId transactionId = transactor.beginTransaction();
-        transactor.rollback(transactionId);
+        TransactionId transactionId = control.beginTransaction();
+        control.rollback(transactionId);
         Transaction transaction = transactorSetup.transactionStore.getTransaction(transactionId);
         Assert.assertTrue(transaction.getBeginTimestamp() >= 0);
         Assert.assertTrue(transaction.status.equals(TransactionStatus.ROLLED_BACK));

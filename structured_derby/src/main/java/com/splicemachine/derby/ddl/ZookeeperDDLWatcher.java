@@ -216,7 +216,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             String transactionId = currentDDLChanges.get(changeId);
             LOG.warn("We are killing transaction " + transactionId + " since it exceeds the maximum wait period for"
                     + " the DDL change " + changeId + " publication");
-            HTransactorFactory.getTransactor().fail(new TransactionId(transactionId));
+            HTransactorFactory.getTransactionManager().fail(new TransactionId(transactionId));
         } catch (Exception e) {
             LOG.warn("Couldn't kill transaction, already killed?", e);
         }

@@ -13,6 +13,10 @@ import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,4 +111,22 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		}
 		return qualifiers;
 	}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				out.writeInt(probeValues.length);
+				for(DataValueDescriptor dvd:probeValues){
+						out.writeObject(dvd);
+				}
+		}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				super.readExternal(in);
+				probeValues = new DataValueDescriptor[in.readInt()];
+				for(int i=0;i<probeValues.length;i++){
+						probeValues[i] = (DataValueDescriptor)in.readObject();
+				}
+		}
 }

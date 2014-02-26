@@ -1,22 +1,26 @@
 package com.splicemachine.storage;
 
-import java.nio.ByteBuffer;
 import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.ByteSlice;
 
 /**
  * @author Scott Fines
  *         Created on: 7/9/13
  */
 public interface EntryAccumulator {
-    void add(int position, ByteBuffer buffer);
 
-    void addScalar(int position, ByteBuffer buffer);
+		void add(int position, byte[] data, int offset,int length);
 
-    void addFloat(int position, ByteBuffer buffer);
+		void addScalar(int position, byte[] data, int offset, int length);
 
-    void addDouble(int position, ByteBuffer buffer);
+		void addFloat(int position, byte[] data, int offset,int length);
 
-    BitSet getRemainingFields();
+		void addDouble(int position, byte[] data, int offset, int length);
+
+		BitSet getRemainingFields();
+
+		boolean isFinished();
 
     byte[] finish();
 
@@ -26,5 +30,19 @@ public interface EntryAccumulator {
 
     boolean hasField(int myFields);
 
-    ByteBuffer getField(int myFields);
+		ByteSlice getFieldSlice(int myField);
+
+		ByteSlice getField(int myField, boolean create);
+
+		long getFinishCount();
+
+		void markOccupiedScalar(int position);
+
+		void markOccupiedFloat(int position);
+
+		void markOccupiedDouble(int position);
+
+		void markOccupiedUntyped(int position);
+
+		boolean isInteresting(BitIndex potentialIndex);
 }

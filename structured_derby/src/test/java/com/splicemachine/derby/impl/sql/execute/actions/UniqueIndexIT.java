@@ -1,24 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.collect.Lists;
+import org.apache.derby.shared.common.reference.SQLState;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.ErrorState;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.*;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -35,6 +41,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_6 = "F";
 	public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
+    public static final String TABLE_NAME_9 = "I";
+    public static final String TABLE_NAME_10 = "J";
 	public static final String INDEX_11 = "IDX_A1";
 	public static final String INDEX_21 = "IDX_B1";
 	public static final String INDEX_31 = "IDX_C1";
@@ -51,7 +59,9 @@ public class UniqueIndexIT extends SpliceUnitTest {
 	protected static SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher(TABLE_NAME_5,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher6 = new SpliceTableWatcher(TABLE_NAME_6,CLASS_NAME,"(name varchar(40), val int)");
 	protected static SpliceTableWatcher spliceTableWatcher7 = new SpliceTableWatcher(TABLE_NAME_7,CLASS_NAME,"(name varchar(40), val int)");
-    protected static SpliceTableWatcher uniqueTableWatcher = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, constraint FOO unique(val))");
+    protected static SpliceTableWatcher uniqueTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME,"(name varchar(40), val int, constraint FOO unique(val))");
+    protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,CLASS_NAME,"(name varchar(40), val int)");
+    protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,CLASS_NAME,"(name varchar(40), val int)");
 
     @Override
     public String getSchemaName() {
@@ -67,8 +77,10 @@ public class UniqueIndexIT extends SpliceUnitTest {
 		.around(spliceTableWatcher4)
 		.around(spliceTableWatcher5)
 		.around(spliceTableWatcher6)
-		.around(spliceTableWatcher7)
-        .around(uniqueTableWatcher);
+        .around(spliceTableWatcher7)
+        .around(uniqueTableWatcher8)
+        .around(spliceTableWatcher9)
+        .around(spliceTableWatcher10);
 
 	
 	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -91,7 +103,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
         //now add some data
         String name = "sfines";
         int value = 2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_1),name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_1), name, value));
 
         //now check that we can get data out for the proper key
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'", this.getTableReference(TABLE_NAME_1),name));
@@ -117,7 +130,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
     public void testCanCreateIndexFromExistingData() throws Exception{
         String name = "sfines";
         int value =2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_2),name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", this.getTableReference(TABLE_NAME_2), name, value));
         //create the index
         new SpliceIndexWatcher(TABLE_NAME_2,CLASS_NAME,INDEX_21,CLASS_NAME,"(name)",true).starting(null);
 
@@ -142,7 +155,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
      */
     @Test(timeout=10000)
     public void testCanCreateIndexFromExistingDataAndThenAddData() throws Exception{
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",this.getTableReference(TABLE_NAME_3),"sfines",2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", this.getTableReference(TABLE_NAME_3), "sfines", 2));
         //create the index
         new SpliceIndexWatcher(TABLE_NAME_3,CLASS_NAME,INDEX_31,CLASS_NAME,"(name)",true).starting(null);
         //add some more data
@@ -182,7 +195,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             if(se.getMessage().contains("unique"))
                 throw se;
         }
-        Assert.assertTrue("Did not report a duplicate key violation!",false);
+        Assert.fail("Did not report a duplicate key violation!");
     }
     /**
      * Tests that we can safely drop the index, and constraints
@@ -222,7 +235,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             Assert.assertEquals("Incorrect value returned!",value,val);
             results.add(String.format("name:%s,value:%d",retName,val));
         }
-        Assert.assertEquals("Incorrect number of rows returned!",2,results.size());
+        Assert.assertEquals("Incorrect number of rows returned!", 2, results.size());
     }
     /**
      * Tests that we can safely delete a record, and have it
@@ -243,7 +256,102 @@ public class UniqueIndexIT extends SpliceUnitTest {
         Assert.assertTrue("Rows are returned incorrectly",!rs.next());
     }
 
-    @Ignore
+    /**
+     * DB-1020
+     * Tests that we can safely delete a record, and have it
+     * percolate through to the index.
+     *
+     * NULL values should NOT be deleted.
+     */
+    @Test
+    public void testCanDeleteIndexWithNulls() throws Exception{
+        new SpliceIndexWatcher(TABLE_NAME_9,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",false).starting(null);
+				PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s (name,val) values (?,?)",spliceTableWatcher9));
+				ps.setString(1,"sfines");
+				ps.setInt(2,2);
+				ps.addBatch();
+				ps.setString(1,"lfines");
+				ps.setInt(2,-2);
+				ps.addBatch();
+				ps.setNull(1, Types.VARCHAR);
+				ps.setNull(2,Types.INTEGER);
+				ps.addBatch();
+				ps.setString(1,"0");
+				ps.setInt(2,0);
+				ps.addBatch();
+				int[] updated = ps.executeBatch();
+				Assert.assertEquals("Incorrect update number!",4,updated.length);
+				System.out.println(Arrays.toString(updated));
+//				methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+//                                                    this.getTableReference(TABLE_NAME_9), "sfines", 2));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+//                                                    this.getTableReference(TABLE_NAME_9), "lfines", -2));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
+//                                                    this.getTableReference(TABLE_NAME_9)));
+//        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+//                                                    this.getTableReference(TABLE_NAME_9)));
+
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_9));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 4, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_9)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 3, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_9)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+    }
+
+    /**
+     * DB-1020
+     * Tests that we can safely delete a record, and have it
+     * percolate through to the unique index.
+     *
+     * NULL values should NOT be deleted.
+     */
+    @Test
+    public void testCanDeleteUniqueIndexWithNulls() throws Exception{
+        new SpliceIndexWatcher(TABLE_NAME_10,CLASS_NAME,INDEX_61,CLASS_NAME,"(val)",true).starting(null);
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_10), "sfines", -2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",
+                                                    this.getTableReference(TABLE_NAME_10), "lfines", 2));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values (null,null)",
+                                                    this.getTableReference(TABLE_NAME_10)));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('0',0)",
+                                                    this.getTableReference(TABLE_NAME_10)));
+
+        String query = format("select * from %s",this.getTableReference(TABLE_NAME_10));
+        ResultSet rs = methodWatcher.executeQuery(query);
+        TestUtils.FormattedResult fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("1:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 4, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val > 0",this.getTableReference(TABLE_NAME_10)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("2:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 3, fr.size());
+
+        methodWatcher.getStatement().execute(format("delete from %s where val < 0",this.getTableReference(TABLE_NAME_10)));
+        rs = methodWatcher.executeQuery(query);
+
+        fr = TestUtils.FormattedResult.ResultFactory.convert(query, rs);
+//        System.out.println("3:");
+//        System.out.println(fr.toString());
+        Assert.assertEquals(fr.toString(), 2, fr.size());
+    }
+
     @Test(timeout = 10000)
     public void testCanDeleteThenInsertEntryInTransaction() throws Exception {
         new SpliceIndexWatcher(TABLE_NAME_6, CLASS_NAME, INDEX_61, CLASS_NAME, "(name)", true).starting(null);
@@ -333,7 +441,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             Assert.assertTrue(se.getMessage().contains("identified by 'FOO' defined on 'H'"));
             throw se;
         }
-        Assert.assertTrue("Did not report a duplicate key violation!",false);
+        Assert.fail("Did not report a duplicate key violation!");
     }
 
 

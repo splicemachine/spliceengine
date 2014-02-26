@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 
 /**
  * A Constraint on a Table.

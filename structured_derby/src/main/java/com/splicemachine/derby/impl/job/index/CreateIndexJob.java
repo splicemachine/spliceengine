@@ -3,7 +3,6 @@ package com.splicemachine.derby.impl.job.index;
 import com.splicemachine.derby.ddl.DDLChange;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.Task;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionId;
@@ -12,7 +11,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
 import java.io.IOException;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 
@@ -55,7 +53,7 @@ public class CreateIndexJob implements CoprocessorJob{
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactorControl().transactionIdFromString(transactionId);
+        return HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId);
     }
 
     @Override

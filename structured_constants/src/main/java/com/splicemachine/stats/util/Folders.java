@@ -11,6 +11,15 @@ public class Folders {
 				public long fold(long previous, long next) {
 						return previous >= next ? previous : next;
 				}
+
+				@Override
+				public long foldAll(long initialValue, long... array) {
+						long max = initialValue;
+						for(int i=0;i<array.length;i++){
+								max = fold(max,array[i]);
+						}
+						return max;
+				}
 		};
 
 		private static final LongLongFolder MIN_FOLDER = new LongLongFolder() {
@@ -18,12 +27,29 @@ public class Folders {
 				public long fold(long previous, long next) {
 						return previous <= next ? previous : next;
 				}
+				@Override
+				public long foldAll(long initialValue, long... array) {
+						long min = initialValue;
+						for(int i=0;i<array.length;i++){
+								min = fold(min,array[i]);
+						}
+						return min;
+				}
 		};
 
 		private static final LongLongFolder SUM_FOLDER = new LongLongFolder() {
 				@Override
 				public long fold(long previous, long next) {
 						return previous+next;
+				}
+
+				@Override
+				public long foldAll(long initialValue, long... array) {
+						long sum = initialValue;
+						for(int i=0;i<array.length;i++){
+								sum = fold(sum,array[i]);
+						}
+						return sum;
 				}
 		};
 		private static final DoubleFolder DOUBLE_MIN_FOLDER = new DoubleFolder() {

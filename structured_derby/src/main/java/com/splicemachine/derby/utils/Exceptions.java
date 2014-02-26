@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.reference.MessageId;
 import org.apache.derby.shared.common.reference.SQLState;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -74,7 +75,11 @@ public class Exceptions {
             }
             String json = fullMessage.substring(openBraceIndex,fullMessage.indexOf(CLOSE_BRACE)+1);
             return parseException((Exception)gson.fromJson(json,exceptionClass));
-        }else if(rootCause instanceof SpliceStandardException){
+        } else if(rootCause instanceof DoNotRetryIOException ){
+						if(rootCause.getMessage()!=null && rootCause.getMessage().contains("rpc timeout")) {
+								return StandardException.newException(MessageId.QUERY_TIMEOUT, "Increase hbase.rpc.timeout");
+						}
+        } else if(rootCause instanceof SpliceStandardException){
             return ((SpliceStandardException)rootCause).generateStandardException();
         }else if(rootCause instanceof RetriesExhaustedWithDetailsException){
             return parseException((RetriesExhaustedWithDetailsException)rootCause);

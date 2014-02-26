@@ -27,18 +27,16 @@ public class IterativeBitIndexTest {
             BitSet floatFields = new BitSet(i);
             BitSet doubleFields = new BitSet(i);
             for(int j=0;j<=i;j++){
-            	if (random.nextBoolean())
-                bitSet.set(j);
-                if(bitSet.get(j)){
-                	if (random.nextBoolean())
+                if (random.nextBoolean())
+                    bitSet.set(j);
+                if (random.nextBoolean())
                     lengthDelimitedBits.set(j);
-                    if(!lengthDelimitedBits.get(j)){
-                    	if (random.nextBoolean())
-                    		floatFields.set(j);
-                        if(!floatFields.get(j)){
-                        	if (random.nextBoolean())
-                        		doubleFields.set(j);
-                        }
+                if (!lengthDelimitedBits.get(j)) {
+                    if (random.nextBoolean())
+                        floatFields.set(j);
+                    if (!floatFields.get(j)) {
+                        if (random.nextBoolean())
+                            doubleFields.set(j);
                     }
                 }
             }
@@ -65,7 +63,7 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = UncompressedBitIndex.wrap(encode, 0, encode.length);
-        Assert.assertEquals("Incorrect encode-decode of bitmap "+ bitSet,bitIndex,decoded);
+        Assert.assertEquals("Incorrect encode-decode of bitmap "+ bitSet,compactTypeSets(bitIndex),decoded);
     }
 
     @Test
@@ -104,7 +102,7 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = SparseBitIndex.wrap(encode,0,encode.length);
-        Assert.assertEquals("Incorrect encode-ecode of bitmap "+ bitSet,bitIndex,decoded);
+        Assert.assertEquals("Incorrect encode-ecode of bitmap "+ bitSet,compactTypeSets(bitIndex),decoded);
     }
 
     @Test
@@ -144,7 +142,7 @@ public class IterativeBitIndexTest {
         byte[] encode = bitIndex.encode();
 
         BitIndex decoded = DenseCompressedBitIndex.wrap(encode,0,encode.length);
-        Assert.assertEquals("Incorrect encode/decode of bitmap "+ bitSet,bitIndex,decoded);
+        Assert.assertEquals("Incorrect encode/decode of bitmap "+ bitSet,compactTypeSets(bitIndex),decoded);
     }
 
     @Test
@@ -175,6 +173,68 @@ public class IterativeBitIndexTest {
         for(int i=bitIndex.nextSetBit(0);i>=0;i=bitIndex.nextSetBit(i+1)){
             Assert.assertTrue("Incorrect encode/decode of bitmap "+ bitSet,decoded.isSet(i));
         }
+    }
+
+    @Test
+    public void testThatIndexesTreatBitSetsAsIfImmutable() throws Exception {
+        /* Other code assumes that new BitIndexes can be created from existing indexes by reusing the
+         * type-specific bitsets the index contains. Therefore it's unsafe for a BitIndex to modify
+         * those bitsets. This tests verifies that no modification takes place.
+         */
+        BitIndex compressed = BitIndexing.compressedBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+        BitIndex uncompressed = BitIndexing.uncompressedBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+        BitIndex sparse = BitIndexing.sparseBitMap(bitSet, lengthDelimitedBits, floatFields,doubleFields);
+
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getScalarFields(), uncompressed.getScalarFields(),
+                                           sparse.getScalarFields(), lengthDelimitedBits));
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getFloatFields(), uncompressed.getFloatFields(),
+                                           sparse.getFloatFields(), floatFields));
+        Assert.assertTrue("BitIndex construction should not modify type bitsets",
+                             naryEquals(compressed.getDoubleFields(), uncompressed.getDoubleFields(),
+                                           sparse.getDoubleFields(), doubleFields));
+    }
+
+    public static boolean naryEquals(Object first, Object ... args) {
+        Object prev = first;
+        for (Object arg: args){
+            if (!prev.equals(arg)){
+                return false;
+            }
+            prev = arg;
+        }
+        return true;
+    }
+
+    /*
+     * Returns new BitIndex whose type BitSets (scalar, double, float)
+     * are subsets of the main BitSet. This is useful for performing equality
+     * comparisons on roundtripped BitIndexes, as encoding to bytes compacts
+     * the type BitSets like this method does.
+     */
+    public static BitIndex compactTypeSets(BitIndex bIdx){
+        BitSet set = new BitSet();
+        BitSet scalars = new BitSet();
+        BitSet floats = new BitSet();
+        BitSet doubles = new BitSet();
+        for (int pos = bIdx.nextSetBit(0); pos >= 0; pos = bIdx.nextSetBit(pos + 1)){
+            set.set(pos);
+            if (bIdx.isScalarType(pos)){ scalars.set(pos); }
+            else if (bIdx.isFloatType(pos)){ floats.set(pos); }
+            else if (bIdx.isDoubleType(pos)){ doubles.set(pos); }
+        }
+        BitIndex compactedIdx;
+        if (bIdx instanceof SparseBitIndex){
+            compactedIdx = BitIndexing.sparseBitMap(set, scalars, floats, doubles);
+        } else if (bIdx instanceof DenseCompressedBitIndex){
+            compactedIdx = BitIndexing.compressedBitMap(set, scalars, floats, doubles);
+        } else if (bIdx instanceof UncompressedBitIndex){
+            compactedIdx = BitIndexing.uncompressedBitMap(set, scalars, floats, doubles);
+        } else {
+            throw new RuntimeException("Don't know, bro");
+        }
+        return compactedIdx;
     }
 
     public static void main(String... args) throws Exception{

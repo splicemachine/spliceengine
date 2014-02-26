@@ -7,7 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.api.Transactor;
@@ -19,7 +19,6 @@ import com.splicemachine.si.api.RollForwardQueue;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.tools.ResettableCountDownLatch;
 
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.*;
@@ -34,7 +33,6 @@ import org.apache.log4j.Logger;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 
@@ -49,7 +47,7 @@ public class RegionWriteHandler implements WriteHandler {
     private final List<KVPair> mutations = Lists.newArrayList();
     private final ResettableCountDownLatch writeLatch;
     private final int writeBatchSize;
-    private RollForwardQueue<byte[], ByteBuffer> queue;
+    private RollForwardQueue queue;
 
     public RegionWriteHandler(HRegion region, ResettableCountDownLatch writeLatch, int writeBatchSize) {
         this.region = region;
@@ -60,7 +58,7 @@ public class RegionWriteHandler implements WriteHandler {
     public RegionWriteHandler(HRegion region,
                               ResettableCountDownLatch writeLatch,
                               int writeBatchSize,
-                              RollForwardQueue<byte[],ByteBuffer>queue){
+                              RollForwardQueue queue){
         this.region = region;
         this.writeLatch = writeLatch;
         this.writeBatchSize = writeBatchSize;
@@ -222,17 +220,18 @@ public class RegionWriteHandler implements WriteHandler {
     }
 
     private OperationStatus[] doSIWrite(Collection<KVPair> toProcess,WriteContext ctx) throws IOException {
-        final Transactor<IHTable, Put, Get, Scan, Mutation, OperationStatus, Result, KeyValue, byte[], ByteBuffer, Integer> transactor = HTransactorFactory.getTransactor();
+        final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-        Mutation[] mutations = new Mutation[toProcess.size()];
-        int i=0;
-        for(KVPair pair:toProcess){
-            mutations[i] = getMutation(pair,ctx,true);
-            i++;
-        }
-        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
+				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY,toProcess,ctx.getTransactionId());
+//        Mutation[] mutations = new Mutation[toProcess.size()];
+//        int i=0;
+//        for(KVPair pair:toProcess){
+//            mutations[i] = getMutation(pair,ctx,true);
+//            i++;
+//        }
+//        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
     }
 
 	@Override

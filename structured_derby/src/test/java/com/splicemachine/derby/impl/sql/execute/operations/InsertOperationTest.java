@@ -3,12 +3,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.KeyType;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -16,13 +17,15 @@ import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.writer.CallBufferFactory;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.RecordingCallBuffer;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.SimpleJobResults;
+import com.splicemachine.si.api.ClientTransactor;
 import com.splicemachine.si.api.HTransactorFactory;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.si.jmx.ManagedTransactor;
@@ -38,6 +41,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.sql.execute.NoPutResultSet;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -73,7 +77,7 @@ import static org.mockito.Mockito.*;
  */
 @RunWith(Parameterized.class)
 public class InsertOperationTest {
-
+    private static final TempTable table = new TempTable(SpliceConstants.TEMP_TABLE_BYTES);
     private static final KryoPool kryoPool = mock(KryoPool.class);
     private static final Snowflake snowflake = new Snowflake((short)1);
     private static final Random random = new Random(0l);
@@ -110,6 +114,13 @@ public class InsertOperationTest {
     public InsertOperationTest(TestingDataType[] dataTypes, int[] primaryKeys) {
         this.dataTypes = dataTypes;
         this.primaryKeys = primaryKeys;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        ClientTransactor transactor = mock(ClientTransactor.class);
+        HTransactorFactory.setClientTransactor(transactor);
+
     }
 
     @Test
@@ -165,9 +176,14 @@ public class InsertOperationTest {
 
         InsertOperation operation = new InsertOperation(sourceOperation, opInfo,writeInfo,"10");
         operation.init(mock(SpliceOperationContext.class));
+
+        InsertOperation spy = spy(operation);
+        doReturn(new TransactionId("12")).when(spy).getChildTransaction();
+        doReturn(TestingDataType.getTemplateOutput(dataTypes)).when(spy).getExecRowDefinition();
+        operation = spy;
         when(mockInstructions.getTopOperation()).thenReturn(operation);
 
-        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext());
+        NoPutResultSet resultSet = operation.executeScan(new SpliceRuntimeContext(table, kryoPool));
         resultSet.open();
 
         Assert.assertEquals("Reports incorrect row count!", correctOutputRows.size(), resultSet.modifiedRowCount());
@@ -180,15 +196,16 @@ public class InsertOperationTest {
         ManagedTransactor mockTransactor = mock(ManagedTransactor.class);
         doNothing().when(mockTransactor).beginTransaction(any(Boolean.class));
 
-        Transactor mockT = mock(Transactor.class);
-        when(mockT.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
+        TransactionManager mockControl = mock(TransactionManager.class);
+        when(mockControl.transactionIdFromString(any(String.class))).thenAnswer(new Answer<TransactionId>() {
             @Override
             public TransactionId answer(InvocationOnMock invocation) throws Throwable {
                 return new TransactionId((String) invocation.getArguments()[0]);
             }
         });
+        Transactor mockT = mock(Transactor.class);
         when(mockTransactor.getTransactor()).thenReturn(mockT);
-        when(mockT.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
+        when(mockControl.beginChildTransaction(any(TransactionId.class),any(Boolean.class))).thenAnswer(new Answer<TransactionId>() {
             @Override
             public TransactionId answer(InvocationOnMock invocation) throws Throwable {
                 return (TransactionId) invocation.getArguments()[0];
@@ -196,6 +213,7 @@ public class InsertOperationTest {
         });
 
         HTransactorFactory.setTransactor(mockTransactor);
+        HTransactorFactory.setTransactionManager(mockControl);
     }
 
     private void assertRowDataMatches(List<KVPair> correctOutput,List<KVPair> output){
@@ -236,7 +254,7 @@ public class InsertOperationTest {
                 pks[i] = primaryKeys[i]-1;
                 cols[primaryKeys[i]-1] = -1; // exclude primary key columns for a row encoding
             }
-            kEncoder = MultiFieldEncoder.create(SpliceDriver.getKryoPool(), primaryKeys.length);
+            kEncoder = MultiFieldEncoder.create(kryoPool, primaryKeys.length);
         }
         final int[] pksToUse = pks;
         final int[] colsToUse = cols;
@@ -317,7 +335,7 @@ public class InsertOperationTest {
 
                 OperationSink opSink = new OperationSink(Bytes.toBytes("TEST_TASK"),(DMLWriteOperation)op,bufferFactory,"TEST_TXN",-1l,0l);
 
-                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext());
+                TaskStats sink = opSink.sink(Bytes.toBytes("1184"), new SpliceRuntimeContext(table,kryoPool));
                 JobStats stats = mock(JobStats.class);
                 when(stats.getTaskStats()).thenReturn(Arrays.asList(sink));
 

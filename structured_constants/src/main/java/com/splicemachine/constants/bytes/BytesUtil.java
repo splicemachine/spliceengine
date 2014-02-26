@@ -51,17 +51,6 @@ public class BytesUtil {
 	 * @param array
 	 * @param index
 	 */
-//	public static void incrementAtIndex(byte[] array, int index) {
-//          if (array[index] == Byte.MAX_VALUE) {
-//              array[index] = 0;
-//              if(index > 0)
-//                  incrementAtIndex(array, index - 1);
-//          }
-//          else {
-//              array[index]++;
-//          }
-//      }
-
     public static void unsignedIncrement(byte[] array,int index){
         if(array.length<=0) return; //nothing to do
         if(index<0){
@@ -89,16 +78,6 @@ public class BytesUtil {
         }
     }
 	
-//	public static void decrementAtIndex(byte[] array,int index) {
-//		if(array[index] == Byte.MIN_VALUE){
-//			array[index] = Byte.MAX_VALUE;
-//			if(index >0)
-//				decrementAtIndex(array,index-1);
-//		}else{
-//			array[index]--;
-//		}
-//	}
-
     public static void unsignedDecrement(byte[] array, int index){
         if(index<0){
             throw new AssertionError("Unable to decrement "+ Arrays.toString(array)+", as it would violate sort-order");
@@ -110,20 +89,12 @@ public class BytesUtil {
             array[index]--;
     }
 
-//    public static byte[] copyAndIncrement(byte[] start) {
-//        if(start.length==0) return new byte[]{1};
-//
-//        byte[] other = new byte[start.length];
-//        System.arraycopy(start,0,other,0,start.length);
-//        incrementAtIndex(other,other.length-1);
-//        return other;
-//    }
-
     public static String debug(Object o) {
         byte[] bytes = (byte[]) o;
         String s = "" + bytes.length + "[";
         for (int i=0; i<bytes.length; i++) {
-            s += " " + bytes[i];
+            // represent as hex for unsigned byte
+            s += " " + Integer.toHexString(bytes[i] & 0xFF);
         }
         s += " ]";
         return s;

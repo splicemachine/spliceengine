@@ -14,9 +14,6 @@ import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.Timer;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -27,8 +24,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.utils.marshall.RowDecoder;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -40,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.io.IOException;
@@ -234,8 +228,8 @@ public class LastIndexKeyOperation extends ScanOperation{
 
 		@Override
 		protected void updateStats(OperationRuntimeStats stats) {
-				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsRead());
-				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesRead());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS,regionScanner.getRowsOutput());
+				stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES,regionScanner.getBytesOutput());
 				TimeView localScanTime = regionScanner.getReadTime();
 				stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME,localScanTime.getWallClockTime());
 				stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME,localScanTime.getCpuTime());

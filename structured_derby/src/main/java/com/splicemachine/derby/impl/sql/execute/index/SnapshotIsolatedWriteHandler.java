@@ -5,12 +5,9 @@ import java.util.List;
 
 import com.splicemachine.hbase.batch.WriteContext;
 import com.splicemachine.hbase.batch.WriteHandler;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
-import com.splicemachine.si.api.HTransactorFactory;
 import com.splicemachine.si.impl.DDLFilter;
-import com.splicemachine.si.impl.SITransactor;
-import com.splicemachine.si.impl.TransactionId;
 import org.apache.log4j.Logger;
 
 public class SnapshotIsolatedWriteHandler implements WriteHandler {

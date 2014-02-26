@@ -754,7 +754,7 @@ public class DerbyBytesUtil {
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNextObject(dvd.getObject());
-//                encoder.encodeNextUnsorted(getBytes(dvd,desc));
+//                encoder.encodeNextUnsorted(getByteCopy(dvd,desc));
             }
 
             @Override

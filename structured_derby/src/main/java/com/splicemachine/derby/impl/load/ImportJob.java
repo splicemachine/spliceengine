@@ -38,7 +38,7 @@ public abstract class ImportJob implements CoprocessorJob {
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactorControl().transactionIdFromString(context.getTransactionId());
+        return HTransactorFactory.getTransactionManager().transactionIdFromString(context.getTransactionId());
     }
 
     @Override

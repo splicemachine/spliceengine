@@ -3,7 +3,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
 import com.splicemachine.hbase.writer.WriteUtils;
 import com.splicemachine.si.api.TransactionStatus;
-import com.splicemachine.si.api.TransactorControl;
+import com.splicemachine.si.api.TransactionManager;
 import com.splicemachine.si.impl.TransactionId;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -20,11 +20,11 @@ public class TransactionUtils {
     private static final Logger LOG = Logger.getLogger(TransactionUtils.class);
 
 
-    public static boolean rollback(TransactorControl txnControl, String txnId, int maxTries) throws AttemptsExhaustedException{
+    public static boolean rollback(TransactionManager txnControl, String txnId, int maxTries) throws AttemptsExhaustedException{
         return rollback(txnControl,txnControl.transactionIdFromString(txnId),0,maxTries);
     }
 
-    public static boolean rollback(TransactorControl txnControl, TransactionId tId,int tryCount,int maxTries) throws AttemptsExhaustedException {
+    public static boolean rollback(TransactionManager txnControl, TransactionId tId,int tryCount,int maxTries) throws AttemptsExhaustedException {
         if(tryCount>maxTries){
             throw new AttemptsExhaustedException("Unable to roll back transaction after many retries");
         }
@@ -66,11 +66,11 @@ public class TransactionUtils {
         }
     }
 
-    public static boolean commit(TransactorControl txnControl, String txnId, int maxTries) throws AttemptsExhaustedException{
+    public static boolean commit(TransactionManager txnControl, String txnId, int maxTries) throws AttemptsExhaustedException{
         return commit(txnControl,txnControl.transactionIdFromString(txnId),0,maxTries);
     }
 
-    public static boolean commit( TransactorControl txnControl, TransactionId txnId,int tryCount,int maxTries) throws AttemptsExhaustedException {
+    public static boolean commit( TransactionManager txnControl, TransactionId txnId,int tryCount,int maxTries) throws AttemptsExhaustedException {
         try{
             SchedulerTracer.traceTaskCommit(txnId);
             txnControl.commit(txnId);
@@ -104,7 +104,7 @@ public class TransactionUtils {
 
     //get the transaction status (retrying if necessary)
     public static  TransactionStatus getTransactionStatus(TransactionId txnId,
-                                                   TransactorControl txnControl,
+                                                   TransactionManager txnControl,
                                                    int tryCount,
                                                    int maxTries) throws AttemptsExhaustedException {
         if(tryCount>maxTries)

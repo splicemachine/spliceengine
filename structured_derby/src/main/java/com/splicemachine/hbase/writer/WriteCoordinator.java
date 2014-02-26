@@ -6,6 +6,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.index.IndexNotSetUpException;
 import com.splicemachine.hbase.HBaseRegionCache;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.MonitoredThreadPool;
 import com.splicemachine.hbase.RegionCache;
 import com.splicemachine.stats.MetricFactory;

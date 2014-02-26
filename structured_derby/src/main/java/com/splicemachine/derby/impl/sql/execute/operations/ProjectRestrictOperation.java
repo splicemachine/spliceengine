@@ -275,9 +275,21 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return result;
 		}
 
+		/**
+		 * Returns the definition of the columns in a row.  A projection will be executed to determine the columns
+		 * that are added or removed.  Default values are used for the column values.
+		 * PLEASE NOTE: Numeric columns will be ones by default.  So the delegate operation may need to reset the values
+		 * to zeroes, etc.  This is what happens in the ScalarAggregateOperation classes.
+		 *
+		 * @return the definition of the row
+		 *
+		 * @throws StandardException
+		 */
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				ExecRow def = source.getExecRowDefinition();
+				// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
+				// division or modulus operators.  The delegate classes will need to reset the values to 0.
 				if (def != null) SpliceUtils.populateDefaultValues(def.getRowArray(),1);
 				source.setCurrentRow(def);
 				return doProjection(def);

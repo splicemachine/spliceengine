@@ -5,6 +5,7 @@ import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
@@ -20,7 +21,13 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 
 		protected EntryDataDecoder(int[] keyColumns,
 															 boolean[] keySortOrder) {
-				super(keyColumns, keySortOrder,true);
+				this(keyColumns, keySortOrder,SpliceDriver.getKryoPool());
+		}
+
+		protected EntryDataDecoder(int[] keyColumns,
+															 boolean[] keySortOrder,
+															 KryoPool kryoPool) {
+				super(keyColumns, keySortOrder,true,kryoPool);
 		}
 
 		@Override

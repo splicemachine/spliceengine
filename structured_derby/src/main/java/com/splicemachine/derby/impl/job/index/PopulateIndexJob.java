@@ -32,8 +32,6 @@ public class PopulateIndexJob implements CoprocessorJob{
     private final long statementId;
     private final long operationId;
     private final String xplainSchema;
-    private final int[] columnOrdering;
-    private final int[] format_ids;
 
 		public PopulateIndexJob(HTableInterface table,
                                 String transactionId,
@@ -45,9 +43,7 @@ public class PopulateIndexJob implements CoprocessorJob{
                                 boolean[] descColumns,
                                 long statementId,
                                 long operationId,
-                                String xplainSchema,
-                                int[] columnOrdering,
-                                int[] format_ids) {
+                                String xplainSchema) {
         this.table = table;
         this.transactionId = transactionId;
         this.indexConglomId = indexConglomId;
@@ -73,8 +69,6 @@ public class PopulateIndexJob implements CoprocessorJob{
             if(descColumns[col])
                 this.descColumns.set(col);
         }
-        this.columnOrdering = columnOrdering;
-            this.format_ids = format_ids;
     }
 
     @Override
@@ -82,7 +76,7 @@ public class PopulateIndexJob implements CoprocessorJob{
         PopulateIndexTask task = new PopulateIndexTask(transactionId, indexConglomId,baseConglomId,
                                                        mainColToIndexPosMap, indexedColumns,
                                                        isUnique,isUniqueWithDuplicateNulls,
-                                                       getJobId(), descColumns, xplainSchema, statementId, operationId, columnOrdering, format_ids);
+                                                       getJobId(), descColumns, xplainSchema, statementId, operationId);
         return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
     }
 
@@ -103,7 +97,7 @@ public class PopulateIndexJob implements CoprocessorJob{
 
     @Override
     public TransactionId getParentTransaction() {
-        return HTransactorFactory.getTransactorControl().transactionIdFromString(transactionId);
+        return HTransactorFactory.getTransactionManager().transactionIdFromString(transactionId);
     }
 
     @Override

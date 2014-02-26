@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.framework;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import com.splicemachine.utils.ByteSlice;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -14,7 +16,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.store.access.hbase.ByteArraySlice;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.marshall.RowMarshaller;
 import com.splicemachine.storage.EntryDecoder;
@@ -35,7 +36,7 @@ public class RegionScannerIterator implements StandardIterator<ExecRow> {
 		protected RowLocation currentRowLocation;
 		protected int[] baseColumnMap;
 		protected boolean isIndex;
-		protected ByteArraySlice slice;
+		protected ByteSlice slice;
 		protected Timer timer;
 
 		public RegionScannerIterator(RegionScanner regionScanner, List<KeyValue> keyValues, ExecRow currentRow, RowLocation currentRowLocation, int[] baseColumnMap, boolean isIndex, Timer timer) {
@@ -88,7 +89,7 @@ public class RegionScannerIterator implements StandardIterator<ExecRow> {
                             */
                            currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
                        } else {
-                       	slice.updateSlice(keyValues.get(0).getBuffer(), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
+                       	slice.set(keyValues.get(0).getBuffer(), keyValues.get(0).getRowOffset(), keyValues.get(0).getRowLength());
                        	currentRowLocation.setValue(slice);
                        }
                        rowsRead++;

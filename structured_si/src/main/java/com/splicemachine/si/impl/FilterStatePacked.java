@@ -1,32 +1,35 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.si.data.api.SDataLib;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
-public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
-        Scan, Lock, OperationStatus, Hashable extends Comparable, Mutation, IHTable, Scanner>
-        implements IFilterState<KeyValue> {
+public class FilterStatePacked<Result, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes,
+        Scan, Lock, OperationStatus, Mutation, IHTable>
+        implements IFilterState {
 
     static final Logger LOG = Logger.getLogger(FilterStatePacked.class);
 
     private final String tableName;
-    private final SDataLib<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus> dataLib;
+    private final SDataLib<Put, Delete, Get, Scan> dataLib;
     private final DataStore dataStore;
-    private final FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock, OperationStatus,
-            Hashable, Mutation, IHTable, Scanner> simpleFilter;
-    private final RowAccumulator<Data,KeyValue> accumulator;
+    private final FilterState<Result, Put, Delete, Get, Scan, Lock, OperationStatus,
+						Mutation, IHTable> simpleFilter;
+    private final RowAccumulator accumulator;
     private KeyValue accumulatedKeyValue = null;
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
     private boolean siNullSkip = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
-                             FilterState<Data, Result, KeyValue, OperationWithAttributes, Put, Delete, Get, Scan, Lock,
-                                     OperationStatus, Hashable, Mutation, IHTable, Scanner> simpleFilter,
-                             RowAccumulator<Data,KeyValue> accumulator) {
+                             FilterState<Result, Put, Delete, Get, Scan, Lock,
+                                     OperationStatus, Mutation, IHTable> simpleFilter,
+                             RowAccumulator accumulator) {
         this.tableName = tableName;
         this.dataLib = dataLib;
         this.dataStore = dataStore;
@@ -35,8 +38,12 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
         simpleFilter.setIgnoreDoneWithColumn();
     }
 
+		public RowAccumulator getAccumulator(){
+				return accumulator;
+		}
+
     @Override
-    public Filter.ReturnCode filterKeyValue(KeyValue dataKeyValue) throws IOException {
+    public Filter.ReturnCode filterKeyValue(org.apache.hadoop.hbase.KeyValue dataKeyValue) throws IOException {
         simpleFilter.setKeyValue(dataKeyValue);
         switch (simpleFilter.type) {
             case TOMBSTONE:
@@ -93,9 +100,9 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
                     return Filter.ReturnCode.NEXT_COL;
                 }
                 if (hasAccumulation) {
-                    if (!dataLib.matchingFamilyKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
-                            !dataLib.matchingRowKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
-                            !dataLib.matchingQualifierKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue())) {
+                    if (!KeyValueUtils.matchingFamilyKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !KeyValueUtils.matchingRowKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue()) ||
+                            !KeyValueUtils.matchingQualifierKeyValue(accumulatedKeyValue, simpleFilter.keyValue.keyValue())) {
                         throw new RuntimeException("key value mis-match");
                     }
                 } else {
@@ -117,10 +124,9 @@ public class FilterStatePacked<Data, Result, KeyValue, OperationWithAttributes, 
     @Override
     public KeyValue produceAccumulatedKeyValue() {
         if (hasAccumulation) {
-            final Data resultData = accumulator.result();
+            final byte[] resultData = accumulator.result();
             if (resultData != null) {
-                final KeyValue keyValue = dataLib.newKeyValue(accumulatedKeyValue, resultData);
-                return keyValue;
+								return KeyValueUtils.newKeyValue(accumulatedKeyValue, resultData);
             } else {
                 excludeRow = true;
                 return null;

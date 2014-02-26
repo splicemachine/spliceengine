@@ -4,12 +4,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -308,4 +307,52 @@ public class UnionOperationIT extends SpliceUnitTest {
         }
         Assert.assertArrayEquals("Incorrect result contents!",correctResults,actualResults);
     }
+
+
+		@Test
+		public void testUnionDistinctValues() throws Exception {
+				/*Regression test #1 for DB-1038*/
+				ResultSet rs = methodWatcher.executeQuery("values (1,2,3,4) union distinct values (5,6,7,8) union distinct values (9,10,11,12)");
+				int[][] correct =  new int[][]{
+								new int[]{1,2,3,4},
+								new int[]{5,6,7,8},
+								new int[]{9,10,11,12}
+				};
+				int[][] actual = new int[correct.length][];
+				int count=0;
+				while(rs.next()){
+						int first = rs.getInt(1);
+						int second = rs.getInt(2);
+						int third = rs.getInt(3);
+						int fourth = rs.getInt(4);
+						actual[count] = new int[]{first,second,third,fourth};
+						count++;
+				}
+				for(int i=0;i<correct.length;i++){
+						Assert.assertArrayEquals("Incorrect value!",correct[i],actual[i]);
+				}
+		}
+		@Test
+		public void testUnionValues() throws Exception {
+				/*Regression test #2 for DB-1038*/
+				ResultSet rs = methodWatcher.executeQuery("values (1,2,3,4) union values (5,6,7,8) union values (9,10,11,12)");
+				int[][] correct =  new int[][]{
+								new int[]{1,2,3,4},
+								new int[]{5,6,7,8},
+								new int[]{9,10,11,12}
+				};
+				int[][] actual = new int[correct.length][];
+				int count=0;
+				while(rs.next()){
+						int first = rs.getInt(1);
+						int second = rs.getInt(2);
+						int third = rs.getInt(3);
+						int fourth = rs.getInt(4);
+						actual[count] = new int[]{first,second,third,fourth};
+						count++;
+				}
+				for(int i=0;i<correct.length;i++){
+						Assert.assertArrayEquals("Incorrect value!",correct[i],actual[i]);
+				}
+		}
 }

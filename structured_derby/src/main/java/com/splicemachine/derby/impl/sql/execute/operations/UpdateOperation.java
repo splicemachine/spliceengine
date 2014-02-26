@@ -45,7 +45,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.hbase.KVPair;
 
 /**
  * @author jessiezhang

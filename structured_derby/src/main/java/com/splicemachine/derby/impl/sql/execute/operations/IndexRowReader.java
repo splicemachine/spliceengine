@@ -4,6 +4,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -162,7 +163,7 @@ class IndexRowReader {
         Result nextFetchedData = next.getSecond();
 
         if(entryDecoder==null)
-            entryDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
+            entryDecoder = new EntryDecoder(runtimeContext.getKryoPool());
 
         for(KeyValue kv:nextFetchedData.raw()){
 
@@ -295,7 +296,9 @@ class IndexRowReader {
 						List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
 						for(RowAndLocation sourceRow:sourceRows){
 								byte[] row = sourceRow.rowLocation;
-								Get get = SpliceUtils.createGet(txnId, row);
+								Get get = new Get(row);
+								get.setAttribute(SIConstants.SI_NEEDED,SIConstants.TRUE_BYTES);
+								get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,Bytes.toBytes(txnId));
 								get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
 								gets.add(get);
 						}

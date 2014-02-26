@@ -2,9 +2,8 @@ package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
 import com.carrotsearch.hppc.ObjectArrayList;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.splicemachine.encoding.Encoding;
-import org.jruby.util.collections.IntHashMap;
+import com.splicemachine.hbase.KVPair;
 import org.junit.Assert;
 import org.junit.Test;
 

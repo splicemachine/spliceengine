@@ -684,9 +684,10 @@ public final class Encoding {
     }
 
     public static void main(String... args) throws Exception{
-				byte[] base = Encoding.encode("pk_1_10");
-				byte[] baseExtra = Arrays.copyOf(base,base.length+1);
-				System.out.println(BytesUtil.toHex(base));
-				System.out.println(BytesUtil.toHex(baseExtra));
+				byte[] data = new byte[]{-27,-73,116,0};
+				System.out.println(Encoding.decodeLong(data));
+				data = Encoding.encode(28800000l);
+				System.out.println(Arrays.toString(data));
+				System.out.println(Encoding.decodeLong(data));
     }
 }

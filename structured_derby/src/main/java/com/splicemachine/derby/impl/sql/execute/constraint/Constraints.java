@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.constraint;
 
 import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.hbase.writer.KVPair;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.writer.WriteResult;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 

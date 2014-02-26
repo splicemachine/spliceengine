@@ -7,12 +7,12 @@
   <artifactId>structured_hbase</artifactId>
   <name>structured_hbase</name>
   <description>Set of modules for getting hbase to function in structure</description>
-  <modules>
-    <module>structured_constants</module>
-    <module>structured_si</module>
-    <module>structured_derby</module>
-    <module>structured_test</module>
-  </modules>
+    <modules>
+        <module>structured_constants</module>
+        <module>structured_si</module>
+        <module>structured_derby</module>
+        <module>structured_test</module>
+    </modules>
   <scm>
     <connection>scm:git:git@github.com:splicemachine/spliceengine.git</connection>
     <developerConnection>scm:git:git@github.com:splicemachine/spliceengine.git</developerConnection>
@@ -302,13 +302,15 @@
             <configuration>
               <argLine>-Xms256M -Xmx1024M</argLine>
               <redirectTestOutputToFile>true</redirectTestOutputToFile>
-              <includes>
-                <include>**/*Test.java</include>
-              </includes>
-              <excludes>
-                <!-- Skip ITs -->
-                <exclude>**/*IT.java</exclude>
-              </excludes>
+                <includes>
+                    <include>**/*Suite.java</include>
+                    <include>**/*Test.java</include>
+                </includes>
+                <excludes>
+                    <!-- Skip ITs -->
+                    <exclude>**/*IT.java</exclude>
+                    <exclude>**/si/**/*Test.java</exclude>
+                </excludes>
             </configuration>
           </plugin>
           <plugin>

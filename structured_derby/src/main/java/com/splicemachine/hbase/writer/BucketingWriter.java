@@ -2,9 +2,9 @@ package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.collect.Lists;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.RegionCache;
 
-import com.splicemachine.stats.IOStats;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;

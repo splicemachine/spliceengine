@@ -1,6 +1,7 @@
 package com.splicemachine.hbase.writer;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.util.*;
