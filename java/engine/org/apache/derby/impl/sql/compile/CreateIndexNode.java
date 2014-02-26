@@ -49,6 +49,7 @@ import org.apache.derby.iapi.types.DataTypeDescriptor;
 public class CreateIndexNode extends DDLStatementNode
 {
 	boolean				unique;
+	boolean				uniqueWithDuplicateNulls;
 	DataDictionary		dd = null;
 	Properties			properties;
 	String				indexType;
@@ -189,6 +190,9 @@ public class CreateIndexNode extends DDLStatementNode
 															tableName);
 			}
 			boundColumnIDs[ i ] = columnDescriptor.getPosition();
+			
+			// set this only once -- if just one column does is missing "not null" constraint in schema
+			uniqueWithDuplicateNulls = (! uniqueWithDuplicateNulls && (unique && ! columnDescriptor.hasNonNullDefault()));
 
 			// Don't allow a column to be created on a non-orderable type
 			if ( ! columnDescriptor.getType().getTypeId().
@@ -290,9 +294,9 @@ public class CreateIndexNode extends DDLStatementNode
 		return getGenericConstantActionFactory().getCreateIndexConstantAction(
                     false, // not for CREATE TABLE
                     unique,
-                    false, //its not a UniqueWithDuplicateNulls Index
-                    indexType,
-                    sd.getSchemaName(),
+                    uniqueWithDuplicateNulls, // UniqueWithDuplicateNulls Index is a unique 
+                    indexType,					//  index but with no "not null" constraint
+                    sd.getSchemaName(),			//  on column in schema
                     indexName.getTableName(),
                     tableName.getTableName(),
                     td.getUUID(),
