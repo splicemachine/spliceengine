@@ -288,8 +288,6 @@ public class TableScanOperation extends ScanOperation {
                         currentRow = null;
                         currentRowLocation = null;
                     } else {
-                        LOG.error("key = " + BytesUtil.toHex(keyValue.getRow()));
-                        LOG.error("value = " + BytesUtil.toHex(keyValue.getValue()));
 
                         if(rowDecoder==null)
                             rowDecoder = new EntryDecoder(SpliceDriver.getKryoPool());
