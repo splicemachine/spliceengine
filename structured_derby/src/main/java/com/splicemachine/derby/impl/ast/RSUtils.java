@@ -41,9 +41,11 @@ public class RSUtils {
 
     public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz)
             throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
-        node.accept(new SkippingVisitor(v, Predicates.in((List)getChildren(node))));
-        return v.getCollected();
+        // define traversal axis to be the node itself (so we can get to its descendants) or,
+        // our real target, non-ResultSetNodes
+        Predicate<Object> onAxis = Predicates.or(Predicates.equalTo((Object)node),
+                                                    Predicates.not(isRSN));
+        return CollectNodes.collector(clazz).onAxis(onAxis).collect(node);
     }
 
 
@@ -94,10 +96,10 @@ public class RSUtils {
      * If rsn subtree contains a node with 2 children, return the node above
      * it, else return the leaf node
      */
-        for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
-            if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
     public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
         List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
+        for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
+            if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
                 return pair.get(0);
             }
         }
