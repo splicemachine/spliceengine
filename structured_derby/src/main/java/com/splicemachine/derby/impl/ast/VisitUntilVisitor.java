@@ -14,8 +14,8 @@ import org.apache.derby.iapi.sql.compile.Visitor;
  */
 public class VisitUntilVisitor implements Visitor {
     private boolean stop = false;
-    Visitor v;
-    Predicate<? super Visitable> pred;
+    final Visitor v;
+    final Predicate<? super Visitable> pred;
 
     public VisitUntilVisitor(final Visitor v, final Predicate<? super Visitable> pred){
         this.v = v;
