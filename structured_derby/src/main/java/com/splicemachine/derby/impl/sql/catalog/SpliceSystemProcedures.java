@@ -58,6 +58,12 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("dateFormat",32672)
                             .varchar("timeFormat",32672).build();
                     procedures.set(i,newImport);
+										Procedure getAutoIncLocs = Procedure.newBuilder().name("SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS")
+														.numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
+														.catalog("schemaName")
+														.catalog("tableName")
+														.build();
+										procedures.add(getAutoIncLocs);
                 }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
 										Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
 														.numOutputParams(0).numResultSets(0)

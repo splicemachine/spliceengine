@@ -1,5 +1,6 @@
 package com.splicemachine.utils;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.util.Arrays;
@@ -198,7 +199,7 @@ public class Snowflake {
         return new Generator(this,s);
     }
 
-    public static class Generator{
+    public static class Generator implements UUIDGenerator{
         private final Snowflake snowflake;
         private long[] currentUuids;
         private int currentPosition;
@@ -217,11 +218,16 @@ public class Snowflake {
             return currentUuids[pos];
         }
 
-        public byte[] nextBytes(){
-            return Bytes.toBytes(next());
-        }
+				@Override public byte[] nextBytes(){ return Bytes.toBytes(next()); }
+				@Override public int encodedLength() { return 8; }
 
-        private void refill(){
+				@Override
+				public void next(byte[] data, int offset) {
+						long nextLong = next();
+						BytesUtil.longToBytes(nextLong,data,offset);
+				}
+
+				private void refill(){
             snowflake.nextUUIDBlock(currentUuids);
             currentPosition=0;
         }

@@ -1,43 +1,41 @@
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.ParallelVTI;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.ErrorState;
-import com.splicemachine.derby.utils.Exceptions;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import org.apache.derby.iapi.error.PublicAPI;
 import org.apache.derby.iapi.error.StandardException;
+import org.apache.derby.iapi.sql.ResultColumnDescriptor;
 import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.ColumnDescriptor;
 import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
+import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
 import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.tools.run;
+import org.apache.derby.iapi.store.access.TransactionController;
+import org.apache.derby.iapi.types.DataTypeDescriptor;
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.derby.iapi.types.RowLocation;
+import org.apache.derby.iapi.types.SQLVarchar;
 import org.apache.derby.impl.jdbc.EmbedConnection;
+import org.apache.derby.impl.jdbc.EmbedResultSet40;
+import org.apache.derby.impl.sql.GenericColumnDescriptor;
 import org.apache.derby.shared.common.reference.SQLState;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.MasterNotRunningException;
@@ -45,12 +43,16 @@ import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -84,16 +86,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class HdfsImport extends ParallelVTI {
 		private static final Logger LOG = Logger.getLogger(HdfsImport.class);
-		private static final int COLTYPE_POSITION = 5;
-		private static final int COLNAME_POSITION = 4;
 		private final ImportContext context;
-		private static final int COLNULLABLE_POSITION = 11;
-		private static final int COLSIZE_POSITION = 7;
-		private static final int COLNUM_POSITION = 17;
-		private static final int DECIMALDIGITS_POSIITON = 9;
-		private static final int COLUMNDEFAULT_POSIITON = 13;
-		private static final int ISAUTOINCREMENT_POSIITON = 23;
-		private static final String AUTOINCREMENT_PREFIX = "AUTOINCREMENT: start ";
 		private final long statementId;
 		private final long operationId;
 		private HBaseAdmin admin;
@@ -104,6 +97,53 @@ public class HdfsImport extends ParallelVTI {
 				this.operationId = operationId;
 		}
 
+		@SuppressWarnings("UnusedDeclaration")
+		public static void SYSCS_GET_AUTO_INCREMENT_ROW_LOCATIONS(String schemaName,String tableName,ResultSet[] resultSets) throws SQLException{
+				Connection conn = SpliceAdmin.getDefaultConn();
+				try{
+						LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+						DataDictionary dd = lcc.getDataDictionary();
+						SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName,lcc.getTransactionExecute(),true);
+						if(sd==null)
+								throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schemaName);
+
+						TableDescriptor td = dd.getTableDescriptor(tableName,sd,lcc.getTransactionExecute());
+						if(td==null)
+								throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schemaName+"."+tableName);
+
+						RowLocation[] rowLocations = dd.computeAutoincRowLocations(lcc.getTransactionExecute(), td);
+						ExecRow template = new ValueRow(1);
+						template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+						List<ExecRow> rows = Lists.newArrayList();
+						if(rowLocations!=null){
+								for(RowLocation location:rowLocations){
+										template.resetRowArray();
+										if(location!=null){
+												byte[] loc = location.getBytes();
+												template.getColumn(1).setValue(BytesUtil.toHex(loc));
+										}
+										rows.add(template.getClone());
+								}
+						}
+						ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
+										new GenericColumnDescriptor("location", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
+						};
+
+						IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+						inprs.openCore();
+						resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+				} catch (StandardException e) {
+						throw PublicAPI.wrapStandardException(e);
+				} finally{
+						try{
+								conn.close();
+						}catch(SQLException se){
+								LOG.error("Unable to close default connection",se);
+						}
+				}
+		}
+
+		@SuppressWarnings("UnusedParameters")
 		public static void SYSCS_IMPORT_DATA(String schemaName, String tableName,
 																				 String insertColumnList,
 																				 String columnIndexes,
@@ -457,9 +497,6 @@ public class HdfsImport extends ParallelVTI {
 		private static void buildColumnInformation(Connection connection, String schemaName, String tableName,
 																							 String insertColumnList, ImportContext.Builder builder,
 																							 LanguageConnectionContext lcc) throws SQLException {
-				DatabaseMetaData dmd = connection.getMetaData();
-				Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
-
 				//TODO -sf- this invokes an additional scan--is there any way that we can avoid this?
 				DataDictionary dataDictionary = lcc.getDataDictionary();
 				TransactionController tc = lcc.getTransactionExecute();
@@ -473,123 +510,19 @@ public class HdfsImport extends ParallelVTI {
 						long conglomerateId = td.getHeapConglomerateId();
 						builder.destinationTable(conglomerateId);
 						RowLocation[] rowLocations = dataDictionary.computeAutoincRowLocations(tc, td);
+						byte[][] rowLocBytes;
+						if(rowLocations!=null){
+								rowLocBytes = new byte[rowLocations.length][];
+								for(int i=0;i<rowLocations.length;i++){
+										if(rowLocations[i]!=null)
+												rowLocBytes[i] = rowLocations[i].getBytes();
+								}
+						}else
+							rowLocBytes = null;
 
-						for(ColumnContext.Builder cb:columns.values()){
-							if(cb.isAutoIncrement()){
-									cb.sequenceRowLocation(rowLocations[cb.getColumnNumber()].getBytes());
-							}
-						}
+						ImportUtils.buildColumnInformation(connection,schemaName,tableName,insertColumnList,builder,rowLocBytes);
 				} catch (StandardException e) {
 						throw PublicAPI.wrapStandardException(e);
-				}
-
-				Map<String,Integer> pkCols = getPrimaryKeys(schemaName, tableName, dmd);
-				int[] pkKeyMap = new int[columns.size()];
-				Arrays.fill(pkKeyMap,-1);
-				LOG.info("columns="+columns);
-				LOG.info("pkCols="+pkCols);
-				for(String pkCol:pkCols.keySet()){
-						columns.get(pkCol).primaryKeyPos(pkCols.get(pkCol));
-				}
-
-				for(ColumnContext.Builder colBuilder:columns.values()){
-						builder.addColumn(colBuilder.build());
-				}
-		}
-
-		private static Map<String,ColumnContext.Builder> getColumns(String schemaName, String tableName,
-																																String insertColumnList, DatabaseMetaData dmd) throws SQLException{
-				ResultSet rs = null;
-				Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
-				try{
-						rs = dmd.getColumns(null,schemaName,tableName,null);
-						if(insertColumnList!=null && !insertColumnList.equalsIgnoreCase("null")){
-								List<String> insertCols = Lists.newArrayList(Splitter.on(",").trimResults().split(insertColumnList));
-								while(rs.next()){
-										ColumnContext.Builder colBuilder = buildColumn(rs);
-										String colName = colBuilder.getColumnName();
-										Iterator<String> colIterator = insertCols.iterator();
-										while(colIterator.hasNext()){
-												String insertCol = colIterator.next();
-												if(insertCol.equalsIgnoreCase(colName)){
-														columnMap.put(rs.getString(4),colBuilder);
-														colIterator.remove();
-														break;
-												}
-										}
-								}
-						}else{
-								while(rs.next()){
-										ColumnContext.Builder colBuilder = buildColumn(rs);
-
-										columnMap.put(colBuilder.getColumnName(),colBuilder);
-								}
-						}
-						return columnMap;
-				}finally{
-						if(rs!=null)rs.close();
-				}
-
-		}
-
-		private static ColumnContext.Builder buildColumn(ResultSet rs) throws SQLException {
-				ColumnContext.Builder colBuilder = new ColumnContext.Builder();
-				String colName = rs.getString(COLNAME_POSITION);
-				colBuilder.columnName(colName);
-				int colPos = rs.getInt(COLNUM_POSITION);
-				colBuilder.columnNumber(colPos-1);
-				int colType = rs.getInt(COLTYPE_POSITION);
-				colBuilder.columnType(colType);
-				boolean isNullable = rs.getInt(COLNULLABLE_POSITION)!=0;
-				colBuilder.nullable(isNullable);
-				if(colType== Types.CHAR||colType==Types.VARCHAR||colType==Types.LONGVARCHAR||colType == Types.DECIMAL){
-						int colSize = rs.getInt(COLSIZE_POSITION);
-						colBuilder.length(colSize);
-				}
-				if (colType == Types.DECIMAL)
-				{
-						int decimalDigits = rs.getInt(DECIMALDIGITS_POSIITON);
-						colBuilder.decimalDigits(decimalDigits);
-				}
-				/*
-				 * The COLUMNDEFAULT position contains two separate entities: a default value (if the column
-				 * has a default) or a String that looks like AUTOINCREMENT: start x increment y. We need to
-				 * deal with each case separately
-				 */
-				String colDefault = rs.getString(COLUMNDEFAULT_POSIITON);
-				String isAutoIncrement = rs.getString(ISAUTOINCREMENT_POSIITON);
-				boolean hasIncrementPrefix = colDefault!=null && colDefault.startsWith(AUTOINCREMENT_PREFIX);
-				if (isAutoIncrement.compareTo("YES") != 0 || !hasIncrementPrefix) {
-						colBuilder.columnDefault(colDefault);
-				}else if (hasIncrementPrefix){
-						//colDefault looks like "AUTOINCREMENT: start x increment y
-						colDefault = colDefault.substring(colDefault.indexOf('s'));
-						int endIndex = colDefault.indexOf(' ', 6);
-						long startVal = Long.parseLong(colDefault.substring(6, endIndex).trim());
-						colDefault = colDefault.substring(endIndex);
-						long incVal = Long.parseLong(colDefault.substring(10).trim());
-						colBuilder.autoIncrementStart(startVal).autoIncrementIncrement(incVal);
-				}
-				return colBuilder;
-		}
-
-		private static Map<String,Integer> getPrimaryKeys(String schemaName, String tableName,
-																											DatabaseMetaData dmd) throws SQLException {
-				//get primary key information
-				ResultSet rs = null;
-				try{
-						rs = dmd.getPrimaryKeys(null,schemaName,tableName.toUpperCase());
-						Map<String,Integer> pkCols = Maps.newHashMap();
-						while(rs.next()){
-                /*
-                 * The column number of use is the KEY_SEQ field in the returned result,
-                 * which is one-indexed. For convenience, we adjust it to be zero-indexed here.
-                 */
-								pkCols.put(rs.getString(4), rs.getShort(5) - 1);
-						}
-						return pkCols;
-				}finally{
-						if(rs!=null)rs.close();
 				}
 		}
 

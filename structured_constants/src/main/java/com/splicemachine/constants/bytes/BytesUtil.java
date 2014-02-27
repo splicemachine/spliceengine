@@ -256,21 +256,24 @@ public class BytesUtil {
         return new String(hexChars);
     }
 
+		public static byte[] fromHex(String line){
+				if(line==null || line.length()<=0) return null;
+				char[] hexChars = line.toCharArray();
+				byte[] data = new byte[hexChars.length/2];
+				for(int i=0,pos=0;i<hexChars.length-1;i+=2,pos++){
+						char n1 = hexChars[i];
+						char n2 = hexChars[i+1];
+						data[pos] = (byte)((Bytes.toBinaryFromHex((byte)n1)<<4) + Bytes.toBinaryFromHex((byte)n2));
+				}
+				return data;
+		}
+
     public static String toHex(ByteBuffer bytes) {
         if(bytes==null || bytes.remaining()<=0) return "";
         byte[] bits = new byte[bytes.remaining()];
         bytes.get(bits);
 
         return toHex(bits);
-    }
-
-    public static void main(String... args) throws Exception{
-        byte[][] vals = new byte[3][];
-        vals[0] = new byte[]{0,1};
-        vals[1] = new byte[]{2,3};
-        vals[2] = new byte[]{4,5};
-
-        System.out.println(Arrays.toString(concatenate(vals,6)));
     }
 
     public static byte[] unsignedCopyAndIncrement(byte[] start) {
@@ -287,6 +290,16 @@ public class BytesUtil {
         data[offset+3] = (byte)(value);
     }
 
+		public static void longToBytes(long x, byte[] data, int offset){
+				data[offset]   = (byte)(x>>56);
+				data[offset+1] = (byte)(x>>48);
+				data[offset+2] = (byte)(x>>40);
+				data[offset+3] = (byte)(x>>32);
+				data[offset+4] = (byte)(x>>24);
+				data[offset+5] = (byte)(x>>16);
+				data[offset+6] = (byte)(x>>8);
+				data[offset+7] = (byte)(x   );
+		}
     public static int bytesToInt(byte[] data, int offset) {
         int value = 0;
         value |= (data[offset] & 0xff)<<24;
@@ -328,4 +341,20 @@ public class BytesUtil {
 				System.arraycopy(data,offset,slice,0,length);
 				return slice;
 		}
+
+		public static void main(String...args) throws Exception{
+				String text = "test";
+				byte[] encoded = Bytes.toBytes(text);
+				String hex = BytesUtil.toHex(encoded);
+				byte[] decoded = BytesUtil.fromHex(hex);
+				String decodedStr = Bytes.toString(decoded);
+				System.out.println(decodedStr);
+		}
+
+		public static byte[] longToBytes(long n) {
+				byte[] data = new byte[8];
+				longToBytes(n,data,0);
+				return data;
+		}
+
 }
