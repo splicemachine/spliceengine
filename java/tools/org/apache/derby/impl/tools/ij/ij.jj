@@ -715,6 +715,7 @@ class ij {
         int[] displayColumns = new int[] {
             rs.findColumn("TABLE_SCHEM"),
             rs.findColumn("TABLE_NAME"),
+            rs.findColumn("INDEX_NAME"),
             rs.findColumn("COLUMN_NAME"),
             rs.findColumn("NON_UNIQUE"),
             rs.findColumn("TYPE"),
@@ -735,6 +736,7 @@ class ij {
     private int[] getColumnWidthsForIndex(String schema){
         int[] columnWidths = new int[] {
             20,
+            50,
             50,
             20,
             6,
