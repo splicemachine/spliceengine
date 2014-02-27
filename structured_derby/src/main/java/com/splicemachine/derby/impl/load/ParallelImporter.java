@@ -212,15 +212,21 @@ public class ParallelImporter implements Importer{
     public PairEncoder newEntryEncoder(ExecRow row) {
         int[] pkCols = importContext.getPrimaryKeys();
 
-				KeyEncoder encoder;
-				if(pkCols!=null&& pkCols.length>0){
-					encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
-				}else
-					encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+        KeyEncoder encoder;
+        if(pkCols!=null&& pkCols.length>0){
+            encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(pkCols,null),NoOpPostfix.INSTANCE);
+        }else
+            encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 
-				DataHash rowHash = new EntryDataHash(IntArrays.count(row.nColumns()),null);
+        int[] cols = IntArrays.count(row.nColumns());
+        if (pkCols != null && pkCols.length>0) {
+            for (int col:pkCols) {
+                cols[col] = -1;
+            }
+        }
+        DataHash rowHash = new EntryDataHash(cols,null);
 
-				return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+        return new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
     }
 
 		protected Snowflake.Generator getRandomGenerator(){
