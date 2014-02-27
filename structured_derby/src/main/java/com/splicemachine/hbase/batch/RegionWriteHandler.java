@@ -3,6 +3,7 @@ package com.splicemachine.hbase.batch;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.Puts;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -224,14 +225,7 @@ public class RegionWriteHandler implements WriteHandler {
         final String tableName = region.getTableDesc().getNameAsString();
         if(queue==null)
             queue =  RollForwardQueueMap.lookupRollForwardQueue(tableName);
-				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY,toProcess,ctx.getTransactionId());
-//        Mutation[] mutations = new Mutation[toProcess.size()];
-//        int i=0;
-//        for(KVPair pair:toProcess){
-//            mutations[i] = getMutation(pair,ctx,true);
-//            i++;
-//        }
-//        return transactor.processPutBatch(new HbRegion(region), queue, mutations);
+				return transactor.processKvBatch(new HbRegion(region),queue,SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,toProcess,ctx.getTransactionId());
     }
 
 	@Override

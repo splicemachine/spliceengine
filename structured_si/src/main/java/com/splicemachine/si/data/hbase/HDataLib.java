@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.hbase;
 
 import com.google.common.collect.Iterables;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.hbase.KVPair;
@@ -243,11 +244,22 @@ public class HDataLib implements SDataLib<Put, Delete, Get, Scan> {
 
 		@Override
 		public KVPair toKVPair(Put put) {
-				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,KVPair.PACKED_COLUMN_KEY).get(0).getValue());
+				return new KVPair(put.getRow(),put.get(SpliceConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES).get(0).getValue());
 		}
 
 		@Override
 		public Put toPut(KVPair kvPair, byte[] family, byte[] column, long longTransactionId) {
 				return kvPair.toPut(family,column,longTransactionId);
+		}
+
+		@Override
+		public Get newGet(byte[] rowKey, List<byte[]> families,List<List<byte[]>> columns, Long effectiveTimestamp,int maxVersions) {
+			Get get = newGet(rowKey,families,columns,effectiveTimestamp);
+			try {
+				get.setMaxVersions(1);
+			} catch (IOException e) {
+				throw new RuntimeException(e + "Exception setting max versions");
+			}
+			return get;
 		}
 }

@@ -25,6 +25,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     private boolean hasAccumulation = false;
     private boolean excludeRow = false;
     private boolean siNullSkip = false;
+    private boolean siOnlyAlreadyProcessed = false;
 
     public FilterStatePacked(String tableName, SDataLib dataLib, DataStore dataStore,
                              FilterState<Result, Put, Delete, Get, Scan, Lock,
@@ -45,41 +46,40 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
     @Override
     public Filter.ReturnCode filterKeyValue(org.apache.hadoop.hbase.KeyValue dataKeyValue) throws IOException {
         simpleFilter.setKeyValue(dataKeyValue);
+        final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
         switch (simpleFilter.type) {
             case TOMBSTONE:
             case ANTI_TOMBSTONE:
             case COMMIT_TIMESTAMP:
             case OTHER:
-                return simpleFilter.filterByColumnType();
+                return returnCode; // Return SI Columns Return Code
             case USER_DATA:
-                if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) {
-                	final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
-                    switch (returnCode) {
-                        case INCLUDE:
-                        case INCLUDE_AND_NEXT_COL:
-                        	siNullSkip = true;
-                            return Filter.ReturnCode.NEXT_COL;
-                        case SKIP:
-                        case NEXT_COL:
-                        case NEXT_ROW:
-                            return Filter.ReturnCode.SKIP;
-                        default:
-                            throw new RuntimeException("unknown return code");
-                    }
-                } else if (accumulator.isOfInterest(simpleFilter.keyValue.keyValue()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
-                	return accumulateUserData(dataKeyValue);
-                } else {
-                    if (!hasAccumulation) {
-                        final Filter.ReturnCode returnCode = simpleFilter.filterByColumnType();
-                        switch (returnCode) {
-                            case INCLUDE:
-                            case INCLUDE_AND_NEXT_COL:
-                                accumulated();
-                                break;
-                        }
-                    }
-                    return Filter.ReturnCode.SKIP;
-                }
+            	if (dataStore.isSINull(simpleFilter.keyValue.keyValue())) { // What is this?
+            		switch (returnCode) {
+                       	case INCLUDE:
+                       	case INCLUDE_AND_NEXT_COL:
+                       		siNullSkip = true;
+                       		return Filter.ReturnCode.NEXT_COL;
+                       	case SKIP:
+                       	case NEXT_COL:
+                       	case NEXT_ROW:
+                       		return Filter.ReturnCode.SKIP;
+                       	default:
+                       		throw new RuntimeException("unknown return code");
+            		}
+        		} else if (accumulator.isOfInterest(simpleFilter.keyValue.keyValue()) && !siNullSkip) { // This behaves similar to a seek next col without the reseek penalty - JL
+            		return accumulateUserData(dataKeyValue);
+            	} else {
+                	if (!hasAccumulation) {
+                		switch (returnCode) {
+                           	case INCLUDE:
+                           	case INCLUDE_AND_NEXT_COL:
+                           		accumulated();
+                           		break;
+                		}
+               		}
+               		return Filter.ReturnCode.SKIP;
+            	}
             default:
                 throw new RuntimeException("unknown key value type");
         }
@@ -115,7 +115,7 @@ public class FilterStatePacked<Result, Put extends OperationWithAttributes, Dele
             case SKIP:
             case NEXT_COL:
             case NEXT_ROW:
-                return Filter.ReturnCode.SKIP;
+            	return Filter.ReturnCode.SKIP;
             default:
                 throw new RuntimeException("unknown return code");
         }

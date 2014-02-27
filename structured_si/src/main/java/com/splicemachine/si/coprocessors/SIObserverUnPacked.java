@@ -124,22 +124,19 @@ public class SIObserverUnPacked extends BaseRegionObserver {
     private void addSIFilterToGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
 
-        final Filter newFilter = makeSIFilter(e, HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter(),
-								HTransactorFactory.getTransactionReadController().isGetIncludeSIColumn(get));
+        final Filter newFilter = makeSIFilter(e, HTransactorFactory.getClientTransactor().transactionIdFromGet(get), get.getFilter());
         get.setFilter(newFilter);
     }
 
     private void addSIFilterToScan(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         final Transactor<IHTable, Mutation,Put> transactor = HTransactorFactory.getTransactor();
-
-        final Filter newFilter = makeSIFilter(e, HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter(),
-								HTransactorFactory.getTransactionReadController().isScanIncludeSIColumn(scan));
+        final Filter newFilter = makeSIFilter(e, HTransactorFactory.getClientTransactor().transactionIdFromScan(scan), scan.getFilter());
         scan.setFilter(newFilter);
     }
 
     private Filter makeSIFilter(ObserverContext<RegionCoprocessorEnvironment> e, TransactionId transactionId,
-                                Filter currentFilter, boolean includeSIColumn) throws IOException {
-        final SIFilter siFilter = new SIFilter(HTransactorFactory.getTransactionReadController(),transactionId, HTransactorFactory.getTransactionManager(), rollForwardQueue, includeSIColumn);
+                                Filter currentFilter) throws IOException {
+        final SIFilter siFilter = new SIFilter(HTransactorFactory.getTransactionReadController(),transactionId, HTransactorFactory.getTransactionManager(), rollForwardQueue);
         Filter newFilter;
         if (currentFilter != null) {
             newFilter = new FilterList(FilterList.Operator.MUST_PASS_ALL, siFilter, currentFilter); // Wrap Existing Filters

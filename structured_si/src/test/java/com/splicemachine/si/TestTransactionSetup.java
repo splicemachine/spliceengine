@@ -41,6 +41,9 @@ public class TestTransactionSetup {
 		byte[] family;
     byte[]  ageQualifier;
     byte[] jobQualifier;
+    int  agePosition = 0;
+    int jobPosition = 1;
+    
     byte[] commitTimestampQualifier;
     byte[] tombstoneQualifier;
 
@@ -81,15 +84,13 @@ public class TestTransactionSetup {
 				//noinspection unchecked
 				dataStore = new DataStore(dataLib, reader, writer,
 								SIConstants.SI_NEEDED,
-								SIConstants.SI_NEEDED_VALUE,
-								SIConstants.ONLY_SI_FAMILY_NEEDED_VALUE,
+								SIConstants.SI_NEEDED_VALUE_BYTES,
 								SIConstants.SI_TRANSACTION_ID_KEY,
 								SIConstants.SI_DELETE_PUT,
-								SIConstants.SNAPSHOT_ISOLATION_FAMILY_BYTES,
                 commitTimestampQualifier,
 								tombstoneQualifier,
 								SIConstants.EMPTY_BYTE_ARRAY,
-								SIConstants.SI_ANTI_TOMBSTONE_VALUE,
+								SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_COLUMN_BYTES,
 								SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP,
 								userColumnsFamilyName);
         timestampSource = new SimpleTimestampSource();

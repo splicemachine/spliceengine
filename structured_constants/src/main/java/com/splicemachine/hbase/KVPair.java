@@ -17,7 +17,6 @@ import java.util.Arrays;
  * Created on: 8/8/13
  */
 public class KVPair implements Externalizable,Comparable<KVPair> {
-		public static final byte[] PACKED_COLUMN_KEY = new byte[]{0x00};
 
     private static final long serialVersionUID = 2l;
     private byte[] rowKey;
@@ -96,7 +95,7 @@ public class KVPair implements Externalizable,Comparable<KVPair> {
     }
 
     public KeyValue toKeyValue(){
-        return new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,PACKED_COLUMN_KEY,value);
+        return new KeyValue(rowKey,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES,value);
     }
 
     @Override

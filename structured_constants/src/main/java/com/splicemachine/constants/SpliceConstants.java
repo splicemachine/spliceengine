@@ -645,7 +645,12 @@ public class SpliceConstants {
 		public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
 		public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 		public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes(SEQUENCE_TABLE_NAME);
+		public static final int PACKED_COLUMN = 7;
+		public static final String PACKED_COLUMN_STRING = PACKED_COLUMN+"";
+		public static final byte[] PACKED_COLUMN_BYTES = Bytes.toBytes(PACKED_COLUMN_STRING);
 
+		
+		
 		// Splice Family Information
 		public static final String DEFAULT_FAMILY = "V";
 		public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes(DEFAULT_FAMILY);

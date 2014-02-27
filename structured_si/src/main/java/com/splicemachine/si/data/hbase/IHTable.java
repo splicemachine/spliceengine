@@ -9,9 +9,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -22,17 +20,13 @@ public interface IHTable {
     void close() throws IOException;
     Result get(Get get) throws IOException;
     CloseableIterator<Result> scan(Scan scan) throws IOException;
-
     void put(Put put) throws IOException;
     void put(Put put, Integer rowLock) throws IOException;
     void put(Put put, boolean durable) throws IOException;
     void put(List<Put> puts) throws IOException;
     OperationStatus[] batchPut(Pair<Mutation, Integer>[] puts) throws IOException;
-
     boolean checkAndPut(byte[] family, byte[] qualifier, byte[] expectedValue, Put put) throws IOException;
-
     void delete(Delete delete, Integer rowLock) throws IOException;
-
     Integer lockRow(byte[] rowKey) throws IOException;
     void unLockRow(Integer lock) throws IOException;
     void startOperation() throws IOException;

@@ -7,7 +7,6 @@ import java.io.IOException;
 public class SITransactorPackedTest extends SITransactorTest {
     @Override
     public void setUp() {
-        usePacked = true;
         super.setUp();
     }
 

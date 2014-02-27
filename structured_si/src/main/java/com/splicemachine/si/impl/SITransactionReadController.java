@@ -9,6 +9,7 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Result;
@@ -65,26 +66,9 @@ public class SITransactionReadController<
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public boolean isGetIncludeSIColumn(Get get) {
-				return dataStore.isIncludeSIColumn(get);
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public boolean isScanIncludeSIColumn(Scan scan) {
-				return dataStore.isIncludeSIColumn(scan);
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
 		public void preProcessGet(Get get) throws IOException {
 				dataLib.setGetTimeRange(get, 0, Long.MAX_VALUE);
 				dataLib.setGetMaxVersions(get);
-				if (dataStore.isIncludeSIColumn(get)) {
-						dataStore.addSIFamilyToGet(get);
-				} else {
-						dataStore.addSIFamilyToGetIfNeeded(get);
-				}
 		}
 
 		@Override
@@ -92,36 +76,30 @@ public class SITransactionReadController<
 		public void preProcessScan(Scan scan) throws IOException {
 				dataLib.setScanTimeRange(scan, 0, Long.MAX_VALUE);
 				dataLib.setScanMaxVersions(scan);
-				if (dataStore.isIncludeSIColumn(scan)) {
-						dataStore.addSIFamilyToScan(scan);
-				} else {
-						dataStore.addSIFamilyToScanIfNeeded(scan);
-				}
 		}
 
 		@Override
 		public IFilterState newFilterState(TransactionId transactionId) throws IOException {
-				return newFilterState(null, transactionId, false);
+				return newFilterState(null, transactionId);
 		}
 
 		@Override
-		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId, boolean includeSIColumn) throws IOException {
-				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, includeSIColumn,
+		public IFilterState newFilterState(RollForwardQueue rollForwardQueue, TransactionId transactionId) throws IOException {
+				return new FilterState(dataLib, dataStore, transactionStore, rollForwardQueue, 
 								transactionStore.getImmutableTransaction(transactionId));
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId, boolean includeSIColumn) throws IOException {
+		public IFilterState newFilterStatePacked(String tableName, RollForwardQueue rollForwardQueue, EntryPredicateFilter predicateFilter, TransactionId transactionId) throws IOException {
 				return new FilterStatePacked(tableName, dataLib, dataStore,
-								(FilterState) newFilterState(rollForwardQueue, transactionId, includeSIColumn),
+								(FilterState) newFilterState(rollForwardQueue, transactionId),
 								new HRowAccumulator(predicateFilter, new EntryDecoder(KryoPool.defaultPool())));
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
 		public Filter.ReturnCode filterKeyValue(IFilterState filterState, KeyValue keyValue) throws IOException {
-				//TODO -sf- excessive method, remove
 				return filterState.filterKeyValue(keyValue);
 		}
 
@@ -149,13 +127,7 @@ public class SITransactionReadController<
 										filterState.nextRow();
 								}
 								//noinspection StatementWithEmptyBody
-								if (familyToSkip != null
-												&&kv.matchingColumn(familyToSkip,qualifierToSkip)){
-//												&& Bytes.equals(familyToSkip,dataLib.getKeyValueFamily(kv))
-//												&& dataLib.valuesEqual(familyToSkip, dataLib.getKeyValueFamily(KV))
-//												&& Bytes.equals(qualifierToSkip, dataLib.getKeyValueQualifier(kv))){
-//												&& dataLib.valuesEqual(qualifierToSkip, dataLib.getKeyValueQualifier(KV))) {
-										// skipping to next column
+								if (familyToSkip != null &&kv.matchingColumn(familyToSkip,qualifierToSkip)){
 								} else {
 										familyToSkip = null;
 										qualifierToSkip = null;
@@ -199,4 +171,6 @@ public class SITransactionReadController<
 								transactionStore
 				);
 		}
+
+
 }

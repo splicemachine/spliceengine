@@ -35,17 +35,12 @@ import static com.splicemachine.constants.SIConstants.*;
  *         Date: 2/18/14
  */
 public class CompactionTest {
-
 		boolean useSimple = true;
-		boolean usePacked = false;
-
 		StoreSetup storeSetup;
 		TestTransactionSetup transactorSetup;
 		Transactor transactor;
 		TransactionManager control;
-
 		TransactorTestUtility testUtility;
-
 		@SuppressWarnings("unchecked")
 		void baseSetUp() {
 				transactor = transactorSetup.transactor;
@@ -55,14 +50,14 @@ public class CompactionTest {
 										@Override
 										public Boolean rollForward(long transactionId, List<byte[]> rowList) throws IOException {
 												final STableReader reader = storeSetup.getReader();
-												Object testSTable = reader.open(storeSetup.getPersonTableName(usePacked));
+												Object testSTable = reader.open(storeSetup.getPersonTableName());
 												new RegionRollForwardAction(testSTable,
 																Providers.basicProvider(transactorSetup.transactionStore),
 																Providers.basicProvider(transactorSetup.dataStore)).rollForward(transactionId,rowList);
 												return true;
 										}
 								}, 10, 100, 1000, "test");
-				testUtility = new TransactorTestUtility(useSimple,usePacked,storeSetup,transactorSetup,transactor,control);
+				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
 		}
 
 		@Before
@@ -138,7 +133,8 @@ public class CompactionTest {
 
 		private void checkCompaction(int testIndex, boolean commit, Function<Object[], Object> timestampProcessor) throws IOException, InterruptedException {
 				final String testRow = "joe" + testIndex;
-				final CountDownLatch latch = new CountDownLatch(2);
+				System.out.println("testRow " + testRow);
+				final CountDownLatch latch = new CountDownLatch(1);
 				Tracer.registerCompact(new Runnable() {
 						@Override
 						public void run() {
@@ -156,8 +152,7 @@ public class CompactionTest {
 						}
 						testUtility.insertAge(tx, testRow + "-" + i, i);
 						if (!useSimple) {
-								//noinspection ConstantConditions
-								admin.flush(storeSetup.getPersonTableName(usePacked));
+								admin.flush(storeSetup.getPersonTableName());
 						}
 						if (commit) {
 								control.commit(tx);
@@ -168,19 +163,22 @@ public class CompactionTest {
 				Assert.assertNotNull(t0);
 				if (useSimple) {
 						final LStore store = (LStore) storeSetup.getStore();
-						store.compact(transactor, storeSetup.getPersonTableName(usePacked));
+						store.compact(transactor, storeSetup.getPersonTableName());
 				} else {
-						//noinspection ConstantConditions
-						admin.majorCompact(storeSetup.getPersonTableName(usePacked));
+						admin.majorCompact(storeSetup.getPersonTableName());
 						Assert.assertTrue(latch.await(2, TimeUnit.SECONDS));
 				}
-				Result result = testUtility.readRaw(testRow + "-0",usePacked);
+				Result result = testUtility.readRaw(testRow + "-0");
 				final SDataLib dataLib = storeSetup.getDataLib();
-				final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
-								dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
-				for (KeyValue c : commitTimestamps) {
-						timestampProcessor.apply(new Object[]{t0, c});
-						Assert.assertEquals(t0.getId(), c.getTimestamp());
+				if (!commit) {
+					Assert.assertTrue("no raw results should return after compaction - it is gone",result == null || result.isEmpty());
+				} else {
+					final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
+									dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_STRING));
+					for (KeyValue c : commitTimestamps) {
+							timestampProcessor.apply(new Object[]{t0, c});
+							Assert.assertEquals(t0.getId(), c.getTimestamp());
+					}
 				}
 		}
 
@@ -200,9 +198,9 @@ public class CompactionTest {
 						}
 				}
 				Assert.assertNotNull(t0);
-				Result result = testUtility.readRaw(testKey + "-0",usePacked);
+				Result result = testUtility.readRaw(testKey + "-0");
 				final SDataLib dataLib = storeSetup.getDataLib();
-				final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(SNAPSHOT_ISOLATION_FAMILY),
+				final List<KeyValue> commitTimestamps = result.getColumn(dataLib.encode(DEFAULT_FAMILY_BYTES),
 								dataLib.encode(SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN));
 				for (KeyValue c : commitTimestamps) {
 						timestampProcessor.apply(new Object[]{t0, c});

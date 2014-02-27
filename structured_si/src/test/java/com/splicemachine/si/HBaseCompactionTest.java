@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
  * @author Scott Fines
  * Date: 2/18/14
  */
-public class HBaseCompactionTest extends CompactionTest {
+public abstract class HBaseCompactionTest extends CompactionTest {
 		protected static String CLASS_NAME = HBaseAsyncRollForwardTest.class.getSimpleName();
 		public HBaseCompactionTest() {
 				useSimple=false;

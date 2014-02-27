@@ -21,23 +21,18 @@ import java.io.IOException;
  */
 public class SIFilter extends FilterBase {
     private static Logger LOG = Logger.getLogger(SIFilter.class);
-		private TransactionManager transactionManager;
+	private TransactionManager transactionManager;
     protected String transactionIdString;
     protected RollForwardQueue rollForwardQueue;
-    private boolean includeSIColumn;
-
     private IFilterState filterState = null;
-		private TransactionReadController<Get,Scan> readController;
-
-		public SIFilter() {
-    }
+	private TransactionReadController<Get,Scan> readController;
+	public SIFilter() {}
 
     public SIFilter(TransactionReadController<Get, Scan> readController,
-										TransactionId transactionId, TransactionManager transactionManager, RollForwardQueue rollForwardQueue, boolean includeSIColumn) throws IOException {
+										TransactionId transactionId, TransactionManager transactionManager, RollForwardQueue rollForwardQueue) throws IOException {
 				this.transactionManager = transactionManager;
 				this.transactionIdString = transactionId.getTransactionIdString();
-        this.rollForwardQueue = rollForwardQueue;
-        this.includeSIColumn = includeSIColumn;
+				this.rollForwardQueue = rollForwardQueue;
 				this.readController = readController;
     }
 
@@ -57,8 +52,7 @@ public class SIFilter extends FilterBase {
 
     private void initFilterStateIfNeeded() throws IOException {
         if (filterState == null) {
-            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString),
-                    includeSIColumn);
+            filterState = readController.newFilterState(rollForwardQueue, transactionManager.transactionIdFromString(transactionIdString));
         }
     }
 

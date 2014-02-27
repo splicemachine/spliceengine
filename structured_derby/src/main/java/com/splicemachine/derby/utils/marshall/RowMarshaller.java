@@ -1,20 +1,17 @@
 package com.splicemachine.derby.utils.marshall;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.ByteBufferArrayUtils;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.KeyValueUtils;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
-
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -23,7 +20,7 @@ import java.util.List;
  * Created on: 6/21/13
  */
 public class RowMarshaller {
-    public static final byte[] PACKED_COLUMN_KEY = KVPair.PACKED_COLUMN_KEY;
+    public static final byte[] PACKED_COLUMN_KEY = SIConstants.PACKED_COLUMN_BYTES;
 
     private static KeyValue getPackedKv(DataValueDescriptor[] row,
                                         byte[] rowKey,
