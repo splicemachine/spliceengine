@@ -30,16 +30,13 @@ public class RSUtils {
      */
     public static <N> List<N> collectNodes(Visitable node, Class<N> clazz)
             throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
-        node.accept(v);
-        return v.getCollected();
+        return CollectNodes.collector(clazz).collect(node);
     }
 
-    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz, Predicate<? super Visitable> pred)
+    public static <N> List<N> collectNodesUntil(Visitable node, Class<N> clazz,
+                                                Predicate<? super Visitable> pred)
             throws StandardException {
-        CollectNodesVisitor v = new CollectNodesVisitor<N>(Predicates.instanceOf(clazz));
-        node.accept(new VisitUntilVisitor(v, pred));
-        return v.getCollected();
+        return CollectNodes.collector(clazz).until(pred).collect(node);
     }
 
     public static <N> List<N> collectExpressionNodes(ResultSetNode node, Class<N> clazz)
@@ -69,24 +66,17 @@ public class RSUtils {
      */
     public static List<ResultSetNode> getChildren(ResultSetNode node)
             throws StandardException {
-        CollectChildrenVisitor v = new CollectChildrenVisitor();
-        node.accept(v);
-        return v.getChildren();
+        Predicate<Object> self = Predicates.equalTo((Object)node);
+        Predicate<Object> notSelfButRS = Predicates.and(Predicates.not(self), isRSN);
+        return CollectNodes.<ResultSetNode>collector(notSelfButRS)
+            .onAxis(self)
+            .collect(node);
     }
+
+    public static final Predicate<Object> isRSN = Predicates.instanceOf(ResultSetNode.class);
 
     public static final Set<?> binaryRSNs = ImmutableSet.of(JoinNode.class, HalfOuterJoinNode.class,
             UnionNode.class, IntersectOrExceptNode.class);
-
-    public static final Predicate<Visitable> isBinaryRSN =
-            Predicates.compose(Predicates.in(binaryRSNs),
-                    new Function<Visitable, Class<?>>() {
-                        @Override
-                        public Class<?> apply(Visitable node) {
-                            return node.getClass();
-                        }
-                    });
-
-    public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
 
     public static final Function<Object,Class<?>> classOf = new Function<Object, Class<?>>() {
         @Override
@@ -95,14 +85,19 @@ public class RSUtils {
         }
     };
 
+    public static final Predicate<Object> isBinaryRSN =
+            Predicates.compose(Predicates.in(binaryRSNs), classOf);
+
+    public static final Set<?> leafRSNs = ImmutableSet.of(FromBaseTable.class, RowResultSetNode.class);
+
     /**
      * If rsn subtree contains a node with 2 children, return the node above
      * it, else return the leaf node
      */
-    public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
-        List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
         for (List<ResultSetNode> pair : Partition.partition(rsns, 2, 1, true)) {
             if (pair.get(1) != null && binaryRSNs.contains(pair.get(1).getClass())) {
+    public static ResultSetNode getLastNonBinaryNode(ResultSetNode rsn) throws StandardException {
+        List<ResultSetNode> rsns = getSelfAndDescendants(rsn);
                 return pair.get(0);
             }
         }

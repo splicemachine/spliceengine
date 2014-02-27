@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutionException;
  * Date: 7/9/13
  */
 public class SpliceDerbyVisitorAdapter implements ASTVisitor {
-    private Logger LOG = Logger.getLogger(SpliceDerbyVisitorAdapter.class);
+    private static final Logger LOG = Logger.getLogger(SpliceDerbyVisitorAdapter.class);
 
     ISpliceVisitor v;
 
@@ -80,8 +80,10 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
 
     @Override
     public void end(int phase) throws StandardException {
-        float duration = (System.nanoTime() - start) / 1000000f;
-        LOG.debug(String.format("%s visited %d nodes in %.2f ms", v.getClass().getSimpleName(), visited, duration));
+        if (LOG.isDebugEnabled()) {
+            float duration = (System.nanoTime() - start) / 1000000f;
+            LOG.debug(String.format("%s visited %d nodes in %.2f ms", v.getClass().getSimpleName(), visited, duration));
+        }
         visited = 0;
     }
 
