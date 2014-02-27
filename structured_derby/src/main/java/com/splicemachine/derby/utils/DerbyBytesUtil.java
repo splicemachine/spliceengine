@@ -6,6 +6,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.EnumMap;
 import com.carrotsearch.hppc.BitSet;
 import com.esotericsoftware.kryo.io.Input;
@@ -24,6 +25,9 @@ import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.store.access.Qualifier;
 import org.apache.derby.iapi.store.access.ScanController;
 import org.apache.derby.iapi.types.DataValueDescriptor;
+import org.apache.derby.iapi.types.SQLDate;
+import org.apache.derby.iapi.types.SQLTime;
+import org.apache.derby.iapi.types.SQLTimestamp;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.bytes.BytesUtil;
@@ -33,7 +37,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class DerbyBytesUtil {
 	private static Logger LOG = Logger.getLogger(DerbyBytesUtil.class);
 
-    private static final Serializer lazySerializer = new Serializer() {
+    private static final Serializer lazySerializer = new AbstractSerializer() {
         @Override
         public byte[] encode(DataValueDescriptor dvd) throws StandardException {
             return dvd.getBytes();
@@ -295,8 +299,15 @@ public class DerbyBytesUtil {
     public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder,DataValueDescriptor dvd, boolean desc) throws StandardException{
         return encodeInto(encoder, dvd, desc,false);
     }
+		public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder,DataValueDescriptor dvd, boolean desc,Calendar calendar) throws StandardException{
+				return encodeInto(encoder, dvd, desc,false,calendar);
+		}
 
-    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc,boolean encodeUntypedEmpty) throws StandardException {
+		public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc,boolean encodeUntypedEmpty) throws StandardException {
+				return encodeInto(encoder,dvd,desc,encodeUntypedEmpty,null);
+		}
+
+    public static MultiFieldEncoder encodeInto(MultiFieldEncoder encoder, DataValueDescriptor dvd, boolean desc,boolean encodeUntypedEmpty,Calendar calendar) throws StandardException {
         if(dvd.isNull()){
             encodeTypedEmpty(encoder,dvd,desc,encodeUntypedEmpty);
             return encoder;
@@ -306,7 +317,16 @@ public class DerbyBytesUtil {
             return encoder;
         }
         Format format = Format.formatFor(dvd);
-        serializationMap.get(format).encodeInto(dvd,encoder,desc);
+				Serializer serializer = serializationMap.get(format);
+				switch(format){
+						case TIME:
+						case TIMESTAMP:
+						case DATE:
+								serializer.encodeInto(dvd,encoder,desc,calendar);
+								return encoder;
+						default:
+								serializer.encodeInto(dvd, encoder, desc);
+				}
         return encoder;
 
     }
@@ -382,7 +402,11 @@ public class DerbyBytesUtil {
             rowDecoder.skip();
     }
 
-    private enum Format{
+		public static boolean isTimeFormat(DataValueDescriptor dvd) {
+				return dvd instanceof SQLTimestamp || dvd instanceof SQLDate || dvd instanceof SQLTime;
+		}
+
+		private enum Format{
         BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
         TINYINT(StoredFormatIds.SQL_TINYINT_ID),
         SMALLINT(StoredFormatIds.SQL_SMALLINT_ID),
@@ -554,23 +578,25 @@ public class DerbyBytesUtil {
 
         void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException;
 
+				void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc,Calendar calendar) throws StandardException;
+
         void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException;
 
         boolean isScalarType();
     }
 
+		private static abstract class AbstractSerializer implements Serializer{
+				@Override
+				public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc, Calendar calendar) throws StandardException {
+						encodeInto(dvd,encoder,desc);
+				}
+		}
+
     private static EnumMap<Format,Serializer> serializationMap = new EnumMap<Format, Serializer>(Format.class);
     static{
-        serializationMap.put(Format.BOOLEAN, new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getBoolean());
-            }
-
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeBoolean(data));
-            }
+        serializationMap.put(Format.BOOLEAN, new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getBoolean()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeBoolean(data)); }
 
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
@@ -585,16 +611,9 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return false;   }
         } );
 
-        serializationMap.put(Format.DOUBLE, new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getDouble());
-            }
-
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeDouble(data));
-            }
+        serializationMap.put(Format.DOUBLE, new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getDouble()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeDouble(data)); }
 
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
@@ -609,11 +628,8 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return false;   }
         });
 
-        serializationMap.put(Format.TINYINT,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getByte());
-            }
+        serializationMap.put(Format.TINYINT,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getByte()); }
 
             @Override
             public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
@@ -633,15 +649,9 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return true;   }
         });
 
-        serializationMap.put(Format.SMALLINT,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getShort());
-            }
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeShort(data));
-            }
+        serializationMap.put(Format.SMALLINT,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getShort()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeShort(data)); }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNext(dvd.getShort(),desc);
@@ -654,15 +664,9 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return true;   }
         });
 
-        serializationMap.put(Format.INTEGER,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getInt());
-            }
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeInt(data));
-            }
+        serializationMap.put(Format.INTEGER,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getInt()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeInt(data)); }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNext(dvd.getInt(),desc);
@@ -675,15 +679,9 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return true; }
         });
 
-        serializationMap.put(Format.LONGINT,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getLong());
-            }
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeLong(data));
-            }
+        serializationMap.put(Format.LONGINT,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getLong()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeLong(data)); }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNext(dvd.getLong(),desc);
@@ -696,15 +694,9 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return true; }
         });
 
-        serializationMap.put(Format.REAL,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode(dvd.getFloat());
-            }
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setValue(Encoding.decodeFloat(data));
-            }
+        serializationMap.put(Format.REAL,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode(dvd.getFloat()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setValue(Encoding.decodeFloat(data)); }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNext(dvd.getFloat(),desc);
@@ -716,15 +708,9 @@ public class DerbyBytesUtil {
 
             @Override public boolean isScalarType() { return false;   }
         });
-         serializationMap.put(Format.DECIMAL,new Serializer() {
-            @Override
-            public byte[] encode(DataValueDescriptor dvd) throws StandardException {
-                return Encoding.encode((BigDecimal)dvd.getObject());
-            }
-            @Override
-            public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
-                dvd.setBigDecimal(Encoding.decodeBigDecimal(data));
-            }
+         serializationMap.put(Format.DECIMAL,new AbstractSerializer() {
+            @Override public byte[] encode(DataValueDescriptor dvd) throws StandardException { return Encoding.encode((BigDecimal)dvd.getObject()); }
+            @Override public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException { dvd.setBigDecimal(Encoding.decodeBigDecimal(data)); }
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNext((BigDecimal)dvd.getObject(),desc);
@@ -736,7 +722,7 @@ public class DerbyBytesUtil {
 
              @Override public boolean isScalarType() { return false; }
          });
-        Serializer refSerializer = new Serializer() {
+        Serializer refSerializer = new AbstractSerializer() {
             @Override
             public byte[] encode(DataValueDescriptor dvd) throws StandardException {
                 Object o = dvd.getObject();
@@ -754,20 +740,11 @@ public class DerbyBytesUtil {
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
                 encoder.encodeNextObject(dvd.getObject());
-//                encoder.encodeNextUnsorted(getByteCopy(dvd,desc));
             }
 
             @Override
             public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
                 dvd.setValue(decoder.decodeNextObject());
-//                try{
-//                    ByteDataInput bdi = new ByteDataInput(decoder.decodeNextBytesUnsorted());
-//                    dvd.setValue(bdi.readObject());
-//                } catch (ClassNotFoundException e) {
-//                    throw Exceptions.parseException(e);
-//                } catch (IOException e) {
-//                    throw Exceptions.parseException(e);
-//                }
             }
 
             @Override public boolean isScalarType() { return false; }
@@ -783,14 +760,19 @@ public class DerbyBytesUtil {
                 return Encoding.encode(dvd.getDate(null).getTime());
             }
 
-            @Override
+						@Override
+						public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc, Calendar calendar) throws StandardException {
+								encoder.encodeNext(dvd.getDate(calendar).getTime(),desc);
+						}
+
+						@Override
             public void decode(byte[] data, DataValueDescriptor dvd) throws StandardException {
                 dvd.setValue(new Date(Encoding.decodeLong(data)));
             }
 
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
-                encoder.encodeNext(dvd.getDate(null).getTime(),desc);
+								encodeInto(dvd,encoder,desc,null);
             }
 
             @Override
@@ -814,8 +796,13 @@ public class DerbyBytesUtil {
 
             @Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
-                encoder.encodeNext(dvd.getTime(null).getTime(),desc);
+								encodeInto(dvd,encoder,desc,null);
             }
+
+						@Override
+						public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc,Calendar calendar) throws StandardException {
+								encoder.encodeNext(dvd.getTime(calendar).getTime(),desc);
+						}
 
             @Override
             public void decodeInto(DataValueDescriptor dvd, MultiFieldDecoder decoder, boolean desc) throws StandardException {
@@ -835,9 +822,14 @@ public class DerbyBytesUtil {
                 dvd.setValue(new Timestamp(Encoding.decodeLong(data)));
             }
 
-            @Override
+						@Override
+						public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc, Calendar calendar) throws StandardException {
+								encoder.encodeNext(dvd.getTimestamp(calendar).getTime(),desc);
+						}
+
+						@Override
             public void encodeInto(DataValueDescriptor dvd, MultiFieldEncoder encoder, boolean desc) throws StandardException {
-                encoder.encodeNext(dvd.getTimestamp(null).getTime(),desc);
+								encodeInto(dvd,encoder,desc,null);
             }
 
             @Override
@@ -848,7 +840,7 @@ public class DerbyBytesUtil {
             @Override public boolean isScalarType() { return true; }
         });
 
-        Serializer stringSerializer = new Serializer() {
+        Serializer stringSerializer = new AbstractSerializer() {
             @Override
             public byte[] encode(DataValueDescriptor dvd) throws StandardException {
                 return Encoding.encode(dvd.getString());
@@ -877,7 +869,7 @@ public class DerbyBytesUtil {
         serializationMap.put(Format.XML,stringSerializer);
         serializationMap.put(Format.CHAR,stringSerializer);
 
-        Serializer byteSerializer = new Serializer() {
+        Serializer byteSerializer = new AbstractSerializer() {
             @Override
             public byte[] encode(DataValueDescriptor dvd) throws StandardException {
                 return Encoding.encodeBytesUnsorted(dvd.getBytes());

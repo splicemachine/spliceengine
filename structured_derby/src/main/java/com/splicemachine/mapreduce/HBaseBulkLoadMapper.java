@@ -51,7 +51,11 @@ public class HBaseBulkLoadMapper extends Mapper<LongWritable, Text, ImmutableByt
 						context.write(outputKey,dataKv);
 						context.write(outputKey,siKv);
 				} catch (StandardException e) {
+						e.printStackTrace();
 						throw new IOException(e);
+				}catch(Throwable t){
+						t.printStackTrace();
+						throw new IOException(t);
 				}
 		}
 

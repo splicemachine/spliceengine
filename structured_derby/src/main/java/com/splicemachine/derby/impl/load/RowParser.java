@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.Sequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.ErrorState;
 import com.splicemachine.derby.utils.Exceptions;
+import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.derby.iapi.error.StandardException;
 import org.apache.derby.iapi.services.io.StoredFormatIds;
 import org.apache.derby.iapi.sql.execute.ExecRow;
@@ -17,6 +18,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 
 /**
@@ -34,8 +36,9 @@ public class RowParser {
     private String timeFormatStr;
     private final HashMap<String,String> columnTimestampFormats;
 		private Sequence[] sequences;
+		private GregorianCalendar calendar;
 
-    public RowParser(ExecRow template,
+		public RowParser(ExecRow template,
                      String dateFormat,
                      String timeFormat,
                      String timestampFormat) {
@@ -117,20 +120,41 @@ public class RowParser {
 				}else if(columnContext.isAutoIncrement()){
 						throw ErrorState.LANG_AI_CANNOT_MODIFY_AI.newException(columnContext.getColumnName());
 				}
+				elem = elem.trim();
+				if(elem.length()<=0){
+						//if it's a date, treat "" as null by setting to null
+						//otherwise, get it's default value
+						switch(column.getTypeFormatId()){
+								case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
+								case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
+								case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
+										column.setToNull();
+										return;
+						}
+						if(elem.length()==0) {
+								elem = columnContext.getColumnDefault();
+						}
+				}
 				switch(column.getTypeFormatId()){
-						case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 						case StoredFormatIds.SQL_TINYINT_ID: //return new SQLTinyint();
 						case StoredFormatIds.SQL_SMALLINT_ID: //return new SQLSmallint();
 						case StoredFormatIds.SQL_INTEGER_ID: //return new SQLInteger();
+								if(elem==null){
+										column.setToNull();
+										break;
+								}
+								try{
+										int value = Integer.parseInt(elem);
+										column.setValue(value);
+										break;
+								}catch(NumberFormatException nfe){
+										throw ErrorState.LANG_FORMAT_EXCEPTION.newException(column.getTypeName());
+								}
+						case StoredFormatIds.SQL_BOOLEAN_ID: //return new SQLBoolean();
 						case StoredFormatIds.SQL_LONGINT_ID: //return new SQLLongint();
 						case StoredFormatIds.SQL_REAL_ID: //return new SQLReal();
 						case StoredFormatIds.SQL_DOUBLE_ID: //return new SQLDouble();
 						case StoredFormatIds.SQL_DECIMAL_ID:
-								//treat empty strings as null
-								elem = elem.trim();
-								if(elem.length()==0) {
-										elem = columnContext.getColumnDefault();
-								}
 						case StoredFormatIds.SQL_VARCHAR_ID: //return new SQLVarchar();
 						case StoredFormatIds.SQL_LONGVARCHAR_ID: //return new SQLLongvarchar();
 						case StoredFormatIds.SQL_CLOB_ID: //return new SQLClob();
@@ -146,11 +170,6 @@ public class RowParser {
 						case StoredFormatIds.SQL_DATE_ID: //return new SQLDate();
 						case StoredFormatIds.SQL_TIME_ID: //return new SQLTime();
 						case StoredFormatIds.SQL_TIMESTAMP_ID: //return new SQLTimestamp();
-								elem = elem.trim();
-								if(elem.length()<=0){
-										column.setToNull();
-										break;
-								}
 								SimpleDateFormat format = getDateFormat(column, elem);
 								try{
 										if(format.toPattern().endsWith("Z") || format.toPattern().endsWith("X")){
@@ -158,7 +177,10 @@ public class RowParser {
 												elem = elem + "00";
 										}
 										Date value = format.parse(elem);
-										column.setValue(new Timestamp(value.getTime()));
+										if(calendar==null)
+												calendar = new GregorianCalendar();
+
+										column.setValue(new Timestamp(value.getTime()),calendar);
                 }catch (ParseException p){
                     throw ErrorState.LANG_DATE_SYNTAX_EXCEPTION.newException();
                 }

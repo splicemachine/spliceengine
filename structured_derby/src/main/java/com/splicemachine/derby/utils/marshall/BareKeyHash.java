@@ -10,6 +10,7 @@ import org.apache.derby.iapi.sql.execute.ExecRow;
 import org.apache.derby.iapi.types.DataValueDescriptor;
 
 import java.io.IOException;
+import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
@@ -22,6 +23,7 @@ public class BareKeyHash{
 		protected final boolean sparse;
 
 		protected final KryoPool kryoPool;
+		private GregorianCalendar calendar;
 
 		protected BareKeyHash(int[] keyColumns, boolean[] keySortOrder,boolean sparse,KryoPool kryoPool) {
 				this.keyColumns = keyColumns;
@@ -98,8 +100,11 @@ public class BareKeyHash{
 				else if(dvd.isNull()){
 						if(!sparse)
 								DerbyBytesUtil.encodeTypedEmpty(encoder, dvd, desc, true);
-				}else
-						DerbyBytesUtil.encodeInto(encoder,dvd,desc);
+				}else {
+						if(calendar==null && DerbyBytesUtil.isTimeFormat(dvd))
+								calendar = new GregorianCalendar();
+						DerbyBytesUtil.encodeInto(encoder,dvd,desc,calendar);
+				}
 		}
 
 
